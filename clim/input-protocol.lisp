@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.16 92/07/06 18:51:42 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.17 92/07/08 16:30:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -100,7 +100,8 @@
 (defmethod stream-set-cursor-position-internal :after ((stream input-protocol-mixin) x y)
   (let ((cursor (stream-text-cursor stream)))
     (when cursor
-      (cursor-set-position cursor x y))))
+      ;; Assumes that the cursors are all off for the stream
+      (cursor-set-position cursor x y t))))
 
 
 (defmethod initialize-menu :before (port (menu input-protocol-mixin) associated-window)
@@ -127,8 +128,9 @@
 	(multiple-value-bind (x y) (cursor-position cursor)
 	  (multiple-value-bind (width height)
 	      (cursor-width-and-height-pending-protocol cursor)
-	    (let ((cursor-rect (make-bounding-rectangle x y (+ x width) (+ y height))))
-	      (when (region-intersects-region-p region cursor-rect)
+	    (with-bounding-rectangle* (left top right bottom) region
+	      (when (ltrb-overlaps-ltrb-p left top right bottom
+					  x y (+ x width) (+ y height))
 		(note-cursor-change cursor 'cursor-active t t)))))))))
 
 (defmethod pointer-motion-pending ((stream input-protocol-mixin)
@@ -145,6 +147,13 @@
   (with-slots (pointer-motion-pending) stream
     (setf pointer-motion-pending new-value)))
 
+;; All the QUEUE-EVENT on INPUT-PROTOCOL-MIXIN either discard the event or
+;; insert a *copy* of the event into the stream's input buffer
+(defmethod queue-event :after ((stream input-protocol-mixin) (event keyboard-event))
+  (deallocate-event event))
+
+(defmethod queue-event :after ((stream input-protocol-mixin) (event pointer-event))
+  (deallocate-event event))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
@@ -154,21 +163,19 @@
 	  ((and keysym (not (typep keysym 'modifier-keysym)))
 	   (queue-put (stream-input-buffer stream) (copy-event event)))
 	  (keysym
-	   ;; must be a shift keysym
-	   ;; must update the pointer shifts.
-	   (let ((pointer (stream-primary-pointer stream)))
-	     (when pointer
-	       (setf (pointer-button-state pointer) 
-		     (event-modifier-state event))))))))
+	   ;; Must be a shift keysym, so update the modifier state.
+	   (let ((port (port stream)))
+	     (when port
+	       (setf (port-modifier-state port) (event-modifier-state event))))))))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-release-event))
   ;;--- key state table?  Not unless all sheets are helping maintain it.
   (let ((keysym (keyboard-event-key-name event)))
     (when (and keysym (typep keysym 'modifier-keysym))
-      ;; update the pointer shifts.
-      (let ((pointer (stream-primary-pointer stream)))
-	(when pointer
-	  (setf (pointer-button-state pointer) (event-modifier-state event))))))
+      ;; Update the pointer shifts.
+      (let ((port (port stream)))
+	(when port
+	  (setf (port-modifier-state port) (event-modifier-state event))))))
   nil)
 
 ;;;--- Need to modularize stream implementation into fundamental and extended
@@ -181,18 +188,19 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-button-release-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
-;;; --- Handle "clicks" differently than press and release?
-;;; so that we can tell when to queue up non-characters into the stream.
+;;;--- Handle "clicks" differently than press and release?
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-click-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-motion-event))
-  (let ((pointer (stream-primary-pointer stream)))
+  (let ((port (port stream))
+	(pointer (stream-primary-pointer stream)))
     (pointer-set-position pointer
-      (pointer-event-x event) (pointer-event-y event))
+      (pointer-event-x event) (pointer-event-y event) t)
     (pointer-set-native-position pointer 
-      (pointer-event-native-x event) (pointer-event-native-y event))
-    (setf (pointer-button-state pointer) (event-modifier-state event))
+      (pointer-event-native-x event) (pointer-event-native-y event) t)
+    (setf (port-modifier-state port) (event-modifier-state event))
+    (setf (pointer-buttons pointer) (pointer-event-button event))
     (setf (pointer-sheet pointer) stream)
     (setf (pointer-motion-pending stream pointer) t)))
 
@@ -449,7 +457,6 @@
       ;;--- mouse clicks, for example.
       (beep stream))))
 
-
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)
   (stream-unread-gesture (or *original-stream* stream) character))
 
@@ -539,21 +546,6 @@
 ;;; Extended Input
 (defmethod stream-input-wait ((stream input-protocol-mixin)
 			      &key timeout input-wait-test)
-  #-Silica
-  (with-slots (input-buffer) stream
-    (unless (queue-empty-p input-buffer)
-      (return-from stream-input-wait t))
-    ;; Non-Silica version is always one-process
-    (loop
-      (let ((flag (stream-event-handler stream :timeout timeout
-					:input-wait-test input-wait-test)))
-	(cond ((or (eq flag ':timeout) (eq flag ':input-wait-test))
-	       (return-from stream-input-wait (values nil flag)))
-	      ((not (queue-empty-p input-buffer))
-	       (return-from stream-input-wait (values t :input-buffer)))
-	      ((and input-wait-test (funcall input-wait-test stream))
-	       (return-from stream-input-wait (values nil :input-wait-test)))))))
-  #+Silica
   (with-accessors ((input-buffer stream-input-buffer)) stream
     ;; The assumption is that the input-wait-test function can only change
     ;; its value when an event is received and processed.  The only
@@ -566,7 +558,7 @@
     ;; the input-wait-test function out of commission.  Need to get the "process-wait"
     ;; story straight.
     ;; Silica version is always multi-process
-    ;;--- This won't work on Cloe, what can we steal from the #-Silica stuff?
+    ;;--- This won't work on Cloe, what can we steal from CLIM 1.0?
     (let* ((flag nil)
 	   (start-time (get-internal-real-time))
 	   (end-time (and timeout
@@ -583,9 +575,9 @@
 	       flag))
 	(declare (dynamic-extent #'waiter))
 	(port-event-wait (port stream) #'waiter :timeout timeout)
-	;; Surely if we have got to here and flag is NIL then we have timed-out
-	(values (when (eq flag ':input-buffer) t)
-		(or flag :timeout))))))
+	(return-from stream-input-wait
+	  (values (when (eq flag ':input-buffer) t)
+		  (or flag ':timeout)))))))
 
 
 #+Genera
@@ -650,12 +642,17 @@
 
 
 ;;; STREAM-POINTER-POSITION method returns X,Y in history coordinates.
-;;; Around methods take care of this (see protocol-intermediaries.lisp)
 (defmethod stream-pointer-position ((stream input-protocol-mixin) &key (timeout 0) pointer)
-  (stream-pointer-position-in-window-coordinates stream :timeout timeout :pointer pointer))
+  (declare (ignore timeout))
+  (let ((pointer (or pointer (stream-primary-pointer stream))))
+    (pointer-position pointer)))
 
 (defmethod stream-set-pointer-position ((stream input-protocol-mixin) x y &key pointer)
-  (set-stream-pointer-position-in-window-coordinates stream x y :pointer pointer))
+  (declare (type real x y))
+  (unless pointer
+    (setf pointer (stream-primary-pointer stream)))
+  (setf (pointer-position-changed pointer) t)
+  (pointer-set-position pointer x y))
 
 (defgeneric* (setf stream-pointer-position) (x y stream))
 (defmethod* (setf stream-pointer-position) (x y (stream t))
@@ -672,18 +669,6 @@
 				stream-set-pointer-position)
 			       (stream x y)
   (stream-set-pointer-position stream x y))
-
-;;; The primitive we are interested in.  The pointer is in inside-host-window coords.
-(defun stream-pointer-position-in-window-coordinates (stream &key (timeout 0) pointer)
-  (declare (ignore timeout))
-  (let ((pointer (or pointer (stream-primary-pointer stream))))
-    (pointer-position pointer)))
-
-(defun set-stream-pointer-position-in-window-coordinates (stream x y &key pointer)
-  (declare (type real x y))
-  (unless pointer (setf pointer (stream-primary-pointer stream)))
-  (setf (pointer-position-changed pointer) t)
-  (pointer-set-position pointer x y))
 
 (defmethod stream-set-input-focus ((stream input-protocol-mixin))
   (setf (port-keyboard-input-focus (port stream)) stream))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.27 92/07/06 18:51:50 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.28 92/07/08 16:31:18 cer Exp $
 
 (in-package :clim-user)
 
@@ -30,7 +30,7 @@ What about environment issue?
 (defmacro repeat (n &body body)
   (let ((i '#:i))
     `(dotimes (,i ,n)
-       #-(or Minima Genera Allegro) (declare (ignore i))
+       #-(or Minima Genera allegro) (declare (ignore i))
        ,@body)))
 
 (defmacro with-display-pane ((stream) &body body)
@@ -626,16 +626,20 @@ people, shall not perish from the earth.
 	(format-graphics-sample stream (format nil "Ink ~D" i) sample
 				:ink (make-contrasting-inks 6 i))))))
 
-(define-test (draw-points-test graphics) (stream)
+(define-test (points-and-lines graphics) (stream)
   "Test drawing points"
-  (formatting-graphics-samples (stream "Single Point")
-    (format-graphics-sample stream "Single Point" '(draw-point* 0 0)))
-  (formatting-graphics-samples (stream "Single Large Point")
-    (format-graphics-sample stream "Single Large Point" '(draw-point* 0 0 :line-thickness 5)))
+  (formatting-graphics-samples (stream "Single Points")
+    (format-graphics-sample stream "One Pixel" '(draw-point* 0 5))
+    (format-graphics-sample stream "Large Point" '(draw-point* 0 0 :line-thickness 5)))
+  (formatting-graphics-samples (stream "Some Lines")
+    (format-graphics-sample stream "Some Lines"
+      '(draw-lines* (0 0 10 100 50 50 90 100 100 10))))
   (formatting-graphics-samples (stream "Many Points")
-    (format-graphics-sample stream "Many Points" '(draw-points* (0 0 10 100 50 50 90 100 100 10))))
-  (formatting-graphics-samples (stream "Many Large Points")
-    (format-graphics-sample stream "Many Large Points" '(draw-points* (0 0 10 100 50 50 90 100 100 10) :line-thickness 5))))
+    (format-graphics-sample stream "Many Small Points"
+      '(draw-points* (0 0 10 110 50 50 90 110 100 10)))
+    (format-graphics-sample stream "Many Large Points"
+      '(draw-points* (0 0 10 100 50 50 90 100 100 10) :line-thickness 5))))
+
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -1055,7 +1059,7 @@ people, shall not perish from the earth.
   (sleep 2)
   (window-refresh stream))
 
-#+Allegro
+#+allegro
 (define-test (clos-metaobjects-graph formatted-output) (stream)
   "Draw a graph showing part of the CLOS class hierarchy"
   (format-graph-from-roots 
@@ -1581,7 +1585,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (apply #'draw-compass-point stream ptype point))))
     #+ignore (declare (dynamic-extent #'draw-compass-point #'draw-compass))
     (with-menu (menu stream)
-      #-Silica (setf (window-label menu) "Compass point")
+      #-silica (setf (window-label menu) "Compass point")
       (format stream "~S" (menu-choose-from-drawer menu 'menu-item #'draw-compass)))))
 
 
@@ -1615,9 +1619,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defun graphics-dialog-internal (stream &optional own-window)
   (let ((square-dimension 100)
-	(draw-point t)
 	(draw-circle t)
 	(draw-square t)
+	(draw-point t)
 	(draw-/-diagonal t)
 	(draw-\\-diagonal t)
 	(line-thickness 1)
@@ -1635,6 +1639,10 @@ Luke Luck licks the lakes Luke's duck likes."))
 	    (accept 'boolean :stream stream
 		    :prompt "Draw the square" :default draw-square))
       (terpri stream)
+      (setq draw-point
+	    (accept 'boolean :stream stream
+		    :prompt "Draw point" :default draw-point))
+      (terpri stream)
       (setq draw-/-diagonal
 	    (accept 'boolean :stream stream
 		    :prompt "Draw / diagonal" :default draw-/-diagonal))
@@ -1642,10 +1650,6 @@ Luke Luck licks the lakes Luke's duck likes."))
       (setq draw-\\-diagonal
 	    (accept 'boolean :stream stream
 		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
-      (terpri stream)
-            (setq draw-point
-	    (accept 'boolean :stream stream
-		    :prompt "Draw point" :default draw-point))
       (terpri stream)
       (setq line-thickness
 	    (accept 'number :stream stream
@@ -1669,16 +1673,16 @@ Luke Luck licks the lakes Luke's duck likes."))
 	    (when draw-circle
 	      (draw-circle* stream radius radius radius
 			    :filled nil))
+	    (when draw-point
+	      (draw-point* stream 
+			   (/ square-dimension 4)
+			   (/ square-dimension 2)))
 	    (when draw-/-diagonal
 	      (draw-line* stream 0 square-dimension square-dimension 0
 			  :line-cap-shape :round))
 	    (when draw-\\-diagonal
 	      (draw-line* stream 0 0 square-dimension square-dimension
-			  :line-cap-shape :round))
-	    (when draw-point
-	      (draw-point* stream 
-			   (/ square-dimension 4)
-			   (/ square-dimension 2)))))))))
+			  :line-cap-shape :round))))))))
 
 
 ;;;; Benchmarks
@@ -1722,7 +1726,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(let ((start-time (get-internal-real-time))
 	      (vstart-time (get-internal-run-time)))
 	  (repeat iterations
-	    (funcall continuation stream)
+	    (#+Genera mi:with-metering-enabled #-Genera progn
+	      (funcall continuation stream))
 	    (force-output stream))
 	  (push (/ (float (- (get-internal-real-time) start-time))
 		   internal-time-units-per-second)
@@ -1741,7 +1746,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (let ((results (rest (butlast (sort vresults #'<)))))
 		 (/ (apply #'+ results) (length results))))))
 	(format (get-frame-pane *application-frame* 'caption-pane)
-	    "~%Each run of ~A took an average of ~3$ real, ~3$ virtual, ~3$ v/r seconds"
+	    "~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
 	    name 
 	    time
 	    vtime
@@ -2560,8 +2565,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"
   (without-clim-input
-    (if #+Allegro (typep (port stream) 'xm-silica::xt-port)
-	#-Allegro nil
+    (if #+allegro (typep (port stream) 'xm-silica::xt-port)
+	#-allegro nil
 	(sleep 1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
@@ -2578,8 +2583,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (cached-menu-choose :iterations 10) (stream)
   "Pop up a cached menu of colors"
   (without-clim-input
-    (if #+Allegro (typep (port stream) 'xm-silica::xt-port)
-	#-Allegro nil
+    (if #+allegro (typep (port stream) 'xm-silica::xt-port)
+	#-allegro nil
 	(sleep 1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
@@ -2731,16 +2736,19 @@ Luke Luck licks the lakes Luke's duck likes."))
     ()
   (frame-exit *application-frame*))
 
-(defvar *test-suite-frame* nil)
+(defvar *test-suites* nil)
 
-(defun do-test-suite ()
-  (let* (
-	 (width 1050)
-	 (height 500)
-	 (test (or *test-suite-frame*
-		   (make-application-frame 'clim-tests
-					   :width width 
-					   :height height
-					   ))))
-    (setq *test-suite-frame* test)
-    (run-frame-top-level test)))
+(defun do-test-suite (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *test-suites*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'clim-tests
+						   :frame-manager framem
+						   :width 600 :height 420)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *test-suites*))
+	     frame)))
+    (run-frame-top-level frame)))

@@ -1,12 +1,14 @@
-;;; -*- Mode: Lisp; Package: clim-user ; Base: 10.; Syntax: Common-Lisp -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
+
+;;; $fiHeader: ico.lisp,v 1.2 92/07/06 18:52:06 cer Exp $
+
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;; Portions (c) 1992 Franz Inc.
-;;; $fiHeader: ico.lisp,v 1.1 92/07/01 16:07:07 cer Exp Locker: cer $
 ;;; Algorithm pretty much lifted from X11 demo program.
 ;;;
 
-(in-package :clim-user)
+(in-package :clim-demo)
 
 ;;;
 ;;; Entry 
@@ -14,31 +16,27 @@
 
 (defvar *ico-mode* :clim)
 
-(defun ico ()
-  (run-frame-top-level (make-application-frame 'ico-frame)))
-
 ;;;
 ;;; ICO Frames
 ;;;
 
 (define-application-frame ico-frame ()
-			  ((ico-time-p :initform t)
-			   (ico-line-style :initform :thin)
-			   (draw-edges :initform t)
-			   (draw-faces :initform t)
-			   (ico-process :initform nil :accessor ico-process))
-  (:command-table (ico-frame :inherit-from (clim-internals::accept-values-pane)))
+    ((ico-time-p :initform t)
+     (ico-line-style :initform :thin)
+     (draw-edges :initform t)
+     (draw-faces :initform nil)
+     (ico-process :initform nil :accessor ico-process))
+  (:command-table (ico-frame :inherit-from (accept-values-pane)))
   (:panes
-   (target :application :width 400 :height 400)
-   (options :application
-    :width :compute :height :compute
-    :display-function `(clim-internals::accept-values-pane-displayer
-			:displayer display-options-pane)))
+    (target :application :width 400 :height 400)
+    (options :accept-values
+	     :width :compute :height :compute
+	     :display-function `(accept-values-pane-displayer
+				  :displayer display-options-pane)))
   (:layouts (:default (vertically () target options))))
 
 (defmethod frame-target ((fr ico-frame))
   (get-frame-pane fr 'target))
-
 
 (defmethod display-options-pane ((frame ico-frame) pane &key max-width max-height)
   (declare (ignore max-width max-height))
@@ -52,25 +50,26 @@
 		     (and draw-edges '(:edges)))))
       (setf x (accept '(subset :faces :edges) :default x :stream pane :prompt "Choose"))
       (terpri pane)
-      (setf draw-edges (member :edges x)
-	    draw-faces (member :faces x)))
+      (setf draw-edges (and (member :edges x) t)
+	    draw-faces (and (member :faces x) t)))
     (setf ico-line-style (accept '(member :thin :thick)
 				 :default ico-line-style
 				 :stream pane
 				 :prompt "Line Style"))
     (terpri pane)))
 
-(define-ico-frame-command (com-ico-throw-ball :menu t)
-    ()
+(define-ico-frame-command (com-ico-throw-ball :menu "Catch ball" :keystroke #\t) ()
   (with-application-frame (frame)
     (throw-ball frame)))
 
-(define-ico-frame-command (com-ico-catch-ball :menu t)
-    ()
+(define-ico-frame-command (com-ico-catch-ball :menu "Throw ball" :keystroke #\c) ()
   (with-application-frame (frame)
     (catch-ball frame)))
 
-
+(define-ico-frame-command (com-ico-quit :menu "Quit" :keystroke #\q) ()
+  (with-application-frame (frame)
+    (catch-ball frame)
+    (frame-exit frame)))
 
 (defmethod disable-frame :after ((frame ico-frame))
   (catch-ball frame))
@@ -79,24 +78,38 @@
   (unless (ico-process frame)
     (setf (ico-process frame)
 	  (clim-sys:make-process #'(lambda ()
-			    (if (slot-value frame 'ico-time-p)
-				(time (run-ico frame))
-				(run-ico frame))
-			    (setf (ico-process frame) nil))
-			:name "ICO ball process"))))
+				     (if (slot-value frame 'ico-time-p)
+					 (time (run-ico frame))
+					 (run-ico frame))
+				     (setf (ico-process frame) nil))
+				 :name "ICO ball process"))))
 
 (defmethod catch-ball ((frame ico-frame))
   (when (ico-process frame)
-    (clim-sys::destroy-process (ico-process frame))
+    (clim-sys:destroy-process (ico-process frame))
     (setf (ico-process frame) nil)))
 
 (defmethod repaint-frame ((frame ico-frame) pane region)
   (declare (ignore pane region))
   (throw-ball frame))
 
+
 ;;;
 ;;; Ico, the stuff
 ;;;
+
+(defun make-ico-point (x y)
+  (#+allegro excl::fast #-allegro progn
+    (let ((z (make-array 2 :element-type 'single-float)))
+      (declare (type (simple-array single-float (2)) z))
+      (setf (aref z 0) (float x 0s0)
+	    (aref z 1) (float y 0s0))
+      z)))
+
+(defmacro ico-point-x (z)
+  `(the single-float (aref (the (simple-array single-float (2)) ,z) 0)))
+(defmacro ico-point-y (z)
+  `(the single-float (aref (the (simple-array single-float (2)) ,z) 1)))
 
 (defconstant ico-w   150)
 (defconstant ico-h   150)
@@ -110,10 +123,8 @@
 	 (bg (medium-background medium))
 	 (win-w (bounding-rectangle-width pane))
 	 (win-h (bounding-rectangle-height pane))
-	 (ico-x (floor (* (- win-w ico-w) 128)
-		       256))
-	 (ico-y (floor (* (- win-h ico-h) 128)
-		       256))
+	 (ico-x (floor (* (- win-w ico-w) 128) 256))
+	 (ico-y (floor (* (- win-h ico-h) 128) 256))
 	 (ico-dx 13)
 	 (ico-dy 9)
 	 (xtop (- win-w ico-w))
@@ -126,29 +137,28 @@
     (declare (integer win-w win-h)
 	     (integer ico-x ico-y ico-dx ico-dy xtop ytop prev-x prev-y)
 	     (special prev-x prev-y))
-    
+
     (with-slots (draw-faces draw-edges) frame
       (ecase *ico-mode*
-	#+ABC
+	#+abc
 	(:abc (clear-region medium +everywhere+))
-	#+CLIM
+	#+clim
 	(:clim)
 	(:dont)
-	#+XLIB-IGNORE
+	#+xlib-ignore
 	(:clx
-	 (setq display (on-x::x-display (port medium)))
-	 (setq black (xlib:screen-black-pixel (on-x::x-screen (port medium))))
-	 (setq white (xlib:screen-white-pixel (on-x::x-screen (port medium))))
-	 (setq drawable (slot-value medium 'on-x::drawable))
-	 (setq gcontext (slot-value medium 'on-x::gcontext))
-	 (setf (xlib:gcontext-fill-style gcontext) :solid))
-	#+Genera
+	  (setq display (on-x::x-display (port medium)))
+	  (setq black (xlib:screen-black-pixel (on-x::x-screen (port medium))))
+	  (setq white (xlib:screen-white-pixel (on-x::x-screen (port medium))))
+	  (setq drawable (medium-drawable medium))
+	  (setq gcontext (slot-value medium 'on-x::gcontext))
+	  (setf (xlib:gcontext-fill-style gcontext) :solid))
+	#+genera
 	(:genera
-	 (setq drawable (slot-value medium 'on-genera::drawable))))
+	  (setq drawable (medium-drawable medium))))
 
       (window-clear pane)
       (dotimes (i count)
-      
 	#+ignore
 	(cond (draw-edges
 	       (do* ((minx (car edges))
@@ -156,83 +166,65 @@
 		     (maxx minx)
 		     (maxy miny)
 		     (edges  (cddr edges)  (cddr edges)))
-		   ((null edges)
-		    (when (and minx miny maxx maxy)
-		      (draw-rectangle* medium 
-				       (1- minx)
-				       (1- miny)
-				       (1+ maxx)
-				       (1+ maxy)
-				       :ink bg
-				       :filled t)))
+		    ((null edges)
+		     (when (and minx miny maxx maxy)
+		       (draw-rectangle* medium 
+					(1- minx) (1- miny)
+					(1+ maxx) (1+ maxy)
+					:ink bg :filled t)))
 		 (let ((x (car edges))
 		       (y (second edges)))
-		   (clim-utils::minf minx x)
-		   (clim-utils::minf miny y)
-		   (clim-utils::maxf maxx x)
-		   (clim-utils::maxf maxy y)))))
-      
+		   (clim-utils:minf minx x)
+		   (clim-utils:minf miny y)
+		   (clim-utils:maxf maxx x)
+		   (clim-utils:maxf maxy y)))))
+
 	(multiple-value-setq (edges face-list)
 	  (calculate-ico ico-x ico-y draw-edges draw-faces edges face-list))
-      
-      
+
 	;; Draw ICO
 	(ecase *ico-mode*
-	  #+CLIM
+	  #+clim
 	  (:clim
-
-	   #-ignore
-	   (draw-rectangle* medium 0 0 win-w win-h :ink bg :filled t)
-	   
-	   #+ignore
-	   (draw-rectangle* medium 
-			    (- prev-x (1+ ico-w) 30) 
-			    (- prev-y (1+ ico-h) 30)
-			    (+ (+ prev-x (1+ ico-w)) 30)
-			    (+ (+ prev-y (1+ ico-h)) 30)
-			    :ink bg 
-			    :filled t)
-	   (when draw-edges
-	     (draw-lines* medium edges :ink +black+
-			  :line-thickness 
-			  (ecase (slot-value frame 'ico-line-style)
-			    (:thick 5)
-			    (:thin nil))))
-	   (when draw-faces
-	     (do ((f face-list (cdr (cdddr (cdddr f)))))
-		 ((null f))
-	       (draw-polygon* medium (subseq f 1 7)
-			      :closed t
-			      :filled t
-			      :ink (if (oddp (car f)) +red+ +green+))))
-	 
-	   (silica::medium-force-output medium))
-	
-	  #+XLIB-IGNORE
+	    (draw-rectangle* medium 0 0 win-w win-h :ink bg :filled t)
+	    (when draw-edges
+	      (draw-lines* medium edges :ink +black+
+			   :line-thickness 
+			     (ecase (slot-value frame 'ico-line-style)
+			       (:thick 5)
+			       (:thin nil))))
+	    (when draw-faces
+	      (do ((f face-list (cdr (cdddr (cdddr f)))))
+		  ((null f))
+		(draw-polygon* medium (subseq f 1 7)
+			       :closed t
+			       :filled t
+			       :ink (if (oddp (car f)) +red+ +green+))))
+	    (silica:medium-force-output medium))
+	  #+xlib-ignore
 	  (:clx 
-	   (setf (xlib:gcontext-foreground gcontext) white)
-	   (xlib:draw-rectangle drawable gcontext prev-x prev-y 
-				(1+ ico-w) (1+ ico-h) t)
-	   (setf (xlib:gcontext-foreground gcontext) black)
-	   (xlib:draw-segments drawable gcontext
-			       (mapcan
+	    (setf (xlib:gcontext-foreground gcontext) white)
+	    (xlib:draw-rectangle drawable gcontext prev-x prev-y 
+				 (1+ ico-w) (1+ ico-h) t)
+	    (setf (xlib:gcontext-foreground gcontext) black)
+	    (xlib:draw-segments drawable gcontext
+				(mapcan
+				  #'(lambda (point)
+				      (list (round (ico-point-x point)) 
+					    (round (ico-point-y point))))
+				  edges))
+	    (xlib:display-force-output display))
+	  #+genera
+	  (:genera
+	    (scl:send drawable :draw-rectangle
+			       (1+ ico-w) (1+ ico-h) prev-x prev-y
+			       :erase)
+	    (apply #'scl:send drawable :draw-lines :draw
+			      (mapcan
 				#'(lambda (point)
 				    (list (round (ico-point-x point)) 
 					  (round (ico-point-y point))))
-				edges))
-	   (xlib:display-force-output display))
-	  #+Genera
-	  (:genera
-	   (scl:send drawable :draw-rectangle
-		     (1+ ico-w) (1+ ico-h)
-		     prev-x prev-y
-		     :erase)
-	   (apply #'scl:send drawable :draw-lines :draw
-		  (mapcan
-		   #'(lambda (point)
-		       (list (round (ico-point-x point)) 
-			     (round (ico-point-y point))))
-		   edges)))
+				edges)))
 	  (:dont))
 
 	(setq prev-x ico-x
@@ -247,8 +239,6 @@
 	  (setq ico-dy (- ico-dy)))))))
 
 
-
-
 ;;;
 ;;; DRAW ICO
 ;;;
@@ -257,24 +247,23 @@
 (defconstant nf 20)
 
 (defparameter v3-seq 
-    (let ((x
-	   '(;; Initial Position
-	     (0.0        0.0        -0.9510565)
-	     (0.0        0.8506508  -0.42532536)
-	     (0.809017   0.26286557 -0.42532536)
-	     (0.5       -0.68819094 -0.42532536)
-	     (-0.5      -0.68819094 -0.42532536)
-	     (-0.809017  0.26286557 -0.42532536)
-	     (0.5        0.68819094  0.42532536)
-	     (0.809017  -0.26286557  0.42532536)
-	     (0.0       -0.8506508   0.42532536)
-	     (-0.809017 -0.26286557  0.42532536)
-	     (-0.5       0.68819094  0.42532536)
-	     (0.0        0.0         0.9510565))))
-      (make-array (list (length x) 3) 
-		  :element-type 'single-float
-		  :initial-contents x)))
-
+	      (let ((x
+		      '(;; Initial Position
+			(0.0        0.0        -0.9510565)
+			(0.0        0.8506508  -0.42532536)
+			(0.809017   0.26286557 -0.42532536)
+			(0.5       -0.68819094 -0.42532536)
+			(-0.5      -0.68819094 -0.42532536)
+			(-0.809017  0.26286557 -0.42532536)
+			(0.5        0.68819094  0.42532536)
+			(0.809017  -0.26286557  0.42532536)
+			(0.0       -0.8506508   0.42532536)
+			(-0.809017 -0.26286557  0.42532536)
+			(-0.5       0.68819094  0.42532536)
+			(0.0        0.0         0.9510565))))
+		(make-array (list (length x) 3) 
+			    :element-type 'single-float
+			    :initial-contents x)))
 
 (defparameter faces '((0 2 1)  (0 3 2)  (0 4 3)  (0 5 4)  
 		      (0 1 5)  (1 6 10) (1 2 6)  (2 7 6)
@@ -284,30 +273,20 @@
 
 (defparameter xform nil) ; Initialized Below
 
-
 (defmacro v2-aref (vertex-number field)
   (case field
     ((xy) `(aref v2 ,vertex-number 0))
     ((z) `(aref v2 ,vertex-number 1))	   
     (t (error "Bad array reference on v2"))))
 
-
-(defun make-ico-point (x y)
-  (excl::fast
-   (let ((z (make-array 2 :element-type 'single-float)))
-     (declare (type (simple-array single-float (2)) z))
-     (setf (aref z 0) (float x 0s0)
-	   (aref z 1) (float y 0s0))
-     z)))
-
-(defmacro ico-point-x (z) `(the single-float (aref (the (simple-array single-float (2)) ,z) 0)))
-(defmacro ico-point-y (z) `(the single-float (aref (the (simple-array single-float (2)) ,z) 1)))
-
-(defparameter v2 (make-array (list nv 2)
-		       :initial-contents
-		       (clim-utils::with-collection
-			   (dotimes (i nv)
-			     (clim-utils::collect (list (make-ico-point 0 0) 0))))))
+(defparameter v2 (make-array 
+		   (list nv 2)
+		   :initial-contents
+		     (clim-utils:with-collection
+		       (dotimes (i nv)
+			 (clim-utils:collect (list (make-ico-point 0 0) 0))))))
+#-allegro
+(defparameter v2-fill (make-array (* nv 2) :displaced-to v2))
 
 (defparameter drawn      (make-array (list nv nv) :initial-element nil))
 (defparameter drawn-fill (make-array (* nv nv) :displaced-to drawn))
@@ -317,20 +296,20 @@
 	  ($with-collection-tail$ $with-collection-result$)
 	  $with-collection-rest$)
      (macrolet
-	 ((collect (form)
-	    ;;  The FORM is evaluated first so that COLLECT nests
-	    ;; properly, i.e., The test to determine if this is
-	    ;; the first value collected should be done after the
-	    ;; value itself is generated in case it does
-	    ;; collection as well.
-	    `(let (($collectable$ ,form))
-	       (if $with-collection-tail$
-		   (progn
-		     (setf (car $with-collection-tail$) $collectable$)
-		     (setq $with-collection-tail$ 
-			   (cdr $with-collection-tail$)))
-		   (push $collectable$ $with-collection-rest$))
-	       $collectable$)))
+       ((collect (form)
+	  ;;  The FORM is evaluated first so that COLLECT nests
+	  ;; properly, i.e., The test to determine if this is
+	  ;; the first value collected should be done after the
+	  ;; value itself is generated in case it does
+	  ;; collection as well.
+	  `(let (($collectable$ ,form))
+	     (if $with-collection-tail$
+		 (progn
+		   (setf (car $with-collection-tail$) $collectable$)
+		   (setq $with-collection-tail$ 
+			 (cdr $with-collection-tail$)))
+		 (push $collectable$ $with-collection-rest$))
+	     $collectable$)))
        ,@body 
        (unless (eq (car $with-collection-result$) :hohoho-and-b-of-rum)
 	 (if $with-collection-rest$
@@ -340,25 +319,25 @@
 (defun calculate-ico (ico-x ico-y do-edges do-faces edge-point-list face-point-list)
   (declare (integer ico-x ico-y)
 	   (optimize (safety 0) (speed 3)))
-  (let ((v2-fill (cdr (excl::ah_data v2)))
+  (let (#+allegro (v2-fill (cdr (excl::ah_data v2)))
 	(v3-seq v3-seq)
 	(v2 v2)
 	(drawn drawn)
 	(fp 0)
 	p0 p1 p2)
     (declare 
-     (type (simple-array single-float (12 3)) v3-seq)
-     (type (simple-array t (12 2)) v2)
-     (type (simple-array t (12 12)) drawn)
-     (simple-vector v2-fill))
-    
-    ;;Clear the drawn array
-    (fill (cdr (excl::ah_data drawn-fill)) nil)
-    
+      (type (simple-array single-float (12 3)) v3-seq)
+      (type (simple-array t (12 2)) v2)
+      (type (simple-array t (12 12)) drawn)
+      #+allegro (simple-vector v2-fill))
+
+    ;; Clear the drawn array
+    #+allegro (fill (cdr (excl::ah_data drawn-fill)) nil)
+    #-allegro (fill drawn-fill nil)
 
     ;; Rotate vertices
     (partial-nonhom-transformation xform v3-seq)
-    
+
     ;; Convert 3d coordinates to 2D positions
     (dotimes (i (array-dimension v3-seq 0))
       (let ((z (aref v2-fill fp))
@@ -367,85 +346,76 @@
 	(declare (single-float x y))
 	(if z
 	    (setf (ico-point-x z) x (ico-point-y z) y)
-	  (setf  (aref v2-fill fp)
-	    (make-ico-point x y))))
+	    (setf (aref v2-fill fp)
+		  (make-ico-point x y))))
       (incf fp)
       ;; Save the z for hidden line removal
       (setf (aref v2-fill fp) (aref v3-seq i 2))
       (incf fp))
-            
-    ;; Accummulate edges, w/o duplicates	    
 
-
+    ;; Accumulate edges, w/o duplicates	    
     (values
-     (when do-edges
-       (with-non-consing-collection (edge-point-list)
-	 (macrolet ((collect-point (p)
-		      (let ((pp (gensym)))
-			`(let ((,pp ,p))
-			   (collect (ico-point-x ,pp))
-			   (collect (ico-point-y ,pp))))))
-	   (dolist (face faces)
-	     (setq p0 (first face))
-	     (setq p1 (second face))
-	     (setq p2 (third face))
-	      
-	     ;; Unless hidden for some reason if the sum of the
-	     ;; z-coordinates of the faces is < 0 then its hidden???
+      (when do-edges
+	(with-non-consing-collection (edge-point-list)
+	  (macrolet ((collect-point (p)
+		       (let ((pp (gensym)))
+			 `(let ((,pp ,p))
+			    (collect (ico-point-x ,pp))
+			    (collect (ico-point-y ,pp))))))
+	    (dolist (face faces)
+	      (setq p0 (first face))
+	      (setq p1 (second face))
+	      (setq p2 (third face))
+	      ;; Unless hidden for some reason if the sum of the
+	      ;; z-coordinates of the faces is < 0 then its hidden???
+	      (unless (< (+ (v2-aref p0 z)
+			    (v2-aref p1 z)
+			    (v2-aref p2 z))
+			 0.0)
+		;; At this point if we are drawing faces then we have
+		;; something to do
 
-	     (unless (< (+ (v2-aref p0 z)
-			   (v2-aref p1 z)
-			   (v2-aref p2 z))
-			0.0)
-	       ;; At this point if we are drawing faces then we have
-	       ;; something to do
-	    
-	       ;; Mark for Draw
-	       (unless (aref drawn p0 p1)
-		 (setf (aref drawn p0 p1) t)
-		 (setf (aref drawn p1 p0) t)
+		;; Mark for Draw
+		(unless (aref drawn p0 p1)
+		  (setf (aref drawn p0 p1) t)
+		  (setf (aref drawn p1 p0) t)
+		  (collect-point (v2-aref p0 xy))
+		  (collect-point (v2-aref p1 xy)))
 
-		 (collect-point (v2-aref p0 xy))
-		 (collect-point (v2-aref p1 xy)))
-	
+		(unless (aref drawn p1 p2)
+		  (setf (aref drawn p1 p2) t)
+		  (setf (aref drawn p2 p1) t)
+		  (collect-point (v2-aref p1 xy))
+		  (collect-point (v2-aref p2 xy)))
 
-	       (unless (aref drawn p1 p2)
-		 (setf (aref drawn p1 p2) t)
-		 (setf (aref drawn p2 p1) t)
-		 (collect-point (v2-aref p1 xy))
-		 (collect-point (v2-aref p2 xy)))
-	  
+		(unless (aref drawn p2 p0)
+		  (setf (aref drawn p2 p0) t)
+		  (setf (aref drawn p0 p2) t)
+		  (collect-point (v2-aref p2 xy))
+		  (collect-point (v2-aref p0 xy))))))))
 
-	       (unless (aref drawn p2 p0)
-		 (setf (aref drawn p2 p0) t)
-		 (setf (aref drawn p0 p2) t)
-		 (collect-point (v2-aref p2 xy))
-		 (collect-point (v2-aref p0 xy))))))))
-
-     (when do-faces
-       (with-non-consing-collection (face-point-list)
-	 (macrolet ((collect-point (p)
-		      (let ((pp (gensym)))
-			`(let ((,pp ,p))
-			   (collect (ico-point-x ,pp))
-			   (collect (ico-point-y ,pp))))))
-	   (let ((i 0))
-	     (dolist (face faces)
-	       (setq p0 (first face))
-	       (setq p1 (second face))
-	       (setq p2 (third face))
-	      
-	       ;; Unless hidden for some reason if the sum of the
-	       ;; z-coordinates of the faces is < 0 then its hidden???
-
-	       (unless (< (+ (v2-aref p0 z)
-			     (v2-aref p1 z)
-			     (v2-aref p2 z))
-			  0.0)
-		 (collect (incf i))
-		 (collect-point (v2-aref p0 xy))
-		 (collect-point (v2-aref p1 xy))
-		 (collect-point (v2-aref p2 xy)))))))))))
+      (when do-faces
+	(with-non-consing-collection (face-point-list)
+	  (macrolet ((collect-point (p)
+		       (let ((pp (gensym)))
+			 `(let ((,pp ,p))
+			    (collect (ico-point-x ,pp))
+			    (collect (ico-point-y ,pp))))))
+	    (let ((i 0))
+	      (dolist (face faces)
+		(setq p0 (first face))
+		(setq p1 (second face))
+		(setq p2 (third face))
+		;; Unless hidden for some reason if the sum of the
+		;; z-coordinates of the faces is < 0 then its hidden???
+		(unless (< (+ (v2-aref p0 z)
+			      (v2-aref p1 z)
+			      (v2-aref p2 z))
+			   0.0)
+		  (collect (incf i))
+		  (collect-point (v2-aref p0 xy))
+		  (collect-point (v2-aref p1 xy))
+		  (collect-point (v2-aref p2 xy)))))))))))
 
 
 ;;;
@@ -526,7 +496,6 @@
 				   (* in-y m12)
 				   (* in-z m22)))))))
 
-
 (defun create-xform nil 
   (let ((r1 (create-transformation-3d))
 	(r2 (create-transformation-3d))
@@ -541,4 +510,22 @@
 
 (setq xform (create-xform))
 
-(clim-demo::define-demo "Ico demo" (ico))
+
+(defvar *ico-frames* nil)
+
+(defun do-ico (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *ico-frames*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'ico-frame
+						   :frame-manager framem
+						   :left 200 :top 50)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *ico-frames*))
+	     frame)))
+    (run-frame-top-level frame)))
+
+(define-demo "Ico Demo" do-ico)

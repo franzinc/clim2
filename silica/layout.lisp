@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.18 92/05/22 19:26:55 cer Exp $
+;; $fiHeader: layout.lisp,v 1.19 92/07/01 15:45:06 cer Exp $
 
 (in-package :silica)
 
@@ -105,54 +105,60 @@
 		      &body contents)
   (declare (ignore spacing))
   `(make-pane 'vbox-pane
-	      :contents (list ,@(parse-box-contents contents))
-	      ,@options))
+     :contents (list ,@(parse-box-contents contents))
+     ,@options))
 
 (defmacro horizontally ((&rest options &key spacing &allow-other-keys)
 			&body contents)
   (declare (ignore spacing))
   `(make-pane 'hbox-pane
-	      :contents (list ,@(parse-box-contents contents))
-	      ,@options))
+     :contents (list ,@(parse-box-contents contents))
+     ,@options))
 
 
-(defmethod resize-sheet* ((sheet sheet) width height)
+
+(defmethod resize-sheet ((sheet sheet) width height)
   (unless (and (> width 0) (> height 0))
     (error "Trying to resize sheet ~S to be too small (~D x ~D)"
 	   sheet width height))
   (when (or width height)
-    (with-bounding-rectangle* (minx miny maxx maxy) sheet
-      (let ((owidth (- maxx minx))
-	    (oheight (- maxy miny)))
+    (with-bounding-rectangle* (left top right bottom) sheet
+      (let ((owidth (- right left))
+	    (oheight (- bottom top)))
 	(if (or (and width (/= owidth width))
 		(and height (/= oheight height)))
-	    (setf (sheet-region sheet)
-		  (make-bounding-rectangle
-		    minx miny
-		    (if width (+ width minx) maxx)
-		    (if height (+ height miny) maxy)))
+	    ;; It should be safe to modify the sheet's region, since
+	    ;; each sheet gets a fresh region when it is created
+	    (let ((region (sheet-region sheet)))
+	      (setf (slot-value region 'left) left
+		    (slot-value region 'top)  top
+		    (slot-value region 'right)  (if width (+ left width) right)
+		    (slot-value region 'bottom) (if height (+ top height) bottom))
+	      (note-sheet-region-changed sheet))
 	    ;;--- Do this so that we relayout the rest of tree.
 	    ;;--- I guess we do not want to do this always but ...
 	    (allocate-space sheet owidth oheight))))))
 
-(defmethod move-sheet* ((sheet sheet) minx miny)
-  (let ((trans (sheet-transformation sheet)))
-    (multiple-value-bind (x y)
-	(transform-position trans 0 0)
-      (when (or (and minx (/= x minx))
-		(and miny (/= y miny)))
+(defmethod move-sheet ((sheet sheet) x y)
+  (let ((transform (sheet-transformation sheet)))
+    (multiple-value-bind (old-x old-y)
+	(transform-position transform 0 0)
+      (when (or (and x (/= old-x x))
+		(and y (/= old-y y)))
+	;; We would like to use volatile transformations here, but it's
+	;; not really safe, since the current implementation of transformations
+	;; is likely to cause them to be shared
 	(setf (sheet-transformation sheet)
 	      (compose-translation-with-transformation
-		trans
-		(if minx (- minx x) 0)
-		(if miny (- miny y) 0)))))))
+		transform
+		(if x (- x old-x) 0) (if y (- y old-y) 0)))))))
 
-(defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
-  (resize-sheet* sheet width height)
-  (move-sheet* sheet minx miny))
+(defmethod move-and-resize-sheet ((sheet sheet) x y width height)
+  (resize-sheet sheet width height)
+  (move-sheet sheet x y))
 
-
-;; Various
+
+;;; Various
 
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
 ;;--- Make a PANE protocol class, and call this BASIC-PANE
@@ -333,7 +339,7 @@
 
 #+++ignore
 (defmethod allocate-space ((sheet top-level-sheet) width height)
-  (resize-sheet* (first (sheet-children sheet)) width height))
+  (resize-sheet (first (sheet-children sheet)) width height))
 
 #+++ignore
 (defmethod compose-space ((sheet top-level-sheet) &key width height)

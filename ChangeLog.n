@@ -1,4 +1,66 @@
 --------------------------------------------------------------------------------
+from swm: Mon Jul 20 13:49:12 PDT 1992
+
+General bug fixing
+  - Small problem in OUTPUT-RECORD-ELEMENT for STANDARD-SEQUENCE-OUTPUT-RECORD 
+  - Fixed one problem in incremental redisplay of overlapping output
+  - Fixed GENERATE-CROSSING-EVENTS not to generate exit events when moving
+    into a child sheet.  Controlled by *GENERATE-EXIT-EVENT-WHEN-ENTERING-CHILD*.
+  - Renamed MOVE-SHEET*, RESIZE-SHEET*, and MOVE-AND-RESIZE-SHEET* to remove the
+    "*" from the names.
+  - Made frames such as menus and dialogs position themselves appropriately. 
+  - Made MAKE-APPLICATION-FRAME position the frame to the requested place.
+  - Made POINTER-SET-POSITION tell the host to actually move the pointer.
+    *** You will need to implement SILICA:PORT-SET-POINTER-POSITION for the
+    Motif and OpenLook ports. ***
+  - Made the port event loops continually update the modifer state slot in
+    the port object, and the buttons state in the pointer object.  This is
+    needed so that users can reliably query the state of these objects.
+  - Put INVALIDATE-CACHED-REGIONS and INVALIDATE-CACHED-TRANSFORMATIONS methods
+    on the proper classes,
+  - Fix DEFINE-CLX-KEYSYM, DEFINE-GENERA-KEYSYM, and TK-SILICA::DEFINE-KEYSYM
+    to evaluate their keysym arguments.  (Now I know why the keyboard gesture
+    stuff was not working for you - it worked by accident on Genera.)
+  - Extended the demo driver functions to take a port argument, so that
+    the demos can be used simultaneously on multiple ports.  (We needed
+    this for AAAI.)
+
+General performance work
+  - Added support for resourced events.  This feature is off by default while
+    I finish debugging it.  There is a (harmless) storage leak I haven't found
+    yet, plus one case where events get multiply deallocated.  Overall, this
+    reduces consing tremendously, and has no performance penalty.
+  - Implemented MAP-OVER-SHEETS-OVERLAPPING-REGION, which is a non-consing
+    version of CHILDREN-OVERLAPPING-REGION.  This gets used all the time.
+  - Made RESIZE-SHEET, UPDATE-REGION, and VIEWPORT-REGION-CHANGED, and some 
+    other things avoid consing a new region by reusing the old one.
+  - Added lots of DYNAMIC-EXTENT declarations to avoid consing excessive lexical
+    closure environments.
+  - Change SHEET-SINGLE-CHILD-MIXIN so that SHEET-CHILDREN does not cons.
+  - Optimized DEFINE-GRAPHICS-GENERIC a little more.
+  - Changed MEDIUM-COPY-AREA methods for Genera and CLX port to call 
+    SHEET-DEVICE-TRANSFORMATION instead of SHEET-NATIVE-TRANSFORMATION.
+    The two functions always return the same result, but SHEET-NATIVE-TRANSFORMATION
+    conses each time it is called.
+  - Changed CURSOR-SET-POSITION to manage the cursor in a speedier way in some 
+    cases (it doesn't notify the host when FASTP is T).  There is still a bug that
+    needs to be fixed by changing one place to bind the cursor off.  This makes
+    text output about 35-40% faster.
+  - Made INVALIDATE-CACHED-REGIONS set a flag to indicate that the region should
+    be recomputed.  Then SHEET-DEVICE-REGION reuses the previous invalidated
+    region instead of creating a new one.  This save a *lot* of consing during
+    scrolling.
+
+The Genera port
+  - Fixed problems in DRAW-PATTERN*
+  - Fixed some race conditions with Genera's window system
+  - Made text output twice as fast.
+
+The CLX port
+  - Made configuration and exposure notifications work correctly.
+  - Made pixmaps work
+
+--------------------------------------------------------------------------------
 from jdi: Tue May 26 09:50:37 PDT 1992
 
 NOTES

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: std-sheet.lisp,v 1.5 92/05/07 13:11:31 cer Exp $
+;; $fiHeader: std-sheet.lisp,v 1.6 92/07/01 15:45:17 cer Exp $
 
 (in-package :silica)
 
@@ -49,5 +49,5 @@
 
 (defmethod handle-event (sheet event)
   (declare (ignore sheet event))
-  #+++ignore (warn "ignoring event ~S,~S" sheet event)
+  #+++ignore (warn "Ignoring event ~S on sheet ~S" sheet event)
   nil)

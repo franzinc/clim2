@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.36 92/07/01 15:48:05 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.37 92/07/08 16:31:53 cer Exp $
 
 (in-package :xm-silica)
 
@@ -139,8 +139,8 @@
   (declare (ignore widget count))
   (distribute-event
    (port sheet)
-   (make-instance 'activate-gadget-event
-		  :gadget sheet)))
+   (allocate-event 'activate-gadget-event
+     :gadget sheet)))
 
 ;;; Label
 
@@ -404,6 +404,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmethod find-widget-class-and-initargs-for-sheet
+    ((port xt-port) (parent t) (sheet standard-sheet))
+  (values 'tk::xm-my-drawing-area nil))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defclass motif-top-level-sheet (top-level-sheet) ())
 
@@ -700,7 +705,7 @@
 
 ;(defmethod allocate-space ((fr xm-frame-viewport-mixin) width height)
 ;  ;;-- Is this what wrapping space mixin should do???
-;  (move-and-resize-sheet* (sheet-child fr) 0 0 width height))
+;  (move-and-resize-sheet (sheet-child fr) 0 0 width height))
 
 
 (defclass motif-frame-pane (motif-geometry-manager

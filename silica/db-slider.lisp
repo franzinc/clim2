@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.9 92/07/01 15:44:54 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.10 92/07/08 16:29:03 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -85,23 +85,18 @@
      ;;  :ACTIVE ==> the slider is armed, waiting for a pointer button release
      (armed :initform nil)
      (background-saved-p :initform nil)
-     (saved-background))
+     (saved-background :initform nil))
   (:default-initargs :value 0
 		     :text-style *default-slider-label-text-style*))
 
 (defmethod initialize-instance :after ((pane slider-pane) &key &allow-other-keys)
-  (with-slots (slider-button-pattern saved-background) pane
+  (with-slots (slider-button-pattern) pane
     (unless slider-button-pattern
       (ecase (gadget-orientation pane)
 	(:vertical
 	  (setq slider-button-pattern *default-vertical-slider-pattern*))
 	(:horizontal
-	  (setq slider-button-pattern *default-horizontal-slider-pattern*))))
-    ;;--- Waiting on SWM to fix pixmaps
-    #+++ignore (setq saved-background
-		     (allocate-pixmap pane
-				      (pattern-width slider-button-pattern)
-				      (pattern-height slider-button-pattern)))))
+	  (setq slider-button-pattern *default-horizontal-slider-pattern*))))))
 
 (defmethod compose-space ((pane slider-pane) &key width height)
   (declare (ignore width height))
@@ -295,19 +290,18 @@
 		       (floor pattern-width 2)))))
 	(ecase action
 	  (:draw
-	    #+++ignore (copy-to-pixmap medium x y pattern-width pattern-height
-				       saved-background)
+	    (when (null saved-background)
+	      (setq saved-background 
+		    (allocate-pixmap medium pattern-width pattern-height)))
+	    (copy-to-pixmap medium x y pattern-width pattern-height
+			    saved-background)
 	    (setq background-saved-p t)
 	    (draw-pattern* medium slider-button-pattern x y))
 	  (:erase
 	    (if background-saved-p
 		(progn
-		  #---ignore (draw-rectangle* medium x y
-					      (+ x pattern-width) (+ y pattern-height)
-					      :filled t :ink +background-ink+)
-		  #---ignore (draw-slider-rail pane medium)
-		  #+++ignore (copy-from-pixmap saved-background 0 0 pattern-width pattern-height
-					       medium x y)
+		  (copy-from-pixmap saved-background 0 0 pattern-width pattern-height
+				    medium x y)
 		  (setq background-saved-p nil))
 		(draw-slider-rail pane medium))))))))
 
@@ -362,6 +356,9 @@
 			:align-x ':left :align-y ':center)))))))
 
 
+(defmethod handle-event :after ((pane slider-pane) (event pointer-event))
+  (deallocate-event event))
+
 (defmethod handle-event ((pane slider-pane) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
@@ -422,7 +419,8 @@
   (with-slots (armed margin visible-value-width visible-value-height
 	       show-value-p label-width label-height) pane
     (when (eq armed :active)
-      (let ((x (pointer-event-x event))
+      (let ((old-value (gadget-value pane))
+	    (x (pointer-event-x event))
 	    (y (pointer-event-y event)))
 	(with-bounding-rectangle* (left top right bottom) (sheet-region pane)
 	  (ecase (gadget-orientation pane)
@@ -433,11 +431,13 @@
 	    (:horizontal
 	      (update-slider-value pane x
 				   (+ left margin label-width visible-value-width)
-				   (- right margin))))))
-      (when show-value-p
-	(with-sheet-medium (medium pane)
-	  (draw-visible-value pane medium)))
-      (drag-callback pane (gadget-client pane) (gadget-id pane) (gadget-value pane)))))
+				   (- right margin)))))
+	(unless (eq old-value (gadget-value pane))
+	  (when show-value-p
+	    (with-sheet-medium (medium pane)
+	      (draw-visible-value pane medium)))
+	  (drag-callback
+	    pane (gadget-client pane) (gadget-id pane) (gadget-value pane)))))))
 
 (defmethod update-slider-value ((pane slider-pane) coord min max)
   (with-slots (min-value max-value number-of-quanta) pane

@@ -1,26 +1,23 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.9 92/06/16 15:02:10 cer Exp Locker: cer $
+;; $fiHeader: puzzle.lisp,v 1.10 92/07/06 18:52:13 cer Exp $
 
 (in-package :clim-demo)
 
-"Copyright (c) 1989, 1990, 1991 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1989, 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
-(define-application-frame puzzle 
-			  ()
+(define-application-frame puzzle ()
     ((puzzle :initform (make-array '(4 4))
 	     :accessor puzzle-puzzle))
   (:panes
-    (display
-      (outlining ()
-        (make-pane 'application-pane
-		   :text-cursor nil
-		   :width :compute
-		   :max-width +fill+
-		   :height :compute
-		   :max-height +fill+
-		   :incremental-redisplay t
-		   :display-function 'draw-puzzle))))
+    (display :application
+	     :text-cursor nil
+	     :width :compute
+	     :max-width +fill+
+	     :height :compute
+	     :max-height +fill+
+	     :incremental-redisplay t
+	     :display-function 'draw-puzzle))
   (:layouts
     (:default display)))
 
@@ -90,7 +87,7 @@
 			  (unless (zerop value)
 			    (with-output-as-presentation 
 				(stream (encode-puzzle-cell row column) 'puzzle-cell)
-			      (format stream "~D" value))))))))))))))))
+			      (format stream "~2D" value))))))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)
@@ -179,17 +176,22 @@
     ()
   (frame-exit *application-frame*))
 
-;;; Standard demo driver...
+
 (defvar *puzzles* nil)
 
-(defun do-puzzle (&key reinit (root (find-frame-manager)))
-  (let* ((entry (assoc root *puzzles*))
-	 (p (cdr entry)))
-    (when (or (null p) reinit)
-      (setq p (make-application-frame 'puzzle :parent root))
-      (if entry
-	  (setf (cdr entry) p)
-	  (push (cons root p) *puzzles*)))
-    (run-frame-top-level p)))
+(defun do-puzzle (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *puzzles*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'puzzle
+						   :left 200 :top 100
+						   :frame-manager framem)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *puzzles*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "15 Puzzle" (do-puzzle))
+(define-demo "15 Puzzle" do-puzzle)

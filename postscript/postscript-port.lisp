@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.1 92/02/24 13:08:01 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.2 92/07/08 16:32:11 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -576,8 +576,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	    (do* ((index (- botrow bytes-per-row) (- index bytes-per-row))
 		  (i index index))
 		 ((< index toprow))
-	      (dotimes (n bytes-per-raster)
-		#-(or Allegro Minima) (declare (ignore n))
+	      (repeat bytes-per-raster
 		(let ((byte (aref arr i)))
 		  (setf (aref buf j) 
 			(aref bigend-digit-char (ldb (byte 4 0) byte)))
@@ -669,6 +668,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 			  (slot-value postscript-device 'x-resolution)))))
 ||#
 
+#+++ignore
 (define-display-device *postscript-device* apple-laser-writer
   :font-for-undefined-style "Courier")
 
@@ -764,11 +764,11 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 						     header-comments multi-page
 						     (orientation :portrait))
   (let ((postscript-stream (make-instance 'postscript-stream
-					  :stream file-stream
-					  :display-device-type display-device
-					  :header-comments header-comments
-					  :orientation orientation
-					  :multi-page multi-page))
+			     :stream file-stream
+			     :display-device-type display-device
+			     :header-comments header-comments
+			     :orientation orientation
+			     :multi-page multi-page))
 	(abort-p t))
     (with-output-recording-options (postscript-stream :record t :draw nil)
       (unwind-protect

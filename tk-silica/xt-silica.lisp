@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.34 92/07/01 15:48:17 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.35 92/07/06 18:52:25 cer Exp $
 
 (in-package :xm-silica)
 
@@ -324,7 +324,6 @@
 ;; not been established nor has the rest of tree been mirrored.
 ;; So it seems to work out really well to do this bottom up.
 
-
 (defmethod sheet-and-ancestors-enabled-p ((sheet sheet))
   ;; If we have an non-mirrored ancestor that is between us and our
   ;; mirrored-ancestor that is disabled then we should not manage this gadget.
@@ -355,7 +354,8 @@
   (multiple-value-bind (same-p root child root-x root-y native-x native-y mask)
       (tk::query-pointer (tk::widget-window widget))
     (declare (ignore same-p root child root-x root-y))
-    (let ((modifiers (logand #16rff mask))
+    (let ((port (port sheet))
+	  (modifiers (logand #16rff mask))
 	  (button (ash mask -8)))
       #+ignore
       (format excl:*initial-terminal-io* "Got event ~s~%" (tk::event-type event))
@@ -366,7 +366,7 @@
 		nil)
 	       (:configure-notify
 		(sheet-mirror-resized-callback
-		 widget nil event sheet)
+		  widget nil event sheet)
 		nil)
 	       (:no-expose nil)
 	       (:graphics-expose
@@ -375,86 +375,92 @@
 		;; This gets called only for an XmBulletinBoard widget.
 	       (:expose
 		(sheet-mirror-exposed-callback
-		 widget 
-		 nil ; window
-		 event
-		 sheet)
+		  widget 
+		  nil				; window
+		  event
+		  sheet)
 		nil)
 	       (:key-press
 		(multiple-value-bind (character keysym)
 		    (lookup-character-and-keysym sheet widget event)
-		  (make-instance 'key-press-event
-				 :key-name keysym
-				 :character character
-				 :sheet sheet
-				 :modifiers
-				 (state->modifiers
-				  (x11::xkeyevent-state event)
-				  nil))))
+		  (allocate-event 'key-press-event
+		    :key-name keysym
+		    :character character
+		    :sheet sheet
+		    :modifier-state 
+		      (setf (port-modifier-state port)
+			    (state->modifiers
+			      (x11::xkeyevent-state event) nil)))))
 	       (:key-release
 		(multiple-value-bind (character keysym)
 		    (lookup-character-and-keysym sheet widget event)
-		  (make-instance 'key-release-event
-				 :key-name keysym
-				 :character character
-				 :sheet sheet
-				 :modifiers 
-				 (state->modifiers
-				  (x11::xkeyevent-state event)
-				  nil))))
+		  (allocate-event 'key-release-event
+		    :key-name keysym
+		    :character character
+		    :sheet sheet
+		    :modifier-state 
+		      (setf (port-modifier-state port)
+			    (state->modifiers
+			      (x11::xkeyevent-state event) nil)))))
 	       (:button-press
-		(make-instance 'pointer-button-press-event
-			       :sheet sheet
-			       :x :??
-			       :y :??
-			       :modifiers
-			       (state->modifiers
-				(x11::xkeyevent-state event))
-			       :button (x-button->silica-button 
-					(x11::xbuttonevent-button event))
-			       :native-x (x11::xbuttonevent-x event)
-			       :native-y (x11::xbuttonevent-y event)))
+		(let ((button (x-button->silica-button 
+				(x11::xbuttonevent-button event)))
+		      (pointer (port-pointer port)))
+		  (setf (pointer-buttons pointer) (or button 0))
+		  (allocate-event 'pointer-button-press-event
+		    :sheet sheet
+		    :pointer pointer
+		    :x :?? :y :??
+		    :modifier-state 
+		      (setf (port-modifier-state port)
+			    (state->modifiers
+			      (x11::xkeyevent-state event)))
+		    :button button
+		    :native-x (x11::xbuttonevent-x event)
+		    :native-y (x11::xbuttonevent-y event))))
 	       (:button-release
-		(make-instance 'pointer-button-release-event
-			       :sheet sheet
-			       :x :??
-			       :y :??
-			       :modifiers
-			       (state->modifiers
-				(x11::xkeyevent-state event))
-			       :button (x-button->silica-button 
-					(x11::xbuttonevent-button event))
-			       :native-x (x11::xbuttonevent-x event)
-			       :native-y (x11::xbuttonevent-y event)))
+		(let ((button (x-button->silica-button 
+				(x11::xbuttonevent-button event)))
+		      (pointer (port-pointer port)))
+		  (setf (pointer-buttons pointer) 0)
+		  (allocate-event 'pointer-button-release-event
+		    :pointer pointer
+		    :sheet sheet
+		    :x :?? :y :??
+		    :modifier-state 
+		      (setf (port-modifier-state port)
+			    (state->modifiers
+			      (x11::xkeyevent-state event)))
+		    :button button
+		    :native-x (x11::xbuttonevent-x event)
+		    :native-y (x11::xbuttonevent-y event))))
 	       (:leave-notify
-		(make-instance 'pointer-exit-event
-			       :native-x native-x
-			       :native-y native-y
-			       :modifiers
-			       (state->modifiers
-				(x11::xkeyevent-state event))
-			       :sheet sheet))
+		(allocate-event 'pointer-exit-event
+		  :native-x native-x
+		  :native-y native-y
+		  :modifier-state 
+		    (setf (port-modifier-state port)
+			  (state->modifiers (x11::xkeyevent-state event)))
+		  :sheet sheet))
 	       (:enter-notify
-		(make-instance 'pointer-enter-event
-			       :native-x native-x
-			       :native-y native-y
-			       :modifiers 
-			       (state->modifiers
-				(x11::xkeyevent-state event))
-			       :sheet sheet))
+		(allocate-event 'pointer-enter-event
+		  :native-x native-x
+		  :native-y native-y
+		  :modifier-state 
+		    (setf (port-modifier-state port)
+			  (state->modifiers (x11::xkeyevent-state event)))
+		  :sheet sheet))
 	       (:motion-notify
-		(make-instance 'pointer-motion-event
-			       :native-x native-x
-			       :native-y native-y
-			       :button (x-button->silica-button button)
-			       :modifiers 
-			       (state->modifiers
-				(x11::xkeyevent-state event))
-			       :sheet sheet)))))
+		(allocate-event 'pointer-motion-event
+		  :native-x native-x
+		  :native-y native-y
+		  :button (x-button->silica-button button)
+		  :modifier-state 
+		    (setf (port-modifier-state port)
+			  (state->modifiers (x11::xkeyevent-state event)))
+		  :sheet sheet)))))
 	(when clim-event
-	  (distribute-event
-	   (port sheet)
-	   clim-event))))))
+	  (distribute-event (port sheet) clim-event))))))
 
 (defun x-button->silica-button (button)
   (ecase button
@@ -470,10 +476,10 @@
   (dispatch-event
     sheet
     (let ((r (mirror-region (port sheet) sheet)))
-      (make-instance 'window-configuration-event
-		     :native-region r
-		     :region (untransform-region (sheet-native-transformation sheet) r)
-		     :sheet sheet))))
+      (allocate-event 'window-configuration-event
+	:native-region r
+	:region (untransform-region (sheet-native-transformation sheet) r)
+	:sheet sheet))))
 
 (defmethod sheet-mirror-exposed-callback (widget window event sheet)
   ;; This isn't really the right place to do this, but it's better than
@@ -491,70 +497,75 @@
 	    (tk::event-type event))
     (dispatch-repaint
       sheet
-      (make-instance 'window-repaint-event
-		     :native-region (make-bounding-rectangle minx miny maxx maxy)
-		     :region (untransform-region
-			       (sheet-native-transformation sheet)
-			       (make-bounding-rectangle minx miny maxx maxy))
-		     :sheet sheet))))
+      (allocate-event 'window-repaint-event
+	:native-region (make-bounding-rectangle minx miny maxx maxy)
+	:region (untransform-region
+		  (sheet-native-transformation sheet)
+		  (make-bounding-rectangle minx miny maxx maxy))
+	:sheet sheet))))
 
 (defmethod sheet-mirror-input-callback (widget window event sheet)
   (declare (ignore window))
-  (ecase (tk::event-type event)
-    (:key-press
-      (distribute-event
-	(port sheet)
-	(multiple-value-bind (character keysym)
-	    (lookup-character-and-keysym sheet widget event)
-	  (make-instance 'key-press-event
-			 :key-name keysym
-			 :character character
-			 :sheet sheet
-			 :modifiers
-			 (state->modifiers
-			  (x11::xkeyevent-state event)
-			  nil)))))
-    (:key-release
-      (distribute-event
-	(port sheet)
-	(multiple-value-bind (character keysym)
-	    (lookup-character-and-keysym sheet widget event)
-	  (make-instance 'key-release-event
-			 :key-name keysym
-			 :character character
-			 :sheet sheet
-			 :modifiers
-			 (state->modifiers
-			  (x11::xkeyevent-state event)
-			  nil)))))
-    (:button-press
-      (distribute-event
-	(port sheet)
-	(make-instance 'pointer-button-press-event
-		       :sheet sheet
-		       :x :??
-		       :y :??
-		       :modifiers 
-		       (state->modifiers
-			(x11::xkeyevent-state event))
-		       :button (x-button->silica-button 
-				 (x11::xbuttonevent-button event))
-		       :native-x (x11::xbuttonevent-x event)
-		       :native-y (x11::xbuttonevent-y event))))
-    (:button-release
-      (distribute-event
-	(port sheet)
-	(make-instance 'pointer-button-release-event
-		       :sheet sheet
-		       :x :??
-		       :y :??
-		       :modifiers
-		       (state->modifiers
-			(x11::xkeyevent-state event))
-		       :button (x-button->silica-button 
-				 (x11::xbuttonevent-button event))
-		       :native-x (x11::xbuttonevent-x event)
-		       :native-y (x11::xbuttonevent-y event))))))
+  (let ((port (port sheet)))
+    (ecase (tk::event-type event)
+      (:key-press
+	(distribute-event 
+	  port
+	  (multiple-value-bind (character keysym)
+	      (lookup-character-and-keysym sheet widget event)
+	    (allocate-event 'key-press-event
+	      :key-name keysym
+	      :character character
+	      :sheet sheet
+	      :modifier-state (setf (port-modifier-state port)
+				    (state->modifiers
+				      (x11::xkeyevent-state event) nil))))))
+      (:key-release
+	(distribute-event
+	  port
+	  (multiple-value-bind (character keysym)
+	      (lookup-character-and-keysym sheet widget event)
+	    (allocate-event 'key-release-event
+	      :key-name keysym
+	      :character character
+	      :sheet sheet
+	      :modifier-state (setf (port-modifier-state port)
+				    (state->modifiers
+				      (x11::xkeyevent-state event) nil))))))
+      (:button-press
+	(let ((button (x-button->silica-button 
+			(x11::xbuttonevent-button event)))
+	      (pointer (port-pointer port)))
+	  (setf (pointer-buttons pointer) (or button 0))
+	  (distribute-event
+	    port
+	    (allocate-event 'pointer-button-press-event
+	      :sheet sheet
+	      :pointer pointer
+	      :x :?? :y :??
+	      :modifier-state (setf (port-modifier-state port)
+				    (state->modifiers
+				      (x11::xkeyevent-state event)))
+	      :button button
+	      :native-x (x11::xbuttonevent-x event)
+	      :native-y (x11::xbuttonevent-y event)))))
+      (:button-release
+	(let ((button (x-button->silica-button 
+			(x11::xbuttonevent-button event)))
+	      (pointer (port-pointer port)))
+	  (setf (pointer-buttons pointer) 0)
+	  (distribute-event
+	    port
+	    (allocate-event 'pointer-button-release-event
+	      :sheet sheet
+	      :pointer pointer
+	      :x :?? :y :??
+	      :modifier-state (setf (port-modifier-state port)
+				    (state->modifiers
+				      (x11::xkeyevent-state event))) 
+	      :button button
+	      :native-x (x11::xbuttonevent-x event)
+	      :native-y (x11::xbuttonevent-y event))))))))
 
 (defmethod find-widget-class-and-initargs-for-sheet
     ((port xt-port) (parent t) (sheet sheet))
@@ -593,10 +604,9 @@
     (if (graftp ma)
 	(multiple-value-bind (class initargs)
 	    (find-shell-class-and-initargs port sheet)
-	  (apply #'make-instance class
-		 :parent (find-shell-parent port sheet)
-		 :name (string (frame-name (pane-frame sheet)))
-		 initargs))
+	  (let ((frame (pane-frame sheet)))
+	    (when frame (setf (getf initargs :name) (string (frame-name frame)))))
+	  (apply #'make-instance class :parent (find-shell-parent port sheet) initargs))
         (sheet-mirror ma))))
 
 (defmethod find-shell-of-calling-frame ((sheet sheet))
@@ -682,10 +692,6 @@
 	(get-values (sheet-mirror sheet) :x :y :width :height)
       (values (coordinate x) (coordinate y) 
 	      (coordinate (+ x width)) (coordinate (+ y height))))))
-
-(defmethod mirror-region ((port xt-port) sheet)
-  (multiple-value-call #'make-bounding-rectangle
-    (mirror-region* port sheet)))
 
 (defmethod mirror-inside-region* ((port xt-port) sheet)
   (multiple-value-bind (minx miny maxx maxy)
@@ -819,9 +825,9 @@
 
 (defmacro define-xt-keysym (xt-keysym clim-keysym)
   `(progn 
-     (setf (gethash ,xt-keysym *xt-keysym->clim-keysym-table*) ',clim-keysym)
+     (setf (gethash ,xt-keysym *xt-keysym->clim-keysym-table*) ,clim-keysym)
      (unless (gethash ,clim-keysym *clim-keysym->xt-keysym-table*)
-       (setf (gethash ,clim-keysym *clim-keysym->xt-keysym-table*) ',xt-keysym))))
+       (setf (gethash ,clim-keysym *clim-keysym->xt-keysym-table*) ,xt-keysym))))
 
 (defun-inline xt-keysym->keysym (xt-keysym)
   (gethash xt-keysym *xt-keysym->clim-keysym-table*))
@@ -1181,9 +1187,9 @@ the geometry of the children. Instead the parent has control. "))
   (declare (ignore widget))
   (distribute-event
    (port sheet)
-   (make-instance 'value-changed-gadget-event
-		  :gadget sheet
-		  :value value)))
+   (allocate-event 'value-changed-gadget-event
+     :gadget sheet
+     :value value)))
 
 (defun find-sheet-from-widget-address (address)
   (let* ((widget (tk::find-object-from-address address))
@@ -1202,3 +1208,38 @@ the geometry of the children. Instead the parent has control. "))
 	       (and (typep port 'xt-port)
 		    (eq (port-display port) display)))
 	   silica::*ports*))
+
+(defmethod port-canonicalize-gesture-spec ((port xt-port) gesture-spec &optional modifier-state)
+  (multiple-value-bind (keysym shifts)
+      (if modifier-state
+	  (values gesture-spec modifier-state)
+	(parse-gesture-spec gesture-spec))
+    ;; Here, we must take the gesture spec, turn it back into
+    ;; a keycode, then see what the keysyms are for that keycode
+    (let ((x-keysym (if (and (characterp keysym) (standard-char-p keysym))
+			(keysym->xt-keysym (xt-keysym->keysym (char-code keysym)))
+		      (keysym->xt-keysym keysym)))
+	  (x-keycode nil))
+      (unless x-keysym 
+	(return-from port-canonicalize-gesture-spec nil))
+      (cons keysym shifts))))
+
+
+(defmethod port-set-pointer-position ((port xt-port) pointer x y)
+  ;;-- pointer-sheet is not the right thing.
+  #+ignore
+  (let ((m (sheet-mirror (pointer-sheet pointer))))
+    (when m
+      (x11:xwarppointer
+       (port-display port)
+       0				; src
+       (tk::widget-window m)		; dest
+       0				; src-x
+       0				; src-y
+       0				; src-width
+       0				; src-height
+       (fix-coordinate x)
+       (fix-coordinate y)))))
+
+  
+

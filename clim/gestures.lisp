@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.7 92/05/22 19:27:56 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.8 92/07/08 16:30:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -130,14 +130,17 @@
     (when (button-and-modifier-state-matches-gesture-name-p i state gesture-name)
       (return-from modifier-state-matches-gesture-name-p T))))
 
-(defun event-matches-gesture-name-p (event gesture-name)
+(defun event-matches-gesture-name-p (event gesture-name &optional port)
   (etypecase event
-    (pointer-button-event			;--- POINTER-BUTTON-PRESS-EVENT?
-      (button-press-event-matches-gesture-name-p event gesture-name))
-    (keyboard-event				;--- KEY-PRESS-EVENT?
-      (keyboard-event-matches-gesture-name-p event gesture-name))))
+    (pointer-button-event		;--- POINTER-BUTTON-PRESS-EVENT?
+      (button-press-event-matches-gesture-name-p event gesture-name port))
+    (keyboard-event			;--- KEY-PRESS-EVENT?
+      (keyboard-event-matches-gesture-name-p event gesture-name port))))
 
-(defun button-press-event-matches-gesture-name-p (event gesture-name)
+(defun button-press-event-matches-gesture-name-p (event gesture-name &optional port)
+  #---ignore (declare (ignore port))
+  #+++ignore (unless port
+	       (setq port (port (event-sheet event))))
   (let ((button (pointer-event-button event))
 	(modifier-state (event-modifier-state event)))
     (declare (type fixnum button modifier-state))
@@ -146,50 +149,91 @@
       modifier-state gesture-name)))
 
 ;; GESTURE-NAME either names a gesture, or is a canonicalized gesture spec
-;;--- Control-? doesn't match (:? :control), but does match (:? :control :shift)
-(defun keyboard-event-matches-gesture-name-p (event gesture-name)
+(defun keyboard-event-matches-gesture-name-p (event gesture-name &optional port)
+  (declare (special *application-frame*))
   (when (and (characterp event)
 	     (characterp gesture-name)
 	     (eql event gesture-name))
+    ;; Speedy exit when they're both characters
     (return-from keyboard-event-matches-gesture-name-p t))
-  (multiple-value-bind (keysym modifier-state character)
+  (multiple-value-bind (keysym modifier-state)
       (etypecase event
 	(character
-	  ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
-	  ;;--- and so forth
-	  (values nil 0 event))
-	(key-press-event
+	  (unless port
+	    ;; This is the best we can do...
+	    (setq port (port *application-frame*)))
+	  (values event 0))
+	(keyboard-event			;--- KEY-PRESS-EVENT?
+	  (unless port
+	    (setq port (port (event-sheet event))))
 	  (values (keyboard-event-key-name event)
-		  (event-modifier-state event)
-		  (keyboard-event-character event))))
+		  (event-modifier-state event))))
     (declare (type fixnum modifier-state))
     (cond ((consp gesture-name)
-	   (and (eql keysym (first gesture-name))
-		(eq modifier-state (apply #'make-modifier-state (rest gesture-name)))))
+	   ;; If GESTURE-NAME is a cons, then it's really a gesture spec
+	   (or (multiple-value-bind (gkeysym gstate)
+		   (parse-gesture-spec gesture-name)
+		 (and (eq keysym gkeysym)
+		      (= modifier-state gstate)))
+	       (and port
+		    (let ((gesture-spec 
+			    (port-canonicalize-gesture-spec port gesture-name)))
+		      (and gesture-spec
+			   (or (and (eq keysym (car gesture-spec))
+				    (= modifier-state (cdr gesture-spec)))
+			       (equal gesture-spec
+				      (port-canonicalize-gesture-spec 
+					port keysym modifier-state))))))))
 	  (t
-	   (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
-	     (or (member gesture-name (cdr (assoc keysym bucket)))
-		 (member gesture-name (cdr (assoc character bucket)))))))))
+	   (or (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
+		 (member gesture-name (cdr (assoc keysym bucket))))
+	       (let ((gesture-spec 
+		       (port-canonicalize-gesture-spec port keysym modifier-state)))
+		 (and gesture-spec
+		      (destructuring-bind (keysym . modifier-state) gesture-spec
+			(let ((bucket (aref *keysym-and-modifier-key->gesture*
+					    modifier-state)))
+			  (member gesture-name (cdr (assoc keysym bucket))))))))))))
 
 (defun-inline keyboard-event-p (x)
   (or (characterp x)
       (typep x 'key-press-event)))
 
-;;--- This accepts way too much...
 (defun keyboard-gesture-spec-p (x)
-  (multiple-value-bind (keysym modifiers) (decode-gesture-spec x)
+  (multiple-value-bind (keysym modifiers) (parse-gesture-spec x)
     (declare (ignore modifiers))
-    keysym))
+    (and keysym 
+	 (not (find keysym *pointer-buttons*)))))
 
 (defun gesture-spec-eql (gesture1 gesture2)
-  (multiple-value-bind (k1 m1) (decode-gesture-spec gesture1)
-    (multiple-value-bind (k2 m2) (decode-gesture-spec gesture2)
+  (multiple-value-bind (k1 m1) (parse-gesture-spec gesture1)
+    (multiple-value-bind (k2 m2) (parse-gesture-spec gesture2)
       (and (or (eql k1 k2)
 	       (and (characterp k1)
 		    (characterp k2)
 		    (char-equal k1 k2)))
-	   (equal m1 m2)))))
+	   (= m1 m2)))))
 
+(defun parse-gesture-spec (gesture-spec)
+  (declare (values keysym modifier-state))
+  (when (atom gesture-spec)
+    (return-from parse-gesture-spec
+      (values gesture-spec 0)))
+  (when (and (consp gesture-spec)
+	     (integerp (cdr gesture-spec)))
+    (return-from parse-gesture-spec
+      (values (car gesture-spec) (cdr gesture-spec))))
+  (let ((keysym nil)
+	(modifier-state 0))
+    (dolist (x gesture-spec)
+      (if (find x *modifier-keys*)
+	  (let ((bit (modifier-key-index x)))
+	    (setf modifier-state (dpb 1 (byte 1 bit) modifier-state)))
+	  (setq keysym (or keysym x))))
+    (values keysym modifier-state)))
+
+;; A slower, more careful version of the above that gets used to
+;; validate programmer input
 (defun decode-gesture-spec (gesture-spec &key (errorp t))
   (declare (values keysym modifiers))
   (when (atom gesture-spec)
@@ -212,36 +256,21 @@
 		 (return-from decode-gesture-spec nil)))
 	    (t
 	     (setq keysym x))))
-    ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
-    ;;--- and so forth.
     (values keysym (nreverse modifiers))))
 
-(defun parse-gesture-spec (gesture-spec)
-  (declare (values keysym modifier-state))
-  (when (atom gesture-spec)
-    (return-from parse-gesture-spec
-      (values gesture-spec 0)))
-  (let ((button nil)
-	(modifier-state 0))
-    (dolist (x gesture-spec)
-      (if (find x *modifier-keys*)
-	  (let ((bit (modifier-key-index x)))
-	    (setf modifier-state (dpb 1 (byte 1 bit) modifier-state)))
-	  (setq button (or button x))))
-    ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
-    ;;--- and so forth.
-    (values button modifier-state)))
-
-(defmethod port-canonicalize-gesture-spec :around ((port basic-port) gesture-spec)
-  (multiple-value-bind (button modifier-state) 
-      (parse-gesture-spec gesture-spec)
-    (with-stack-list (key button modifier-state)
+(defmethod port-canonicalize-gesture-spec :around 
+	   ((port basic-port) gesture-spec &optional modifier-state)
+  (multiple-value-bind (keysym modifier-state) 
+      (if modifier-state
+	  (values gesture-spec modifier-state)
+	  (parse-gesture-spec gesture-spec))
+    (with-stack-list (key keysym modifier-state)
       (let ((table (port-canonical-gesture-specs port)))
 	(multiple-value-bind (value found-p) (gethash key table)
 	  (if found-p
 	      value
 	      (setf (gethash (evacuate-list key) table)
-		    (call-next-method port gesture-spec))))))))
+		    (call-next-method port keysym modifier-state))))))))
 
 (defmethod port-invalidate-gesture-specs ((port basic-port))
   (clrhash (port-canonical-gesture-specs port)))

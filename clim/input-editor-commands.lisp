@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.10 92/07/01 15:46:34 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.11 92/07/08 16:30:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -67,7 +67,7 @@
 ;;--- Both of these because of a bug in KEYBOARD-EVENT-MATCHES-GESTURE-NAME-P
 ;;--- that causes control-? not to match sometimes
 (define-gesture-name :possibilities :keyboard (:? :control))
-(define-gesture-name :possibilities :keyboard (:? :control :shift))
+(add-gesture-name ':possibilities ':keyboard '(:? :control :shift) :unique nil)
 
 ;; These need to be on a per-implementation basis, naturally
 ;;--- If you change these, change *MAGIC-COMPLETION-GESTURES* too

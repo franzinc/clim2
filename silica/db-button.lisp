@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.9 92/07/01 15:44:47 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.10 92/07/08 16:28:58 cer Exp $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -32,7 +32,9 @@ toggle button base. This way they can share the draw code.
 (defmethod highlight-button ((pane button-pane-mixin) medium)
   (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
     (draw-rectangle* medium left top right bottom
-		     :ink +flipping-ink+ :filled t)))
+		     :ink +flipping-ink+ :filled t)
+    ;; Do this for the benefit of X displays
+    (medium-force-output medium)))
 
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-enter-event))
   (with-slots (armed) pane
@@ -68,6 +70,9 @@ toggle button base. This way they can share the draw code.
       (with-sheet-medium (medium pane)
 	(highlight-button pane medium))
       (activate-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event :after ((pane button-pane-mixin) (event pointer-event))
+  (deallocate-event event))
 
 
 ;;; Patterns for push buttons
@@ -189,6 +194,8 @@ toggle button base. This way they can share the draw code.
      ;; These slots hold the patterns we'll really use...
      (normal-pattern :initarg :normal-pattern)
      (depressed-pattern :initarg :depressed-pattern)
+     (xmargin :initarg :xmargin)
+     (ymargin :initarg :ymargin)
      ;;--- kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
      (internal-label-offset :initform 0))
   (:default-initargs :label nil
@@ -196,17 +203,18 @@ toggle button base. This way they can share the draw code.
 		     :show-as-default nil
 		     :external-label nil
 		     :depth 2
-		     :pattern *default-square-button-pattern*
+		     :pattern *square-button-pattern*
 		     :icon-pattern nil
-		     :normal-pattern nil))
+		     :normal-pattern nil
+		     :xmargin 2
+		     :ymargin 0))
 
 (defmethod compose-space ((pane push-button-pane) &key width height)
   (declare (ignore width height))
-  (with-slots (normal-pattern external-label) pane
+  (with-slots (normal-pattern external-label xmargin ymargin) pane
     (unless normal-pattern (setup-patterns pane))
     (let* ((pattern-width (pattern-width normal-pattern))
 	   (pattern-height (pattern-height normal-pattern))
-	   (margin (floor pattern-height 4))
 	   (ext-label-width 0)
 	   (ext-label-height 0))
       (when external-label
@@ -218,8 +226,8 @@ toggle button base. This way they can share the draw code.
 		    ext-label-height (+ h (floor
 					    (text-style-height text-style medium) 2)))))))
       (make-space-requirement
-	:width (+ margin ext-label-width pattern-width margin)
-	:height (+ margin (max ext-label-height pattern-height) margin)))))
+	:width (+ xmargin ext-label-width pattern-width xmargin)
+	:height (+ ymargin (max ext-label-height pattern-height) ymargin)))))
 
 ;; There are 3 cases:
 ;;  1) A simple pattern - no label
@@ -258,14 +266,16 @@ toggle button base. This way they can share the draw code.
 	      depressed-pattern (offset-button-pattern normal-pattern
 						       :x-offset depth :y-offset depth))
 	;;--- kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
-	(when label (setq internal-label-offset
-			  (+ text-margin
-			     (floor (- (pattern-width normal-pattern) label-width) 2))))
+	(when label
+	  (setq internal-label-offset
+		(+ text-margin (floor (- (pattern-width normal-pattern) label-width) 2))))
 	;; This side effects the pattern - literally
 	(shadow-button-pattern normal-pattern :depth depth)))))
 
 (defmethod highlight-button ((pane push-button-pane) medium)
-  (draw-button-pattern pane medium))
+  (draw-button-pattern pane medium)
+    ;; Do this for the benefit of X displays
+    (medium-force-output medium))
 
 (defmethod handle-event ((pane push-button-pane) (event pointer-button-press-event))
   (with-slots (armed) pane
@@ -284,38 +294,34 @@ toggle button base. This way they can share the draw code.
 (defmethod draw-button-pattern ((pane push-button-pane) medium
 				&key (draw-external-label-p nil))
   (with-slots (normal-pattern depressed-pattern armed external-label
-			      text-style label depth internal-label-offset) pane
-    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
-      (declare (ignore right))
+			      text-style label depth internal-label-offset
+			      xmargin ymargin) pane
+    (with-bounding-rectangle* (left top right bottom) (sheet-region pane) right
       (let* ((pattern (if (eq armed :active) depressed-pattern normal-pattern))
 	     (pattern-width (pattern-width pattern))
 	     (pattern-height (pattern-height pattern))
-	     (y-margin (floor (- bottom top pattern-height) 2))
-	     (x-margin (floor (floor pattern-height 4))))
-	(reset-ink medium)			;---
-	(draw-pattern* medium pattern (+ left x-margin) (+ top y-margin))
+	     (pattern-center-y (floor (+ top bottom) 2))
+	     (pattern-top (- pattern-center-y (floor pattern-height 2) ymargin))
+	     (pattern-left (+ left xmargin)))
+	(draw-pattern* medium pattern pattern-left pattern-top)
 	;; I don't like this - we really need to be able to draw text into patterns
-	(reset-ink medium)			;---
 	(when label
 	  (let ((offset (if (eq armed :active) depth 0)))
 	    (draw-text* medium label
 			;;--- kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
-			(+ left x-margin internal-label-offset offset)
-			(+ (floor (+ top bottom) 2) offset)
+			(+ left xmargin internal-label-offset offset)
+			(+ pattern-center-y offset)
 			:text-style text-style
 			:align-x :left :align-y :center)))
 	(when draw-external-label-p
 	  (when external-label
 	    (draw-text* medium external-label
-			(+ left x-margin pattern-width x-margin) (floor (+ top bottom) 2)
+			(+ pattern-left pattern-width xmargin) pattern-center-y
 			:text-style text-style
 			:align-x :left :align-y :center)))))))
 
-;;;--- This is a kludge - to make things work till the flipping ink
-;;;--- problems are resolved
-(defun reset-ink (medium) (draw-point* medium 0 0 :ink +foreground-ink+))
-
 
+
 ;;; Utilities for transmogrifying buttons
 
 (defun shadow-button-pattern (original-pattern &key (depth 2))
@@ -985,12 +991,15 @@ toggle button base. This way they can share the draw code.
   (let ((inferiors
 	  (with-look-and-feel-realization (frame-manager frame)
 	    (make-pane 'hbox-pane
-		       :spacing 5
-		       :contents choices))))
+	      :spacing 5
+	      :contents choices))))
     (sheet-adopt-child pane inferiors)
     (when selection
       (setf (gadget-value pane) selection)
       (setf (gadget-value selection) t))))
+
+(defmethod handle-event :after ((pane radio-box-pane) (event pointer-event))
+  (deallocate-event event))
 
 
 (defclass check-box-pane 
@@ -1020,13 +1029,15 @@ toggle button base. This way they can share the draw code.
   (let ((inferiors
 	  (with-look-and-feel-realization (frame-manager frame)
 	    (make-pane 'hbox-pane
-		       :spacing 5
-		       :contents choices))))
+	      :spacing 5
+	      :contents choices))))
     (sheet-adopt-child pane inferiors)
     (when selection
       (setf (gadget-value pane) (list selection))
       (setf (gadget-value selection) t))))
 
+(defmethod handle-event :after ((pane check-box-pane) (event pointer-event))
+  (deallocate-event event))
 
 ;; This macro is just an example of one possible syntax.  The obvious "core"
 ;; syntax is (MAKE-PANE 'RADIO-BOX :CHOICES (LIST ...) :SELECTION ...)
@@ -1042,9 +1053,9 @@ toggle button base. This way they can share the draw code.
 			  `(setq ,',current-selection ,form)))
 	       (let ((,choices (list ,@body)))
 		 (make-pane 'radio-box
-			    :choices ,choices
-			    :selection ,current-selection
-			    ,@options)))))
+		   :choices ,choices
+		   :selection ,current-selection
+		   ,@options)))))
 	(:some-of
 	  `(let ((,current-selection nil))
 	     (macrolet ((radio-box-current-selection (form)
@@ -1055,6 +1066,6 @@ toggle button base. This way they can share the draw code.
 				 (append ,',current-selection ,form))))
 	       (let ((,choices (list ,@body)))
 		 (make-pane 'check-box
-			    :choices ,choices
-			    :selection ,current-selection
-			    ,@options)))))))))
+		   :choices ,choices
+		   :selection ,current-selection
+		   ,@options)))))))))

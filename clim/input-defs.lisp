@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.9 92/07/01 15:46:33 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.10 92/07/08 16:30:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -24,7 +24,7 @@
 			:type coordinate :initform (coordinate 0))
      (native-y-position :accessor pointer-native-y-position
 			:type coordinate :initform (coordinate 0))
-     (button-state :accessor pointer-button-state 
+     (button-state :accessor pointer-buttons
 		   :type fixnum :initform 0)
      (position-changed :accessor pointer-position-changed)
      (cursor-pattern :accessor pointer-cursor-pattern)
@@ -48,14 +48,23 @@
 (defmethod* (setf pointer-position) (x y (pointer standard-pointer))
   (pointer-set-position pointer x y))
 
-;;--- This gets called when the user moves the pointer, but what does a
-;;--- programmer call to cause the pointer to get moved programmatically?
-(defmethod pointer-set-position ((pointer standard-pointer) new-x new-y)
-  (with-slots (x-position y-position position-changed) pointer
-    (setf x-position (coordinate new-x)
-	  y-position (coordinate new-y)
-	  position-changed t))
-  (values new-x new-y))
+;; X and Y are in stream coordinates
+(defmethod pointer-set-position ((pointer standard-pointer) x y 
+				 &optional port-did-it)
+  (with-slots (x-position y-position position-changed
+	       sheet native-x-position native-y-position) pointer
+    (let ((x (coordinate x))
+	  (y (coordinate y)))
+      (setf x-position x
+	    y-position y
+	    position-changed t))
+    (unless port-did-it
+      (multiple-value-bind (native-x native-y)
+	  (transform-position (sheet-device-transformation sheet) x y)
+	(setf native-x-position native-x
+	      native-y-position native-y)
+	(port-set-pointer-position (port pointer) pointer native-x native-y)))
+    (values x y)))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (pointer-position* pointer-position)
@@ -75,12 +84,23 @@
 (defmethod* (setf pointer-native-position) (x y (pointer standard-pointer))
   (pointer-set-native-position pointer x y))
 
-(defmethod pointer-set-native-position ((pointer standard-pointer) new-x new-y)
-  (with-slots (native-x-position native-y-position position-changed) pointer
-    (setf native-x-position (coordinate new-x)
-	  native-y-position (coordinate new-y)
-	  position-changed t))
-  (values new-x new-y))
+;; X and Y are in native (device) coordinates
+(defmethod pointer-set-native-position ((pointer standard-pointer) x y
+					&optional port-did-it)
+  (with-slots (x-position y-position position-changed
+	       sheet native-x-position native-y-position) pointer
+    (let ((x (coordinate x))
+	  (y (coordinate y)))
+      (setf native-x-position x
+	    native-y-position y
+	    position-changed t))
+    (unless port-did-it
+      (multiple-value-bind (sheet-x sheet-y)
+	  (untransform-position (sheet-device-transformation sheet) x y)
+	(setf x-position sheet-x
+	      y-position sheet-y)
+	(port-set-pointer-position (port pointer) pointer x y)))
+    (values x y)))
 
 (defmethod (setf pointer-sheet) :before (new-value (pointer standard-pointer))
   (let ((sheet (slot-value pointer 'sheet)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.4 92/07/01 15:46:47 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.5 92/07/08 16:30:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1916,7 +1916,7 @@
     (t interactor-pane)
     (t application-pane))
   (mirror-region-updated)
-  (move-and-resize-sheet*
+  (move-and-resize-sheet
     (outlined-pane t t t t)
     (command-menu-pane t t t t)
     (vbox-pane t t t t)
@@ -1932,7 +1932,7 @@
     (scroll-bar-target-pane t t t t)
     (scroll-bar-shaft-pane t t t t)
     (clim-stream-pane t t t t))
-  (move-sheet*
+  (move-sheet
     (command-menu-pane t t)
     (outlined-pane t t)
     (push-button-pane t t)
@@ -2335,7 +2335,7 @@
     (command-menu-pane t)
     (application-pane t)
     (clim-stream-pane t))
-  (resize-sheet*
+  (resize-sheet
     (top-level-sheet t t)
     (vbox-pane t t)
     (outlined-pane t t)
@@ -3379,8 +3379,8 @@
     (accept-values-stream))
   ((setf medium-transformation))
   (mirror-region-updated)
-  (move-and-resize-sheet*)
-  (move-sheet*)
+  (move-and-resize-sheet)
+  (move-sheet)
   (note-layout-mixin-region-changed)
   (note-sheet-adopted)
   (note-sheet-degrafted)
@@ -3440,7 +3440,7 @@
     (standard-input-editing-stream))
   (reset-scan-pointer
     (standard-input-editing-stream))
-  (resize-sheet*)
+  (resize-sheet)
   #+Genera (clos-internals::send-if-handles
 	     (standard-input-editing-stream t))
   (shared-initialize)
@@ -3782,6 +3782,16 @@
     (pointer-button-press-event)
     (key-press-event))
   (handle-event)
+  (silica::initialize-event
+    (pointer-motion-event)
+    (pointer-enter-event)
+    (pointer-exit-event)
+    (pointer-button-press-event)
+    (pointer-button-release-event)
+    (key-press-event)
+    (key-release-event)
+    (window-configuration-event)
+    (window-repaint-event))
   (keyboard-event-character
     (key-press-event))
   (keyboard-event-key-name

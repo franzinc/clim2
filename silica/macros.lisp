@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.10 92/05/07 13:11:23 cer Exp $
+;; $fiHeader: macros.lisp,v 1.11 92/07/01 15:45:08 cer Exp $
 
 (in-package :silica)
 
@@ -64,6 +64,7 @@
      (declare (dynamic-extent #'make-pane))
      ,@forms))
 
+#+Genera (zwei:defindentation (make-pane 1 1))
 (defun make-pane (pane-class &rest pane-options)
   (declare (ignore pane-class pane-options))
   (warn "~S not inside a call to ~S"

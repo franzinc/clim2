@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.15 92/07/01 15:46:56 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.16 92/07/08 16:30:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -911,9 +911,7 @@
 
 (defmethod clear-output-record :around ((record output-record-mixin))
   (when (output-record-stream record)
-    (map-over-output-records
-     #'note-output-record-detached
-     record))
+    (map-over-output-records #'note-output-record-detached record))
   (call-next-method))
 
 
@@ -955,7 +953,11 @@
 
 (defmethod output-record-element ((record standard-sequence-output-record) index)
   (with-slots (elements) record
-    (svref elements index)))
+    (typecase elements
+      (null nil)
+      (array (svref elements index))
+      (otherwise
+	(if (zerop index) elements nil)))))
 
 (defmethod output-record-count ((record standard-sequence-output-record))
   (with-slots (elements fill-pointer) record

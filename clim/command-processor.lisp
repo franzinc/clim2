@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.9 92/07/06 18:51:32 cer Exp Locker: cer $
+;; $fiHeader: command-processor.lisp,v 1.10 92/07/08 16:29:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -146,6 +146,7 @@
     (unless keywords (return))
     (let ((keyword (parse-keyword arg-parser delimiter-parser stream keywords
 				  keyword-documentation)))
+      (unless keyword (return))			;arg unparser can return NIL
       (funcall continuation keyword)
       (setq keywords (remove keyword keywords)))
     (funcall delimiter-parser stream :optional)))
@@ -231,6 +232,7 @@
 		      (present command-name presentation-type :stream stream
 			       :acceptably acceptably :for-context-type for-context-type)
 		      command-name))
+		   ((null args-to-go) nil)
 		   (t (let ((thing (pop args-to-go)))
 			(if (unsupplied-argument-p thing)
 			    (with-text-face (stream :italic)

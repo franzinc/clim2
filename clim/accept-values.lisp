@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.24 92/07/01 15:46:06 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.25 92/07/08 16:29:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -225,12 +225,12 @@
 		    (make-instance 'accept-values-stream
 		      :stream (setf own-window 
 				    (make-pane 'clim-stream-pane
-					       :initial-cursor-visibility nil))))
+				      :initial-cursor-visibility nil))))
 	      own-window)))
 	(outlining ()
 	  (setf exit-button-stream
 		(make-pane 'clim-stream-pane
-			   :initial-cursor-visibility nil))))))
+		  :initial-cursor-visibility nil))))))
   (:menu-bar nil)
   (:top-level (accept-values-top-level))
   (:command-table accept-values)
@@ -239,10 +239,11 @@
 (defmethod frame-manager-default-exit-boxes ((framem standard-frame-manager))
   '((:abort) (:exit)))
 
-(defmethod frame-manager-exit-box-labels ((framem standard-frame-manager) frame)
-  (declare (ignore frame))
-  '((:exit   "<End> uses these values")
-    (:abort  "<Abort> aborts")))
+(defmethod frame-manager-exit-box-labels 
+	   ((framem standard-frame-manager) frame view)
+  (declare (ignore frame view))
+  '((:exit   "Exit")
+    (:abort  "Cancel")))
 
 ;; So the continuation can run with the proper value of *APPLICATION-FRAME*
 (defvar *avv-calling-frame*)
@@ -321,8 +322,9 @@
 	     (if own-window
 		 #'(lambda (function stream &rest args)
 		     (declare (dynamic-extent args))
-		     (setq help-window (apply #'display-own-window-help
-					      function help-window own-window stream args)))
+		     (setq help-window 
+			   (apply #'display-own-window-help
+				  function help-window own-window stream args)))
 		 *accept-help-displayer*)))
       (letf-globally (((stream-default-view stream) 
 		       (frame-manager-dialog-view (frame-manager frame))))
@@ -382,14 +384,14 @@
 		 (changing-space-requirements ()
 		   ;; We really want to specify the min/max sizes of
 		   ;; the exit-button pane also
-		   (size-menu-appropriately exit-button-stream
+		   (size-frame-from-contents exit-button-stream
  		     :size-setter
  		       #'(lambda (pane w h)
 			   (change-space-requirements pane 
 			     :width w :min-width w :max-width w
 			     :height h :min-height h :max-height h)))
 		   (when own-window
-		     (size-menu-appropriately own-window
+		     (size-frame-from-contents own-window
 		       :width own-window-width
 		       :height own-window-height
 		       :right-margin own-window-right-margin
@@ -422,7 +424,8 @@
 			 (when (and own-window-x-position own-window-y-position)
 			   (setq x own-window-x-position
 				 y own-window-y-position))
-			 (position-window-near-carefully own-window x y))
+			 (position-sheet-carefully
+			   (frame-top-level-sheet (pane-frame own-window)) x y))
 		       (window-expose own-window)
 		       (with-input-focus (own-window)
 			 (replay exit-button-record exit-button-stream)
@@ -460,16 +463,17 @@
 	    (window-inside-size own-window)
 	  (when (or (> new-width width)
 		    (> new-height height))
-	    (size-menu-appropriately own-window
-				     :right-margin own-window-right-margin
-				     :bottom-margin own-window-bottom-margin)))))))
+	    (size-frame-from-contents own-window
+	      :right-margin own-window-right-margin
+	      :bottom-margin own-window-bottom-margin)))))))
 
 (defun display-own-window-help (function stream near-window original-stream &rest args)
   (declare (values help-window))
   (declare (dynamic-extent args))
   (if stream
       (setf (window-visibility stream) nil)
-      (setq stream (allocate-resource 'menu original-stream (window-root original-stream))))
+      (setq stream (allocate-resource 'menu
+				      original-stream (window-root original-stream))))
   (let ((*original-stream* nil)			;--- reset *INPUT-CONTEXT*, too?
 	(*accept-help-displayer* 'funcall))
     (window-clear stream)
@@ -480,10 +484,11 @@
 	  (fresh-line stream)
 	  (with-text-face (stream :italic)
 	    (write-line "Press any key to remove this window" stream)))))
-    (size-menu-appropriately stream)
+    (size-frame-from-contents stream)
     (when near-window
       (multiple-value-bind (x y) (bounding-rectangle-position near-window)
-	(position-window-near-carefully stream x y)))
+	(position-sheet-carefully 
+	  (frame-top-level-sheet (pane-frame stream)) x y)))
     (window-expose stream)
     (clear-input stream)
     (unwind-protect
@@ -502,7 +507,7 @@
   ;; previous line gets longer.  Maybe there should be some better
   ;; way of ensuring this.
   (fresh-line stream)
-  (let ((labels (frame-manager-exit-box-labels (frame-manager frame) frame)))
+  (let ((labels (frame-manager-exit-box-labels (frame-manager frame) frame view)))
     (updating-output (stream :unique-id stream :cache-value 'exit-boxes)
       (with-slots (exit-boxes) frame
 	(dolist (exit-box exit-boxes)
@@ -1058,7 +1063,7 @@
 
 (defmethod display-exit-boxes ((frame accept-values) stream (view gadget-dialog-view))
   (fresh-line stream)
-  (let ((labels (frame-manager-exit-box-labels (frame-manager frame) frame)))
+  (let ((labels (frame-manager-exit-box-labels (frame-manager frame) frame view)))
     (with-slots (exit-boxes) frame
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
@@ -1071,9 +1076,9 @@
 	      (formatting-cell (stream)
 		(with-output-as-gadget (stream)
 		  (make-pane 'push-button
-			     :label label
-			     :client frame :id value
-			     :activate-callback #'handle-exit-box-callback))))))))))
+		    :label label
+		    :client frame :id value
+		    :activate-callback #'handle-exit-box-callback))))))))))
 
 (defun handle-exit-box-callback (gadget)
   (let ((id (gadget-id gadget)))
@@ -1100,7 +1105,7 @@
   (let ((sheet (slot-value client 'stream)))
     (process-command-event
       sheet
-      (make-instance 'presentation-event
+      (allocate-event 'presentation-event
 	:sheet sheet
 	:presentation-type 'command
 	:value `(com-change-query ,query ,new-value)
@@ -1127,9 +1132,8 @@
 		 (cache-value t) (cache-test #'eql)
 		 resynchronize)
   (declare (dynamic-extent prompt))
-  (updating-output 
-   (stream :unique-id query-identifier :id-test #'equal
-	   :cache-value cache-value :cache-test cache-test)
+  (updating-output (stream :unique-id query-identifier :id-test #'equal
+			   :cache-value cache-value :cache-test cache-test)
    (with-output-as-gadget (stream)
      (let ((record (stream-current-output-record (slot-value stream 'stream)))
 	   (client (make-instance 'accept-values-command-button
@@ -1148,8 +1152,8 @@
 		     :type 'command)
 		   *input-context*
 		   ;;--- It would be nice if we had the real event...
-		   (make-instance 'pointer-button-press-event
+		   (allocate-event 'pointer-button-press-event
 		     :sheet (sheet-parent button)
 		     :x 0 :y 0
-		     :modifiers 0
+		     :modifier-state 0
 		     :button +pointer-left-button+)))))))))

@@ -1,21 +1,20 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.13 92/07/01 15:47:42 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.14 92/07/06 18:52:07 cer Exp $
 
 (in-package :clim-demo)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
-(define-application-frame lisp-listener
-			  ()
+(define-application-frame lisp-listener ()
     ()
-  (:panes
-   (interactor :interactor))
-  (:layouts (default interactor))
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
   (:menu-bar nil)
-  (:top-level (lisp-listener-top-level)))
+  (:top-level (lisp-listener-top-level))
+  (:panes
+    (interactor :interactor))
+  (:layouts (default interactor)))
 
 (defmethod frame-maintain-presentation-histories ((frame lisp-listener)) t)
 
@@ -519,20 +518,22 @@
 
 (defvar *listeners* nil)
 
-(defun do-lisp-listener (&key reinit root)
-  (let* ((entry (assoc root *listeners*))
-	 (ll (cdr entry)))
-    (when (or (null ll) reinit)
-      (setq ll (make-application-frame 'lisp-listener
-				       :width 600 :height 500))
-      (if entry
-	  (setf (cdr entry) ll)
-	  (push (cons root ll) *listeners*)))
-    (let ((window (frame-query-io ll)))
-      (clear-input window))
-    (run-frame-top-level ll)))
+(defun do-lisp-listener (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *listeners*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'lisp-listener
+						   :frame-manager framem
+						   :width 600 :height 500)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *listeners*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "Lisp Listener" (do-lisp-listener :root *demo-root*))
+(define-demo "Lisp Listener" do-lisp-listener)
 
 #+Genera
 (define-genera-application lisp-listener :pretty-name "CLIM Lisp Listener" :select-key #\ˆ)

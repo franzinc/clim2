@@ -4,8 +4,6 @@
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader$
-
 
 (defclass genera-pixmap () 
     ((pixmap :initarg :pixmap)))
@@ -51,7 +49,7 @@
 	    (to-medium genera-medium) to-x to-y)
   (cond ((eq from-medium to-medium)
 	 (when (medium-drawing-possible from-medium)
-	   (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+	   (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
 	     (convert-to-device-coordinates transform from-x from-y to-x to-y)
 	     (convert-to-device-distances transform width height)
 	     (when (>= to-x from-x)
@@ -68,9 +66,9 @@
 	   (let* ((from-drawable (medium-drawable from-medium))
 		  (to-drawable (medium-drawable to-medium))
 		  (from-transform
-		    (sheet-native-transformation (medium-sheet from-medium)))
+		    (sheet-device-transformation (medium-sheet from-medium)))
 		  (to-transform
-		    (sheet-native-transformation (medium-sheet to-medium))))
+		    (sheet-device-transformation (medium-sheet to-medium))))
 	     (convert-to-device-coordinates from-transform from-x from-y)
 	     (convert-to-device-coordinates to-transform to-x to-y)
 	     (convert-to-device-distances from-transform width height)
@@ -83,7 +81,7 @@
 	   ((from-medium genera-medium) from-x from-y width height
 	    (to-medium genera-pixmap-medium) to-x to-y)
   (when (medium-drawing-possible from-medium)
-    (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+    (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
       (convert-to-device-coordinates transform from-x from-y)
       (convert-to-device-distances transform width height)
       (let ((window (medium-drawable from-medium))
@@ -96,7 +94,7 @@
 	   ((from-medium genera-pixmap-medium) from-x from-y width height
 	    (to-medium genera-medium) to-x to-y)
   (when (medium-drawing-possible to-medium)
-    (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
+    (let ((transform (sheet-device-transformation (medium-sheet to-medium))))
       (convert-to-device-coordinates transform to-x to-y)
       (let ((window (medium-drawable to-medium))
 	    (pixmap (medium-drawable from-medium)))
@@ -108,7 +106,7 @@
 	   ((from-medium genera-medium) from-x from-y width height
 	    (pixmap genera-pixmap) to-x to-y)
   (when (medium-drawing-possible from-medium)
-    (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+    (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
       (convert-to-device-coordinates transform from-x from-y)
       (convert-to-device-distances transform width height)
       (let ((window (medium-drawable from-medium))
@@ -121,7 +119,7 @@
 	   ((pixmap genera-pixmap) from-x from-y width height
 	    (to-medium genera-medium) to-x to-y)
   (when (medium-drawing-possible to-medium)
-    (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
+    (let ((transform (sheet-device-transformation (medium-sheet to-medium))))
       (convert-to-device-coordinates transform to-x to-y)
       (let ((window (medium-drawable to-medium))
 	    (pixmap (slot-value pixmap 'pixmap)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.7 92/07/01 15:47:27 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.8 92/07/08 16:31:30 cer Exp $
 
 (in-package :genera-clim)
 
@@ -8,7 +8,8 @@
 
 
 (defclass genera-frame-manager (standard-frame-manager)
-    ())
+    ()
+  (:default-initargs :dialog-view +textual-dialog-view+))
 
 (defmethod make-frame-manager ((port genera-port))
   (make-instance 'genera-frame-manager :port port))
@@ -16,18 +17,33 @@
 (defmethod frame-wrapper ((framem genera-frame-manager) 
 			  (frame standard-application-frame) pane)
   (let ((menu-bar (slot-value frame 'menu-bar)))
-    (if menu-bar
-	(with-look-and-feel-realization (framem frame)
-	  (vertically ()
-	    (outlining ()
-	      ;;--- Incremental redisplay, too
-	      (make-pane 'command-menu-pane
-			 :display-function 
-			   `(display-command-menu :command-table ,menu-bar)
-			 :default-text-style clim-internals::*command-table-menu-text-style*
-			 :width :compute :height :compute))
-	    pane))
-	pane)))
+    (with-look-and-feel-realization (framem frame)
+      (outlining ()
+	(if menu-bar
+	    (vertically ()
+	      (outlining ()
+		;;--- Incremental redisplay, too
+		(make-pane 'command-menu-pane
+		  :display-function 
+		    `(display-command-menu :command-table ,menu-bar)
+		  :incremental-redisplay t
+		  :default-text-style clim-internals::*command-table-menu-text-style*
+		  :text-style clim-internals::*command-table-menu-text-style*
+		  :width :compute :height :compute))
+	      pane)
+	    pane)))))
+
+(defmethod frame-manager-exit-box-labels 
+	   ((framem genera-frame-manager) frame view)
+  (declare (ignore frame view))
+  '((:exit   "<End> uses these values")
+    (:abort  "<Abort> aborts")))
+
+(defmethod frame-manager-exit-box-labels
+	   ((framem genera-frame-manager) frame (view gadget-dialog-view))
+  (declare (ignore frame))
+  '((:exit   "Exit")
+    (:abort  "Cancel")))
 
 ;;--- We can do better than this at some point
 (defmethod frame-manager-notify-user

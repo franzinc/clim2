@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.9 92/07/01 15:45:59 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.10 92/07/08 16:29:46 cer Exp $
 
 (in-package :clx-clim)
 
@@ -320,9 +320,9 @@
 
 (defmacro define-clx-keysym (clx-keysym clim-keysym)
   `(progn 
-     (setf (gethash ,clx-keysym *clx-keysym->clim-keysym-table*) ',clim-keysym)
+     (setf (gethash ,clx-keysym *clx-keysym->clim-keysym-table*) ,clim-keysym)
      (unless (gethash ,clim-keysym *clim-keysym->clx-keysym-table*)
-       (setf (gethash ,clim-keysym *clim-keysym->clx-keysym-table*) ',clx-keysym))))
+       (setf (gethash ,clim-keysym *clim-keysym->clx-keysym-table*) ,clx-keysym))))
 
 (defun-inline clx-keysym->keysym (clx-keysym)
   (gethash clx-keysym *clx-keysym->clim-keysym-table*))
@@ -330,14 +330,19 @@
 (defun-inline keysym->clx-keysym (keysym)
   (gethash keysym *clim-keysym->clx-keysym-table*))
 
-(defmethod port-canonicalize-gesture-spec ((port clx-port) gesture-spec)
+;; If MODIFIER-STATE is supplied, then GESTURE-SPEC is assumed to be a keysym.
+;; Otherwise, we parse GESTURE-SPEC as a gesture spec.
+(defmethod port-canonicalize-gesture-spec 
+	   ((port clx-port) gesture-spec &optional modifier-state)
   (multiple-value-bind (keysym shifts)
-      (parse-gesture-spec gesture-spec)
+      (if modifier-state
+	  (values gesture-spec modifier-state)
+	  (parse-gesture-spec gesture-spec))
     ;; Here, we must take the gesture spec, turn it back into
     ;; a keycode, then see what the keysyms are for that keycode
     (let* ((x-display (slot-value port 'display))
 	   (x-keysym (if (and (characterp keysym) (standard-char-p keysym))
-			 keysym
+			 (keysym->clx-keysym (clx-keysym->keysym (char-code keysym)))
 			 (keysym->clx-keysym keysym)))
 	   (x-keycode nil))
       (unless x-keysym 
@@ -352,20 +357,21 @@
 	;; This could be written to iterate over all possible shift masks seeing which
 	;; of them are required to type this particular character.  That could also be
 	;; cached, I suppose.  We'll just do :SHIFT for now.
-	(when (= (xlib:keycode->keysym 
-		   x-display x-keycode
-		   (xlib:default-keysym-index 
-		     x-display x-keycode (make-modifier-state :shift)))
-		 x-keysym)
+	(when (and (not (or (<= (char-code #\A) x-keysym (char-code #\Z))
+			    (<= (char-code #\a) x-keysym (char-code #\z))))
+		   (= (xlib:keycode->keysym 
+			x-display x-keycode
+			(xlib:default-keysym-index 
+			  x-display x-keycode (make-modifier-state :shift)))
+		      x-keysym))
 	  (setq shifts (logior shifts (make-modifier-state :shift))))
 	;; Now SHIFTS includes any shift that was necessary to type the original
 	;; keysym.  Backtranslate the keysym and modifier-state into a new gesture.
-	(cons
-	  (clx-keysym->keysym
-	    (xlib:keycode->keysym 
-	      x-display x-keycode
-	      (xlib:default-keysym-index x-display x-keycode shifts)))
-	  shifts)))))
+	(cons (clx-keysym->keysym
+		(xlib:keycode->keysym 
+		  x-display x-keycode
+		  (xlib:default-keysym-index x-display x-keycode shifts)))
+	      shifts)))))
 
 ;; The standard characters
 (define-clx-keysym 032 :space)
@@ -551,6 +557,12 @@
 (defmethod set-cursor-location ((port clx-port) sheet x y)
   (xlib:warp-pointer (sheet-mirror sheet)
 		     (fix-coordinate x) (fix-coordinate y)))
+
+;; X and Y are in native coordinates
+(defmethod port-set-pointer-position ((port clx-port) pointer x y)
+  (let* ((sheet (pointer-sheet pointer))
+	 (mirror (sheet-mirror sheet)))
+    (xlib:warp-pointer mirror x y)))
 
 
 ;;; Convert an X keycode into a CLIM modifier state that can be IORed with

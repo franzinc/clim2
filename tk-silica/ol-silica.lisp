@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.10 92/06/23 08:20:10 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.11 92/07/01 15:48:01 cer Exp $
 
 (in-package :xm-silica)
 
@@ -38,6 +38,7 @@
 (defmethod make-cursor-widget-for-port ((port openlook-port) parent)
   (make-instance 'tk::draw-area
 		 :parent parent
+		 :background (tk::get-values parent :foreground)
 		 :width 2
 		 :height 11
 		 :managed t))

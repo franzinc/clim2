@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.12 92/06/23 08:20:17 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.13 92/07/01 15:48:12 cer Exp $
 
 
 (in-package :xm-silica)
@@ -69,11 +69,11 @@
 (defun command-button-callback (button dunno frame command-table item)
   (distribute-event
     (port frame)
-    (make-instance 'presentation-event
-		   :frame frame
-		   :sheet (frame-top-level-sheet frame)
-		   :presentation-type `(command :command-table ,command-table)
-		   :value (second item))))
+    (allocate-event 'presentation-event
+      :frame frame
+      :sheet (frame-top-level-sheet frame)
+      :presentation-type `(command :command-table ,command-table)
+      :value (second item))))
 
 
 (defun frame-wm-protocol-callback (widget frame)
@@ -82,8 +82,8 @@
   ;; synchronously quit from the frame
   (distribute-event
    (port frame)
-   (make-instance 'window-manager-delete-event
-		  :sheet (frame-top-level-sheet frame))))
+   (allocate-event 'window-manager-delete-event
+     :sheet (frame-top-level-sheet frame))))
 
 (defmethod handle-event (sheet (event window-manager-delete-event))
   (frame-exit *application-frame*))
@@ -117,6 +117,8 @@
 	      (progn
 		(setf (frame-manager-menu-cache framem)
 		  (delete x (frame-manager-menu-cache framem)))
+		(framem-destroy-menu framem amenu)
+		#+ignore
 		(tk::destroy-widget (tk::widget-parent amenu))))))))
       
     (unless menu
@@ -192,9 +194,9 @@
 
 ;;;
 
-(defmethod frame-manager-exit-box-labels ((framem xt-frame-manager) (frame t))
-  '(
-    (:exit  "Ok")
+(defmethod frame-manager-exit-box-labels ((framem xt-frame-manager) frame view)
+  (declare (ignore frame view))
+  '((:exit  "Ok")
     (:abort  "Cancel")))
 
 (defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))

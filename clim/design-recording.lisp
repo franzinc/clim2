@@ -1,8 +1,9 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: design-recording.lisp,v 1.2 92/07/08 16:30:02 cer Exp $
+
 (in-package :clim-internals)
 
-;;; $fiHeader: design-recording.lisp,v 1.1 92/07/01 16:02:26 cer Exp $
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 
@@ -83,6 +84,19 @@
       ink
       (make-point (+ x x-offset) (+ y y-offset)))))
 
+(defmethod make-design-from-output-record-1
+	   ((points points-output-record) x-offset y-offset)
+  (with-slots (position-seq ink) points
+    (compose-in
+      ink
+      (apply #'make-region-union
+	     (let ((points nil))
+	       (map-position-sequence
+		 #'(lambda (x y)
+		     (push (make-point (+ x x-offset) (+ y y-offset)) points))
+		 position-seq)
+	       (nreverse points))))))
+
 (defmethod draw-design ((point standard-point) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
@@ -97,6 +111,20 @@
       ink
       (make-line* (+ x1 x-offset) (+ y1 y-offset)
 		  (+ x2 x-offset) (+ y2 y-offset)))))
+
+(defmethod make-design-from-output-record-1
+	   ((lines lines-output-record) x-offset y-offset)
+  (with-slots (position-seq ink) lines
+    (compose-in
+      ink
+      (apply #'make-region-union
+	     (let ((lines nil))
+	       (map-endpoint-sequence
+		 #'(lambda (x1 y1 x2 y2)
+		     (push (make-line* (+ x1 x-offset) (+ y1 y-offset)
+				       (+ x2 x-offset) (+ y2 y-offset)) lines))
+		 position-seq)
+	       (nreverse lines))))))
 
 (defmethod draw-design ((line standard-line) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
@@ -120,6 +148,21 @@
 				(+ x1 x-offset) (+ y2 y-offset))
 			  :closed t)))))
 
+(defmethod make-design-from-output-record-1
+	   ((rectangles rectangles-output-record) x-offset y-offset)
+  (with-slots (position-seq ink) rectangles
+    (compose-in
+      ink
+      (apply #'make-region-union
+	     (let ((rectangles nil))
+	       (map-endpoint-sequence
+		 #'(lambda (left top right bottom)
+		     (push (make-rectangle* (+ left x-offset) (+ top y-offset)
+					    (+ right x-offset) (+ bottom y-offset))
+			   rectangles))
+		 position-seq)
+	       (nreverse rectangles))))))
+
 (defmethod draw-design ((rectangle standard-rectangle) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
@@ -129,14 +172,13 @@
 
 (defmethod make-design-from-output-record-1
 	   ((polygon polygon-output-record) x-offset y-offset)
-  (with-slots (list-of-xs-and-ys closed line-style ink) polygon
-    (let ((coords (copy-list list-of-xs-and-ys)))
-      (translate-position-sequence x-offset y-offset coords)
-      (compose-in
-	ink
-	(if (null line-style)
-	    (make-polygon* coords)
-            (make-polyline* coords :closed closed))))))
+  (with-slots (position-seq closed line-style ink) polygon
+    (translate-position-sequence x-offset y-offset position-seq)
+    (compose-in
+      ink
+      (if (null line-style)
+	  (make-polygon* position-seq)
+	  (make-polyline* position-seq :closed closed)))))
 
 (defmethod draw-design ((polygon standard-polygon) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)

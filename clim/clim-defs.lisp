@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.9 92/07/01 15:46:09 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.10 92/07/08 16:29:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -20,21 +20,35 @@
 
 (defun translate-position-sequence (x-delta y-delta positions)
   (let ((new-positions (make-list (length positions))))
-    (do ((positions positions (cddr positions))
-	 (new-positions new-positions (cddr new-positions)))
-	((null positions))
-      (let ((x (first positions))
-	    (y (second positions)))
-	(translate-positions x-delta y-delta x y)
-	(setf (first new-positions) x)
-	(setf (second new-positions) y)))
+    (if (listp positions)
+	(do ((positions positions (cddr positions))
+	     (new-positions new-positions (cddr new-positions)))
+	    ((null new-positions))
+	  (let ((x (first positions))
+		(y (second positions)))
+	    (translate-positions x-delta y-delta x y)
+	    (setf (first new-positions) x)
+	    (setf (second new-positions) y)))
+	(do ((i 0 (+ i 2))
+	     (new-positions new-positions (cddr new-positions)))
+	    ((null new-positions))
+	  (let ((x (aref positions i))
+		(y (aref positions (1+ i))))
+	    (translate-positions x-delta y-delta x y)
+	    (setf (first new-positions) x)
+	    (setf (second new-positions) y))))
     new-positions))
 
 ;; Destructive version of the above
 (defun ntranslate-position-sequence (x-delta y-delta positions)
-  (do ((positions positions (cddr positions)))
-      ((null positions))
-    (translate-positions x-delta y-delta (first positions) (second positions)))
+  (if (listp positions)
+      (do ((positions positions (cddr positions)))
+	  ((null positions))
+	(translate-positions x-delta y-delta (first positions) (second positions)))
+      (let ((length (length positions)))
+	(do ((i 0 (+ i 2)))
+	    ((>= i length))
+	  (translate-positions x-delta y-delta (aref positions i) (aref positions (1+ i))))))
   positions)
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.5 92/05/22 19:28:36 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.6 92/07/01 15:47:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -43,7 +43,3 @@
 (defvar +iconic-view+ (make-instance 'iconic-view))
 )	;#+CLIM-1-compatibility
 
-
-;;--- This needs to be a slot that can be bound
-(defmethod frame-manager-dialog-view ((framem standard-frame-manager))
-  +textual-dialog-view+)

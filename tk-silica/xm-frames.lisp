@@ -18,14 +18,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.21 92/06/23 08:20:13 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.22 92/07/01 15:48:03 cer Exp $
 
 (in-package :xm-silica)
 
 ;; Motif stuff
 
-(defclass motif-frame-manager (xt-frame-manager)
-    ())
+(defclass motif-frame-manager (xt-frame-manager) 
+    ()
+  (:default-initargs :dialog-view +gadget-dialog-view+))
 
 (defmethod make-frame-manager ((port motif-port))
   (make-instance 'motif-frame-manager :port port))
@@ -200,9 +201,6 @@
    documentation
    :associated-window widget))
 	     
-(defmethod frame-manager-dialog-view ((framem motif-frame-manager))
-  +gadget-dialog-view+)
-  
 
 (defmethod update-frame-settings ((framem motif-frame-manager) (frame t))
   ;;--- Lets see how this works out

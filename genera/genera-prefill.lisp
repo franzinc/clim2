@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-(in-package :clim-internals)
+;; $fiHeader: genera-prefill.lisp,v 1.2 92/07/06 20:04:06 cer Exp $
 
-;;; $fiHeader$
+(in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

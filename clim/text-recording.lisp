@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.6 92/05/22 19:28:33 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.7 92/07/01 15:47:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -70,60 +70,60 @@
 					   (x-offset (coordinate 0)) (y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset))
   (declare (ignore region)) 
-  (with-sheet-medium (medium stream)
-    (let* ((string (slot-value record 'string))
-	   (start 0)
-	   (end (length string))
-	   (text-style (medium-default-text-style stream))
-	   (baseline (- (text-style-height text-style medium)
-			(text-style-descent text-style medium)))
-	   (glyph-buffer (stream-output-glyph-buffer stream))
-	   (color (slot-value record 'ink)))
-      (declare (type fixnum start end))
-      (macrolet
-	((do-it (end-position)
-	   `(loop
-	      (when (>= start ,end-position) (return))
-	      (multiple-value-bind (write-char next-char-index
-				    new-cursor-x new-baseline new-height font)
-		  (stream-scan-string-for-writing 
-		    stream medium string start ,end-position text-style
-		    cursor-x +largest-coordinate+ glyph-buffer)
-		(with-identity-transformation (medium)
-		  (draw-text* medium string
-			      cursor-x (+ cursor-y (- baseline new-baseline))
-			      :start start :end next-char-index 
-			      :align-y :top
-			      :text-style text-style :ink color))
-		(setf cursor-x new-cursor-x start next-char-index)
-		(when write-char
-		  (cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
-			 (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
-			(t 
-			 (multiple-value-bind (new-cursor-x new-cursor-y)
-			     (stream-draw-lozenged-character
-			       stream write-char cursor-x cursor-y new-baseline new-height
-			       text-style +largest-coordinate+ nil t)
-			   (setf cursor-x new-cursor-x
-				 cursor-y new-cursor-y))))
-		  (incf start))))))
-	(multiple-value-bind (cursor-x cursor-y) 
-	    (output-record-start-cursor-position record)
-	  (declare (type coordinate cursor-x cursor-y))
-	  (translate-coordinates x-offset y-offset cursor-x cursor-y)
-	  (do-it end)
-	  #-Silica				;--- what about this?
-	  (when (slot-value record 'wrapped-p)
-	    (draw-character-wrap-indicator
-	      stream cursor-y (bounding-rectangle-height record)
-	      (stream-text-margin stream) nil)))))))
+  (let* ((medium (sheet-medium stream))
+	 (string (slot-value record 'string))
+	 (start 0)
+	 (end (length string))
+	 (text-style (medium-default-text-style stream))
+	 (baseline (- (text-style-height text-style medium)
+		      (text-style-descent text-style medium)))
+	 (glyph-buffer (stream-output-glyph-buffer stream))
+	 (color (slot-value record 'ink)))
+    (declare (type fixnum start end))
+    (macrolet
+      ((do-it (end-position)
+	 `(loop
+	    (when (>= start ,end-position) (return))
+	    (multiple-value-bind (write-char next-char-index
+				  new-cursor-x new-baseline new-height font)
+		(stream-scan-string-for-writing 
+		  stream medium string start ,end-position text-style
+		  cursor-x +largest-coordinate+ glyph-buffer)
+	      (with-identity-transformation (medium)
+		(draw-text* medium string
+			    cursor-x (+ cursor-y (- baseline new-baseline))
+			    :start start :end next-char-index 
+			    :align-y :top
+			    :text-style text-style :ink color))
+	      (setf cursor-x new-cursor-x start next-char-index)
+	      (when write-char
+		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
+		       (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
+		      (t 
+		       (multiple-value-bind (new-cursor-x new-cursor-y)
+			   (stream-draw-lozenged-character
+			     stream write-char cursor-x cursor-y new-baseline new-height
+			     text-style +largest-coordinate+ nil t)
+			 (setf cursor-x new-cursor-x
+			       cursor-y new-cursor-y))))
+		(incf start))))))
+      (multiple-value-bind (cursor-x cursor-y) 
+	  (output-record-start-cursor-position record)
+	(declare (type coordinate cursor-x cursor-y))
+	(translate-coordinates x-offset y-offset cursor-x cursor-y)
+	(do-it end)
+	(when (slot-value record 'wrapped-p)
+	  (draw-character-wrap-indicator
+	    stream cursor-y (bounding-rectangle-height record)
+	    (stream-text-margin stream) nil))))))
 
 (defmethod replay-output-record ((record styled-text-output-record) stream
 				 &optional region 
 					   (x-offset (coordinate 0)) (y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset))
   (declare (ignore region))
-  (let* ((string (slot-value record 'string))
+  (let* ((medium (sheet-medium stream))
+	 (string (slot-value record 'string))
 	 (start 0)
 	 (end (length string))
 	 (text-style (slot-value record 'initial-text-style))
@@ -131,50 +131,48 @@
 	 (glyph-buffer (stream-output-glyph-buffer stream))
 	 (color (slot-value record 'ink)))
     (declare (type fixnum start end))
-    (with-sheet-medium (medium stream)
-      (macrolet
-	((do-it (end-position)
-	   `(loop
-	      (when (>= start ,end-position) (return))
-	      (multiple-value-bind (write-char next-char-index
-				    new-cursor-x new-baseline new-height font)
-		  (stream-scan-string-for-writing 
-		    stream medium string start ,end-position text-style
-		    cursor-x +largest-coordinate+ glyph-buffer)
-		(with-identity-transformation (medium)
-		  (draw-text* medium string
-			      cursor-x (+ cursor-y (- baseline new-baseline))
-			      :start start :end next-char-index 
-			      :align-y :top
-			      :text-style text-style :ink color))
-		(setf cursor-x new-cursor-x start next-char-index)
-		(when write-char
-		  (cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
-			 (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
-			(t 
-			 (multiple-value-bind (new-cursor-x new-cursor-y)
-			     (stream-draw-lozenged-character
-			       stream write-char cursor-x cursor-y new-baseline new-height
-			       text-style +largest-coordinate+ nil t)
-			   (setf cursor-x new-cursor-x
-				 cursor-y new-cursor-y))))
-		  (incf start))))))
-	(multiple-value-bind (cursor-x cursor-y) 
-	    (output-record-start-cursor-position record)
-	  (declare (type coordinate cursor-x cursor-y))
-	  (translate-coordinates x-offset y-offset cursor-x cursor-y)
-	  (dolist (text-style-change (slot-value record 'text-style-changes))
-	    (let ((new-text-style (car text-style-change))
-		  (change-position (cdr text-style-change)))
-	      (do-it change-position)
-	      (setf text-style new-text-style
-		    start change-position)))
-	  (do-it end)
-	  #-Silica				;--- what about this?
-	  (when (slot-value record 'wrapped-p)
-	    (draw-character-wrap-indicator
-	      stream cursor-y (bounding-rectangle-height record) 
-	      (stream-text-margin stream) nil)))))))
+    (macrolet
+      ((do-it (end-position)
+	 `(loop
+	    (when (>= start ,end-position) (return))
+	    (multiple-value-bind (write-char next-char-index
+				  new-cursor-x new-baseline new-height font)
+		(stream-scan-string-for-writing 
+		  stream medium string start ,end-position text-style
+		  cursor-x +largest-coordinate+ glyph-buffer)
+	      (with-identity-transformation (medium)
+		(draw-text* medium string
+			    cursor-x (+ cursor-y (- baseline new-baseline))
+			    :start start :end next-char-index 
+			    :align-y :top
+			    :text-style text-style :ink color))
+	      (setf cursor-x new-cursor-x start next-char-index)
+	      (when write-char
+		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
+		       (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
+		      (t 
+		       (multiple-value-bind (new-cursor-x new-cursor-y)
+			   (stream-draw-lozenged-character
+			     stream write-char cursor-x cursor-y new-baseline new-height
+			     text-style +largest-coordinate+ nil t)
+			 (setf cursor-x new-cursor-x
+			       cursor-y new-cursor-y))))
+		(incf start))))))
+      (multiple-value-bind (cursor-x cursor-y) 
+	  (output-record-start-cursor-position record)
+	(declare (type coordinate cursor-x cursor-y))
+	(translate-coordinates x-offset y-offset cursor-x cursor-y)
+	(dolist (text-style-change (slot-value record 'text-style-changes))
+	  (let ((new-text-style (car text-style-change))
+		(change-position (cdr text-style-change)))
+	    (do-it change-position)
+	    (setf text-style new-text-style
+		  start change-position)))
+	(do-it end)
+	(when (slot-value record 'wrapped-p)
+	  (draw-character-wrap-indicator
+	    stream cursor-y (bounding-rectangle-height record) 
+	    (stream-text-margin stream) nil))))))
 
 (defmethod bounding-rectangle-set-edges :around
 	   ((record standard-text-output-record) new-left new-top new-right new-bottom)

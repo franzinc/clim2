@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.10 92/07/01 15:44:43 cer Exp $
+;; $fiHeader: classes.lisp,v 1.11 92/07/08 16:28:54 cer Exp $
 
 (in-package :silica)
 
@@ -38,7 +38,7 @@
      (process :initform nil :accessor port-process)
      (framem :initform nil :accessor port-frame-manager)
      (modifier-state :initform (make-modifier-state)
-		     :reader port-modifier-state)
+		     :accessor port-modifier-state)
      (mirror->sheet-table :initform (make-hash-table) 
 			  :reader port-mirror->sheet-table)
      (focus :initform nil :accessor port-keyboard-input-focus)
@@ -48,7 +48,6 @@
      (color-cache :initform (make-hash-table) :reader port-color-cache)
      (pointer :initform nil :accessor port-pointer)
      (cursor :initform nil :accessor port-cursor)
-     (event-resource :initform (make-event-resource) :reader port-event-resource)
      (mapping-table :initform (make-hash-table :test #'equal))
      (undefined-text-style :initform *undefined-text-style*
 			   :accessor port-undefined-text-style)
@@ -125,15 +124,18 @@
 			    :from-end t))
 		*keyword-package*))))
 
+;; A fixnum, incremented only with ATOMIC-INCF
+(defvar *event-timestamp* 0)
+
 (define-event-class event () 
   ((timestamp :reader event-timestamp
-	      :initform 0 :initarg :timestamp)))
+	      :initform (atomic-incf *event-timestamp*) :initarg :timestamp)))
 
 
 (define-event-class device-event (event) 
   ((sheet :reader event-sheet :initarg :sheet)
    (modifier-state :reader event-modifier-state
-		   :initform 0 :initarg :modifiers)))
+		   :initform 0 :initarg :modifier-state)))
 
 
 (define-event-class keyboard-event (device-event)
@@ -179,7 +181,7 @@
    (native-region :reader window-event-native-region :initarg :native-region)
    (mirrored-sheet :reader window-event-mirrored-sheet
 		   :reader event-sheet
-		   :initarg :sheet)))
+		   :initarg :sheet :initarg :mirrored-sheet)))
 
 (defmethod print-object ((event window-event) stream)
   (with-bounding-rectangle* (left top right bottom) (window-event-region event)

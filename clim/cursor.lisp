@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.12 92/07/01 15:46:13 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.13 92/07/08 16:29:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -38,7 +38,7 @@
      (stream :initarg :stream)
      (flags :initform 0 :type fixnum)
      (width :initarg :width :type coordinate)
-     ;;-- [cer] Until I can think of somewhere better
+     ;;--- Until I can think of somewhere better --CER
      (plist :initform nil))
   (:default-initargs :x (coordinate 0) :y (coordinate 0)
 		     :width (coordinate 8)
@@ -70,19 +70,22 @@
 (defmethod* (setf cursor-position) (x y (cursor standard-text-cursor))
   (cursor-set-position cursor x y))
 
-(defmethod cursor-set-position ((cursor standard-text-cursor) nx ny)
-  (with-slots (x y flags) cursor
+(defmethod cursor-set-position ((cursor standard-text-cursor) nx ny &optional fastp)
+  (with-slots (x y flags stream) cursor
     (unless (and (= x (coordinate nx))
 		 (= y (coordinate ny)))
-      (let ((active (cursor-active cursor)))
-	(unwind-protect
-	    (progn
+      (if fastp
+	  (setf x (coordinate nx)
+		y (coordinate ny))
+	  (let ((active (cursor-active cursor)))
+	    (unwind-protect
+		(progn
+		  (when active
+		    (setf (cursor-active cursor) nil))
+		  (setf x (coordinate nx)
+			y (coordinate ny)))
 	      (when active
-		(setf (cursor-active cursor) nil))
-	      (setf x (coordinate nx)
-		    y (coordinate ny)))
-	  (when active
-	    (setf (cursor-active cursor) active)))))))
+		(setf (cursor-active cursor) active))))))))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (cursor-position* cursor-position)
@@ -197,41 +200,18 @@
 	;; draw it with new-focus
 	(draw-cursor cursor stream x y t new)))))
 
-;;; DRAW-CURSOR is invoked to draw or erase the cursor.  on-p T = draw it; NIL = erase it
-
-#+Silica
+;; DRAW-CURSOR is invoked to draw or erase the cursor.
 (defmethod draw-cursor ((cursor standard-text-cursor) stream x y on-p
 			&optional (focus nil focus-p))
-  ;; --- protocol violations:  output-recording-options
-  ;; ---                       graphics protocol
-  ;; ---                       output protocol (line-height)
-  (declare (ignore on-p))
+  ;;--- protocol violations:  output recording protocol (with-output-recording-options)
+  ;;---                       graphics protocol (draw-rectangle*)
+  ;;---                       output protocol (stream-line-height)
   (let ((height (stream-line-height stream))
 	(width (slot-value cursor 'width)))
     (unless focus-p (setq focus (cursor-focus cursor)))
     (with-output-recording-options (stream :record nil)
-      (draw-rectangle* stream x y (+ x width) (+ y height) :filled focus
-		       :ink +flipping-ink+))	;---yetch
-    ;; --- do we really want to do this here??
+      (draw-rectangle* stream x y (+ x width) (+ y height)
+		       :filled focus
+		       :ink #+++ignore (if on-p +foreground-ink+ +background-ink+)
+			    #---ignore +flipping-ink+))
     (force-output stream)))
-
-#-Silica
-(defmethod draw-cursor ((cursor standard-text-cursor) on-p)
-  (with-slots (x y stream) cursor
-    (when stream
-      ;; --- protocol violations:  output-recording-options
-      ;; ---                       graphics protocol
-      ;; ---                       output protocol (line-height)
-      (let ((height (stream-line-height stream)))
-	(declare (type coordinate height))
-	(with-output-recording-options (stream :record nil)
-	  (draw-line-internal
-	    stream (coordinate 0) (coordinate 0)
-	    x (+ y height) (+ x 2) (+ y height 2)
-	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+)
-	  (draw-line-internal
-	    stream (coordinate 0) (coordinate 0)
-	    x (+ y height) (- x 2) (+ y height 2)
-	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+))
-	;; --- do we really want to do this here??
-	(force-output stream)))))

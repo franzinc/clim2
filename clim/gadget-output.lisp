@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.19 92/07/06 18:51:40 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.20 92/07/08 16:30:14 cer Exp $
 
 (in-package :clim-internals)
 
@@ -94,9 +94,9 @@
 	  (multiple-value-setq (xoff yoff)
 	    (convert-from-relative-to-absolute-coordinates 
 	      (sheet-parent gadget) record))
-	  (move-and-resize-sheet* gadget
-				  (+ left xoff) (+ top yoff)
-				  (- right left) (- bottom top)))))))
+	  (move-and-resize-sheet gadget
+				 (+ left xoff) (+ top yoff)
+				 (- right left) (- bottom top)))))))
 
 #---ignore
 (defmethod update-gadget-position ((record gadget-output-record))
@@ -107,16 +107,16 @@
 	    (output-record-stream record)
 	    (output-record-parent record))
 	(with-bounding-rectangle* (left top right bottom) record
-	  (move-and-resize-sheet* gadget
-				  (+ left xoff) (+ top yoff)
-				  (- right left) (- bottom top)))))))
+	  (move-and-resize-sheet gadget
+				 (+ left xoff) (+ top yoff)
+				 (- right left) (- bottom top)))))))
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record gadget-output-record) stream
-								      &optional region x-offset y-offset)
+					&optional region x-offset y-offset)
   (declare (ignore stream x-offset y-offset))
   (let ((gadget (output-record-gadget record)))
-    (when (port gadget) 
+    (when (port gadget)
       (with-sheet-medium (medium gadget)
 	(handle-repaint gadget medium region)))))
 
@@ -135,13 +135,15 @@
 
 (defmacro with-output-as-gadget ((stream &rest args) &body body)
   (default-output-stream stream)
-  (let ((fm (gensym))
-	(f (gensym)))
+  (let ((framem '#:framem)
+	(frame '#:frame))
     (with-keywords-removed (args args '(:stream))
-      `(invoke-with-output-as-gadget ,stream
-	 #'(lambda (,fm ,f)
-	     (with-look-and-feel-realization (,fm ,f) ,@body)) 
-	 ,@args))))
+      `(flet ((with-output-as-gadget-body (,framem ,frame)
+		(with-look-and-feel-realization (,framem ,frame)
+		  ,@body)))
+	 (declare (dynamic-extent #'with-output-as-gadget-body))
+	 (invoke-with-output-as-gadget 
+	   ,stream #'with-output-as-gadget-body ,@args)))))
 
 #+++ignore
 (defmethod invoke-with-output-as-gadget (stream continuation &key)
@@ -300,17 +302,16 @@
 		 #'(lambda (element)
 		     (let* ((value (funcall value-key element))
 			    (button
-			     (make-pane 'toggle-button 
-					:label (funcall name-key element)
-					:indicator-type :some-of
-					:value (and default-supplied-p
-						    (member (funcall value-key element) default
-							    :test test 
-							    ;;-- Should the
-							    ;;value key be used??
-							    :key value-key) 
-						    t)
-					:id value)))
+			      (make-pane 'toggle-button 
+			        :label (funcall name-key element)
+				:indicator-type :some-of
+				:value (and default-supplied-p
+					    (member value default
+						    :test test 
+						    ;;--- Should the value-key be used?
+						    :key value-key) 
+					    t)
+				:id value)))
 		       button))
 		 sequence)))
       (outlining ()

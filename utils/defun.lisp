@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defun.lisp,v 1.4 92/03/04 16:20:14 cer Exp $
+;; $fiHeader: defun.lisp,v 1.5 92/05/22 19:27:09 cer Exp $
 
 (in-package :clim-utils)
 
@@ -165,9 +165,11 @@
 			 ,@(when downward-p
 			     (generate-downward-function-declarations))
 			 ,@(when dynamic-extent-functions
-			     (generate-downward-funarg-declarations dynamic-extent-functions))
+			     (generate-downward-funarg-declarations 
+			       (nreverse dynamic-extent-functions)))
 			 ,@(when dynamic-extent-vars
-			     (generate-downward-rest-declarations dynamic-extent-vars)))))
+			     (generate-downward-rest-declarations 
+			       (nreverse dynamic-extent-vars))))))
 		    (when decl-stuff
 		      `((declare ,@decl-stuff))))
 		,@(when non-dynamic-rests

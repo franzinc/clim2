@@ -1,28 +1,19 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.8 92/06/16 15:01:48 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.9 92/07/01 15:46:31 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;; this stuff belongs in other files...
 
-;; needs to be atomically updated on architectures with multiple processes.
-(defvar *generation-tick* 0)
-
-;; note that this returns the new value (depending on INCF for value -- byechh).
-(defmacro atomic-incf (reference)
-  #+Genera `(process:atomic-incf ,reference)
-  #+Minima `(incf ,reference)
-  ;; Probably should use a lock, or something...
-  #-(or Genera Minima) `(incf ,reference))
-
-
 ;;; The incremental redisplay protocol:
 ;;; See incremental-redisplay-protocol.text
 ;;; We use the term "extent" here to mean a bounding rectangle...
+
+;; A fixnum, incremented only with ATOMIC-INCF
+(defvar *generation-tick* 0)
 
 (define-protocol-class updating-output-record (output-record))
 
@@ -136,7 +127,7 @@
    (apply #'find-child-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
-	       (eql (output-record-generation-tick record) *generation-tick*))
+	       (eq (output-record-generation-tick record) *generation-tick*))
 	  record-type
 	  init-args))
 
@@ -144,14 +135,14 @@
   (decache-child-output-record
     record child
     (and (not (output-record-contents-ok record))
-	 (eql (output-record-generation-tick record) *generation-tick*))))
+	 (eq (output-record-generation-tick record) *generation-tick*))))
 
 (defun find-cached-output-record-1 (record record-type &rest init-args)
   (declare (dynamic-extent init-args))
    (apply #'find-cached-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
-	       (eql (output-record-generation-tick record) *generation-tick*))
+	       (eq (output-record-generation-tick record) *generation-tick*))
 	  record-type
 	  init-args))
 
@@ -529,35 +520,37 @@
 				       (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset old-x-offset old-y-offset))
   (declare (values erases moves draws erase-overlapping move-overlapping))
-  (labels ((augment-draws (record x-offset y-offset old-x-offset old-y-offset)
-	     (when (and (displayed-output-record-p record)
-			(not (children-never-overlap-p (output-record-parent record)))
-			(not (member record draws :key #'first))
-			(not (member record erases :key #'first))
-			(dolist (erase erases nil)
-			  (when (region-intersects-region-p record (first erase))
-			    (return t))))
-	       (push (list record
-			   (bounding-rectangle-shift-position
-			     record x-offset y-offset))
-		     draws))
-	     (when (output-record-p record)
-	       (multiple-value-bind (start-x start-y)
-		   (output-record-start-cursor-position record)
-		 (declare (type coordinate start-x start-y))
-		 (multiple-value-bind (o-start-x o-start-y)
-		     (output-record-old-start-cursor-position record)
-		   (declare (type coordinate o-start-x o-start-y))
-		   (let ((x-offset (+ x-offset start-x))
-			 (y-offset (+ y-offset start-y))
-			 (old-x-offset (+ old-x-offset o-start-x))
-			 (old-y-offset (+ old-y-offset o-start-y)))
-		     (map-over-output-records
-		       #'augment-draws record (coordinate 0) (coordinate 0)
-		       x-offset y-offset old-x-offset old-y-offset)))))))
-    (declare (dynamic-extent #'augment-draws))
-    (augment-draws record x-offset y-offset old-x-offset old-y-offset))
-  (values erases moves draws erase-overlapping move-overlapping))
+  (let ((new-draws nil))
+    (labels ((augment-draws (record x-offset y-offset old-x-offset old-y-offset)
+	       (when (and (displayed-output-record-p record)
+			  (not (children-never-overlap-p (output-record-parent record)))
+			  (not (member record draws :key #'first))
+			  (not (member record erases :key #'first))
+			  (dolist (erase erases nil)
+			    (when (region-intersects-region-p record (first erase))
+			      (return t))))
+		 (push (list record
+			     (bounding-rectangle-shift-position
+			       record x-offset y-offset))
+		       new-draws))
+	       (when (output-record-p record)
+		 (multiple-value-bind (start-x start-y)
+		     (output-record-start-cursor-position record)
+		   (declare (type coordinate start-x start-y))
+		   (multiple-value-bind (o-start-x o-start-y)
+		       (output-record-old-start-cursor-position record)
+		     (declare (type coordinate o-start-x o-start-y))
+		     (let ((x-offset (+ x-offset start-x))
+			   (y-offset (+ y-offset start-y))
+			   (old-x-offset (+ old-x-offset o-start-x))
+			   (old-y-offset (+ old-y-offset o-start-y)))
+		       (map-over-output-records
+			 #'augment-draws record (coordinate 0) (coordinate 0)
+			 x-offset y-offset old-x-offset old-y-offset)))))))
+      (declare (dynamic-extent #'augment-draws))
+      (augment-draws record x-offset y-offset old-x-offset old-y-offset))
+    (values erases moves (append draws (nreverse new-draws))
+	    erase-overlapping move-overlapping)))
 
 ;; This has nothing to do with output-recording.  You can call this on any
 ;; stream that can set the cursor position, replace existing output, and
@@ -860,7 +853,7 @@
 	  ;; case, we could just bitblt, but we won't detect that anymore.
 	  ((and old-parent
 		(not (eq (output-record-parent record) old-parent))
-		(not (eql (output-record-generation-tick old-parent) *generation-tick*)))
+		(not (eq (output-record-generation-tick old-parent) *generation-tick*)))
 	   (values nil nil
 		   (list (list record
 			       (bounding-rectangle-shift-position
@@ -962,12 +955,12 @@
 					   cache-value copy-cache-value
 					   stream #'call-continuation)))
 	    (when (and current-output-record
-		       ;; even if we didn't move in hierarchy, because if we are
+		       ;; Even if we didn't move in hierarchy, because if we are
 		       ;; running this code then our parent did >not< have
 		       ;; contents-ok, and therefore lost all of his children (if
 		       ;; he was updated this pass, so check generation-tick).
 		       (or output-record-moved-in-hierarchy
-			   (eql (output-record-generation-tick current-output-record)
+			   (eq (output-record-generation-tick current-output-record)
 				*generation-tick*)))
 	      ;;--- is there some way to detect deletes without clearing the output-record?
 	      ;;--- this current implementation has the potential for gratuitous consing...

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.14 92/07/01 15:45:04 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.15 92/07/08 16:29:11 cer Exp $
 
 (in-package :silica)
 
@@ -371,6 +371,7 @@
 					distances-to-transform
 					position-sequences-to-transform)
   (let* ((spread-name (intern (format nil "~A*" name)))
+	 (continuation-name (intern (format nil "~A-~A*" 'call name)))
 	 (drawing-options
 	   (all-drawing-options-lambda-list drawing-options))
 	 (medium-graphics-function-name
@@ -414,22 +415,22 @@
 		    (dynamic-extent args))
 	   ,(if keywords
 		`(with-keywords-removed (args args ',keywords)
+		   (flet ((,continuation-name ()
+			   (,medium-graphics-function-name 
+			      medium
+			      ,@spread-argument-names
+			      ,@keyword-argument-names)))
+		     (declare (dynamic-extent #',continuation-name))
+		     (apply #'invoke-with-drawing-options
+			    medium #',continuation-name args)))
+		`(flet ((,continuation-name ()
+			 (,medium-graphics-function-name 
+			    medium
+			    ,@spread-argument-names
+			    ,@keyword-argument-names)))
+		   (declare (dynamic-extent #',continuation-name))
 		   (apply #'invoke-with-drawing-options
-			  medium
-			  #'(lambda ()
-			      (,medium-graphics-function-name 
-				 medium
-				 ,@spread-argument-names
-				 ,@keyword-argument-names))
-			  args))
-		`(apply #'invoke-with-drawing-options
-			medium
-			#'(lambda ()
-			    (,medium-graphics-function-name 
-			       medium
-			       ,@spread-argument-names
-			       ,@keyword-argument-names))
-			args)))
+			  medium #',continuation-name args))))
 	 (setf (get ',name 'args)
 	       '((,@spread-argument-names ,@keyword-argument-names)
 		 ,@args)) 
@@ -439,6 +440,12 @@
 	     (,medium-graphics-function-name medium 
 					     ,@spread-argument-names
 					     ,@keyword-argument-names)))
+	 (defmethod ,medium-graphics-function-name
+		    ((sheet permanent-medium-sheet-output-mixin)
+		     ,@spread-argument-names ,@keyword-argument-names)
+	   (,medium-graphics-function-name (sheet-medium sheet) 
+					   ,@spread-argument-names
+					   ,@keyword-argument-names))
 	 (defmethod ,medium-graphics-function-name :around
 		    ((medium basic-medium) ,@spread-argument-names ,@keyword-argument-names)
 	   ;; Want to tranform stuff, set up clipping region etc etc

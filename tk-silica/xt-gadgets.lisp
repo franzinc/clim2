@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.14 92/05/22 19:29:36 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.15 92/07/01 15:48:13 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -135,7 +135,7 @@
     (values 
      (fix-coordinate
       (compute-symmetric-value
-       smin smax value mmin mmax))
+       smin smax (* value (- 1 slider-size)) mmin mmax))
      (fix-coordinate
       (compute-symmetric-value
        smin smax slider-size mmin mmax)))))

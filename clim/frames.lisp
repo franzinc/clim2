@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.30 92/07/06 19:55:56 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.31 92/07/08 16:30:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,7 +14,6 @@
 ;;--- processes can queue up requests.  This queue should be managed
 ;;--- like other event queues.  It can contains "command" events, too.
 (defclass standard-application-frame (application-frame)
-    ;;--- Is it right for these to be SHEET accessors??
     ((name :initarg :name :accessor frame-name)
      (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
      (command-table :initarg :command-table 
@@ -52,6 +51,7 @@
      (resizable :initarg :resize-frame
 		:reader frame-resizable)
      (layout :initarg :layouts :reader frame-layouts)
+     (top-level-process :initform nil)
      (command-queue :initform (make-locking-queue) :reader frame-command-queue))
   (:default-initargs :pointer-documentation nil
 		     :layouts nil
@@ -462,7 +462,6 @@
   (declare (non-dynamic-extent options))
   `(make-pane 'option-pane ,@options))
 
-
 (define-pane-type menu-bar (&rest options)
   (declare (non-dynamic-extent options))
   `(make-pane 'menu-bar ,@options))
@@ -471,10 +470,13 @@
 (defmethod find-or-make-pane-named ((frame standard-application-frame) name)
   (with-slots (all-panes pane-constructors) frame
     (second (or (assoc name all-panes)
-		(car (push (list name 
- 				 (funcall (second (assoc name pane-constructors))
-					  frame (frame-manager frame)))
-			   all-panes))))))
+		(let ((new-pane
+			(list name 
+			      (funcall (second (assoc name pane-constructors))
+				       frame (frame-manager frame)))))
+		  ;; Use APPEND to preserve the pane ordering
+		  (setq all-panes (append all-panes (list new-pane)))
+		  new-pane)))))
  
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
   (let ((panes (frame-panes frame))
@@ -495,10 +497,8 @@
 	(if (and (sheet-enabled-p top-sheet)
 		 (not (frame-resizable frame)))
 	    (multiple-value-call #'allocate-space 
-	      top-sheet (bounding-rectangle-size top-sheet))
-	    (resize-sheet* 
-	      top-sheet
-	      width height))))))
+	      top-sheet (bounding-rectangle-size top-sheet)) 
+	    (resize-sheet top-sheet width height))))))
 
 (defmethod (setf frame-current-layout) (layout (frame standard-application-frame))
   (unless (eq (frame-current-layout frame) layout)
@@ -583,16 +583,10 @@
 	  (enable-frame frame))
 	frame)))
 
-(defun title-capitalize (string)
-  (let ((new-string (substitute #\Space #\- string)))
-    (when (eq new-string string)
-      (setq new-string (copy-seq new-string)))
-    (nstring-capitalize new-string)))
-
 (defmethod enable-frame ((frame standard-application-frame))
   (unless (frame-manager frame)
     (error "Cannot enable a disowned frame ~S" frame))
-  (destructuring-bind (&key width height &allow-other-keys)
+  (destructuring-bind (&key left top width height &allow-other-keys)
       (frame-geometry frame)
     (ecase (frame-state frame)
       (:enabled)
@@ -613,6 +607,8 @@
 	     (:disabled
 	       (bounding-rectangle-size
 		 (frame-top-level-sheet frame)))))
+	 (when (and left top)
+	   (move-sheet (frame-top-level-sheet frame) left top))
 	 (note-frame-enabled (frame-manager frame) frame))))))
 
 (defmethod destroy-frame ((frame standard-application-frame))
@@ -639,6 +635,7 @@
 				(frame standard-application-frame))
   )
 
+;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame))
   (with-simple-restart (frame-exit "Exit ~A" (frame-pretty-name frame))
     (unwind-protect
@@ -694,10 +691,18 @@
       (disable-frame frame))))
 
 (defmethod run-frame-top-level ((frame standard-application-frame))
-  (let ((top-level (frame-top-level frame)))
-    (if (atom top-level)
-	(funcall top-level frame)
-        (apply (first top-level) frame (rest top-level)))))
+  (with-slots (top-level-process) frame
+    (when top-level-process
+      (cerror "Bludgeon ahead, assuming the risk"
+	      "The process ~S is already running the top-level function for frame ~S"
+	      top-level-process frame))
+    (unwind-protect
+	(let ((top-level (frame-top-level frame)))
+	  (setq top-level-process (current-process))
+	  (if (atom top-level)
+	      (funcall top-level frame)
+	      (apply (first top-level) frame (rest top-level))))
+      (setq top-level-process nil))))
 
 (defmethod default-frame-top-level ((frame standard-application-frame)
 				    &key command-parser command-unparser
@@ -771,6 +776,70 @@
   (invoke-restart 'frame-exit))
 
 
+;;; Sizing and moving of frames
+
+;; Sizes an application frame based on the size of the contents of the 
+;; output recording stream STREAM.
+(defun size-frame-from-contents (stream 
+				  &key width height
+				       (right-margin 10) (bottom-margin 10)
+				       (size-setter #'window-set-inside-size))
+  (with-slots (output-record) stream
+    (with-bounding-rectangle* (left top right bottom) output-record
+      (let* ((graft (or (graft stream)
+			(find-graft)))		;--- is this right?
+	     (gw (bounding-rectangle-width (sheet-region graft)))
+	     (gh (bounding-rectangle-height (sheet-region graft)))
+	     ;;--- Does this need to account for the size of window decorations?
+	     (width (min gw (+ (or width (- right left)) right-margin)))
+	     (height (min gh (+ (or height (- bottom top)) bottom-margin))))
+	;; The size-setter will typically resize the entire frame
+	(funcall size-setter stream width height)
+	(window-set-viewport-position stream left top)))))
+
+;; Moves the sheet to the specified position, taking care not to move
+;; it outside of the graft.  It's safest to use this on a top-level sheet.
+(defun position-sheet-carefully (sheet x y)
+  (multiple-value-bind (width height) (bounding-rectangle-size sheet)
+    (multiple-value-bind (graft-width graft-height)
+	(bounding-rectangle-size (or (graft sheet) (find-graft)))
+      (let* ((left x)
+	     (top y)
+	     (right (+ left width))
+	     (bottom (+ top height)))
+	(when (> right graft-width)
+	  (setq left (- graft-width width)))
+	(when (> bottom graft-height)
+	  (setq top (- graft-height height)))
+	(move-sheet sheet (max 0 left) (max 0 top))))))
+
+;; Moves the sheet to be near where the pointer is.  It's safest to use this
+;; on a top-level sheet.
+(defun position-sheet-near-pointer (sheet &optional x y)
+  (unless (and x y)
+    (multiple-value-setq (x y)
+      (pointer-native-position (port-pointer (port sheet)))))
+  (position-sheet-carefully sheet x y))
+
+#+CLIM-1-compatibility
+(progn
+(define-compatibility-function (position-window-near-carefully position-sheet-carefully)
+			       (window x y)
+  (position-sheet-carefully window x y))
+
+(define-compatibility-function (position-window-near-pointer position-sheet-near-pointer)
+			       (window &optional x y)
+  (position-sheet-near-pointer window x y))
+
+(define-compatibility-function (size-menu-appropriately size-frame-from-contents)
+			       (menu &key width height right-margin bottom-margin size-setter)
+  (size-frame-from-contents menu
+			    :width width :height height
+			    :right-margin right-margin :bottom-margin bottom-margin
+			    :size-setter size-setter))
+)	;#+CLIM-1-compatibility
+
+
 #-Silica
 (defun display-title (frame stream)
   (multiple-value-bind (pane desc) (get-frame-pane frame stream)
@@ -788,6 +857,12 @@
 			  :align-x :center :align-y :center))
 	  (force-output stream))
 	(values)))))
+
+(defun title-capitalize (string)
+  (let ((new-string (substitute #\Space #\- string)))
+    (when (eq new-string string)
+      (setq new-string (copy-seq new-string)))
+    (nstring-capitalize new-string)))
 
 ;;--- Handle incremental redisplay...
 (defun display-command-menu (frame stream &rest keys
@@ -891,12 +966,28 @@
 	  (t
 	   (apply display-function frame pane (append args display-args))))))
 			 
+;;; The contract of this is to replay the contents of STREAM within the region.
+(defmethod frame-replay ((frame standard-application-frame) stream &optional region)
+  (stream-replay stream region)
+  (force-output stream))
+
+
 (defmethod read-frame-command ((frame standard-application-frame) 
 			       &key (stream *query-io*)		;frame-query-io?
 			       ;; should the rest of the *command-parser*
 			       ;; etc. variables be passed as keywords or bound?
 			       )
   (read-command (frame-command-table frame) :stream stream))
+
+#+++ignore				;--- install this?
+(defmethod execute-frame-command :around ((frame standard-application-frame) command)
+  (let ((top-level-process (slot-value frame 'top-level-process)))
+    (if (and top-level-process
+	     (eq top-level-process (current-process)))
+	;; If we're in the process for the frame, just execute the command
+	(call-next-method)
+	;; Otherwise arrange to run the command in the frame's process
+	(execute-command-in-frame frame command))))
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))
@@ -933,10 +1024,70 @@
   (setf (command-enabled command-name frame) nil))
 )	;#+CLIM-1-compatibility
 
-;;; The contract of this is to replay the contents of STREAM within the region.
-(defmethod frame-replay ((frame standard-application-frame) stream &optional region)
-  (stream-replay stream region)
-  (force-output stream))
+;;;-- There is the compiler bug with eval-when (compile load eval)
+;;;-- defmethod with a call-next-method. See to incorporate this patch
+
+(eval-when (#-allegro compile load eval)
+(define-condition synchronous-command-event ()
+  ((command :initarg :command :reader synchronous-command-event-command))
+  (:report (lambda (condition stream)
+	     (format stream "Command event condition signalled for ~S"
+	       (synchronous-command-event-command condition)))))
+)	;eval-when
+
+(defmethod read-frame-command :around ((frame standard-application-frame) &key)
+  (let* ((command (queue-pop (frame-command-queue frame))))
+    (or command 
+	(handler-bind ((synchronous-command-event
+			 #'(lambda (c)
+			     (return-from read-frame-command
+			       (synchronous-command-event-command c)))))
+	  (call-next-method)))))
+	
+;; Actually this should be treated as a command event
+(defclass presentation-event (event)
+    ((value :initarg :value :reader presentation-event-value)
+     (sheet :initarg :sheet :reader event-sheet)
+     (frame :initarg :frame :reader event-frame)
+     (presentation-type :initarg :presentation-type :reader event-presentation-type)))
+
+(defmethod handle-event (sheet (event presentation-event))
+  (process-command-event sheet event))
+
+(defun process-command-event (sheet event)
+  ;;--- This code is as bad as I feel.
+  (let ((command (presentation-event-value event)))
+    (if (partial-command-p command)
+	(throw-highlighted-presentation
+	  (make-instance 'standard-presentation
+	    :object command
+	    :type (event-presentation-type event))
+	  *input-context*
+	  (allocate-event 'pointer-button-press-event
+	    :sheet sheet
+	    :x 0 :y 0
+	    :modifier-state 0
+	    :button +pointer-left-button+))
+	(progn
+	  (when (and *input-buffer-empty*
+		     (eq *application-frame* (event-frame event)))
+	    (signal 'synchronous-command-event
+		    :command command))
+	  ;; Perhaps if this results directly from a user action then either
+	  ;; we should do it right away, ie. loose the input buffer or beep if
+	  ;; it has to be deffered,
+	  (queue-frame-command (event-frame event) (presentation-event-value event))))))
+
+(defun queue-frame-command (frame command)
+  (queue-push (frame-command-queue frame) command))
+
+(defmethod execute-command-in-frame ((frame standard-application-frame) command)
+  (distribute-event
+    (port frame)
+    (allocate-event 'presentation-event
+      :frame frame
+      :sheet (frame-top-level-sheet frame)
+      :value command)))
 
 
 ;;; The contract of this is to find an "appropriate" presentation; i.e., one
@@ -1018,68 +1169,6 @@
     (setf (getf options :frame) frame))
   (apply #'frame-manager-select-file
 	 (if frame (frame-manager frame) (find-frame-manager)) options))
-
-
-(define-condition synchronous-command-event ()
-  ((command :initarg :command :reader synchronous-command-event-command))
-  (:report (lambda (condition stream)
-	     (format stream "Command event condition signalled for ~S"
-	       (synchronous-command-event-command condition)))))
-
-(defmethod read-frame-command :around ((frame standard-application-frame) &key)
-  (let* ((command (queue-pop (frame-command-queue frame))))
-    (or command 
-	(handler-bind ((synchronous-command-event
-			 #'(lambda (c)
-			     (return-from read-frame-command
-			       (synchronous-command-event-command c)))))
-	  (call-next-method)))))
-	
-;; Actually this should be treated as a command event
-(defclass presentation-event (event)
-    ((value :initarg :value :reader presentation-event-value)
-     (sheet :initarg :sheet :reader event-sheet)
-     (frame :initarg :frame :reader event-frame)
-     (presentation-type :initarg :presentation-type :reader event-presentation-type)))
-
-(defmethod handle-event (sheet (event presentation-event))
-  (process-command-event sheet event))
-
-(defun process-command-event (sheet event)
-  ;; This code is as bad as I feel.
-  (let ((command (presentation-event-value event)))
-    (if (partial-command-p command)
-	(throw-highlighted-presentation
-	 (make-instance 'standard-presentation
-			:object command
-			:type (event-presentation-type event))
-	 *input-context*
-	 (make-instance 'pointer-button-press-event
-			:sheet sheet
-			:x 0
-			:y 0
-			:modifiers 0
-			:button 256))
-      (progn
-	(when (and *input-buffer-empty*
-		   (eq *application-frame* (event-frame event)))
-	  (signal 'synchronous-command-event
-		  :command command))
-	;; Perhaps if this results directly from a user action then either
-	;; we should do it right away, ie. loose the input buffer or beep if
-	;; it has to be deffered,
-	(queue-frame-command (event-frame event) (presentation-event-value event))))))
-
-(defun queue-frame-command (frame command)
-  (queue-push (frame-command-queue frame) command))
-
-(defmethod execute-command-in-frame ((frame standard-application-frame) command)
-  (distribute-event
-    (port frame)
-    (make-instance 'presentation-event
-      :frame frame
-      :sheet (frame-top-level-sheet frame)
-      :value command)))
 
 
 ;;; Pointer documentation

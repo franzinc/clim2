@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.6 92/07/01 15:45:58 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.7 92/07/08 16:29:43 cer Exp $
 
 (in-package :clx-clim)
 
@@ -98,10 +98,6 @@
 	      (+ x (xlib:drawable-width mirror))
 	      (+ y (xlib:drawable-height mirror))))))
 
-(defmethod mirror-region ((port clx-port) sheet)
-  (multiple-value-call #'make-bounding-rectangle
-    (mirror-region* port sheet)))
-
 #+ignore	;--- nobody seems to use this
 (defmethod clx-mirror-native-edges* ((port clx-port) sheet &optional mirror)
   (let ((mirror (or mirror (sheet-mirror sheet))))
@@ -159,7 +155,7 @@
 
 
 ;; Chords aren't supported yet
-(defmacro x-button-code-to-event-button (x-code)
+(defmacro x-button-code->event-button (x-code)
   `(case ,x-code
      (1 +pointer-left-button+)
      (2 +pointer-middle-button+)
@@ -175,7 +171,8 @@
 	(xlib:event-listen display timeout)
       (declare (ignore nevents))
       (unless (eq outcome :timeout)
-	(xlib:event-case (display :force-output-p nil :discard-p t
+	(xlib:event-case (display :force-output-p nil
+				  :discard-p t
 				  :timeout nil)
 	  ;; Device Events
 	  ((:motion-notify :enter-notify :leave-notify)
@@ -184,18 +181,20 @@
 	       (xlib:query-pointer event-window)
 	     (declare (ignore same-screen-p child))
 	     (let ((sheet (mirror->sheet port event-window))
-		   (modifier-state (state-mask->modifier-state state display)))
+		   (modifier-state (state-mask->modifier-state state display))
+		   (pointer (port-pointer port)))
+	       (setf (port-modifier-state port) modifier-state)
 	       (when sheet
 		 (distribute-event
 		   port				;(EQ PORT (PORT-SHEET)) ==> T
-		   (make-instance 'pointer-motion-event
+		   (allocate-event 'pointer-motion-event
 		     :x root-x
 		     :y root-y
 		     :native-x x
 		     :native-y y
-		     :button nil		;--- fill this in
-		     :modifiers modifier-state
-		     :pointer (port-pointer port)
+		     :button nil
+		     :modifier-state modifier-state
+		     :pointer pointer
 		     :sheet sheet))))
 	     t))
 	  ((:button-press :button-release) 
@@ -204,20 +203,24 @@
 	       (xlib:query-pointer event-window)
 	     (declare (ignore same-screen-p child))
 	     (let ((sheet (mirror->sheet port event-window))
-		   (modifier-state (state-mask->modifier-state state display)))
+		   (modifier-state (state-mask->modifier-state state display))
+		   (button (x-button-code->event-button code))
+		   (pointer (port-pointer port)))
+	       (setf (port-modifier-state port) modifier-state
+		     (pointer-buttons pointer) (if (eq event-key :button-press) button 0))
 	       (when sheet
 		 (distribute-event
 		   port 
-		   (make-instance (if (eq event-key :button-press)
-				      'pointer-button-press-event
-				      'pointer-button-release-event)
+		   (allocate-event (if (eq event-key :button-press)
+				       'pointer-button-press-event
+				       'pointer-button-release-event)
 		     :x root-x
 		     :y root-y
 		     :native-x x
 		     :native-y y
-		     :button (x-button-code-to-event-button code)
-		     :modifiers modifier-state
-		     :pointer (port-pointer port)
+		     :button (x-button-code->event-button code)
+		     :modifier-state modifier-state
+		     :pointer pointer
 		     :sheet sheet))))
 	     t))
 	  ((:key-press :key-release)
@@ -253,15 +256,16 @@
 					(= modifier-state (make-modifier-state :shift))))
 			       #\Newline)
 			      (t (xlib:keycode->character display code state)))))
+	     (setf (port-modifier-state port) modifier-state)
 	     (when sheet
 	       (distribute-event
 		 port
-		 (make-instance (if (eq event-key :key-press)
-				    'key-press-event
-				    'key-release-event)
+		 (allocate-event (if (eq event-key :key-press)
+				     'key-press-event
+				     'key-release-event)
 		   :key-name keysym
 		   :character (and (characterp char) char)
-		   :modifiers modifier-state
+		   :modifier-state modifier-state
 		   :sheet sheet)))
 	     t))
 	  ;; window oriented events.
@@ -269,16 +273,12 @@
 	   (event-window x y width height)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet
-	       (multiple-value-bind (min-x min-y max-x max-y)
-		   (untransform-rectangle*
-		     (sheet-native-transformation sheet) 
-		     x y (+ x width) (+ y height))
-		 (queue-repaint
-		   sheet
-		   (make-instance 'window-repaint-event
-		     :native-region (sheet-native-region sheet)
-		     :region (make-bounding-rectangle min-x min-y max-x max-y)
-		     :sheet sheet))))
+	       (queue-repaint
+		 sheet
+		 (allocate-event 'window-repaint-event
+		   :native-region (sheet-native-region sheet)
+		   :region (make-bounding-rectangle x y (+ x width) (+ y height))
+		   :sheet sheet)))
 	     t))
 	  (:map-notify (event-window)
 	   (let ((sheet (mirror->sheet port event-window)))
@@ -292,18 +292,22 @@
 	       ;;--- Used to pass :PORT-TRIGGER T, better check it out
 	       (setf (sheet-enabled-p sheet) nil))
 	     t))
-	  (:configure-notify (event-window ;x y width height
-			       #+++ignore send-event-p)
+	  (:configure-notify (event-window x y width height)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet
-	       (xlib:with-state (event-window)
-		 (mirror-region-updated port sheet)))
+	       (dispatch-event
+		 sheet
+		 (let ((region (mirror-region port sheet)))
+		   (allocate-event 'window-configuration-event
+		     :native-region region
+		     :region (untransform-region
+			       (sheet-native-transformation sheet) region)
+		     :sheet sheet))))
 	     t))
 	  (:destroy-notify ()
 	   t)
 	  ((:reparent-notify :no-exposure ) () 
 	   t)
-	  
 	  (:client-message (type data event-window)
 	   (case type
 	     (:wm_protocols

@@ -1,7 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
-
 (in-package :clim-user)
 
 (define-application-frame slider-test-frame () (radio-box)
@@ -116,8 +114,9 @@
 
 (defvar *stf* nil)
 
-(defun test-sliders (&optional reinitialize)
+(defun test-sliders (&optional reinitialize (port (port (find-port))))
   (when (or reinitialize (null *stf*))
     (setq *stf* (make-application-frame 'slider-test-frame
-					:width 800 :height 600)))
+					:width 800 :height 600
+					:frame-manager (find-frame-manager :port port))))
   (run-frame-top-level *stf*))

@@ -4,8 +4,6 @@
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader$
-
 
 (defclass clx-pixmap ()
     ((pixmap :initarg :pixmap)))
@@ -15,7 +13,6 @@
   (let ((pixmap (xlib:create-pixmap :drawable (medium-drawable medium)
 				    :width width :height height
 				    :depth (xlib:drawable-depth (medium-drawable medium)))))
-    (setf (xlib:window-backing-store pixmap) :always)
     (make-instance 'clx-pixmap 
       :pixmap pixmap)))
 
@@ -49,7 +46,7 @@
 	   ((from-medium clx-medium) from-x from-y width height
 	    (to-medium clx-medium) to-x to-y)
   (cond ((eq from-medium to-medium)
-	 (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+	 (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
 	   (convert-to-device-coordinates transform from-x from-y to-x to-y)
 	   (convert-to-device-distances transform width height)
 	   (let ((drawable (medium-drawable from-medium))
@@ -60,9 +57,9 @@
 	 (let* ((from-drawable (medium-drawable from-medium))
 		(to-drawable (medium-drawable to-medium))
 		(from-transform
-		  (sheet-native-transformation (medium-sheet from-medium)))
+		  (sheet-device-transformation (medium-sheet from-medium)))
 		(to-transform
-		  (sheet-native-transformation (medium-sheet to-medium))))
+		  (sheet-device-transformation (medium-sheet to-medium))))
 	   (convert-to-device-coordinates from-transform from-x from-y)
 	   (convert-to-device-coordinates to-transform to-x to-y)
 	   (convert-to-device-distances from-transform width height)
@@ -73,7 +70,7 @@
 (defmethod medium-copy-area 
 	   ((from-medium clx-medium) from-x from-y width height
 	    (to-medium clx-pixmap-medium) to-x to-y)
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+  (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y)
     (convert-to-device-distances transform width height)
     (let ((window (medium-drawable from-medium))
@@ -85,7 +82,7 @@
 (defmethod medium-copy-area 
 	   ((from-medium clx-pixmap-medium) from-x from-y width height
 	    (to-medium clx-medium) to-x to-y)
-  (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
+  (let ((transform (sheet-device-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates transform to-x to-y)
     (let ((window (medium-drawable to-medium))
 	  (pixmap (medium-drawable from-medium)))
@@ -96,7 +93,7 @@
 (defmethod medium-copy-area 
 	   ((from-medium clx-medium) from-x from-y width height
 	    (pixmap clx-pixmap) to-x to-y)
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+  (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y)
     (convert-to-device-distances transform width height)
     (let ((window (medium-drawable from-medium))
@@ -108,7 +105,7 @@
 (defmethod medium-copy-area 
 	   ((pixmap clx-pixmap) from-x from-y width height
 	    (to-medium clx-medium) to-x to-y)
-  (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
+  (let ((transform (sheet-device-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates transform to-x to-y)
     (let ((window (medium-drawable to-medium))
 	  (pixmap (slot-value pixmap 'pixmap)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.9 92/07/01 15:47:36 cer Exp Locker: cer $
+;; $fiHeader: address-book.lisp,v 1.10 92/07/06 18:51:58 cer Exp $
 
 (in-package :clim-demo)
 
@@ -95,8 +95,7 @@
       (write-string number stream))))
 
 ;;; Define the application-frame for our application
-(define-application-frame address-book
-			  ()
+(define-application-frame address-book ()
     ;; This application has two state variables, the currently displayed
     ;; address and the window from which user queries should be read.
     ((current-address :initform nil)
@@ -104,14 +103,12 @@
      (name-pane))
   (:panes
     (interactor :interactor)
-    (address
-     :application
-     :incremental-redisplay t
-     :display-function 'display-current-address)
-    (names
-     :application
-     :incremental-redisplay t
-     :display-function 'display-names))
+    (address :application
+	     :incremental-redisplay t
+	     :display-function 'display-current-address)
+    (names :application
+	   :incremental-redisplay t
+	   :display-function 'display-names))
   (:layouts
     (default
       (vertically ()
@@ -191,15 +188,23 @@
 			    :prompt "New number" :default (address-number address))))
     (setf (address-number address) new-number)))
 
+
 (defvar *address-books* nil)
 
-(defun address-book (&key reinit root)
-  (let ((book (cdr (assoc root *address-books*))))
-    (when (or (null book) reinit)
-      (setq book (make-application-frame 'address-book 
-					 :width 400 :height 300))
-      (push (cons root book) *address-books*))
-    (run-frame-top-level book)))
+(defun do-address-book (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *address-books*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'address-book
+						   :frame-manager framem
+						   :left 100
+						   :width 400 :height 300)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *address-books*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "Address Book" (address-book :root *demo-root*))
-
+(define-demo "Address Book" do-address-book)

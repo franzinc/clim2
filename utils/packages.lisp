@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.20 92/07/01 15:45:39 cer Exp $
+;; $fiHeader: packages.lisp,v 1.21 92/07/08 16:29:30 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1463,6 +1463,8 @@
     
     ;; Processes
     all-processes
+    atomic-decf
+    atomic-incf
     current-process
     destroy-process
     make-process
@@ -1767,6 +1769,8 @@
     map-over-grafts
     map-over-ports
     map-over-sheets
+    map-over-sheets-containing-position
+    map-over-sheets-overlapping-region
     map-sheet-position-to-child
     map-sheet-position-to-parent
     map-sheet-rectangle*-to-child
@@ -1784,6 +1788,8 @@
     medium-text-style
     medium-transformation
     mediump
+    move-and-resize-sheet
+    move-sheet
     mute-input-contract
     mute-repainting-mixin
     mute-sheet-input-mixin
@@ -1833,6 +1839,7 @@
     reorder-sheets
     repaint-sheet
     reset-watcher
+    resize-sheet
     restart-port
     sheet
     sheet-adopt-child
@@ -2239,6 +2246,7 @@
     pointer
     pointer-buttons
     pointer-cursor
+    pointer-native-position
     pointer-position
     pointer-sheet
     pointerp
@@ -2603,6 +2611,8 @@
     pane-name
     pane-needs-redisplay
     panes-need-redisplay
+    position-sheet-carefully
+    position-sheet-near-pointer
     read-frame-command
     reconfigure-frame
     redisplay-frame-pane
@@ -2611,6 +2621,7 @@
     run-frame-top-level
     select-file
     shrink-frame
+    size-frame-from-contents
     standard-application-frame
     standard-frame-manager
     window-clear
@@ -2916,6 +2927,7 @@
   (:export
     cursor-set-position
     output-record-set-position
+    pointer-set-native-position
     pointer-set-position
     stream-set-cursor-position
     stream-set-pointer-position
@@ -2942,8 +2954,6 @@
     pointer-input-rectangle
     pointer-input-rectangle*
     pointer-place-rubber-band-line*
-    position-window-near-carefully
-    stream-pointer-position-in-window-coordinates
     translate-coordinates
     translate-positions
     viewport-to-drawing-surface-coordinates
@@ -3026,7 +3036,10 @@
     pointer-set-position*
     pointer-event-shift-mask
     pointer-position*
+    position-window-near-carefully
+    position-window-near-pointer
     set-frame-layout
+    size-menu-appropriately
     stream-cursor-position*
     stream-set-cursor-position*
     stream-draw-p
@@ -3262,6 +3275,9 @@
     everywhere
     fix-rectangle
     make-rectangle-set
+    make-region-difference
+    make-region-intersection
+    make-region-union
     nowhere
     opacity
     standard-opacity
@@ -3368,6 +3384,7 @@
     activate-gadget-event
     add-sheet-callbacks
     all-drawing-options-lambda-list
+    allocate-event
     basic-pixmap-medium
     bury-mirror
     canvas
@@ -3388,6 +3405,7 @@
     compute-text-y-adjustment
     copy-event
     copy-space-requirement
+    deallocate-event
     default-space-requirements
     define-character-face
     define-character-face-added-mappings
@@ -3453,8 +3471,6 @@
     mirror-region-updated
     mirrored-sheet-mixin
     modifier-keysym
-    move-and-resize-sheet*
-    move-sheet*
     mute-repainting-mixin
     non-drawing-option-keywords
     note-layout-mixin-region-changed
@@ -3463,8 +3479,6 @@
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
     pixmap-sheet
-    pointer-press-event
-    pointer-release-event
     port-allocate-pixmap
     port-canonical-gesture-specs
     port-canonicalize-gesture-spec
@@ -3485,12 +3499,12 @@
     port-note-gadget-deactivated
     port-pointer
     port-process
+    port-set-pointer-position
     port-trace-thing
     port-undefined-text-style
     process-event-locally
     radio-button-pane
     raise-mirror
-    resize-sheet*
     scroll-bar-size
     scroll-bar-shaft-pane
     scroll-bar-target-pane
@@ -3538,8 +3552,6 @@
     update-slider-value
     value-changed-gadget-event
     viewport-region-changed
-    window-configuration-event
-    window-repaint-event
     window-shift-visible-region
     with-medium-clipping-region
     wrapping-space-mixin))

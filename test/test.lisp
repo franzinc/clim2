@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.33 92/07/01 15:47:24 cer Exp $
+;; $fiHeader: test.lisp,v 1.34 92/07/08 16:31:23 cer Exp $
 
 (in-package :clim-user)
 
@@ -134,18 +134,19 @@
 (define-test-frame-command (com-accept :name t :menu t)
     (&key (own-window 'boolean :default nil)
 	  (view '(member :textual :gadget :default) :default ':default))
-  (let ((stream *query-io*)
-	(a t)
-	(b nil)
-	(c :normal)
-	(d 10)
-	(e 40.0))
-    (accepting-values (stream :own-window own-window)
-      (clim-utils:letf-globally (((stream-default-view stream)
-				  (case view
-				    (:textual +textual-dialog-view+)
-				    (:gadget  +gadget-dialog-view+)
-				    (:default (stream-default-view stream)))))
+  (let* ((stream *query-io*)
+	 (a t)
+	 (b nil)
+	 (c :normal)
+	 (d 10)
+	 (e 40.0)
+	 (framem (frame-manager stream)))
+    (clim-utils:letf-globally (((frame-manager-dialog-view framem)
+				(case view
+				  (:textual +textual-dialog-view+)
+				  (:gadget  +gadget-dialog-view+)
+				  (:default (frame-manager-dialog-view framem)))))
+      (accepting-values (stream :own-window own-window)
 	(setq a (accept 'boolean  
 			:stream stream
 			:default a :prompt "boolean"))

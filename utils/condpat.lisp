@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: condpat.lisp,v 1.5 92/02/24 13:05:25 cer Exp $
+;; $fiHeader: condpat.lisp,v 1.6 92/03/04 16:20:10 cer Exp $
 
 (in-package :clim-utils)
 
@@ -30,8 +30,10 @@
 	      ;; Not likely to be EQL, but can causes an infinite loop
 	      ;; in Lucid if it is...
 	      (unless (eq trampoline reader)
-		(push `(eval-when (compile load eval) (proclaim '(inline ,reader))) readers)
-		(push `(defun ,reader (condition) (,trampoline condition)) readers)))))
+		(push `(eval-when (compile load eval)
+			 (proclaim '(inline ,reader))) readers)
+		(push `(defun ,reader (condition)
+			 (,trampoline condition)) readers)))))
 	(let ((initarg (getf (rest slot) ':initarg)))
 	  (unless (eq initarg (intern (symbol-name (first slot)) *keyword-package*))
 	    (error "We can't support initargs to DEFINE-CONDITION that ~

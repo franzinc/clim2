@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.26 92/07/01 15:45:02 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.27 92/07/08 16:29:10 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -335,16 +335,16 @@
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
 	(if (panep choice)
-	    #---ignore nil #+++ignore (sheet-adopt-child rb choice)
+	    #-allegro nil #+allegro (sheet-adopt-child rb choice)
 	    ;; Sometimes the user calls MAKE-PANE within a call to
 	    ;; WITH-RADIO-BOX, so don't mess up
 	    (make-pane 'toggle-button 
-		       :value (equal (radio-box-current-selection rb) choice)
-		       :label (if (stringp choice)
-				  (string choice)
-				  (gadget-label choice))
-		       :id choice
-		       :parent rb))))))
+	      :value (equal (radio-box-current-selection rb) choice)
+	      :label (if (stringp choice)
+			 (string choice)
+			 (gadget-label choice))
+	      :id choice
+	      :parent rb))))))
 
 
 ;;; Check-box
@@ -363,17 +363,17 @@
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
 	(if (panep choice)
-	    #---ignore nil #+++ignore (sheet-adopt-child cb choice)
+	    #-allegro nil #+allegro (sheet-adopt-child cb choice)
 	    ;; Sometimes the user calls MAKE-PANE within a call to
 	    ;; WITH-RADIO-BOX, so don't mess up
 	    (make-pane 'toggle-button 
-		       :value (equal (check-box-current-selection cb) choice)
-		       :label (if (stringp choice)
-				  (string choice)
-				  (gadget-label choice))
-		       :indicator-type :some-of
-		       :id choice
-		       :parent cb))))))
+	      :value (equal (check-box-current-selection cb) choice)
+	      :label (if (stringp choice)
+			 (string choice)
+			 (gadget-label choice))
+	      :indicator-type :some-of
+	      :id choice
+	      :parent cb))))))
 
 
 ;;; Menu-bar
@@ -422,9 +422,8 @@
 	(bounding-rectangle-size child)
       (when (or (< cwidth width)
 		(< cheight height))
-	(resize-sheet* child
-		       (max width cwidth)
-		       (max height cheight))))))
+	(resize-sheet
+	  child (max width cwidth) (max height cheight))))))
 
 (defmethod compose-space ((viewport viewport) &key width height)
   (declare (ignore width height))
@@ -536,8 +535,8 @@
 
 (defmacro scrolling (options &body contents)
   `(make-pane 'scroller-pane
-	      :contents ,@contents
-	      ,@options))
+     :contents ,@contents
+     ,@options))
 
 
 ;;; List panes and option menus
@@ -609,5 +608,5 @@
 
 (defclass activate-gadget-event (gadget-event) ())
 
-(defmethod handle-event ((gadget  action-gadget) (event activate-gadget-event))
+(defmethod handle-event ((gadget action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))

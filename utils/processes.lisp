@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.4 92/04/21 20:27:59 cer Exp $
+;; $fiHeader: processes.lisp,v 1.5 92/07/01 15:45:42 cer Exp $
 
 (in-package :clim-utils)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-;;; Processes and locks
+;;; Locks
 
 (defvar *multiprocessing-p* 
   #{
@@ -93,6 +93,9 @@
    }
   )
 
+
+;;; Atomic operations
+
 (defmacro without-scheduling (&body forms)
   "Evaluate the forms w/o letting any other process run."
   #{
@@ -108,6 +111,55 @@
     CCL-2      `(ccl:without-interrupts ,@forms) ; slh
    }
    )
+
+;; Atomically increments a fixnum value
+#+Genera
+(defmacro atomic-incf (reference &optional (delta 1))
+  (let ((location '#:location)
+	(old-value '#:old)
+	(new-value '#:new))
+    `(loop with ,location = (scl:locf ,reference)
+	   for ,old-value = (scl:location-contents ,location)
+	   for ,new-value = (sys:%32-bit-plus ,old-value ,delta)
+	   do (when (scl:store-conditional ,location ,old-value ,new-value)
+		(return ,new-value)))))
+
+#-Genera
+(defmacro atomic-incf (reference &optional (delta 1))
+  (let ((value '#:value))
+    (if (= delta 1)
+	`(without-scheduling 
+	   (let ((,value ,reference))
+	     (if (eq ,value most-positive-fixnum)
+		 (setf ,reference most-negative-fixnum)
+		 (setf ,reference (the fixnum (1+ (the fixnum ,value)))))))
+	(warn "Implement ~S for the case when delta is not 1" 'atomic-incf))))
+
+;; Atomically decrements a fixnum value
+#+Genera
+(defmacro atomic-decf (reference &optional (delta 1))
+  (let ((location '#:location)
+	(old-value '#:old)
+	(new-value '#:new))
+    `(loop with ,location = (scl:locf ,reference)
+	   for ,old-value = (scl:location-contents ,location)
+	   for ,new-value = (sys:%32-bit-difference ,old-value ,delta)
+	   do (when (scl:store-conditional ,location ,old-value ,new-value)
+		(return ,new-value)))))
+
+#-Genera
+(defmacro atomic-decf (reference &optional (delta 1))
+  (let ((value '#:value))
+    (if (= delta 1)
+	`(without-scheduling 
+	   (let ((,value ,reference))
+	     (if (eq ,value most-negative-fixnum)
+		 (setf ,reference most-positive-fixnum)
+		 (setf ,reference (the fixnum (1- (the fixnum ,value)))))))
+	(warn "Implement ~S for the case when delta is not 1" 'atomic-decf))))
+
+
+;;; Processes
 
 (defun make-process (function &key name)
   #+(or ccl) (declare (ignore function name))
@@ -203,6 +255,7 @@
   )
 
 (defun process-wait (wait-reason predicate)
+  #+(or Genera Minima) (declare (dynamic-extent predicate))
   "Cause the current process to go to sleep until the predicate returns TRUE."
   #{
   Lucid      (lcl:process-wait wait-reason predicate)
@@ -224,6 +277,7 @@
   )
 
 (defun process-wait-with-timeout (wait-reason timeout predicate)
+  #+(or Genera Minima) (declare (dynamic-extent predicate))
   "Cause the current process to go to sleep until the predicate returns TRUE or
    timeout seconds have gone by." 
   (when (null timeout)

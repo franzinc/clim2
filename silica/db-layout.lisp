@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.20 92/06/29 14:04:30 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.21 92/07/01 15:44:48 cer Exp $
 
 (in-package :silica)
 
@@ -451,7 +451,7 @@
   (:documentation "Supports echoing allocations down and compositions up."))
 	 
 (defmethod allocate-space ((pane wrapping-space-mixin) width height)
-  (resize-sheet* (sheet-child pane) width height))
+  (resize-sheet (sheet-child pane) width height))
 
 (defmethod compose-space ((pane wrapping-space-mixin) &key width height)
   (let ((child (sheet-child pane)))
@@ -472,7 +472,7 @@
 ;  (let ((child (sheet-child pane)))
 ;    (multiple-value-bind (width height) 
 ;	(untransform-dimensions (sheet-transformation child) width height)
-;      (resize-sheet* child width height))))
+;      (resize-sheet child width height))))
 ;  
 ;(defmethod compose-space ((pane simple-transforming-wrapping-space-mixin) &key width height)
 ;  (let* ((child (sheet-child pane))
@@ -656,10 +656,13 @@
 ;;--- and just call ALLOCATE-SPACE?
 (defclass bboard-pane (space-requirement-mixin layout-pane) ())
 
+(defmethod handle-event :after ((pane bboard-pane) (event pointer-motion-event))
+  (deallocate-event event))
+
 (defmethod allocate-space ((pane bboard-pane) width height)
   (declare (ignore width height))
   (dolist (child (sheet-children pane))
     (let ((space-req (compose-space child)))
-      (resize-sheet* child 
-		     (space-requirement-width space-req)
-		     (space-requirement-height space-req)))))
+      (resize-sheet child 
+		    (space-requirement-width space-req)
+		    (space-requirement-height space-req)))))

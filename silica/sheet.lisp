@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.20 92/07/06 18:51:24 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.21 92/07/08 16:29:23 cer Exp $
 
 (in-package :silica)
 
@@ -47,10 +47,10 @@
   (bounding-rectangle* (sheet-region sheet)))
 
 (defmethod sheet-child ((sheet sheet))
-  (let ((x (sheet-children sheet)))
-    (unless (and x (null (cdr x)))
+  (let ((children (sheet-children sheet)))
+    (unless (and children (null (cdr children)))
       (error "The sheet ~S has more than one child" sheet))
-    (car x)))
+    (car children)))
 
 
 ;;; Genealogy
@@ -60,7 +60,7 @@
 (defclass sheet-parent-mixin () ())
 
 (defclass sheet-single-child-mixin (sheet-parent-mixin)
-    ((child :initform nil :accessor sheet-child)))
+    ((children :initform nil :accessor sheet-children)))
 
 (defun map-over-sheets (function sheet)
   (declare (dynamic-extent function))
@@ -74,26 +74,29 @@
     (error "Sheet ~S trying to adopt child ~S that already has a parent" sheet child)))
 
 (defmethod sheet-adopt-child ((sheet sheet-single-child-mixin) child)
-  (when (sheet-child sheet)
+  (when (sheet-children sheet)
     (error "Single-child sheet ~S already has a child" sheet))
-  (setf (sheet-child sheet) child
+  (setf (sheet-children sheet) (list child)
 	(sheet-parent child) sheet))
+
+(defmethod sheet-child ((sheet sheet-single-child-mixin))
+  (car (sheet-children sheet)))
 
 (defmethod sheet-adopt-child :after ((sheet sheet) child)
   (note-sheet-adopted child)
   (when (port sheet)
     (setf (port child :graft (graft sheet)) (port sheet))))
 
-(defmethod sheet-children ((sheet sheet-single-child-mixin))
-  (let ((x (sheet-child sheet)))
-    (and x (list x))))
+
 
 (defclass sheet-multiple-child-mixin (sheet-parent-mixin)
     ((children :initform nil :accessor sheet-children)))
 
-
 (defmethod sheet-adopt-child ((sheet sheet-multiple-child-mixin) child)
-  (push child (sheet-children sheet))
+  (setf (sheet-children sheet) 
+	;; Preserve the order in which the sheets were adopted
+	;;--- This may have unwanted effects if the children overlap...
+	(append (sheet-children sheet) (list child)))
   (setf (sheet-parent child) sheet))
 
 (defmethod (setf port) ((port null) sheet &key graft)
@@ -135,7 +138,7 @@
   (when (port parent)
     (setf (port child) nil))
   (setf (sheet-parent child) nil
-	(sheet-child parent) nil))
+	(sheet-children parent) nil))
 
 
 ;;; Geometry
@@ -171,16 +174,47 @@
 
 (defgeneric children-overlapping-region (sheet region))
 (defmethod children-overlapping-region ((sheet sheet) region)
-  (remove-if-not #'(lambda (child)
-		     (and (sheet-enabled-p child)
-			  (or (null region)	;--- kludge
-			      (eq region +everywhere+)
-			      (multiple-value-call #'ltrb-overlaps-ltrb-p
-			        (bounding-rectangle* child)
-				(bounding-rectangle*
-				  (untransform-region 
-				    (sheet-transformation child) region))))))
-		 (sheet-children sheet)))
+  (if (or (null region)				;--- kludge
+	  (eq region +everywhere+))
+      (remove-if-not #'sheet-enabled-p (sheet-children sheet))
+      (with-bounding-rectangle* (left top right bottom) region
+	(remove-if-not
+	  #'(lambda (child)
+	      (and (sheet-enabled-p child)
+		   (multiple-value-call #'ltrb-overlaps-ltrb-p
+		     (bounding-rectangle* child)
+		     (untransform-rectangle* 
+		       (sheet-transformation child) left top right bottom))))
+	  (sheet-children sheet)))))
+
+(defgeneric map-over-sheets-containing-position (function sheet x y)
+  (declare (dynamic-extent function)))
+(defmethod map-over-sheets-containing-position (function (sheet sheet) x y)
+  (declare (dynamic-extent function))
+  (dolist (child (sheet-children sheet))
+    (when (and (sheet-enabled-p child)
+	       (multiple-value-bind (x y)
+		   (untransform-position (sheet-transformation child) x y)
+		 (region-contains-position-p (sheet-region child) x y)))
+      (funcall function child))))
+
+(defgeneric map-over-sheets-overlapping-region (function sheet region)
+  (declare (dynamic-extent function)))
+(defmethod map-over-sheets-overlapping-region (function (sheet sheet) region)
+  (declare (dynamic-extent function))
+  (if (or (null region)				;--- kludge
+	  (eq region +everywhere+))
+      (dolist (child (sheet-children sheet))
+	(when (sheet-enabled-p child)
+	  (funcall function child)))
+      (with-bounding-rectangle* (left top right bottom) region
+	(dolist (child (sheet-children sheet))
+	  (when (and (sheet-enabled-p child)
+		     (multiple-value-call #'ltrb-overlaps-ltrb-p
+		       (bounding-rectangle* child)
+		       (untransform-rectangle* 
+			 (sheet-transformation child) left top right bottom)))
+	    (funcall function child))))))
 
 (defgeneric children-overlapping-rectangle* (sheet min-x min-y max-x max-y))
 
@@ -222,7 +256,7 @@
 
 (defclass sheet-y-inverting-transformation-mixin (sheet-transformation-mixin) ())
 
-
+
 ;;; Notification
 
 (defgeneric note-sheet-adopted (sheet))
@@ -269,8 +303,14 @@
 
 (defgeneric invalidate-cached-regions (sheet))
 
-(defmethod invalidate-cached-regions ((sheet sheet)) 
-  (setf (sheet-cached-device-region sheet) nil))
+(defmethod invalidate-cached-regions ((sheet sheet)) nil)
+
+(defmethod invalidate-cached-regions ((sheet sheet-transformation-mixin)) 
+  (let ((region (sheet-cached-device-region sheet)))
+    (when region
+      (if (eq region +nowhere+)			;it can happen...
+	  (setf (sheet-cached-device-region sheet) nil)
+	  (setf (slot-value (sheet-cached-device-region sheet) 'left) nil)))))
 
 (defmethod invalidate-cached-regions :after ((sheet sheet-parent-mixin))
   ;;--- In theory if this sheet has a mirror we don't need to do any more
@@ -283,8 +323,14 @@
 
 (defgeneric invalidate-cached-transformations (sheet))
 
-(defmethod invalidate-cached-transformations ((sheet sheet)) 
-  (setf (sheet-cached-device-region sheet) nil)
+(defmethod invalidate-cached-transformations ((sheet sheet)) nil)
+
+(defmethod invalidate-cached-transformations ((sheet sheet-transformation-mixin)) 
+  (let ((region (sheet-cached-device-region sheet)))
+    (when region
+      (if (eq region +nowhere+)			;it can happen...
+	  (setf (sheet-cached-device-region sheet) nil)
+	  (setf (slot-value (sheet-cached-device-region sheet) 'left) nil))))
   (setf (sheet-cached-device-transformation sheet) nil))
 
 (defmethod invalidate-cached-transformations :after ((sheet sheet-parent-mixin))
@@ -306,6 +352,10 @@
       (note-sheet-enabled sheet)
       (note-sheet-disabled sheet)))
 
+(defmethod sheet-enabled-children ((sheet sheet-parent-mixin))
+  (remove-if-not #'sheet-enabled-p (sheet-children sheet)))
+
+
 ;;; Making sheets
 
 (defmethod initialize-instance :after ((sheet sheet) &key parent children)
@@ -314,7 +364,7 @@
   (dolist (child children)
     (sheet-adopt-child sheet child)))
 
-
+
 ;;; Output
 
 (defclass standard-sheet-output-mixin () ())
@@ -370,23 +420,3 @@
 (defmethod initialize-instance :after ((sheet sheet-permanently-enabled-mixin) 
 				       &key enabled)
   (setf (sheet-enabled-p sheet) enabled))
-
-;;; This code makes sure that enabling/disabling a non mirrored sheet
-;;; actually causes something to happen.
-
-(defun update-sheet-mirrored-children (sheet state)
-  (when (typep sheet '(and sheet-parent-mixin (not mirrored-sheet-mixin)))
-    (dolist (c (sheet-enabled-children sheet))
-      (if (typep c 'mirrored-sheet-mixin)
-	  (if (sheet-direct-mirror c)
-	    (funcall (if state #'enable-mirror #'disable-mirror) (port c) c))
-	(update-sheet-mirrored-children c state)))))
-
-(defmethod sheet-enabled-children ((sheet sheet-parent-mixin))
-  (remove-if-not #'sheet-enabled-p (sheet-children sheet)))
-
-(defmethod note-sheet-enabled :after ((sheet sheet-parent-mixin))
-  (update-sheet-mirrored-children sheet t))
-
-(defmethod note-sheet-disabled :after ((sheet sheet-parent-mixin))
-  (update-sheet-mirrored-children sheet nil))

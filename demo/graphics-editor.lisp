@@ -1,21 +1,17 @@
-;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: (GRAPHICS-EDITOR :use (CLIM-LISP CLIM)); Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: graphics-editor.lisp,v 1.1 92/07/08 11:34:54 cer Exp $
 
-(eval-when (compile load eval)
-(defpackage graphics-editor
-  (:use clim-lisp clim))
-)	;eval-when
+(in-package :clim-graphics-editor)
 
-(in-package :graphics-editor)
+"Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
-
 ;;; Define a "mix-in" frame class that manages a selected object
 
 ;;--- This facility is not part of CLIM itself, but is part of a 
 ;;--- graphical editing system that I have been developing privately,
-;;--- which I call Zdrava.
+;;--- which I call Zdrava. --SWM
 
 (define-application-frame selected-object-mixin ()
     ((selected-object :accessor frame-selected-object
@@ -125,7 +121,6 @@
   (declare (ignore x y type))
   (setf (slot-value object 'handles) nil))
 
-
 
 ;;; Define the box and arrow classes
 
@@ -176,7 +171,7 @@
 		 bottom y))
       (:se (setq right x
 		 bottom y)))
-    (clim::bounding-rectangle-set-edges object left top right bottom)))
+    (clim-utils:bounding-rectangle-set-edges object left top right bottom)))
 
 (defmethod reshape-object :after ((object box) x y type)
   (declare (ignore x y type))
@@ -199,16 +194,16 @@
 
 (defmethod draw-object ((object arrow) stream)
   (with-slots (box1 box2) object
-    (multiple-value-bind (x1 y1) (clim-utils::bounding-rectangle-center* box1)
-      (multiple-value-bind (x2 y2) (clim-utils::bounding-rectangle-center* box2)
+    (multiple-value-bind (x1 y1) (clim-utils:bounding-rectangle-center* box1)
+      (multiple-value-bind (x2 y2) (clim-utils:bounding-rectangle-center* box2)
 	(with-output-as-presentation (stream object 'arrow)
 	  (draw-arrow* stream x1 y1 x2 y2
 		       :line-style (object-style object)))))))
 
 (defmethod compute-object-handles ((object arrow))
   (with-slots (box1 box2) object
-    (multiple-value-bind (x1 y1) (clim-utils::bounding-rectangle-center* box1)
-      (multiple-value-bind (x2 y2) (clim-utils::bounding-rectangle-center* box2)
+    (multiple-value-bind (x1 y1) (clim-utils:bounding-rectangle-center* box1)
+      (multiple-value-bind (x2 y2) (clim-utils:bounding-rectangle-center* box2)
 	(list (make-handle object x1 y1 nil)
 	      (make-handle object x2 y2 nil))))))
 
@@ -216,40 +211,40 @@
 ;;; The application itself
 
 (define-application-frame graphics-editor (selected-object-mixin) 
-			  ((objects :initform nil)
-			   (counter :initform 0)
-			   (last-box :initform nil)
-			   (style :initform (make-line-style :thickness 1 :dashes nil)))
-  (:command-definer define-ged-command)
+    ((objects :initform nil)
+     (counter :initform 0)
+     (last-box :initform nil)
+     (style :initform (make-line-style :thickness 1 :dashes nil)))
+  (:command-definer define-graphics-editor-command)
   (:command-table (graphics-editor :inherit-from (accept-values-pane)))
   (:pointer-documentation t)
   ;; Three panes: a display pane, and command menu, and a modeless 
   ;; dialog containing the line style options
   (:panes
-   (display :application
+    (display :application
 	     :incremental-redisplay t
 	     :display-after-commands t
 	     :display-function 'display-objects
 	     :scroll-bars :both)
     (options :accept-values
 	     :display-function '(accept-values-pane-displayer 
-				 :displayer accept-ged-options)))
+				  :displayer accept-graphics-editor-options)))
   (:layouts
-   (default 
-       (vertically () 
-	   (:fill display)
-	 (1/5 options)))))
-
+    (default 
+      (vertically () 
+	(:fill display)
+	(1/5 options)))))
 
 (define-presentation-type line-thickness ()
   :inherit-from `(integer 1 4))
 
 ;;--- CLIM should provide a better way to do this one function
-(define-presentation-method accept-present-default ((type line-thickness) stream
-						    (view clim-internals::dialog-view-mixin)
-						    default default-supplied-p
-						    present-p
-						    query-identifier &key)
+(define-presentation-method accept-present-default
+			    ((type line-thickness) stream
+			     (view clim-internals::dialog-view-mixin)
+			     default default-supplied-p
+			     present-p
+			     query-identifier &key)
   (declare (ignore default-supplied-p present-p))
   (flet ((presenter (thing stream)
 	   (let ((y (stream-line-height stream)))
@@ -270,7 +265,7 @@
 	    (funcall continuation object stream)))
       'clim-internals::accept-values-one-of #'presenter)))
 
-(defmethod accept-ged-options ((frame graphics-editor) stream)
+(defmethod accept-graphics-editor-options ((frame graphics-editor) stream)
   (with-slots (style) frame
     (flet ((accept (type default prompt query-id)
 	     (fresh-line stream)
@@ -299,7 +294,7 @@
   (dolist (object (slot-value frame 'objects))
     (draw-object object stream)))
 
-(define-ged-command com-create-box
+(define-graphics-editor-command com-create-box
     ((left 'integer)
      (top 'integer))
   (com-deselect-object)
@@ -367,19 +362,19 @@
   (list x y))
 
 ;; Select an object by clicking "select" (Mouse-Left) on it.
-(define-ged-command com-select-object
+(define-graphics-editor-command com-select-object
     ((object 'basic-object :gesture :select))
   (select-object *application-frame* object)
   (setf (slot-value *application-frame* 'style) (object-style object)))
 
 ;; Deselect an object by clicking the Deselect menu button, or by
 ;; clicking over blank area without moving the mouse.
-(define-ged-command (com-deselect-object :menu "Deselect") ()
+(define-graphics-editor-command (com-deselect-object :menu "Deselect") ()
   (when (frame-selected-object *application-frame*)
     (deselect-object *application-frame* (frame-selected-object *application-frame*))))
 
 ;; Move an object by clicking Mouse-Middle on it and dragging the mouse.
-(define-ged-command com-move-object
+(define-graphics-editor-command com-move-object
     ((object 'box :gesture :describe))
   (let ((stream (get-frame-pane *application-frame* 'display)))
     (with-bounding-rectangle* (left top right bottom) object
@@ -391,7 +386,7 @@
 	(move-object object (- x dx) (- y dy))))))
 
 ;; Delete an object by clicking "delete" (shift-Mouse-Middle) on it.
-(define-ged-command com-delete-object
+(define-graphics-editor-command com-delete-object
     ((object 'basic-object :gesture :delete))
   (delete-object *application-frame* object)
   (when (eql object (slot-value *application-frame* 'last-box))
@@ -414,7 +409,8 @@
 
 ;; Add a menu item that deletes the selected object
 (add-menu-item-to-command-table 'graphics-editor "Delete"
-  :function 'delete-selected-object)
+  :function 'delete-selected-object
+  :keystroke '(#\d :control))
 
 (defun delete-selected-object (gesture numeric-arg)
   (declare (ignore gesture numeric-arg))
@@ -422,7 +418,7 @@
        `(com-delete-object ,(frame-selected-object *application-frame*))))
 
 ;; Move a handle by clicking Mouse-Middle on it and dragging the mouse.
-(define-ged-command com-move-handle
+(define-graphics-editor-command com-move-handle
     ((handle 'object-handle :gesture :describe))
   (let ((stream (get-frame-pane *application-frame* 'display)))
     (multiple-value-bind (x y) (point-position handle)
@@ -433,7 +429,7 @@
 	(move-handle handle (- x dx) (- y dy))))))
 
 ;; OK, I added a menu button to clear the window.
-(define-ged-command (com-clear :menu t) ()
+(define-graphics-editor-command (com-clear :menu t) ()
   (with-slots (objects selected-object last-box) *application-frame*
     (setq objects nil
 	  selected-object nil
@@ -442,26 +438,29 @@
 
 ;; OK, I added a menu button to redisplay the window, too, although
 ;; it's only here for debugging.
-(define-ged-command (com-redisplay :menu t) ()
+(define-graphics-editor-command (com-redisplay :menu t) ()
   (redisplay-frame-pane *application-frame* 'display :force-p t))
 
-(define-ged-command (com-quit :menu t) ()
+(define-graphics-editor-command (com-quit :menu t) ()
   (frame-exit *application-frame*))
 
 
+(defvar *graphics-editors* nil)
 
+(defun do-graphics-editor (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *graphics-editors*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'graphics-editor
+						   :frame-manager framem
+						   :left 100 :top 100
+						   :width 700 :height 500)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *graphics-editors*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(defvar *graphics-editor* nil)
-
-(defun do-graphics-editor (&optional force)
-  (when (or force (null *graphics-editor*))
-    (setq *graphics-editor* (make-application-frame 'graphics-editor 
-					       :left 100 :top 0 :right 800 :bottom 600
-					       #+Genera :parent
-					       #+Genera (first clim::*sheet-roots*))))
-  (run-frame-top-level *graphics-editor*))
-
-(clim-demo::define-demo "Graphics Editor" (do-graphics-editor))
-
-
-
+(define-demo "Graphics Editor" do-graphics-editor)

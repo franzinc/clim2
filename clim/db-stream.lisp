@@ -1,27 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;;;
-;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
-;;;
-;; $fiHeader: db-stream.lisp,v 1.22 92/07/06 18:51:34 cer Exp Locker: cer $
+
+;; $fiHeader: db-stream.lisp,v 1.23 92/07/08 16:30:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -42,13 +21,15 @@
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
+	   ;; We depend on PERMANENT-MEDIUM-SHEET-OUTPUT-MIXIN, which
+	   ;; we get from PANE...
 	   pane)
     ()
   (:default-initargs 
     :medium t 
-    ;;:max-width +fill+ :min-width 0
-    ;;:max-height +fill+ :min-height 0
-    ))
+    ;; Make sure that CLIM streams have fresh translation transformation
+    ;; so that we can modify it during scrolling
+    :transformation (clim-utils::make-translation-transformation-1 0.0f0 0.0f0)))
 
 ;;--- Do we still need this?
 (defmethod pane-stream ((pane clim-stream-sheet))
@@ -65,13 +46,15 @@
   (declare (ignore viewport)))
 
 (defmethod viewport-region-changed ((pane clim-stream-sheet) viewport)
-  (setf (sheet-region pane)
-	(make-bounding-rectangle
-	  0 0 
-	  (max (bounding-rectangle-width pane)
-	       (bounding-rectangle-width viewport))
-	  (max (bounding-rectangle-height pane)
-	       (bounding-rectangle-height viewport))))
+  (let ((region (sheet-region pane)))
+    ;; It should be safe to modify the sheet's region
+    (setf (slot-value region 'left) 0
+	  (slot-value region 'top)  0
+	  (slot-value region 'right)  (max (bounding-rectangle-width pane)
+					   (bounding-rectangle-width viewport))
+	  (slot-value region 'bottom) (max (bounding-rectangle-height pane)
+					   (bounding-rectangle-height viewport)))
+    (note-sheet-region-changed pane))
   (setf (stream-default-text-margin pane)
 	(bounding-rectangle-width (sheet-region viewport))))
 
@@ -79,7 +62,7 @@
 					&rest options
 					&key ink &allow-other-keys)
   (declare (dynamic-extent options))
-  (with-sheet-medium (medium sheet)
+  (let ((medium (sheet-medium sheet)))
     ;; Close the current output record if the drawing ink is changing
     (unless (eq (medium-ink medium) ink)
       (stream-close-text-output-record sheet))
@@ -107,7 +90,10 @@
 	   
 (defmethod initialize-instance :after 
 	   ((pane clim-stream-pane) &key &allow-other-keys)
-  (setf (sheet-transformation pane) +identity-transformation+))
+  ;; Make sure that CLIM streams have fresh translation transformation
+  ;; so that we can modify it during scrolling
+  (setf (sheet-transformation pane)
+	(clim-utils::make-translation-transformation-1 0.0f0 0.0f0)))
 
 (defmethod pane-needs-redisplay ((pane clim-stream-pane))
   (with-slots (display-time) pane
@@ -244,17 +230,16 @@
 	(:line (+ (* number (stream-line-height pane))
 		  (* (1- number) (stream-vertical-spacing pane))))))))
 
-#+++ignore
+#+++ignore	;obsolete now that the default coordinate origin is :NW
 (defmethod note-sheet-grafted :after ((pane clim-stream-pane))
   (let ((xform (sheet-transformation pane)))
     (setq xform (make-scaling-transformation 1 -1))
     (setf (sheet-transformation pane) xform)))
 
-;;; This is a soon-to-be-obsolete method, but we need it for now when the
-;;; CLIM-STREAM-PANE is a child of the old-style viewport.  It shouldn't
-;;; get called under the new viewport scheme.
-
-#+++ignore
+;; This is a soon-to-be-obsolete method, but we need it for now when the
+;; CLIM-STREAM-PANE is a child of the old-style viewport.  It shouldn't
+;; get called under the new viewport scheme.
+#+++ignore	;obsolete now that the default coordinate origin is :NW
 (defmethod allocate-space :after ((pane clim-stream-pane) width height)
   (declare (ignore width height))
   (ecase (graft-origin (graft pane))
@@ -277,18 +262,10 @@
 	   'pane-stream pane))
   pane)
 
-#+++ignore
-(defmethod update-region ((pane clim-stream-pane) width height
-			  &key no-repaint &allow-other-keys)
-  (when (pane-scroller pane)
-    (update-extent (pane-viewport pane) width height
-		   :no-repaint no-repaint)))
-
-;;; ---This assumes that the stream-pane is always inside a viewport, which
-;;; actually defines its visible size.  The stream pane's size is supposed
-;;; to represent the size of the contents, but may be stretched to fill the
-;;; available viewport space.
-
+;; This assumes that the stream-pane is always inside a viewport, which
+;; actually defines its visible size.  The stream pane's size is supposed
+;; to represent the size of the contents, but may be stretched to fill the
+;; available viewport space.
 (defmethod change-space-requirements :around
 	   ((pane clim-stream-pane) &rest keys &key width height)
   (declare (dynamic-extent keys))
@@ -339,8 +316,8 @@
 	(setq pane `(vertically ()
 		      ,pane
 		      (make-pane 'label-pane 
-				 :text ,label
-				 :max-width +fill+))))
+			:text ,label
+			:max-width +fill+))))
       `(outlining (:thickness 1)
 	 ,pane))))
 
@@ -354,20 +331,20 @@
 ;;; "Window protocol"
 
 (defmethod window-clear ((stream clim-stream-sheet))
-  (with-sheet-medium (medium stream)
+  (let ((medium (sheet-medium stream)))
     (letf-globally (((medium-transformation medium) +identity-transformation+))
       (clear-output-history stream)
       (window-erase-viewport stream)
       (when (extended-output-stream-p stream)	;can we assume this?
-	(stream-set-cursor-position stream 0 0)
 	;; This is important since if the viewport position is at some
-	;; -ve position then things get really confused since the
+	;; negative position then things get really confused since the
 	;; cursor might be visible at (0,0) and the extent is big
-	;; enough but ....
-	;;---- This does a lot of uncessary expensive blitblting
-	;; but how do we avoid it since a lot of what it does we need
-	;; to reset the viewport
+	;; enough but...
+	;;--- This does a lot of uncessary expensive bitblting, but
+	;;--- how do we avoid, it since a lot of what it does we need
+	;;--- to do to reset the viewport
 	(scroll-extent stream :x 0 :y 0)
+	(stream-set-cursor-position stream 0 0)
 	(setf (stream-baseline stream) (coordinate 0)
 	      (stream-current-line-height stream) (coordinate 0)))
       ;; Flush the old mouse position relative to this window
@@ -391,7 +368,7 @@
     (when text-record (replay text-record stream))))
 
 (defmethod window-erase-viewport ((stream window-stream))
-  (with-sheet-medium (medium stream)
+  (let ((medium (sheet-medium stream)))
     (multiple-value-call #'draw-rectangle*
       medium (bounding-rectangle* (or (pane-viewport stream) stream))
       :ink +background-ink+)))
@@ -435,16 +412,15 @@
   (sheet-parent window))
 
 (defun window-root (window)
-  (do ((win window (window-parent win)))
-      ((null (window-parent win))
-       win)))
+  (graft window))
 
 (defun window-top-level-window (window)
   (do* ((win window parent)
 	(parent (window-parent win) parent-parent)
-	(parent-parent (if parent (window-parent parent) T) (window-parent parent)))
+	(parent-parent (if parent (window-parent parent) t) (window-parent parent)))
        ((null parent-parent) win)
-    (when (eq parent-parent t) (return nil))))
+    (when (eq parent-parent t)
+      (return nil))))
 
 (defun beep (&optional (stream *standard-output*))
   (when (typep stream 'sheet)
@@ -455,7 +431,6 @@
 ;; up after itself.  It does not side-effect the output history of the window.
 ;; It calls COPY-AREA, whose contract is to do the above, the whole above, and
 ;; nothing but the above.
-
 (defmethod window-shift-visible-region ((window clim-stream-sheet)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.7 92/07/01 15:47:32 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.8 92/07/08 16:31:37 cer Exp $
 
 (in-package :genera-clim)
 
@@ -303,9 +303,9 @@
 
 (defmacro define-genera-keysym (character keysym)
   `(progn 
-     (setf (gethash ,character *genera-character->keysym-table*) ',keysym)
+     (setf (gethash ,character *genera-character->keysym-table*) ,keysym)
      (unless (gethash ,keysym *keysym->genera-character-table*)
-       (setf (gethash ,keysym *keysym->genera-character-table*) ',character))))
+       (setf (gethash ,keysym *keysym->genera-character-table*) ,character))))
 
 (defun-inline genera-character->keysym (character)
   ;; Use SCL:MAKE-CHAR here to strip bits from the character.
@@ -314,9 +314,14 @@
 (defun-inline keysym->genera-character (keysym)
   (gethash keysym *keysym->genera-character-table*))
 
-(defmethod port-canonicalize-gesture-spec ((port genera-port) gesture-spec)
+;; If MODIFIER-STATE is supplied, then GESTURE-SPEC is assumed to be a keysym.
+;; Otherwise, we parse GESTURE-SPEC as a gesture spec.
+(defmethod port-canonicalize-gesture-spec 
+	   ((port genera-port) gesture-spec &optional modifier-state)
   (multiple-value-bind (keysym shifts)
-      (parse-gesture-spec gesture-spec)
+      (if modifier-state
+	  (values gesture-spec modifier-state)
+	  (parse-gesture-spec gesture-spec))
     (let* ((console (slot-value port 'console))
 	   (keyboard-table (si:keyboard-keyboard-table (si:console-keyboard console)))
 	   (genera-char (if (and (characterp keysym) (standard-char-p keysym))
@@ -512,18 +517,21 @@
     (let* ((mirror (sheet-mirror stream))
 	   (blinker (scl:send mirror :ensure-blinker-for-cursor cursor)))
       (when blinker
-	(let ((transformation (sheet-native-transformation stream)))
+	(let ((transformation (sheet-device-transformation stream)))
 	  (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	    (multiple-value-setq (x y)
 	      (transform-position transformation x y))
 	    (fix-coordinates x y)
 	    (cond ((and active state focus)
-		   (scl:send mirror :set-cursorpos x y)
-		   (scl:send blinker :set-visibility :blink))
+		   (unless (tv:sheet-output-held-p mirror)
+		     (scl:send mirror :set-cursorpos x y)
+		     (scl:send blinker :set-visibility :blink)))
 		  ((and active state)
-		   (scl:send mirror :set-cursorpos x y)
-		   (scl:send blinker :set-visibility T))
-		  (t (scl:send blinker :set-visibility nil)))))))))
+		   (unless (tv:sheet-output-held-p mirror)
+		     (scl:send mirror :set-cursorpos x y)
+		     (scl:send blinker :set-visibility t)))
+		  (t (unless (tv:sheet-output-held-p mirror)
+		       (scl:send blinker :set-visibility nil))))))))))
 
 (defmethod (setf port-keyboard-input-focus) :around (focus (port genera-port))
   (let ((old-focus (port-keyboard-input-focus port)))
@@ -542,6 +550,14 @@
 (defmethod port-note-cursor-change :after ((port genera-port) cursor stream type old new)
   (declare (ignore type old))
   (ensure-blinker-matches-cursor cursor stream))
+
+;; X and Y are in native coordinates
+(defmethod port-set-pointer-position ((port genera-port) pointer x y)
+  (let* ((sheet (pointer-sheet pointer))
+	 (mirror (sheet-mirror sheet)))
+    (unless (eq (tv:sheet-screen mirror) (tv:mouse-sheet tv:main-mouse))
+      (tv:mouse-set-sheet (tv:sheet-screen mirror)))
+    (scl:send mirror :set-mouse-position (fix-coordinate x) (fix-coordinate y))))
 
 
 ;;;--- From ILA stream

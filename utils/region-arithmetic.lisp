@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.6 92/04/15 11:45:35 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.7 92/05/07 13:11:43 cer Exp $
 
 (in-package :clim-utils)
 
@@ -139,7 +139,7 @@
 
 (defmethod map-over-region-set-regions
 	   (function (region standard-region-difference) &key normalize)
-  (declare (ignore normalize))
+  (declare (dynamic-extent function) (ignore normalize))
   (with-slots (region1 region2) region
     (funcall function region1)
     (funcall function region2))
@@ -213,7 +213,8 @@
 (defun ltrb-overlaps-ltrb-p (left1 top1 right1 bottom1
 			     left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-		 	    left2 top2 right2 bottom2))
+		 	    left2 top2 right2 bottom2)
+	   (values valid-p left top right bottom))
   (let ((left (max left1 left2))
 	(top (max top1 top2))
 	(right (min right1 right2))
@@ -226,7 +227,8 @@
 (defun ltrb-union (left1 top1 right1 bottom1
 		   left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-		 	    left2 top2 right2 bottom2))
+		 	    left2 top2 right2 bottom2)
+	   (values rectangles))
   (cond ((ltrb-contains-ltrb-p left1 top1 right1 bottom1
 			       left2 top2 right2 bottom2)
 	 (list (make-bounding-rectangle-1 left1 top1 right1 bottom1)))
@@ -257,7 +259,8 @@
 (defun ltrb-intersection (left1 top1 right1 bottom1
 			  left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-			    left2 top2 right2 bottom2))
+			    left2 top2 right2 bottom2)
+	   (values rectangle))
   (multiple-value-bind (valid-p left top right bottom)
       (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1
 			    left2 top2 right2 bottom2)
@@ -301,7 +304,8 @@
 (defun ltrb-difference (left1 top1 right1 bottom1
 			left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-			    left2 top2 right2 bottom2))
+			    left2 top2 right2 bottom2)
+	   (values rectangles))
   (unless (ltrb-contains-ltrb-p left2 top2 right2 bottom2
 				left1 top1 right1 bottom1)
     (if (not (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.29 92/07/01 15:48:14 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.30 92/07/08 16:31:58 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -95,9 +95,10 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-   (with-slots (foreground-gcontext background-gcontext flipping-gcontext color-p
-		drawable tile-gcontext white-pixel black-pixel)
+  (with-slots (foreground-gcontext background-gcontext flipping-gcontext color-p
+				   drawable tile-gcontext white-pixel black-pixel clip-mask)
       medium
+    (setf clip-mask nil)
     (setf (medium-sheet medium) sheet)
     (when (and drawable
 	       (not (eq (port-display port)
@@ -108,20 +109,20 @@
 	   (drawable (or drawable
 			 (tk::display-root-window display))))
       (setf foreground-gcontext (tk::make-instance 'fast-gcontext
-				    :drawable drawable))
+						   :drawable drawable))
       (setf background-gcontext (tk::make-instance 'fast-gcontext
-				    :drawable drawable))
+						   :drawable drawable))
       (setf flipping-gcontext
 	(tk::make-instance 'fast-gcontext 
-	  :drawable drawable
-	  :function boole-xor))
+			   :drawable drawable
+			   :function boole-xor))
       (setf color-p (color-medium-p medium))
       (setf white-pixel (x11:xwhitepixel display screen))
       (setf black-pixel (x11:xblackpixel display screen))
       (setf tile-gcontext (make-instance 'fast-gcontext
-				 :drawable drawable
-				 :foreground black-pixel
-				 :background white-pixel))
+					 :drawable drawable
+					 :foreground black-pixel
+					 :background white-pixel))
       (recompute-gcs medium))))
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)

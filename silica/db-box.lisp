@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.17 92/07/01 15:44:45 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.18 92/07/08 16:28:56 cer Exp $
 
 (in-package :silica)
 
@@ -51,6 +51,9 @@
 	  (error "Invalid box child: ~S" contents))
 	(sheet-adopt-child pane (second child)))))
   (setf (slot-value pane 'contents) contents))
+
+(defmethod handle-event :after ((pane box-pane) (event pointer-motion-event))
+  (deallocate-event event))
 
 (defmethod compose-box 
 	   ((box-pane box-pane)
@@ -141,9 +144,8 @@
 			    (and (consp sheet)
 				 (panep (second sheet))
 				 (setq sheet (second sheet))))
-		    (move-and-resize-sheet* sheet 
-					    x 0
-					    (frob-size size width x) height))
+		    (move-and-resize-sheet 
+		      sheet x 0 (frob-size size width x) height))
 		  (incf x size))
 	      contents sizes)))))
 
@@ -186,9 +188,8 @@
 			    (and (consp sheet)
 				 (panep (second sheet))
 				 (setq sheet (second sheet))))
-		    (move-and-resize-sheet* sheet 
-					    0 y
- 					    width (frob-size size height y)))
+		    (move-and-resize-sheet
+		      sheet 0 y width (frob-size size height y)))
 		  (incf y size))
 	      contents sizes)))))
 

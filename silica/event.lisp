@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.16 92/07/06 18:51:22 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.17 92/07/08 16:29:05 cer Exp $
 
 (in-package :silica)
 
@@ -32,9 +32,9 @@
 
 (defgeneric port-keyboard-input-focus (port))
 
-(defmethod handle-event (client (event window-repaint-event))
-  (handle-repaint client nil 
-		  (window-event-region event)))
+(defmethod handle-event (sheet (event window-repaint-event))
+  (handle-repaint sheet nil (window-event-region event))
+  (deallocate-event event))
 
 (defclass sheet-with-event-queue-mixin ()
     ((event-queue :initform nil
@@ -139,12 +139,13 @@
   (with-sheet-medium-bound (sheet medium)
     (repaint-sheet sheet region))
   (when (typep sheet 'sheet-parent-mixin)
-    (dolist (child (children-overlapping-region sheet region))
-      ;; If the sheet has a mirror then it will deal with its own repaints
-      (unless (sheet-direct-mirror child)
-	(handle-repaint 
-	  child medium
-	  (untransform-region (sheet-transformation child) region))))))
+    (flet ((do-handle-repaint (child)
+	     (unless (sheet-direct-mirror child)
+	       (handle-repaint
+		 child medium
+		 (untransform-region (sheet-transformation child) region)))))
+      (declare (dynamic-extent #'do-handle-repaint))
+      (map-over-sheets-overlapping-region #'do-handle-repaint sheet region))))
 	     
 (defgeneric repaint-sheet (sheet region))
 
@@ -167,6 +168,51 @@
 (defmethod repaint-sheet ((sheet mute-repainting-mixin) region)
   (declare (ignore region))
   nil)
+
+
+;;; Crossing events
+
+;; The following variable controls whether an exit event gets generated
+;; when the pointer leaves a sheet to enter one of its children.  Consider
+;; the following diagram:
+;;
+;;   +--------------------------------+
+;;   |                                |<--- outer sheet 1
+;;   |                                |
+;;   |  +--------------------------+  |
+;;   |  |                          |<------ middle sheet 2
+;;   |  |                          |  |
+;;   |  |  +--------------------+  |  |
+;;   |  |  |                    |<--------- inner sheet 3
+;;   |  |  |                    |  |  |
+;;   |  |  |                    |  |  |
+;;   |  |  +--------------------+  |  |
+;;   |  |                          |  |
+;;   |  |                          |  |
+;;   |  +--------------------------+  |
+;;   |                                |
+;;   |                                |
+;;   +--------------------------------+
+;; 
+;; Suppose you move the pointer from the left-hand side of the screen into
+;; sheet 1, then into sheet 2, and finally into sheet 3.  When the following
+;; variable is set to T, this event stream is generated:
+;;
+;;   pointer enters sheet 1
+;;   pointer exits sheet 1
+;;   pointer enters sheet 2
+;;   pointer exits sheet 2
+;;   pointer enters sheet 3
+;; 
+;; When it is set to NIL, this is generated:
+;; 
+;;   pointer enters sheet 1
+;;   pointer enters sheet 2
+;;   pointer enters sheet 3
+;; 
+;; Both schemes have their uses, so we support both.
+(defparameter *generate-exit-event-when-entering-child* nil)
+
 
 ;; I think we have fun here to generate enter/exit events for unmirrored sheets
 ;; Three cases:
@@ -201,23 +247,24 @@
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
 		    sheet
-		    (make-instance 'pointer-enter-event
+		    (allocate-event 'pointer-enter-event
 		      :sheet sheet
 		      :x x :y y
 		      :button button
-		      :modifiers modifiers
+		      :modifier-state modifiers
 		      :pointer pointer))))
 	     (generate-exit-event (sheet)
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
 		    sheet
-		    (make-instance 'pointer-exit-event
+		    (allocate-event 'pointer-exit-event
 		      :sheet sheet
 		      :x x :y y
 		      :button button
-		      :modifiers modifiers
+		      :modifier-state modifiers
 		      :pointer pointer)))))
     (let ((v (port-trace-thing port)))
+      #+Genera (declare (sys:array-register v))
       ;; Pop up the stack of sheets
       (unless (zerop (fill-pointer v))
 	(let ((m (if (eq (aref v 0) sheet)
@@ -257,7 +304,8 @@
 	    (setq child (child-containing-position sheet new-x new-y))
 	    (unless child
 	      (return nil))
-	    (generate-exit-event sheet)
+	    (when *generate-exit-event-when-entering-child*
+	      (generate-exit-event sheet))
 	    (generate-enter-event child)
 	    (multiple-value-setq (new-x new-y)
 	      (map-sheet-position-to-child child new-x new-y))
@@ -277,19 +325,22 @@
 	    (sheet-device-transformation sheet) x y)
 	(dispatch-event
 	  sheet
-	  (make-instance event-type
+	  (allocate-event event-type
 	    :sheet sheet
 	    :native-x x :native-y y
 	    :x tx :y ty
-	    :modifiers modifiers
+	    :modifier-state modifiers
 	    :button button
 	    :pointer pointer))))))
+
+
+;;; Event distribution
 
 (defmethod distribute-event ((port basic-port) event)
   (distribute-event-1 port event))
 
 (defmethod distribute-event ((port null) (event event))
-  #+ignore (warn "Got an event for null port ~S" event))
+  #+++ignore (warn "Trying to distribute event ~S for a null port" event))
 
 (defgeneric distribute-event-1 (port event))
 
@@ -315,12 +366,13 @@
     (typecase event
       ((or pointer-exit-event pointer-enter-event)
        'pointer-motion-event)
-      (t (type-of event)))
+      (t (class-name (class-of event))))
     (pointer-event-native-x event)
     (pointer-event-native-y event)
     (event-modifier-state event)
     (pointer-event-button event)
-    (pointer-event-pointer event)))
+    (pointer-event-pointer event))
+  (deallocate-event event))
 	    
 
 ;;; Local event processing
@@ -346,73 +398,112 @@
 
 (defvar *resourced-events* nil)
 
-#-CCL-2
-(defmacro define-event-initializer (event-type nevents)
-  (let* ((slots (clos:class-slots (find-class event-type)))
-	 (slot-names (mapcar #'clos:slot-definition-name slots)))
+(defgeneric initialize-event (event &key &allow-other-keys))
+
+(defmacro define-event-resource (event-class nevents)
+  (let* ((slots #-CCL-2 (clos:class-slots (find-class event-class))
+		#+CCL-2 (ccl:class-slots (find-class event-class)))
+	 (slot-names #-CCL-2 (mapcar #'clos:slot-definition-name slots)
+		     #+CCL-2 (mapcar #'ccl:slot-definition-name slots))
+	 (resource-name (fintern "*~A-~A*" event-class 'resource)))
     `(progn
-       (defmethod initialize-event ((event ,event-type) &key ,@slot-names)
+       (defvar ,resource-name nil)
+       (defmethod initialize-event ((event ,event-class) &key ,@slot-names)
 	 ,@(mapcar #'(lambda (slot)
-		       `(setf (slot-value event ',slot) ,slot))
+		       (if (eq slot 'timestamp)
+			   `(setf (slot-value event ',slot) 
+				  (or ,slot (atomic-incf *event-timestamp*)))
+			   `(setf (slot-value event ',slot) ,slot)))
 		   slot-names))
-       (let ((old (assoc ',event-type *resourced-events*)))
-	 (if old
-	     (setf (second old) ,nevents)
-	     (setq *resourced-events* 
-		   (append *resourced-events* (list (list ',event-type ,nevents)))))))))
+       (let ((old (assoc ',event-class *resourced-events*)))
+	 (unless old
+	   (setq *resourced-events* 
+		 (append *resourced-events*
+			 (list (list ',event-class ',resource-name 
+				     ;; Allocates, misses, creates, deallocates
+				     #+meter-events ,@(list 0 0 0 0)))))))
+       ;; When an event is in the event resource, we use the timestamp
+       ;; to point to the next free event
+       (let ((previous-event (make-instance ',event-class)))
+	 (setq ,resource-name previous-event)
+	 (repeat ,(1- nevents)
+	   (let ((event (make-instance ',event-class
+			  :timestamp nil)))
+	     (setf (slot-value previous-event 'timestamp) event)
+	     (setq previous-event event)))))))
 
-#+CCL-2
-(defmacro define-event-initializer (event-type nevents)
-  (let* ((slots (ccl:class-slots (find-class event-type)))
-	 (slot-names (mapcar #'ccl:slot-definition-name slots)))
-    `(progn
-       (defmethod initialize-event ((event ,event-type) &key ,@slot-names)
-	 ,@(mapcar #'(lambda (slot)
-		       `(setf (slot-value event ',slot) ,slot))
-		   slot-names))
-       (let ((old (assoc ',event-type *resourced-events*)))
-	 (if old
-	     (setf (second old) ,nevents)
-	     (setq *resourced-events* 
-		   (append *resourced-events* (list (list ',event-type ,nevents)))))))))
+(define-event-resource pointer-motion-event 20)
+(define-event-resource pointer-enter-event 20)
+(define-event-resource pointer-exit-event 20)
+(define-event-resource pointer-button-press-event 10)
+(define-event-resource pointer-button-release-event 10)
+(define-event-resource key-press-event 10)
+(define-event-resource key-release-event 10)
+(define-event-resource window-configuration-event 10)
+(define-event-resource window-repaint-event 10)
 
-(define-event-initializer pointer-motion-event 20)
-(define-event-initializer pointer-enter-event 30)
-(define-event-initializer pointer-exit-event 30)
-(define-event-initializer pointer-button-press-event 10)
-(define-event-initializer pointer-button-release-event 10)
-(define-event-initializer key-press-event 10)
-(define-event-initializer key-release-event 10)
-(define-event-initializer window-configuration-event 10)
-(define-event-initializer window-repaint-event 20)
+(defparameter *use-event-resources* nil)
 
-(defun make-event-resource ()
-  (flet ((make-event-resource-1 (type n)
-	   (let ((resource (make-list n)))
-	     (do ((r resource (cdr r)))
-		 ((null r))
-	       (setf (car r) (make-instance type)))
-	     (setf (cdr (last resource)) resource)
-	     (cons type resource))))
-    (declare (dynamic-extent #'make-event-resource-1))
-    (loop for (type n) in *resourced-events*
-	  collect (make-event-resource-1 type n))))
-
-;;--- Instead of this circular list stuff, it might be better to
-;;--- have a vector to "pop" off of, and have clients explicitly
-;;--- call a DEALLOCATE-EVENT method.
-(defmethod allocate-event ((port basic-port) event-type &rest initargs)
+;; Note that this assumes that the initarg for a slot has the same
+;; symbol name as the slot itself
+#+Genera (zwei:defindentation (allocate-event 1 1))
+(defun allocate-event (event-class &rest initargs)
   (declare (dynamic-extent initargs))
-  (let* ((resource (assoc event-type (port-event-resource port)))
-	 (event (and resource (pop (cdr resource)))))
-    ;;--- It's too bad INITIALIZE-EVENT is so slow, although maybe on
-    ;;--- non-Genera platforms it compares favorably with MAKE-INSTANCE
-    (cond (event
-	   (apply #'initialize-event event initargs)
-	   event)
+  (let* ((entry (assoc event-class *resourced-events*))
+	 (resource (second entry))
+	 event)
+    ;; Update the freelist, or allocate a new event if necessary
+    #+meter-events (when resource (incf (nth 2 entry)))
+    (cond ((and *use-event-resources* resource)
+	   (without-scheduling
+	     (setq event (symbol-value resource))
+	     (when event
+	       (setf (symbol-value resource) (event-timestamp event))))
+	   ;; INITIALIZE-EVENT is slower than an optimized MAKE-INSTANCE
+	   ;; when no slots have to be initialized, but usually we have
+	   ;; to fill in most of the slots, in which case it is about the
+	   ;; same speed.
+	   (cond (event
+		  (apply #'initialize-event event initargs)
+		  event)
+		 (t
+		  #+meter-events (incf (nth 3 entry))
+		  (apply #'make-instance event-class initargs))))
 	  (t
-	   (apply #'make-instance event-type initargs)))))
+	   #+meter-events (when resource (incf (nth 4 entry)))
+	   (apply #'make-instance event-class initargs)))))
 
+(defun deallocate-event (event)
+  (when *use-event-resources*
+    (unless (typep (event-timestamp event) 'fixnum)
+      (cerror "Proceed anyway"
+	      "The event ~S has already been deallocated" event)
+      (return-from deallocate-event nil))
+    (let* ((entry (assoc (class-name (class-of event)) *resourced-events*))
+	   (resource (second entry)))
+      (when resource
+	(without-scheduling
+	  (setf (slot-value event 'timestamp) (symbol-value resource))
+	  (setf (symbol-value resource) event))
+	#+meter-events (incf (nth 5 entry)))))
+  nil)
+
+#+meter-events
+(defun describe-event-resources (&optional reset)
+  (format t "~&Name~32TAlloc    Miss     New   Freed")
+  (dolist (entry *resourced-events*)
+    (destructuring-bind (name first allocates misses new deallocates) entry
+      (declare (ignore first))
+      (format t "~&~A~30T~7D ~7D ~7D ~7D" name allocates misses new deallocates)
+      (when reset
+	(setf (nth 2 entry) 0
+	      (nth 3 entry) 0
+	      (nth 4 entry) 0
+	      (nth 5 entry) 0)))))
+
+;; It's generally better to copy the event when passing it up to the API
+;; level, because that ensures that our event resource remains relatively
+;; localized in virtual memory.
 #+Symbolics
 (defun-inline copy-event (event)
   (clos-internals::%allocate-instance-copy event))

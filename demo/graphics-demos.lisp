@@ -1,23 +1,23 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.8 92/07/01 15:47:41 cer Exp Locker: cer $
+;; $fiHeader: graphics-demos.lisp,v 1.9 92/07/06 18:52:05 cer Exp $
 
 (in-package :clim-demo)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-(define-application-frame graphics-demo 
+(define-application-frame graphics-demo ()
     ()
-  ()
   (:panes 
     (demo :application
 	  :min-width 200 :min-height 100
 	  :width 800 :height 600)
     (explanation :application
 		 :height 100))
-  (:layouts (:default
-	      (vertically () demo explanation))))
+  (:layouts 
+    (:default
+      (vertically () demo explanation))))
 
 (define-graphics-demo-command (com-Exit-Graphics-Demo :menu "Exit")
     ()
@@ -237,13 +237,21 @@ to the window in which it is displayed."
       (with-text-style (window '(:sans-serif :roman :large))
 	(write-string text window)))))
 
+
 (defvar *graphics-demos* nil)
 
-(defun run-graphics-demos (&key (root (find-frame-manager)) reinit)
-  (let ((gd (cdr (assoc root *graphics-demos*))))
-    (when (or (null gd) reinit)
-      (setq gd (make-application-frame 'graphics-demo :parent root))
-      (push (cons root gd) *graphics-demos*))
-    (run-frame-top-level gd)))
+(defun do-graphics-demo (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *graphics-demos*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'graphics-demo
+						   :frame-manager framem)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *graphics-demos*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "Graphics Demos" (run-graphics-demos))
+(define-demo "Graphics Demos" do-graphics-demo)

@@ -1,38 +1,18 @@
-;; -*- mode: common-lisp; package: user -*-
-;;
-;;				-[]-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader$
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+
+;; $fiHeader: default-application.lisp,v 1.1 92/07/01 16:02:24 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+
 
 (define-application-frame default-application () ()
   (:command-definer nil)
   (:menu-bar nil)
   (:top-level nil))
 
-
 ;; We keep a global binding of *APPLICATION-FRAME* because it can make
 ;; life easier for people debugging applications
-(setq *application-frame* (make-application-frame 
-			   'default-application :parent nil))
+(setq *application-frame*
+      (make-application-frame 'default-application :parent nil))

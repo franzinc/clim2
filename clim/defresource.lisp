@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defresource.lisp,v 1.7 92/05/07 13:12:11 cer Exp $
+;; $fiHeader: defresource.lisp,v 1.8 92/07/01 15:46:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -51,7 +51,7 @@
       (when (> (fill-pointer objects) 0)
 	(format t "~%~D Object~:P:" (fill-pointer objects)))
       (doseq (object-storage objects)
-	(format t "~%~S, ~:[not in~;in~] use"
+	(format t "~%  ~S, ~:[not in~;in~] use"
 		(os-object object-storage)
 		(cdr (os-use-cons object-storage)))))))
 

@@ -20,13 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.5 92/06/29 14:05:08 cer Exp Locker: cer $
+;; $fiHeader: ol-frames.lisp,v 1.6 92/07/01 15:47:58 cer Exp $
 
 
 (in-package :xm-silica)
 
-(defclass openlook-frame-manager (xt-frame-manager)
-	  ())
+(defclass openlook-frame-manager (xt-frame-manager) 
+    ()
+  (:default-initargs :dialog-view +gadget-dialog-view+))
 
 (defmethod make-frame-manager ((port openlook-port))
   (make-instance 'openlook-frame-manager :port port))
@@ -51,9 +52,6 @@
     (frame-wm-protocol-callback shell frame)))
 
 
-(defmethod frame-manager-dialog-view ((framem openlook-frame-manager))
-  +gadget-dialog-view+)
-
 ;;;; 
 
 (defmethod frame-manager-construct-menu 
@@ -74,6 +72,7 @@
 			      :parent (or (and associated-window
 					       (sheet-mirror associated-window))
 					  (port-application-shell port))
+			      :menu-augment nil
 			      :managed nil))
 	 (menu (tk::get-values menu-shell :menu-pane)))
 
@@ -103,6 +102,8 @@
 				       :label-type :image
 				       :label-image image
 				       options)))
+			  ;;-- Fix this
+			  #+ignore
 			  (xt::add-widget-cleanup-function
 			   button
 			   #'tk::destroy-image image)
@@ -169,10 +170,13 @@
   (tk::ol_menu_post menu))
 
 (defmethod framem-destroy-menu ((framem openlook-frame-manager) menu)
+  ;;--- We need to fix this
+  #+ignore(tk::unmanage-child menu)
+  #-ignore
   (tk::destroy-widget menu))
 
 (defmethod framem-popdown-menu ((framem openlook-frame-manager) menu)
-  (tk::ol_menu_popdown menu))
+  (tk::ol_menu_popdown menu 1))
 
 (defmethod framem-menu-active-p ((framem openlook-frame-manager) menu)
   (declare (ignore t))

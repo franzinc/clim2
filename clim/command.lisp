@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.9 92/05/22 19:27:45 cer Exp $
+;; $fiHeader: command.lisp,v 1.10 92/07/01 15:46:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -538,7 +538,7 @@
     (flet ((body (stream)
 	     (format stream "~A" menu)
 	     (when keystroke
-	       (write-string "(" stream)
+	       (write-string " (" stream)
 	       (describe-gesture-spec keystroke :stream stream)
 	       (write-string ")" stream))
 	     (when (eq type ':menu)

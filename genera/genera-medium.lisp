@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.6 92/07/01 15:47:29 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.7 92/07/08 16:31:32 cer Exp $
 
 (in-package :genera-clim)
 
@@ -366,23 +366,24 @@
   (error "Compositing is not supported in this CLIM implementation"))
       
 
-(flavor:defgeneric with-clim-drawing-state (drawing-state ones-alu zeros-alu
-					    thickness dashes line-style pattern
-					    continuation &rest arguments)
+(flavor:defgeneric invoke-with-clim-drawing-state
+		   (drawing-state ones-alu zeros-alu
+		    thickness dashes line-style pattern
+		    continuation window &rest arguments)
   (:inline-methods :recursive)
   (:optimize speed))
 
-(flavor:defmethod (with-clim-drawing-state graphics::raster-drawing-state :before)
+(flavor:defmethod (invoke-with-clim-drawing-state graphics::raster-drawing-state :before)
 		  (ones-alu zeros-alu thickness dashes line-style pattern
-		   continuation &rest arguments)
-  (declare (ignore thickness dashes line-style continuation arguments))
+		   continuation window &rest arguments)
+  (declare (ignore thickness dashes line-style continuation window arguments))
   (setq graphics::source-pattern pattern)
   (setq graphics::ones-alu ones-alu)
   (setq graphics::zeros-alu zeros-alu))
 
-(flavor:defmethod (with-clim-drawing-state graphics::drawing-state)
+(flavor:defmethod (invoke-with-clim-drawing-state graphics::drawing-state)
 		  (ones-alu zeros-alu thickness dashes line-style pattern
-		   continuation &rest arguments)
+		   continuation window &rest arguments)
   (declare (ignore zeros-alu))
   (setq graphics::alu ones-alu)
   (setq graphics::thickness thickness)
@@ -410,11 +411,13 @@
 	      (dpb 0 graphics::%%scan-conversion-host-allowed
 		   (dpb 1 graphics::%%scan-conversion-round-coordinates 0))))))
   (setf (ldb graphics::%%drawing-state-new-parameters graphics::flags) 0)
-  (apply continuation arguments))
+  (unless (tv:sheet-output-held-p window)
+    (apply continuation window arguments)))
 
 ;;; The easy continuation is called for simple drawing operations without patterning
 ;;; or line style options unsupported by the old Genera window system operations.
-(defmethod with-appropriate-drawing-state
+(zwei:defindentation (invoke-with-appropriate-drawing-state 3 1))
+(defmethod invoke-with-appropriate-drawing-state
 	   ((medium genera-medium) ink line-style easy hard)
   (let ((alu (let* ((ink-cache (slot-value medium 'ink-cache))
 		    (ink (follow-indirect-ink ink medium)))
@@ -442,47 +445,49 @@
 			  (values (logior (logand ,ones-alu #b0101)
 					  (scl:rot (logand ,zeros-alu #b0101) 1))
 				  ,zeros-alu))
-		      (with-clim-drawing-state ,drawing-state ones-alu zeros-alu
-					       ,thickness ,dashes ,line-style ,raster
-					       ,continuation ,window))))
-	(labels ((kernel (window)
-		   (declare (sys:downward-function))
-		   (if (listp alu)
-		       (dolist (element alu)
-			 (sys:destructuring-bind (raster ones-alu zeros-alu) element
-			   (with-drawing-state-kludge (graphics::get-drawing-state window)
-						      ones-alu zeros-alu
-						      thickness dashes line-style raster
-						      hard window)))
-		     (if (and easy
-			      (not (slot-value (port medium) 'embedded-p))
-			      (null dashes)
-			      (<= thickness 1))
-			 (funcall easy window alu)
-		       (with-drawing-state-kludge (graphics::get-drawing-state window)
-						  alu boole-2
-						  thickness dashes line-style nil
-						  hard window)))))
-	  (let ((window (medium-drawable medium)))
-	    (let* ((sheet (medium-sheet medium))
-		   (region (sheet-device-region sheet))
-		   (medium-region (medium-clipping-region medium)))
+		      (invoke-with-clim-drawing-state 
+			,drawing-state ones-alu zeros-alu
+			,thickness ,dashes ,line-style ,raster
+			,continuation ,window))))
+	(let* ((window (medium-drawable medium))
+	       (sheet (medium-sheet medium))
+	       (region (sheet-device-region sheet))
+	       (medium-region (medium-clipping-region medium))
+	       (valid t))
+	  (unless (eq region +nowhere+)
+	    (with-bounding-rectangle* (left top right bottom) region
 	      (unless (eq medium-region +everywhere+)
-		(setq region (region-intersection
-			       region
-			       (transform-region 
-				 (sheet-device-transformation sheet) medium-region))))
-	      (if (or (eq region +everywhere+)
-		      (eq region +nowhere+))	;---yow! howcum?
-		  (kernel window)
-		(with-bounding-rectangle* (left top right bottom) region
-		  (fix-coordinates left top right bottom)
-		  (with-stack-list (cr (+ (tv:sheet-left-margin-size window) left)
-				       (+ (tv:sheet-top-margin-size window) top)
-				       (+ (tv:sheet-right-margin-size window) right)
-				       (+ (tv:sheet-bottom-margin-size window) bottom))
-		    (scl:letf (((tv:sheet-clipping-region window) cr))
-		      (kernel window)))))))))))) 
+		(with-bounding-rectangle* (mleft mtop mright mbottom) medium-region
+		  (multiple-value-setq (valid left top right bottom)
+		    (multiple-value-call #'ltrb-overlaps-ltrb-p
+		      left top right bottom
+		      (transform-rectangle* 
+			(sheet-device-transformation sheet)
+			mleft mtop mright mbottom)))))
+	      (when valid
+		(fix-coordinates left top right bottom)
+		(with-stack-list (cr (+ (tv:sheet-left-margin-size window) left)
+				     (+ (tv:sheet-top-margin-size window) top)
+				     (+ (tv:sheet-right-margin-size window) right)
+				     (+ (tv:sheet-bottom-margin-size window) bottom))
+		  (scl:letf (((tv:sheet-clipping-region window) cr))
+		    (if (listp alu)
+			(dolist (element alu)
+			  (sys:destructuring-bind (raster ones-alu zeros-alu) element
+			    (with-drawing-state-kludge (graphics::get-drawing-state window)
+			      ones-alu zeros-alu
+			      thickness dashes line-style raster
+			      hard window)))
+			(if (and easy
+				 (not (slot-value (port medium) 'embedded-p))
+				 (null dashes)
+				 (<= thickness 1))
+			    (unless (tv:sheet-output-held-p window)
+			      (funcall easy window alu))
+			    (with-drawing-state-kludge (graphics::get-drawing-state window)
+			      alu boole-2
+			      thickness dashes line-style nil
+			      hard window)))))))))))))
 
 (defmethod medium-drawing-possible ((medium genera-medium))
   (let ((window (medium-drawable medium)))
@@ -519,7 +524,7 @@
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
       (convert-to-device-coordinates transform x y)
-      (with-appropriate-drawing-state medium ink line-style
+      (invoke-with-appropriate-drawing-state medium ink line-style
 	#'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (funcall window :draw-point x y alu))
@@ -533,7 +538,7 @@
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      (with-appropriate-drawing-state medium ink line-style
+      (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (map-position-sequence
@@ -557,7 +562,7 @@
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium))) 
       (convert-to-device-coordinates transform x1 y1 x2 y2)
-      (with-appropriate-drawing-state medium ink line-style
+      (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
@@ -574,7 +579,7 @@
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      (with-appropriate-drawing-state medium ink line-style
+      (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
@@ -605,9 +610,9 @@
       (when (< bottom top) (rotatef bottom top))
       (if (and filled
 	       (typep ink 'pattern))
-	  ;; Looks like this is DRAW-ICON*
-	  (draw-icon-internal medium left top right bottom ink)
-	  (with-appropriate-drawing-state medium ink line-style
+	  ;; Looks like this is DRAW-PATTERN*
+	  (medium-draw-pattern* medium left top right bottom ink)
+	  (invoke-with-appropriate-drawing-state medium ink line-style
 	    #'(lambda (window alu)
 		(declare (sys:downward-function))
 		(if filled
@@ -634,7 +639,7 @@
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      (with-appropriate-drawing-state medium ink line-style
+      (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
@@ -664,19 +669,35 @@
 
 ;; Fall back to DRAW-IMAGE.  INK will be a pattern.
 ;; We have to resort to this because Genera always tiles.  Sigh.
-(defmethod draw-icon-internal ((medium genera-medium) left top right bottom ink)
+(defmethod medium-draw-pattern* ((medium genera-medium) left top right bottom ink)
   (with-slots (window ink-cache) medium
     (let* ((width  (- right left))
 	   (height (- bottom top))
 	   (alus (or (ink-cache-lookup ink-cache ink)
-		     (ink-cache-replace ink-cache ink (genera-decode-ink ink medium)))))
+		     (ink-cache-replace ink-cache ink (genera-decode-ink ink medium))))
+	   (thickness 0)
+	   (dashes nil))
       (assert (= (length alus) 1) ()
 	      "CLIM only supports bitmap icons under Genera sheets")
       (dolist (alu alus)
-	(let ((image (pop alu)))
-	  (graphics:draw-image image left top
-			       :image-right width :image-bottom height
-			       :stream window))))))
+	(let* ((image (pop alu))
+	       (ones-alu (pop alu))
+	       (zeros-alu (pop alu)))
+	  (multiple-value-bind (ones-alu zeros-alu)
+	      (if (not (and (integerp ones-alu)
+			    (integerp zeros-alu)))
+		  (values ones-alu zeros-alu)
+		  (values (logior (logand ones-alu 5) (scl:rot (logand zeros-alu 5) 1)) 
+			  zeros-alu))
+	    (invoke-with-clim-drawing-state
+	      (graphics::get-drawing-state window) ones-alu zeros-alu
+	      thickness dashes nil image
+	      #'(lambda (window)
+		  (declare (sys:downward-function))
+		  (graphics:draw-image image left top
+				       :image-right width :image-bottom height
+				       :stream window))
+	      window)))))))
 
 (defmethod medium-draw-polygon* ((medium genera-medium) position-seq closed filled)
   (when (medium-drawing-possible medium)
@@ -685,7 +706,7 @@
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium))
 	   (npoints (length position-seq)))
-      (with-appropriate-drawing-state medium ink line-style
+      (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (if filled
@@ -805,7 +826,7 @@
 	      y-radius (fix-coordinate (abs y-radius)))
 	(if (and (= x-radius y-radius) (null start-angle))
 	    ;; It's a complete circle
-	    (with-appropriate-drawing-state medium ink line-style
+	    (invoke-with-appropriate-drawing-state medium ink line-style
 	      #'(lambda (window alu)
 		  (declare (sys:downward-function))
 		  (with-drawing-model-adjustments (window nil)
@@ -819,7 +840,7 @@
 			     center-x center-y x-radius y-radius
 			     :filled filled))))
 	  ;; For general ellipse, let Genera do all the work
-	  (with-appropriate-drawing-state medium ink line-style
+	  (invoke-with-appropriate-drawing-state medium ink line-style
 	    nil
 	    #'(lambda (window)
 		(declare (sys:downward-function))
@@ -849,14 +870,13 @@
 	(setq start 0))
       (unless end
 	(setq end (length string)))
-      ;;--- OK to use this in the Genera implementation
-      (sys:stack-let ((substring (make-string (- end start))))
-	(replace substring string :start2 start :end2 end)
+      (when (< start end)
 	(let* ((font (text-style-mapping 
 		       (port medium) text-style *standard-character-set*
 		       (medium-drawable medium)))
 	       (height (sys:font-char-height font))
-	       (descent (- height (sys:font-baseline font)))
+	       (baseline (sys:font-baseline font))
+	       (descent (- height baseline))
 	       (ascent (- height descent)))
 	  (let ((x-adjust 
 		  (compute-text-x-adjustment align-x medium string text-style start end))
@@ -868,14 +888,21 @@
 	      (incf towards-x x-adjust)
 	      (incf towards-y y-adjust)))
 	  (with-stack-list (style :device-font (tv:font-name font) :normal)
-	    (with-appropriate-drawing-state medium ink nil
+	    (invoke-with-appropriate-drawing-state medium ink nil
 	      #'(lambda (window alu)
 		  (declare (sys:downward-function))
-		  (funcall window :draw-string substring x y (1+ x) y nil style alu))
+		  (tv:prepare-sheet (window)
+		    (let ((x (+ x (tv:sheet-left-margin-size window)))
+			  (y (+ y (tv:sheet-top-margin-size window))))
+		      (tv:sheet-draw-string window alu
+					    x (- y baseline) string font
+					    start end (tv:sheet-width window)))))
 	      #'(lambda (window)
 		  (declare (sys:downward-function))
-		  (funcall (flavor:generic graphics:draw-string) window
-			   substring x y :character-style style)))))))))
+		  (sys:stack-let ((substring (make-string (- end start))))
+		    (replace substring string :start2 start :end2 end)
+		    (funcall (flavor:generic graphics:draw-string) window
+			     substring x y :character-style style))))))))))
 
 (defmethod medium-draw-character* ((medium genera-medium)
 				   character x y align-x align-y
@@ -903,9 +930,13 @@
 	  (when towards-x
 	    (incf towards-x x-adjust)
 	    (incf towards-y y-adjust)))
-	(with-appropriate-drawing-state medium ink nil
+	(invoke-with-appropriate-drawing-state medium ink nil
 	  #'(lambda (window alu)
 	      (declare (sys:downward-function))
+	      (tv:prepare-sheet (window)
+		(let ((x (+ x (tv:sheet-left-margin-size window)))
+		      (y (+ y (tv:sheet-top-margin-size window))))
+		  (tv:sheet-draw-glyph (char-code character) font x y alu window)))
 	      (funcall window :draw-glyph (char-code character) font x y alu))
 	  #'(lambda (window)
 	      (declare (sys:downward-function))
@@ -953,7 +984,7 @@
   (scl:send (medium-drawable medium) :force-output))
 
 (defmethod medium-finish-output ((medium genera-medium))
-  (scl:send (medium-drawable medium) :finish-output))
+  (scl:send (medium-drawable medium) :force-output))
 
 (defmethod medium-beep ((medium genera-medium))
   (scl:beep nil (medium-drawable medium)))

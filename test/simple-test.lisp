@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: simple-test.lisp,v 1.5 92/02/26 10:23:47 cer Exp $
+;; $fiHeader: simple-test.lisp,v 1.6 92/03/04 16:22:37 cer Exp Locker: cer $
 
 
 (in-package :silica)
@@ -52,7 +52,7 @@
 
 (defmethod handle-event ((sheet simple-sheet) (event pointer-enter-event))
   (outline-sheet sheet)
-  (setf (port-keyboard-input-focus (sheet-port sheet)) sheet))
+  (setf (port-keyboard-input-focus (port sheet)) sheet))
 
 (defun outline-sheet (sheet)
   (with-bounding-rectangle* (a b c d) sheet

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.26 92/07/01 15:46:41 cer Exp $
+;; $fiHeader: menus.lisp,v 1.27 92/07/08 16:30:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -16,7 +16,7 @@
       (outlining ()
 	(scrolling ()
 	  (setq menu (make-pane 'clim-stream-pane
-				:initial-cursor-visibility nil))))))
+		       :initial-cursor-visibility nil))))))
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -42,43 +42,7 @@
   (declare (ignore window associated-window))
   )
 
-(defun size-menu-appropriately (menu &key width height
-					  (right-margin 10) (bottom-margin 10)
-					  (size-setter #'window-set-inside-size))
-  (with-slots (output-record) menu
-    (with-bounding-rectangle* (left top right bottom) output-record
-      (let* ((graft (or (graft menu)
-			(find-graft)))		;--- is this right?
-	     (gw (bounding-rectangle-width (sheet-region graft)))
-	     (gh (bounding-rectangle-height (sheet-region graft)))
-	     ;;--- Does this need to account for the size of window decorations?
-	     (width (min gw (+ (or width (- right left)) right-margin)))
-	     (height (min gh (+ (or height (- bottom top)) bottom-margin))))
-	(funcall size-setter menu width height)
-	(window-set-viewport-position menu left top)))))
-
-(defun position-window-near-carefully (window x y)
-  #+++ignore
-  (multiple-value-bind (width height) (bounding-rectangle-size window)
-    (multiple-value-bind (graft-width graft-height)
-	(bounding-rectangle-size (or (graft window) (find-graft)))
-      (let* ((left x)
-	     (top y)
-	     (right (+ left width))
-	     (bottom (+ top height)))
-	(when (> right graft-width)
-	  (setq left (- graft-width width)))
-	(when (> bottom graft-height)
-	  (setq top (- graft-height height)))
-	(move-sheet* window (max 0 left) (max 0 top))))))
-
-(defun position-window-near-pointer (window &optional x y)
-  (unless (and x y)
-    (multiple-value-setq (x y)
-      #+++ignore (pointer-position (port-pointer (port window)))
-      #---ignore (values 100 100)))
-  (position-window-near-carefully window x y))
-
+
 ;; items := (item*)
 ;; item := object | (name :value object) | (object . value)
 ;; object := any lisp object.  It is written (using WRITE) into the menu using :ESCAPE NIL.
@@ -400,10 +364,11 @@
 		 (when cache
 		   (setf (get-from-output-history-cache unique-id id-test)
 			 (cons menu-contents cache-value))))))))
-    (size-menu-appropriately menu)
+    (size-frame-from-contents menu)
     (unwind-protect
 	(with-menu-as-popup (menu)
-	  (position-window-near-pointer menu x-position y-position)
+	  (position-sheet-near-pointer
+	    (frame-top-level-sheet (pane-frame menu)) x-position y-position)
 	  (window-expose menu)
  	  ;;--- If we have windows with backing store then we dont get
  	  ;;--- exposure event and so nothing appears

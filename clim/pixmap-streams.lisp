@@ -1,11 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: pixmap-streams.lisp,v 1.8 92/07/08 16:30:52 cer Exp $
+
 (in-package :clim-internals)
 
-;; $fiHeader: pixmap-streams.lisp,v 1.7 92/07/01 15:46:46 cer Exp $
-
 "Copyright (c) 1992 Franz, Inc.  All rights reserved."
-"Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;;; CLIM pixmap streams
@@ -20,6 +19,8 @@
 ;; We can be a bit smarter than the usual method, in that if the width
 ;; and height are not supplied, we can deduce them.  Also, this will
 ;; support text output, formatted output, etc.
+
+#+ignore
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
 					 &key width height)
   (let ((record

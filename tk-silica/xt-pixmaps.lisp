@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.6 92/07/01 15:48:16 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.7 92/07/08 16:32:01 cer Exp $
 
 
 (in-package :xm-silica)
@@ -102,7 +102,7 @@
 		       (let ((sheet (medium-sheet to-medium)))
 			 (dispatch-repaint
 			   sheet
-			   (make-instance 'window-repaint-event
+			   (allocate-event 'window-repaint-event
 			     :native-region (make-bounding-rectangle minx miny maxx maxy)
 			     :region (untransform-region
 				       (sheet-native-transformation sheet)
@@ -114,6 +114,10 @@
 		     (unless event
 		       (return))))))))))))
 
+;;; I dont understand the need for these methods
+;;; Also what is the xt-pixmap class below.
+
+#+ignore
 (defmethod medium-copy-area 
 	   ((from-medium xt-medium) from-x from-y width height
 	    (to-medium xt-pixmap-medium) to-x to-y)
@@ -129,6 +133,7 @@
 	window copy-gc from-x from-y width height 
 	pixmap to-x to-y))))
 
+#+ignore
 (defmethod medium-copy-area 
 	   ((from-medium xt-pixmap-medium) from-x from-y width height
 	    (to-medium xt-medium) to-x to-y)
@@ -143,6 +148,7 @@
 	pixmap copy-gc from-x from-y width height
 	window to-x to-y))))
 
+#+ignore
 (defmethod medium-copy-area 
 	   ((from-medium xt-medium) from-x from-y width height
 	    (pixmap xt-pixmap) to-x to-y)
@@ -155,6 +161,7 @@
 	window copy-gc from-x from-y width height 
 	pixmap to-x to-y))))
 
+#+ignore
 (defmethod medium-copy-area 
 	   ((pixmap xt-pixmap) from-x from-y width height
 	    (to-medium xt-medium) to-x to-y)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.17 92/07/01 15:45:09 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.18 92/07/08 16:29:16 cer Exp $
 
 (in-package :silica)
 
@@ -17,6 +17,7 @@
   nil)
 
 (defmethod invoke-with-sheet-medium ((sheet sheet) continuation)
+  (declare (dynamic-extent continuation))
   (let ((medium (sheet-medium sheet)))
     (if medium
 	(funcall continuation medium)
@@ -26,6 +27,7 @@
 
 ;; Special-case the one we know is going to work all the time
 (defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)
+  (declare (dynamic-extent continuation))
   (let ((medium (slot-value sheet 'medium)))
     (if medium 
 	(funcall continuation medium)
@@ -35,9 +37,11 @@
 
 ;;--- Use DEFOPERATION
 (defmethod invoke-with-sheet-medium ((x standard-encapsulating-stream) continuation)
+  (declare (dynamic-extent continuation))
   (invoke-with-sheet-medium (slot-value x 'stream) continuation))
 
 (defun invoke-with-sheet-medium-bound (sheet medium continuation)
+  (declare (dynamic-extent continuation))
   (cond ((sheet-medium sheet)
 	 (funcall continuation))
 	(medium
@@ -45,10 +49,12 @@
 	   (engraft-medium medium (port sheet) sheet)
 	   (funcall continuation)))
 	(t
-	 (invoke-with-sheet-medium
-	   sheet #'(lambda (medium) 
-		     (declare (ignore medium))
-		     (funcall continuation))))))
+	 (flet ((call-continuation (medium)
+		  (declare (ignore medium))
+		  (funcall continuation)))
+	   (declare (dynamic-extent #'call-continuation))
+	   (invoke-with-sheet-medium
+	     sheet #'call-continuation)))))
 
 (defgeneric make-medium (port sheet))
 			  

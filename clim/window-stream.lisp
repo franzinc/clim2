@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.8 92/07/01 15:47:12 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.9 92/07/08 16:31:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -44,11 +44,11 @@
 (defmethod window-stream-class-name ((window-stream window-stream))
   (class-name (class-of window-stream)))
 
-;;--- This seems to just return the state of the pointer buttons,
-;;--- but not the modifier keys...
 (defmethod window-modifier-state ((window window-stream))
-  (let ((pointer (stream-primary-pointer window)))
-    (pointer-button-state pointer)))
+  (let ((port (port window))
+	(pointer (stream-primary-pointer window)))
+    (values (port-modifier-state port)
+	    (or (pointer-buttons pointer) 0))))
 
 
 ;;; Creation functions

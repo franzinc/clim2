@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.11 92/05/07 13:11:16 cer Exp $
+;; $fiHeader: db-table.lisp,v 1.12 92/07/01 15:44:55 cer Exp $
 
 (in-package :silica)
 
@@ -48,11 +48,13 @@
       (when cell
 	(sheet-adopt-child pane cell)))))
 
+(defmethod handle-event :after ((pane table-pane) (event pointer-motion-event))
+  (deallocate-event event))
 
 (defmacro tabling ((&rest options) &body contents)
   `(make-pane 'table-pane
-	      :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
-	      ,@options))
+     :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
+     ,@options))
 
 (defmethod compose-space ((table table-pane) &key width height)
   (declare (ignore width height))
@@ -153,7 +155,7 @@
 		  (item (aref contents row column)))
 	      (when (and item
 			 (sheet-enabled-p item))
-		(move-and-resize-sheet*
+		(move-and-resize-sheet
 		  item x y 
 		  (min column-width (1- (- width x)))
 		  (min row-height (1- (- height y)))))

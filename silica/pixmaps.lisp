@@ -5,7 +5,7 @@
 "Copyright (c) 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
-;;; $fiHeader$
+
 ;;; Pixmap mediums
 
 (defclass basic-pixmap-medium (basic-medium) 
@@ -90,7 +90,7 @@
 					 &key width height)
   (let* ((pixmap-medium (make-pixmap-medium (port sheet) sheet
 					    :width width :height height))
-	 (pixmap-sheet (make-instance 'pixmap-stream 
+	 (pixmap-sheet (make-instance 'clim-internals::pixmap-stream 
 			 :port (port sheet)
 			 :medium pixmap-medium
 			 :width width :height height)))

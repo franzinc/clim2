@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.14 92/07/01 15:45:13 cer Exp $
+;; $fiHeader: port.lisp,v 1.15 92/07/08 16:29:21 cer Exp $
 
 (in-package :silica)
 
@@ -33,6 +33,14 @@
 			      #-(or Allegro Lucid Genera) nil)
 
 (defvar *ports* nil)
+
+(defun map-over-ports (function)
+  (declare (dynamic-extent function))
+  (mapc function *ports*))
+
+(defun map-over-grafts (function port)
+  (declare (dynamic-extent function))
+  (mapc function (port-grafts port)))
 
 (defun find-port (&key (server-path *default-server-path*))
   (map-over-ports #'(lambda (port)
@@ -61,7 +69,7 @@
 (defmethod initialize-instance :around ((port basic-port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))
   (call-next-method)
-  (push port *ports*)
+  (setq *ports* (append *ports* (list port)))
   (restart-port port))
 
 
@@ -76,10 +84,6 @@
 
 (defgeneric (setf port-properties) (properties port))
 
-(defun map-over-ports (function)
-  (declare (dynamic-extent function))
-  (mapc function *ports*))
-
 (defgeneric restart-port (port))
 
 (defmethod restart-port ((port basic-port))
@@ -92,8 +96,11 @@
 
 (defgeneric port-event-loop (port))
 (defmethod port-event-loop ((port basic-port))
-  (loop
-    (process-next-event port)))
+  (with-simple-restart (nil "Exit event loop for ~A" port)
+    (loop
+      (with-simple-restart (nil "Restart event loop for ~A" port)
+	(loop
+	  (process-next-event port))))))
 
 
 (defgeneric destroy-port (port))
@@ -144,7 +151,8 @@
 
 (defmethod initialize-instance :after ((graft standard-graft) &key port)
   (setf (slot-value graft 'graft) graft)
-  (pushnew graft (port-grafts port))
+  (setf (port-grafts port)
+	(append (port-grafts port) (list graft)))
   (realize-graft port graft))
 
 (defmethod update-mirror-region ((port basic-port) (sheet standard-graft))
@@ -206,10 +214,6 @@
 
 (defmethod graft ((object t)) nil)
 
-
-(defun map-over-grafts (function port)
-  (declare (dynamic-extent function))
-  (mapc function (port-grafts port)))
 
 (defgeneric graft-orientation (graft))
 (defgeneric graft-units (graft))

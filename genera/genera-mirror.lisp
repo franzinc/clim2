@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.6 92/07/01 15:47:31 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.7 92/07/08 16:31:35 cer Exp $
 
 (in-package :genera-clim)
 
@@ -130,10 +130,6 @@
   (let ((mirror (sheet-mirror sheet)))
     (when mirror
       (genera-mirror-native-edges* port sheet mirror))))
-
-(defmethod mirror-region ((port genera-port) sheet)
-  (multiple-value-call #'make-bounding-rectangle
-    (mirror-region* port sheet)))
 
 (defmethod mirror-inside-region* ((port genera-port) sheet)
   (scl:send (sheet-mirror sheet) :inside-edges))
@@ -338,7 +334,7 @@
     (dispatch-event
       sheet
       (let ((region (mirror-region port sheet)))
-	(make-instance 'window-configuration-event
+	(allocate-event 'window-configuration-event
 	  :native-region region
 	  :region (untransform-region (sheet-native-transformation sheet) region)
 	  :sheet sheet)))))
@@ -350,7 +346,7 @@
   (declare (ignore args))
   (unless *port-trigger*
     (let ((*port-trigger* t))
-      ;;--- Want to call shrink-sheet, but that doesn't appear to be supported
+      ;;--- Want to call SHRINK-SHEET, but that doesn't appear to be supported
       #+++ignore 
       (disable-sheet sheet))))
 
@@ -361,6 +357,44 @@
 	(setf (gethash cursor blinker-table) blinker)
 	(scl:send blinker :set-visibility nil)
 	blinker)))
+
+;; This suffices to make c-m-Abort and c-m-Suspend work on CLIM windows.
+(scl:defmethod (:process genera-window) ()
+  (slot-value (pane-frame sheet) 'clim-internals::top-level-process))
+
+;; This makes the wholine, Function A, etc., the proper CLIM process, rather
+;; than the CLIM event process.  This is because these guys look at
+;; (TV:WHO-LINE-SCREEN-LAST-PROCESS (TV:CONSOLE-WHO-LINE-SCREEN SYS:*CONSOLE*)),
+;; which is normally updated by TV:CONSOLE-IO-BUFFER-GET, called by :TYI and
+;; related methods.  
+(defmacro with-clim-io-buffer-process ((console buffer process) &body body)
+  (let ((console-var '#:console)
+	(buffer-var  '#:buffer)
+	(process-var '#:process))
+    `(let ((,console-var ,console)
+	   (,buffer-var  ,buffer)
+	   (,process-var ,process))
+       (without-scheduling
+	 (multiple-value-prog1
+	   (progn ,@body)
+	   (when ,process-var
+	     (let ((old-process (tv:io-buffer-last-output-process ,buffer-var)))
+	       (let ((update-state-p (not (eq ,process-var old-process))))
+		 ;; If new process reading, better update wholine run state
+		 (when (and update-state-p
+			    (eq ,buffer-var (sys:console-selected-io-buffer ,console-var)))
+		   (tv:who-line-run-state-update))
+		 (setf (tv:io-buffer-last-output-process ,buffer-var) ,process-var)))))))))
+
+
+;; Shadow the method we would get from TV:STREAM-MIXIN, and disable all
+;; intercepted characters as well.  We don't need to shadow :TYI, :TYI-NO-HANG,
+;; :ANY-TYI, etc., because the port event processor only uses :ANY-TYI-NO-HANG.
+(scl:defmethod (:any-tyi-no-hang genera-window) ()
+  (let ((console (tv:sheet-console scl:self))
+	(sys:kbd-intercepted-characters nil))
+    (with-clim-io-buffer-process (console tv:io-buffer (scl:send scl:self :process))
+      (tv:console-io-buffer-get console tv:io-buffer t))))
 
 
 ;;; Save this state (rather than using (mouse-x mouse)) 'cause the coords
@@ -399,8 +433,7 @@
   nil)
 
 (defmacro map-over-genera-shift-keysyms ((keysym-var genera-shift-mask) &body body)
-  `(flet ((map-over-genera-shift-keysyms
-	     (,keysym-var)
+  `(flet ((map-over-genera-shift-keysyms (,keysym-var)
 	    ,@body))
      (declare (dynamic-extent #'map-over-genera-shift-keysyms))
      (invoke-on-genera-shift-keysyms
@@ -503,10 +536,19 @@
 	 (values ,@(mapcar #'second let-clauses)))
      ,@body))
 
-(defun-inline genera-button-number->standard-button-name (code)
-  (aref `#(,+pointer-left-button+
-	   ,+pointer-middle-button+
-	   ,+pointer-right-button+) code))
+(defun-inline genera-button-number->event-button (code)
+  (case code
+    (0 +pointer-left-button+)
+    (1 +pointer-middle-button+)
+    (2 +pointer-right-button+)))
+
+(defun-inline make-state-from-buttons (buttons)
+  (ash 1 buttons))
+
+(defun-inline current-modifier-state (&optional (state 0) (mouse tv:main-mouse))
+  ;; Take only the upper bits of state, compute the lower bits from the current
+  ;; shifts.
+  (convert-genera-shift-state state (tv:mouse-chord-shifts mouse)))
 
 ;;; Take events out of the global queue and distribute them, and get key
 ;;; press "events" as characters out of the window's io-buffer.
@@ -563,40 +605,52 @@
 		 (when (and mouse-moved		;check again
 			    (or (not (eq old-mouse-x mouse-x))
 				(not (eq old-mouse-y mouse-y))))
-		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window))))
+		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
+			 (pointer (port-pointer port)))
 		     (when sheet
 		       (distribute-event
 			 port			;(EQ PORT (PORT-SHEET)) ==> T
-			 (make-instance 'pointer-motion-event
+			 (allocate-event 'pointer-motion-event
 			   :x mouse-x
 			   :y mouse-y
 			   :native-x native-x
 			   :native-y native-y
-			   :button (and (not (zerop mouse-buttons))
-					(genera-button-number->standard-button-name
-					  (ash mouse-buttons -1)))
-			   :modifiers (current-modifier-state
-					(make-state-from-buttons mouse-buttons)
-					(tv:sheet-mouse mouse-window))
-			   :pointer (port-pointer port)
+			   :button
+			     (cond ((zerop mouse-buttons)
+				    (setf (pointer-buttons pointer) 0)
+				    nil)
+				   (t
+				    (setf (pointer-buttons pointer)
+					  (genera-button-number->event-button
+					    (ash mouse-buttons -1)))))
+			   :modifier-state 
+			     (setf (port-modifier-state port)
+				   (current-modifier-state
+				     (make-state-from-buttons mouse-buttons)
+				     (tv:sheet-mouse mouse-window)))
+			   :pointer pointer
 			   :sheet sheet)))))
 		 (when mouse-button-released
-		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window))))
-		     ;; hmm?
+		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
+			 (pointer (port-pointer port)))
+		     (setf (pointer-buttons pointer) 0)
 		     (when sheet
 		       (distribute-event
 			 port
-			 (make-instance 'pointer-button-release-event
+			 (allocate-event 'pointer-button-release-event
 			   :x mouse-x
 			   :y mouse-y
 			   :native-x native-x
 			   :native-y native-y
-			   :button (genera-button-number->standard-button-name
-				     (ash mouse-button-released -1))
-			   :modifiers (current-modifier-state
-					(make-state-from-buttons mouse-buttons)
-					(tv:sheet-mouse mouse-window))
-			   :pointer (port-pointer port)
+			   :button 
+			     (genera-button-number->event-button
+			       (ash mouse-button-released -1))
+			   :modifier-state
+			     (setf (port-modifier-state port)
+				   (current-modifier-state
+				     (make-state-from-buttons mouse-buttons)
+				     (tv:sheet-mouse mouse-window)))
+			   :pointer pointer
 			   :sheet sheet)))))))))
 	  ;; Handle shift press and release events
 	  ((or shifts-up shifts-down)
@@ -609,21 +663,25 @@
 		     (map-over-genera-shift-keysyms (shift-keysym shifts-up)
 		       (distribute-event
 			 port
-			 (make-instance 'key-release-event
+			 (allocate-event 'key-release-event
 			   :key-name shift-keysym
 			   :character nil
-			   :modifiers (current-modifier-state 
-					0 (tv:sheet-mouse genera-window))
+			   :modifier-state 
+			     (setf (port-modifier-state port)
+				   (current-modifier-state 
+				     0 (tv:sheet-mouse genera-window)))
 			   :sheet sheet))))
 		   (when shifts-down
 		     (map-over-genera-shift-keysyms (shift-keysym shifts-down)
 		       (distribute-event
 			 port
-			 (make-instance 'key-press-event
+			 (allocate-event 'key-press-event
 			   :key-name shift-keysym
 			   :character nil
-			   :modifiers (current-modifier-state 
-					0 (tv:sheet-mouse genera-window))
+			   :modifier-state 
+			     (setf (port-modifier-state port)
+				   (current-modifier-state 
+				     0 (tv:sheet-mouse genera-window)))
 			   :sheet sheet)))))))))
 	  ;; Make sure we read from the same window that :LISTEN return T on, even
 	  ;; if the selected window state has changed.
@@ -646,19 +704,23 @@
 		     (when keysym
 		       (distribute-event
 			 port
-			 (make-instance 'key-press-event
+			 (allocate-event 'key-press-event
 			   :key-name keysym
 			   :character char
-			   :modifiers (current-modifier-state 
-					0 (tv:sheet-mouse genera-window))
+			   :modifier-state 
+			     (setf (port-modifier-state port)
+				   (current-modifier-state 
+				     0 (tv:sheet-mouse genera-window)))
 			   :sheet sheet))
 		       (distribute-event
 			 port
-			 (make-instance 'key-release-event
+			 (allocate-event 'key-release-event
 			   :key-name keysym
 			   :character char
-			   :modifiers (current-modifier-state 
-					0 (tv:sheet-mouse genera-window))
+			   :modifier-state 
+			     (setf (port-modifier-state port)
+				   (current-modifier-state 
+				     0 (tv:sheet-mouse genera-window)))
 			   :sheet sheet))))))
 	       ;; See if it is a button-click blip
 	       (list
@@ -668,11 +730,14 @@
 			  (mouse-y (fifth thing))
 			  (code (tv:char-mouse-button (second thing)))
 			  (window (third thing))
-			  (button (genera-button-number->standard-button-name code))
+			  (button (genera-button-number->event-button code))
 			  (modifiers
 			    (convert-genera-shift-state
 			      (make-state-from-buttons (ash 1 code))
-			      (tv:char-mouse-bits (second thing)))))
+			      (tv:char-mouse-bits (second thing))))
+			  (pointer (port-pointer port)))
+		     (setf (port-modifier-state port) modifiers
+			   (pointer-buttons pointer) button)
 		     (when sheet
 		       (multiple-value-bind (left top)
 			   (if *mouse-window*
@@ -682,14 +747,14 @@
 			       (native-y (- mouse-y top)))
 			   (distribute-event
 			     port
-			     (make-instance 'pointer-button-press-event
+			     (allocate-event 'pointer-button-press-event
 			       :x mouse-x
 			       :y mouse-y
 			       :native-x native-x
 			       :native-y native-y
 			       :button button
-			       :modifiers modifiers
-			       :pointer (port-pointer port)
+			       :modifier-state modifiers
+			       :pointer pointer
 			       :sheet sheet))))))))))))))
 
 ;; See general comments about sheet-native-native-region* and
@@ -701,14 +766,6 @@
     (multiple-value-bind (width height)
 	(scl:send mirror :inside-size)
       (values left top width height))))
-
-(defun make-state-from-buttons (buttons)
-  (ash 1 buttons))
-
-(defun current-modifier-state (&optional (state 0) (mouse tv:main-mouse))
-  ;; Take only the upper bits of state, compute the lower bits from the current
-  ;; shifts.
-  (convert-genera-shift-state state (tv:mouse-chord-shifts mouse)))
 
 (defun convert-genera-shift-state (button-state shift-state)
   (let ((state (logand button-state #xFF00)))

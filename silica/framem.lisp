@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.9 92/07/01 15:45:00 cer Exp $
+;; $fiHeader: framem.lisp,v 1.10 92/07/08 16:29:08 cer Exp $
 
 (in-package :silica)
 
@@ -27,7 +27,8 @@
 
 (defclass standard-frame-manager (frame-manager) 
     ((port :reader port :initarg :port)
-     (frames :accessor frame-manager-frames :initform nil)))
+     (frames :accessor frame-manager-frames :initform nil)
+     (dialog-view :accessor frame-manager-dialog-view :initarg :dialog-view)))
 
 ;;--- This is most likely wrong
 (defmethod graft ((framem standard-frame-manager))
@@ -88,16 +89,17 @@
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet 
-			       :region (multiple-value-bind (width height)
-					   (bounding-rectangle-size top-pane)
-					 (make-bounding-rectangle 0 0 width height))
-			       :parent (find-graft :port (port frame))))))
+		      :region (multiple-value-bind (width height)
+				  (bounding-rectangle-size top-pane)
+				(make-bounding-rectangle 0 0 width height))
+		      :parent (find-graft :port (port frame))))))
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
-  (pushnew frame (frame-manager-frames framem)))
+  (setf (frame-manager-frames framem)
+	(append (frame-manager-frames framem) (list frame))))
 
 (defmethod disown-frame ((framem standard-frame-manager) frame)
   (let ((top (frame-top-level-sheet frame)))
@@ -168,8 +170,7 @@
 	(apply #'make-instance type
 	       :frame frame :frame-manager framem
 	       (apply #'make-pane-arglist framem abstract-type options))
-	(apply #'make-instance 
-	       abstract-type
+	(apply #'make-instance abstract-type
 	       :frame frame :frame-manager framem
 	       options))))
 

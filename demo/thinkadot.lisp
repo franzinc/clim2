@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.10 92/07/01 15:47:50 cer Exp Locker: cer $
+;; $fiHeader: thinkadot.lisp,v 1.11 92/07/06 18:52:16 cer Exp $
 
 (in-package :clim-demo)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Simulates a mechanical toy finite-state-machine called "Thinkadot".
 
@@ -49,15 +49,16 @@
      (node8)
      (all-nodes)
      (lexit)
-     (rexit))
+     (rexit)
+     (initialized :initform nil))
   (:panes
-    (display  :application
-	      :display-function 'draw-the-display
-	      :incremental-redisplay t))
+    (display :application
+	     :display-function 'draw-the-display
+	     :incremental-redisplay t))
   (:layouts
-    (:default (scrolling () display))))
+    (:default display)))
 
-(defmethod initialize-instance :after ((frame thinkadot) &key)
+(defmethod initialize-thinkadot ((frame thinkadot))
   (multiple-value-bind (w h)
       (bounding-rectangle-size (get-frame-pane frame 'display))
     (let* ((left (round w 6))
@@ -68,22 +69,32 @@
 	   (top (round h 6))
 	   (bot (- h top))
 	   (y-mid (round (+ top bot) 2)))
-      (with-slots (node1 node2 node3 node4 node5 node6 node7 node8 all-nodes lexit rexit) frame
+      (with-slots (node1 node2 node3 node4 node5 node6 node7 node8 
+		   all-nodes lexit rexit initialized) frame
 	(setf lexit (make-td-exit :x (- left 25)  :y (+ bot 10)))
 	(setf rexit (make-td-exit :x (+ right 25) :y (+ bot 10)))
-	(setf node8 (make-td-node :x right :y bot   :left-successor rexit :right-successor rexit))
-	(setf node7 (make-td-node :x x-mid :y bot   :left-successor lexit :right-successor rexit))
-	(setf node6 (make-td-node :x left  :y bot   :left-successor lexit :right-successor lexit))
-	(setf node5 (make-td-node :x r-mid :y y-mid :left-successor node7 :right-successor node8))
-	(setf node4 (make-td-node :x l-mid :y y-mid :left-successor node6 :right-successor node7))
-	(setf node3 (make-td-node :x right :y top   :left-successor node5 :right-successor node8 :entry-p t))
-	(setf node2 (make-td-node :x x-mid :y top   :left-successor node4 :right-successor node5 :entry-p t))
-	(setf node1 (make-td-node :x left  :y top   :left-successor node6 :right-successor node4 :entry-p t))
+	(setf node8 (make-td-node :x right :y bot
+				  :left-successor rexit :right-successor rexit))
+	(setf node7 (make-td-node :x x-mid :y bot
+				  :left-successor lexit :right-successor rexit))
+	(setf node6 (make-td-node :x left  :y bot
+				  :left-successor lexit :right-successor lexit))
+	(setf node5 (make-td-node :x r-mid :y y-mid
+				  :left-successor node7 :right-successor node8))
+	(setf node4 (make-td-node :x l-mid :y y-mid
+				  :left-successor node6 :right-successor node7))
+	(setf node3 (make-td-node :x right :y top
+				  :left-successor node5 :right-successor node8 :entry-p t))
+	(setf node2 (make-td-node :x x-mid :y top
+				  :left-successor node4 :right-successor node5 :entry-p t))
+	(setf node1 (make-td-node :x left  :y top
+				  :left-successor node6 :right-successor node4 :entry-p t))
 	(setf (td-node-color-phase node2) t
 	      (td-node-color-phase node4) t
 	      (td-node-color-phase node5) t
 	      (td-node-color-phase node7) t)
-	(setf all-nodes (list node1 node2 node3 node4 node5 node6 node7 node8))))))
+	(setf all-nodes (list node1 node2 node3 node4 node5 node6 node7 node8))
+	(setf initialized t)))))
 
 (defvar *dot-radius* 10)
 (defvar *light-color* (make-gray-color 0.667))
@@ -91,7 +102,9 @@
 
 (defmethod draw-the-display ((frame thinkadot) stream &key max-width max-height)
   (declare (ignore max-width max-height))
-  (with-slots (all-nodes lexit rexit) frame
+  (with-slots (all-nodes lexit rexit initialized) frame
+    (unless initialized
+      (initialize-thinkadot frame))
     (let ((id 0))
       (dolist (node all-nodes)
 	(incf id)
@@ -117,7 +130,8 @@
 		    (updating-output (stream :unique-id ',exit
 					     :cache-value ball-p)
 		      (when ball-p
-			(draw-circle* stream (td-exit-x ,exit) (td-exit-y ,exit) *dot-radius* :filled nil))))))
+			(draw-circle* stream (td-exit-x ,exit) (td-exit-y ,exit) *dot-radius*
+				      :filled nil))))))
       (draw-exit lexit)
       (draw-exit rexit))))
 
@@ -162,27 +176,23 @@
 (define-thinkadot-command (com-exit :menu t) ()
   (frame-exit *application-frame*))
 
-
-#||
-() ;standalone testing
-(setq tdt (make-application-frame 'thinkadot 
-				  :parent *clim-root*
-				  :width 300 :height 340 :left 500 :top 100))
-(run-frame-top-level tdt)
-||#
-
 
-;;; demo interface
-
-;;; A per-root alist of thinkadot frames.
 (defvar *thinkadots* nil)
 
-(defun run-thinkadot (&key (root (find-frame-manager) reinit))
-  (let ((tdt (cdr (assoc root *thinkadots*))))
-    (when (or (null tdt) reinit)
-      (setq tdt (make-application-frame 'thinkadot :parent root
-					:width 300 :height 340))
-      (push (cons root tdt) *thinkadots*))
-    (run-frame-top-level tdt)))
+(defun do-thinkadot (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *thinkadots*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'thinkadot
+						   :frame-manager framem
+						   :left 100 :top 100
+						   :width 300 :height 340)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *thinkadots*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "Thinkadot" (run-thinkadot))
+(define-demo "Thinkadot" do-thinkadot)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.18 92/07/06 19:56:08 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.19 92/07/08 16:31:50 cer Exp $
 
 
 (in-package :xm-silica)
@@ -170,6 +170,12 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-top-level-sheet))
+  (values 'tk::draw-area (list :layout :ignore)))
+
+;;
+
+(defmethod find-widget-class-and-initargs-for-sheet
+    ((port openlook-port) (parent t) (sheet standard-sheet))
   (values 'tk::draw-area (list :layout :ignore)))
 
 
@@ -362,8 +368,8 @@
   (declare (ignore widget))
   (distribute-event
    (port sheet)
-   (make-instance 'activate-gadget-event
-		  :gadget sheet)))
+   (allocate-event 'activate-gadget-event
+     :gadget sheet)))
 
 
 ;;; Text field
@@ -762,9 +768,11 @@
     (setf (text-editor-text widget) nv)))
 
 (defmethod (setf text-editor-text) (nv (widget tk::text-edit))
+    (setf (text-editor-text widget) nv))
+
+(defmethod (setf text-editor-text) (nv (widget tk::text-edit))
   (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
-  (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv)))))
-  nv)
+  (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv))))))
 
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)

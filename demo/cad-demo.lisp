@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.11 92/07/01 15:47:37 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.12 92/07/06 18:52:02 cer Exp $
 
 (in-package :clim-demo)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 ;;; A simple gate-level CAD program.
@@ -536,9 +536,7 @@
     (design-area :application))
   (:pointer-documentation t)
   (:layouts
-    (default
-      (scrolling ()
-	design-area)))
+    (default design-area))
   (:top-level
     (default-frame-top-level :partial-command-parser cad-demo-partial-command-parser)))
 
@@ -730,7 +728,8 @@
 	       (multiple-value-bind (x y)
 		   (stream-pointer-position-in-window-coordinates
 		     (window-parent menu))
-		 (position-window-near-carefully menu x y))
+		 (position-sheet-carefully
+		   (frame-top-level-sheet (pane-frame menu)) X y))
 	       (window-expose menu)
 	       (unwind-protect
 		   (with-input-context ('menu-item)
@@ -847,12 +846,9 @@
 	  (drag-output-record stream component
 			      :repaint t
 			      :erase #'(lambda (c s)
-					 (draw-body c s :ink +background-ink+))))
+					 (draw-body c s :ink +background-ink+))
+			      :finish-on-release t))
       (move component (- x delta-x) (+ *component-size* (- y delta-y))))
-    ;;-- We should not have to do this
-    (let ((gesture (read-gesture :stream stream :peek-p t :timeout 0.2)))
-      (when (typep gesture 'pointer-button-release-event)
-	(read-gesture :stream stream)))
     (draw-self component stream)))
 
 (define-cad-demo-command (com-clear :menu "Clear" :keystroke #\L)
@@ -903,16 +899,22 @@ but first get better menu formatting!
 
 ||#
 
-;;; A per-root alist of cad demo objects.
+
 (defvar *cad-demos* nil)
 
-(defun run-cad-demo (&key reinit (root (find-frame-manager)))
-  (let ((cd (cdr (assoc root *cad-demos*)))
-	(*highlight-ink* (if (color-stream-p root) +red+ +flipping-ink+)))
-    (when (or (null cd) reinit)
-      (setq cd (make-application-frame 'cad-demo
-				       :width 700 :height 600))
-      (push (cons root cd) *cad-demos*))
-    (run-frame-top-level cd)))
+(defun do-cad-demo (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *cad-demos*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'cad-demo
+						   :frame-manager framem
+						   :width 700 :height 600)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *cad-demos*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "Mini-CAD" (run-cad-demo))
+(define-demo "CAD Demo" do-cad-demo)

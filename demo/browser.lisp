@@ -1,18 +1,14 @@
-;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: (CLIM-BROWSER :use (CLIM-LISP CLIM)); Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: CLIM-BROWSER; Base: 10; Lowercase: Yes -*-
 
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;;; $fiHeader: browser.lisp,v 1.6 92/05/07 13:13:44 cer Exp Locker: cer $
+;;; $fiHeader: browser.lisp,v 1.7 92/07/06 18:51:59 cer Exp $
+
+(in-package :clim-browser)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
-(eval-when (compile load eval)
-  (defpackage :clim-browser
-    (:use :clim-lisp clim)
-    (:shadow package)))
-
-(in-package :clim-browser)
 
 ;;; To use the Browser, first choose a browser type and browser subtype from
 ;;; the ACCEPTING-VALUES pane in the lower right corner. 
@@ -25,42 +21,40 @@
 ;;; 
 ;;; Once there is a graph drawn, there are a number of useful mouse gestures
 ;;; defined for the nodes in the graph:
-;;; 
-;;; 
-;;; 
-;;; 
+;;; - Mouse-Left on a leaf node shows one level of inferiors for that node.
+;;; - Mouse-Middle on a non-leaf hides the inferiors of that node.
+;;; - shift-Mouse-Left on a node makes that node the root.
+;;; - shift-Mouse-Middle on a non-leaf node elides that node and its immediate
 ;;;   inferiors, and replaces them with an ellipsis node (indicated by "...").
-;;; 
-;;; 
-;;; 
+;;; - Mouse-Left on an ellipsis node replaces it with its elided contents.
+;;; - meta-Mouse-Left on a node edits the object contained in the node.
+;;; - control-meta-Mouse-Left and control-meta-Mouse-Middle on a node usually
 ;;;   create some sort of "subnode" which contains additional information (for
 ;;;   example, the slots for a class).
-;;; 
+;;; - Mouse-Right will pop up a menu of operations, which includes a selection
 ;;;   of operations specific to the browser type (for example, when browsing
 ;;;   classes you might get other class-related commands).
 ;;;
 ;;; There are some other options in the ACCEPTING-VALUES pane:
-;;; 
-;;; 
+;;; - The "starting depth" option specifies how deep to make the initial graph.
+;;; - The "merge duplicate nodes" option specifies whether nodes in the tree
 ;;;   should be shared or not.  
 ;;;
 ;;; There are also a few command buttons:
-;;; 
-;;; 
-;;; 
-;;; 
-;;; 
-;;; 
+;;; - The "Decache" button clears the graph.
+;;; - The "Redisplay" button redisplays the graph.
+;;; - The "Hardcopy" button hardcopies the graph.
+;;; - The "Show Graph" button is just to remind you.
+;;; - The "Recover Snapshot" button lets you choose a previously snapshotted graph.
+;;; - The "Show Snapshot" button shows all of the previously snapshotted graph.
 ;;;   The items it displays are mouse-sensitive.
-;;; 
+;;; - The "Snapshot" button snapshots the current graph for later recovery.
 ;;;
 ;;; There are a few additional commands:
-;;; 
+;;; - "Set Graph Type" lets you change the way the graph is displayed.  There
 ;;;   are currently two modes, graphical and textual.
 ;;;
 ;;; It is pretty obvious how to write your own browser extensions.  Enjoy.
-
-;;--- This presumes that both SAP:>swm>clim>code>draw-arrow.lisp is loaded
 
 
 ;;; Utilities
@@ -91,20 +85,20 @@
 	(*print-circle* nil)
 	(*print-array* nil)
 	(*print-escape* t)
-	#+Genera (scl:*print-string-length* nil)
-	#+Genera (scl:*print-structure-contents* nil))
+	#+genera (scl:*print-string-length* nil)
+	#+genera (scl:*print-structure-contents* nil))
     (funcall continuation)))
 
 (defmacro centering-line ((&optional stream) &body body)
   `(invoke-centering-line #'(lambda (,stream) ,@body) ,stream))
 
 (defun invoke-centering-line (continuation stream)
-  (multiple-value-bind (sx sy) (stream-cursor-position* stream)
+  (multiple-value-bind (sx sy) (stream-cursor-position stream)
     (let ((inside-width (window-inside-width stream))
 	  (line-width (bounding-rectangle-width 
 			(with-output-to-output-record (stream)
 			  (funcall continuation stream)))))
-      (stream-set-cursor-position* stream (+ sx (floor (- inside-width line-width) 2)) sy)
+      (stream-set-cursor-position stream (+ sx (floor (- inside-width line-width) 2)) sy)
       (funcall continuation stream))))
 
 
@@ -116,7 +110,7 @@
 (defgeneric node-generate-inferior-objects (call-node subtype))
 (defgeneric node-any-inferior-objects-p (call-node subtype))
 (defgeneric node-arc-drawer (call-node)
-  #+Genera (declare (values arc-drawer arc-drawing-options)))
+  #+genera (declare (values arc-drawer arc-drawing-options)))
 
 
 (defclass basic-call-node ()
@@ -181,11 +175,15 @@
 
 ;; This is the most basic instantiable sort of call node.
 ;; Commands and translators are written on this, not on BASIC-CALL-NODE.
-(eval-when (compile load eval) (defclass call-node (basic-call-node) ()))
+(eval-when (compile load eval)
+(defclass call-node (basic-call-node) ())
+)
 
 ;; CALL-SUBNODEs are a stripped-down version of CALL-NODEs, which mostly
 ;; means that most commands and translators don't operate on subnodes.
-(eval-when (compile load eval) (defclass call-subnode (basic-call-node) ()))
+(eval-when (compile load eval)
+(defclass call-subnode (basic-call-node) ())
+)
 
 (defmethod node-any-inferior-objects-p ((node call-subnode) type)
   (declare (ignore type))
@@ -197,9 +195,10 @@
 
 ;; Ellipsis nodes
 (eval-when (load compile eval)
-  (defclass ellipsis-call-node
+(defclass ellipsis-call-node
 	  (basic-call-node)
-    ((replaced-node :reader ellipsis-node-replaced-node :initarg :replaced-node))))
+  ((replaced-node :reader ellipsis-node-replaced-node :initarg :replaced-node)))
+)
 
 (proclaim '(inline make-ellipsis-call-node))
 (defun make-ellipsis-call-node (object replaced-node)
@@ -226,11 +225,11 @@
 
 (defgeneric browser-type-subtypes (type))
 (defgeneric browser-type-information (type subtype)
-  #+Genera (declare (values node-maker root-node-maker
+  #+genera (declare (values node-maker root-node-maker
 			    graph-type grapher-args presentation-type options)))
 
 (defmacro define-browser-type (type presentation-type graph-type options &body subtypes)
-  #+Genera (declare (zwei:indentation 3 3 4 1))
+  #+genera (declare (zwei:indentation 3 3 4 1))
   (let ((subtype-names (mapcar #'first subtypes)))
     `(progn
        (let ((old (member ',type *browser-types*)))
@@ -260,8 +259,8 @@
 
 (defmethod node-object-name ((node function-call-node))
   (let ((function (node-object node)))
-    #+Genera (if (functionp function) (sys:function-name function) function)
-    #-Genera function))
+    #+genera (if (functionp function) (sys:function-name function) function)
+    #-genera function))
 
 (defmethod display-node ((node function-call-node) stream)
   (labels ((draw (stream)
@@ -288,7 +287,7 @@
       (when (fboundp object)
 	(make-function-call-node (fdefinition object))))))
 
-#+Genera
+#+genera
 (defmethod node-generate-inferior-objects ((node function-call-node) (type (eql ':callees)))
   (let ((function (node-object node)))
     (typecase function
@@ -326,7 +325,7 @@
 	      when function
 		collect function)))))
 
-#+Genera
+#+genera
 (defmethod node-generate-inferior-objects ((node function-call-node) (type (eql ':callers)))
   (let ((function (node-object node)))
     (let ((callee-function-name (sys:function-name function)))
@@ -355,7 +354,7 @@
 (define-presentation-type class ()
   :history t)
 
-#+Genera
+#+genera
 (define-presentation-method accept ((type class) stream (view textual-view) &key)
   (find-class
     (completing-from-suggestions (stream :partial-completers '(#\-))
@@ -365,7 +364,7 @@
 		       (suggest (symbol-name x) x)))
 	   clos-internals:*all-class-names-aarray*))))
 
-#-Genera
+#-genera
 (define-presentation-method accept ((type class) stream (view textual-view) &key default)
   (let* ((class-name (accept 'symbol :stream stream :view view
 				     :default (and default (class-name default))
@@ -478,7 +477,7 @@
   :inherit-from t
   :history t)
 
-#+Genera
+#+genera
 (define-presentation-method accept ((type package) stream (view textual-view) &key)
   (completing-from-suggestions (stream :partial-completers '(#\-))
     (map nil #'(lambda (package) 
@@ -618,8 +617,8 @@
   (filesystem-node-directory-p node))
 
 (defun directory-and-properties (pathname)
-  #+Genera (cdr (fs:directory-list pathname))
-  #-Genera (mapcar #'list (directory pathname)))
+  #+genera (cdr (fs:directory-list pathname))
+  #-genera (mapcar #'list (directory pathname)))
 
 
 ;;; Lisp object browsing
@@ -670,7 +669,7 @@
 
 (defmethod node-generate-inferior-objects ((node lisp-object-call-node) (type (eql ':objects)))
   (let ((object (node-object node)))
-    (cond #+Genera
+    (cond #+genera
 	  ((si:named-structure-p object)
 	   ;; Generate a list of all of the structures slots
 	   ;;--- How to arrange for the slot names to be printed?
@@ -686,9 +685,9 @@
 			       ',object)
 		   collect (eval form))))
 	  ;;--- What do we do for INSTANCEP?
-	  (#+Genera (si:instancep object)
+	  (#+genera (si:instancep object)
 	   #+excl (typep object 'standard-object)
-	   #+Genera (setq object (si:follow-structure-forwarding object))
+	   #+genera (setq object (si:follow-structure-forwarding object))
 	   ;;--- How to arrange for the slot names to be printed?
 	   ;; This works for Genera Flavors because they are embedded in CLOS
 	   (let* ((class (class-of object))
@@ -707,7 +706,7 @@
   (let ((object (node-object node)))
     (or (consp object)
         ;;--- What do we do for INSTANCEP?
-	#+Genera(si:instancep object)
+	#+genera(si:instancep object)
 	#+excl (typep object 'standard-object)
 	(and (arrayp object)
 	     (not (stringp object))))))
@@ -715,7 +714,6 @@
 
 ;;; The browser itself
 
-#-Silica
 (define-application-frame browser ()
     ((graph-type :initform :graphical)
      (browser-type :initform nil)
@@ -734,78 +732,33 @@
   (:command-definer t)
   (:command-table (browser :inherit-from (accept-values-pane)))
   (:panes
-    ((title :title
-       :display-after-commands t
-       :display-function 'display-title-pane
-       :default-text-style '(:sans-serif :bold :large))
-     (graph :application
-       :display-function 'display-graph-pane
-       :display-after-commands t
-       :incremental-redisplay t
-       :scroll-bars :both)
-     (commands :command-menu
-       :display-function '(display-command-menu :n-rows 2))
-     (interactor :interactor)
-     (control-panel :accept-values
-       :display-function '(accept-values-pane-displayer
-			    :displayer accept-call-graph-options))))
-  (:layout
-    ((default 
-       (:column 1
-	(title :compute)
-	(graph :rest)
-	(:row 1/4
-	 (:column :rest
-	  (commands 1/4)
-	  (interactor :rest))
-	 (control-panel 2/5)))))))
-
-#+Silica
-(define-application-frame browser ()
-  ((graph-type :initform :graphical)
-   (browser-type :initform nil)
-   (browser-subtype :initform nil)
-   (browser-ptype :initform nil)
-   (browser-options :initform nil)
-   (node-maker :initform #'false)
-   (root-node-maker :initform #'false)
-   (grapher-args :initform nil)
-   (tree-depth :initform 1)
-   (merge-duplicate-nodes :initform t)
-   (root-nodes :initform nil)
-   (all-nodes :initform nil)
-   (auto-snapshot :initform t)
-   (snapshots :initform nil))
-  (:command-definer t)
-  (:command-table (browser :inherit-from (clim-internals::accept-values-pane)))
-  (:panes
-   #+ignore
-   (title :application
-	  :display-after-commands t
-	  :display-function 'display-title-pane
-	  :default-text-style '(:sans-serif :bold :large))
-   (graph :application
-	  :display-function 'display-graph-pane
-	  :display-after-commands t
-	  :incremental-redisplay t
-	  :scroll-bars :both)
-   #+ignore
-   (commands (make-pane 'menu-bar
-			:display-function '(display-command-menu :n-rows 2)))
-   (interactor :interactor :height '(5 :line))
-   (control-panel :application
-		  :height :compute
-		  :display-function
-		  '(clim-internals::accept-values-pane-displayer
-		    :displayer accept-call-graph-options)))
+    #+++ignore
+    (title :application
+	   :display-after-commands t
+	   :display-function 'display-title-pane
+	   :default-text-style '(:sans-serif :bold :large))
+    (graph :application
+	   :display-function 'display-graph-pane
+	   :display-after-commands t
+	   :incremental-redisplay t
+	   :scroll-bars :both)
+    (interactor :interactor :height '(5 :line))
+    (control-panel :application
+		   :height :compute
+		   :display-function
+		   '(accept-values-pane-displayer
+		      :displayer accept-call-graph-options)))
   (:layouts
-   (default
-       (vertically () graph interactor control-panel))))
+    (default
+      (vertically ()
+	(3/4 graph)
+	(horizontally ()
+	  interactor control-panel)))))
 
 
   
-#+Genera (define-genera-application browser :select-key #\Triangle)
-#+Genera (zwei:defindentation (define-browser-command 0 3 1 3 2 1))
+#+genera (define-genera-application browser :select-key #\Triangle)
+#+genera (zwei:defindentation (define-browser-command 0 3 1 3 2 1))
 
 (defmethod configure-for-browser-type ((browser browser) type subtype)
   (with-slots (auto-snapshot browser-type browser-subtype
@@ -865,9 +818,9 @@
 				(arc-drawer #'draw-line*)
 				(arc-drawing-options nil)
 				(generation-separation 
-				  clim-internals::*default-generation-separation*)
+				  *default-generation-separation*)
 				(within-generation-separation
-				  clim-internals::*default-within-generation-separation*)
+				  *default-within-generation-separation*)
 				node-filter)
   (flet ((inferior-producer (node)
 	   (let ((inferiors (funcall inferior-producer node)))
@@ -982,8 +935,8 @@
   (with-slots (all-nodes) browser
     (or (eql node inferior)			;quick test often succeeds
 	(let ((mark-table 
-		#+Genera (scl:make-hash-table :size (length all-nodes) :number-of-values 0)
-		#-Genera (make-hash-table :size (length all-nodes))))
+		#+genera (scl:make-hash-table :size (length all-nodes) :number-of-values 0)
+		#-genera (make-hash-table :size (length all-nodes))))
 	  (labels ((recurses (inferiors)
 		     (when (member node inferiors)
 		       (return-from node-recurses-p t))
@@ -1039,8 +992,8 @@
 	(l2 (length nodes2)))
     (and (= l1 l2)
 	 (let ((mark-table
-		 #+Genera (scl:make-hash-table :size l1 :number-of-values 0)
-		 #-Genera (make-hash-table :size l1)))
+		 #+genera (scl:make-hash-table :size l1 :number-of-values 0)
+		 #-genera (make-hash-table :size l1)))
 	   (dolist (node nodes1)
 	     (setf (gethash (node-object node) mark-table) t))
 	   (every #'(lambda (node) (gethash (node-object node) mark-table))
@@ -1267,22 +1220,34 @@
 ;;; Snapshotting
 
 (defclass snapshot ()
-	  ((graph-type :initarg :graph-type :accessor snapshot-graph-type :initform nil)
-	   (browser-type :initarg :browser-type :accessor snapshot-browser-type :initform nil)
-	   (browser-subtype :initarg :browser-subtype :accessor snapshot-browser-subtype :initform nil)
-	   (browser-ptype :initarg :browser-ptype :accessor snapshot-browser-ptype :initform nil)
-	   (browser-options :initarg :browser-options :accessor snapshot-browser-options :initform nil)
-	   (node-maker :initarg :node-maker :accessor snapshot-node-maker :initform nil)
-	   (root-node-maker :initarg :root-node-maker :accessor snapshot-root-node-maker :initform nil)
-	   (grapher-args :initarg :grapher-args :accessor snapshot-grapher-args :initform nil)
-	   (tree-depth :initarg :tree-depth :accessor snapshot-tree-depth :initform nil)
-	   (merge-duplicate-nodes :initarg :merge-duplicate-nodes :accessor snapshot-merge-duplicate-nodes
-				  :initform nil)
-	   (root-nodes :initarg :root-nodes :accessor snapshot-root-nodes :initform nil)
-	   (all-nodes :initarg :all-nodes :accessor snapshot-all-nodes :initform nil)))
+    ((graph-type :initarg :graph-type :initform nil
+		 :accessor snapshot-graph-type)
+     (browser-type :initarg :browser-type :initform nil
+		   :accessor snapshot-browser-type)
+     (browser-subtype :initarg :browser-subtype :initform nil
+		      :accessor snapshot-browser-subtype)
+     (browser-ptype :initarg :browser-ptype :initform nil
+		    :accessor snapshot-browser-ptype)
+     (browser-options :initarg :browser-options :initform nil
+		      :accessor snapshot-browser-options)
+     (node-maker :initarg :node-maker :initform nil
+		 :accessor snapshot-node-maker)
+     (root-node-maker :initarg :root-node-maker :initform nil
+		      :accessor snapshot-root-node-maker)
+     (grapher-args :initarg :grapher-args :initform nil
+		   :accessor snapshot-grapher-args)
+     (tree-depth :initarg :tree-depth :initform nil
+		 :accessor snapshot-tree-depth)
+     (merge-duplicate-nodes :initarg :merge-duplicate-nodes :initform nil
+			    :accessor snapshot-merge-duplicate-nodes)
+     (root-nodes :initarg :root-nodes :initform nil
+		 :accessor snapshot-root-nodes)
+     (all-nodes :initarg :all-nodes :initform nil
+		:accessor snapshot-all-nodes)))
 
-(defun make-snapshot (&rest x)
-  (apply #'make-instance 'snapshot x))
+(defun make-snapshot (&rest args)
+  (declare (dynamic-extent args))
+  (apply #'make-instance 'snapshot args))
 
 (define-presentation-type snapshot (&optional snapshots))
 
@@ -1444,14 +1409,27 @@
 	(push subnode (node-inferiors package-node))
 	(tick-node subnode)))))
 
-(clim-demo::define-demo "Graph browser" (do-browser-demo))
 
-(defvar *browser-demo* nil)
+(define-browser-command (com-quit-browser :name "Quit" :menu "Quit") ()
+  (with-application-frame (frame)
+    (frame-exit frame)))
 
-(defun do-browser-demo (&optional force)
-  (run-frame-top-level 
-   (or (and (not force) *browser-demo*)
-       (setq *browser-demo* (make-application-frame 'browser
-						    :width 800 :height 600
-						    )))))
+
+(defvar *browsers* nil)
 
+(defun do-browser (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *browsers*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'browser
+						   :frame-manager framem
+						   :width 800 :height 700)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *browsers*))
+	     frame)))
+    (run-frame-top-level frame)))
+
+(define-demo "Graphical Browser" do-browser)

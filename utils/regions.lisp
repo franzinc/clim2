@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.11 92/07/01 15:45:46 cer Exp $
+;; $fiHeader: regions.lisp,v 1.12 92/07/08 16:29:34 cer Exp $
 
 (in-package :clim-utils)
 
@@ -823,11 +823,11 @@
   (list region))
 
 (defmethod map-over-region-set-regions (function (region region) &key normalize)
-  (declare (ignore normalize))
+  (declare (dynamic-extent function) (ignore normalize))
   (funcall function region))
 
 (defmethod map-over-region-set-regions (function (region region-set) &rest args &key normalize)
-  (declare (dynamic-extent args))
+  (declare (dynamic-extent function args))
   (declare (ignore normalize))
   (map nil function (apply #'region-set-regions region args)))
 

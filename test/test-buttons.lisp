@@ -1,7 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
-
 (in-package :clim-user)
 
 (defparameter *silly-button*
@@ -139,8 +137,9 @@
 
 (defvar *btf* nil)
 
-(defun test-buttons (&optional reinitialize)
+(defun test-buttons (&optional reinitialize (port (port (find-port))))
   (when (or reinitialize (null *btf*))
     (setq *btf* (make-application-frame 'button-test-frame 
-					:width 800 :height 700)))
+					:width 800 :height 700
+					:frame-manager (find-frame-manager :port port))))
   (run-frame-top-level *btf*))

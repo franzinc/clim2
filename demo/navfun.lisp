@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.12 92/07/01 15:47:45 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.13 92/07/06 18:52:09 cer Exp $
 
 (in-package :clim-demo)
 
-"Copyright (c) 1989, 1990, 1991 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1989, 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Database support
 
@@ -1020,17 +1020,14 @@
 
 ;;; Flight-Planner user interface
 
-(define-application-frame flight-planner
-			  ()
+(define-application-frame flight-planner ()
     ()
   (:panes 
     (display :application)
     (interactor :interactor :height '(5 :line)))
   (:layouts 
     (default
-      (vertically ()
- 	(scrolling () display)
- 	(scrolling () interactor)))))
+      (vertically () (3/4 display) interactor))))
 
 (define-flight-planner-command (com-zoom-in :name t :menu t) ()
   (multiple-value-bind (longitude latitude)
@@ -1389,9 +1386,9 @@
 			      :souls souls
 			      :color color))
     (accepting-values (*query-io*
-		       :own-window t
-		       :exit-boxes '((:exit "Click here to remove this display")))
-       (let ((fp-window *query-io*))
+			:own-window t
+			:exit-boxes '((:exit "Click here to remove this display")))
+      (let ((fp-window *query-io*))
  	(window-clear fp-window)
  	(compute-flight-plan fp-window plan)))))
 
@@ -1621,12 +1618,12 @@
 	       (add-position 
 		 name 
 		 (case type
-		   (A 'airport)
-		   (V 'vor)
-		   ((VA AV) 'airport)
-		   ((AN NA) 'airport)
-		   (C 'visual-checkpoint)	;actually visual cp
-		   (N 'ndb))			;actually ndb
+		   (a 'airport)
+		   (v 'vor)
+		   ((va av) 'airport)
+		   ((an na) 'airport)
+		   (c 'visual-checkpoint)	;actually visual cp
+		   (n 'ndb))			;actually ndb
 		 (degminsec lat1 lat2)
 		 (degminsec lon1 lon2)
 		 elev
@@ -1636,15 +1633,22 @@
   (customize-database)
   t)
 
+
 (defvar *flight-planners* nil)
 
-(defun run-flight-planner (&key reinit (root (find-frame-manager)))
-  (let ((fp (cdr (assoc root *flight-planners*))))
-    (when (or (null fp) reinit)
-      (setq fp (make-application-frame 'flight-planner
-				       :width 1000 :height 800))
-      (push (cons root fp) *flight-planners*))
-    (run-frame-top-level fp)))
+(defun do-flight-planner (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *flight-planners*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'flight-planner
+						   :frame-manager framem
+						   :width 1000 :height 800)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *flight-planners*))
+	     frame)))
+    (run-frame-top-level frame)))
 
-(define-demo "Flight Planner" (run-flight-planner))
-
+(define-demo "Flight Planner" do-flight-planner)
