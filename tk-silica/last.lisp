@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[]-
+;;				-[Thu Apr 15 18:06:28 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -24,6 +24,8 @@
 
 
 (in-package :system)
+
+(defvar system::*devel* nil)
 
 (load-application 
  (load-patches

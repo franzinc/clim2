@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Fri Apr 16 09:24:22 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -342,7 +342,7 @@
        value)
       ((null args)
        (make-array (length new-args)
-		   :element-type '(signed-byte 32)
+		   :element-type '(unsigned-byte 32)
 		   :initial-contents (nreverse new-args)))
     (setq keyword (pop args)
 	  value (pop args))
@@ -352,9 +352,11 @@
 	(push (resource-original-name resource) new-args)
 	(let ((type (resource-type resource)))
 	  (push
-	   (if (resource-type-set-conversion-p type)
-	       (convert-resource-out parent type value)
-	     value)
+	   (logand
+	    #xffffffff
+	    (if (resource-type-set-conversion-p type)
+		(convert-resource-out parent type value)
+	      value))
 	   new-args))))))
 
 

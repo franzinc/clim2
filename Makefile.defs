@@ -159,11 +159,10 @@ MALLOCOBJS =
 # "Compile time objects" -- these go into clim-debug.fasl
 #
 DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
-	     xlib/x11-keysyms.fasl xlib/last.fasl \
-	     tk/xt-defs.fasl tk/xt-funs.fasl 
+	     xlib/x11-keysyms.fasl tk/xt-defs.fasl tk/xt-funs.fasl 
 
-XM-DEBUG-OBJS = tk/xm-defs.fasl tk/xm-funs.fasl
-OL-DEBUG-OBJS = tk/ol-defs.fasl tk/ol-funs.fasl
+XM-DEBUG-OBJS = tk/xm-defs.fasl tk/xm-funs.fasl xlib/last.fasl
+OL-DEBUG-OBJS = tk/ol-defs.fasl tk/ol-funs.fasl xlib/last.fasl
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -520,4 +519,4 @@ CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl
 
 BENCHMARK_FILE=nil
 
-
+C_OBJECT_MAKEFILE = Makefile.cobjs

@@ -1,0 +1,23 @@
+# $fiHeader: $
+
+climol.so:	xlibsupport.o xtsupport.o olsupport.o
+	ld -G -o climol.so xlibsupport.o xtsupport.o olsupport.o \
+		-L/usr/openwin/lib -lXol -lXt -lX11
+
+climxm.so:	xlibsupport.o xtsupport.o MyDrawingA.o
+	ld -G -o climxm.so xlibsupport.o xtsupport.o MyDrawingA.o \
+		-lXm -lXt -lX11 -lgen
+
+xlibsupport.o	: xlib/xlibsupport.c 
+	$(CC) -c -K pic $(CFLAGS) -o xlibsupport.o xlib/xlibsupport.c
+
+xtsupport.o: misc/xtsupport.c
+	$(CC) -c -K pic $(CFLAGS) $(XTSUPPORTINCLUDES) -o xtsupport.o \
+		misc/xtsupport.c
+
+MyDrawingA.o: misc/MyDrawingA.c
+	$(CC) -c -K pic $(CFLAGS) -o MyDrawingA.o misc/MyDrawingA.c
+
+olsupport.o: misc/olsupport.c
+	$(CC) -c -K pic $(CFLAGS) -o olsupport.o misc/olsupport.c
+

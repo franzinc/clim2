@@ -1,0 +1,34 @@
+# $fiHeader: $
+
+include Makefile.defs
+
+C_OBJECT_MAKEFILE = Makefile.cobjs-svr4
+
+XLIB-CLIM-OBJS = xlib/pkg.fasl
+
+MOTIF_OBJS= climxm.so
+OPENLOOK_OBJS= climol.so
+CLIMOBJS= climxm.so climol.so
+
+MOTIFLIB=/usr/lib/libXm$(DEBUGLIB).a
+MOTIFLIB_d=/usr/lib/libXm.a
+XLIB= /usr/lib/libX11$(DEBUGLIB).a 
+XTLIB=/usr/lib/libXt$(DEBUGLIB).a
+XINCLUDES=-I/usr/include
+XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
+MOTIFXTRAOS=
+
+OLXLIB= /usr/lib/libX11.a
+OLXTLIB=/usr/lib/libXt.a
+
+############ overrides of things defined in Makefile.defs
+OPENWINHOME = /usr/openwin
+CL_SRC = xxxxxxxxxxxxxxxxxxxxx
+OLCOPYLIB=not-used-xxxxx
+OLXLIBS=/usr/openwin/lib/libXt.a /usr/openwin/lib/libX11.a
+LIBXOL=/usr/openwin/lib/libXol.a
+LIBXOL_d=$(LIBXOL)
+CL = ../src/dcl
+PWD = .
+
+include Makefile.generic

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: x11 -*-
 ;;
-;;				-[]-
+;;				-[Thu Apr 15 17:04:18 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -52,7 +52,8 @@
 (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
 
 (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
-  (load "xlibsupport.o" :system-libraries (list sys::*libx11-pathname*) :print t))
+  (load "xlibsupport.o"
+	:system-libraries (list sys::*libx11-pathname*) :print t))
 
 (x11::load-undefined-symbols-from-library
  "stub-x.o"

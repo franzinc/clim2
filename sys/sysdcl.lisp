@@ -338,9 +338,10 @@
 					       "xlib/last.lisp")))
   ("ffi")
   ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to ; compile...
-  ("load-xlib")
+  #-svr4 ("load-xlib")
   ("xlib-funs" :load-before-compile ("ffi"))
   ("x11-keysyms" :load-before-compile ("ffi"))
+  #-svr4
   ("last" :load-before-compile ("load-xlib" "xlib-funs")))
 
 #+Allegro
@@ -353,6 +354,15 @@
 		   :needed-systems (xlib)
 		   :load-before-compile (xlib))
 		(,file)
+		#+svr4
+		("last" :pathname
+			(namestring (merge-pathnames
+				     "last.lisp"
+				     (frob-pathname "xlib")))
+			:binary-pathname
+			(namestring (merge-pathnames
+				     "last.fasl"
+				     (frob-pathname "xlib"))))
 		("pkg")
 		("macros")
 		("xt-defs")			; Used to be 'xtk'.

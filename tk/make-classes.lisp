@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Fri Apr 16 08:55:32 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -217,6 +217,7 @@
 
 
 (defun define-toolkit-classes (&rest classes)
+  (break "define-toolkit-classes")
   (make-classes 
    (mapcar #'ff:convert-to-lang
 	   (remove-duplicates 
@@ -231,6 +232,8 @@
     (case name
       ;; Openlook
       (list 'ol-list)
+      (list-pane 'ol-list)
+      (event-obj 'event)
       (t name))))
   
 (defun lispify-tk-name (string &key 

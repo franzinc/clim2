@@ -58,8 +58,6 @@
    (pixels (:pointer unsigned-long))
    (ncolors unsigned-int))
 
-(x11::defforeign-functions-now)
-
 (def-exported-foreign-function (xalloccolorplanes (:return-type int) (:name "XAllocColorPlanes")) 
    (dpy (:pointer display))
    (cmap colormap)

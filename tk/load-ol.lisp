@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[]-
+;;				-[Thu Apr 15 17:05:49 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -27,24 +27,29 @@
 (provide :climxm)
 (require :climg)
 
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
-(defvar sys::*clim-olit-pathname* "clim-olit.o")
+#+svr4
+(load "climol.so")
 
-(x11::load-undefined-symbols-from-library
-  sys::*clim-olit-pathname*
- (x11::symbols-from-file "misc/undefinedsymbols.olit")
- (list sys::*libxt-pathname* sys::*libx11-pathname*))
+#-svr4
+(progn
+  (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
+  (defvar sys::*clim-olit-pathname* #+svr4 "clim-olit.so" #-svr4 "clim-olit.o")
 
-(unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
-  (load "olsupport.o"
-	:system-libraries (list sys::*libxt-pathname*
-				sys::*libx11-pathname*)
-	:print t))
+  (x11::load-undefined-symbols-from-library
+   sys::*clim-olit-pathname*
+   (x11::symbols-from-file "misc/undefinedsymbols.olit")
+   (list sys::*libxt-pathname* sys::*libx11-pathname*))
 
-(unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
-    (load "xtsupport.o"
+  (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
+    (load "olsupport.o"
 	  :system-libraries (list sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t))
+
+  (unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
+    (load "xtsupport.o"
+	  :system-libraries (list sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t)))
 
 (pushnew :clim-openlook *features*)
