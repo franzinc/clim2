@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.10 92/05/07 13:11:25 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.11 92/05/13 17:10:37 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -286,7 +286,11 @@
 (defmethod port ((medium medium))
   (port (medium-sheet medium)))
 
+(defmethod invalidate-cached-regions ((medium medium)) nil)
+(defmethod invalidate-cached-transformations ((medium medium)) nil)
+
 ;; Generate the sheet->medium trampolines now
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
 		      `(sheet-medium ,standard-sheet-output-mixin))
+
 

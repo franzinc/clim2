@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.12 92/05/07 13:11:30 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.13 92/05/12 18:24:36 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -317,6 +317,14 @@
 (defclass sheet-with-medium-mixin (standard-sheet-output-mixin)
     ((medium :initform nil :accessor sheet-medium)
      (medium-type :initarg :medium :initform  t :accessor sheet-medium-type)))
+
+(defmethod invalidate-cached-regions :before ((sheet silica::sheet-with-medium-mixin))
+  (let ((medium (sheet-medium sheet)))
+    (when medium (invalidate-cached-regions medium))))
+
+(defmethod invalidate-cached-transformations :before ((sheet silica::sheet-with-medium-mixin))
+  (let ((medium (sheet-medium sheet)))
+    (when medium (invalidate-cached-transformations medium))))
 
 (defclass permanent-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.20 92/05/07 13:13:58 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.21 92/05/13 17:11:23 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -73,23 +73,11 @@
   (with-slots (clip-mask) medium
     (setf clip-mask nil)))
 
-;;;---------------------- You cannot have such a class since sheet-with-medium.
-;;; Probably we need a method that gets invoked on the medium to
-;;; invalidate any cached state.
+(defmethod invalidate-cached-regions :after ((medium xt-medium))
+  (with-slots (clip-mask) medium (setf clip-mask nil)))
 
-(warn "These should be specialized on an 'xt' subclass of sheet-with-medium!!!!!!!!!!!!!!!!!!!!!!!!!")
-
-(defmethod invalidate-cached-regions :after ((sheet silica::sheet-with-medium-mixin))
-  (let ((medium (sheet-medium sheet)))
-    (when medium
-      (with-slots (clip-mask) medium
-	(setf clip-mask nil)))))
-
-(defmethod invalidate-cached-transformations :after ((sheet silica::sheet-with-medium-mixin))
-  (let ((medium (sheet-medium sheet)))
-    (when medium
-      (with-slots (clip-mask) medium
-	(setf clip-mask nil)))))
+(defmethod invalidate-cached-transformations :after ((medium xt-medium))
+  (with-slots (clip-mask) medium (setf clip-mask nil)))
 
 
 
