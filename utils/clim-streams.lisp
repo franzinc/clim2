@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clim-streams.lisp,v 1.15 2000/05/01 21:43:38 layer Exp $
+;; $Id: clim-streams.lisp,v 1.15.50.1 2001/05/31 18:09:11 layer Exp $
 
 (in-package :clim-utils)
 
@@ -72,4 +72,20 @@
 
 (defmethod interactive-stream-p ((stream standard-encapsulating-stream))
   (interactive-stream-p (encapsulating-stream-stream stream)))
+
+;;; defined for spr24046
+(defmethod excl:stream-read-sequence ((encapsulator standard-encapsulating-stream)
+				      seq &optional start end)
+  (let ((encapsulated-stream (encapsulating-stream-stream encapsulator)))
+    (cond ((not (typep encapsulated-stream 'fundamental-input-stream))
+	   (error "Encapsulated stream is not of type fundamental-input-stream: ~A" encapsulated-stream))
+	  (t 
+	   (excl:stream-read-sequence encapsulated-stream seq start end)))))
+(defmethod excl:stream-write-sequence ((encapsulator standard-encapsulating-stream)
+					string &optional start end)
+  (let ((encapsulated-stream (encapsulating-stream-stream encapsulator)))
+    (cond ((not (typep encapsulated-stream 'fundamental-output-stream))
+	   (error "Encapsulated stream is not of type fundamental-output-stream: ~A" encapsulated-stream))
+	  (t 
+	   (excl:stream-write-sequence encapsulated-stream string start end)))))
 

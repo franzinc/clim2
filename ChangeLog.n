@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.14.4
+
+2001-05-31  Kevin Layer  <layer@crikey>
+
+	* utils/clim-streams.lisp: bug10667/bug10666
+
+*******************************************************************************
 2.2.2.21.14.3
 
 2001-05-22  Kevin Layer  <layer@crikey>
