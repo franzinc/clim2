@@ -11,6 +11,20 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.12
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+
+Tue Mar 24 19:48:36 1998  Duane Rettig  <duane@beta>
+
+	* tk/xm-init.lisp:
+	* tk-silica/xm-gadgets.lisp: fix callback addresses on restart in acl 5.0
+
+	* utils/packages.lisp: increment
+
+*******************************************************************************
 2.2.1.11
 
 Documentation changes:	none

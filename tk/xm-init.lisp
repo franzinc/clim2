@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Fri Dec  5 15:13:14 1997 by duane]-
+;;				-[Tue Mar 24 18:48:58 1998 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xm-init.lisp,v 1.19 1997/12/23 22:44:53 duane Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xm-init.lisp,v 1.20 1998/03/25 03:52:27 duane Exp $
 
 (in-package :tk)
 
@@ -53,6 +53,23 @@
 #+(version>= 5 0)
 (defun reinitialize-toolkit ()
   (unless *toolkit-static*
+
+    (setq *callback-handler-address*
+      (register-foreign-callable 'callback-handler :reuse))
+    (setq *match-event-sequence-and-types-address*
+      (register-foreign-callable 'match-event-sequence-and-types :reuse))
+    (setq *event-handler-address*
+      (register-foreign-callable 'event-handler :reuse))
+    (setq *error-handler-function-address*
+      (register-foreign-callable 'toolkit-error-handler :reuse))
+    (setq *warning-handler-function-address*
+      (register-foreign-callable 'toolkit-warning-handler :reuse))
+    (setq *x-error-handler-address*
+      (register-foreign-callable 'x-error-handler :reuse))
+    (setq *x-io-error-handler-address*
+      (register-foreign-callable 'x-io-error-handler :reuse))
+    (reinitialize-silica-callbacks)
+
     (xt_toolkit_initialize)
     (setup-error-handlers)
     (fixup-class-entry-points)))
