@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.20 1995/11/08 06:16:31 georgej Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.20.2.1 1997/03/26 23:04:41 georgej Exp $
 
 (in-package :sys)
 
@@ -34,31 +34,11 @@
   (pushnew :silica *features*)
   (pushnew :ansi-90 *features*))
 
-#-Silica
-(eval-when (compile load eval)
-  (require :clx))
-
 (provide :clim)
 (provide :climg)
 
-#+(not (version>= 4 1))
-(let* ((patch-package (find-package :patch))
-       (patches-symbol (and patch-package
-			    (find-symbol (string '*patches*) patch-package)))
-       (patches (and patches-symbol (symbol-value patches-symbol)))
-       (needed-patches '(26. 27. 46. 50.))
-       (dont-have (remove-if
-		   #'(lambda (pn)
-		       (assoc pn patches))
-		   needed-patches)))
-  (when dont-have
-    (error "On Allegro 4.0 CLIM requires patches ~{~S ~} ~
-You do not have patches ~{~S ~}"
-	   needed-patches
-	   dont-have)))
-
 (defvar *clim-version*
-    '("CLIM 2.1.beta"
-      "$Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.20 1995/11/08 06:16:31 georgej Exp $"))
+    '("CLIM 2.1"
+      "$Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.20.2.1 1997/03/26 23:04:41 georgej Exp $"))
 
 (si::rcsnote (first *clim-version*) (second *clim-version*))

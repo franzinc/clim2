@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.hpprism,v 1.8 1995/10/20 17:36:08 colin Exp $
+# $fiHeader: Makefile.hpprism,v 1.9 1996/03/13 09:55:12 colin Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
@@ -17,9 +17,6 @@ AR = ar clq
 TKLIB=/usr/lib/Motif1.2/libXm.a
 XTLIB=/usr/lib/X11R5/libXt.a
 XLIB=/usr/lib/X11R5/libX11.a
-
-# not needed anymore - we make libwnn.a in clim-2.0
-#WNNLIB=/usr/fi/X11R5/lib/libwnn.a
 
 XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.21 1993/08/12 16:03:11 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.22 1993/09/17 19:05:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -33,7 +33,7 @@
       (multiple-value-setq (width height) (bounding-rectangle-size record)))
     (let* ((pixmap-medium (make-pixmap-medium (port stream) stream
 					      :width width :height height))
-	   (pixmap-stream (make-instance 'pixmap-stream 
+	   (pixmap-stream (make-instance 'pixmap-stream
 			    :default-text-margin width
 			    :port (port stream)
 			    :medium pixmap-medium
@@ -54,13 +54,15 @@
       (multiple-value-setq (width height) (bounding-rectangle-size record)))
     (let* ((pixmap-medium (make-pixmap-medium (port stream) stream
 					      :width width :height height))
-	   (pixmap-stream (make-instance 'pixmap-stream 
+	   (pixmap-stream (make-instance 'pixmap-stream
 					 :default-text-margin width
 					 :port (port stream)
 					 :medium pixmap-medium
 					 :width width :height height)))
       (setf (medium-foreground pixmap-medium) (medium-foreground stream)
 	    (medium-background pixmap-medium) (medium-background stream)
+	    ;; Why do we set both medium-default-text-style and
+	    ;; medium-text-style here? (cim 7/1/96)
 	    (medium-default-text-style pixmap-medium) (pane-text-style stream)
 	    (medium-text-style pixmap-medium) (pane-text-style stream))
       (if record
@@ -68,8 +70,12 @@
 	(funcall continuation pixmap-stream))
       (slot-value pixmap-medium 'silica::pixmap))))
 
+(defconstant +gray-out-ink+
+    (compose-in (make-opacity .5) +background-ink+))
+
 (defun pixmap-from-menu-item (associated-window menu-item printer presentation-type
-			      &optional text-style)
+			      &key text-style background foreground gray-out
+			      &allow-other-keys)
   (with-menu (menu associated-window)
     (let ((record (with-output-recording-options (menu :draw nil :record t)
 		    (with-output-to-output-record (menu)
@@ -87,12 +93,19 @@
 	(with-output-to-pixmap (stream associated-window :width width :height height)
 	  (when text-style
 	    (setf (medium-default-text-style stream) text-style))
+	  (when background
+	    (setf (medium-background stream) background))
+	  (when foreground
+	    (setf (medium-foreground stream) foreground))
 	  (draw-rectangle* stream 0 0 width height
 			   :ink +background-ink+ :filled t)
 	  (replay-output-record
 	   record stream +everywhere+
 	   (- (bounding-rectangle-left record))
-	   (- (bounding-rectangle-top record))))))))
+	   (- (bounding-rectangle-top record)))
+	  (when gray-out
+	    (draw-rectangle* stream 0 0 width height
+			     :ink +gray-out-ink+ :filled t)))))))
 
 ;;; This code would be nice to use since it will eliminate the
 ;;; creation of a whole bunch of pixmaps. However, quite often you get
@@ -111,7 +124,7 @@
       (cond ((or (eq class (find-class 'standard-presentation))
 		 (eq class (find-class 'standard-sequence-output-record)))
 	     (if (= (output-record-count record) 1)
-		 (setq record (output-record-element record 0)) 
+		 (setq record (output-record-element record 0))
 	       (return nil)))
 	    ((eq class (find-class 'standard-text-output-record))
 	     (return record))

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.19 1996/01/23 06:46:58 duane Exp $
+;; $fiHeader: graphics.lisp,v 1.20 1996/03/01 05:43:25 colin Exp $
 
 (in-package :tk)
 
@@ -192,7 +192,7 @@
 
 (defun draw-image-string (drawable gc x y string
 			  &optional (length (length string)))
-  (x11::drawimagestring
+  (x11::xdrawimagestring
    (object-display drawable)
    drawable
    gc

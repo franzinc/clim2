@@ -259,9 +259,9 @@ xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
 	cd $(CL_SRC) ; \
 	/bin/mv dcli dcli.climsave ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
-		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
+		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubsi) \
 		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
-		$(PWD)/stub-wnn.o \
+		$(WNNXTRAS) $(PWD)/stub-wnn.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
 		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
 		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a $(MOTIFXTRAS)' dcli ;\

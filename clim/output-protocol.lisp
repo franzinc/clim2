@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.40 1993/09/17 19:05:16 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.42 1995/11/23 01:58:37 georgej Exp $
 
 (in-package :clim-internals)
 
@@ -122,6 +122,9 @@
 (defmethod stream-cursor-position ((stream output-protocol-mixin))
   (with-slots (cursor-x cursor-y) stream
     (values cursor-x cursor-y)))
+
+;;; To make filling-output work on string-streams
+(defmethod stream-cursor-position ((stream t)) 0)
 
 (defmethod stream-set-cursor-position ((stream output-protocol-mixin) x y)
   (with-slots (cursor-x cursor-y current-line-height baseline) stream

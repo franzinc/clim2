@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.60 1995/05/17 19:49:07 colin Exp $
+;; $fiHeader: gadgets.lisp,v 1.61 1995/10/17 05:02:37 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -343,7 +343,8 @@
 
 (defclass row-column-gadget-mixin (oriented-gadget-mixin)
 	  ((rows :initarg :rows :initform nil :accessor gadget-rows)
-	   (columns :initarg :columns :initform nil :accessor gadget-columns)))
+	   (columns :initarg :columns :initform nil :accessor gadget-columns)
+	   (spacing :initarg :spacing :initform nil :accessor gadget-spacing)))
 
 ;;; Radio box [exclusive-choice] .. [inclusive-choice]
 (defclass radio-box
@@ -760,8 +761,12 @@
     (let* ((items (set-gadget-items sheet))
 	   (total-items (length items))
 	   (visible-items (or (gadget-visible-items sheet)
-			      ;; what's the best default to assume here
-			      1)))
+			      ;; we use +fill+ as the default here so
+			      ;; that we don't try and do any
+			      ;; scrolling if we don't know how many
+			      ;; items are visible ie we assume the
+			      ;; list-pane is infinite (cim 6/24/96)
+			      +fill+)))
       (multiple-value-bind (selected-items m n)
 	  (ecase mode
 	    (:exclusive
@@ -774,8 +779,7 @@
 		 (let ((item (elt items i)))
 		   (when (member (funcall value-key item) value :test test)
 		     (push item selected-items)
-		     (setq m (if m (min m i) i)
-			   n (if n (max n i) i)))))
+		     (setq m (or m i) n i))))
 	       (when selected-items
 		 (values (nreverse selected-items) m n)))))
 	(when selected-items

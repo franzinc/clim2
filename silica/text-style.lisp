@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.24 1996/03/01 05:42:55 colin Exp $
+;; $fiHeader: text-style.lisp,v 1.25 1996/03/13 09:55:49 colin Exp $
 
 (in-package :silica)
 
@@ -450,6 +450,21 @@
 (defgeneric text-style-descent (text-style medium))
 (defgeneric text-style-fixed-width-p (text-style medium))
 (defgeneric text-size (medium string &key text-style start end))
+
+(defmethod text-style-height ((style list) medium)
+  (text-style-height (parse-text-style style) medium))
+
+(defmethod text-style-width ((style list) medium)
+  (text-style-width (parse-text-style style) medium))
+
+(defmethod text-style-ascent ((style list) medium)
+  (text-style-ascent (parse-text-style style) medium))
+
+(defmethod text-style-descent ((style list) medium)
+  (text-style-descent (parse-text-style style) medium))
+
+(defmethod text-style-fixed-width-p ((style list) medium)
+  (text-style-fixed-width-p (parse-text-style style) medium))
 
 (defmethod text-size ((medium basic-medium) string
 		      &key (text-style (medium-merged-text-style medium)) (start 0) end)

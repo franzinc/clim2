@@ -8,7 +8,7 @@ To run the CLIM demos.
 
 1. Load the demos with:
 
-	(require :clim-demoxm) 
+	(require :climdemoxm) 
 
 2. To start, evaluate:
 	

@@ -27,6 +27,9 @@ CL= ../src/xm-dcl
 # IMPORTS = ../src/ucl.exp
 
 stubs = c2stubs
+stubsi = c2stubsi
+
+WNNXTRAS = "-bI:crypt.exp"
 
 SAVEEXP = /bin/mv ucl.exp ucl.exp.climsave
 RESTEXP = /bin/mv ucl.exp.climsave ucl.exp

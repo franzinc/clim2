@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.55 1996/01/23 06:47:08 duane Exp $
+;; $fiHeader: resources.lisp,v 1.56 1996/03/01 05:43:35 colin Exp $
 
 
 (in-package :tk)
@@ -392,7 +392,11 @@
     (int nil)
     (short nil)
     (function nil)
-    (top-item-position nil)
+    ;; SGI has a bug or oddity in it Motif.  The top-item-position
+    ;; resource on a XmList returns a null type.  It is an integer
+    ;; doesn't need any conversion, so this papers over the issue.
+    ;; spr15174
+    (|| nil)
     (t t)))
 
 (defmethod resource-type-set-conversion-p (type)
@@ -415,7 +419,7 @@
     (short nil)
     (int nil)
     (function nil)
-    (top-item-position nil)
+    (|| nil)			; spr15174 see above
     (t t)))
 
 (defmethod resource-type-get-memref-type (type)
@@ -642,10 +646,6 @@
      (:+ics (let ((euc (ff:char*-to-euc value)))
 	      (excl:euc-to-string euc)))
      (:-ics (char*-to-string value)))))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
-  (unless (zerop value)
-))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'boolean)) value)
   (not (zerop value)))

@@ -15,13 +15,13 @@
 ;;   3 4 5
 ;;   6 7
 ;;   8 9
-;; 
+;;
 ;; Conversely, they are faster for the worst case:
 ;;   9 8 7
 ;;   6 5 4
 ;;   3 2
 ;;   1 0
-;; 
+;;
 ;; Because of the nature of the optimizations, they are still about 5
 ;; times faster for a random ordering that includes a lot of overlapping
 ;; records.  There is basically no performance difference between
@@ -31,14 +31,14 @@
 ;; give a strict ordering, and it is impractical to do an exhaustive
 ;; determination of best split, the results do vary depending on how
 ;; they got built.
-;; 
+;;
 ;; The best case order for coordinate sorted sets is very common, of
 ;; course.  It corresponds to TTY style output, and even much program
 ;; generated graphics.
-;; 
+;;
 ;; The storage overhead of R trees is greater than coordinate sorted sets
 ;; because of the intermediate nodes and their bounding box structures.
-;; 
+;;
 ;; Searching is 2-3 times slower in R trees.  Because inferiors are not
 ;; sorted, and the tree is not order balanced, you have to do about
 ;; M log(M) n probes instead of just log(2) n.  This means M / log(2) M
@@ -61,7 +61,7 @@
 (defun bounding-rectangle-extend-edges (region other-region)
   (with-bounding-rectangle* (left top right bottom) region
     (with-bounding-rectangle* (oleft otop oright obottom) other-region
-      (bounding-rectangle-set-edges 
+      (bounding-rectangle-set-edges
 	region
 	(min left oleft) (min top otop)
 	(max right oright) (max bottom obottom)))))
@@ -93,7 +93,7 @@
     ((inferiors :accessor r-tree-node-inferiors
 		:initform (make-array *r-tree-maximum-fullness*
 				      :fill-pointer 0 :adjustable nil))
-     (superior :accessor r-tree-node-superior 
+     (superior :accessor r-tree-node-superior
 	       :initform nil :initarg :superior)))
 
 (define-constructor make-r-tree-node r-tree-node (superior)
@@ -116,7 +116,7 @@
 ;; records in the tree that overlap the region
 (defun map-over-r-tree-records-overlapping-region
        (function node record region
-	&optional (x-offset (coordinate 0)) (y-offset (coordinate 0)) 
+	&optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
 	&rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (multiple-value-bind (left top right bottom)
@@ -168,8 +168,8 @@
 ;; Maps over the R tree, applying the function to all of the output
 ;; records in the tree that contain the position
 (defun map-over-r-tree-records-containing-position
-       (function node record x y 
-	&optional (x-offset (coordinate 0)) (y-offset (coordinate 0)) 
+       (function node record x y
+	&optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
 	&rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (translate-coordinates (coordinate x-offset) (coordinate y-offset) x y)
@@ -180,7 +180,7 @@
 	 function node x y continuation-args))
 
 (defmethod map-over-r-tree-records-containing-position-1
-	   (function (node r-tree-node) x y 
+	   (function (node r-tree-node) x y
 	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (let ((inferiors (r-tree-node-inferiors node)))
@@ -192,7 +192,7 @@
 		 function node x y continuation-args))))))
 
 (defmethod map-over-r-tree-records-containing-position-1
-	   (function (node r-tree-leaf) x y 
+	   (function (node r-tree-leaf) x y
 	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (let ((inferiors (r-tree-node-inferiors node)))
@@ -227,7 +227,7 @@
 (defun r-tree-insert (root record)
   (declare (values new-root))
   (let ((leaf root))
-    (loop 
+    (loop
       (when (r-tree-leaf-node-p leaf)
 	(return))
       (setq leaf (r-tree-choose-leaf leaf record)))
@@ -345,7 +345,7 @@
 	    (dotimes (index fp1)
 	      (let ((object (aref objects1 index)))
 		(with-bounding-rectangle* (left top right bottom) object
-		  (minf min-left left) 
+		  (minf min-left left)
 		  (minf min-top top)
 		  (maxf max-right right)
 		  (maxf max-bottom bottom)
@@ -467,26 +467,27 @@
 	       (if (r-tree-leaf-node-p from-node)
 		   ;; Deleted from leaf, easy to put back
 		   (dovector (object inferiors)
-		     (setq root (r-tree-insert root object)))
-		   (let* ((orphan-depth (distance-to-leaf from-node))
-			  (delta (- (distance-to-leaf root) orphan-depth)))
-		     (if (minusp delta)
-			 ;; These came from further up the tree than exists now,
-			 ;; must step down
-			 (map nil #'repatriate inferiors)
-			 ;; Find a node down the tree for insertion
-			 (loop
-			   (let ((orphan-node (vector-pop inferiors)))
-			     (when (null orphan-node) (return))
-			     (let ((sub-node root))
-			       (repeat delta
-				 (setq sub-node (r-tree-choose-leaf sub-node orphan-node)))
-			       (r-tree-insert-1 sub-node orphan-node)))
-			   (setq delta (- (distance-to-leaf root) orphan-depth))))))))
+			     (setq root (r-tree-insert root object)))
+		 (let* ((orphan-depth (distance-to-leaf from-node))
+			(delta (- (distance-to-leaf root) orphan-depth)))
+		   (if (minusp delta)
+		       ;; These came from further up the tree than exists now,
+		       ;; must step down
+		       (map nil #'repatriate inferiors)
+		     ;; Find a node down the tree for insertion
+		     (loop
+		       (when (= (length inferiors) 0) (return)) ; KRA 16OCT96:
+		       (let ((orphan-node (vector-pop inferiors)))
+			 (when (null orphan-node) (return))
+			 (let ((sub-node root))
+			   (repeat delta
+				   (setq sub-node (r-tree-choose-leaf sub-node orphan-node)))
+			   (r-tree-insert-1 sub-node orphan-node)))
+		       (setq delta (- (distance-to-leaf root) orphan-depth))))))))
 	   (distance-to-leaf (node)
 	     (loop until (r-tree-leaf-node-p node)
-		   do (setq node (aref (r-tree-node-inferiors node) 0))
-		   count t)))
+		 do (setq node (aref (r-tree-node-inferiors node) 0))
+		 count t)))
     (declare (dynamic-extent #'repatriate #'distance-to-leaf))
     (map nil #'repatriate orphans))
   root)
@@ -594,7 +595,7 @@
 ;;; The R tree output record classes
 
 (defclass r-tree-output-record
-	  (output-record-mixin 
+	  (output-record-mixin
 	   output-record-element-mixin
 	   output-record)
     ;; Start out with a leaf that will contain output records
@@ -645,7 +646,7 @@
 	  count))))
 
 (defmethod clear-output-record ((record r-tree-output-record))
-  (with-slots (root) record 
+  (with-slots (root) record
     (setq root (make-r-tree-leaf nil))))
 
 (defmethod add-output-record (child (record r-tree-output-record))
@@ -656,9 +657,9 @@
 (defmethod delete-output-record (child (record r-tree-output-record)
 				 &optional (errorp t))
   (with-slots (root) record
-    (multiple-value-bind (new-root foundp) 
+    (multiple-value-bind (new-root foundp)
 	(r-tree-delete root child)
-      (cond (foundp 
+      (cond (foundp
 	     (setf root new-root))
 	    (errorp
 	     (error "The output record ~S was not found in ~S"
@@ -700,7 +701,7 @@
 	(aref inferiors 0)
       (dovector (object inferiors :start 1)
 	(with-bounding-rectangle* (left top right bottom) object
-	  (minf mleft left) 
+	  (minf mleft left)
 	  (minf mtop top)
 	  (maxf mright right)
 	  (maxf mbottom bottom)))
@@ -728,7 +729,7 @@
 	     (inf2 (r-tree-node-inferiors root2)))
 	 (declare (type vector inf1 inf2))
 	 (if (r-tree-leaf-node-p root1)
-	     (and (r-tree-leaf-node-p root2) 
+	     (and (r-tree-leaf-node-p root2)
 		  (equalp inf1 inf2))
 	     (and (= (length inf1) (length inf2))
 		  (loop for i below (length inf1)
@@ -766,7 +767,7 @@
 			 (when (and use-color (> n 1))
 			   (draw-rectangle* stream
 					    left top right bottom
-					    :ink (make-ihs-color 
+					    :ink (make-ihs-color
 						   1 (/ i n) (if (oddp i) 1/2 1))))
 			 (draw-rectangle* stream
 					  left top right bottom

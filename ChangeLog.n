@@ -1,4 +1,172 @@
 *******************************************************************************
+4.3.1.beta
+
+Tue Mar 25 18:01:34 1997  George Jacob  <georgej@vapor>
+
+* demo/README: Corrected climdemoxm typo.
+
+* Makefile.rs6000: Modified to feed into RS6000-aware xm-dcli rule.
+
+* Makefile.generic: Modified xm-dcli rule to allow for build on RS6000.
+
+* utils/regions.lisp: patch3513-01
+
+* clim/graphics-recording.lisp: patch3513-01
+
+* clim/r-tree.lisp: patch3512-01
+
+GeorgeJ note: Everything below (above the 4.3 merge, between the two
+long ==== lines) was lifted from the 4.3.2.pre-alpha.114 merge: this
+included the results of Colin's pre-departure merge (including CLIM
+patches 3500-3511) and Steve's fix below.
+
+==============================================================================
+	* tk/resources.lisp: Work around SGI Motif bug (per smh spr15174)
+
+*******************************************************************************
+Tue Jul 23 14:29:37 PDT 1996 Colin Meldrum (colin@vapor)
+
+Makefile.defs
+	Changed WNNLIB to be libwnn.a instead of ./libwnn.a - was confusing 
+	the make rules for building a developer CLIM (slim)
+
+Makefile.hpprism, Makefile.sun4, Makefile.sun4-svr4
+	Commented out WNNLIB=/usr/fi/X11R5/lib/libwnn.a becuase all the
+	libwnn stuff is part of the main clim-2.0 tree in clim-2.0/wnn 
+	
+clim/accept-values.lisp
+	Fixed dumb :right y-position bug in invoke-accepting-values - see
+	patch3502 
+	Fix bug in space allocation resulting in dialogs being larger than
+	the screen - see patch3510
+	pass view-gadget-initargs to pixmap-from-menu-item in
+	invoke-accept-values-command-button-1 - fixes bug with background
+	not being set for certain classes of accept-values-command-button 
+	- see patch3505-02
+	Added support for graying out of accept-values-command-buttons in
+	conjunction with computed prompts in call to pixmap-from-menu-item
+	- see patch3505-03
+clim/drag-and-drop.lisp
+	rework of drag-and-drop for spr14044 and spr14290
+
+clim/frames.lisp
+	Added a frame-manager method for graft - see patch3507
+	added *graft-maximum-size-factor* - see patch3511
+
+clim/gadget-output.lisp
+	Added :label-options and :borders initargs to views for
+	radio-box-view and check-box-view - see patch3505
+	Added :borders initarg to views for slider-view and
+	toggle-button-view  - see patch3504
+	pass view-gadget-initargs to pixmap-from-menu-item in
+	accept-present-default method for radio-box-view and check-box-view 
+	- fixes bug with background  being set - see patch3505-02
+	Added support for graying out of toggle button labels radio-box and 
+	check-box-view in call to pixmap-from-menu-item - see patch3505-03
+
+clim/interactive-protocol.lisp
+	Added default stream-scan-pointer method which calls file-position
+
+clim/output-protocol.lisp
+	Added default stream-cursor-position method to make filling-output
+	work on string-streams
+
+clim/pixmap-streams.lisp
+	Added support for graying out in pixmap-from-menu-item to make
+	CLIM gray out inactive gadgets because Motif doesn't provide the
+	support for graying out of pixmap labels - see patch3505-03
+	Added :text-style, :background and :foreground initargs to
+	pixmap-from-menu-item - see changes for gadget-output.lisp and
+	accept-values.lisp - see patch3505-02
+
+clim/translators.lisp
+	added optional use-default-args arg to write-translator-function
+	misc support for drag-and-drop changes.
+
+demo/listener.lisp
+	added (:pointer-documentation t) clause to lisp-listener demo
+
+misc/compile-1.lisp
+	removed #+ics check compiling 'wnn system. Change made to allow
+	building of non-ics developer CLIM (slim)
+
+silica/gadgets.lisp
+	Added spacing slot to row-column-gadget-mixin - see patch3506
+	Changed default visible-items in compute-list-pane-selected-items
+	to +fill+ - see patch3508
+
+silica/text-style.lisp
+	Addeded text-style-xxx trampoline methods for text-style
+	specifications given as lists - see patch3503-02
+
+test/test-clim.lisp
+	Added a filling-output-on-string-stream-test
+
+test/test-suite.lisp
+	Extended drag and drop test to check out new :documention and
+	:pointer-documentation options 
+	Added a gadget-resoure-dialog test to test the new
+	pixmap-from-menu-item fixes
+	added (:pointer-documentation t) clause to clim-tests frame
+
+tk/graphics.lisp
+	fixed bug in draw-image-string to call xdrawimagestring
+
+tk/macros.lisp
+	fixed bug in lisp-string-to-string16 to do the right thing with
+	byte ordering - this fixes what would otherwise be a bug with
+	iaclim for the dec alpha.
+
+tk/resources.lisp
+	removed bogus convert-resource-in method on (type (eql 'string))
+	This was a a 4.3 ics merge bug - see patch3500
+
+tk/xm-widgets.lisp
+	fixes bug in convert-resource-out method for xm-string in non ICS
+	CLIM which was breaking notify-user (and some other) dialogs 
+	- see patch3501 
+	
+tk-silica/xm-dialogs.lisp
+	Added :end-of-page-action :allow to the stream pane in a Motif
+	accepting-values :own-window t dialog
+
+tk-silica/xm-frames.lisp
+	fixed frame-manager-construct-menu method for motif-frame-manager
+	to deal with menu item sensitivity for buttons labelled with
+	pixmaps. CLIM now grays out the pixmap - see pixmap-from-menu-item
+	above in clim/pixmap-streams.lisp - see patch3505-03
+	
+tk-silica/xm-gadgets.lisp
+	Added support for :spacing initarg in find-widget-initargs-for-sheet
+	:around method on motif-row-column-gadget-mixin - see patch3506
+	Cleaned up :list-size-policy code for motif-list-pane
+	find-widget-initargs-class-and-name-for-sheet method
+	added a gadget-visible-items for motif-list-pane method - see patch3508
+	added :text-style, :background and :foreground args in call to
+	pixmap-from-menu-item for motif-option-pane setting and update code 
+	- see patch3505-02
+
+tk-silica/xt-silica.lisp
+	made font->text-style more robust in the presence of incomplete
+	font descriptions as provided with certain X servers 
+	- see patch3509
+
+utils/excl-verification.lisp
+	Changed *clim-version* to be "CLIM 2.1" This was missed for the 4.3 
+	release - take note!
+
+wnn/jserver.lisp
+	Changed initialize-instance :after method on jserver to call
+	ff:string-to-char* instead of tk::lisp-string-to-string8 so that
+	the wnn system can be compiled independently of xm-tk. Also in this 
+	case it's probably safer to have the string malloc'd.
+
+wnn/load-wnn.lisp
+	Wrapped this all in an excl:ics-target-case so that developer
+	builds of a non ICS CLIM image (slim) work.
+
+==============================================================================
+*******************************************************************************
 4.3
 
 Mon Apr 22 14:57:12 1996  George Jacob  <georgej@lava.franz.com (George Jacob)>

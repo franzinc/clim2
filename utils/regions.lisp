@@ -945,12 +945,18 @@
 	 (thickness (or thickness 0))
 	 (lthickness (floor thickness 2))
 	 (rthickness (- thickness lthickness)))
-    (when (null theta-1)
-      (return-from elliptical-arc-box
-	(let ((dx (+ (abs radius-1-dx) (abs radius-2-dx)))
-	      (dy (+ (abs radius-1-dy) (abs radius-2-dy))))
-	  (fix-rectangle (- center-x dx lthickness) (- center-y dy lthickness)
-			 (+ center-x dx rthickness) (+ center-y dy rthickness)))))
+    ;; This was incorrect in only checking whether theta-1 was specified.  actually
+    ;; both thetas have separate defaulting behavior. - smh 24dec96
+    (if (null theta-1)
+	(if (null theta-2)
+	    (return-from elliptical-arc-box
+	      (let ((dx (+ (abs radius-1-dx) (abs radius-2-dx)))
+		    (dy (+ (abs radius-1-dy) (abs radius-2-dy))))
+		(fix-rectangle (- center-x dx lthickness) (- center-y dy lthickness)
+			       (+ center-x dx rthickness) (+ center-y dy rthickness))))
+	  (setq theta-1 0))
+      (when (null theta-2)
+	(setq theta-2 2pi)))
     (setq theta-1 (mod theta-1 2pi)
 	  theta-2 (mod theta-2 2pi))
     (multiple-value-bind (x-radius y-radius)
@@ -969,36 +975,44 @@
 		   ;; Degrade to drawing a rectilinear ellipse
 		   (values (truncate (sqrt s-1))
 			   (truncate (sqrt s-2)))))))
-      (let* ((x1 (+ center-x (* x-radius (cos theta-1))))
-	     (y1 (+ center-y (* y-radius (sin theta-1))))
-	     (x2 (+ center-x (* x-radius (cos theta-2))))
-	     (y2 (+ center-y (* y-radius (sin theta-2))))
+      (let* ((x1 (* x-radius (cos theta-1)))
+	     (y1 (* y-radius (- (sin theta-1)))) ;sign! - smh 26dec96
+	     (x2 (* x-radius (cos theta-2)))
+	     (y2 (* y-radius (- (sin theta-2)))) ;sign! - smh 26dec96
 	     (left (min x1 x2))
 	     (top (min y1 y2))
 	     (right (max x1 x2))
 	     (bottom (max y1 y2)))
 	(when (angle-between-angles-p pi-single-float theta-1 theta-2)
-	  (minf left (- center-x x-radius)))
+	  (minf left (- x-radius)))
 	(when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
-	  (minf top (- center-y y-radius)))
+	  (minf top (- y-radius)))
 	(when (angle-between-angles-p 0 theta-1 theta-2)
-	  (maxf right (+ center-x x-radius)))
+	  (maxf right x-radius))
 	(when (angle-between-angles-p pi/2 theta-1 theta-2)
-	  (maxf bottom (+ center-y y-radius)))
+	  (maxf bottom y-radius))
 	(when filled
-	  (minf left center-x)
-	  (minf top center-y)
-	  (maxf right center-x)
-	  (maxf bottom center-y))
-	(fix-rectangle (- left lthickness) (- top lthickness)
-		       (+ right rthickness) (+ bottom rthickness))))))
+	  (minf left 0)
+	  (minf top 0)
+	  (maxf right 0)
+	  (maxf bottom 0))
+	(fix-rectangle (+ center-x (- left lthickness))
+		       (+ center-y (- top lthickness))
+		       (+ center-x (+ right rthickness))
+		       (+ center-y (+ bottom rthickness)))))))
 
+;; Enhanced to allow approximate comparisons at end points.
+;; - 26dec96 smh
 (defun angle-between-angles-p (theta theta-1 theta-2)
   (unless (< theta-1 theta-2)
     (incf theta-2 2pi))
   (unless (< theta-1 theta)
     (incf theta 2pi))
-  (< theta theta-2))
+  (or (< theta theta-2)
+      ;; This could be a lot more efficient, but it is only called when
+      ;; constructing an ellipse output record, not when testing positions.
+      (< (abs (- theta theta-2)) 0.00001)))
+
 
 
 ;; Exclude the general cases of REGION-EQUAL

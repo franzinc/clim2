@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.34 1995/10/20 17:37:37 colin Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.35 1996/03/01 05:42:07 colin Exp $
 
 (in-package :clim-internals)
 
@@ -20,7 +20,8 @@
 
 ;;; Fake methods to keep things like COMPLETE-INPUT from blowing up on
 ;;; non-input-editing streams like string streams.
-(defmethod stream-scan-pointer ((stream t)) 0)
+(defmethod stream-scan-pointer ((stream t))
+  (file-position stream))
 
 (defmethod (setf stream-scan-pointer) (position (stream t))
   (file-position stream position))

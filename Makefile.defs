@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.36 1996/03/13 09:55:08 colin Exp $
+# $fiHeader: Makefile.defs,v 1.37 1996/03/15 05:17:58 colin Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -103,7 +103,7 @@ SHARED-XM-OBJS= climxm.so
 STATIC-OL-OBJS= stub-olit.o olsupport.o
 SHARED-OL-OBJS= climol.so
 
-WNNLIB = ./libwnn.a
+WNNLIB = libwnn.a
 STATIC-WNN-OBJS=stub-wnn.o $(WNNLIB)
 
 # The default is for statically linked Motif

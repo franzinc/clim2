@@ -8,7 +8,7 @@
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-(defmacro define-graphics-recording (name medium-components 
+(defmacro define-graphics-recording (name medium-components
 				     &key bounding-rectangle
 					  refined-position-test
 					  highlighting-function
@@ -35,17 +35,17 @@
     (setq distances-to-transform
 	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
 		  distances-to-transform))
-    (let* ((class 
+    (let* ((class
 	     (intern (format nil "~A-~A"
 		       (remove-word-from-string "DRAW-" name) 'output-record)))
 	   (constructor (fintern "~A-~A" 'make class))
 	   (medium-graphics-function*
 	     (intern (format nil "~A~A*" 'medium- name)))
-	   (superclasses '(output-record-element-mixin 
+	   (superclasses '(output-record-element-mixin
 			   graphics-displayed-output-record))
 	   (slots
 	     (remove 'filled (append medium-components function-args)))
-	   (slot-descs 
+	   (slot-descs
 	     (mapcar #'(lambda (x)
 			 (let ((keyword (intern (symbol-name x) *keyword-package*)))
 			   (if (eq keyword :ink)
@@ -55,8 +55,8 @@
       `(progn
 	 (defclass ,class ,superclasses ,slot-descs)
 	 (define-constructor-using-prototype-instance ,constructor ,class ,slots
-	   ,@(mapcar #'(lambda (arg) 
-			 `(,arg ,(intern (symbol-name arg) *keyword-package*) ,arg)) 
+	   ,@(mapcar #'(lambda (arg)
+			 `(,arg ,(intern (symbol-name arg) *keyword-package*) ,arg))
 		     slots))
 	 (defmethod ,medium-graphics-function* :around
 		    ((stream output-recording-mixin) ,@function-args)
@@ -90,7 +90,7 @@
 			(r nil))
 		       ((null pts)
 			(nreverse r))
-		     (push 
+		     (push
 		       (if (member (first pts) optional-positions-to-transform)
 			   `(when ,(first pts)
 			      (transform-positions transformation
@@ -127,15 +127,15 @@
 				   (push
 				     (if (member (car p) optional-positions-to-transform)
 					 `(when ,(car p) ,b)
-					 b) 
+					 b)
 				     r)))))))
 		   (stream-add-output-record stream record)))))
 	   (when (stream-drawing-p stream)
 	     (call-next-method)))
 
-	 (defmethod replay-output-record ((record ,class) stream 
-					  &optional region 
-						    (x-offset (coordinate 0)) 
+	 (defmethod replay-output-record ((record ,class) stream
+					  &optional region
+						    (x-offset (coordinate 0))
 						    (y-offset (coordinate 0)))
 	   (declare (type coordinate x-offset y-offset))
 	   (declare (ignore region))
@@ -145,7 +145,7 @@
 	     ;; recording stream or an encapsulating stream
 	     (let ((medium (sheet-medium stream)))
 	       (letf-globally (((medium-transformation medium) +identity-transformation+))
-		 (with-drawing-options 
+		 (with-drawing-options
 		     (medium ,@(mapcan #'(lambda (medium-component)
 					   (list (intern (symbol-name medium-component)
 							 *keyword-package*)
@@ -159,7 +159,7 @@
 			 ,@(mapcar #'(lambda (p) (list p p))
 				   position-sequences-to-transform))
 		     ,@(mapcar #'(lambda (p)
-				   `(setq ,p (adjust-position-sequence 
+				   `(setq ,p (adjust-position-sequence
 					       ,p (- x-offset) (- y-offset))))
 			       position-sequences-to-transform)
 		     ,@(do ((p positions-to-transform (cddr p))
@@ -173,7 +173,7 @@
 				 b)
 			     r)))
 		     (,medium-graphics-function* medium ,@function-args)))))))
-	 
+
 	 ,@(when refined-position-test
 	     (let ((args (first refined-position-test))
 		   (body (rest refined-position-test)))
@@ -212,7 +212,7 @@
        ,@body)))
 
 (define-graphics-recording draw-point (ink line-style clipping-region)
-  :bounding-rectangle 
+  :bounding-rectangle
   (with-half-thickness (lthickness rthickness) line-style
       (values (- x lthickness)
 	      (- y lthickness)
@@ -220,8 +220,8 @@
 	      (+ y rthickness))))
 
 (define-graphics-recording draw-points (ink line-style clipping-region)
-  :bounding-rectangle 
-    (position-sequence-bounding-rectangle 
+  :bounding-rectangle
+    (position-sequence-bounding-rectangle
       position-seq line-style)
   :refined-position-test
     ((x y)
@@ -255,7 +255,7 @@
 
 
 (define-graphics-recording draw-line (ink line-style clipping-region)
-  :bounding-rectangle 
+  :bounding-rectangle
     (with-half-thickness (lthickness rthickness) line-style
       (values (- (min x1 x2) lthickness)
 	      (- (min y1 y2) lthickness)
@@ -276,8 +276,8 @@
 				    x1 y1 x2 y2 (line-style-thickness line-style))))))
 
 (define-graphics-recording draw-lines (ink line-style clipping-region)
-  :bounding-rectangle 
-    (position-sequence-bounding-rectangle 
+  :bounding-rectangle
+    (position-sequence-bounding-rectangle
       position-seq line-style)
   :refined-position-test
     ((x y)
@@ -385,8 +385,8 @@
 	       +flipping-ink+ +highlighting-line-style+)))))))
 
 (define-graphics-recording draw-rectangles (ink line-style clipping-region)
-  :bounding-rectangle 
-    (position-sequence-bounding-rectangle 
+  :bounding-rectangle
+    (position-sequence-bounding-rectangle
       position-seq line-style)
   :recording-hook
     (unless (rectilinear-transformation-p (medium-transformation stream))
@@ -430,7 +430,7 @@
 ;;--- Note that POSITION-SEQ will be a vector in those methods
 (define-graphics-recording draw-polygon (ink line-style clipping-region)
   :bounding-rectangle
-    (position-sequence-bounding-rectangle 
+    (position-sequence-bounding-rectangle
       position-seq line-style))
 
 (defun position-sequence-bounding-rectangle (position-seq line-style)
@@ -466,62 +466,99 @@
 	result)))
 
 
+;; This revision of the ellipse functions fixes several problems: - smh 10Jan97
+;;  - The bounding box and drawing calculations had different
+;;    notions about the y-axis sign.  (The windows back end also needs to
+;;    be revised to agree with this fix.)
+;;  - angle-between-angles-p did exact comparisons, but computations
+;;    in radians (involving pi) are necessarily approximate.
+;; But there are still bugs:
+;;  - X (and presumably also Windows) take start and end in skewed angles.
+;;    CLIM defines these arguments in non-skewed form.  Thios might just be a bug
+;;    in the CLIM standard, but anyway, no one has ever noticed.  Anyway, until
+;;    this is resolved the start/end angle refined position test cannot be fixed.
+;;    For ellipses spanning less than PI radians, the bounding box is sufficient
+;;    and the start/end limit checks are redundant.  But for larger spans the
+;;    bounding-box check is ineffective, and the entire 2PI span of the ellipse
+;;    will be sensitive to input.
+
 (define-graphics-recording draw-ellipse (ink line-style clipping-region)
   :bounding-rectangle
-    (multiple-value-bind (left top right bottom)
-	(elliptical-arc-box
-	  center-x center-y 
-	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	  start-angle end-angle
-	  (line-style-thickness (medium-line-style medium)))
-      ;; Make this a bit too big because most hosts rasterize ellipses
-      ;; to be a shade too big on the right
-      (values left top (1+ right) (1+ bottom)))
+  (multiple-value-bind (left top right bottom)
+      (elliptical-arc-box center-x center-y
+			  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			  start-angle end-angle
+			  (line-style-thickness (medium-line-style medium)))
+    ;; Make this a bit too big because most hosts rasterize ellipses
+    ;; to be a shade too big on the right
+    (values left top (1+ right) (1+ bottom)))
   :refined-position-test
-    ((x y)
-     (with-slots (center-x center-y
-		  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		  start-angle end-angle ink line-style) record
-       (and (or (null start-angle)
-		;; NYI - check for within the proper angle
-		t)
-	    (if (null line-style)
+  ((x y)
+   (with-slots (center-x center-y
+			 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			 start-angle end-angle ink line-style) record
+     ;; Added test for angle. -smh 26dec96
+     (let ((z nil))
+       (and (if (null line-style)
 		(point-inside-ellipse-p (- x center-x) (- y center-y)
 					radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-		(point-on-thick-ellipse-p (- x center-x) (- y center-y)
-					  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-					  (ceiling (line-style-thickness line-style) 2))))))
+	      (point-on-thick-ellipse-p (- x center-x) (- y center-y)
+					radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+					(ceiling (line-style-thickness line-style) 2)))
+	    ;; These start and end angle tests, although slow, are probably correct.
+	    ;; Unfortunately, the drawing functions in both X and Windows neglect
+	    ;; to take into accout that non-circular ellipses are define in terms of
+	    ;; skewed angles.  See you favorite Xlib manual fdor details.
+	    ;; - smh 30Dec96
+	    #+never
+	    (or (null start-angle)
+		(progn (setq z (phase (complex (- x center-x) (- center-y y))))
+		       (loop
+			   while (<= z start-angle)
+			   do (incf z 2pi))
+		       t))
+	    #+never
+	    (or (null end-angle)
+		(loop
+		    initially (unless z
+				(setq z (phase (complex (- x center-x) (- center-y y)))))
+		    with start = (or start-angle 0)
+		    while (<= z start)
+		    do (incf z 2pi))
+		#+never (format *trace-output* "~&[~f,~f] end ~f ~f~%"
+				(- x center-x) (- y center-y) end-angle z)
+		(<= z end-angle))))))
   :highlighting-function
-    ((stream state)
-     (declare (ignore state))
-     (multiple-value-bind (xoff yoff)
-	 (convert-from-relative-to-absolute-coordinates
-	   stream (output-record-parent record))
-       (with-slots (center-x center-y
-		    radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		    start-angle end-angle ink line-style) record
-	 (let ((delta 2)
-	       (radius-1 (sqrt (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy))))
-	       (radius-2 (sqrt (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy)))))
-	   (when line-style
-	     (incf delta (ceiling (line-style-thickness line-style) 2)))
-	   (let ((delta-1-dx (round (* delta radius-1-dx) radius-1))
-		 (delta-1-dy (round (* delta radius-1-dy) radius-1))
-		 (delta-2-dx (round (* delta radius-2-dx) radius-2))
-		 (delta-2-dy (round (* delta radius-2-dy) radius-2)))
-	     (with-output-recording-options (stream :record nil)
-	       (draw-ellipse-internal
-		 stream xoff yoff
-		 center-x center-y
-		 (+ radius-1-dx delta-1-dx) (+ radius-1-dy delta-1-dy)
-		 (+ radius-2-dx delta-2-dx) (+ radius-2-dy delta-2-dy)
-		 start-angle end-angle
-		 +flipping-ink+ +highlighting-line-style+))))))))
+  ((stream state)
+   (declare (ignore state))
+   (multiple-value-bind (xoff yoff)
+       (convert-from-relative-to-absolute-coordinates
+	stream (output-record-parent record))
+     (with-slots (center-x center-y
+			   radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			   start-angle end-angle ink line-style) record
+       (let ((delta 2)
+	     (radius-1 (sqrt (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy))))
+	     (radius-2 (sqrt (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy)))))
+	 (when line-style
+	   (incf delta (ceiling (line-style-thickness line-style) 2)))
+	 (let ((delta-1-dx (round (* delta radius-1-dx) radius-1))
+	       (delta-1-dy (round (* delta radius-1-dy) radius-1))
+	       (delta-2-dx (round (* delta radius-2-dx) radius-2))
+	       (delta-2-dy (round (* delta radius-2-dy) radius-2)))
+	   (with-output-recording-options (stream :record nil)
+	     (draw-ellipse-internal
+	      stream xoff yoff
+	      center-x center-y
+	      (+ radius-1-dx delta-1-dx) (+ radius-1-dy delta-1-dy)
+	      (+ radius-2-dx delta-2-dx) (+ radius-2-dy delta-2-dy)
+	      start-angle end-angle
+	      +flipping-ink+ +highlighting-line-style+))))))))
 
 
 (define-graphics-recording draw-bezier-curve (ink line-style clipping-region)
   :bounding-rectangle
-    (position-sequence-bounding-rectangle 
+    (position-sequence-bounding-rectangle
       position-seq line-style))
 
 
@@ -571,13 +608,13 @@
 		 (setq vt (- y h2)
 		       vb (+ y (ceiling height 2)))
 		 (when towards-y (decf towards-y h2)))))
-    (values (coordinate vx) (coordinate vt) 
+    (values (coordinate vx) (coordinate vt)
 	    (coordinate vr) (coordinate vb)
 	    (coordinate vx)
 	    (coordinate (+ vt ascent))
 	    towards-x
 	    towards-y)))
-	    
+
 
 (define-graphics-recording draw-pixmap (ink clipping-region)
   :bounding-rectangle
