@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun-utilities.lisp,v 1.12.22.3 1999/01/08 06:44:30 layer Exp $
+;; $Id: defun-utilities.lisp,v 1.12.22.4 1999/04/09 00:39:04 cox Exp $
 
 (in-package :clim-utils)
 
@@ -117,3 +117,28 @@
   (pushnew 'defun-inline zwei:*irrelevant-functions*)
   (pushnew 'defun-inline zwei:*irrelevant-defining-forms*))
 
+;;
+;; Backwards compatibility for new ics functions during beta2 development
+;;
+#+allegro
+(in-package :excl)
+#+allegro
+(progn
+  #-(version>= 5 (0 1) :pre-beta2 7)
+  (defmacro with-native-string ((native-string-var string-exp)
+				&body body)
+    `(let ((,native-string-var ,string-exp))
+       ,@body))
+
+  #-(version>= 5 (0 1) :pre-beta2 7)
+  (eval-when (compile load eval) (export 'with-native-string))
+
+  #-(version>= 5 (0 1) :pre-beta2 7)
+  (defun mb-to-string (mb-vector)
+    (let* ((lgth (1- (length mb-vector)))
+	   (string (make-string lgth)))
+      (dotimes (i lgth string)
+	(setf (schar string i) (aref mb-vector i)))))
+
+  #-(version>= 5 (0 1) :pre-beta2 7)
+  (eval-when (compile load eval) (export 'mb-to-string)))

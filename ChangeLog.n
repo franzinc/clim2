@@ -12,6 +12,14 @@ If there are user-visible changes in this commit, then list the
 
 *******************************************************************************
 2.2.1.51
+
+Thu Apr 08 17:35:24 1999  Charles A. Cox  <cox@FOX>
+
+	* utils/defun-utilities.lisp: add backward compatible definitions
+	of newly used ics functions.
+
+*******************************************************************************
+2.2.1.51
   
 Thu Apr 08 11:41:57 1999  Charles A. Cox  <cox@FOX>
 
