@@ -13,17 +13,3 @@ developers or documentation.
 
 ************* add new entries below this line *********************************
 
-7. [bug/rfe#] ...
-
-	- postscript-prologue: emit integers for %%BoundingBox
-	- use-line-style: allow any line thickness
-	- correct Windows problem: selecting menu-bar could causes text-field
-		 input to be lost
-	- correct Windows problem: text-editor pane sometimes failed to recognize
-		 <enter> keystroke when typing very fast
-	- dovector: evalueate from-end arguemnt at run-time
-	- enable all Windows cursor shapes
-	- make-pattern-from-pixmap: implement this method for Windows
-	- allow Windows menu accelerator to be any keystroke, not just a letter or digit
-	- add :echo-character functionality to text-field
-	
