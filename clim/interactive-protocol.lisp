@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-protocol.lisp,v 1.39 1998/08/06 23:15:58 layer Exp $
+;; $Id: interactive-protocol.lisp,v 1.40 2000/05/01 21:43:24 layer Exp $
 
 (in-package :clim-internals)
 
@@ -277,14 +277,21 @@
                                    x-pos y-pos)
   (with-slots (input-buffer stream insertion-pointer) istream
     (let ((cursor (stream-text-cursor stream)))
+      ;; I am not sure this is right.  The insertion pointer may be
+      ;; looking at something which is not a character (a noise string
+      ;; for instance).  In that case we need to grab a width from
+      ;; *somewhere*, so we chose #\Space because it's there.
+      ;; -- tfb@cley.com (Tim Bradshaw) Mon Mar  6 17:30:05 2000
       (when cursor
         (setf (slot-value cursor 'width)
           (stream-character-width stream
-                                  (if (< insertion-pointer
-                                         (fill-pointer input-buffer))
-                                      (aref input-buffer
+                                  (if (and (< insertion-pointer
+					      (fill-pointer input-buffer))
+					   (characterp (aref input-buffer
+                                            insertion-pointer)))
+				      (aref input-buffer
                                             insertion-pointer)
-                                    #\space)))
+				      #\space)))
         (stream-set-cursor-position stream x-pos y-pos)))))
 
 (defmethod redraw-input-buffer ((istream input-editing-stream-mixin)
@@ -998,9 +1005,9 @@
 (defmethod stream-supports-input-editing ((stream fundamental-stream)) t)
 
 ;; It really sucks that we have to write T when we mean STRING-INPUT-STREAM
-#-Allegro
+#-allegro
 (defmethod stream-supports-input-editing ((stream t)) nil)
-#+Allegro
+#+allegro
 (defmethod stream-supports-input-editing ((stream excl::string-input-stream)) nil)
 
 #+Genera

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkg.lisp,v 1.21 1998/08/06 23:17:19 layer Exp $
+;; $Id: pkg.lisp,v 1.22 2000/05/01 21:43:35 layer Exp $
 
 (defpackage :tk
   ;;-- No we really need
@@ -23,6 +23,7 @@
   (:use :common-lisp :ff #+ignore :x11)
   (:nicknames :xt)
   (:import-from :excl #:if*)
+  (:import-from :clim-utils #:fintern #:package-fintern)
   (:export
    #:initialize-motif-toolkit
    #:widget-parent

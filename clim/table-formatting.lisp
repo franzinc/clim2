@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: table-formatting.lisp,v 1.25 1998/08/06 23:16:06 layer Exp $
+;; $Id: table-formatting.lisp,v 1.26 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -265,7 +265,7 @@
                (setq cells 0)
                (map-over-row-cells #'count-cells row)
                (assert (not (zerop cells)) ()
-                       "Row or column in table does not contain any cells")
+		 "Row or column in table does not contain any cells")
                (cond ((null ncells)
                       (setq ncells cells))
                      (t
@@ -292,21 +292,21 @@
               (total-height (coordinate 0)))
           (declare (type fixnum row-count column-count))
           (declare (type coordinate total-width total-height))
-          ;; We always want the table to start at its START-X and START-Y positions.
+	  ;; We always want the table to start at its START-X and START-Y positions.
           (multiple-value-setq (x-pos y-pos) (output-record-position table))
           (macrolet (#-CCL-2 (row-max-height (row-number)
                                `(svref row-array ,row-number))
-                     #-CCL-2 (column-max-width (column-number)
-                               `(svref column-array ,column-number)))
-            ;; Figure out max height for each row,
-            ;;            max width for each column.
-            ;; Collect row heights and column widths into temp arrays.
-            ;; We need to remember for each row its total height and
-            ;; the difference between the smallest top and the largest top.
-            ;; For each row remember the total height and then remember the maximum
-            ;; difference between the row top and the y-position of the row.
-            ;; Rows and columns are pretty symmetric, but we need to arrange
-            ;; for a few things to work out right...
+			     #-CCL-2 (column-max-width (column-number)
+				       `(svref column-array ,column-number)))
+	    ;; Figure out max height for each row,
+	    ;;            max width for each column.
+	    ;; Collect row heights and column widths into temp arrays.
+	    ;; We need to remember for each row its total height and
+	    ;; the difference between the smallest top and the largest top.
+	    ;; For each row remember the total height and then remember the maximum
+	    ;; difference between the row top and the y-position of the row.
+	    ;; Rows and columns are pretty symmetric, but we need to arrange
+	    ;; for a few things to work out right...
             (unless row-table-p
               (rotatef row-array column-array))
             (if row-table-p (setq row-count -1) (setq column-count -1))
@@ -342,7 +342,7 @@
                      (let ((this-row-height (row-max-height row-count))
                            (this-column-width (column-max-width column-count)))
                        (declare (type coordinate this-row-height this-column-width))
-                       ;; All numbers are in (output-record-parent table) coordinates
+		       ;; All numbers are in (output-record-parent table) coordinates
                        (if row-table-p (setq column-count -1) (setq row-count -1))
                        (setq total-width x-pos
                              total-height y-pos)
@@ -355,31 +355,44 @@
                                       (x-alignment-adjust 0)
                                       (y-alignment-adjust 0))
                                   (declare (type coordinate column-width row-height
-                                                            cell-width cell-height))
+						 cell-width cell-height))
                                   (ecase (slot-value cell 'x-alignment)
                                     (:left )
                                     (:right
-                                      (setq x-alignment-adjust
-                                            (- column-width cell-width)))
+				     (setq x-alignment-adjust
+				       (- column-width cell-width)))
                                     (:center
-                                      (setq x-alignment-adjust
-                                            (floor (- column-width cell-width) 2))))
+				     (setq x-alignment-adjust
+				       (floor (- column-width cell-width) 2))))
                                   (ecase (slot-value cell 'y-alignment)
                                     (:top )
                                     (:bottom
-                                      (setq y-alignment-adjust
-                                            (- row-height cell-height)))
+				     (setq y-alignment-adjust
+				       (- row-height cell-height)))
                                     (:center
-                                      (setq y-alignment-adjust
-                                            (floor (- row-height cell-height) 2))))
+				     (setq y-alignment-adjust
+				       (floor (- row-height cell-height) 2))))
                                   (multiple-value-bind (x-offset y-offset)
                                       (convert-from-ancestor-to-descendant-coordinates
-                                        (output-record-parent table) (output-record-parent cell))
+				       (output-record-parent table) (output-record-parent cell))
                                     (declare (type coordinate x-offset y-offset))
+				    ;;; Make sure output-record of a row fills
+				    ;;; the entire row height.
+				    ;;; The reason for this is that the code that
+				    ;;; calculates the total-extent of the table
+				    ;;; uses the size and position of the child-cells.
+				    ;;; As a result, the bottom row is drawn only
+				    ;;; to its minimal height.
+				    (when row-table-p
+				      (let ((old-width (bounding-rectangle-width cell))) 
+					(bounding-rectangle-set-size 
+					 cell
+					 old-width
+					 this-row-height)))
                                     (output-record-set-position
-                                      cell
-                                      (+ x-offset total-width  x-alignment-adjust)
-                                      (+ y-offset total-height y-alignment-adjust)))
+				     cell
+				     (+ x-offset total-width  x-alignment-adjust)
+				     (+ y-offset total-height y-alignment-adjust)))
                                   (if row-table-p
                                       (incf total-width (+ column-width x-spacing))
                                     (incf total-height (+ row-height y-spacing))))))
@@ -387,7 +400,7 @@
                          (map-over-row-cells #'cell-mapper row))
                        (if row-table-p
                            (incf y-pos (+ this-row-height y-spacing))
-                           (incf x-pos (+ this-column-width x-spacing))))))
+			 (incf x-pos (+ this-column-width x-spacing))))))
               (declare (dynamic-extent #'row-mapper))
               (funcall table-mapper #'row-mapper table)))))))
   (tree-recompute-extent table))
@@ -499,49 +512,6 @@
                          (* (1- number) (stream-vertical-spacing stream))))))))
         (t (error "The ~:[~;~S ~]spacing specification, ~S, to ~S was invalid"
                   clause clause spacing form))))
-
-;; FORMATTING-TABLE macro is in FORMATTED-OUTPUT-DEFS
-(defun invoke-formatting-table (stream continuation
-                                &rest initargs
-                                &key x-spacing y-spacing
-                                     (record-type 'standard-table-output-record)
-                                     multiple-columns multiple-columns-x-spacing
-                                     equalize-column-widths
-                                     (move-cursor t)
-                                &allow-other-keys)
-  (declare (dynamic-extent initargs))
-  (with-keywords-removed (initargs initargs '(:record-type :x-spacing :y-spacing
-                                              :multiple-columns :multiple-columns-x-spacing
-                                              :equalize-column-widths :move-cursor))
-    (let ((table
-            (with-output-recording-options (stream :draw nil :record t)
-              (with-end-of-line-action (stream :allow)
-                (with-end-of-page-action (stream :allow)
-                  (flet ((invoke-formatting-table-1 (record)
-                           (declare (ignore record))
-                           (funcall continuation stream)))
-                    (declare (dynamic-extent #'invoke-formatting-table-1))
-                    (apply #'invoke-with-new-output-record
-                           stream #'invoke-formatting-table-1 record-type nil
-                           :x-spacing
-                             (or (process-spacing-arg stream x-spacing
-                                                      'formatting-table ':x-spacing)
-                                 (stream-string-width stream " "))
-                           :y-spacing
-                             (or (process-spacing-arg stream y-spacing
-                                                      'formatting-table ':y-spacing)
-                                 (stream-vertical-spacing stream))
-                           :equalize-column-widths equalize-column-widths
-                           initargs)))))))
-      (adjust-table-cells table stream)
-      (when multiple-columns
-        (adjust-multiple-columns table stream
-                                 (and (numberp multiple-columns) multiple-columns)
-                                 (and multiple-columns multiple-columns-x-spacing)))
-      (replay table stream)
-      (when move-cursor
-        (move-cursor-beyond-output-record stream table))
-      table)))
 
 ;; FORMATTING-CELL macro is in FORMATTED-OUTPUT-DEFS
 (defmethod invoke-formatting-cell ((stream output-protocol-mixin) continuation

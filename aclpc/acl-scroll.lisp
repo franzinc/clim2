@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.9 1999/07/19 22:25:10 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.10 2000/05/01 21:43:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -250,7 +250,7 @@
 	    (ct:csets win:scrollinfo struct
 		      cbSize (ct:sizeof win:scrollinfo)
 		      fMask win:SIF_ALL
-		      nmin 0
+		      nMin 0
 		      nMax acl-clim::*win-scroll-grain*
 		      nPage page
 		      nPos position)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gestures.lisp,v 1.28 1998/10/08 18:36:22 layer Exp $
+;; $Id: gestures.lisp,v 1.29 2000/05/01 21:43:24 layer Exp $
 
 (in-package :clim-internals)
 
@@ -147,7 +147,7 @@
   ;; This could obviously be cached as well.
   (dotimes (i (length *pointer-buttons*))
     (when (button-and-modifier-state-matches-gesture-name-p i state gesture-name)
-      (return-from modifier-state-matches-gesture-name-p T))))
+      (return-from modifier-state-matches-gesture-name-p t))))
 
 (defun event-matches-gesture-name-p (event gesture-name &optional port)
   (etypecase event

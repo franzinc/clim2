@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 1.86 1999/05/04 01:21:03 layer Exp $
+;; $Id: accept-values.lisp,v 1.87 2000/05/01 21:43:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1123,18 +1123,23 @@
 (define-accept-values-command (com-abort-avv :keystroke :abort-dialog) ()
   (abort))
 
+(define-accept-values-command (com-exit-avv-funcall-helper) ((thing t))
+  (funcall thing))
+
 (define-presentation-translator abort-or-exit-avv
     (accept-values-exit-box (command :command-table accept-values) accept-values
      :tester-definitive t               ;just like a to-command translator
      :documentation ((object stream)
                      (case object
                        (:exit (write-string "Exit" stream))
-                       (:abort (write-string "Abort" stream))))
+                       (:abort (write-string "Abort" stream))
+		       (t (write-string (princ-to-string object) stream))))
      :gesture :select)
     (object)
   (case object
     (:exit '(com-exit-avv))
-    (:abort '(com-abort-avv))))
+    (:abort '(com-abort-avv))
+    (t `(com-exit-avv-funcall-helper ,object))))
 
 
 ;;; ACCEPTING-VALUES command buttons
@@ -1277,19 +1282,6 @@
     (object)
   (list object))
 
-(defun accept-values-choose-from-sequence (stream sequence key selected-value tester
-                                           type query-identifier
-                                           select-action highlighting-function)
-  (declare (dynamic-extent select-action highlighting-function))
-  (flet ((presenter (thing stream)
-           (present thing type :stream stream)))
-    (declare (dynamic-extent #'presenter))
-    (accept-values-choose-from-sequence-1
-      stream sequence key selected-value tester
-      type query-identifier
-      select-action highlighting-function
-      'accept-values-one-of #'presenter)))
-
 (defun accept-values-choose-from-sequence-1 (stream sequence key selected-value tester
                                              type query-identifier
                                              select-action highlighting-function
@@ -1323,6 +1315,19 @@
                                     :initial-spacing nil)
         (doseq (object sequence)
           (print-choice object stream))))))
+
+(defun accept-values-choose-from-sequence (stream sequence key selected-value tester
+                                           type query-identifier
+                                           select-action highlighting-function)
+  (declare (dynamic-extent select-action highlighting-function))
+  (flet ((presenter (thing stream)
+           (present thing type :stream stream)))
+    (declare (dynamic-extent #'presenter))
+    (accept-values-choose-from-sequence-1
+      stream sequence key selected-value tester
+      type query-identifier
+      select-action highlighting-function
+      'accept-values-one-of #'presenter)))
 
 (define-accept-values-command com-avv-choose-some-of
     ((choice 'accept-values-some-of))

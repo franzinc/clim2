@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.10 1999/07/19 22:25:10 layer Exp $
+;; $Id: acl-prel.lisp,v 1.11 2000/05/01 21:43:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -63,14 +63,14 @@
 		win:WS_TABSTOP
 		win:CBS_DROPDOWNLIST)
 	       0 0 0 0
-	       parent (ct::null-handle win::hmenu)
+	       parent 0
 	       *hinst* (symbol-name (gensym)))))))
-    (if (ct:null-handle-p hwnd hwnd)
+    (if (zerop hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
-	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
+	(win:SetWindowPos hwnd 0 
 			  left top width height
 			  0
 			  ;;#.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)
@@ -132,21 +132,19 @@
 				  style
 				  0 0 0 0
 				  parent
-				  (ct::null-handle win::hmenu)
+				  0
 				  *hinst*
 				  (symbol-name (gensym)))))))
-    (if (ct:null-handle-p hwnd hwnd)
+    (if (zerop hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
-	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
+	(win:SetWindowPos hwnd 0 
 			  left top width height
 			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
 	(let* ((index -1)
 	       (item-name "")
-	       ;;(cstr (ct::callocate (:char *) :size 256))
-	       ;;(subsize 0)
 	       )
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
@@ -199,14 +197,14 @@
 		       win::WS_CLIPSIBLINGS) ; style
 	       0 0 0 0			; x, y, width, height
 	       parent
-	       (ct:null-handle win::hmenu)
+	       0
 	       *hinst*
 	       (symbol-name (gensym)))))))
-    (if (ct:null-handle-p hwnd hwnd)
+    (if (zerop hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the position
-      (win::SetWindowPos hwnd (ct:null-handle hwnd) 
+      (win::SetWindowPos hwnd 0 
 			 left top width height
 			 #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)))
     hwnd))
@@ -243,15 +241,15 @@
 					  win:WS_CLIPSIBLINGS) ; style
 				  0 0 0 0
 				  parent
-				  (ct::null-handle win::hmenu)
+				  0
 				  *hinst*
 				  (symbol-name (gensym)))))))
-    (if (ct:null-handle-p hwnd hwnd)
+    (if (zerop hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
-	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
+	(win:SetWindowPos hwnd 0
 			  left top width height
 			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
 	(win:SendMessage hwnd win:BM_SETCHECK (if value 1 0) 0)))
@@ -290,10 +288,10 @@
 		       win:WS_CLIPSIBLINGS) ; style
 	       0 0 0 0
 	       parent
-	       (ct::null-handle win::hmenu)
+	       0
 	       *hinst*
 	       (symbol-name (gensym)))))))
-    (if (ct:null-handle-p hwnd hwnd)
+    (if (zerop hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
@@ -310,7 +308,7 @@
 	  (win:SetWindowLong hwnd
 			     win:GWL_WNDPROC
 			     clim-ctrl-proc-address))
-	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
+	(win:SetWindowPos hwnd 0 
 		      left top width height
 		      #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))))
     hwnd))
@@ -372,18 +370,14 @@
   ;;
   ;; Create nondiscardable Device Dependent Bitmap.
   ;; The Windows docs suggest we should be using device independent bitmaps.
-  (let* ((dc (win:GetDC 0))
-	 (texture-handle
-	  (win:CreateDIBitmap
-	   dc
-	   bitmapinfo 
-	   win:CBM_INIT			; initialize bitmap bits
-	   pixel-map
-	   bitmapinfo 
-	   win:DIB_RGB_COLORS)))
-    ;; I guess we don't want to release the device context
-    ;; until we destroy the DIBitmap.
-    ;;(unless (zerop dc) (win:ReleaseDC 0 dc))
+  (let ((texture-handle
+	 (win:CreateDIBitmap
+	  device-context
+	  bitmapinfo 
+	  win:CBM_INIT			; initialize bitmap bits
+	  pixel-map
+	  bitmapinfo 
+	  win:DIB_RGB_COLORS)))
     (when (zerop texture-handle)
       ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
       ;;
@@ -415,15 +409,16 @@
 	       (malloc-texture-array
 		(ff:allocate-fobject `(:array :char ,image-size) :c)))
 	  (unless (zerop malloc-texture-array)
-	    (memcpy malloc-texture-array pixel-map image-size))
-	  (setq texture-handle
-	    (win:CreateDIBitmap
-	     device-context
-	     bitmapinfo 
-	     win:CBM_INIT		; initialize bitmap bits
-	     pixel-map
-	     bitmapinfo 
-	     win:DIB_RGB_COLORS)))))
+	    (memcpy malloc-texture-array pixel-map image-size)
+	    (setq texture-handle
+	      (win:CreateDIBitmap
+	       device-context
+	       bitmapinfo 
+	       win:CBM_INIT		; initialize bitmap bits
+	       malloc-texture-array
+	       bitmapinfo 
+	       win:DIB_RGB_COLORS))
+	    (ff:free-fobject malloc-texture-array)))))
     (when (zerop texture-handle)
       (check-last-error "CreateDIBitmap"))
     texture-handle))
@@ -450,7 +445,7 @@
 	 ;; in the system's message table.  Where are they?  If we had
 	 ;; a handle to the relevant module, we could specify that
 	 ;; to FormatMessage in order to search a module's message table.
-	 (chars (formatmessage flags
+	 (chars (FormatMessage flags
 			       0 errno 0 
 			       pointer 0 0)))
     (values (if (plusp chars)
@@ -487,7 +482,7 @@
 (defun lisp->clipboard (object &key (printer #'prin1-to-string)
 				    (format win:CF_TEXT))
   ;; Can't open clipboard if somebody else has it open.
-  (if (win:OpenClipboard (ct:null-handle hwnd))
+  (if (win:OpenClipboard 0)
       (unwind-protect
 	  (let* ((string 
 		   (let ((*print-readably* t))
@@ -514,7 +509,7 @@
 (defun clipboard->lisp (&key (parser #'read-from-string)
 			     (format win:CF_TEXT))
   ;; Can't open clipboard if somebody else has it open.
-  (if (win:OpenClipboard (ct:null-handle hwnd))
+  (if (win:OpenClipboard 0)
       (unwind-protect
 	  (let ((hmem (win:GetClipboardData format))
 		(string nil))

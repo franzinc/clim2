@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-defs.lisp,v 1.14 1998/08/06 23:17:44 layer Exp $
+;; $Id: xlib-defs.lisp,v 1.15 2000/05/01 21:43:41 layer Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -457,156 +457,156 @@
 
 ;; X Cursor Constants from cursorfont.h
 
-(def-exported-constant XC-X-cursor 0) 		      ;; #define XC_X_cursor 0
-(def-exported-constant XC-arrow 2) 		      ;; #define XC_arrow 2
-(def-exported-constant XC-based-arrow-down 4)         ;; #define XC_based_arrow_down 4
-(def-exported-constant XC-based-arrow-up 6)           ;; #define XC_based_arrow_up 6
-(def-exported-constant XC-boat 8)                     ;; #define XC_boat 8
-(def-exported-constant XC-bogosity 10)                ;; #define XC_bogosity 10
-(def-exported-constant XC-bottom-left-corner 12)      ;; #define XC_bottom_left_corner 12
-(def-exported-constant XC-bottom-right-corner 14)     ;; #define XC_bottom_right_corner 14
-(def-exported-constant XC-bottom-side 16)             ;; #define XC_bottom_side 16
-(def-exported-constant XC-bottom-tee 18)              ;; #define XC_bottom_tee 18
-(def-exported-constant XC-box-spiral 20)              ;; #define XC_box_spiral 20
-(def-exported-constant XC-center-ptr 22)              ;; #define XC_center_ptr 22
-(def-exported-constant XC-circle 24)                  ;; #define XC_circle 24
-(def-exported-constant XC-clock 26)                   ;; #define XC_clock 26
-(def-exported-constant XC-coffee-mug 28)              ;; #define XC_coffee_mug 28
-(def-exported-constant XC-cross 30)                   ;; #define XC_cross 30
-(def-exported-constant XC-cross-reverse 32)           ;; #define XC_cross_reverse 32
-(def-exported-constant XC-crosshair 34)               ;; #define XC_crosshair 34
-(def-exported-constant XC-diamond-cross 36)           ;; #define XC_diamond_cross 36
-(def-exported-constant XC-dot 38)                     ;; #define XC_dot 38
-(def-exported-constant XC-dotbox 40)                  ;; #define XC_dotbox 40
-(def-exported-constant XC-double-arrow 42)            ;; #define XC_double_arrow 42
-(def-exported-constant XC-draft-large 44)             ;; #define XC_draft_large 44
-(def-exported-constant XC-draft-small 46)             ;; #define XC_draft_small 46
-(def-exported-constant XC-draped-box 48)              ;; #define XC_draped_box 48
-(def-exported-constant XC-exchange 50)                ;; #define XC_exchange 50
-(def-exported-constant XC-fleur 52)                   ;; #define XC_fleur 52
-(def-exported-constant XC-gobbler 54)                 ;; #define XC_gobbler 54
-(def-exported-constant XC-gumby 56)                   ;; #define XC_gumby 56
-(def-exported-constant XC-hand1 58)                   ;; #define XC_hand1 58
-(def-exported-constant XC-hand2 60)                   ;; #define XC_hand2 60
-(def-exported-constant XC-heart 62)                   ;; #define XC_heart 62
-(def-exported-constant XC-icon 64)                    ;; #define XC_icon 64
-(def-exported-constant XC-iron-cross 66)              ;; #define XC_iron_cross 66
-(def-exported-constant XC-left-ptr 68)                ;; #define XC_left_ptr 68
-(def-exported-constant XC-left-side 70)               ;; #define XC_left_side 70
-(def-exported-constant XC-left-tee 72)                ;; #define XC_left_tee 72
-(def-exported-constant XC-leftbutton 74)              ;; #define XC_leftbutton 74
-(def-exported-constant XC-ll-angle 76)                ;; #define XC_ll_angle 76
-(def-exported-constant XC-lr-angle 78)                ;; #define XC_lr_angle 78
-(def-exported-constant XC-man 80)                     ;; #define XC_man 80
-(def-exported-constant XC-middlebutton 82)            ;; #define XC_middlebutton 82
-(def-exported-constant XC-mouse 84)                   ;; #define XC_mouse 84
-(def-exported-constant XC-pencil 86)                  ;; #define XC_pencil 86
-(def-exported-constant XC-pirate 88)                  ;; #define XC_pirate 88
-(def-exported-constant XC-plus 90)                    ;; #define XC_plus 90
-(def-exported-constant XC-question-arrow 92)          ;; #define XC_question_arrow 92
-(def-exported-constant XC-right-ptr 94)               ;; #define XC_right_ptr 94
-(def-exported-constant XC-right-side 96)              ;; #define XC_right_side 96
-(def-exported-constant XC-right-tee 98)               ;; #define XC_right_tee 98
-(def-exported-constant XC-rightbutton 100)            ;; #define XC_rightbutton 100
-(def-exported-constant XC-rtl-logo 102)               ;; #define XC_rtl_logo 102
-(def-exported-constant XC-sailboat 104)               ;; #define XC_sailboat 104
-(def-exported-constant XC-sb-down-arrow 106)          ;; #define XC_sb_down_arrow 106
-(def-exported-constant XC-sb-h-double-arrow 108)      ;; #define XC_sb_h_double_arrow 108
-(def-exported-constant XC-sb-left-arrow 110)          ;; #define XC_sb_left_arrow 110
-(def-exported-constant XC-sb-right-arrow 112)         ;; #define XC_sb_right_arrow 112
-(def-exported-constant XC-sb-up-arrow 114)            ;; #define XC_sb_up_arrow 114
-(def-exported-constant XC-sb-v-double-arrow 116)      ;; #define XC_sb_v_double_arrow 116
-(def-exported-constant XC-shuttle 118)                ;; #define XC_shuttle 118
-(def-exported-constant XC-sizing 120)                 ;; #define XC_sizing 120
-(def-exported-constant XC-spider 122)                 ;; #define XC_spider 122
-(def-exported-constant XC-spraycan 124)               ;; #define XC_spraycan 124
-(def-exported-constant XC-star 126)                   ;; #define XC_star 126
-(def-exported-constant XC-target 128)                 ;; #define XC_target 128
-(def-exported-constant XC-tcross 130)                 ;; #define XC_tcross 130
-(def-exported-constant XC-top-left-arrow 132)         ;; #define XC_top_left_arrow 132
-(def-exported-constant XC-top-left-corner 134)        ;; #define XC_top_left_corner 134
-(def-exported-constant XC-top-right-corner 136)       ;; #define XC_top_right_corner 136
-(def-exported-constant XC-top-side 138)               ;; #define XC_top_side 138
-(def-exported-constant XC-top-tee 140)                ;; #define XC_top_tee 140
-(def-exported-constant XC-trek 142)                   ;; #define XC_trek 142
-(def-exported-constant XC-ul-angle 144)               ;; #define XC_ul_angle 144
-(def-exported-constant XC-umbrella 146)               ;; #define XC_umbrella 146
-(def-exported-constant XC-ur-angle 148)               ;; #define XC_ur_angle 148
-(def-exported-constant XC-watch 150)                  ;; #define XC_watch 150
-(def-exported-constant XC-xterm 152)                  ;; #define XC_xterm 152
+(def-exported-constant xc-x-cursor 0) 		      ;; #define XC_X_cursor 0
+(def-exported-constant xc-arrow 2) 		      ;; #define XC_arrow 2
+(def-exported-constant xc-based-arrow-down 4)         ;; #define XC_based_arrow_down 4
+(def-exported-constant xc-based-arrow-up 6)           ;; #define XC_based_arrow_up 6
+(def-exported-constant xc-boat 8)                     ;; #define XC_boat 8
+(def-exported-constant xc-bogosity 10)                ;; #define XC_bogosity 10
+(def-exported-constant xc-bottom-left-corner 12)      ;; #define XC_bottom_left_corner 12
+(def-exported-constant xc-bottom-right-corner 14)     ;; #define XC_bottom_right_corner 14
+(def-exported-constant xc-bottom-side 16)             ;; #define XC_bottom_side 16
+(def-exported-constant xc-bottom-tee 18)              ;; #define XC_bottom_tee 18
+(def-exported-constant xc-box-spiral 20)              ;; #define XC_box_spiral 20
+(def-exported-constant xc-center-ptr 22)              ;; #define XC_center_ptr 22
+(def-exported-constant xc-circle 24)                  ;; #define XC_circle 24
+(def-exported-constant xc-clock 26)                   ;; #define XC_clock 26
+(def-exported-constant xc-coffee-mug 28)              ;; #define XC_coffee_mug 28
+(def-exported-constant xc-cross 30)                   ;; #define XC_cross 30
+(def-exported-constant xc-cross-reverse 32)           ;; #define XC_cross_reverse 32
+(def-exported-constant xc-crosshair 34)               ;; #define XC_crosshair 34
+(def-exported-constant xc-diamond-cross 36)           ;; #define XC_diamond_cross 36
+(def-exported-constant xc-dot 38)                     ;; #define XC_dot 38
+(def-exported-constant xc-dotbox 40)                  ;; #define XC_dotbox 40
+(def-exported-constant xc-double-arrow 42)            ;; #define XC_double_arrow 42
+(def-exported-constant xc-draft-large 44)             ;; #define XC_draft_large 44
+(def-exported-constant xc-draft-small 46)             ;; #define XC_draft_small 46
+(def-exported-constant xc-draped-box 48)              ;; #define XC_draped_box 48
+(def-exported-constant xc-exchange 50)                ;; #define XC_exchange 50
+(def-exported-constant xc-fleur 52)                   ;; #define XC_fleur 52
+(def-exported-constant xc-gobbler 54)                 ;; #define XC_gobbler 54
+(def-exported-constant xc-gumby 56)                   ;; #define XC_gumby 56
+(def-exported-constant xc-hand1 58)                   ;; #define XC_hand1 58
+(def-exported-constant xc-hand2 60)                   ;; #define XC_hand2 60
+(def-exported-constant xc-heart 62)                   ;; #define XC_heart 62
+(def-exported-constant xc-icon 64)                    ;; #define XC_icon 64
+(def-exported-constant xc-iron-cross 66)              ;; #define XC_iron_cross 66
+(def-exported-constant xc-left-ptr 68)                ;; #define XC_left_ptr 68
+(def-exported-constant xc-left-side 70)               ;; #define XC_left_side 70
+(def-exported-constant xc-left-tee 72)                ;; #define XC_left_tee 72
+(def-exported-constant xc-leftbutton 74)              ;; #define XC_leftbutton 74
+(def-exported-constant xc-ll-angle 76)                ;; #define XC_ll_angle 76
+(def-exported-constant xc-lr-angle 78)                ;; #define XC_lr_angle 78
+(def-exported-constant xc-man 80)                     ;; #define XC_man 80
+(def-exported-constant xc-middlebutton 82)            ;; #define XC_middlebutton 82
+(def-exported-constant xc-mouse 84)                   ;; #define XC_mouse 84
+(def-exported-constant xc-pencil 86)                  ;; #define XC_pencil 86
+(def-exported-constant xc-pirate 88)                  ;; #define XC_pirate 88
+(def-exported-constant xc-plus 90)                    ;; #define XC_plus 90
+(def-exported-constant xc-question-arrow 92)          ;; #define XC_question_arrow 92
+(def-exported-constant xc-right-ptr 94)               ;; #define XC_right_ptr 94
+(def-exported-constant xc-right-side 96)              ;; #define XC_right_side 96
+(def-exported-constant xc-right-tee 98)               ;; #define XC_right_tee 98
+(def-exported-constant xc-rightbutton 100)            ;; #define XC_rightbutton 100
+(def-exported-constant xc-rtl-logo 102)               ;; #define XC_rtl_logo 102
+(def-exported-constant xc-sailboat 104)               ;; #define XC_sailboat 104
+(def-exported-constant xc-sb-down-arrow 106)          ;; #define XC_sb_down_arrow 106
+(def-exported-constant xc-sb-h-double-arrow 108)      ;; #define XC_sb_h_double_arrow 108
+(def-exported-constant xc-sb-left-arrow 110)          ;; #define XC_sb_left_arrow 110
+(def-exported-constant xc-sb-right-arrow 112)         ;; #define XC_sb_right_arrow 112
+(def-exported-constant xc-sb-up-arrow 114)            ;; #define XC_sb_up_arrow 114
+(def-exported-constant xc-sb-v-double-arrow 116)      ;; #define XC_sb_v_double_arrow 116
+(def-exported-constant xc-shuttle 118)                ;; #define XC_shuttle 118
+(def-exported-constant xc-sizing 120)                 ;; #define XC_sizing 120
+(def-exported-constant xc-spider 122)                 ;; #define XC_spider 122
+(def-exported-constant xc-spraycan 124)               ;; #define XC_spraycan 124
+(def-exported-constant xc-star 126)                   ;; #define XC_star 126
+(def-exported-constant xc-target 128)                 ;; #define XC_target 128
+(def-exported-constant xc-tcross 130)                 ;; #define XC_tcross 130
+(def-exported-constant xc-top-left-arrow 132)         ;; #define XC_top_left_arrow 132
+(def-exported-constant xc-top-left-corner 134)        ;; #define XC_top_left_corner 134
+(def-exported-constant xc-top-right-corner 136)       ;; #define XC_top_right_corner 136
+(def-exported-constant xc-top-side 138)               ;; #define XC_top_side 138
+(def-exported-constant xc-top-tee 140)                ;; #define XC_top_tee 140
+(def-exported-constant xc-trek 142)                   ;; #define XC_trek 142
+(def-exported-constant xc-ul-angle 144)               ;; #define XC_ul_angle 144
+(def-exported-constant xc-umbrella 146)               ;; #define XC_umbrella 146
+(def-exported-constant xc-ur-angle 148)               ;; #define XC_ur_angle 148
+(def-exported-constant xc-watch 150)                  ;; #define XC_watch 150
+(def-exported-constant xc-xterm 152)                  ;; #define XC_xterm 152
 
 
 ;; Predefined X Atom Constants from Xatom.h
 
-(def-exported-constant XA-primary 1)                  ;; #define XA_PRIMARY ((Atom) 1)
-(def-exported-constant XA-secondary 2)                ;; #define XA_SECONDARY ((Atom) 2)
-(def-exported-constant XA-arc 3)                      ;; #define XA_ARC ((Atom) 3)
-(def-exported-constant XA-atom 4)                     ;; #define XA_ATOM ((Atom) 4)
-(def-exported-constant XA-bitmap 5)                   ;; #define XA_BITMAP ((Atom) 5)
-(def-exported-constant XA-cardinal 6)                 ;; #define XA_CARDINAL ((Atom) 6)
-(def-exported-constant XA-colormap 7)                 ;; #define XA_COLORMAP ((Atom) 7)
-(def-exported-constant XA-cursor 8)                   ;; #define XA_CURSOR ((Atom) 8)
-(def-exported-constant XA-cut-buffer0 9)              ;; #define XA_CUT_BUFFER0 ((Atom) 9)
-(def-exported-constant XA-cut-buffer1 10)             ;; #define XA_CUT_BUFFER1 ((Atom) 10)
-(def-exported-constant XA-cut-buffer2 11)             ;; #define XA_CUT_BUFFER2 ((Atom) 11)
-(def-exported-constant XA-cut-buffer3 12)             ;; #define XA_CUT_BUFFER3 ((Atom) 12)
-(def-exported-constant XA-cut-buffer4 13)             ;; #define XA_CUT_BUFFER4 ((Atom) 13)
-(def-exported-constant XA-cut-buffer5 14)             ;; #define XA_CUT_BUFFER5 ((Atom) 14)
-(def-exported-constant XA-cut-buffer6 15)             ;; #define XA_CUT_BUFFER6 ((Atom) 15)
-(def-exported-constant XA-cut-buffer7 16)             ;; #define XA_CUT_BUFFER7 ((Atom) 16)
-(def-exported-constant XA-drawable 17)                ;; #define XA_DRAWABLE ((Atom) 17)
-(def-exported-constant XA-font 18)                    ;; #define XA_FONT ((Atom) 18)
-(def-exported-constant XA-integer 19)                 ;; #define XA_INTEGER ((Atom) 19)
-(def-exported-constant XA-pixmap 20)                  ;; #define XA_PIXMAP ((Atom) 20)
-(def-exported-constant XA-point 21)                   ;; #define XA_POINT ((Atom) 21)
-(def-exported-constant XA-rectangle 22)               ;; #define XA_RECTANGLE ((Atom) 22)
-(def-exported-constant XA-resource-manager 23)        ;; #define XA_RESOURCE_MANAGER ((Atom) 23)
-(def-exported-constant XA-rgb-color-map 24)           ;; #define XA_RGB_COLOR_MAP ((Atom) 24)
-(def-exported-constant XA-rgb-best-map 25)            ;; #define XA_RGB_BEST_MAP ((Atom) 25)
-(def-exported-constant XA-rgb-blue-map 26)            ;; #define XA_RGB_BLUE_MAP ((Atom) 26)
-(def-exported-constant XA-rgb-default-map 27)         ;; #define XA_RGB_DEFAULT_MAP ((Atom) 27)
-(def-exported-constant XA-rgb-gray-map 28)            ;; #define XA_RGB_GRAY_MAP ((Atom) 28)
-(def-exported-constant XA-rgb-green-map 29)           ;; #define XA_RGB_GREEN_MAP ((Atom) 29)
-(def-exported-constant XA-rgb-red-map 30)             ;; #define XA_RGB_RED_MAP ((Atom) 30)
-(def-exported-constant XA-string 31)                  ;; #define XA_STRING ((Atom) 31)
-(def-exported-constant XA-visualid 32)                ;; #define XA_VISUALID ((Atom) 32)
-(def-exported-constant XA-window 33)                  ;; #define XA_WINDOW ((Atom) 33)
-(def-exported-constant XA-wm-command 34)              ;; #define XA_WM_COMMAND ((Atom) 34)
-(def-exported-constant XA-wm-hints 35)                ;; #define XA_WM_HINTS ((Atom) 35)
-(def-exported-constant XA-wm-client-machine 36)       ;; #define XA_WM_CLIENT_MACHINE ((Atom) 36)
-(def-exported-constant XA-wm-icon-name 37)            ;; #define XA_WM_ICON_NAME ((Atom) 37)
-(def-exported-constant XA-wm-icon-size 38)            ;; #define XA_WM_ICON_SIZE ((Atom) 38)
-(def-exported-constant XA-wm-name 39)                 ;; #define XA_WM_NAME ((Atom) 39)
-(def-exported-constant XA-wm-normal-hints 40)         ;; #define XA_WM_NORMAL_HINTS ((Atom) 40)
-(def-exported-constant XA-wm-size-hints 41)           ;; #define XA_WM_SIZE_HINTS ((Atom) 41)
-(def-exported-constant XA-wm-zoom-hints 42)           ;; #define XA_WM_ZOOM_HINTS ((Atom) 42)
-(def-exported-constant XA-min-space 43)               ;; #define XA_MIN_SPACE ((Atom) 43)
-(def-exported-constant XA-norm-space 44)              ;; #define XA_NORM_SPACE ((Atom) 44)
-(def-exported-constant XA-max-space 45)               ;; #define XA_MAX_SPACE ((Atom) 45)
-(def-exported-constant XA-end-space 46)               ;; #define XA_END_SPACE ((Atom) 46)
-(def-exported-constant XA-superscript-x 47)           ;; #define XA_SUPERSCRIPT_X ((Atom) 47)
-(def-exported-constant XA-superscript-y 48)           ;; #define XA_SUPERSCRIPT_Y ((Atom) 48)
-(def-exported-constant XA-subscript-x 49)             ;; #define XA_SUBSCRIPT_X ((Atom) 49)
-(def-exported-constant XA-subscript-y 50)             ;; #define XA_SUBSCRIPT_Y ((Atom) 50)
-(def-exported-constant XA-underline-position 51)      ;; #define XA_UNDERLINE_POSITION ((Atom) 51)
-(def-exported-constant XA-underline-thickness 52)     ;; #define XA_UNDERLINE_THICKNESS ((Atom) 52)
-(def-exported-constant XA-strikeout-ascent 53)        ;; #define XA_STRIKEOUT_ASCENT ((Atom) 53)
-(def-exported-constant XA-strikeout-descent 54)       ;; #define XA_STRIKEOUT_DESCENT ((Atom) 54)
-(def-exported-constant XA-italic-angle 55)            ;; #define XA_ITALIC_ANGLE ((Atom) 55)
-(def-exported-constant XA-x-height 56)                ;; #define XA_X_HEIGHT ((Atom) 56)
-(def-exported-constant XA-quad-width 57)              ;; #define XA_QUAD_WIDTH ((Atom) 57)
-(def-exported-constant XA-weight 58)                  ;; #define XA_WEIGHT ((Atom) 58)
-(def-exported-constant XA-point-size 59)              ;; #define XA_POINT_SIZE ((Atom) 59)
-(def-exported-constant XA-resolution 60)              ;; #define XA_RESOLUTION ((Atom) 60)
-(def-exported-constant XA-copyright 61)               ;; #define XA_COPYRIGHT ((Atom) 61)
-(def-exported-constant XA-notice 62)                  ;; #define XA_NOTICE ((Atom) 62)
-(def-exported-constant XA-font-name 63)               ;; #define XA_FONT_NAME ((Atom) 63)
-(def-exported-constant XA-family-name 64)             ;; #define XA_FAMILY_NAME ((Atom) 64)
-(def-exported-constant XA-full-name 65)               ;; #define XA_FULL_NAME ((Atom) 65)
-(def-exported-constant XA-cap-height 66)              ;; #define XA_CAP_HEIGHT ((Atom) 66)
-(def-exported-constant XA-wm-class 67)                ;; #define XA_WM_CLASS ((Atom) 67)
-(def-exported-constant XA-wm-transient-for 68)        ;; #define XA_WM_TRANSIENT_FOR ((Atom) 68)
-(def-exported-constant XA-last-predefined 68)         ;; #define XA_LAST_PREDEFINED ((Atom) 68)
+(def-exported-constant xa-primary 1)                  ;; #define XA_PRIMARY ((Atom) 1)
+(def-exported-constant xa-secondary 2)                ;; #define XA_SECONDARY ((Atom) 2)
+(def-exported-constant xa-arc 3)                      ;; #define XA_ARC ((Atom) 3)
+(def-exported-constant xa-atom 4)                     ;; #define XA_ATOM ((Atom) 4)
+(def-exported-constant xa-bitmap 5)                   ;; #define XA_BITMAP ((Atom) 5)
+(def-exported-constant xa-cardinal 6)                 ;; #define XA_CARDINAL ((Atom) 6)
+(def-exported-constant xa-colormap 7)                 ;; #define XA_COLORMAP ((Atom) 7)
+(def-exported-constant xa-cursor 8)                   ;; #define XA_CURSOR ((Atom) 8)
+(def-exported-constant xa-cut-buffer0 9)              ;; #define XA_CUT_BUFFER0 ((Atom) 9)
+(def-exported-constant xa-cut-buffer1 10)             ;; #define XA_CUT_BUFFER1 ((Atom) 10)
+(def-exported-constant xa-cut-buffer2 11)             ;; #define XA_CUT_BUFFER2 ((Atom) 11)
+(def-exported-constant xa-cut-buffer3 12)             ;; #define XA_CUT_BUFFER3 ((Atom) 12)
+(def-exported-constant xa-cut-buffer4 13)             ;; #define XA_CUT_BUFFER4 ((Atom) 13)
+(def-exported-constant xa-cut-buffer5 14)             ;; #define XA_CUT_BUFFER5 ((Atom) 14)
+(def-exported-constant xa-cut-buffer6 15)             ;; #define XA_CUT_BUFFER6 ((Atom) 15)
+(def-exported-constant xa-cut-buffer7 16)             ;; #define XA_CUT_BUFFER7 ((Atom) 16)
+(def-exported-constant xa-drawable 17)                ;; #define XA_DRAWABLE ((Atom) 17)
+(def-exported-constant xa-font 18)                    ;; #define XA_FONT ((Atom) 18)
+(def-exported-constant xa-integer 19)                 ;; #define XA_INTEGER ((Atom) 19)
+(def-exported-constant xa-pixmap 20)                  ;; #define XA_PIXMAP ((Atom) 20)
+(def-exported-constant xa-point 21)                   ;; #define XA_POINT ((Atom) 21)
+(def-exported-constant xa-rectangle 22)               ;; #define XA_RECTANGLE ((Atom) 22)
+(def-exported-constant xa-resource-manager 23)        ;; #define XA_RESOURCE_MANAGER ((Atom) 23)
+(def-exported-constant xa-rgb-color-map 24)           ;; #define XA_RGB_COLOR_MAP ((Atom) 24)
+(def-exported-constant xa-rgb-best-map 25)            ;; #define XA_RGB_BEST_MAP ((Atom) 25)
+(def-exported-constant xa-rgb-blue-map 26)            ;; #define XA_RGB_BLUE_MAP ((Atom) 26)
+(def-exported-constant xa-rgb-default-map 27)         ;; #define XA_RGB_DEFAULT_MAP ((Atom) 27)
+(def-exported-constant xa-rgb-gray-map 28)            ;; #define XA_RGB_GRAY_MAP ((Atom) 28)
+(def-exported-constant xa-rgb-green-map 29)           ;; #define XA_RGB_GREEN_MAP ((Atom) 29)
+(def-exported-constant xa-rgb-red-map 30)             ;; #define XA_RGB_RED_MAP ((Atom) 30)
+(def-exported-constant xa-string 31)                  ;; #define XA_STRING ((Atom) 31)
+(def-exported-constant xa-visualid 32)                ;; #define XA_VISUALID ((Atom) 32)
+(def-exported-constant xa-window 33)                  ;; #define XA_WINDOW ((Atom) 33)
+(def-exported-constant xa-wm-command 34)              ;; #define XA_WM_COMMAND ((Atom) 34)
+(def-exported-constant xa-wm-hints 35)                ;; #define XA_WM_HINTS ((Atom) 35)
+(def-exported-constant xa-wm-client-machine 36)       ;; #define XA_WM_CLIENT_MACHINE ((Atom) 36)
+(def-exported-constant xa-wm-icon-name 37)            ;; #define XA_WM_ICON_NAME ((Atom) 37)
+(def-exported-constant xa-wm-icon-size 38)            ;; #define XA_WM_ICON_SIZE ((Atom) 38)
+(def-exported-constant xa-wm-name 39)                 ;; #define XA_WM_NAME ((Atom) 39)
+(def-exported-constant xa-wm-normal-hints 40)         ;; #define XA_WM_NORMAL_HINTS ((Atom) 40)
+(def-exported-constant xa-wm-size-hints 41)           ;; #define XA_WM_SIZE_HINTS ((Atom) 41)
+(def-exported-constant xa-wm-zoom-hints 42)           ;; #define XA_WM_ZOOM_HINTS ((Atom) 42)
+(def-exported-constant xa-min-space 43)               ;; #define XA_MIN_SPACE ((Atom) 43)
+(def-exported-constant xa-norm-space 44)              ;; #define XA_NORM_SPACE ((Atom) 44)
+(def-exported-constant xa-max-space 45)               ;; #define XA_MAX_SPACE ((Atom) 45)
+(def-exported-constant xa-end-space 46)               ;; #define XA_END_SPACE ((Atom) 46)
+(def-exported-constant xa-superscript-x 47)           ;; #define XA_SUPERSCRIPT_X ((Atom) 47)
+(def-exported-constant xa-superscript-y 48)           ;; #define XA_SUPERSCRIPT_Y ((Atom) 48)
+(def-exported-constant xa-subscript-x 49)             ;; #define XA_SUBSCRIPT_X ((Atom) 49)
+(def-exported-constant xa-subscript-y 50)             ;; #define XA_SUBSCRIPT_Y ((Atom) 50)
+(def-exported-constant xa-underline-position 51)      ;; #define XA_UNDERLINE_POSITION ((Atom) 51)
+(def-exported-constant xa-underline-thickness 52)     ;; #define XA_UNDERLINE_THICKNESS ((Atom) 52)
+(def-exported-constant xa-strikeout-ascent 53)        ;; #define XA_STRIKEOUT_ASCENT ((Atom) 53)
+(def-exported-constant xa-strikeout-descent 54)       ;; #define XA_STRIKEOUT_DESCENT ((Atom) 54)
+(def-exported-constant xa-italic-angle 55)            ;; #define XA_ITALIC_ANGLE ((Atom) 55)
+(def-exported-constant xa-x-height 56)                ;; #define XA_X_HEIGHT ((Atom) 56)
+(def-exported-constant xa-quad-width 57)              ;; #define XA_QUAD_WIDTH ((Atom) 57)
+(def-exported-constant xa-weight 58)                  ;; #define XA_WEIGHT ((Atom) 58)
+(def-exported-constant xa-point-size 59)              ;; #define XA_POINT_SIZE ((Atom) 59)
+(def-exported-constant xa-resolution 60)              ;; #define XA_RESOLUTION ((Atom) 60)
+(def-exported-constant xa-copyright 61)               ;; #define XA_COPYRIGHT ((Atom) 61)
+(def-exported-constant xa-notice 62)                  ;; #define XA_NOTICE ((Atom) 62)
+(def-exported-constant xa-font-name 63)               ;; #define XA_FONT_NAME ((Atom) 63)
+(def-exported-constant xa-family-name 64)             ;; #define XA_FAMILY_NAME ((Atom) 64)
+(def-exported-constant xa-full-name 65)               ;; #define XA_FULL_NAME ((Atom) 65)
+(def-exported-constant xa-cap-height 66)              ;; #define XA_CAP_HEIGHT ((Atom) 66)
+(def-exported-constant xa-wm-class 67)                ;; #define XA_WM_CLASS ((Atom) 67)
+(def-exported-constant xa-wm-transient-for 68)        ;; #define XA_WM_TRANSIENT_FOR ((Atom) 68)
+(def-exported-constant xa-last-predefined 68)         ;; #define XA_LAST_PREDEFINED ((Atom) 68)
 
 
 (def-exported-foreign-synonym-type xid unsigned-long)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.5 1999/02/25 08:23:27 layer Exp $
+;; $Id: sysdcl.lisp,v 1.6 2000/05/01 21:43:20 layer Exp $
 
 (in-package :cl-user)
 
@@ -37,4 +37,4 @@
    "acl-frames"
    "acl-widget"
    "acl-scroll"
-   ("clim2:;utils;last")))
+   last))

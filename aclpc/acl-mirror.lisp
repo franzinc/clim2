@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.10 1999/07/19 22:25:10 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.11 2000/05/01 21:43:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -240,13 +240,22 @@
   ;;
   ;; Called by note-sheet-degrafted, which is
   ;; called by (setf port) which is called by sheet-disown-child.
-  ;; This is applied to frame panes the frame layout changes, or
-  ;; by disown-frame, among other times.  It is apparently never
-  ;; called on a top-level-sheet, presumably in case you want
-  ;; to reuse the associated frame.
+  ;; This is applied to frame panes the frame layout changes and
+  ;; when frame-exit occurs.
+  ;;
+  ;; It is not called on the top-level-sheet upon frame-exit,
+  ;; presumably in case you want to reuse the associated frame.
+  ;; It is called on the top-level-sheet when you call disown-frame
+  ;; or destroy-frame.
   (let ((mirror (sheet-direct-mirror sheet)))
     (when mirror 
+      (let ((menuhand (win:GetMenu mirror)))
+	(when (and menuhand (plusp menuhand))
+	  (delete-menu-bar nil menuhand nil)))
       (win:DestroyWindow mirror)
+      ;; DestroyWindow is supposed to destroy everything, including
+      ;; the window's menu and the window's child windows.  It is
+      ;; also supposed to flush the thread message queue.
       (setf (sheet-direct-mirror sheet) nil))))
 
 (defvar *in-layout-avp* nil)
@@ -255,9 +264,8 @@
   (let ((window (sheet-mirror sheet)))
     (unless *in-layout-avp*
       (win:ShowWindow window win:SW_SHOW) ; returns NIL if it was already visible.
-      ;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
-      (or (win:UpdateWindow window)	; send a WM_PAINT message
-	  (check-last-error "UpdateWindow" :action :warn))
+      #+ignore
+      (frame-update-window (pane-frame sheet) window)
       )))
 
 (defmethod disable-mirror ((port acl-port) sheet)
@@ -409,10 +417,10 @@
 	(multiple-value-bind (left top right bottom)
 	    (mirror-native-edges* *acl-port* sheet)
 	  (declare (special *clim-icon*))
-	  (let ((dc (GetDc mirror)))
+	  (let ((dc (GetDC mirror)))
 	    (unless (zerop dc)
 	      (win:DrawIcon dc 0 0 *clim-icon*)
-	      (win:ReleaseDC mirror dc))))
+	      (ReleaseDC mirror dc))))
 	))))
 
 (defmethod realize-mirror :around ((port acl-port) 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: designs.lisp,v 1.26 1999/05/04 01:21:12 layer Exp $
+;; $Id: designs.lisp,v 1.27 2000/05/01 21:43:39 layer Exp $
 
 (in-package :clim-utils)
 
@@ -347,7 +347,7 @@ Try closing color-intensive applications such as Netscape, or try~%~
 setting the colormap X resource to yes to get a private colormap,~%~
 then restart your application.")
 
-(eval-when (#-Allegro compile load eval)
+(eval-when (#-allegro compile load eval)
 (define-condition palette-full (error)
   ((palette :initarg :palette :reader palette-full-palette)
    (color :initarg :color :reader palette-full-color))
@@ -366,7 +366,7 @@ then restart your application.")
     (let ((closest-match (find-closest-matching-color palette color)))
       (when closest-match
 	(when (eq *use-closest-color* :warn)
-	  (let (#+Allegro (*error-output* excl:*initial-terminal-io*))
+	  (let (#+allegro (*error-output* excl:*initial-terminal-io*))
 	    (warn "Failed to allocate color ~A, using ~A"
 		  color closest-match)))
 	(invoke-restart 'use-other-color closest-match))))

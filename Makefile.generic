@@ -1,13 +1,8 @@
-# $Id: Makefile.generic,v 1.49 1998/08/06 23:15:36 layer Exp $
+# $Id: Makefile.generic,v 1.50 2000/05/01 21:43:18 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
-ifeq ($(OS_NAME),windows)
-all: compile # $(CLIM)
-makeclimfasls: compile
-else
 all: compile cat # $(CLIM)
 makeclimfasls: compile cat
-endif
 
 ifneq ($(OS_NAME),windows)
 compile_depends = wnn.$(SHARED_EXT)
@@ -23,7 +18,9 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(setq sys::*libxt-pathname* "$(XTLIB)")' >> build.tmp
 	echo '(setq sys::*libx11-pathname* "$(XLIB)")' >> build.tmp
 	echo '(setq sys::*libwnn-pathname* "$(WNNLIB)")' >> build.tmp
-	echo '#-mswindows (load "misc/compile-1.lisp")' >> build.tmp
+	echo '(excl:set-case-mode $(CASE_MODE))' >> build.tmp
+	echo $(STOP_PATCHES) >> build.tmp
+	echo '(load "misc/compile-1.lisp")' >> build.tmp
 	echo '(declaim (optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY))))' >> build.tmp
 	echo '(setq *compile-print* $(compile_print))' >> build.tmp
 	echo '(setq *compile-verbose* $(compile_verbose))' >> build.tmp
@@ -35,8 +32,7 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(setq excl:*record-xref-info* $(RECORD_XREF_INFO))' >> build.tmp
 	echo '(setq excl:*load-xref-info* $(LOAD_XREF_INFO))' >> build.tmp
 	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> build.tmp
-	echo '#+mswindows (load "sys/compile")' >> build.tmp
-	echo '#-mswindows (compile-it (quote $(SYSTEM)))' >> build.tmp
+	echo '(compile-it (quote $(SYSTEM)))' >> build.tmp
 	echo '(exit 0)' >> build.tmp
 	(eval '$(SET_LIBRARY_PATH)'; \
 	 sh ../src/runlisp.sh -f build.tmp $(runlisp_args) $(CL) $(CLOPTS))
@@ -48,76 +44,24 @@ endif
 
 # Concatenation
 
-ifneq ($(OS_NAME),windows)
-cat: $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS)
-
-climg.fasl: $(GENERIC-FASLS)
-	$(CAT) $(GENERIC-FASLS) > climg.fasl
-	ls -lt climg.fasl >> Clim-sizes.n
-	ls -lt climg.fasl
-
-climdemo.fasl: $(DEMO-FASLS)
-	$(CAT) $(DEMO-FASLS) > climdemo.fasl
-	ls -lt climdemo.fasl >> Clim-sizes.n
-	ls -lt climdemo.fasl
-
-# not used anymore:
-#climgg.fasl: $(HOMEGROWN-GADGET-FASLS)
-#	$(CAT) $(HOMEGROWN-GADGET-FASLS) > climgg.fasl
-#	ls -lt climgg.fasl >> Clim-sizes.n
-#	ls -lt climgg.fasl
-
-clim-debug.fasl: $(DEBUG-FASLS)
-	$(CAT) $(DEBUG-FASLS) > clim-debug.fasl
-	ls -lt clim-debug.fasl >> Clim-sizes.n
-	ls -lt clim-debug.fasl
-
-climnt.fasl: $(WIN32-FASLS)
-	$(CAT) $(WIN32-FASLS) > climnt.fasl
-	ls -lt climnt.fasl >> Clim-sizes.n
-	ls -lt climnt.fasl
-
-climxm.fasl: $(XM-FASLS)
-	$(CAT) $(XM-FASLS) > climxm.fasl
-	ls -lt climxm.fasl >> Clim-sizes.n
-	ls -lt climxm.fasl
-
-clim-debugxm.fasl: $(XM-DEBUG-FASLS)
-	$(CAT) $(XM-DEBUG-FASLS) > clim-debugxm.fasl
-	ls -lt clim-debugxm.fasl >> Clim-sizes.n
-	ls -lt clim-debugxm.fasl
-
-climol.fasl: $(OL-FASLS)
-	$(CAT) $(OL-FASLS) > climol.fasl
-	ls -lt climol.fasl >> Clim-sizes.n
-	ls -lt climol.fasl
-
-clim-debugol.fasl: $(OL-DEBUG-FASLS)
-	$(CAT) $(OL-DEBUG-FASLS) > clim-debugol.fasl
-	ls -lt clim-debugol.fasl >> Clim-sizes.n
-	ls -lt clim-debugol.fasl
-
-climwnn.fasl: $(WNN-FASLS)
-	$(CAT) $(WNN-FASLS) > climwnn.fasl
-	ls -lt climwnn.fasl >> Clim-sizes.n
-	ls -lt climwnn.fasl
-
-clim-debugwnn.fasl: $(WNN-DEBUG-FASLS)
-	$(CAT) $(WNN-DEBUG-FASLS) > clim-debugwnn.fasl
-	ls -lt clim-debugwnn.fasl >> Clim-sizes.n
-	ls -lt clim-debugwnn.fasl
-
-climps.fasl: $(POSTSCRIPT-FASLS)
-	$(CAT) $(POSTSCRIPT-FASLS) > climps.fasl
-
-climhpgl.fasl: $(HPGL-FASLS)
-	$(CAT) $(HPGL-FASLS) > climhpgl.fasl
-
-clim1compat.fasl: $(CLIM1COMPAT-FASLS)
-	$(CAT) $(CLIM1COMPAT-FASLS) > clim1compat.fasl
-	ls -lt clim1compat.fasl >> Clim-sizes.n
-	ls -lt clim1compat.fasl
+cat: compile
+	rm -f cat.tmp
+	echo '(load "misc/compile-1.lisp")' >> cat.tmp
+	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> cat.tmp	
+	echo '(concatenate-it (quote $(SYSTEM)))' >> cat.tmp
+	echo '(exit 0)' >> cat.tmp
+	(eval '$(SET_LIBRARY_PATH)'; \
+	 sh ../src/runlisp.sh -f cat.tmp $(runlisp_args) $(CL) $(CLOPTS))
+ifeq ($(OS_NAME),windows)
+# various programs expect to see the result of the compile on stdout, so
+# cat it now:
+	@cat compile.out
 endif
+	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS) >> Clim-sizes.n
+	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS)
+
+$(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS): cat
+
 
 # Building (loading and dumping)
 
@@ -143,6 +87,7 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	       (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	       (setq sys::*libx11-pathname* \"$(XLIB)\") \
 	       (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
+	       (excl:set-case-mode  $(CASE_MODE)) \
 	       (load \"misc/dev-load-1.lisp\") \
 	       (load-it '$(SYSTEM)))) \
 	   :autoload-warning nil \

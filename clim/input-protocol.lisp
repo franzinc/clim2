@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-protocol.lisp,v 1.55 1999/07/19 22:25:13 layer Exp $
+;; $Id: input-protocol.lisp,v 1.56 2000/05/01 21:43:24 layer Exp $
 
 (in-package :clim-internals)
 
@@ -214,11 +214,11 @@
 ;  (ensure-pointer-window stream))
 ;
 ;(defun ensure-pointer-window (window)
-;  #-Silica
+;  #-silica
 ;  (dolist (pointer (stream-pointers window))
 ;    (set-pointer-sheet-and-location window pointer)))
 
-#-Silica
+#-silica
 (defmethod window-set-viewport-position :around ((stream input-protocol-mixin) new-x new-y)
   (declare (ignore new-x new-y))
   (let ((cursor (stream-text-cursor stream)))
@@ -533,7 +533,7 @@
 ;;; However, it does not want to flush any pending action elements that
 ;;; might precede the character, 'cause LISTEN should have no side effects.
 (defmethod stream-listen ((stream input-protocol-mixin))
-  #-Silica (stream-event-handler stream :timeout 0)        ;Process pending keyboard input events
+  #-silica (stream-event-handler stream :timeout 0)        ;Process pending keyboard input events
   (let ((input-buffer (stream-input-buffer stream)))
     (when (queue-empty-p input-buffer)
       (return-from stream-listen nil))

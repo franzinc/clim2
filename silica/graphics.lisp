@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 1.35 1999/05/04 01:21:07 layer Exp $
+;; $Id: graphics.lisp,v 1.36 2000/05/01 21:43:32 layer Exp $
 
 (in-package :silica)
 
@@ -391,12 +391,12 @@
                                         distances-to-transform
                                         position-sequences-to-transform
                                         medium-method-body)
-  (let* ((spread-name (intern (format nil "~A*" name)))
-         (continuation-name (intern (format nil "~A-~A*" 'call name)))
+  (let* ((spread-name (fintern "~A*" name))
+         (continuation-name (fintern "~A-~A*" 'call name))
          (drawing-options
            (all-drawing-options-lambda-list drawing-options))
          (medium-graphics-function-name
-           (intern (format nil "~A~A*" 'medium- name))))
+           (fintern "~A~A*" 'medium- name)))
     (multiple-value-bind (unspread-argument-names spread-arguments
                           spread-argument-names keyword-argument-names
                           unspread-other-keyword-arguments
@@ -515,6 +515,11 @@
       (error "Cannot find description for: ~S" name)))
 
 
+(define-graphics-generic draw-polygon ((points point-sequence position-seq)
+                                       &key (closed t) (filled t))
+  :drawing-options :line-joint-cap
+  :position-sequences-to-transform (position-seq))
+
 (define-graphics-generic draw-point ((point point x y))
   :drawing-options :point
   :positions-to-transform (x y))
@@ -650,11 +655,6 @@
         (with-drawing-options (medium :ink pattern)
           (draw-rectangle* medium x y (+ x width) (+ y height)
                            :filled t)))))
-
-(define-graphics-generic draw-polygon ((points point-sequence position-seq)
-                                       &key (closed t) (filled t))
-  :drawing-options :line-joint-cap
-  :position-sequences-to-transform (position-seq))
 
 (defun draw-regular-polygon* (medium x1 y1 x2 y2 nsides
                               &rest args &key (handedness :left) (closed t) &allow-other-keys)

@@ -15,11 +15,13 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile.lisp,v 1.9 1999/07/19 22:25:17 layer Exp $
+;; $Id: compile.lisp,v 1.10 2000/05/01 21:43:34 layer Exp $
 
 (in-package :user)
 
-(set-case-mode :case-insensitive-upper)
+;;; This is obsolete, don't let it be loaded
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (error "This file is obsolete, you should be using misc/compile-1"))
 
 (proclaim '(optimize (speed 3) (safety 1) (debug 1)))
 

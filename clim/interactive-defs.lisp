@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-defs.lisp,v 1.31 1999/05/04 01:21:05 layer Exp $
+;; $Id: interactive-defs.lisp,v 1.32 2000/05/01 21:43:24 layer Exp $
 
 (in-package :clim-internals)
 
@@ -154,14 +154,14 @@
                  (values (evacuate-temporary-string string)))))
         (loop
           (multiple-value-setq (gesture gesture-type)
-            (read-gesture :stream stream
-                          :input-wait-handler
-                            (or input-wait-handler
-                                *input-wait-handler*)
-                          :pointer-button-press-handler
-                            (or pointer-button-press-handler
-                                *pointer-button-press-handler*)
-                          :timeout (and click-only timeout)))
+            (stream-read-gesture stream
+				 :input-wait-handler
+				 (or input-wait-handler
+				     *input-wait-handler*)
+				 :pointer-button-press-handler
+				 (or pointer-button-press-handler
+				     *pointer-button-press-handler*)
+				 :timeout (and click-only timeout)))
           (cond ((eq gesture-type :timeout)
                  (return-from read-token :timeout))
                 ((and click-only (eq gesture :eof))
@@ -226,12 +226,12 @@
 ;; context that allows rescanning, etc.
 
 (defvar *default-input-editing-stream-class*
-#+Allegro
+#+allegro
     (excl:ics-target-case
      (:+ics #+mswindows 'standard-input-editing-stream
 	    #-mswindows 'japanese-input-editing-stream)
      (:-ics 'standard-input-editing-stream))
-#-Allegro
+#-allegro
 	'standard-input-editing-stream)
 
 (defmacro with-input-editing ((&optional stream

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos-patches.lisp,v 1.14 1998/08/06 23:17:32 layer Exp $
+;; $Id: clos-patches.lisp,v 1.15 2000/05/01 21:43:39 layer Exp $
 
 (in-package :clim-utils)
 
@@ -40,12 +40,12 @@
   (declare (ignore environment))
   nil)
 
-#+Allegro
+#+allegro
 (defun-inline compile-file-environment-p (environment)
   (or (eq environment 'compile-file)
       excl::*compiler-environment*))
 
-#+(and Allegro never-in-a-million-years)
+#+(and allegro never-in-a-million-years)
 (eval-when (compile)
   (warn "~S hacked for lack of environment support in 4.1" 'compile-file-environment-p))
 
@@ -55,11 +55,10 @@
       t
       (ccl::compile-file-environment-p environment)))
 
-#+(and Allegro (not (version>= 4 1)))
+#+(and allegro (not (version>= 4 1)))
 (defgeneric make-load-form (object))
 
-#+(and Allegro (not (version>= 4 1 40)))        ; 40 is arbitrary, I mean > beta.
-;; Allegro CL doesn't have MAKE-LOAD-FORM, so add it (with advice from Foderaro)
+#+(and allegro (not (version>= 4 1 40)))        ; 40 is arbitrary, I mean > beta. ;; Allegro CL doesn't have MAKE-LOAD-FORM, so add it (with advice from Foderaro)
 (excl:defadvice comp::wfasl-lispobj (implement-make-load-form :before)
   (let ((object (first excl:arglist)))
     (when (typep object 'standard-object)
@@ -74,7 +73,7 @@
                   (cons compiler::*eval-when-load-marker* form1)
                  (rest excl:arglist)))))))
 
-#+(and Allegro (not (version>= 4 1 40)))
+#+(and allegro (not (version>= 4 1 40)))
 (excl:compile-advice 'comp::wfasl-lispobj)
 
 #+Lucid
@@ -89,7 +88,7 @@
         (first args)        ;return the class
         answer)))
 
-#+(and Allegro (not (version>= 4 0)))
+#+(and allegro (not (version>= 4 0)))
 ;;; This is needed to prevent a MAKE-LOAD-FORM form from being evaluated before
 ;;; an earlier top-level form, says Foderaro.  Even the forward reference allowed
 ;;; by load-reference-to-presentation-type-class isn't sufficient without this,
@@ -102,7 +101,7 @@
 ;;; Go through this rigamarole because WITH-SLOTS doesn't accept declarations
 ;;; on old versions of Lucid and Franz Allegro
 
-#+(and Allegro (not (version>= 4 1)))
+#+(and allegro (not (version>= 4 1)))
 (lisp:defun slot-value-alist (body)
   (declare (values real-body alist))
   (let ((alist nil))
@@ -118,19 +117,19 @@
           (dolist (var vars)
             (push (cons var type) alist)))))))
 
-#+(and Allegro (not (version>= 4 1)))
+#+(and allegro (not (version>= 4 1)))
 (defparameter *with-slots*
               #+PCL 'pcl::with-slots 
-              #+(and Allegro (not (version>= 4 1))) 'clos::with-slots
-              #-(or (and Allegro (not (version>= 4 1))) PCL) 'clos:with-slots)
+              #+(and allegro (not (version>= 4 1))) 'clos::with-slots
+              #-(or (and allegro (not (version>= 4 1))) PCL) 'clos:with-slots)
 
-#+(and Allegro (not (version>= 4 1)))
+#+(and allegro (not (version>= 4 1)))
 (defparameter *slot-value*
               #+PCL 'pcl::slot-value
-              #+(and Allegro (not (version>= 4 1))) 'clos::slot-value
-              #-(or (and Allegro (not (version>= 4 1))) PCL) 'clos:slot-value)
+              #+(and allegro (not (version>= 4 1))) 'clos::slot-value
+              #-(or (and allegro (not (version>= 4 1))) PCL) 'clos:slot-value)
 
-#+(and Allegro (not (version>= 4 1)))
+#+(and allegro (not (version>= 4 1)))
 (defmacro with-slots (slot-entries instance-form &body body &environment environment)
   (multiple-value-bind (real-body alist) (slot-value-alist body)
     (let ((expansion (macroexpand `(,*with-slots* ,slot-entries ,instance-form

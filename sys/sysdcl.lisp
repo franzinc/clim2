@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.58 1999/02/25 08:23:39 layer Exp $
+;; $Id: sysdcl.lisp,v 1.59 2000/05/01 21:43:34 layer Exp $
 
 (in-package :cl-user)
 
@@ -24,7 +24,7 @@
 ;; successful compilation of CLIM in a non-ICS lisp (cim 2/26/96)
 #+ignore (require :ics)
 
-#+(and Allegro (not acl86win32)) ;; no ics on Windows (yet?)
+#+(and allegro (not acl86win32)) ;; no ics on Windows (yet?)
 (let ((*enable-package-locked-errors* nil))
   (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
 	    excl::string-to-euc excl::euc-to-string)
@@ -52,7 +52,7 @@
   (declaim (declaration values arglist))
   )
 
-#+Allegro
+#+allegro
 (declaim (declaration non-dynamic-extent))
 
 
@@ -75,11 +75,11 @@
 
 (eval-when (compile load eval)
 
-#+(or Allegro 
+#+(or allegro 
       Minima)
 (pushnew :clim-uses-lisp-stream-classes *features*)
 
-#+(or Allegro
+#+(or allegro
       Genera				;Except for STREAM-ELEMENT-TYPE
       Minima
       Cloe-Runtime
@@ -88,8 +88,8 @@
 
 ;;; CLIM-ANSI-Conditions means this lisp truly supports the ANSI CL condition system
 ;;; CLIM-Conditions      means that it has a macro called DEFINE-CONDITION but that it works
-;;;                      like Allegro 3.1.13 or Lucid.
-(pushnew :CLIM-ANSI-Conditions *features*)
+;;;                      like allegro 3.1.13 or Lucid.
+(pushnew :clim-ansi-conditions *features*)
 
 #+allegro
 (pushnew :allegro-v4.0-constructors *features*)
@@ -134,7 +134,7 @@
    "excl-verification"
    ("packages" (:module-class compile-always))
    "defun-utilities" ;; extract-declarations and friends
-   #+(or Genera (not ANSI-90)) "defun"
+   #+(or Genera (not ansi-90)) "defun"
    "reader"
    "clos-patches"
    "clos"
@@ -155,7 +155,7 @@
    #+(and (not clim-uses-lisp-stream-functions) (not Lucid)) "cl-stream-functions"
    #+Lucid "lucid-stream-functions"
    #+Genera "genera-streams"
-   #+Allegro "excl-streams"
+   #+allegro "excl-streams"
    #+CCL-2 "ccl-streams"
 
    ;; Basic utilities for Silica and CLIM
@@ -198,7 +198,8 @@
    "gadgets"
    "db-border"
    "db-scroll"
-   #+acl86win32 "scroll-pane"
+   ;; ?? scroll-pane
+   #+(and ignore acl86win32) "scroll-pane"
    #+acl86win32 "db-button"
    #+acl86win32 "db-label"
    #+acl86win32 ("db-slider" (:load-before-compile "db-border"))
@@ -207,7 +208,8 @@
 (defsystem clim-standalone
     (:default-pathname "clim2:;clim;")
   (:serial
-   clim-utils
+   ;; clim-utils is in clim-silica, should it be?
+   ;;clim-utils
    clim-silica
 
    ;; Basic tools
@@ -264,7 +266,7 @@
    ("histories" (:load-before-compile "presentations"))
    ("ptypes2" (:load-before-compile "translators"))
    ("standard-types" (:load-before-compile "ptypes2"))
-   #+Allegro ("excl-presentations" (:load-before-compile "presentations"))
+   #+allegro ("excl-presentations" (:load-before-compile "presentations"))
 
    ;; Formatted output
    ("table-formatting" (:load-before-compile "clim-defs" "incremental-redisplay"))
@@ -320,7 +322,7 @@
    "last"))
 
 
-#+(and Allegro (not acl86win32))
+#+(and allegro (not acl86win32))
 (defsystem xlib
     (:default-pathname "clim2:;xlib;")
   (:serial
@@ -334,7 +336,7 @@
    ("last" (:load-before-compile "load-xlib" "xlib-funs"))
    ))
 
-#+(and Allegro (not acl86win32))
+#+(and allegro (not acl86win32))
 (defsystem wnn
     (:default-pathname "clim2:;wnn;")
   (:serial
@@ -345,7 +347,7 @@
    "jl-funs"
    "jserver"))
 
-#+(and Allegro (not acl86win32))
+#+(and allegro (not acl86win32))
 (macrolet ((define-xt-system (name file &rest modules)
 	       `(defsystem ,name
 		    (:default-pathname "clim2:;tk;")
@@ -400,7 +402,7 @@
 (defsystem last (:default-pathname "clim2:;utils;")
   (:serial ("last")))
 
-#+(and Allegro (not acl86win32))
+#+(and allegro (not acl86win32))
 (defsystem motif-clim
     (:default-pathname "clim2:;tk-silica;")
   (:serial
@@ -421,7 +423,7 @@
    ("gc-cursor")
    last))
 
-#+(and Allegro (not acl86win32))
+#+(and allegro (not acl86win32))
 (defsystem openlook-clim
     (:default-pathname "clim2:;tk-silica;")
   (:serial
@@ -441,6 +443,10 @@
    ("xt-pixmaps")
    ("gc-cursor")
    last))
+
+;;; aclnt-clim is defined in clim2:;aclpc;sysdcl.lisp.  This should
+;;; somehow be unified -- either everything above should go into other
+;;; dirs or it should be dragged up here.
 
 
 #||

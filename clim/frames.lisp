@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.94 1999/07/19 22:25:10 layer Exp $
+;; $Id: frames.lisp,v 1.95 2000/05/01 21:43:23 layer Exp $
 
 (in-package :clim-internals)
 
@@ -586,6 +586,36 @@
         (enable-frame frame))
       frame)))
 
+#+mswindows
+(defun windows-launch-frame-helper (frame-class process-return-var &rest initargs)
+  (let ((frame (apply #'make-application-frame frame-class initargs)))
+    (when process-return-var
+      (set process-return-var frame))
+
+    ;; Note that this won't return until the frame exits.
+    (run-frame-top-level frame)    
+    frame))
+
+;;; On mswindows, frame must be activated by the process 
+;;; that created it.
+#+mswindows
+(defun windows-launch-frame (frame-class &rest initargs)
+  (let ((namestr (string-upcase (princ-to-string frame-class)))
+	(process-return-var (gensym "PRV")))
+    (set process-return-var nil)
+    (make-process #'(lambda () 
+		      (apply #'windows-launch-frame-helper 
+			     frame-class 
+			     process-return-var
+			     initargs))
+		  :name namestr)
+    
+    (process-wait "windows-launch-frame" #'(lambda ()
+					     (not (eql (eval process-return-var) nil))))
+    
+    (eval process-return-var)
+    ))
+
 ;; Create an application frame of the specified type if one does not already
 ;; exist, and then run it, possibly in its own process.  If one already exists,
 ;; just select it.
@@ -599,25 +629,65 @@
   (when (null frame-class)
     (setq frame-class frame-name))
   (let ((frame
-          (unless (eq create :force)
-            (block find-frame
-              (map-over-frames #'(lambda (frame)
-                                   (when (typep frame frame-class)
-                                     (return-from find-frame frame)))
-                               :frame-manager frame-manager
-                               :port port)
-              nil))))
-    (when (and create (null frame))
-      (with-keywords-removed (initargs initargs '(:create :activate :own-process))
-        (setq frame (apply #'make-application-frame frame-name initargs))))
-    (when (and frame activate)
-      (cond ((slot-value frame 'top-level-process)
-             (raise-frame frame))
-            (own-process
-             (make-process #'(lambda () (run-frame-top-level frame))
-                           :name (frame-pretty-name frame)))
-            (t
-             (run-frame-top-level frame))))
+	 (unless (eq create :force)
+	   (block find-frame
+	     (map-over-frames #'(lambda (frame)
+				  ;; On Windows, only retrieve a frame
+				  ;; which has a top-level-process.
+				  (when (and (typep frame frame-class)
+					     #+mswindows (slot-value frame 'top-level-process))
+				    (return-from find-frame frame)))
+			      :frame-manager frame-manager
+			      :port port)
+	     nil))))
+
+    #-mswindows
+    (progn
+      (when (and create (null frame))
+	(with-keywords-removed (initargs initargs 
+					 '(:create :activate :own-process))
+	  (setq frame (apply #'make-application-frame frame-name initargs))))
+      (when (and frame activate)
+	(cond ((slot-value frame 'top-level-process)
+	       (raise-frame frame))
+	      (own-process
+	       (let ((namestr (string-upcase (princ-to-string frame-class))))
+		 (make-process #'(lambda () (run-frame-top-level frame))
+			       :name namestr)))
+	      (t
+	       (run-frame-top-level frame))))
+      )
+    
+    #+mswindows
+    (progn
+      (cond ((null frame)
+	     (cond (create
+		    (with-keywords-removed (initargs initargs 
+						     '(:create :activate :own-process))
+		      ;; On mswindows, frame must be activated by 
+		      ;; the process that created it.		
+		      (cond (activate
+			     (cond (own-process
+				    (setq frame 
+				      (apply #'windows-launch-frame frame-class
+					     initargs)))
+				   (t
+				    (setq frame
+				      (apply #'make-application-frame frame-name initargs))
+				    (run-frame-top-level frame))))				   
+			    (t 
+			     (setq frame
+			       (apply #'make-application-frame frame-name initargs))))))
+		   (t
+		    nil)))
+	    (activate
+	     ;; Note: If we've got to this point, then 
+	     ;; frame must have a top-level-process
+	     ;;
+	     ;; Note: This seems to work only if
+	     ;; it's run in its own process.
+	     (make-process #'(lambda () 
+			       (raise-frame frame))))))
     frame))
 
 (defmethod enable-frame ((frame standard-application-frame))
@@ -709,12 +779,11 @@
   nil)
 
 
-(eval-when (#-Allegro compile load eval)
 (define-condition frame-exit (condition)
-  ((frame :initarg :frame :reader frame-exit-frame))
+  ((frame :initarg :frame :reader frame-exit-frame)
+   (options :initarg :options :initform nil :reader frame-exit-options))
   (:report (lambda (condition stream)
              (format stream "Exit from frame ~A" (frame-exit-frame condition)))))
-)        ;eval-when
 
 (defgeneric run-frame-top-level (frame &key &allow-other-keys))
 
@@ -781,43 +850,37 @@
 
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
-  (with-simple-restart (nil "Exit ~A" (frame-pretty-name frame))
-    (handler-bind ((frame-exit
-                     #'(lambda (condition)
-                         (let ((exit-frame (frame-exit-frame condition)))
-                           (when (eq frame exit-frame)
-                             (return-from run-frame-top-level nil))))))
-      (unwind-protect
-          (with-clim-state-reset (:all t
-                                  :additional-bindings ((*application-frame* frame)))
-            (with-frame-manager ((frame-manager frame))
-              (loop
-                (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
-                  (loop
-                    (catch 'layout-changed
-                      (let ((*application-frame* frame))
-                        ;; We must return the values from CALL-NEXT-METHOD,
-                        ;; or else ACCEPTING-VALUES will return NIL
-                        #-CCL-2
-                        (return-from run-frame-top-level (call-next-method))
-                        ;; The (RETURN-FROM FOO (CALL-NEXT-METHOD)) form above
-                        ;; doesn't work in Coral.  If the "top level" restart
-                        ;; above is taken, the CALL-NEXT-METHOD form blows out
-                        ;; the second time through this code, claiming that it
-                        ;; can't find the next method.  Hoisting the
-                        ;; CALL-NEXT-METHOD out of the RETURN-FROM form seems
-                        ;; to fix it...  So it conses, big deal.
-                        #+CCL-2
-                        (let ((results (multiple-value-list (call-next-method))))
-                          (return-from run-frame-top-level (values-list results))))))))))
-        ;; We disable the frame here, but it is the responsibility of the
-        ;; top-level function to enable the frame.  For example, if we
-        ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
-        ;; wrong frame.  Sigh.
-        (queue-flush (frame-command-queue frame))
-        (let ((sheet (frame-top-level-sheet frame)))
-          (when sheet (queue-flush (sheet-event-queue sheet))))
-        (disable-frame frame)))))
+  (let ((destroy nil))
+    (with-simple-restart (nil "Exit ~A" (frame-pretty-name frame))
+      (handler-bind ((frame-exit
+		      #'(lambda (condition)
+			  (let ((exit-frame (frame-exit-frame condition))
+				(options (frame-exit-options condition)))
+			    (setq destroy (getf options :destroy nil))
+			    (when (eq frame exit-frame)
+			      (return-from run-frame-top-level nil))))))
+	(unwind-protect
+	    (with-clim-state-reset (:all t
+					 :additional-bindings ((*application-frame* frame)))
+	      (with-frame-manager ((frame-manager frame))
+		(loop
+		  (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
+		    (loop
+		      (catch 'layout-changed
+			(let ((*application-frame* frame))
+			  ;; We must return the values from CALL-NEXT-METHOD,
+			  ;; or else ACCEPTING-VALUES will return NIL
+			  (return-from run-frame-top-level (call-next-method)))))))))
+	  ;; We disable the frame here, but it is the responsibility of the
+	  ;; top-level function to enable the frame.  For example, if we
+	  ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
+	  ;; wrong frame.  Sigh.
+	  (queue-flush (frame-command-queue frame))
+	  (let ((sheet (frame-top-level-sheet frame)))
+	    (when sheet (queue-flush (sheet-event-queue sheet))))
+	  (disable-frame frame)
+	  (when destroy (destroy-frame frame))
+	  )))))
 
 ;;; Update demo/default-frame-top-level.lisp if you change this
 ;;--- I'm not really convinced that this is right  --SWM
@@ -875,7 +938,7 @@
 	      ;;; This needs to happen after the 
 	      ;;; call to redisplay-frame-panes
 	      ;;; but only do it the first time.
-	      (force-refresh-avv-streams FRAME)
+	      (force-refresh-avv-streams frame)
 	      (setq *avv-refreshed* t))
 	    (when interactor
 	      (fresh-line *standard-input*)
@@ -908,8 +971,9 @@
 	       ht))))
   
 ;; Generic because someone might want :BEFORE or :AFTER
-(defmethod frame-exit ((frame standard-application-frame))
-  (signal 'frame-exit :frame frame))
+(defmethod frame-exit ((frame standard-application-frame) 
+		       &rest keys)
+  (signal 'frame-exit :frame frame :options keys))
 
 
 (defmethod handle-event ((stream input-protocol-mixin) (event port-terminated))
@@ -1221,28 +1285,26 @@
            (push command-name disabled-commands)
            (note-command-disabled (frame-manager frame) frame command-name)))))
 
-
-;;--- There is the compiler bug with (eval-when (compile load eval) ...)
-;;--- DEFMETHOD with a CALL-NEXT-METHOD.  See to incorporate this patch.
-(eval-when (#-Allegro compile load eval)
 (define-condition synchronous-command-event ()
   ((command :initarg :command :reader synchronous-command-event-command)
    (echo :initarg :echo :reader synchronous-command-event-echo-p))
   (:report (lambda (condition stream)
              (format stream "Command event condition signalled for ~S"
-               (synchronous-command-event-command condition)))))
-)        ;eval-when
+		     (synchronous-command-event-command condition)))))
 
 (defvar *reading-frame-command* nil)
 
 (defmethod read-frame-command :around ((frame standard-application-frame) &key)
+  (initialize-for-command-reader (frame-manager frame) frame)
   (flet ((maybe-echo-command (command)
            (let ((ptype `(command :command-table ,(frame-command-table frame))))
              (when (eq *command-parser* #'command-line-command-parser)
-               (present command ptype :stream *standard-input* :allow-sensitive-inferiors nil))
+               (present command ptype :stream *standard-input* 
+			:allow-sensitive-inferiors nil))
              (when (frame-maintain-presentation-histories frame)
                (push-history-element (presentation-type-history ptype)
-                                     (make-presentation-history-element :object command :type ptype))))))
+                                     (make-presentation-history-element 
+				      :object command :type ptype))))))
     (let* ((command-and-options (queue-pop (frame-command-queue frame))))
       (if command-and-options
           (destructuring-bind (command &key echo) command-and-options
@@ -1256,6 +1318,8 @@
                               (return-from read-frame-command command)))))
           (let ((*reading-frame-command* t))
             (call-next-method)))))))
+
+(defmethod initialize-for-command-reader ((frame-manager t) (frame t)) nil)
 
 ;;--- Actually this should be named COMMAND-EVENT
 (defclass presentation-event (event)
@@ -1370,7 +1434,7 @@
          (y (pointer-event-y button-press-event))
          (highlighted-presentation (highlighted-presentation window nil))
          (input-context *input-context*))
-    #+Allegro
+    #+allegro
     (when (and *click-outside-menu-handler*
                 (output-recording-stream-p window)
                 (not (region-contains-position-p (stream-output-history window) x y)))
@@ -1542,7 +1606,7 @@ modifier-state)
         (flet ((document-translator (translator presentation context-type
                                      button-names separator)
                  ;; Assumes 6 modifier keys and the reverse ordering of
-*MODIFIER-KEYS*
+*modifier-keys*
                  (let ((bit #b100000)
                        (shift-name '(:double :hyper :super :meta :control
 :shift)))

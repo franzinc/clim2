@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-layout.lisp,v 1.41 1999/02/25 08:23:36 layer Exp $
+;; $Id: db-layout.lisp,v 1.42 2000/05/01 21:43:32 layer Exp $
 
 (in-package :silica)
 
@@ -290,6 +290,11 @@
   (with-slots (space-requirement) pane
     (multiple-value-bind (width1 min-width1 max-width1 height1 min-height1 max-height1) 
         (space-requirement-components (normalize-space-requirement pane space-requirement))
+      ;; If width1 has been explicitly specified, ensure that max-width1 has also.
+      ;; Otherwise, it will always loose out to the max-width2.  spr20225 7/99.
+      (when width1
+	(setq max-width1 (or max-width1 width1))
+        (setq min-width1 (or min-width1 width1)))
       (multiple-value-bind (width2 min-width2 max-width2 height2 min-height2 max-height2)
           (space-requirement-components (call-next-method))
         (flet ((mmin (x y z)

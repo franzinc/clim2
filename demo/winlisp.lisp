@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winlisp.lisp,v 1.5 1999/02/25 08:23:31 layer Exp $
+;; $Id: winlisp.lisp,v 1.6 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-demo)
 
@@ -367,7 +367,7 @@
   (if (eql restart *enter-debugger*)
       (enter-debugger *standard-input*)
     (let (values)
-      #+Allegro
+      #+allegro
       (case (restart-name (find-restart restart))
 	(excl::return-value
 	 (setq values

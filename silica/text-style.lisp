@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-style.lisp,v 1.29 1998/08/06 23:17:02 layer Exp $
+;; $Id: text-style.lisp,v 1.30 2000/05/01 21:43:33 layer Exp $
 
 (in-package :silica)
 
@@ -86,11 +86,11 @@
 (defvar *standard-character-set* 0)
 
 (defvar *all-character-sets*
-    #+Allegro
+    #+allegro
     (excl:ics-target-case
      (:+ics nil)
      (:-ics *standard-character-set*))
-    #-Allegro *standard-character-set*)
+    #-allegro *standard-character-set*)
 
 (defvar *null-text-style*)
 (defvar *undefined-text-style*)
@@ -627,20 +627,20 @@
 
 (defmethod port-mapping-table ((port basic-port) character-set)
   (with-slots (mapping-table) port
-    #+Allegro
+    #+allegro
     (excl:ics-target-case
      (:-ics character-set mapping-table)
      (:+ics (svref mapping-table character-set)))
-    #-Allegro
+    #-allegro
     mapping-table))
 
 (defmethod port-mapping-cache ((port basic-port) character-set)
   (with-slots (mapping-cache) port
-    #+Allegro
+    #+allegro
     (excl:ics-target-case
      (:-ics character-set mapping-cache)
      (:+ics (svref mapping-cache character-set)))
-    #-Allegro
+    #-allegro
     mapping-cache))
 
 (defmethod (setf text-style-mapping) (mapping (port basic-port) style
@@ -820,7 +820,7 @@
 #-(or aclpc acl86win32)
 (defun-inline char-character-set-and-index (character)
   (declare (values character-set index))
-  (values #+Allegro
+  (values #+allegro
 	  (excl:ics-target-case
            (:-ics *standard-character-set*)
            (:+ics (typecase character
@@ -828,7 +828,7 @@
                     (excl:codeset-1 1)
                     (excl:codeset-2 2)
                     (excl:codeset-3 3))))
-          #-Allegro *standard-character-set*
+          #-allegro *standard-character-set*
           (char-code character)))
 
 #+(or aclpc acl86win32)

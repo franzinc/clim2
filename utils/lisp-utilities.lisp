@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.43 2000/03/04 05:13:51 duane Exp $
+;; $Id: lisp-utilities.lisp,v 1.44 2000/05/01 21:43:39 layer Exp $
 
 (in-package :clim-utils)
 
@@ -288,10 +288,10 @@
 
 ;;; Make sure we don't get screwed by environments like Coral's that
 ;;; have *print-case* set to :downcase by default.
-#+(or (not ANSI-90) aclpc)
+#+(or (not ansi-90) aclpc)
 (defvar *standard-io-environment-val-cache* nil)
 
-#+(or (not ANSI-90) aclpc)
+#+(or (not ansi-90) aclpc)
 (defun standard-io-environment-vars-and-vals ()
   (unless *standard-io-environment-val-cache*
     (setq *standard-io-environment-val-cache*
@@ -316,15 +316,15 @@
     *standard-io-environment-val-cache*))
 
 (defmacro with-standard-io-environment (&body body)
-  #+(or (not ANSI-90) aclpc)
+  #+(or (not ansi-90) aclpc)
   `(multiple-value-bind (vars vals)
        (standard-io-environment-vars-and-vals)
      (progv vars vals
        ,@body))
-  #-(or (not ANSI-90) aclpc)
+  #-(or (not ansi-90) aclpc)
   `(with-standard-io-syntax ,@body))
 
-#+(and (or (not ANSI-90) aclpc) (not Genera))
+#+(and (or (not ansi-90) aclpc) (not Genera))
 (defmacro with-standard-io-syntax (&body body)
   `(with-standard-io-environment ,@body))
 
@@ -373,24 +373,40 @@
 
 (defun follow-synonym-stream (stream)
   #+Genera (si:follow-syn-stream stream)
-  #+(and ANSI-90 (not Genera)) (typecase stream
+  #+(and ansi-90 (not Genera)) (typecase stream
 				 (synonym-stream
 				   (symbol-value (synonym-stream-symbol stream)))
 				 (t stream))
-  #-(or Genera ANSI-90) stream)
+  #-(or Genera ansi-90) stream)
 
-#-(or Genera ANSI-90)
+#-(or Genera ansi-90)
 (eval-when (compile)
   (warn "You haven't defined ~S for this implementation.  A stub has been provided."
 	'follow-synonym-stream))
 
+;;; Interning. There are three places where the package matters here:
+;;; the current package, the package that is current when FORMAT is
+;;; called (matters for ~S &c), and the package into which the symbol
+;;; is interned.  The aim is that the first two should always be the
+;;; current packag, but you get to choose where the symbol is interned
+;;; for PACKAGE-FINTERN.
+;;;
+;;; I am not sure if this stuff is really worth the cost, but...
+
+(defun package-fintern (package format-string &rest format-args)
+  ;; this argument order is unfortunate.
+  (declare (dynamic-extent format-args))
+  (intern (let ((pkg *package*))
+	    (with-standard-io-environment
+	      (let ((*package* pkg))
+		(apply #'lisp:format () format-string format-args))))
+	  package))
+
 (defun fintern (format-string &rest format-args)
   (declare (dynamic-extent format-args))
-  (intern (let ((package *package*))
-	    (with-standard-io-environment
-	      (let ((*package* package))
-		(apply #'lisp:format () format-string format-args))))))
+  (apply #'package-fintern *package* format-string format-args))
 
+		    
 (defvar *gensymbol* 0)
 
 (eval-when (compile load eval)
@@ -500,7 +516,7 @@
 		    ,@body)
 	   (when ,condition-value (setf ,@unwind-forms)))))))
 
-#-(and ANSI-90 (not allegro) (not Symbolics))
+#-(and ansi-90 (not allegro) (not Symbolics))
 (eval-when (compile load eval)
   (proclaim '(declaration non-dynamic-extent)))
 
@@ -508,7 +524,7 @@
 (eval-when (compile load eval)
   (proclaim '(declaration non-dynamic-extent ignorable)))
 
-#+(and ANSI-90 (not allegro) (not aclpc) (not Symbolics))
+#+(and ansi-90 (not allegro) (not aclpc) (not Symbolics))
 (define-declaration non-dynamic-extent (spec env)
   (let ((vars (rest spec))
         (result nil))
@@ -1088,7 +1104,7 @@
   (mapc #'compiler:function-defined (cdr decl)))
 
 
-#-(or Genera ANSI-90)
+#-(or Genera ansi-90)
 (defmacro print-unreadable-object ((object stream &key type identity) &body body)
   `(flet ((print-unreadable-object-body () ,@body))
      (declare (dynamic-extent #'print-unreadable-object-body))
@@ -1096,7 +1112,7 @@
 				#'print-unreadable-object-body
 				',(not (null body)))))
 
-#-(or Genera ANSI-90)
+#-(or Genera ansi-90)
 ;;; EXTRA-SPACE-REQUIRED is optional because old compiled code didn't always supply it.
 (defun print-unreadable-object-1 (object stream type identity continuation
 					 &optional (extra-space-required t))
@@ -1111,21 +1127,21 @@
      object stream))
   (write-string ">" stream))
 
-#-(or PCL Genera ANSI-90)
+#-(or PCL Genera ansi-90)
 (defun print-unreadable-object-identity (object stream)
   #+Genera (format stream "~O" (sys:%pointer object))
   #+allegro (format stream "@~X" (excl::pointer-to-address object))
   ;; Lucid prints its addresses out in Hex.
   #+Lucid (format stream "~X" (sys:%pointer object))
-  ;; Probably aren't any #+(and (not Genera) (not allegro) (not PCL) (not ANSI-90))
+  ;; Probably aren't any #+(and (not Genera) (not allegro) (not PCL) (not ansi-90))
   ;; implementations (actually, this is false: Lispworks).
   #-(or Genera allegro Lucid) (declare (ignore object))
   #-(or Genera allegro Lucid) (format stream "???"))
 
-#-(or Genera ANSI-90 Lucid)
+#-(or Genera ansi-90 Lucid)
 (defvar *print-readably* nil)
 
-#-(or Genera Lucid ANSI-90)
+#-(or Genera Lucid ansi-90)
 (deftype real (&optional (min '*) (max '*))
   (labels ((convert (limit floatp)
 	     (typecase limit

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pixmap-streams.lisp,v 1.27 1998/08/06 23:16:01 layer Exp $
+;; $Id: pixmap-streams.lisp,v 1.28 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -38,7 +38,7 @@
 ;;--- Note that, since this calls the continuation on the original stream
 ;;--- instead of the pixmap stream, things like WINDOW-CLEAR will affect
 ;;--- the wrong stream
-#-(or Allegro aclpc) ;;--- SWM is willing to live with this, but not CER
+#-(or allegro aclpc) ;;--- SWM is willing to live with this, but not CER
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
                                          &key width height)
   (let ((record
@@ -59,7 +59,7 @@
       (replay record pixmap-stream)
       (slot-value pixmap-medium 'silica::pixmap))))
 
-#+(or Allegro aclpc)
+#+(or allegro aclpc)
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
                                                                         &key width height)
   (let (record)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 1.30 1999/02/25 08:23:35 layer Exp $
+;; $Id: postscript-port.lisp,v 1.31 2000/05/01 21:43:31 layer Exp $
 
 (provide :climps)
 
@@ -357,7 +357,7 @@
   ;; Lifted from definition of LGP:FAST-PRINT-NUM in SYS:HARDCOPY;POSTSCRIPT.LISP
   (if (and (not (zerop n))
 	   (< -1 n 1))
-      (format stream "~F" (COERCE N 'SINGLE-FLOAT)) ; no double-float exponent markers
+      (format stream "~F" (coerce n 'single-float)) ; no double-float exponent markers
       (multiple-value-bind (integer frac)
 	  (etypecase n
 	    (integer (values (abs n) 0))
@@ -986,6 +986,9 @@ end } def
      (declare (dynamic-extent #'postscript-output-body))
      (invoke-with-output-to-postscript-stream ,file-stream #'postscript-output-body ,@args)))
 
+(defvar +output-to-postscript-stream-helper-args+)
+(defvar +output-to-postscript-stream-helper-first+)
+
 ;; This could really be WITH-OPEN-STREAM, but that isn't going to call CLIM:CLOSE.
 ;; Fixed in the CLOS stream system.
 (defun invoke-with-output-to-postscript-stream (file-stream continuation
@@ -1001,51 +1004,153 @@ end } def
 	 (stream (make-instance 'postscript-stream
 				:multi-page multi-page))
 	 (abort-p t))
-    (when (eq orientation :landscape)
+    (when (eq orientation :landscape) 
       (rotatef (slot-value port 'page-width)
 	       (slot-value port 'page-height)))
     (setf (port stream :graft (find-graft :port port)) port)
     (let ((medium (sheet-medium stream)))
       (setf (slot-value medium 'printer-stream) file-stream)
       (unwind-protect
-	  (multiple-value-prog1
-	      (with-output-recording-options (stream :record t :draw nil)
-		(letf-globally (((stream-generating-postscript stream) nil))
-		  (funcall continuation stream)))
-	    (force-output stream)
-	    (let ((record  (stream-output-history stream)))
-	      (when (or scale-to-fit multi-page)
-		(bounding-rectangle-set-position record 0 0))
-	      (multiple-value-bind (width height)
-		  (bounding-rectangle-size record)
-		(let* ((page-width
-			(floor (* (slot-value port 'page-width)
-				  (slot-value port 'device-units-per-inch))
-			       *1-pixel=points*))
-		       (page-height
-			(floor (* (slot-value port 'page-height)
-				  (slot-value port 'device-units-per-inch))
-			       *1-pixel=points*))
-		       (scale-factor
-			(if (or (not scale-to-fit)
-				(and (< width page-width)
-				     (< height page-height)))
-			    1
-			  (min (/ page-width width)
-			       (/ page-height height)))))
-		  ;; Now do the output to the printer, breaking up the output into
-		  ;; multiple pages if that was requested
-		  (let ((string
-			 (with-output-to-string (string-stream)
-			   (letf-globally (((slot-value medium 'printer-stream) string-stream))
-			     (with-output-recording-options (stream :record nil :draw t)
-			       (stream-replay stream nil))))))
-		    (postscript-prologue medium
-					 :scale-factor scale-factor
-					 :orientation orientation
-					 :header-comments header-comments)
-
-		    (write-string string (slot-value medium 'printer-stream))))))
-	    (setq abort-p nil))
+	  (let ((+output-to-postscript-stream-helper-args+ (list stream port medium
+								 multi-page 
+								 scale-to-fit
+								 header-comments 
+								 orientation))
+		(+output-to-postscript-stream-helper-first+ t))
+	    (multiple-value-prog1
+		(with-output-recording-options (stream :record t :draw  nil )
+		  (letf-globally (((stream-generating-postscript stream) nil))
+		    (funcall continuation stream))
+		  )
+	      (invoke-with-output-to-postscript-stream-helper 
+	       stream port medium
+	       multi-page scale-to-fit
+	       header-comments 
+	       orientation)
+	      (setq abort-p nil)))
 	(close stream :abort abort-p)
 	(destroy-port port)))))
+
+;;; Encapsulate the second pass (collect PostScript-ish textual output)
+;;; and third pass (write text to file-stream) of PostScript operation,
+;;; so that it can be called separately.
+(defun invoke-with-output-to-postscript-stream-helper (stream port medium
+						       multi-page 
+						       scale-to-fit
+						       header-comments 
+						       orientation)
+  (force-output stream)
+  (let ((record  (stream-output-history stream)))
+    (when (or scale-to-fit multi-page)
+      (bounding-rectangle-set-position record 0 0))
+    (multiple-value-bind (width height)
+	(bounding-rectangle-size record)
+      (let* ((page-width
+	      (floor (* (slot-value port 'page-width)
+			(slot-value port 'device-units-per-inch))
+		     *1-pixel=points*))
+	     (page-height
+	      (floor (* (slot-value port 'page-height)
+			(slot-value port 'device-units-per-inch))
+		     *1-pixel=points*))
+	     (scale-factor
+	      (if (or (not scale-to-fit)
+		      (and (< width page-width)
+			   (< height page-height)))
+		  1
+		(min (/ page-width width)
+		     (/ page-height height)))))
+	;; Now do the output to the printer, breaking up the output into
+	;; multiple pages if that was requested
+	(let ((string
+	       (with-output-to-string (string-stream)
+		 (letf-globally (((slot-value medium 'printer-stream) string-stream))
+		   (with-output-recording-options (stream :record nil :draw t)
+		     (stream-replay stream nil))))))
+	  ;; Only print the prologue once.
+	  (when +output-to-postscript-stream-helper-first+
+	    (postscript-prologue medium
+				 :scale-factor scale-factor
+				 :orientation orientation
+				 :header-comments header-comments))
+	  (setq +output-to-postscript-stream-helper-first+ nil)
+
+	  (write-string string (slot-value medium 'printer-stream))))))
+  )
+
+
+;;;**********************************************************************
+;;;
+;;; A "postscript-literal" is a pseudo-graphics operation that exists
+;;; soley for the purpose of placing a literal string in an postscript
+;;; file-output stream.
+;;;
+;;; Clim handles PostScript in the following three-pass operation:
+;;;
+;;;  - First, the body (of clim graphics output; print statements, draw-*
+;;;    operations) is played onto a stream (of type POSTSCRIPT-STREAM)
+;;;    with :record t :draw nil.
+;;;
+;;;    As a result, the output-record of the stream is filled with
+;;;    "descriptions" of the operations.  (Note in particular that the
+;;;    MEDIUM-DRAW-* operations do not get called.)
+;;;  
+;;;  - Second, a STREAM-REPLAY operation is called on the stream inside
+;;;    the context of a WITH-OUTPUT-TO-STREAM form.  Note that in this
+;;;    pass the MEDIUM-DRAW-* operations are called, the output of which
+;;;    is PostScript-y text, which is collected in the string.
+;;;
+;;;    Note that the individual records in the output-record of the stream
+;;;    are played back in their top/down-left/right order in the output
+;;;    record; this is *not* necessarily the order in which they were
+;;;    originally called.  (For example, consider drawing two circles, 
+;;;    the second of which is drawn at a higher location on the page.)
+;;;
+;;;  - Third this resulting stream is then printed to the file-stream.
+;;;
+;;; Most of the functionality of the second and third passes above is
+;;; now embedded in the function INVOKE-WITH-OUTPUT-TO-POSTSCRIPT-STREAM-HELPER.
+;;;
+;;; The NEW-PAGE operation behaves as follows:
+;;;
+;;;  - First, when called, it calls a DRAW-POSTSCRIPT-LITERAL, to
+;;;    imbed an output-record for the pseudo-graphics operation in the
+;;;    stream.
+;;;
+;;;  - Second, a call is made to INVOKE-WITH-OUTPUT-TO-POSTSCRIPT-STREAM-HELPER
+;;;    (resulting in the second and third passes described above)
+;;;    in order to dump the currently collected output to the file-stream.
+;;; 
+;;;    (Note: This includes the call to DRAW-POSTSCRIPT-LITERAL, which
+;;;    will now result in the literal string being output as PostScript-like
+;;;    text.)
+;;;
+;;; - Third, the current state of the output-record of the stream is
+;;;   cleared.
+;;;
+;;;**********************************************************************
+
+;;; This needs to be loaded before the next form is compiled.
+(eval-when (compile load eval)
+(define-graphics-generic draw-postscript-literal (string x y)
+  :positions-to-transform (x y) )
+)
+
+(clim-internals::define-graphics-recording draw-postscript-literal ()
+  ;; Note that the record has no size, but it has 
+  ;; to be at the correct location in the output-record.
+  :bounding-rectangle (values x y x y) )
+
+(defmethod medium-draw-postscript-literal* (medium string x y)
+  medium string x y
+  (error "Use of DRAW-POSTSCRIPT-LITERAL is valid only on a POSTSCRIPT-STREAM"))
+
+(defmethod medium-draw-postscript-literal* ((medium postscript-medium) string x y)
+  x y
+  (let ((printer-stream (slot-value medium 'printer-stream)))
+    (format printer-stream "~A~%" string)))
+
+
+
+
+

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: standard-types.lisp,v 1.41 1999/02/25 08:23:30 layer Exp $
+;; $Id: standard-types.lisp,v 1.42 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -404,7 +404,7 @@
   :inherit-from t                        ;enforce CL definition
   :history t
   :options ((default-type nil)
-            (default-version #-Allegro :newest #+Allegro :unspecific)
+            (default-version #-allegro :newest #+allegro :unspecific)
             (merge-default t)))
 
 ;;; PATHNAME is supposed to be a built-in-class, but since it's missing in Genera,

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: postscript-clim -*-
 ;;
-;;				-[Tue Feb 23 15:27:02 1999 by layer]-
+;;				-[Wed Apr 26 20:24:45 2000 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: read-afm.lisp,v 1.6 1999/02/25 08:23:35 layer Exp $
+;; $Id: read-afm.lisp,v 1.7 2000/05/01 21:43:31 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -98,7 +98,7 @@
     (let ((height (- (fourth bounding-box) (second bounding-box))))
       `((,(symbol-name name) 1000 ,bounding-box)
 	,@(cond ((null fixed-pitch)
-		 (mapcan #'(lambda (X)
+		 (mapcan #'(lambda (x)
 			     (destructuring-bind (code width name . ignore) x
 			       (declare (ignore ignore))
 			       (and (plusp code)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: window-stream.lisp,v 1.17 1998/08/06 23:16:07 layer Exp $
+;; $Id: window-stream.lisp,v 1.18 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -48,7 +48,7 @@
   nil)
 
 
-#-Silica        ;--- no such slots in Silica
+#-silica        ;--- no such slots in Silica
 (defmethod print-object ((window window-stream) stream)
   (print-unreadable-object (window stream :type t :identity t)
     (let ((left (safe-slot-value window 'left))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.11 1999/07/19 22:25:10 layer Exp $
+;; $Id: acl-port.lisp,v 1.12 2000/05/01 21:43:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -112,15 +112,23 @@
 
 (defparameter *char->keysym*
     (let ((array (make-array 256 :initial-element nil)))
-      (dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
-	(setf (svref array (char-code char))
-	  (intern (string-upcase (char-name char))
-		  (find-package :keyword))))
-      (loop for code from (char-code #\!) to (char-code #\~)
-	  do (setf (svref array code)
-	       (intern (string (char-upcase (code-char code)))
-		       (find-package :keyword))))
-      array))
+      (flet ((cstring (x)
+	       (ecase excl:*current-case-mode*
+		 ((:case-insensitive-upper)
+		  (string-upcase (string x)))
+		 ((:case-sensitive-lower)
+		  (string x))
+		 ((:case-insensitive-lower)
+		  (string-downcase (string x))))))
+	(dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
+	  (setf (svref array (char-code char))
+	    (intern (cstring (char-name char))
+		    (find-package :keyword))))
+	(loop for code from (char-code #\!) to (char-code #\~)
+	    do (setf (svref array code)
+		 (intern (cstring (code-char code))
+			 (find-package :keyword))))
+	array)))
 
 (defparameter *keysym-alist*
 	      `((#\Return . :return)
@@ -166,6 +174,8 @@
    ;; operating system to rotate a font to the required angle:
    (rotated-font-htable :initform (make-hash-table)
 			:accessor port-rotated-font-htable)   
+   ;; Pixmaps
+   (pixmaps :initform nil :accessor port-pixmaps)
    ))
 
 (defmethod restart-port ((port acl-port))
@@ -225,20 +235,20 @@
 (defmethod silica::port-set-pane-background ((port acl-port) pane medium ink)
   (declare (ignore pane))
   ;; Invoked :after (setf pane-background)
-  (when (not (numberp MEDIUM))
+  (when (not (numberp medium))
     ;;; On acl a medium is a number.
     (setf (medium-background medium) ink)))
 
 (defmethod silica::port-set-pane-foreground ((port acl-port) pane medium ink)
   (declare (ignore pane))
   ;; Invoked :after (setf pane-foreground)
-  (when (not (numberp MEDIUM))
+  (when (not (numberp medium))
     ;;; On acl a medium is a number.
     (setf (medium-foreground medium) ink)))
 
 (defmethod silica::port-set-pane-text-style ((port acl-port) pane medium style)
   (declare (ignore pane))
-  (when (not (numberp MEDIUM))
+  (when (not (numberp medium))
     ;;; On acl a medium is a number.
     (setf (medium-text-style medium) style)))
 
@@ -279,8 +289,38 @@
     ))
 
 (defmethod destroy-port :before ((port acl-port))
-  (when (eq port *acl-port*)
-    (setf *acl-port* nil)))
+  ;; This method should release all open handles 
+  ;; and "uninitialize" clim.  This is very useful
+  ;; for tracking down resource leaks, because any
+  ;; handles left open after this were leaked.
+  (declare (special *port-mirror-sheet-alist*))
+  (without-scheduling 
+    (let ((hash (port-dc-cache port)))
+      (maphash #'(lambda (ink dc-image) 
+		   (declare (ignore ink))
+		   (destroy-dc-image dc-image))
+	       hash)
+      (clrhash hash))
+    (destroy-dc)
+    (let ((hash (port-rotated-font-htable port)))
+      (maphash #'(lambda (font list)
+		   (declare (ignore font))
+		   (dolist (pair list)
+		     (destroy-acl-font (second pair))))
+	       hash)
+      (clrhash hash))
+    (let ((hash (slot-value port 'text-style->acl-font-mapping)))
+      (maphash #'(lambda (font acl-font)
+		   (declare (ignore font))
+		   (destroy-acl-font acl-font))
+	       hash)
+      (clrhash hash))
+    (dolist (pix (port-pixmaps port))
+      (port-deallocate-pixmap port pix))
+    (setf (port-pixmaps port) nil)
+    (when (eq port *acl-port*)
+      (setq *port-mirror-sheet-alist* nil)
+      (setf *acl-port* nil))))
 
 (defstruct (acl-font)
   index
@@ -304,6 +344,13 @@
   pitch
   family
   font-width-table)
+
+(defun destroy-acl-font (acl-font)
+  (let ((f (acl-font-index acl-font)))
+    (when f
+      (win:DeleteObject f)
+      (setf (acl-font-index acl-font) nil))
+    acl-font))
 
 (defparameter *acl-logical-size-alist*
 	      '((:tiny       6)
@@ -377,9 +424,9 @@
   (with-slots (text-style->acl-font-mapping) port
     (when text-style->acl-font-mapping
       (catch :font-found 
-	(maphash #'(lambda (KEY VAL)
-		     (if (eql VAL ACL-FONT)
-			 (throw :font-found KEY)))
+	(maphash #'(lambda (key val)
+		     (if (eql val acl-font)
+			 (throw :font-found key)))
 		 text-style->acl-font-mapping)))))
 
 (defmethod text-style-mapping-1
@@ -497,7 +544,7 @@
 		 (italic nil) (underline nil) (strikeout nil)
 		 (charset win:ANSI_CHARSET) 
 		 (output-precision OUT_TT_PRECIS)
-		 (clip-precision WIN:CLIP_DEFAULT_PRECIS)
+		 (clip-precision win:CLIP_DEFAULT_PRECIS)
 		 (quality win:PROOF_QUALITY) 
 		 (pitch-and-family (logior win:DEFAULT_PITCH win:FF_DONTCARE)) 
 		 (face nil) 
@@ -549,15 +596,16 @@
     (with-dc (cw dc)
       (win:SetMapMode dc win:MM_TEXT)
       (assert (valid-handle dc))
-      (when (valid-handle win-font) (selectobject dc win-font))
+      (when (valid-handle win-font) (SelectObject dc win-font))
+      ;; NEED TO FREE TMSTRUCT?
       (or (win:GetTextMetrics dc tmstruct)
 	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width
-	     (ct:cref win:textmetric tmstruct tmavecharwidth))
+	     (ct:cref win:textmetric tmstruct tmAveCharWidth))
 	    (maximum-character-width
-	     (ct:cref win:textmetric tmstruct tmmaxcharwidth))
-	    (last-character (ct:cref win:textmetric tmstruct tmlastchar))
-	    (first-character (ct:cref win:textmetric tmstruct tmfirstchar))
+	     (ct:cref win:textmetric tmstruct tmMaxCharWidth))
+	    (last-character (ct:cref win:textmetric tmstruct tmLastChar))
+	    (first-character (ct:cref win:textmetric tmstruct tmFirstChar))
 	    (font-width-array-or-nil nil))
 	(setq font-width-array-or-nil
 	  (and (/= average-character-width maximum-character-width)
@@ -565,22 +613,22 @@
 				      maximum-character-width)))
 	(make-acl-font
 	 :index win-font 
-	 :height (ct:cref win:textmetric tmstruct tmheight)
-	 :ascent (ct:cref win:textmetric tmstruct tmascent)
-	 :descent (ct:cref win:textmetric tmstruct tmdescent)
-	 :internal-leading (ct:cref win:textmetric tmstruct tminternalleading)
-	 :external-leading (ct:cref win:textmetric tmstruct tmexternalleading)
+	 :height (ct:cref win:textmetric tmstruct tmHeight)
+	 :ascent (ct:cref win:textmetric tmstruct tmAscent)
+	 :descent (ct:cref win:textmetric tmstruct tmDescent)
+	 :internal-leading (ct:cref win:textmetric tmstruct tmInternalLeading)
+	 :external-leading (ct:cref win:textmetric tmstruct tmExternalLeading)
 	 :average-character-width average-character-width        
 	 :maximum-character-width maximum-character-width 
-	 :weight (ct:cref win:textmetric tmstruct tmweight)
-	 :italic (ct:cref win:textmetric tmstruct tmitalic)
-	 :underlined (ct:cref win:textmetric tmstruct tmunderlined)
-	 :struckout (ct:cref win:textmetric tmstruct tmstruckout)
+	 :weight (ct:cref win:textmetric tmstruct tmWeight)
+	 :italic (ct:cref win:textmetric tmstruct tmItalic)
+	 :underlined (ct:cref win:textmetric tmstruct tmUnderlined)
+	 :struckout (ct:cref win:textmetric tmstruct tmStruckOut)
 	 :first-character first-character 
 	 :last-character last-character 
-	 :default-character (ct:cref win:textmetric tmstruct tmdefaultchar)
-	 :break-character (ct:cref win:textmetric tmstruct tmbreakchar)
-	 :overhang (ct:cref win:textmetric tmstruct tmoverhang)
+	 :default-character (ct:cref win:textmetric tmstruct tmDefaultChar)
+	 :break-character (ct:cref win:textmetric tmstruct tmBreakChar)
+	 :overhang (ct:cref win:textmetric tmstruct tmOverhang)
 	 :font-width-table font-width-array-or-nil)))))
 
 (defmethod port-glyph-for-character ((port acl-port) char style
@@ -909,10 +957,10 @@
 	  (setf (ct:cref win::osversioninfo v dwOSVersionInfoSize) 
 	    (ct:sizeof win::osversioninfo))
 	  (win::GetVersionEx v)
-	  (case (ct:cref win::osversioninfo v dwPlatformID)
-	    (#.WIN::VER_PLATFORM_WIN32_WINDOWS :win9598)
-	    (#.WIN::VER_PLATFORM_WIN32S :win31)
-	    (#.WIN::VER_PLATFORM_WIN32_NT :winnt))))))
+	  (case (ct:cref win::osversioninfo v dwPlatformId)
+	    (#.win::VER_PLATFORM_WIN32_WINDOWS :win9598)
+	    (#.win::VER_PLATFORM_WIN32s :win31)
+	    (#.win::VER_PLATFORM_WIN32_NT :winnt))))))
 
 (defun silica::acl-mirror-with-focus ()
   (acl-port-mirror-with-focus *acl-port*))

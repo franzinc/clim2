@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ptypes1.lisp,v 1.32 1999/02/25 08:23:30 layer Exp $
+;; $Id: ptypes1.lisp,v 1.33 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -377,7 +377,7 @@
 ;;; Find the class corresponding to the presentation type named NAME
 (defun find-presentation-type-class (name &optional (errorp t) environment)
   #+Genera (declare (inline compile-file-environment-p))
-  #+Allegro (setq environment (compile-file-environment-p environment))
+  #+allegro (setq environment (compile-file-environment-p environment))
   (macrolet ((not-found (name)
                `(if (gethash name *presentation-type-abbreviation-table*)
                     (error "~S is a presentation type abbreviation, not the name of a presentation type" ,name)
@@ -416,11 +416,11 @@
 (defmethod class-presentation-type-name ((class class) &optional environment)
   (class-proper-name class environment))
 
-#+Allegro (defstruct class-prototype-for-t)
-#+Allegro (defvar *class-prototype-for-t* (make-class-prototype-for-t))
+#+allegro (defstruct class-prototype-for-t)
+#+allegro (defvar *class-prototype-for-t* (make-class-prototype-for-t))
 
 (defun-inline find-class-prototype (class)
-  (cond #+Allegro
+  (cond #+allegro
         ((eq class excl::*the-class-t*)
          *class-prototype-for-t*)
         (t
@@ -467,7 +467,7 @@
 (defmethod acceptable-presentation-type-class ((class (eql (find-class 't)))) t)
 (defmethod acceptable-presentation-type-class ((class t)) nil)
 
-#+Allegro
+#+allegro
 (defmethod acceptable-presentation-type-class ((class (eql (find-class 'common-lisp:structure-object)))) t)
 
 ;;; Abstract flavors aren't accepted since CLASS-PROTOTYPE signals an error
@@ -572,7 +572,7 @@
                          expansion))))))
     ;; If it's both an abbreviation and a class, warn
     (when (and (compile-file-environment-p env)        ;Avoid duplicate warning
-               (find-class name nil #-Allegro env))
+               (find-class name nil #-allegro env))
       (with-warnings-for-definition name define-presentation-type
         (warn "It is not valid to define a presentation type abbreviation with~@
                the same name as a CLOS class.")))
@@ -582,7 +582,7 @@
          #+(or Genera Cloe-Runtime Minima CCL-2)
            (setf (compile-time-property ',name 'presentation-type-abbreviation)
                  ,function)
-         #+(or Lucid Allegro aclpc)
+         #+(or Lucid allegro aclpc)
            ;; In these Lisps, compile-file-environment-p is always false, so
            ;; expand-presentation-type-abbreviation-1 is not going to look for
            ;; a compile-time-property.
@@ -794,7 +794,7 @@
         #+(or Symbolics LispWorks)                ;Symbolics CLOS, that is
         (clos:structure-class
           (setq direct-supertypes 'clos:structure-object))
-        #+Allegro
+        #+allegro
         (structure-class
           (setq direct-supertypes 'common-lisp:structure-object))
         #+CCL-2
@@ -864,7 +864,7 @@
                           (clos:structure-class 'defstruct)
                           #+CCL-2 (structure-class 'defstruct)
                           #+aclpc (cl:structure-class 'defstruct)
-                          #+Allegro (structure-class 'defstruct))
+                          #+allegro (structure-class 'defstruct))
                         name)))
              (let ((class-name `(presentation-type ,name)))
                (setq class
@@ -877,8 +877,8 @@
                         #+(or aclpc CCL-2) :name
                         #+CCL-2 class-name
                         #+aclpc registered-class-name
-                        #-(or PCL aclpc CCL-2 Allegro) :slots
-                        #+(or PCL aclpc CCL-2 Allegro) :direct-slots
+                        #-(or PCL aclpc CCL-2 allegro) :slots
+                        #+(or PCL aclpc CCL-2 allegro) :direct-slots
                         nil)
                      #+Lucid (make-instance 'presentation-type-class
                                      :direct-superclasses direct-superclasses
@@ -1025,13 +1025,13 @@
        (name class function-var parameters-var options-var type-var
         &optional environment)
   (let ((superclasses
-          #-(or aclpc Allegro) (cdr (class-precedence-list class))
+          #-(or aclpc allegro) (cdr (class-precedence-list class))
           #+aclpc
           (progn
             (unless (acl:class-finalized-p class)
               (acl:finalize-inheritance class))
             (cdr (class-precedence-list class)))
-          #+Allegro ;; Work around bug in CLOS compilation environments...
+          #+allegro ;; Work around bug in CLOS compilation environments...
           (multiple-value-bind (no-errorp result)
               (excl:errorset (progn
                                ;; Finalization is necessary according to AMOP. -smh 18may93
@@ -1384,13 +1384,13 @@
 (defun generate-presentation-type-inheritance-methods
     (name class parameters-var options-var &optional environment)
   (let ((superclasses
-         #-(or Allegro aclpc) (cdr (class-precedence-list class))
+         #-(or allegro aclpc) (cdr (class-precedence-list class))
          #+aclpc
           (progn
             (unless (acl:class-finalized-p class)
               (acl:finalize-inheritance class))
             (cdr (class-precedence-list class)))
-         #+Allegro ;; Work around bug in CLOS compilation environments...
+         #+allegro ;; Work around bug in CLOS compilation environments...
          (multiple-value-bind (no-errorp result)
              (excl:errorset (progn
                               ;; Finalization is necessary according to AMOP. -smh 18may93

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: utilities.lisp,v 1.14 1999/02/25 08:23:48 layer Exp $
+;; $Id: utilities.lisp,v 1.15 2000/05/01 21:43:40 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -67,7 +67,7 @@
 (defmacro with-fast-vector-references ((&rest macros-and-arrays) &body body)
   (flet ((simple-part-accessor (array)
            ;; Allegro only allows SVREF on simple T vectors.
-           #+Allegro `(let ((temp ,array))
+           #+allegro `(let ((temp ,array))
                         (etypecase temp
                           (simple-vector temp)
                           ((vector t)
@@ -83,13 +83,13 @@
                                      'with-fast-vector-references)
                              temp2))))
            #+Genera array
-           #-(or Allegro Genera) array)
+           #-(or allegro Genera) array)
          (internal-binding-declarations (variables)
-           #+Allegro `(declare (simple-vector ,@variables))
+           #+allegro `(declare (simple-vector ,@variables))
            #+Genera `(declare (sys:array-register ,@variables))
-           #-(or Allegro Genera) `(declare)))
-    (let* ((aref #+(or Allegro Genera) 'svref
-                 #-(or Allegro Genera) 'aref)
+           #-(or allegro Genera) `(declare)))
+    (let* ((aref #+(or allegro Genera) 'svref
+                 #-(or allegro Genera) 'aref)
            (macro-names (mapcar #'first macros-and-arrays))
            (internal-variables (mapcar #'gensymbol macro-names))
            (arrays (mapcar #'second macros-and-arrays))

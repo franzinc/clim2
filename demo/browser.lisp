@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: browser.lisp,v 1.29 1999/07/19 22:25:14 layer Exp $
+;; $Id: browser.lisp,v 1.30 2000/05/01 21:43:26 layer Exp $
 
 ;;; Simple extensible browser
 ;;; Scott McKay
@@ -1141,7 +1141,7 @@
 (define-browser-command (com-redisplay :menu t) ()
   (redisplay-frame-pane *application-frame* 'graph :force-p t))
 
-#-Allegro
+#-allegro
 (define-browser-command (com-hardcopy-graph :name t :menu "Hardcopy")
     (&key (file 'pathname
 	   :default (make-pathname :name "GRAPH-HARDCOPY"
@@ -1164,7 +1164,7 @@
 	(terpri stream)
 	(display-graph-pane *application-frame* stream)))))
 
-#+Allegro
+#+allegro
 (define-browser-command (com-hardcopy-graph :name t :menu "Hardcopy")
     (&key (printer '(member :|lw| :|lw2| :|lw3|)
 		    :display-default t

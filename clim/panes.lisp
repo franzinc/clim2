@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: panes.lisp,v 1.5 1998/08/06 23:16:01 layer Exp $
+;; $Id: panes.lisp,v 1.6 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -56,7 +56,7 @@
      ,@body))
 
 (define-pane-type :title (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'title-pane
      ,@options
@@ -70,7 +70,7 @@
      :end-of-line-action :allow))
 
 (define-pane-type :command-menu (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'command-menu-pane
      ,@options
@@ -85,19 +85,19 @@
 
 
 (define-pane-type :interactor (&rest options &key (scroll-bars :vertical))
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-clim-interactor-pane
      ,@options
      :scroll-bars ,scroll-bars))
 
 (define-pane-type :application (&rest options &key (scroll-bars :both))
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-clim-application-pane
      ,@options
      :scroll-bars ,scroll-bars))
 
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'accept-values-pane
      ,@options
@@ -108,7 +108,7 @@
      :end-of-line-action :allow))
 
 (define-pane-type :pointer-documentation (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'pointer-documentation-pane
      ,@options
@@ -119,49 +119,49 @@
      :end-of-line-action :allow))
 
 (define-pane-type scroll-bar (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'scroll-bar ,@options))
 
 (define-pane-type slider (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'slider ,@options))
 
 (define-pane-type push-button (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'push-button ,@options))
 
 (define-pane-type label-pane (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'label-pane ,@options))
 
 (define-pane-type text-field (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'text-field ,@options))
 
 (define-pane-type text-editor (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'text-editor ,@options))
 
 (define-pane-type toggle-button (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'toggle-button ,@options))
 
 (define-pane-type radio-box (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'radio-box ,@options))
 
 (define-pane-type check-box (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'check-box ,@options))
 
 (define-pane-type list-pane (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'list-pane ,@options))
 
 (define-pane-type option-pane (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'option-pane ,@options))
 
 (define-pane-type :menu-bar (&rest options)
-  #+Allegro (declare (non-dynamic-extent options))
+  #+allegro (declare (non-dynamic-extent options))
   `(make-pane 'menu-bar ,@options))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: listener.lisp,v 1.37 1998/08/06 23:16:28 layer Exp $
+;; $Id: listener.lisp,v 1.38 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-demo)
 
@@ -265,7 +265,7 @@
   (if (eql restart *enter-debugger*)
       (enter-debugger *standard-input*)
     (let (values)
-      #+Allegro
+      #+allegro
       (case (restart-name (find-restart restart))
 	(excl::return-value
 	 (setq values

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.12 1999/07/19 22:25:10 layer Exp $
+;; $Id: acl-medium.lisp,v 1.13 2000/05/01 21:43:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -117,7 +117,7 @@
 		      mleft mtop mright mbottom))))))
 	   (when valid
 	     (fix-coordinates cleft ctop cright cbottom)
-	     (setq winrgn (createRectRgn cleft ctop cright cbottom))
+	     (setq winrgn (CreateRectRgn cleft ctop cright cbottom))
 	     (let ((val1 (and (valid-handle winrgn)
 			      (SelectObject dc winrgn))))
 	       (values val1
@@ -159,7 +159,7 @@
   *ltgray-image*)
 
 (defmethod color-rgb ((color (eql +ltgray+)))
-  (color-rgb (wincolor->color (win:getSysColor win:COLOR_BTNFACE))))
+  (color-rgb (wincolor->color (win:GetSysColor win:COLOR_BTNFACE))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +foreground-ink+)))
   (declare (values image created-bitmap created-mask-bitmap))
@@ -222,7 +222,7 @@
 	(setf (gethash ink cache)
 	  (let ((color (color->wincolor ink medium)))
 	    (declare (fixnum color))
-	    (let ((pen (win:CreatePen win:ps_solid 1 color))
+	    (let ((pen (win:CreatePen win:PS_SOLID 1 color))
 		  (brush (win:CreateSolidBrush color)))
 	      (make-dc-image :solid-1-pen pen
 			     :brush brush
@@ -275,8 +275,13 @@
 	   (values (dc-image-list created-bitmap)))
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
-	 (tink (aref designs 1))
-	 (bink (aref designs 0))
+	 ;; We need to deal with the case where the pattern has only a
+	 ;; single colour.  I think this is not a good way of doing
+	 ;; it, instead it would be better to special case it in the
+	 ;; caller, and not do this whole rigmarole
+	 (single-color-p (= (length designs) 1))
+	 (tink (aref designs (if single-color-p 0 1)))
+	 (bink (if single-color-p +black+ (aref designs 0)))
 	 (tcolor (color->wincolor tink medium))
 	 (bcolor (color->wincolor bink medium))
 	 (width (array-dimension array 1))
@@ -289,7 +294,7 @@
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
     (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
-	   (dc (win:GetDC 0))
+	   (dc (GetDC 0))
 	   (bitmap (unless (zerop dc)
 		     (get-texture dc into bitmapinfo))))
       (when bitmap
@@ -303,6 +308,19 @@
     (values dc-image
 	    created-bitmap)))
 
+;;; On Windows machines, patterns containing transparent inks are
+;;; implemented as a pair of images A main "picture" image and a
+;;; second "mask" image The "image" is drawn and then overlayed with
+;;; the "mask".  (For an example, see the method
+;;; medium-draw-rectangle*.)
+;;;
+;;; However, because of the way Windows does things, these bitmaps
+;;; cannot be reused (or cached) so they need to be created and then
+;;; destroyed.
+;;;
+;;; In short, if one of these patterns is used, the caller is
+;;; responsible for cleaning up the structures afterwards.  Again,
+;;; see the example in medium-draw-rectangle*.
 (defun dc-image-for-transparent-pattern (medium ink array designs)
   (declare (ignore ink)
 	   (values (dc-image-list created-bitmap created-mask-bitmap)))
@@ -344,7 +362,7 @@
 						   (list clim:+white+ 
 							 mainink))
 				       ))
-	   (dc (win:GetDC 0))
+	   (dc (GetDC 0))
 	   (bitmap (get-texture dc copy-arr bitmapinfo)))
       ;; To Do: replace BITMAP with COPY-ARR and just use 
       ;; device-independent bitmap operations.
@@ -360,7 +378,7 @@
 					    (list clim:+black+ 
 						  mainink))
 				))
-	       (dc-mask (win:GetDC 0))
+	       (dc-mask dc)
 	       (bitmap-mask (get-texture dc-mask copy-arr-mask 
 					 bitmapinfo-mask)))
 	  ;; To Do: replace BITMAP with COPY-ARR and just use 
@@ -379,6 +397,7 @@
 	  ;;
 	  ;; Windows does not support transparent ink directly.  We have to
 	  ;; create transparency with two images.
+	  (win:ReleaseDC 0 dc)
 	  (values
 	   (list dc-image
 		 dc-image-mask)
@@ -446,7 +465,7 @@
 		       (created-mask-bitmap nil))
 		   (multiple-value-setq (dc-image created-bitmap created-mask-bitmap)
 		     (dc-image-for-transparent-pattern medium ink array designs))
-		   (loop for DCI in dc-image
+		   (loop for dci in dc-image
 		       do (setf (dc-image-brush dci) 
 			    (win:CreatePatternBrush (dc-image-bitmap dci))))
 		   (values dc-image
@@ -515,6 +534,8 @@ draw icons and mouse cursors on the screen.
 		   ;; work right now, so lets use a Windows hatchbrush
 		   ;; for now.  We can cache a hatchbrush I think.
 		   (dolist (dci image)
+		     (let ((old (dc-image-brush dci)))
+		       (when (valid-handle old) (win:DeleteObject old)))
 		     (setf (dc-image-background-color dci) -1) ; transparent
 		     (setf (dc-image-brush dci) 
 		       (pattern-to-hatchbrush pattern)))
@@ -537,8 +558,8 @@ draw icons and mouse cursors on the screen.
 		   (image2 (dc-image-for-ink medium ink2))
 		   (color (logxor (dc-image-text-color image1)
 				  (dc-image-text-color image2))))
-	      (unless (and (eq (dc-image-rop2 image1) win:r2_copypen)
-			   (eq (dc-image-rop2 image2) win:r2_copypen)
+	      (unless (and (eq (dc-image-rop2 image1) win:R2_COPYPEN)
+			   (eq (dc-image-rop2 image2) win:R2_COPYPEN)
 			   (null (dc-image-bitmap image1))
 			   (null (dc-image-bitmap image2)))
 		(nyi))
@@ -576,8 +597,8 @@ draw icons and mouse cursors on the screen.
 		(convert-to-device-coordinates transform x y))
 	      (with-set-dc-for-ink (dc medium ink line-style)
 		;;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
-		(win:moveToEx dc x y null)
-		(win:lineTo dc (+ x 1) (+ y 1))
+		(win:MoveToEx dc x y null)
+		(win:LineTo dc (+ x 1) (+ y 1))
 		(when (valid-handle old) (SelectObject dc old))
 		))))))))
 
@@ -601,8 +622,8 @@ draw icons and mouse cursors on the screen.
 			(y (elt position-seq j)))
 		    (convert-to-device-coordinates transform x y)
 					;(win:rectangle dc x y x y)
-		    (win:moveToEx dc x y null)
-		    (win:lineTo dc (+ x 1) (+ y 1))))
+		    (win:MoveToEx dc x y null)
+		    (win:LineTo dc (+ x 1) (+ y 1))))
 		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-line* ((medium acl-medium) x1 y1 x2 y2)
@@ -618,18 +639,19 @@ draw icons and mouse cursors on the screen.
 		   (line-style (medium-line-style medium)))
 	      (convert-to-device-coordinates transform x1 y1 x2 y2)
 	      (with-set-dc-for-ink (dc medium ink line-style)
-		(win:moveToEx dc x1 y1 null)
-		(win:lineTo dc x2 y2)
+		(win:MoveToEx dc x1 y1 null)
+		(win:LineTo dc x2 y2)
 		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
   #+slow-but-sure
-  (let (oldx oldy)
+  (let (oldx oldy drawp)
     (silica:map-position-sequence
      #'(lambda (x y)
-	 (when oldx
+	 (when (and oldx drawp)
 	   (clim:medium-draw-line* medium oldx oldy x y))
-	 (setq oldx x oldy y))
+	 (setq oldx x oldy y
+	       drawp (not drawp)))
      position-seq))
   (without-scheduling
     (let ((window (medium-drawable medium)))
@@ -642,22 +664,22 @@ draw icons and mouse cursors on the screen.
 		   (ink (medium-ink medium))
 		   (line-style (medium-line-style medium)))
 	      (with-set-dc-for-ink (dc medium ink line-style)
-		(let ((init t))
+		;; Do we really need all this gratuitous LABELS stuff?
+		;; -- perhaps the compiler generates better code?
+		(let (drawp)
 		  (declare (optimize (speed 3) (safety 0)))
 		  (labels ((visit1 (x y)
 			     (fix-coordinates x y)
-			     (cond (init
-				    (win:MoveToEx dc x y null)
-				    (setq init nil))
-				   (t
-				    (win:LineTo dc x y))))
+			     (if drawp
+				 (win:LineTo dc x y)
+				 (win:MoveToEx dc x y null))
+			     (setf drawp (not drawp)))
 			   (visit2 (x y)
 			     (convert-to-device-coordinates transform x y)
-			     (cond (init
-				    (win:MoveToEx dc x y null)
-				    (setq init nil))
-				   (t
-				    (win:LineTo dc x y)))))
+			     (if drawp
+				 (win:LineTo dc x y)
+				 (win:MoveToEx dc x y null))
+			     (setf drawp (not drawp))))
 		    (declare (dynamic-extent #'visit1 #'visit2))
 		    (if (identity-transformation-p transform)
 			(silica:map-position-sequence #'visit1 position-seq)
@@ -693,7 +715,7 @@ draw icons and mouse cursors on the screen.
 			 (medium ink)
 			
 			 ;; Create compatable memory dc
-			 (setq cdc (win:createcompatibledc dc))
+			 (setq cdc (win:CreateCompatibleDC dc))
 			 (assert (valid-handle cdc))	
 			 (cond ((listp dc-image)
 				;; This is the case of a pattern that contains transparent ink.
@@ -711,23 +733,27 @@ draw icons and mouse cursors on the screen.
 				  ;; select a (Device-Dependent) bitmap into the dc
 				  (when (valid-handle pictbm) (SelectObject cdc pictbm))
 				  ;; Copy bitmap from memory dc to screen dc
-				  (win:bitblt dc left top (- right left) (- bottom top)
+				  (win:BitBlt dc left top (- right left) (- bottom top)
 					      cdc 0 0 
 					      win:SRCAND)
 			 
 				  (when (valid-handle maskbm) (SelectObject cdc maskbm))
-				  (win:bitblt dc left top (- right left) (- bottom top)
+				  (win:BitBlt dc left top (- right left) (- bottom top)
 					      cdc 0 0 
-					      acl-clim::SRCOR)))
+					      acl-clim::SRCOR)
+				  
+				  (destroy-dc-image dci-pict :destroy-bitmap nil)
+				  (destroy-dc-image dci-mask :destroy-bitmap nil)
+				  ))
 			       (t
 				;; select a (Device-Dependent) bitmap into the dc
 				(let ((bm (dc-image-bitmap dc-image)))
 				  (when (valid-handle bm) (SelectObject cdc bm)))
 				;; Copy bitmap from memory dc to screen dc
-				(win:bitblt dc left top (- right left) (- bottom top)
+				(win:BitBlt dc left top (- right left) (- bottom top)
 					    cdc 0 0 win:SRCCOPY)))
 			 ;; Delete memory dc
-			 (win:deletedc cdc)
+			 (win:DeleteDC cdc)
 			 (when (valid-handle old) (SelectObject dc old))))
 		     t)
 		    (t
@@ -736,8 +762,10 @@ draw icons and mouse cursors on the screen.
 						(if filled nil line-style)
 						left top)
 			 (if filled
-			     (win:rectangle dc left top (1+ right) (1+ bottom))
-			   (win:rectangle dc left top right bottom))
+			     (win:Rectangle dc left top (1+ right) (1+ bottom))
+			   ;; right and bottom need to be incremented
+			   ;; for consistent behavior with unix.
+			   (win:Rectangle dc left top (1+ right) (1+ bottom)))
 			 (when (valid-handle old) (SelectObject dc old))
 			 t
 			 )))))))))))
@@ -766,8 +794,8 @@ draw icons and mouse cursors on the screen.
 		    (when (< right left) (rotatef right left))
 		    (when (< bottom top) (rotatef bottom top))
 		    (if filled
-			(win:rectangle dc left top (1+ right) (1+ bottom))
-		      (win:rectangle dc left top right bottom))))
+			(win:Rectangle dc left top (1+ right) (1+ bottom))
+		      (win:Rectangle dc left top right bottom))))
 		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defparameter *point-vector* 
@@ -834,8 +862,8 @@ draw icons and mouse cursors on the screen.
 			       (and closed (not filled)))
     (with-set-dc-for-ink (dc medium ink line-style)
       (if filled
-	  (win:polygon dc point-vector numpoints)
-	(win:polyline dc point-vector numpoints))
+	  (win:Polygon dc point-vector numpoints)
+	(win:Polyline dc point-vector numpoints))
       (when (valid-handle old) (SelectObject dc old))
       t)))
 
@@ -899,10 +927,10 @@ draw icons and mouse cursors on the screen.
 			   (and (= start-angle 0)
 				(= end-angle 2pi))
 			   ;; drawing a full ellipse
-			   (win:ellipse dc left top right bottom))
+			   (win:Ellipse dc left top right bottom))
 			  ((null line-style)
 			   ;; drawing a pie slice
-			   (win:pie
+			   (win:Pie
 			    dc left top right bottom
 			    (round (1- (+ center-x (* (cos start-angle) x-radius))))
 			    (round (1- (- center-y (* (sin start-angle) y-radius))))
@@ -910,7 +938,7 @@ draw icons and mouse cursors on the screen.
 			    (round (1- (- center-y (* (sin end-angle) y-radius))))))
 			  (t
 			   ;; drawing an arc
-			   (win:arc
+			   (win:Arc
 			    dc left top right bottom
 			    (round (1- (+ center-x (* (cos start-angle) x-radius))))
 			    (round (1- (- center-y (* (sin start-angle) y-radius))))
@@ -959,17 +987,17 @@ draw icons and mouse cursors on the screen.
       (if (flipping-ink-p ink)
 	  (medium-draw-inverted-string* medium string x y start end font text-style)
 	(with-medium-dc (medium dc)
-	  (with-selected-acl-dc (old) (medium window dc)
-				(when old
-				  (with-temporary-substring (substring string start end)
-				    (with-set-dc-for-text (dc medium ink (acl-font-index font))
-				      (multiple-value-bind (cstr len)
-					  (silica::xlat-newline-return substring)
-					(or (excl:with-native-string (cstr cstr)
-					      (win:TextOut dc x y cstr len))
-					    (check-last-error "TextOut" :action :warn)))
-		
-				      (when (valid-handle old) (SelectObject dc old)))))))))))
+	  (with-selected-acl-dc (old) 
+	    (medium window dc)
+	    (when old
+	      (with-temporary-substring (substring string start end)
+		(with-set-dc-for-text (dc medium ink (acl-font-index font))
+		  (multiple-value-bind (cstr len)
+		      (silica::xlat-newline-return substring)
+		    (or (excl:with-native-string (cstr cstr)
+			  (win:TextOut dc x y cstr len))
+			(check-last-error "TextOut" :action :warn)))
+		  (when (valid-handle old) (SelectObject dc old)))))))))))
 
 (defmethod medium-draw-inverted-string* ((medium acl-medium)
 					 string x y start end font text-style)
@@ -995,7 +1023,7 @@ draw icons and mouse cursors on the screen.
 		(when (valid-handle hbm) (setq oldbm (SelectObject cdc hbm)))
 		;; Set the bitmap to black, then draw the text in white.
 		(with-set-dc-for-text (cdc medium +black+ (acl-font-index font))
-		  (win:rectangle cdc 0 0 width height)
+		  (win:Rectangle cdc 0 0 width height)
 		  (win:SetTextColor dc 0) ; white
 		  (with-set-dc-for-text (cdc medium +white+ (acl-font-index font))
 		    (multiple-value-bind (cstr len)
@@ -1126,7 +1154,7 @@ draw icons and mouse cursors on the screen.
        (acl-font-maximum-character-width font))))
 
 (defmethod medium-beep ((medium acl-medium))
-  (win:messageBeep win:MB_OK))
+  (win:MessageBeep win:MB_OK))
 
 (defmethod medium-force-output ((medium acl-medium))
   )

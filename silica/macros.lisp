@@ -16,18 +16,23 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: macros.lisp,v 1.18 1998/08/06 23:16:59 layer Exp $
+;; $Id: macros.lisp,v 1.19 2000/05/01 21:43:32 layer Exp $
 
 (in-package :silica)
 
 ;;;"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
+(defgeneric invoke-with-sheet-medium (sheet continuation)
+  (declare (dynamic-extent continuation)))
 
 (defmacro with-sheet-medium ((medium sheet) &body body)
   `(flet ((with-sheet-medium-body (,medium) ,@body))
      (declare (dynamic-extent #'with-sheet-medium-body))
      (invoke-with-sheet-medium ,sheet #'with-sheet-medium-body)))
+
+(defgeneric invoke-with-sheet-medium-bound (sheet medium continuation)
+  (declare (dynamic-extent continuation)))
 
 (defmacro with-sheet-medium-bound ((sheet medium) &body body)
   `(flet ((with-sheet-medium-bound-body () ,@body))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-editor-commands.lisp,v 1.38 1999/02/25 08:23:29 layer Exp $
+;; $Id: input-editor-commands.lisp,v 1.39 2000/05/01 21:43:24 layer Exp $
 
 (in-package :clim-internals)
 
@@ -179,10 +179,10 @@ This may confused the input editor" gestures))
                                    (gesture character) type)
   (with-slots (numeric-argument last-command-type command-state
                                 command-mode) istream
-    (cond (#+Allegro
+    (cond (#+allegro
 	   (excl:ics-target-case
             (:+ics (eq command-mode *kana-input-editor-command-aarray*)))
-           #-Allegro nil
+           #-allegro nil
            (setq last-command-type 'character)
 	   (excl:ics-target-case
             (:+ics (kana-process-gesture istream gesture type))))
@@ -960,17 +960,6 @@ This may confused the input editor" gestures))
            (redraw-input-buffer stream prev))
           (t (beep stream)))))
 
-
-(define-input-editor-command (com-ie-upcase-word)
-                             (stream input-buffer numeric-argument)
-  "Upcase word"
-  (change-word-case stream input-buffer numeric-argument #'char-upcase))
-
-(define-input-editor-command (com-ie-downcase-word)
-                             (stream input-buffer numeric-argument)
-  "Downcase word"
-  (change-word-case stream input-buffer numeric-argument #'char-downcase))
-
 (defun change-word-case (stream input-buffer numeric-argument function)
   (declare (dynamic-extent function))
   (let* ((start (stream-insertion-pointer stream))
@@ -991,6 +980,16 @@ This may confused the input editor" gestures))
                (when (characterp char)
                  (setf (aref input-buffer i) (funcall function char))))))
           (t (beep stream)))))
+
+(define-input-editor-command (com-ie-upcase-word)
+                             (stream input-buffer numeric-argument)
+  "Upcase word"
+  (change-word-case stream input-buffer numeric-argument #'char-upcase))
+
+(define-input-editor-command (com-ie-downcase-word)
+                             (stream input-buffer numeric-argument)
+  "Downcase word"
+  (change-word-case stream input-buffer numeric-argument #'char-downcase))
 
 (define-input-editor-command (com-ie-capitalize-word)
                              (stream input-buffer numeric-argument)
@@ -1071,7 +1070,7 @@ This may confused the input editor" gestures))
   (declare (values arglist found-p))
   #+Genera (values (sys:arglist function) T)
   #+Cloe-Runtime (sys::arglist function)
-  #+Allegro (values (excl::arglist function) t)
+  #+allegro (values (excl::arglist function) t)
   #+Lucid (values (lucid-common-lisp:arglist function) t))
 
 (defun word-start-and-end (string start-chars &optional (start 0))
@@ -1301,19 +1300,19 @@ This may confused the input editor" gestures))
   (:ie-scroll-right            :scroll-up :super)
   (:ie-input-editor-help    :help :control))
 
-#-(or (and (not acl86win32) Allegro) Lucid)
+#-(or (and (not acl86win32) allegro) Lucid)
 (define-input-editor-gestures
   (:ie-show-arglist            :a   :control :shift)
   (:ie-show-value            :v   :control :shift)
   (:ie-show-documentation   :d   :control :shift))
 
-#+(or (and (not acl86win32) Allegro) Lucid)
+#+(or (and (not acl86win32) allegro) Lucid)
 (define-input-editor-gestures
   (:ie-show-arglist            :a   :meta :shift)
   (:ie-show-value            :v   :meta :shift)
   (:ie-show-documentation   :d   :meta :shift))
 
-#+(or Allegro aclpc)
+#+(or allegro aclpc)
 (define-input-editor-gestures
   (:ie-rubout-character     :backspace)
   (:ie-rubout-word	    :backspace :meta)
@@ -1408,7 +1407,7 @@ This may confused the input editor" gestures))
 (assign-input-editor-key-bindings
   (com-ie-swap-point-and-mark  (:ie-prefix-2 (:x :control))))
 
-#+(or (and Allegro (not acl86win32)) Lucid)
+#+(or (and allegro (not acl86win32)) Lucid)
 (assign-input-editor-key-bindings
   com-ie-forward-word               (:ie-prefix-1 :f)
   com-ie-backward-word               (:ie-prefix-1 :b)
@@ -1486,7 +1485,7 @@ This may confused the input editor" gestures))
 
 )        ;#+Genera
 
-#+Allegro
+#+allegro
 (progn
   (define-input-editor-gestures
       (:left-arrow :left-arrow)

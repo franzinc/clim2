@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-medium.lisp,v 1.22 1998/08/06 23:16:47 layer Exp $
+;; $Id: postscript-medium.lisp,v 1.23 2000/05/01 21:43:31 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -461,22 +461,42 @@
 ;;; provide a way for the "user" to start a new page.
 ;;; Should this have a different name?
 ;;; Should this functionality be invoked by writing the #\page character?
+;;;
+;;; pnc Dec99: Completely rewritten.  See comments with
+;;; draw-postscript-literal, in postscript-port.lisp
 (defmethod new-page ((stream postscript-stream))
-  (let* ((medium (sheet-medium stream))
-	 (printer-stream (slot-value medium 'printer-stream)))
-    (format printer-stream "new-page~%")
-    ;; Simulate WINDOW-CLEAR
-    (when (stream-output-history stream)
-      (clear-output-record (stream-output-history stream)))
-    (setf (stream-text-output-record stream) nil)
-    (when (extended-output-stream-p stream)	;can we assume this?
-      (stream-set-cursor-position stream 0 0)
-      (setf (stream-baseline stream) 0
-	    (clim-internals::stream-current-line-height stream) 0))))
+  
+  ;; Throw a newline in the output-record, and 
+  ;; insert a call to DRAW-POSTSCRIPT-LITERAL
+  ;; at the current location.
+  (terpri stream)
+  (clim-internals::with-cursor-state (stream nil)
+    (multiple-value-bind (cursor-x cursor-y) ;; baseline height style max-x record-p draw-p
+        (clim-internals::decode-stream-for-writing stream)      
+      (draw-postscript-literal stream "new-page" cursor-x cursor-y)
+      )
+    )
+  
+  ;; This will cause the contents current output-record
+  ;; to be processed.
+  (letf-globally (((stream-generating-postscript stream) t))
+    (apply 'invoke-with-output-to-postscript-stream-helper +output-to-postscript-stream-helper-args+)
+    )
+  
+  ;; Now, clean out the output-record.
+  (when (stream-output-history stream)
+    (clear-output-record (stream-output-history stream)))
+  (setf (stream-text-output-record stream) nil)
+  (when (extended-output-stream-p stream) ;can we assume this?
+    (stream-set-cursor-position stream 0 0)
+    (setf (stream-baseline stream) 0
+	  (clim-internals::stream-current-line-height stream) 0))
 
+  )
+
+#+OBSOLETE
 (defmethod new-page ((medium postscript-medium))
-  (let ((printer-stream (slot-value medium 'printer-stream)))
-    (format printer-stream "new-page~%")))
+  (error "Obsolete"))
 
 (excl::without-package-locks
 (defmacro with-postscript-glyph-for-character (&body body)

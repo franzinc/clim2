@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Mon Jul  6 15:36:40 1998 by layer]-
+;;				-[Wed Apr 26 20:24:45 2000 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,15 +19,13 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: dev-load-1.lisp,v 1.40 1998/08/06 23:16:43 layer Exp $
+;; $Id: dev-load-1.lisp,v 1.41 2000/05/01 21:43:30 layer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 ;; Forgive them, lord, for they know not what they do.
 (pushnew :ansi-90 *features*)
-
-(set-case-mode :case-insensitive-lower)
 
 (tenuring
  (let ((*load-source-file-info* t)
@@ -36,8 +34,7 @@
    (load "clim2:;sys;sysdcl")))
 
 (defun load-it (sys &key load-composer)
-  (let ((excl::*update-entry-points* nil)
-	(*load-source-file-info* t)
+  (let ((*load-source-file-info* t)
 	(*record-source-file-info* t)
 	(*load-xref-info* nil)
 	(excl:*global-gc-behavior* nil))

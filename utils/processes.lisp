@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: processes.lisp,v 1.23 1999/02/25 08:23:48 layer Exp $
+;; $Id: processes.lisp,v 1.24 2000/05/01 21:43:40 layer Exp $
 
 (in-package :clim-utils)
 
@@ -33,7 +33,7 @@
 
 (defvar *multiprocessing-p* 
   #{
-    (or Allegro Genera Lucid Lispworks Minima) t
+    (or allegro Genera Lucid Lispworks Minima) t
     otherwise nil
     }
     )
@@ -44,10 +44,10 @@
 ;  (mp:start-scheduler))
 
 (defmacro with-lock-held ((place &optional state) &body forms)
-  #+(or Allegro Xerox Genera ccl Minima)
+  #+(or allegro Xerox Genera ccl Minima)
   (declare (ignore state #+ccl place))
   #{
-    Allegro        `(mp:with-process-lock (,place) ,@forms)
+    allegro        `(mp:with-process-lock (,place) ,@forms)
     Lucid        `(lcl:with-process-lock (,place ,@(if state (cons state nil)))
                    ,@forms)
     lispworks        `(mp::with-lock (,place) ,@forms)
@@ -61,9 +61,9 @@
   )
 
 (defun make-lock (&optional (lock-name "a CLIM lock"))
-  #-(or Genera Minima Allegro) (declare (ignore lock-name))
+  #-(or Genera Minima allegro) (declare (ignore lock-name))
   #{
-    Allegro        (mp::make-process-lock :name lock-name)
+    allegro        (mp::make-process-lock :name lock-name)
     lispworks        (mp::make-lock)
     Lucid        nil
     CCL-2        nil
@@ -92,7 +92,7 @@
           (unless (null place-value)
             (flet ((waiter ()
                      (null (first place))))
-              #-Allegro (declare (dynamic-extent #'waiter))
+              #-allegro (declare (dynamic-extent #'waiter))
               (process-wait state #'waiter)))
           (unwind-protect
               (progn (rplaca place store-value)
@@ -124,7 +124,7 @@
 (defmacro without-scheduling (&body forms)
   "Evaluate the forms w/o letting any other process run."
   #{
-    Allegro    `(excl:without-interrupts ,@forms) 
+    allegro    `(excl:without-interrupts ,@forms) 
     lispworks  `(sys::without-scheduling ,@forms)
     Lucid      `(lcl:with-scheduling-inhibited ,@forms)
     Xerox      `(progn ,@forms)
@@ -206,7 +206,7 @@
     #{
     lispworks  (mp:process-run-function name nil function)
     Lucid      (lcl:make-process :function function :name name)
-    Allegro    (mp:process-run-function name function)
+    allegro    (mp:process-run-function name function)
     Xerox      (il:add.process (funcall function) 'il:name name)
     Genera     (scl:process-run-function name function)
     Minima     (minima:make-process name :initial-function function)
@@ -218,7 +218,7 @@
   #{
   ccl        (member object '(:user :event :interrupt))
   Lucid             (lcl:processp object)
-  Allegro    (mp::process-p object)
+  allegro    (mp::process-p object)
   lispworks  (mp::process-p object)
   ;; In 7.3 and after it is `(process:process-p ,object)
   Genera     (process:process-p object)
@@ -232,7 +232,7 @@
   #+(or ccl) (declare (ignore process))
   #{
   Lucid      (lcl:kill-process process)
-  Allegro    (mp:process-kill process)
+  allegro    (mp:process-kill process)
   lispworks  (mp:process-kill process)
   Xerox             (il:del.process process)
   Genera     (scl:process-kill process)
@@ -249,7 +249,7 @@
 (defun current-process ()
   #{
   Lucid      lcl:*current-process*
-  Allegro    mp:*current-process*
+  allegro    mp:*current-process*
   lispworks  mp:*current-process*
   Xerox             (il:this.process)
   Genera     scl:*current-process*
@@ -264,7 +264,7 @@
 (defun all-processes ()
   #{
   Lucid      lcl:*all-processes*
-  Allegro    mp:*all-processes*
+  allegro    mp:*all-processes*
   lispworks  (mp::list-all-processes)
   Genera     sys:all-processes
   CCL-2             (adjoin *current-process* '(:user))
@@ -285,7 +285,7 @@
 (defun process-yield ()
   #{
   Lucid      (lcl:process-allow-schedule)
-  Allegro    (mp:process-allow-schedule)
+  allegro    (mp:process-allow-schedule)
   lispworks  (mp::process-allow-scheduling)
   Xerox             (il:block)
   Genera     (scl:process-allow-schedule)
@@ -302,7 +302,7 @@
   "Cause the current process to go to sleep until the predicate returns TRUE."
   #{
   Lucid      (lcl:process-wait wait-reason predicate)
-  Allegro    (mp:process-wait wait-reason predicate)
+  allegro    (mp:process-wait wait-reason predicate)
   lispworks  (mp:process-wait wait-reason predicate)
   Xerox             (let ((il:*who-line-state* wait-reason))
                (loop
@@ -327,7 +327,7 @@
     (return-from process-wait-with-timeout
       (process-wait wait-reason predicate)))
   #{
-  Allegro    (mp:process-wait-with-timeout wait-reason timeout predicate)
+  allegro    (mp:process-wait-with-timeout wait-reason timeout predicate)
   lispworks  (mp:process-wait-with-timeout wait-reason timeout predicate)
   Lucid             (lcl:process-wait-with-timeout wait-reason timeout predicate)
   Genera     (sys:process-wait-with-timeout wait-reason (* timeout 60.) predicate)
@@ -340,7 +340,7 @@
   (declare #+CCL-2 (ignore process))
   #{
   Lucid     (lcl:interrupt-process process function)
-  Allegro   (mp:process-interrupt process function)
+  allegro   (mp:process-interrupt process function)
   lispworks (mp:process-interrupt process function)
   Genera    (scl:process-interrupt process function)
   CCL-2     (let ((*current-process* :interrupt))
@@ -353,7 +353,7 @@
 (defun restart-process (process)
   #{
   Lucid (lcl::restart-process process)
-  Allegro (mp:process-reset process)
+  allegro (mp:process-reset process)
   lispworks (mp:process-reset process)
   Genera (process:process-reset process)
   Minima (minima:process-reset process)
@@ -364,7 +364,7 @@
 (defun enable-process (process)
   #{
   Lucid (lcl::activate-process process)
-  Allegro (mp:process-enable process)
+  allegro (mp:process-enable process)
   lispworks (mp:process-enable process)
   Genera (process:process-enable process)
   Minima (minima:process-enable process)
@@ -375,7 +375,7 @@
 (defun disable-process (process)
   #{
   Lucid (lcl::deactivate-process process)
-  Allegro (mp:process-disable process)
+  allegro (mp:process-disable process)
   lispworks (mp:process-disable process)
   Genera (process:process-disable process)
   Minima (minima:process-disable process)
@@ -386,7 +386,7 @@
 (defun process-name (process)
   #{
   Lucid (lcl::process-name process)
-  Allegro (mp:process-name process)
+  allegro (mp:process-name process)
   lispworks (mp:process-name process)
   Genera (process:process-name process)
   Minima (minima:process-name process)
@@ -397,7 +397,7 @@
 (defun process-state (process)
   #{
   Lucid (lcl::process-state process)
-  Allegro (cond ((mp:process-active-p process) "active")
+  allegro (cond ((mp:process-active-p process) "active")
                 ((mp:process-runnable-p process) "runnable")
                 (t "deactivated"))
   lispworks (cond ((mp:process-active-p process) "active")
@@ -412,7 +412,7 @@
 (defun process-whostate (process)
   #{
   Lucid (lcl::process-whostate process)
-  Allegro (mp:process-whostate process)
+  allegro (mp:process-whostate process)
   lispworks (mp:process-whostate process)
   Genera (process:process-whostate process)
   Minima (minima:process-whostate process)

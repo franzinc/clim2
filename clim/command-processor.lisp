@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: command-processor.lisp,v 1.28 1998/08/06 23:15:50 layer Exp $
+;; $Id: command-processor.lisp,v 1.29 2000/05/01 21:43:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -36,6 +36,24 @@
 
 ;; This is around only to provide a input context "wall" during parsing
 (define-presentation-type command-arguments ())
+
+(defun invoke-command-name-parser-and-collect-1
+       (command-name arg-parser delimiter-parser stream)
+  (declare (dynamic-extent arg-parser delimiter-parser))
+  (let ((parser-function (get command-name 'command-parser))
+        (arguments nil))
+    (catch 'stop-reading-command-arguments
+      (flet ((parse-and-collect (stream presentation-type &rest args)
+               (declare (dynamic-extent args))
+               (multiple-value-bind (object type)
+                   (apply arg-parser stream presentation-type args)
+                 (push object arguments)
+                 (values object type))))
+        (declare (dynamic-extent #'parse-and-collect))
+        (funcall parser-function #'parse-and-collect delimiter-parser stream)))
+    (let ((final-delimiter (funcall delimiter-parser stream ':end)))
+      (values (cons command-name (nreverse arguments))
+              final-delimiter))))
 
 ;;; Various ways to invoke the command parser.
 (defun invoke-command-parser-and-collect (command-table arg-parser delimiter-parser stream)
@@ -81,24 +99,6 @@
                        command))
                    command))))
        (t (error "You can't get here from there")))))
-
-(defun invoke-command-name-parser-and-collect-1
-       (command-name arg-parser delimiter-parser stream)
-  (declare (dynamic-extent arg-parser delimiter-parser))
-  (let ((parser-function (get command-name 'command-parser))
-        (arguments nil))
-    (catch 'stop-reading-command-arguments
-      (flet ((parse-and-collect (stream presentation-type &rest args)
-               (declare (dynamic-extent args))
-               (multiple-value-bind (object type)
-                   (apply arg-parser stream presentation-type args)
-                 (push object arguments)
-                 (values object type))))
-        (declare (dynamic-extent #'parse-and-collect))
-        (funcall parser-function #'parse-and-collect delimiter-parser stream)))
-    (let ((final-delimiter (funcall delimiter-parser stream ':end)))
-      (values (cons command-name (nreverse arguments))
-              final-delimiter))))
 
 (defun parse-normal-arg (stream arg-type &rest options)
   (declare (dynamic-extent options))
@@ -707,7 +707,7 @@
     (multiple-value-bind (object type)
         (with-input-context (command-type) (command command-presentation-type nil options)
              (with-input-context (form-type) (form form-presentation-type nil options)
-                  (let ((gesture (read-gesture :stream stream :peek-p T)))
+                  (let ((gesture (read-gesture :stream stream :peek-p t)))
                     (cond ((and (characterp gesture)
                                 (find gesture *command-dispatchers* :test #'char-equal))
                            (read-gesture :stream stream)        ;get out the colon

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.10 1999/07/19 22:25:09 layer Exp $
+;; $Id: acl-dc.lisp,v 1.11 2000/05/01 21:43:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -36,19 +36,14 @@
 ;;; Stock objects
 (defvar *null-pen*)
 (defvar *black-pen*)
-(defvar *white-pen*)
 (defvar *ltgray-pen*)
-
 (defvar *null-brush*)
 (defvar *black-brush*)
-(defvar *white-brush*)
 (defvar *ltgray-brush*)
-
-;;; Original objects
-(defvar *black-image*)
-(defvar *white-image*)
 (defvar *blank-image*)
 (defvar *ltgray-image*)
+
+(defvar *background-brush* nil)
 
 ;; This is not just any 75% gray.  There are
 ;; methods to treat this object specially and
@@ -62,8 +57,6 @@
 (defmethod print-object ((object (eql (symbol-value '+ltgray+))) stream)
   (format stream "#<CLIM LtGray>"))
 
-(defvar *original-font* nil)
-
 ;; Device context information
 (defstruct (dc-image (:predicate nil))
   (bitmapinfo nil)			; colors of unmasked bitmap
@@ -73,52 +66,92 @@
   (rop2 win:R2_COPYPEN)			; set the foreground mix mode
   text-color				; foreground color
   background-color			; background color
+  ;; These two are obsolete:
   and-bitmap				; AND part of masked bitmap (monochrome)
   and-brush                             ; AND part of masked brush (monochrome)
   )
 
-(defun initialize-dc ()
-  (unless (win:IsWindow *current-window*)
-    (error "No Window: ~S" *current-window*))
-  ;; Stock objects
-  (setf *null-pen* (win:GetStockObject win:NULL_PEN))
-  (setf *black-pen* (win:GetStockObject win:BLACK_PEN))
-  (setf *white-pen* (win:GetStockObject win:WHITE_PEN))
-  (setf *ltgray-pen* 
-    (createPen win:PS_SOLID 1 (win:GetSysColor win:COLOR_BTNFACE)))
-  ;;
-  (setf *null-brush* (win:GetStockObject win:NULL_BRUSH))
-  (setf *black-brush* (win:GetStockObject win:BLACK_BRUSH))
-  (setf *white-brush* (win:GetStockObject win:WHITE_BRUSH))
-  (setf *ltgray-brush* 
-    (win:CreateSolidBrush (win:GetSysColor win:COLOR_BTNFACE)))
+;; Bitmap has to handled carefully when using transparent inks
+;; on mswindows.  See, for example dc-image-for-transparent-pattern.
+(defun destroy-dc-image (dc &key (destroy-bitmap t))
+  (let (;; (bitmapinfo (dc-image-bitmapinfo dc)) ; instance of win:bitmapinfo
+	(bitmap (dc-image-bitmap dc))
+	(solid-1-pen (dc-image-solid-1-pen dc))
+	(brush (dc-image-brush dc))
+	;; (rop2 (dc-image-rop2 dc))
+	;; (text-color (dc-image-text-color dc))
+	;; (background-color (dc-image-background-color dc))
+	;; (and-bitmap (dc-image-and-bitmap dc))
+	;; (and-brush (dc-image-and-brush dc))
+	)
+    (when solid-1-pen 
+      (win:DeleteObject solid-1-pen)
+      (setf (dc-image-solid-1-pen dc) nil))
+    (when brush
+      (win:DeleteObject brush)
+      (setf (dc-image-brush dc) nil))
+    (when (and bitmap
+	       destroy-bitmap)
+      (win:DeleteObject bitmap)
+      (setf (dc-image-bitmap dc) nil))
+    dc))
 
-  (setf *blank-image*
-    #+possibly
-    (make-dc-image :solid-1-pen *black-pen* 
-		   :brush *black-brush*
-		   :text-color #xffffffff ; see CLR_NONE
-                   :background-color nil
-		   :rop2 win:R2_MERGEPEN )
-    (make-dc-image :solid-1-pen *black-pen*
-		   :brush *black-brush*
-		   :text-color #x000000 
-		   :background-color nil
-		   :rop2 win:R2_NOP ))
-  ;;
-  (setf *ltgray-image*
-    (make-dc-image :solid-1-pen *ltgray-pen* 
-                   :brush *ltgray-brush*
-                   :text-color (win:GetSysColor win:COLOR_BTNFACE)
-                   :background-color nil
-		   :rop2 win:R2_COPYPEN))
-  ;;
-  (setq *dc-initialized* t)
-  )
+(defun initialize-dc ()
+  (unless *dc-initialized*
+    (unless (win:IsWindow *current-window*)
+      (error "No Window: ~S" *current-window*))
+    ;; Stock objects
+    (setf *null-pen* (win:GetStockObject win:NULL_PEN))
+    (setf *black-pen* (win:GetStockObject win:BLACK_PEN))
+    (setf *ltgray-pen* 
+      (CreatePen win:PS_SOLID 1 (win:GetSysColor win:COLOR_BTNFACE)))
+    ;;
+    (setf *null-brush* (win:GetStockObject win:NULL_BRUSH))
+    (setf *black-brush* (win:GetStockObject win:BLACK_BRUSH))
+    (setf *ltgray-brush* 
+      (win:CreateSolidBrush (win:GetSysColor win:COLOR_BTNFACE)))
+
+    (setf *blank-image*
+      #+possibly
+      (make-dc-image :solid-1-pen *black-pen* 
+		     :brush *black-brush*
+		     :text-color #xffffffff ; see CLR_NONE
+		     :background-color nil
+		     :rop2 win:R2_MERGEPEN )
+      (make-dc-image :solid-1-pen *black-pen*
+		     :brush *black-brush*
+		     :text-color #x000000 
+		     :background-color nil
+		     :rop2 win:R2_NOP ))
+    ;;
+    (setf *ltgray-image*
+      (make-dc-image :solid-1-pen *ltgray-pen* 
+		     :brush *ltgray-brush*
+		     :text-color (win:GetSysColor win:COLOR_BTNFACE)
+		     :background-color nil
+		     :rop2 win:R2_COPYPEN))
+    ;;
+    (setq *dc-initialized* t)
+    ))
+
+(defun destroy-dc ()
+  (when *dc-initialized*
+    (setq *null-pen* nil)
+    (setq *null-brush* nil)
+  
+    (destroy-dc-image *blank-image*)
+    (setq *black-pen* nil)
+    (setq *black-brush* nil)
+    (setq *blank-image* nil)
+  
+    (destroy-dc-image *ltgray-image*)
+    (setq *ltgray-pen* nil)
+    (setq *ltgray-image* nil)
+    (setq *ltgray-brush* nil)
+    
+    (setq *dc-initialized* nil)))
 
 ;;;
-
-(defvar *original-bitmap* nil)
 
 (defun release-objects (window dc)
   (win:ReleaseDC window dc))
@@ -154,7 +187,7 @@
 	   ;; available at any given time, failure to release
 	   ;; a device context can prevent other applications
 	   ;; from accessing a device context."  Microsoft document.
-	   (setq ,dc (getDc ,window))
+	   (setq ,dc (GetDC ,window))
 	   ,@body)
        (unless (zerop ,dc)
 	 (ReleaseDC ,window ,dc)))))
@@ -177,8 +210,6 @@
 	 (progn
 	   (setf ,cdc (win:CreateCompatibleDC ,dc))
 	   ,@body)
-       (when (valid-handle *original-bitmap*) 
-	 (selectobject ,cdc *original-bitmap*))
        (when (valid-handle *created-bitmap*) 
 	 (or (win:DeleteObject *created-bitmap*)
 	     (error "DeleteObject")))
@@ -220,15 +251,15 @@
 	(setq text-color #xffffff))		; black
       (setq pen
 	(setq created-pen
-	  (createPen (if dashes win:PS_DASH win:PS_SOLID)
+	  (CreatePen (if dashes win:PS_DASH win:PS_SOLID)
 		     thickness
 		     text-color))))
-    (when (valid-handle pen) (selectobject dc pen))
+    (when (valid-handle pen) (SelectObject dc pen))
     (if dashes
 	(SetBkMode dc win:TRANSPARENT)
       (SetBkMode dc win:OPAQUE))
-    (when (valid-handle brush) (selectobject dc brush))
-    (when rop2 (SetRop2 dc rop2))
+    (when (valid-handle brush) (SelectObject dc brush))
+    (when rop2 (SetROP2 dc rop2))
     created-pen))
 
 (defun set-dc-for-filling (dc image &optional xorg yorg)
@@ -238,7 +269,7 @@
 	(brush (dc-image-brush image))
 	(pen *null-pen*)
 	(rop2 (dc-image-rop2 image)))
-    (when (valid-handle pen) (selectobject dc pen))
+    (when (valid-handle pen) (SelectObject dc pen))
     (when background-color
       (cond ((minusp background-color)
 	     ;; This affects brushes created with CreateHatchBrush.
@@ -251,8 +282,8 @@
       (when (and xorg yorg)
 	;; Is this working?  JPM.
 	(win:SetBrushOrgEx dc xorg yorg 0))
-      (selectobject dc brush))
-    (when rop2  (SetRop2 dc rop2))
+      (SelectObject dc brush))
+    (when rop2  (SetROP2 dc rop2))
     t))
 
 (defun set-dc-for-ink-1 (dc image line-style &optional xorg yorg)
@@ -276,7 +307,7 @@
 					      ,xorg ,yorg))
 	   ,@body)
        (when (valid-handle ..winpen..)
-	 (when (valid-handle *black-pen*) (selectobject ,dc *black-pen*))
+	 (when (valid-handle *black-pen*) (SelectObject ,dc *black-pen*))
 	 (or (win:DeleteObject ..winpen..) 
 	     (error "with-set-dc-for-ink: DeleteObject"))))))
 
@@ -291,7 +322,7 @@
 	 (brush (dc-image-brush image))
 	 (pen (dc-image-solid-1-pen image)))
     (win:SetMapMode dc win:MM_TEXT)
-    (when (valid-handle font) (selectobject dc font))
+    (when (valid-handle font) (SelectObject dc font))
     ;; Seems like we never want opaque background. JPM.
     #+ignore				
     (cond ((not background-color)
@@ -305,7 +336,7 @@
     (when (valid-handle brush) (SelectObject dc brush))
     (when (valid-handle pen) (SelectObject dc pen))
     (when text-color (SetTextColor dc text-color))
-    ;; SetRop2 has no effect on text.  If you want to use
+    ;; SetROP2 has no effect on text.  If you want to use
     ;; one, you have to draw into a bitmap and biblt that.
     t))
 

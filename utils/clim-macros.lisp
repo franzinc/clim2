@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clim-macros.lisp,v 1.9 1998/08/06 23:17:31 layer Exp $
+;; $Id: clim-macros.lisp,v 1.10 2000/05/01 21:43:37 layer Exp $
 
 (in-package :clim-utils)
 
@@ -130,9 +130,9 @@
            (transform-position (medium-transformation ,stream) 0 0)
          (with-drawing-options
              ;; Don't flip the stream over if we already have
-             (,stream :transformation (if (silica:medium-+Y-upward-p ,stream)
+             (,stream :transformation (if (silica:medium-+y-upward-p ,stream)
                                           +identity-transformation+
                                           (make-transformation 1 0 0 -1
                                                                (- ,cx ,tx) (- ,cy ,ty))))
-           (letf-globally (((silica:medium-+Y-upward-p ,stream) t))
+           (letf-globally (((silica:medium-+y-upward-p ,stream) t))
              ,@body))))))

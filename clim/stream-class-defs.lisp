@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: stream-class-defs.lisp,v 1.17 1998/08/06 23:16:04 layer Exp $
+;; $Id: stream-class-defs.lisp,v 1.18 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -81,12 +81,12 @@
                          :accessor stream-text-output-record)
      (highlighted-presentation :initform nil
                                :accessor stream-highlighted-presentation)
-     #+Allegro
+     #+allegro
      ;; Support for allegro presentations
      (excl-presentation-stack :initform nil
                               :accessor
                               stream-excl-presentation-stack)
-     #+Allegro
+     #+allegro
      (excl-recording-p :accessor stream-excl-recording-p
                        :initform nil
                        :initarg :excl-recording-p))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: presentations.lisp,v 1.25 1998/08/06 23:16:03 layer Exp $
+;; $Id: presentations.lisp,v 1.26 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -172,7 +172,10 @@
     *application-frame* stream button))
 
 (defun invoke-with-input-context (type override body-continuation context-continuation)
-  (declare (dynamic-extent body-continuation context-continuation))
+  (declare (dynamic-extent body-continuation context-continuation)
+	   (special *input-wait-handler*
+		    *input-wait-test*
+		    *pointer-button-press-handler*))
   ;; At one time, this used to canonicalize the presentation type by
   ;; calling WITH-PRESENTATION-TYPE-DECODED and then consing just the
   ;; type name and parameters.  That turns out not to be necessary any
@@ -198,7 +201,7 @@
                      ;; This is more like the pointer moving than anything else.
                      (/= old-state
                          (setf old-state (window-modifier-state stream)))))))
-          #-Allegro (declare (dynamic-extent #'pointer-motion-pending))
+          #-allegro (declare (dynamic-extent #'pointer-motion-pending))
           (let ((*input-wait-handler* #'highlight-presentation-of-context-type)
                 (*input-wait-test* #'pointer-motion-pending)
                 (*pointer-button-press-handler* #'input-context-button-press-handler))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: macros.lisp,v 1.24 2000/02/03 00:39:00 cox Exp $
+;; $Id: macros.lisp,v 1.25 2000/05/01 21:43:35 layer Exp $
 
 (in-package :tk)
 
@@ -25,7 +25,7 @@
      (clim-sys:defresource ,name (n)
        :constructor (cons n (,constructor :number n))
        :matcher (not (< (car ,name) n)))
-     (defmacro ,(intern (format nil "~A-~A" 'with name))
+     (defmacro ,(fintern "~A-~A" 'with name)
 	 ((var n) &body body)
        `(clim-sys:using-resource (,var ,',name ,n)
 	  (let ((,var (cdr ,var)))
@@ -34,9 +34,9 @@
 (defmacro define-ref-par-types (&rest types)
   (let ((forms nil))
     (dolist (type types)
-      (let ((type-array (intern (format nil "~A-~A" type 'array)))
-	    (make-type-array (intern (format nil "~A-~A-~A"
-					     'make type 'array))))
+      (let ((type-array (fintern "~A-~A" type 'array))
+	    (make-type-array (fintern "~A-~A-~A"
+				      'make type 'array)))
 	(setq forms
 	  `(,@forms
 	    (ff:def-c-type ,type-array 1 ,type)
@@ -54,12 +54,12 @@
     (destructuring-bind
 	((var value &optional type) &rest more-bindings)
 	bindings
-      (let ((&var (intern (format nil "&~A" var)))
+      (let ((&var (fintern "&~A" var))
 	    (val '#:val)
-	    (with-type-array (intern (format nil "~A-~A-~A" 'with type 'array)
-				     (find-package :tk)))
-	    (type-array (intern (format nil "~A-~A" type 'array)
-				(find-package :tk))))
+	    (with-type-array (package-fintern (find-package :tk)
+					      "~A-~A-~A" 'with type 'array))
+	    (type-array (package-fintern (find-package :tk)
+					 "~A-~A" type 'array)))
 	`(let ((,val ,value))
 	   (,with-type-array (,&var 1)
 	     (symbol-macrolet ((,var (,type-array ,&var 0)))

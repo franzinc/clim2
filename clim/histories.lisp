@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: histories.lisp,v 1.22 1998/08/06 23:15:57 layer Exp $
+;; $Id: histories.lisp,v 1.23 2000/05/01 21:43:24 layer Exp $
 
 (in-package :clim-internals)
 
@@ -378,11 +378,11 @@
   (string nil)
   (view nil))
 
-#+(and Allegro aclpc)
+#+(and allegro aclpc)
 (eval-when (compile load)
   (setf (find-class 'presentation-history-element) nil))
 
-#+(and Allegro aclpc)
+#+(and allegro aclpc)
 (eval-when (compile)
   (warn "~S structure hacked for bug2419" 'presentation-history-element))
 

@@ -16,14 +16,14 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defresource.lisp,v 1.15 1998/08/06 23:15:52 layer Exp $
+;; $Id: defresource.lisp,v 1.16 2000/05/01 21:43:23 layer Exp $
 
 (in-package :clim-internals)
 
 ;;;"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
 (defstruct (resource-descriptor (:conc-name rd-)
-                                #+Allegro (:print-function print-resource)
+                                #+allegro (:print-function print-resource)
                                 (:constructor make-resource-descriptor (name)))
   name
   (objects nil)
@@ -33,7 +33,7 @@
   matcher
   (lock (make-lock "a resource lock")))
 
-#+Allegro
+#+allegro
 (defun print-resource (o s d)
   (declare (ignore d))
   (format s "#<~S ~S>" (type-of o) (rd-name o)))

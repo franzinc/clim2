@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-funs.lisp,v 1.21 1998/08/06 23:17:44 layer Exp $
+;; $Id: xlib-funs.lisp,v 1.22 2000/05/01 21:43:41 layer Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -1023,14 +1023,14 @@
 (def-exported-foreign-function (xnoop (:name "XNoOp"))
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (XParseColor (:return-type int)
+(def-exported-foreign-function (xparsecolor (:return-type int)
 					    (:name "XParseColor"))
-  (display (:pointer Display))
-  (colormap Colormap)
+  (display (:pointer display))
+  (colormap colormap)
   (spec (:pointer char))
-  (exact-def-return (:pointer XColor)))
+  (exact-def-return (:pointer xcolor)))
 
-(def-exported-foreign-function (XParseGeometry (:return-type int)
+(def-exported-foreign-function (xparsegeometry (:return-type int)
 					       (:name "XParseGeometry"))
   (parsestring (:pointer char))
   (x-return (:pointer int))

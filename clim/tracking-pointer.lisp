@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: tracking-pointer.lisp,v 1.23 1998/08/06 23:16:06 layer Exp $
+;; $Id: tracking-pointer.lisp,v 1.24 2000/05/01 21:43:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -214,7 +214,7 @@
 			     (multiple-value-setq (moved-p last-window last-x last-y)
 			       (pointer-state-changed pointer last-window last-x last-y))
 			     (and moved-p last-window))))
-		    #-Allegro (declare (dynamic-extent #'pointer-motion-pending))
+		    #-allegro (declare (dynamic-extent #'pointer-motion-pending))
 		    ;; It's OK to do the input wait on STREAM instead of on
 		    ;; CURRENT-WINDOW, because multiple-window mode only works
 		    ;; when all the windows share the same I/O buffer.  Same

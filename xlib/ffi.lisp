@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ffi.lisp,v 1.21 1998/08/06 23:17:43 layer Exp $
+;; $Id: ffi.lisp,v 1.22 2000/05/01 21:43:41 layer Exp $
 
 (in-package :x11)
 
@@ -46,9 +46,6 @@
      (eval-when (eval load compile)
        (export ',new-name))
      (ff::def-c-typedef ,new-name ,@(transmogrify-ff-type old-name))))
-
-(defun fintern (control &rest args)
-  (intern (apply #'format nil control args)))
 
 (defmacro def-exported-foreign-struct (name-and-options &rest slots)
   (let (name array-name (options nil))
