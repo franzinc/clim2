@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.11 92/12/01 09:46:56 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.12 92/12/14 15:04:12 cer Exp $
 
 (in-package :tk)
 
@@ -131,3 +131,11 @@
 					  :original-name 
 					  (string-to-char*
 					   "scrollVertical")))
+
+(tk::add-resource-to-class (find-class 'xm-text)
+			   (make-instance 'resource
+					  :name :word-wrap
+					  :type 'tk::boolean
+					  :original-name 
+					  (string-to-char*
+					   "wordWrap")))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.6 92/11/20 08:45:42 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.7 92/12/03 10:29:08 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -16,6 +16,7 @@
   #+Allegro ("postscript-s")
   ("postscript-port")
   ("postscript-medium")
+  ("read-afm")
   ("laserwriter-metrics"))
 
 #+Genera

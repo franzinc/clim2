@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.23 93/02/08 15:57:26 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.24 93/03/19 09:44:31 cer Exp $
 
 (in-package :silica)
 
@@ -66,11 +66,17 @@
 			    (if (and (numberp scale) (< x +fill+)) (/ x scale) x)))
 		     (declare (dynamic-extent #'scale))
 		     (cond ((eq scale :fill)
-			    (incf major+ +fill+))
-			   (t
+			    (incf major+ +fill+)
 			    (incf major (scale (funcall fn-major space-req)))
-			    (incf major+ (scale (funcall fn-major+ space-req)))))
-		     (incf major- (scale (funcall fn-major- space-req)))
+			    (incf major- (scale (funcall fn-major- space-req))))
+			   ((= scale 1.0)
+			    (incf major+ (scale (funcall fn-major+ space-req)))
+			    (incf major (scale (funcall fn-major space-req)))
+			    (incf major- (scale (funcall fn-major- space-req))))
+			   (t
+			    (maxf major+ (scale (funcall fn-major+ space-req)))
+			    (maxf major (scale (funcall fn-major space-req)))
+			    (maxf major- (scale (funcall fn-major- space-req)))))
 		     (setq minor (max minor (funcall fn-minor space-req))) 
 		     (maxf minor-min (funcall fn-minor- space-req))
 		     (minf minor-max (funcall fn-minor+ space-req)))))))
@@ -109,7 +115,7 @@
       (flet ((compose (x)
 	       (cond ((atom x) (compose-space x :height height))
 		     ((eq (car x) :fill) :fill)
-		     (t (make-space-requirement :height 0 :width (* (car x) width))))))
+		     (t (car x) #+ignore (make-space-requirement :height 0 :width (* (car x) width))))))
 	(declare (dynamic-extent #'compose))
 	(let* ((adjust (* spacing (1- (length (sheet-children box-pane)))))
 	       (sizes 
@@ -155,7 +161,7 @@
       (flet ((compose (x)
 	       (cond ((atom x) (compose-space x :width width))
 		     ((eq (car x) :fill) :fill)
-		     (t (make-space-requirement :width 0 :height (* (car x) height))))))
+		     (t (car x) #+ignore (make-space-requirement :width 0 :height (* (car x) height))))))
 	(declare (dynamic-extent #'compose))
 	(let* ((adjust (* spacing (1- (length (sheet-children box-pane)))))
 	       (sizes 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.32 92/12/16 16:49:23 cer Exp $
+;; $fiHeader: event.lisp,v 1.33 93/01/21 14:59:00 cer Exp $
 
 (in-package :silica)
 
@@ -503,55 +503,63 @@
       (generate-deeply-mirrored-crossing-events port event)
       (generate-crossing-events port event)))
 
+(defmethod distribute-event-1 :around ((port basic-port) (event pointer-event))
+  (let ((sheet (port-grabbing-sheet port)))
+    (if sheet (dispatch-pointer-event-to-sheet port event sheet)
+      (call-next-method))))
+
 (defmethod distribute-event-1 ((port basic-port) (event pointer-event))
   (declare (optimize (speed 3)))
+  (let ((sheet (let ((v (port-trace-thing port)))
+		 (and (not (zerop (fill-pointer v)))
+		      (aref v (1- (fill-pointer v)))))))
+    (dispatch-pointer-event-to-sheet port event sheet)))
+
+(defun dispatch-pointer-event-to-sheet (port event sheet)
+  (declare (ignore port))
   (let ((event-type (class-name (class-of event)))
 	(x (pointer-event-native-x event))
 	(y (pointer-event-native-y event))
 	(modifiers (event-modifier-state event))
 	(pointer (pointer-event-pointer event)))
     ;; Dispatch event to the innermost sheet
-    (let ((sheet (let ((v (port-trace-thing port)))
-		   (and (not (zerop (fill-pointer v)))
-			(aref v (1- (fill-pointer v)))))))
-      ;;--- This is not quite right.  We need to transform the
-      ;;--- coordinates better.  Also it should probably override 
-      ;;--- the sheet in the trace-thing.
-      (unless sheet 
-	(setq sheet (port-grabbing-sheet port)))
-      (when (and sheet (port sheet))
-	(multiple-value-bind (tx ty)
-	    (untransform-position (sheet-device-transformation sheet) x y)
-	  ;; Update the pointer object
-	  (setf (pointer-sheet pointer) sheet
-		(pointer-x-position pointer) tx
-		(pointer-y-position pointer) ty
-		(pointer-native-x-position pointer) x
-		(pointer-native-y-position pointer) y)
-	  (setf (pointer-cursor pointer)
-		(or (sheet-pointer-cursor sheet) :default))
-	  (typecase event
-	    (pointer-button-event
-	      (dispatch-event
-		sheet
-		(allocate-event event-type
-		  :sheet sheet
-		  :native-x x :native-y y
-		  :x tx :y ty
-		  :modifier-state modifiers
-		  :button (pointer-event-button event)
-		  :pointer pointer)))
-	    (pointer-motion-event
-	      (dispatch-event
-		sheet
-		(allocate-event event-type
-		  :sheet sheet
-		  :native-x x :native-y y
-		  :x tx :y ty
-		  :modifier-state modifiers
-		  :pointer pointer)))
-	    ;; Pointer exit and enter events are handled by GENERATE-CROSSING-EVENTS
-	    )))))
+    (when (and sheet (port sheet))
+      (multiple-value-bind (tx ty)
+	  (untransform-position (sheet-device-transformation sheet) x y)
+	;; Update the pointer object
+	;;--- It might make a lot more sense for methods on
+	;;--- dispatch-event to update the pointer
+	;;--- This would enable exit events to do the right thing
+	;;--- Hence if we exit then we set the sheet to NIL??
+	(setf (pointer-sheet pointer) sheet
+	      (pointer-x-position pointer) tx
+	      (pointer-y-position pointer) ty
+	      (pointer-native-x-position pointer) x
+	      (pointer-native-y-position pointer) y)
+	(setf (pointer-cursor pointer)
+	  (or (sheet-pointer-cursor sheet) :default))
+	(typecase event
+	  (pointer-button-event
+	   (dispatch-event
+	    sheet
+	    (allocate-event event-type
+			    :sheet sheet
+			    :native-x x :native-y y
+			    :x tx :y ty
+			    :modifier-state modifiers
+			    :button (pointer-event-button event)
+			    :pointer pointer)))
+	  (pointer-motion-event
+	   (dispatch-event
+	    sheet
+	    (allocate-event event-type
+			    :sheet sheet
+			    :native-x x :native-y y
+			    :x tx :y ty
+			    :modifier-state modifiers
+			    :pointer pointer)))
+	  ;; Pointer exit and enter events are handled by GENERATE-CROSSING-EVENTS
+	  ))))
   (deallocate-event event))
 	    
 

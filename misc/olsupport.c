@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: support.c,v 1.1 92/05/13 08:52:50 cer Exp $
+ * $fiHeader: olsupport.c,v 1.1 92/06/23 08:27:32 cer Exp $
  */
 
 /************************************************************************/
@@ -39,6 +39,16 @@ int x;
 }
 
 void ol_appl_touch_item (fn, widget, token)
+int (*fn)();
+char *widget;
+int token;
+{
+    (*fn)(widget, token);
+}
+
+
+
+void ol_appl_delete_item (fn, widget, token)
 int (*fn)();
 char *widget;
 int token;

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.21 92/12/14 15:02:44 cer Exp $
+;; $fiHeader: plot.lisp,v 1.22 93/03/19 09:44:14 cer Exp $
 
 (in-package :clim-demo)
 
@@ -523,30 +523,25 @@
 			     :default graph-type 
 			     :stream stream
 			     :prompt "Graph type"))
-    (terpri stream)
     (unless (eq graph-type :pie)
       (unless (eq graph-type :bar)
 	(setf x-min (accept '(null-or-type number)
 			    :default x-min
 			    :stream stream
-			    :prompt "Min X"))
-	(terpri stream))
+			    :prompt "Min X")))
       (setf y-min (accept '(null-or-type number)
 			  :default y-min
 			  :stream stream
 			  :prompt "Min Y"))
-      (terpri stream)
       (unless (eq graph-type :bar)
 	(setf x-max (accept '(null-or-type number)
 			    :default x-max
 			    :stream stream
-			    :prompt "Max X"))
-	(terpri stream))
+			    :prompt "Max X")))
       (setf y-max (accept '(null-or-type number)
 			  :default y-max
 			  :stream stream
-			  :prompt "Max Y"))
-      (terpri stream))))
+			  :prompt "Max Y")))))
     
 (defmethod frame-standard-output ((fr plot-demo))
   (get-frame-pane fr 'command))
@@ -728,12 +723,8 @@
   (describe region))
 
 (define-plot-demo-command (com-redisplay :name t) ()
-  (redisplay-frame-pane *application-frame* 
-			(get-frame-pane *application-frame* 'graph-window)
-			:force-p t)
-  (redisplay-frame-pane *application-frame*
-			(get-frame-pane *application-frame* 'data-window)
-			:force-p t))
+  (redisplay-frame-panes *application-frame* :force-p t))
+
 
 (define-plot-demo-command (com-add-new-column :name t) ()
   (with-slots (plot-data y-labels) *application-frame*
