@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84 1998/03/25 03:52:30 duane Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.1 1998/04/15 17:22:54 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3299,7 +3299,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 12)
+(cl:defvar *clim-build-version* 13)
 
 (cl:defparameter *clim-version*
     (cl:format () "CLIM ~d.~d.~d.~a"
@@ -3307,4 +3307,4 @@
 	       *clim-generation-version* *clim-build-version*))
 
 #-aclpc
-(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.84 1998/03/25 03:52:30 duane Exp $")
+(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.84.8.1 1998/04/15 17:22:54 layer Exp $")

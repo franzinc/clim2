@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Mon Mar 18 19:27:39 1996 by duane]-
+;;				-[Tue Apr 14 15:22:38 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/misc/compile-1.lisp,v 1.33 1997/02/05 01:49:06 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/compile-1.lisp,v 1.33.22.1 1998/04/15 17:22:51 layer Exp $
 
 (in-package :user)
 
@@ -29,6 +29,7 @@
 ;; Forgive them, lord, for they know not what they do.
 (pushnew :ansi-90 *features*)
 
+(setq *print-case* :downcase)
 (set-case-mode :case-insensitive-lower)
 
 (setq comp:generate-call-count-code-switch

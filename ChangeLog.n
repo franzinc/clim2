@@ -11,6 +11,15 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.13
+
+Wed Apr 15 10:21:39 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: new rule: cleanfasls
+	* misc/compile-1.lisp: set *print-case* to ;downcase since we
+	compile in a case insensitive lower mode
+
+*******************************************************************************
 Wed Apr  8 10:13:57 1998  Kevin Layer  <layer@ultra>
 
 	* Makefile: set default host for SGI
