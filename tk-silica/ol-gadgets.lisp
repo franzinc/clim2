@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-gadgets.lisp,v 1.72.34.2 2000/09/05 19:06:45 layer Exp $
+;; $Id: ol-gadgets.lisp,v 1.72.34.3 2001/05/23 19:49:13 duane Exp $
 
 (in-package :xm-silica)
 
@@ -141,7 +141,7 @@
   (declare (ignore id-type id src-x src-y))
   nil)
 
-(defvar *ol-ignore-help-function-address* (ff:register-function 'ol-ignore-help-function))
+(defvar *ol-ignore-help-function-address* (ff:register-foreign-callable 'ol-ignore-help-function))
 
 (defmethod add-sheet-callbacks :after  ((port openlook-port) (sheet t) (widget tk::draw-area))
   (tk::add-callback widget
@@ -1579,7 +1579,7 @@
 	:width width :min-width min-width :max-width max-width
 	:height height :min-height min-height :max-height max-height))))
 
-(ff:defun-c-callable scrolling-window-geometry-function 
+(ff:defun-c-callable scrolling-window-geometry-function
     ((content :unsigned-natural)
      (geometries :unsigned-natural))
   (let* ((viewport (find-sheet-from-widget-address content))
@@ -1609,7 +1609,7 @@
 		(tk::ol-sw-geometries-bbc-real-height geometries) extent-height))))))
 
 (defvar *scrolling-window-geometry-function-address*
-    (ff::register-function 'scrolling-window-geometry-function))
+    (ff::register-foreign-callable 'scrolling-window-geometry-function))
 
 (defmethod find-widget-class-and-name-for-sheet ((port openlook-port)
 						 (parent t)

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.102.6.3 2001/04/24 19:53:21 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.102.6.4 2001/05/23 19:49:14 duane Exp $
 
 (in-package :xm-silica)
 
@@ -661,7 +661,7 @@
 (defmethod (setf scroll-bar-size) :after (value (object motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror object)))
     (when mirror
-      ;; Set the XmNsliderSize and XmNpageIncrement resources so the correct 
+      ;; Set the XmNsliderSize and XmNpageIncrement resources so the correct
       ;; thing happens when the user presses the up-page/down-page buttons.
       ;; Apparently it is not sufficient just to set slider-size.  JPM.
       (let ((v (convert-scroll-bar-value-out object value)))
@@ -683,7 +683,7 @@
                                :width (* 2 x)
                                :max-width +fill+)))))
 
-(defmethod (setf silica::scroll-bar-line-increment) :after 
+(defmethod (setf silica::scroll-bar-line-increment) :after
 	   (value (object motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror object)))
     (when mirror
@@ -1696,12 +1696,12 @@
 		(tk::manage-child dialog)
 		(when (and x-position y-position)
 		  (tk::set-values dialog :x x-position :y y-position))
-		
+
 		(tk::set-values (tk::widget-parent dialog) :mapped-when-managed t)
-		
+
 		(when warp-pointer
 		  (warp-pointer-to-dialog-box dialog framem x-position y-position))
-		
+
 		(with-toolkit-dialog-component (notify-user (list message-string :style))
 		  (wait-for-callback-invocation
 		   (port framem)
@@ -1899,7 +1899,7 @@
                       :file-list-item-count (length new)
                       :list-updated t))))
 
-(defvar *file-search-proc-callback-address* (ff:register-function 'file-search-proc-callback))
+(defvar *file-search-proc-callback-address* (ff:register-foreign-callable 'file-search-proc-callback))
 
 (defun make-file-search-proc-function (dialog file-search-proc)
   (push (cons :file-search-proc file-search-proc)
@@ -2266,7 +2266,7 @@
 
 (defmethod frame-manager-print-file
     ((framem motif-frame-manager) filename
-     &key 	  
+     &key
      (frame nil frame-p)
      (associated-window
       (if frame-p

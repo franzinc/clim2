@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: load-xlib.lisp,v 1.19 1998/08/06 23:17:43 layer Exp $
+;; $Id: load-xlib.lisp,v 1.19.36.1 2001/05/23 19:49:16 duane Exp $
 
 (in-package :x11)
 
@@ -24,12 +24,12 @@
 
   (defvar sys::*libx11-pathname* "X11")
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XAllocColor"))
+  (unless (ff:get-entry-point (ff:convert-foreign-name "XAllocColor"))
     (load "clim2:;stub-x.o"
 	  :system-libraries (list sys::*libx11-pathname*)
 	  :print t))
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
+  (unless (ff:get-entry-point (ff:convert-foreign-name "lisp_XDrawString"))
     (load "clim2:;xlibsupport.o"
 	  :system-libraries (list sys::*libx11-pathname*)
 	  :print t)))

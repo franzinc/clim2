@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-silica.lisp,v 1.50.36.1 2000/09/05 19:06:46 layer Exp $
+;; $Id: xm-silica.lisp,v 1.50.36.2 2001/05/23 19:49:14 duane Exp $
 
 (in-package :xm-silica)
 
@@ -86,7 +86,7 @@
   (popup (widget-parent mirror)))
 
 
-(ff:defun-c-callable my-drawing-area-query-geometry-stub 
+(ff:defun-c-callable my-drawing-area-query-geometry-stub
     ((widget :unsigned-natural)
      (intended :unsigned-natural)
      (desired :unsigned-natural))
@@ -94,7 +94,7 @@
 
 (defun setup-mda ()
   (tk::initializemydrawingareaquerygeometry
-   (ff:register-function 'my-drawing-area-query-geometry-stub)))
+   (ff:register-foreign-callable 'my-drawing-area-query-geometry-stub)))
 
 (setup-mda)
 
@@ -164,7 +164,7 @@
     (when (and input-widget
 	       ;; JPM 7/98: Don't destroy something already destroyed.
 	       ;; spr17831 and spr17939.  Apparently the motif-top-level-sheet
-	       ;; may have already destroyed it.  
+	       ;; may have already destroyed it.
 	       (tk::find-object-from-address (ff:foreign-pointer-address input-widget) nil))
       (tk::destroy-widget input-widget))))
 

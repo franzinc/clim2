@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: load-xm.lisp,v 1.44 1998/08/06 23:17:16 layer Exp $
+;; $Id: load-xm.lisp,v 1.44.36.1 2001/05/23 19:49:12 duane Exp $
 
 (in-package :user)
 
@@ -24,7 +24,7 @@
   (require :climg))
 
 #+(version>= 5 0)
-(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+(unless (ff:get-entry-point (ff:convert-foreign-name "XmCreateMyDrawingArea"))
   (let (
 ;;;; See spr12165 for the *dlopen-mode* hack explanation.
 	#+(and dlfcn sun4 (not sunos4))
@@ -51,7 +51,7 @@
 (defvar sys::*libtk-pathname* "Xm")
 (defvar sys::*libxt-pathname* "Xt")
 
-(unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
+(unless (ff:get-entry-point (ff:convert-foreign-name "XtToolkitInitialize"))
   (load "clim2:;stub-motif.o"
 	:system-libraries (list sys::*libtk-pathname*
 				sys::*libxt-pathname*
@@ -62,14 +62,14 @@
 				sys::*libx11-pathname*)
 	:print t))
 
-(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+(unless (ff:get-entry-point (ff:convert-foreign-name "XmCreateMyDrawingArea"))
   (load "clim2:;xmsupport.o"
 	:system-libraries (list sys::*libtk-pathname*
 				sys::*libxt-pathname*
 				sys::*libx11-pathname*)
 	:print t))
 
-(unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
+(unless (ff:get-entry-point (ff:convert-foreign-name "XtAppIntervalNextTimer"))
   (load "clim2:;xtsupport.o"
 	:system-libraries (list sys::*libxt-pathname*
 				sys::*libx11-pathname*)

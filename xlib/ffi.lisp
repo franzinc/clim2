@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ffi.lisp,v 1.22 2000/05/01 21:43:41 layer Exp $
+;; $Id: ffi.lisp,v 1.22.24.1 2001/05/23 19:49:15 duane Exp $
 
 (in-package :x11)
 
@@ -160,7 +160,7 @@
      (eval-when (eval load compile)
        (export ',name))
      (eval-when (compile eval load)
-       ,(let ((c-name (ff:convert-to-lang (second (assoc :name options))))
+       ,(let ((c-name (ff:convert-foreign-name (second (assoc :name options))))
 	      (return-type (or (second (assoc :return-type options))
 			       'void)))
 	  `(delayed-defforeign

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: callbacks.lisp,v 1.30.36.1 2000/09/05 19:06:42 layer Exp $
+;; $Id: callbacks.lisp,v 1.30.36.2 2001/05/23 19:49:11 duane Exp $
 
 (in-package :tk)
 
@@ -58,13 +58,13 @@
      widget
      name
      (or *callback-handler-address*
-	 (setq *callback-handler-address* (register-function 'callback-handler)))
+	 (setq *callback-handler-address* (register-foreign-callable 'callback-handler)))
      (caar (push
 	    (list (new-callback-id) (cons function args) type)
 	    (widget-callback-data widget))))))
 
 
-(defun-c-callable create-popup-child-proc-function  
+(defun-c-callable create-popup-child-proc-function
     ((widget :unsigned-natural))
   (create-popup-child-proc-function-1 widget))
 
@@ -81,10 +81,10 @@
   (push
    (cons :create-popup-child-proc function)
    (widget-callback-data widget))
-  (set-values widget :create-popup-child-proc 
+  (set-values widget :create-popup-child-proc
 	      (or *create-popup-child-proc-function-address*
 		  (setq *create-popup-child-proc-function-address*
-		    (ff:register-function 'create-popup-child-proc-function))))
+		    (ff:register-foreign-callable 'create-popup-child-proc-function))))
   function)
 
 (defun remove-all-callbacks (widget callback-name)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 1.30.34.1 2000/09/05 19:06:42 layer Exp $
+;; $Id: event.lisp,v 1.30.34.2 2001/05/23 19:49:11 duane Exp $
 
 (in-package :tk)
 
@@ -138,7 +138,7 @@
 	 (resulting-event (event-matching-event))
 	 (addr (or *match-event-sequence-and-types-address*
 		   (setq *match-event-sequence-and-types-address*
-		     (register-function 'match-event-sequence-and-types))))
+		     (register-foreign-callable 'match-event-sequence-and-types))))
 	 (*sequence-matching-data* data))
     (declare (type (simple-array (unsigned-byte 32) (*)) data)
 	     (fixnum i))
@@ -186,7 +186,7 @@
    (encode-event-mask events)
    maskable
    (or *event-handler-address*
-       (setq *event-handler-address* (register-function 'event-handler)))
+       (setq *event-handler-address* (register-foreign-callable 'event-handler)))
    (caar (push
 	  (list (new-callback-id) (cons function args))
 	  (widget-event-handler-data widget)))))

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-protocols.lisp,v 1.17 1998/08/06 23:17:20 layer Exp $
+;; $Id: xm-protocols.lisp,v 1.17.36.1 2001/05/23 19:49:13 duane Exp $
 
 (in-package :tk)
 
@@ -30,7 +30,7 @@
      (if (integerp property) property (xm-intern-atom shell property))
      (if (integerp protocol) protocol (xm-intern-atom shell protocol))
      (or *callback-handler-address*
-	 (setq *callback-handler-address* (register-function 'callback-handler)))
+	 (setq *callback-handler-address* (register-foreign-callable 'callback-handler)))
      (caar (push
 	    (list (new-callback-id) (cons function args) type)
 	    (widget-callback-data shell))))))

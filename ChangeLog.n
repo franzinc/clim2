@@ -11,6 +11,44 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.18
+
+Wed May 22 12:41:21 PDT 2001  Duane Rettig  <duane@beta>
+
+Added files:
+
+	* Makefile.macosx: Add for MacOSX port
+
+Modified files:
+
+	* Makefile: Add MacOSX port
+	* tk/callbacks.lisp: 
+	* tk/convenience.lisp:
+	* tk/event.lisp:
+	* tk/foreign.lisp:
+	* tk/load-ol.lisp:
+	* tk/load-xm.lisp:
+	* tk/make-classes.lisp:
+	* tk/ol-callbacks.lisp:
+	* tk/ol-funs.lisp:
+	* tk/ol-init.lisp:
+	* tk/xlib.lisp:
+	* tk/xm-funs.lisp:
+	* tk/xm-protocols.lisp:
+	* tk/xt-funs.lisp:
+	* tk-silica/ol-gadgets.lisp:
+	* tk-silica/xm-gadgets.lisp:
+	* tk-silica/xm-silica.lisp:
+	* tk-silica/xt-silica.lisp:
+	* wnn/load-wnn.lisp:
+	* xlib/ffi.lisp:
+	* xlib/load-xlib.lisp: Start moving away from ffcompat package - two
+	transformations for now: register-function -> register-foreign-callable,
+	convert-to-lang -> convert-foreign-name
+
+	* utils/packages.lisp: Incf version
+
+*******************************************************************************
 2.2.2.21.17
 
 16May2000 Nichael Cramer <ncramer@pointnclick.com>

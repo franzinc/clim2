@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-init.lisp,v 1.26.34.2 2000/09/05 19:06:43 layer Exp $
+;; $Id: ol-init.lisp,v 1.26.34.3 2001/05/23 19:49:12 duane Exp $
 
 (in-package :tk)
 
@@ -42,10 +42,10 @@
 
 
 (defun install-ol-error-handlers ()
-  (ol_set_warning_handler (register-function 'ol-warning-handler))
-  (ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))
-  (ol_set_error_handler (register-function 'ol-error-handler))
-  (ol_set_va_display_error_msg_handler (register-function 'ol-error-va-handler)))
+  (ol_set_warning_handler (register-foreign-callable 'ol-warning-handler))
+  (ol_set_va_display_warning_msg_handler (register-foreign-callable 'ol-warning-va-handler))
+  (ol_set_error_handler (register-foreign-callable 'ol-error-handler))
+  (ol_set_va_display_error_msg_handler (register-foreign-callable 'ol-error-va-handler)))
 
 (install-ol-error-handlers)
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.4 2001/05/17 17:32:25 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.5 2001/05/23 19:49:14 duane Exp $
 
 (in-package :xm-silica)
 
@@ -283,13 +283,13 @@
 	    ;; no matches then don't complain even if there appears to be
 	    ;; something wrong with the fallback, just silently don't load it
 	    ;; (and thus define no mappings for the character set).
-	    (cond 
+	    (cond
 	     (fallback-loadable-p	;all is well
-	      (setf (text-style-mapping port *undefined-text-style* 
+	      (setf (text-style-mapping port *undefined-text-style*
 					character-set)
 		fallback))
 	     ((and matchesp fallback-matches-p)
-	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts, 
+	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
 but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
 setup."
 		    fallback character-set))
@@ -525,7 +525,7 @@ setup."
 	  (:focus-out
 	   (allocate-event 'focus-out-event :sheet sheet))
 	  (otherwise
-	   ;; it seems better to warn about this rather than just dying, 
+	   ;; it seems better to warn about this rather than just dying,
 	   ;; at least there might be some chance of continuing!
 	   (warn "Unhandled X event ~S, type ~A"
 		 event (tk::event-type event))
@@ -1384,7 +1384,7 @@ setup."
       (when character
 	(let ((x (state->modifiers
 		  (x11::xkeyevent-state event))))
-	  (setq character 
+	  (setq character
 	     (if (and (<= (char-int character) 26)
 		      (not (member character
 				   '(#\return
@@ -1400,7 +1400,7 @@ setup."
 			     (char-int #\A)
 			   (char-int #\a)))))
 	       character))
-	  (setq character 
+	  (setq character
 	    (clim-make-char
 	     character
 	     (logior

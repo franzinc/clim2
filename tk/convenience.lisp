@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: convenience.lisp,v 1.23 2000/03/04 05:13:48 duane Exp $
+;; $Id: convenience.lisp,v 1.23.34.1 2001/05/23 19:49:11 duane Exp $
 
 (in-package :tk)
 
@@ -28,7 +28,7 @@
       `(progn
 	 (eval-when (eval compile)
 	   (defforeign ',c-function-name
-	       :entry-point (ff:convert-to-lang ,entry-point)
+	       :entry-point (ff:convert-foreign-name ,entry-point)
 	       :call-direct t
 	       :arguments '(foreign-address foreign-address foreign-address fixnum)
 	       :arg-checking nil

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: make-classes.lisp,v 1.48.36.2 2000/09/05 19:06:43 layer Exp $
+;; $Id: make-classes.lisp,v 1.48.36.3 2001/05/23 19:49:12 duane Exp $
 
 (in-package :tk)
 
@@ -215,7 +215,7 @@
 
 (defun define-toolkit-classes (&rest classes)
   (make-classes
-   (mapcar #-rs6000 #'ff:convert-to-lang
+   (mapcar #-rs6000 #'ff:convert-foreign-name
 	   #+rs6000 #'identity
 	   (remove-duplicates
 	    (apply #'append classes)

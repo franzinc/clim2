@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: foreign.lisp,v 1.24.36.2 2000/09/05 19:06:43 layer Exp $
+;; $Id: foreign.lisp,v 1.24.36.3 2001/05/23 19:49:12 duane Exp $
 
 (in-package :tk)
 
@@ -34,13 +34,13 @@
     (xt_app_set_error_handler
      context
      (or *error-handler-function-address*
-	 (setq *error-handler-function-address* 
-	   (register-function 'toolkit-error-handler))))
+	 (setq *error-handler-function-address*
+	   (register-foreign-callable 'toolkit-error-handler))))
     (xt_app_set_warning_handler
      context
      (or *warning-handler-function-address*
 	 (setq *warning-handler-function-address*
-	   (register-function 'toolkit-warning-handler))))))
+	   (register-foreign-callable 'toolkit-warning-handler))))))
 
 (defun create-application-context ()
   (make-instance 'application-context))

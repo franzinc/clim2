@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.65.24.2 2000/09/05 19:06:44 layer Exp $
+;; $Id: xlib.lisp,v 1.65.24.3 2001/05/23 19:49:13 duane Exp $
 
 (in-package :tk)
 
@@ -262,7 +262,7 @@
 		  (clim-utils::system-free s))))
 	    resourceid)))
 
-(defun-c-callable x-error-handler ((display :unsigned-natural) 
+(defun-c-callable x-error-handler ((display :unsigned-natural)
 				   (event :unsigned-natural))
   (error 'x-error
 	 :display display
@@ -302,10 +302,10 @@
 (defun setup-error-handlers ()
   (x11:xseterrorhandler (or *x-error-handler-address*
 			    (setq *x-error-handler-address*
-			      (register-function 'x-error-handler))))
+			      (register-foreign-callable 'x-error-handler))))
   (x11:xsetioerrorhandler (or *x-io-error-handler-address*
 			      (setq *x-io-error-handler-address*
-				(register-function 'x-io-error-handler)))))
+				(register-foreign-callable 'x-io-error-handler)))))
 
 (eval-when (load)
   (setup-error-handlers))
