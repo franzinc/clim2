@@ -201,7 +201,7 @@ train-xm:	FORCE
 	(load \"misc/dev-load-1.lisp\") \
 	(load-it 'motif-clim :load-composer nil) \
 	$(TRAIN_LISP) \
-	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
+	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
 	   $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 train-ol:	FORCE
@@ -212,12 +212,12 @@ train-ol:	FORCE
 	(load \"misc/dev-load-1.lisp\") \
 	(load-it 'openlook-clim :load-composer nil) \
 	$(TRAIN_LISP) \
-	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
+	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
 	   $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 generate_test_report:
 	@$(ECHO) "\
-	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\") \
+	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\") \
 	 (exit) \
 " | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
 
@@ -228,7 +228,7 @@ profile	:	FORCE
 
 benchmark:
 	$(ECHO) "\
-	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
+	(clim-test::benchmark-clim $(BENCHMARK_FILE)) \
 "  | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
 
 testps :
@@ -353,6 +353,10 @@ stub-x.c	:  $(UNDEFS) misc/make-stub-file
 
 stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_xt_stub ()"  $(XT_UNDEFS)  > stub-xt.c 
+
+# To keep make from complaining about syntax.  This is in the wrong place,
+# because the HOST defaults to sun4 always.
+MAIN_OBJ = mainxm.o
 
 include $(C_OBJECT_MAKEFILE)
 

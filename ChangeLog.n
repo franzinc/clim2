@@ -1,3 +1,13 @@
+Tue Nov 23 12:02:05 1993  Duane Rettig  (duane at clay)
+
+(for 4.2.devel.21 merge):
+
+	* climn-2.0/Makefile.hpprism: Add default for MAIN_OBJ
+
+	* clim-2.0/tk/xm-init.lisp: Change to initialization from georgej
+
+	* clim-2.0/demo/ico.lisp: Use excl::array-base instead of ah_data
+
 from cer: Tue Nov 23 11:57:29 PST 1993
 
 Makefile.defs		Make it point to dcl-devel

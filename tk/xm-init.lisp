@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Wed Sep 15 10:56:05 1993 by layer]-
+;;				-[Fri Nov 19 00:56:06 1993 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -35,7 +35,7 @@
 
 
 #+svr4
-(unless (ff::symbol-in-main-symbol-table-p "XCreateColormap")
+(unless (ff::symbol-in-main-symbol-table-p "xt_toolkit_initialize")
   (defun reinitialize-toolkit ()
     (xt_toolkit_initialize)
     (setup-error-handlers)

@@ -387,7 +387,7 @@
 (defun calculate-ico (ico-x ico-y do-edges do-faces edge-point-list face-point-list)
   (declare (integer ico-x ico-y)
 	   (optimize (safety 0) (speed 3)))
-  (let (#+allegro (v2-fill (cdr (excl::ah_data v2)))
+  (let (#+allegro (v2-fill (excl::array-base v2))
 	(v3-seq v3-seq)
 	(v2 v2)
 	(drawn drawn)
@@ -400,7 +400,7 @@
       #+allegro (simple-vector v2-fill))
 
     ;; Clear the drawn array
-    #+allegro (fill (cdr (excl::ah_data drawn-fill)) nil)
+    #+allegro (fill (excl::array-base drawn-fill) nil)
     #-allegro (fill drawn-fill nil)
 
     ;; Rotate vertices
