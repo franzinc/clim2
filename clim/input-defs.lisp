@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-defs.lisp,v 1.22.22.2 1998/07/06 23:09:01 layer Exp $
+;; $Id: input-defs.lisp,v 1.22.22.3 1999/06/08 16:50:04 layer Exp $
 
 (in-package :clim-internals)
 
@@ -197,17 +197,27 @@
   (let ((sheet (slot-value pointer 'sheet)))
     (unless (eq new-value sheet)
       (when (and sheet (port sheet))
-        ;;--- Horrible cross-protocol modularity violation here, but
-        ;;--- it's hours before AAAI.  Note that this can cause blowouts
-        ;;--- in multi-processing systems if the function that does the
-        ;;--- unhighlighting depends on application state.
-        ;;---
-        ;;--- let's go the whole hog and make a stab at binding
-        ;;--- *application-frame* (cim 1/31/94)
+	;;--- Horrible cross-protocol modularity violation here, but
+	;;--- it's hours before AAAI.  Note that this can cause blowouts
+	;;--- in multi-processing systems if the function that does the
+	;;--- unhighlighting depends on application state.
+	;;---
+	;;--- let's go the whole hog and make a stab at binding
+	;;--- *application-frame* (cim 1/31/94)
         (when (output-recording-stream-p sheet)
-          (let ((*application-frame* (or (pane-frame sheet)
-                                         *application-frame*)))
-            (set-highlighted-presentation sheet nil nil)))))))
+	  (let ((frame (or (pane-frame sheet)
+			   *application-frame*)))
+	    ;; The sheet can point to a dead pane.
+	    ;; (For example, if the pointer was
+	    ;; last used to exit a frame.)
+	    ;; In that case, make sure it doesn't
+	    ;; try to update the presentation.
+	    ;;
+	    ;; Frame-State is one of 
+	    ;; (member :disowned :disabled :enabled :shrunk)	       
+	    (when (eq (frame-state frame) :enabled)
+	      (let ((*application-frame* frame))
+		(set-highlighted-presentation sheet nil nil)))))))))
 
 (defmethod pointer-decache ((pointer standard-pointer))
   ;;-- If the (sheet-transformation (pointer-sheet .)) has changed

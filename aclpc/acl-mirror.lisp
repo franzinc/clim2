@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.12 1999/05/26 18:11:36 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.13 1999/06/08 16:50:01 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -218,7 +218,9 @@
 	(let ((text-style (pane-text-style sheet)))
 	  (when text-style
 	    (let ((font (text-style-mapping port text-style)))
-	      (win:SendMessage window win:WM_SETFONT 
+	      (frame-send-message
+	       (pane-frame sheet)
+	       window win:WM_SETFONT 
 			       (acl-font-index font) 0)))))
       (when (and childwin (sheet-enabled-p sheet))
 	;; It's too soon for this.  Need to do this later, 

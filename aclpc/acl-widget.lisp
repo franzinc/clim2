@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.16 1999/06/02 21:43:34 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.17 1999/06/08 16:50:03 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -77,7 +77,8 @@
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (when mirror
-      (setf index (win:SendMessage mirror win:LB_GETCURSEL 0 0))
+      (setf index (acl-clim::frame-send-message (pane-frame pane)
+				      mirror win:LB_GETCURSEL 0 0))
       (with-slots (items value mode value-key name-key) pane
 	;;mm: 11Jan95 - we need to invoke the callback so that list-pane-view 
 	;;              will return a value.
@@ -101,7 +102,8 @@
 	(if (eq mode :nonexclusive)
 	    (let ((i 0))
 	      (dolist (item items)
-		(win:SendMessage
+		(acl-clim::frame-send-message
+		 (pane-frame pane)
 		 ;; what's the "correct" way of passing
 		 ;; both lo and hi parts without
 		 ;; combining them with an ash? (cim 9/20/96)
@@ -115,7 +117,8 @@
 	  (let ((i (position value items
 			     :key value-key :test test)))
 	    (when i 
-	      (win:SendMessage 
+	      (acl-clim::frame-send-message
+	       (pane-frame pane)
 	       hwnd win:LB_SETCURSEL i 0))))
 	))))
 
@@ -170,13 +173,17 @@
 (defmethod (setf set-gadget-items) :before (items (pane hlist-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (win:SendMessage mirror win:LB_RESETCONTENT 0 0)
+      (acl-clim::frame-send-message
+       (pane-frame pane)
+       mirror win:LB_RESETCONTENT 0 0)
       (dolist (item items)
 	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (excl:with-native-string (str str)
-	    (win:SendMessage mirror win:LB_INSERTSTRING pos str))))
+	    (acl-clim::frame-send-message
+	     (pane-frame pane)
+	     mirror win:LB_INSERTSTRING pos str))))
       (win:InvalidateRect mirror ct:hnull win:TRUE)))) ;; make sure it updates
 
 (defmethod acl-clim::command-event :around ((gadget hlist-pane) 
@@ -399,24 +406,33 @@
       (setq value new)
       (when mirror
 	;; How do I get leftchar?
-	(setq topline (win:SendMessage mirror win:EM_GETFIRSTVISIBLELINE 0 0))
+	(setq topline (acl-clim::frame-send-message 
+		       (pane-frame pane)
+		       mirror win:EM_GETFIRSTVISIBLELINE 0 0))
 	;; Don't redraw till I tell you:
-	(win:SendMessage mirror win:WM_SETREDRAW 0 0)
+	(acl-clim::frame-send-message
+	 (pane-frame pane)
+	 mirror win:WM_SETREDRAW 0 0)
 	;; Here's the text:
 	(excl:with-native-string (s1 (xlat-newline-return new))
 	  (win:SetWindowText mirror s1))
 	;; Try to preserve the scroll position:
-	(win:SendMessage mirror win:EM_LINESCROLL leftchar topline)
+	(acl-clim::frame-send-message
+	 (pane-frame pane)
+	 mirror win:EM_LINESCROLL leftchar topline)
 	;; Redraw now:
-	(win:SendMessage mirror win:WM_SETREDRAW 1 0)
+	(acl-clim::frame-send-message
+	 (pane-frame pane)
+	 mirror win:WM_SETREDRAW 1 0)
 	))))
 
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror value) pane
     (if mirror	
-	(let* ((wl (win:SendMessage mirror 
-				    win:WM_GETTEXTLENGTH 
-				    0 0))
+	(let* ((wl (acl-clim::frame-send-message (pane-frame pane)
+				       mirror 
+				       win:WM_GETTEXTLENGTH 
+				       0 0))
 	       (teb
 		#+removed (make-string wl)
 		(make-array wl :element-type '(unsigned-byte 8)))
@@ -470,11 +486,15 @@
       (let ((text-style (pane-text-style sheet)))
 	(when text-style
 	  (let ((font (text-style-mapping port text-style)))
-	    (win:SendMessage window win:WM_SETFONT 
+	    (acl-clim::frame-send-message
+	     (pane-frame sheet)
+	     window win:WM_SETFONT 
 			     (acl-clim::acl-font-index font) 0))))
       ;; Don't know how to set the y margins, but they look pretty good anyway.
       (with-slots (x-margin) sheet
-	(win:SendMessage window acl-clim::EM_SETMARGINS
+	(acl-clim::frame-send-message
+	 (pane-frame sheet)
+	 window acl-clim::EM_SETMARGINS
 			 ;;acl-clim::EC_USEFONTINFO
 			 (logior acl-clim::EC_LEFTMARGIN 
 				 acl-clim::EC_RIGHTMARGIN)
@@ -657,7 +677,9 @@
       (let ((text-style (pane-text-style sheet)))
 	(when text-style
 	  (let ((font (text-style-mapping port text-style)))
-	    (win:SendMessage window win:WM_SETFONT 
+	    (acl-clim::frame-send-message
+	     (pane-frame sheet)
+	     window win:WM_SETFONT 
 			     (acl-clim::acl-font-index font) 0))))
       (when (sheet-enabled-p sheet)
 	;; It's too soon for this.  Need to do this later, 
@@ -698,6 +720,7 @@
 
 (defmethod draw-picture-button ((pane hpbutton-pane) state hdc rect)
   ;; Handle the drawing part of owner-drawn buttons (BS_OWNERDRAW).
+  (assert (acl-clim::valid-handle hdc))
   (let ((bg (acl-clim::color->wincolor (pane-background pane)))
 	(fg (acl-clim::color->wincolor (pane-foreground pane))))
     (multiple-value-bind (bwidth bheight)
@@ -706,10 +729,11 @@
       (win:SetBkColor hdc bg)
       (win:SetTextColor hdc fg)
       (win:SetRop2 hdc win:R2_COPYPEN)
-      (when *background-brush*
-	(win:DeleteObject *background-brush*))
+      (when (acl-clim::valid-handle *background-brush*)
+	(or (win:DeleteObject *background-brush*) (error "DeleteObject")))
       (setq *background-brush* (win:CreateSolidBrush bg))
-      (win:SelectObject hdc *background-brush*)
+      (when (acl-clim::valid-handle *background-brush*)
+	(win:SelectObject hdc *background-brush*))
       (win:DrawEdge hdc
 		    rect 
 		    (if (logtest state win:ODS_SELECTED)
@@ -735,8 +759,9 @@
 	       (with-sheet-medium (medium pane)
 		 (let* ((port (port medium))
 			(text-style (medium-merged-text-style medium))
-			(font (text-style-mapping port text-style)))
-		   (win:selectobject hdc (acl-clim::acl-font-index font))
+			(font (text-style-mapping port text-style))
+			(index (acl-clim::acl-font-index font)))
+		   (when (acl-clim::valid-handle index) (win:selectobject hdc index))
 		   (multiple-value-bind (cstr len)
 		       (silica::xlat-newline-return label)
 		     (multiple-value-bind (width height) 
@@ -874,7 +899,9 @@
       (let ((text-style (pane-text-style sheet)))
 	(when text-style
 	  (let ((font (text-style-mapping port text-style)))
-	    (win:SendMessage window win:WM_SETFONT 
+	    (acl-clim::frame-send-message
+	     (pane-frame sheet)
+	     window win:WM_SETFONT 
 			     (acl-clim::acl-font-index font) 0))))
       (when (sheet-enabled-p sheet)
 	;; It's too soon for this.  Need to do this later, 
@@ -889,9 +916,9 @@
     (win:SetBkColor hdc (acl-clim::color->wincolor (pane-background pane)))
     (win:SetTextColor hdc (acl-clim::color->wincolor (pane-foreground pane)))
     (win:SetRop2 hdc win:R2_COPYPEN)
-    (win:SelectObject hdc 
-		      (win:CreateSolidBrush 
-		       (acl-clim::color->wincolor (pane-background pane))))
+    (let ((brush (win:CreateSolidBrush 
+		  (acl-clim::color->wincolor (pane-background pane)))))
+      (when (acl-clim::valid-handle brush) (win:SelectObject hdc brush)))
     (win:DrawEdge hdc
 		  rect 
 		  (if (logtest state win:ODS_SELECTED)
@@ -957,7 +984,8 @@
   (declare (ignore invoke-callback))
   (with-slots (mirror) pane
     (when mirror
-      (win:SendMessage mirror win:BM_SETCHECK (if value 1 0) 0))))
+      (acl-clim::frame-send-message (pane-frame pane)
+			  mirror win:BM_SETCHECK (if value 1 0) 0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; option panes
@@ -996,7 +1024,8 @@
 	(index 0))
     (with-slots (items value mode value-key) pane
       (when (and mirror items)
-        (setf index (win:SendMessage mirror win:CB_GETCURSEL 0 0))
+        (setf index (acl-clim::frame-send-message (pane-frame pane)
+					mirror win:CB_GETCURSEL 0 0))
         (setf (gadget-value pane :invoke-callback t) 
 	  (funcall value-key (elt items index)))))))
 
@@ -1008,7 +1037,8 @@
 	  (i (position value items
 		       :key value-key :test test)))
       (when (and hwnd i)
-	(win:SendMessage hwnd win:CB_SETCURSEL i 0)))))
+	(acl-clim::frame-send-message (pane-frame pane)
+			    hwnd win:CB_SETCURSEL i 0)))))
 
 (defmethod handle-event :after ((pane mswin-combo-box-pane) 
 				(event pointer-event))
@@ -1052,11 +1082,13 @@
   (fix-coordinates left top right bottom)
   (let* ((hwnd (sheet-mirror sheet))
 	 (height (min
-		  (* (+ 2 (win:SendMessage hwnd win:CB_GETCOUNT 0 0))
+		  (* (+ 2 (acl-clim::frame-send-message (pane-frame sheet)
+					      hwnd win:CB_GETCOUNT 0 0))
 		     ;; I'd have expected the wparam to be 0 here
 		     ;; according to the docs but this doesn't work
 		     ;; right (cim 9/25/96)
-		     (win:SendMessage hwnd win:CB_GETITEMHEIGHT -1 0))
+		     (acl-clim::frame-send-message (pane-frame sheet)
+					 hwnd win:CB_GETITEMHEIGHT -1 0))
 		  *combo-box-maximum-height*)))
     (win:SetWindowPos hwnd
 		      (ct:null-handle win:HWND) ; we really want win:HWND_TOP
@@ -1071,13 +1103,17 @@
 (defmethod (setf set-gadget-items) :after (items (pane mswin-combo-box-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (win:SendMessage mirror win:CB_RESETCONTENT 0 0)
+      (acl-clim::frame-send-message
+       (pane-frame pane)
+       mirror win:CB_RESETCONTENT 0 0)
       (dolist (item items)
 	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (excl:with-native-string (str str)
-	    (win:SendMessage mirror win:CB_INSERTSTRING pos str))))
+	    (acl-clim::frame-send-message
+	     (pane-frame pane)
+	     mirror win:CB_INSERTSTRING pos str))))
       ;; make sure it updates
       (win:InvalidateRect mirror ct:hnull win:TRUE)
       (note-sheet-region-changed pane))))
@@ -1529,7 +1565,7 @@
 
 (defmethod adjust-gadget-colors (pane hdc)
   (when silica::*background-brush*
-    (win:DeleteObject silica::*background-brush*))
+    (or (win:DeleteObject silica::*background-brush*) (error "DeleteObject")))
   (let* ((bg (color->wincolor (pane-background pane)))
 	 (fg (color->wincolor (pane-foreground pane))))
     (win:SetBkColor hdc bg)

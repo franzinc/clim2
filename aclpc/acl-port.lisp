@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.13 1999/05/26 18:11:37 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.14 1999/06/08 16:50:01 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -547,7 +547,8 @@
       (error "No window found for calculating text font metrics."))
     (with-dc (cw dc)
       (win:SetMapMode dc win:MM_TEXT)
-      (selectobject dc win-font)
+      (assert (valid-handle dc))
+      (when (valid-handle win-font) (selectobject dc win-font))
       (or (win:GetTextMetrics dc tmstruct)
 	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width

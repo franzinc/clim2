@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.84.8.44 1999/06/02 21:43:35 layer Exp $
+;; $Id: packages.lisp,v 1.84.8.45 1999/06/08 16:50:05 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -2371,6 +2371,7 @@
     frame-manager-frames
     frame-manager-notify-user
     frame-manager-pointer-documentation-stream
+    frame-manager-print-file  ; jpm 
     frame-manager-select-file
     frame-name
     frame-named-panes
@@ -2410,6 +2411,7 @@
     pointer-documentation-pane
     position-sheet-carefully
     position-sheet-near-pointer
+    print-file				; jpm
     raise-frame
     read-frame-command
     reconfigure-frame
@@ -3292,7 +3294,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 56)
+(cl:defvar *clim-build-version* 57)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

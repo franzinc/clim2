@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.57
+
+1999-06-07  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/*.lisp: Numerous changes to avoid operations on invalid handles.
+  Also, CLIM will now avoid using SendMessage unless the window is in the 
+  same thread, avoiding a possible deadlock situation.
+
+*******************************************************************************
 2.2.1.56
 
 1999-06-02  Jeff Morrill  <jmorrill@pointnclick.com> 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.16 1999/05/26 18:11:34 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.17 1999/06/08 16:50:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -395,10 +395,11 @@
 
 (defun make-menu-for-command-table (command-table menuhand frame 
 				    &optional top-level-sheet top-level-p)
+  (assert (valid-handle menuhand))
   (unless top-level-sheet
     (setq top-level-sheet (frame-top-level-sheet frame)))
-  ;; (re)initialize
-  (let ((count (win:getmenuitemcount menuhand)))
+  ;; First, delete any pre-existing menu items.
+  (let ((count (win:GetMenuItemCount menuhand)))
     (when (plusp count)
       (dotimes (position count)
 	;; Use position = 0 every time because the menu items get
@@ -471,14 +472,15 @@
 
 (defun compute-msmenu-bar-pane (frame top command-table)
   (let* ((mirror (sheet-mirror top))
-	 (menu-handle (win:GetMenu mirror))
+	 (menu-handle (win:GetMenu mirror)) 
 	 (command-table
 	  (if (listp command-table) (car command-table) command-table)))
     (when (silica::default-command-table-p command-table)
       ;; command-table arg comes from menu-bar slot of frame
       ;; and may be NIL T=menu-hbox-pane command-table-arg
-      (setq command-table (frame-command-table frame)))    
-    (make-menu-for-command-table command-table menu-handle frame top t)))
+      (setq command-table (frame-command-table frame)))
+    (when (valid-handle menu-handle)
+      (make-menu-for-command-table command-table menu-handle frame top t))))
 
 (defun update-menu-contents (sheet menuhand index)
   ;; Called just before making a menu active.  If the menu is associated
@@ -512,6 +514,17 @@
 			       win:MF_ENABLED
 			     win:MF_GRAYED)))))
 
+(defmethod frame-send-message (frame a b c d)
+  (let* ((me mp:*current-process*)
+	 (sheet (frame-top-level-sheet frame))
+	 (him (when sheet (clim-internals::sheet-thread sheet))))
+    (unless (eq me him)
+      ;; SendMessage will block, awaiting the response from the other thread.
+      ;; If the other thread sends a message to me, then you have a deadlock.
+      ;; So we have to have this restriction.
+      (error "SendMessage: attempt to send a message to a window in another thread"))
+    (win:SendMessage a b c d)))
+
 (defmethod initialize-tooltips ((frame standard-application-frame))
   ;; Create a tooltip control associated with this frame.
   ;; Note that this control won't do anything unless you
@@ -541,7 +554,9 @@
       (when (zerop tooltip-control)
 	(check-last-error "CreateWindow" :action :warn)
 	(return-from initialize-tooltips nil))
-      (win:SendMessage tooltip-control TTM_ACTIVATE 1 0)
+      (frame-send-message
+       (pane-frame sheet)
+       tooltip-control TTM_ACTIVATE 1 0)
       (flet ((tip (s)
 	       ;; I never got tool tips to work, so I didn't
 	       ;; really finish this part.  JPM 8/98.
@@ -558,8 +573,9 @@
 		(lisp-string-to-scratch-c-string 
 		 (princ-to-string label)))
 	       (setq status
-		 (win:SendMessage tooltip-control
-				  TTM_ADDTOOL 0 toolinfo))
+		 (frame-send-message frame
+				     tooltip-control
+				     TTM_ADDTOOL 0 toolinfo))
 	       (when (zerop status)
 		 (return-from initialize-tooltips nil))))
 	(declare (dynamic-extent #'tip))
@@ -854,7 +870,7 @@ to be run from another."
 			   p-i)))
 	(:item
 	 (if (clim-internals::menu-item-items item)
-	     (let ((submenu (win:createpopupmenu)))
+	     (let ((submenu (win:CreatePopupMenu)))
 	       (push submenu submenus)
 	       ;; submenu
 	       (excl:with-native-string (p-i (print-item item))
@@ -1574,3 +1590,89 @@ in a second Lisp process.  This frame cannot be reused."
 	     win:swp_nozorder
 	     win:swp_nosize)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun print-file-1 (filename associated-window
+		     &key 	  
+		     start end min-start max-end
+		     copies collate-p 
+		     print-to-file-p disable-print-to-file hide-print-to-file
+		     disable-page-numbers disable-selection selection-p
+		     (disable-copies-and-collate-if-no-driver-support t)
+		     no-warning-p no-dialog-p
+		     ;; so OPTIONS for the printer stream can be passed
+		     &allow-other-keys)
+  (declare (ignore filename))
+  (let* ((printdlg (ct:ccallocate win:printdlg))
+	 ;; (filename-buffer (ct:ccallocate (:char 256)))
+	 (hwnd (if associated-window (sheet-mirror associated-window) 0))
+	 ;; mem-handle mem-pointer 
+	 ;; flags all-pages-p selected-pages-p page-nums-p
+	 ;;filename-length
+	 )
+    (ct:csets win:printdlg printdlg
+	      lStructSize (ct:sizeof win:printdlg)
+	      hwndOwner hwnd
+	      hDevMode 0
+	      hdevnames 0        
+	      hdc 0
+	      flags (logior (if collate-p win:pd_collate 0)
+			    (if print-to-file-p win:pd_printtofile 0)
+			    (if disable-print-to-file win:pd_disableprinttofile 0)
+			    (if hide-print-to-file win:pd_hideprinttofile 0)
+			    (if disable-page-numbers win:pd_nopagenums 0)
+			    (if (or start end) win:pd_pagenums 0)
+			    (if disable-selection win:pd_noselection 0)
+			    (if no-warning-p win:pd_nowarning 0)
+			    (if no-dialog-p win:psd_returndefault 0)
+			    (if selection-p win:pd_selection 0)
+			    (if disable-copies-and-collate-if-no-driver-support
+				win:pd_usedevmodecopiesandcollate 0)
+			    win:pd_returndc)
+	      nfrompage (or start 1)
+	      ntopage (or end start 1)
+	      nminpage (or min-start 1)
+	      nmaxpage (or max-end most-positive-fixnum)
+	      ncopies (or copies 1)
+	      )
+    (when (win:PrintDlg printdlg)
+      t)))
+
+(defmethod frame-manager-print-file
+    ((framem acl-clim::acl-frame-manager) filename
+     &key 	  
+     (frame nil frame-p)
+     (associated-window
+      (if frame-p
+	  (frame-top-level-sheet frame)
+	(graft framem)))
+     start end min-start max-end
+     copies collate-p 
+     print-to-file-p disable-print-to-file hide-print-to-file
+     disable-page-numbers disable-selection selection-p
+     no-warning-p no-dialog-p
+     ;; so OPTIONS for the printer stream can be passed
+     &allow-other-keys)
+  (print-file-1 filename associated-window
+		:start start 
+		:end end 
+		:min-start min-start 
+		:max-end max-end
+		:copies copies 
+		:collate-p collate-p 
+		:print-to-file-p print-to-file-p 
+		:disable-print-to-file disable-print-to-file
+		:hide-print-to-file hide-print-to-file
+		:disable-page-numbers disable-page-numbers 
+		:disable-selection disable-selection
+		:selection-p selection-p
+		:no-warning-p no-warning-p 
+		:no-dialog-p no-dialog-p))
+
+(defmethod print-file (frame filename &rest options)
+  (declare (dynamic-extent options))
+  (when frame
+    (setf (getf options :frame) frame))
+  (apply #'frame-manager-print-file
+         (if frame (frame-manager frame) (find-frame-manager)) 
+	 filename options))
