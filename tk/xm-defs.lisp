@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.5 92/05/13 17:10:31 cer Exp Locker: cer $
+;; $fiHeader: xm-defs.lisp,v 1.6 92/06/29 14:04:26 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -38,6 +38,13 @@
   (protocol * :char))
 
 (def-c-typedef xm-string :int)
+
+(def-c-type (xm-text-field-callback-struct :no-defuns) :struct
+	    (reason :int)
+	    (event * x11:xevent)
+	    (doit :int)
+	    ;; and more later
+	    )
 
 (def-c-type (xm-file-selection-box-callback-struct :no-defuns) :struct
 	    (reason :int)
