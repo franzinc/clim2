@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: aaai-demo-driver.lisp,v 1.5 92/04/15 11:48:07 cer Exp $
+;; $fiHeader: aaai-demo-driver.lisp,v 1.6 92/05/22 19:29:00 cer Exp $
 
 (in-package :clim-demo)
 
@@ -38,29 +38,33 @@
   (values desired-left desired-top  
 	  (+ desired-left desired-width) (+ desired-top desired-height)))
 
-(defun start-demo (&optional (root #-Silica *demo-root*))
-  (unless root (setq root (find-graft)))
-  (labels ((demo-menu-drawer (stream type &rest args)
-	     (declare (dynamic-extent args))
-	     (with-text-style (stream '(:serif :roman :very-large))
-	       (apply #'draw-standard-menu stream type args)))
-	   (demo-menu-choose (list associated-window)
-	     (with-menu (menu associated-window)
-	       (setf (window-label menu)
-		     '("Clim Demonstrations" :text-style (:fix :bold :normal)))
-	       (menu-choose-from-drawer
-		 menu 'demo-menu-item
-		 #'(lambda (stream type)
-		     (demo-menu-drawer stream type list nil))
-		 :cache t
-		 :unique-id 'demo-menu :id-test #'eql
-		 :cache-value *demos* :cache-test #'equal))))
-    (catch 'exit-demo
-      (loop
-	(let* ((demo-name (demo-menu-choose (nreverse (map 'list #'car *demos*)) root))
-	       (demo-fcn (cdr (assoc demo-name *demos* :test #'string-equal))))
-	  (when demo-fcn
-	    (funcall demo-fcn)))))))
+(defvar *demo-root* nil)
+
+(defun start-demo (&optional (root *demo-root*))
+  (setq *demo-root* (or root (setq root (find-graft))))
+  ;;--- Make a dummy frame for the time being
+  (let ((*application-frame* (make-application-frame 'standard-application-frame)))
+    (labels ((demo-menu-drawer (stream type &rest args)
+	       (declare (dynamic-extent args))
+	       (with-text-style (stream '(:serif :roman :very-large))
+		 (apply #'draw-standard-menu stream type args)))
+	     (demo-menu-choose (list associated-window)
+	       (with-menu (menu associated-window)
+		 (setf (window-label menu)
+		   '("Clim Demonstrations" :text-style (:fix :bold :normal)))
+		 (menu-choose-from-drawer
+		  menu 'demo-menu-item
+		  #'(lambda (stream type)
+		      (demo-menu-drawer stream type list nil))
+		  :cache nil
+		  :unique-id 'demo-menu :id-test #'eql
+		  :cache-value *demos* :cache-test #'equal))))
+      (catch 'exit-demo
+	(loop
+	  (let* ((demo-name (demo-menu-choose (nreverse (map 'list #'car *demos*)) root))
+		 (demo-fcn (cdr (assoc demo-name *demos* :test #'string-equal))))
+	    (when demo-fcn
+	      (funcall demo-fcn))))))))
 
 (defparameter *color-stream-p* t)
 (defun color-stream-p (stream)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.4 92/04/15 11:48:16 cer Exp $
+;; $fiHeader: graphics-demos.lisp,v 1.5 92/05/22 19:29:05 cer Exp $
 
 (in-package :clim-demo)
 
@@ -241,12 +241,8 @@ to the window in which it is displayed."
 (defun run-graphics-demos (root &key reinit)
   (let ((gd (cdr (assoc root *graphics-demos*))))
     (when (or (null gd) reinit)
-      (multiple-value-bind (left top right bottom)
-	  (size-demo-frame root 0 0 800 600)
-	(setq gd (make-application-frame 'graphics-demo
-					 :parent root
-					 :left left :top top
-					 :right right :bottom bottom)))
+      (setq gd (make-application-frame 'graphics-demo
+					 :parent root))
       (push (cons root gd) *graphics-demos*))
     (run-frame-top-level gd)))
 

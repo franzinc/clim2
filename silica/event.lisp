@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.11 92/05/13 17:10:35 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.12 92/05/22 19:26:50 cer Exp $
 
 (in-package :silica)
 
@@ -138,13 +138,17 @@
   (:method (sheet region)
    (queue-event sheet region)))
 
-(defgeneric handle-repaint (sheet medium region)
-  (:method ((sheet sheet) medium region)
-   (with-sheet-medium-bound (sheet medium)
-     (repaint-sheet sheet region))
-   (when (typep sheet 'sheet-parent-mixin)
-     (dolist (child (children-overlapping-region sheet region))
-       (handle-repaint 
+(defgeneric handle-repaint (sheet medium region))
+
+(defmethod handle-repaint ((sheet sheet) medium region)
+  (with-sheet-medium-bound (sheet medium)
+    (repaint-sheet sheet region))
+  (when (typep sheet 'sheet-parent-mixin)
+    (dolist (child (children-overlapping-region sheet region))
+      (unless (sheet-direct-mirror child) ; If the sheet has a mirror
+					  ; then it will deal with its
+					  ; on repaints
+	(handle-repaint 
 	 child medium
 	 (untransform-region (sheet-transformation child) region))))))
 	     

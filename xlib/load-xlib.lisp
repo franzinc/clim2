@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.3 92/05/13 17:10:47 cer Exp Locker: cer $
+;; $fiHeader: load-xlib.lisp,v 1.4 92/05/22 19:27:24 cer Exp $
 
 (in-package :x11)
 
@@ -48,7 +48,7 @@
 	    :system-libraries libraries
 	    :print t))))
 
-(defvar sys::*libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")
+(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX_d.a")
 
 (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
   (load "xlibsupport.o" :system-libraries (list sys::*libx11-pathname*) :print t))

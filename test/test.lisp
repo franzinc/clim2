@@ -19,9 +19,11 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.26 92/05/12 18:25:07 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.27 92/05/22 19:28:51 cer Exp Locker: cer $
 
 (in-package :clim-user)
+
+;;; Simple little frame
 
 (define-application-frame test-frame () ()
   (:pane 
@@ -32,73 +34,11 @@
 	  :background +red+))
       (make-pane 'push-button
         :label "press me"
-	:background (make-pattern #2A((0 0 0 1 1 0 0 0)
-				      (0 0 1 1 1 1 0 0)
-				      (0 1 1 1 1 1 1 0)
-				      (1 1 1 1 1 1 1 1)
-				      (1 1 1 1 1 1 1 1)
-				      (0 1 1 1 1 1 1 0)
-				      (0 0 1 1 1 1 0 0)
-				      (0 0 0 1 1 0 0 0))
-				  (list +red+ +green+))
+	:background +black+
 	:foreground +purple+
 	:text-style (make-text-style :serif :roman 20)))))
 
-
-(define-application-frame test-frame0 () ()
-  (:command-table test-frame)
-  (:pane 
-    (scrolling ()
-      (make-pane 'interactor-pane)))
-  (:icon :name "foo" 
-	 :pixmap (make-pattern 
-		   (let ((x (make-array '(48 48))))
-		     (dotimes (i 48)
-		       (dotimes (j 48)
-			 (setf (aref x i j) (random 2))))
-		     x)
-		   (list +red+ +green+)))
-  (:geometry :width 300 :height 300))
-
-
-(define-application-frame test-frame01 () ()
-  (:command-table test-frame)
-  (:pane 
-    (scrolling ()
-      (make-pane 'interactor-pane))))
-
-(define-application-frame test-frame2 () ()
-  (:command-table test-frame)
-  (:pane 
-    (vertically ()
-      (tabling ()
-	((horizontally ()
-	   (make-pane 'toggle-button)
-	   (make-pane 'toggle-button)
-	   (make-pane 'toggle-button))
-	 (make-pane 'text-field))
-	((make-pane 'push-button :label "hello")
-	 (make-pane 'slider)))
-      (scrolling ()
-	(make-pane 'interactor-pane
-	  :display-function 'moby-display-function))
-      (scrolling ()
-	(make-pane 'interactor-pane)))))
-
-(defun moby-display-function (frame stream)
-  (window-clear stream)
-  (display-command-table-menu 
-    (frame-command-table frame) stream
-    :max-width (bounding-rectangle-width stream)))
-
-
-(define-application-frame test-frame3 () ()
-  (:command-table test-frame)
-  (:pane 
-    (scrolling ()
-      (make-pane 'interactor-pane
-	:width 300 :height 300))))
-
+;;; Some commands
 
 (define-test-frame-command (com-square-it :name t :menu t)
     ((x 'integer :gesture :select))
@@ -134,39 +74,59 @@
     :move-cursor t)
   (terpri *query-io*))
 
+;;; Simple little frame that specifies an icon
 
-(define-application-frame test-frame4 () ()
+(define-application-frame test-frame0 () ()
   (:command-table test-frame)
   (:pane 
-    (vertically ()
-      (make-pane 'push-button :label "Press me")
-      (make-pane 'toggle-button)
-      (make-pane 'slider)
-      (make-pane 'text-field)
-      (scrolling ()
-	(make-pane 'interactor-pane
-	  :width 300 :max-width +fill+
-	  :height 300 :max-height +fill+)))))
+    (scrolling ()
+      (make-pane 'interactor-pane)))
+  (:icon :name "foo" 
+	 :pixmap (make-pattern 
+		   (let ((x (make-array '(48 48))))
+		     (dotimes (i 48)
+		       (dotimes (j 48)
+			 (setf (aref x i j) (random 2))))
+		     x)
+		   (list +red+ +green+)))
+  (:geometry :width 300 :height 300))
 
 
-(define-application-frame test-frame5 () ()
+;;; More frames
+
+
+(define-application-frame test-frame4 () 
+  ()
+  (:command-table test-frame)
+  (:pane 
+   (vertically ()
+       (make-pane 'push-button :label "Press me")
+     (make-pane 'toggle-button)
+     (make-pane 'slider)
+     (make-pane 'text-field)
+     (make-clim-interactor-pane
+      :width 300 :max-width +fill+
+      :height 300 :max-height +fill+))))
+
+(define-application-frame test-frame5 () 
+  ()
   (:command-table test-frame)
   (:panes
-    (a (horizontally ()
-	 (make-pane 'push-button :label "Press me")
-	 (make-pane 'push-button :label "Squeeze me")))
-    (b toggle-button)
-    (c slider)
-    (d text-field)
-    (e :interactor
-       :width 300 :max-width +fill+
-       :height 300 :max-height +fill+))
+   (a (horizontally ()
+	  (make-pane 'push-button :label "Press me")
+	(make-pane 'push-button :label "Squeeze me")))
+   (b toggle-button)
+   (c slider)
+   (d text-field)
+   (e :interactor
+      :width 300 :max-width +fill+
+      :height 300 :max-height +fill+))
   (:layouts
-    (:default 
-      (vertically ()
-	a b c e))
-    (:more
-      (vertically ()
+   (:default 
+       (vertically ()
+	   a b c e))
+   (:more
+    (vertically ()
 	a e b  d))))
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.13 92/05/22 19:26:56 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.14 92/05/26 14:32:59 cer Exp $
 
 (in-package :silica)
 
@@ -25,8 +25,16 @@
 	  (funcall continuation medium))))))
 
 ;; Special-case the one we know is going to work all the time
+;;--- Not.
+
 (defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)
-  (funcall continuation (slot-value sheet 'medium)))
+  (let ((medium (slot-value sheet 'medium)))
+    (if medium 
+	(funcall continuation medium)
+      ;;-- Gadgets require a medium when they are being realized. This
+      ;;-- is so they can decode their foreground/background etc etc.
+      ;;-- At this point they do not have medium so we need to get one.
+      (call-next-method))))
 
 ;;--- Use DEFOPERATION
 (defmethod invoke-with-sheet-medium ((x standard-encapsulating-stream) continuation)

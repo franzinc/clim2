@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.30 92/05/22 19:29:16 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.31 92/05/26 14:33:21 cer Exp $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -65,8 +65,8 @@ OPENWINHOME=/usr/openwin-3.0
 #XLIBS=$(MOTIFHOME)/usr/lib/libXt.a $(MOTIFHOME)/usr/lib/libX11.a
 
 MOTIFLIB=/x11/motif-1.1/lib/Xm/libXm.a
-XLIB= /x11/R4/src/mit/lib/X/libX_d.a 
-XTLIB=/x11/R4/src/mit/lib/Xt/libXt_d.a
+XLIB= /x11/R4/sun4-lib/libX_d.a 
+XTLIB=/x11/R4/sun4-lib/libXt_d.a
 XLIBS= $(XTLIB) $(XLIB)
 
 #OLXLIBS=$(XTLIB) $(XLIB)
@@ -99,7 +99,10 @@ FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o `
 #
 DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
 	     xlib/x11-keysyms.fasl xlib/load-xlib.fasl xlib/last.fasl \
-	     tk/xt-defs.fasl tk/xm-defs.fasl tk/ol-defs.fasl
+	     tk/xt-defs.fasl tk/xm-defs.fasl 
+
+# This should be there also
+# tk/ol-defs.fasl
 
 
 #
@@ -346,10 +349,6 @@ clim-debug.fasl:	$(DEBUG-OBJS)
 
 tk/xm-defs.fasl : tk/xm-defs.lisp
 	echo Foo
-
-tk/ol-defs.fasl	: tk/ol-defs.lisp
-	echo Pretending to make ol-defs.fasl
-	touch tk/ol-defs.fasl
 
 
 # Building

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.6 92/04/15 11:48:29 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.7 92/05/22 19:29:12 cer Exp $
 
 (in-package :clim-demo)
 
@@ -181,12 +181,8 @@
 (defun run-thinkadot (&key reinit root)
   (let ((tdt (cdr (assoc root *thinkadots*))))
     (when (or (null tdt) reinit)
-      (multiple-value-bind (r-width r-height) (window-inside-size root)
-	(let ((l-offset (round (- r-width 300) 2))
-	      (t-offset (round (- r-height 340) 2)))
-	  (setq tdt (make-application-frame 'thinkadot :parent root
-					    :width 300 :height 340
-					    :left l-offset :top t-offset))))
+      (setq tdt (make-application-frame 'thinkadot :parent root
+					    :width 300 :height 340))
       (push (cons root tdt) *thinkadots*))
     (run-frame-top-level tdt)))
 

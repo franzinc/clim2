@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.21 92/05/13 17:10:54 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.22 92/05/22 19:27:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -84,6 +84,7 @@
 	    (frame-manager parent)
 	    (application-frame (frame-manager parent))
 	    (port (find-frame-manager :port parent))
+	    (graft (find-frame-manager :port (port parent)))
 	    (sheet (frame-manager (pane-frame parent))))))
     (setf (slot-value frame 'frame-manager) frame-manager)
     (adopt-frame frame-manager frame)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.8 92/03/24 19:36:13 cer Exp Locker: cer $
+;; $fiHeader: load-xt.lisp,v 1.1 92/03/30 17:58:37 cer Exp $
 
 (in-package :tk)
 
@@ -28,7 +28,7 @@
 
 ;;;; 
 
-(defvar *libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
+(defvar *libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
 
 
 (defun load-from-xt ()

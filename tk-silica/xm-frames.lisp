@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.17 92/05/13 17:11:14 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.18 92/05/22 19:29:29 cer Exp $
 
 (in-package :xm-silica)
 
@@ -381,4 +381,4 @@
 
 
 (defmethod framem-menu-active-p ((framem motif-frame-manager) menu)
-  (not (tk::is-managed-p menu)))
+  (tk::is-managed-p menu))

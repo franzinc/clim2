@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.7 92/05/07 13:13:36 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.8 92/05/22 19:29:07 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1025,7 +1025,7 @@
     ((fp-window))
   (:panes 
     (display (make-pane 'application-pane))
-    (interactor (make-pane 'interactor-pane)))
+    (interactor (make-pane 'interactor-pane :height '(5 :line))))
   (:layouts 
     (default
       (vertically ()
@@ -1060,10 +1060,12 @@
     (setf fp-window
 	  (open-window-stream :parent (window-root (frame-top-level-sheet fp))
 			      :left 50 :top 50 :width 750 :height 350
-			      :save-under T))
-    (let ((*application-frame* fp)
-	  (*standard-output* (frame-standard-output fp)))
-      (redraw-display))))
+			      :save-under T))))
+
+(defmethod  enable-frame :after ((fp flight-planner))
+  (let ((*application-frame* fp)
+	(*standard-output* (frame-standard-output fp)))
+    (redraw-display)))
 
 (defmethod frame-standard-output ((p flight-planner))
   (get-frame-pane p 'display))

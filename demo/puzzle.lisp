@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.6 92/05/07 13:13:38 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.7 92/05/22 19:29:09 cer Exp $
 
 (in-package :clim-demo)
 
@@ -186,11 +186,7 @@
   (let* ((entry (assoc root *puzzles*))
 	 (p (cdr entry)))
     (when (or (null p) reinit)
-      (multiple-value-bind (left top right bottom)
-	  (size-demo-frame root 100 100 172 160)
-	(setq p (make-application-frame 'puzzle :parent root
-					:left left :top top
-					:right right :bottom bottom)))
+      (setq p (make-application-frame 'puzzle :parent root))
       (if entry
 	  (setf (cdr entry) p)
 	  (push (cons root p) *puzzles*)))

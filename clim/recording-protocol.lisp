@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.11 92/05/07 13:12:55 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.12 92/05/22 19:28:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -687,13 +687,16 @@
 		     (+ x-offset xoff) (+ y-offset yoff))
 		   ;;--- Nasty hack to get around nasty bug caused by
 		   ;;--- doing things this way
-		   #+++ignore
+		   ;;--- CER needs this. Dont comment out unless you
+		   ;;--- fixed it
 		   (note-output-record-replayed record stream region x-offset y-offset))
 		 (replay-output-record record stream region x-offset y-offset))))
     (declare (dynamic-extent #'replay-1))
     (replay-1 record x-offset y-offset)))
 
-#+++ignore
+;;--- cer needs this. Dont comment out unless you have fixed the
+;; problem.
+
 (defmethod note-output-record-replayed ((record output-record-mixin) stream
 					&optional region x-offset y-offset)
   (declare (ignore stream region x-offset y-offset))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.12 92/05/13 17:10:19 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.13 92/05/22 19:26:23 cer Exp $
 
 (in-package :tk)
 
@@ -28,11 +28,23 @@
 
 ;;;; 
 
-(defvar sys::*libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
+(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
 (defvar sys::*libxm-pathname* "/x11/motif-1.1/lib/Xm/libXm.a")
 
 (defun load-from-xm ()
   (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+    (mapc #'ff::remove-entry-point
+	  '("__unpack_quadruple" 
+	    "__prod_b10000" 
+	    "__carry_out_b10000" 
+	    "__prod_65536_b10000"
+	    ;; got these when compiling on ox
+	    "__pack_integer"
+	    "_class_double"
+	    "_class_single"
+	    "_class_extended"
+	    "__unpack_integer"
+	    ))
     (load "MyDrawingA.o"
 	  :system-libraries (list sys::*libxm-pathname* 
 				  sys::*libxt-pathname*
