@@ -1,0 +1,13 @@
+#! /bin/sh
+
+header=$1
+shift;
+echo $header
+echo "{"
+for file in $*; do
+	cat $file | sed -e 's/$/();/' -e 's/_//'
+done
+echo "}"
+
+
+
