@@ -1388,8 +1388,7 @@
 ;;; 
 
 (defclass openlook-list-pane (list-pane xt-leaf-pane)
-	  ((item-list :accessor list-pane-item-list)
-	   (token-list :accessor list-pane-token-list)
+	  ((token-list :accessor list-pane-token-list)
 	   (current-tokens :initform nil :accessor list-pane-current-tokens)))
 
 
@@ -1399,8 +1398,10 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-list-pane))
-  (with-accessors () sheet
-    (values 'xt::ol-list nil)))
+  (with-accessors ((visible-items gadget-visible-items)
+		   (items set-gadget-items)) sheet
+    (values 'xt::ol-list 
+	    `(:view-height ,(max 1 (or visible-items (length items)))))))
 
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-list-pane))
   (let ((widget (call-next-method)))
@@ -1409,7 +1410,7 @@
 
 
 (defun add-items-to-list-pane-widget (sheet widget)
-  (let ((item-list nil)
+  (let (
 	(token-list nil)
 	selected-tokens
 	(count 0)
@@ -1438,11 +1439,9 @@
 		  0
 		  x)))
 	    (push (list token count) token-list)
-	    (when selected-p (push token selected-tokens))
-	    (push x item-list))
+	    (when selected-p (push token selected-tokens)))
 	  (incf count)))
-      (setf (list-pane-item-list sheet) (nreverse item-list)
-	    (list-pane-token-list sheet) token-list
+      (setf (list-pane-token-list sheet) token-list
 	    (list-pane-current-tokens sheet) selected-tokens))))
 
 (defmethod (setf gadget-value) :after (new-value (gadget openlook-list-pane) &key invoke-callback)
@@ -1459,11 +1458,11 @@
 	    (setf (tk::ol-list-item-attr toolkit-item)
 	      (dpb (if selectedp 1 0)
 		   '#.tk::ol_b_list_attr_current
-		   (dpb position '#.tk::ol_b_list_attr_appl 0)))
+		   (dpb position '#.tk::ol_b_list_attr_appl (tk::ol-list-item-attr toolkit-item))))
 	    (touch-list-pane-item widget token)
-	    (when selectedp (push token-and-position selected-tokens))
-	    (setf (list-pane-current-tokens gadget)
-	      selected-tokens)))))))
+	    (when selectedp (push token selected-tokens)))))
+      (setf (list-pane-current-tokens gadget)
+	selected-tokens))))
 
 (defmethod (setf set-gadget-items) :after (items (gadget openlook-list-pane))
   (declare (ignore items))
@@ -1553,22 +1552,30 @@
 	       (vertical-margins (ceiling (* 2 4 (/ 90 72))))
 	       (horizontal-margins (ceiling (* (+ 6 8) (/ 90 72))))
 	       (vertical-spacing (ceiling (* 6 (/ 90 72))))
-	       (fudge 5)	; This seems to be necessary to make
+	       (fudge 6)	; This seems to be necessary to make
 				; the right number of items visible
-	       (item-max-length
+	       (item-max-width
 		(let ((max 0))
 		  (dolist (item items max)
-		    (maxf max (length (funcall name-key item))))))
+		    (maxf max (let ((string (funcall name-key item)))
+				(x11:xtextwidth
+				 font string (length string)))))))
 	       (height (+ (* (or visible-items (length items))
 			     (+ vertical-spacing (tk::font-height font)))
 			  vertical-margins
 		       fudge))
-	       (width (+ horizontal-margins
-			(* (tk::font-width font)
-			   item-max-length)
+	       (width (+ -5
+			 horizontal-margins
+			item-max-width
 			scroll-bar-width)))
 	  (make-space-requirement :width width :height height))))))
 
+(defmethod change-widget-geometry :after (parent (child tk::ol-list) &key width)
+  (declare (ignore parent))
+  (tk::set-values (tk::get-values child :list-pane) 
+		  :pref-max-width width
+		  :pref-min-width width))
+ 
 ;;;
 
 (defclass openlook-option-pane (option-pane xt-leaf-pane)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.33.2.1 1993/05/11 23:56:57 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.33.2.3 1993/05/17 16:49:29 layer Exp $
 
 (in-package :tk)
 
@@ -228,14 +228,16 @@
 (defun widget-class-name (h)
   (char*-to-string (xt-class-name h)))
 
+(defvar *widget-name-to-class-name-mapping*
+    '(((list scrolling-list) ol-list)
+      ((event-obj) event)
+      ((control-area) control)))
+
 (defun lispify-class-name (x) 
   (let ((name (lispify-tk-name x)))
-    (case name
-      ;; Openlook
-      ((list scrolling-list) 'ol-list)
-      (event-obj 'event)
-      (control-pane 'control)
-      (t name))))
+    (or (cdr (assoc name *widget-name-to-class-name-mapping*
+		    :test #'member))
+	name)))
   
 (defun lispify-tk-name (string &key 
 			       (start 0)

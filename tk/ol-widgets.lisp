@@ -75,3 +75,18 @@
 					  :type 'function
 					  :original-name 
 					  (string-to-char* "applDeleteItem")))
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :view-height
+					  :type 'dimension
+					  :original-name 
+					  (string-to-char*
+					   "viewHeight")))
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :recompute-width
+					  :type 'boolean
+					  :original-name 
+					  (string-to-char* "recomputeWidth")))

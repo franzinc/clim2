@@ -31,7 +31,6 @@
 (defmethod start-initial-application-frame ((activity demo-activity))
   (start-application-frame activity
                            'demo-app 
-                           :width 300 :height 250
                            :pretty-name "Initial"))
 
 (define-demo-app-command (com-new :menu t :name t)
@@ -42,7 +41,6 @@
 	   :documentation "A Title String"))
   (start-application-frame (frame-activity *application-frame*)
                            'demo-app
-                           :width 300 :height 250
                            :pretty-name name)
   (incf *untitled-count*))
 
