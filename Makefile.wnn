@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.6 1999/05/04 01:20:59 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.7 2000/06/13 14:26:04 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -72,6 +72,10 @@ libwnn.a: $(WNN_OBJS)
 	$(AR) $@ $(WNN_OBJS)
 
 ifeq ($(REDHAT),5)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),6)
 REDHATLIBS = -lcrypt
 endif
 

@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.14
+
+2000-06-13  Kevin Layer  <layer@ultra>
+
+	* Makefile.wnn: make it compile on redhat 6
+	* wnn/jl.c: make it compile on redhat 6
+
+*******************************************************************************
 2.2.2.13
 
 2000-06-12  Kevin Layer  <layer@ultra>
