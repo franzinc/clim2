@@ -4,10 +4,16 @@
 header=$1
 shift;
 echo $header
-echo "{"
+echo "{ int i;"
+
 for file in $*; do
-	cat $file | sed -e 's/$/();/'
+	cat $file | sed -e 's/^/extern int /' -e 's/$/;/'
 done
+
+for file in $*; do
+	cat $file | sed -e 's/^/i = /' -e 's/$/;/'
+done
+
 echo "}"
 
 

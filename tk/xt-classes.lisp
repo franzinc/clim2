@@ -20,21 +20,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-classes.lisp,v 1.1 92/02/16 20:30:59 cer Exp $
+;; $fiHeader: xt-classes.lisp,v 1.2 92/02/24 13:04:13 cer Exp $
 
 (in-package :tk)
 
 ;;; This has to kept consistent with the Makefile
 
 (defparameter *intrinsic-classes* '(
-				    "_constraintWidgetClass"
-				    "_objectClass"
-				    "_wmShellWidgetClass"
-				    "_vendorShellWidgetClass"
-				    "_coreWidgetClass"
-				    "_shellWidgetClass"
-				    "_compositeWidgetClass"
-				    "_applicationShellWidgetClass"
-				    "_overrideShellWidgetClass"
-				    "_topLevelShellWidgetClass"
-				    "_transientShellWidgetClass"))
+				    "constraintWidgetClass"
+				    "objectClass"
+				    "wmShellWidgetClass"
+				    "vendorShellWidgetClass"
+				    "coreWidgetClass"
+				    "shellWidgetClass"
+				    "compositeWidgetClass"
+				    "applicationShellWidgetClass"
+				    "overrideShellWidgetClass"
+				    "topLevelShellWidgetClass"
+				    "transientShellWidgetClass"))

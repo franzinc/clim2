@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.12 92/05/22 19:27:22 cer Exp $
+;; $fiHeader: ffi.lisp,v 1.13 92/09/30 18:03:27 cer Exp $
 
 (in-package :x11)
 
@@ -112,7 +112,7 @@
        :callback nil
        :arg-checking nil
        :return-type 'integer
-       :entry-point ,(second (assoc :name options))))
+       :entry-point ,(ff:convert-to-lang (second (assoc :name options)))))
 
 
 ;;; Delay version
@@ -151,7 +151,7 @@
      (eval-when (eval load compile)
        (export ',name))
      (eval-when (compile eval load)
-       ,(let ((c-name (second (assoc :name options)))
+       ,(let ((c-name (ff:convert-to-lang (second (assoc :name options))))
 	      (return-type (or (second (assoc :return-type options))
 			       'integer)))
 	  `(delayed-defforeign

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.12 92/10/28 11:31:11 cer Exp $
+;; $fiHeader: processes.lisp,v 1.13 92/11/20 08:47:17 cer Exp $
 
 (in-package :clim-utils)
 
@@ -16,10 +16,11 @@
     otherwise nil
     }
     )
-  
-#+Allegro
-(unless (excl::scheduler-running-p)
-  (mp:start-scheduler))
+
+;;-- I dont think we need this
+;#+Allegro
+;(unless (excl::scheduler-running-p)
+;  (mp:start-scheduler))
 
 (defmacro with-lock-held ((place &optional state) &body forms)
   #+(or Allegro Xerox Genera ccl Minima)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.7 92/10/02 15:20:03 cer Exp $
+;; $fiHeader: surround-output.lisp,v 1.8 92/11/19 14:18:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -23,7 +23,7 @@
       (multiple-value-bind (doc declarations body)
 	  (extract-declarations body)
 	(declare (ignore doc))
-	`(progn
+	`(define-group ,name define-border-type
 	   (defun ,name ,arglist 
 	     ,@(and ignores `((declare (ignore ,@ignores))))
 	     ,@declarations
@@ -46,7 +46,7 @@
 
 
 (define-border-type :rectangle (stream left top right bottom
-				&rest drawing-options &key (filled nil) &allow-other-keys)
+				       &rest drawing-options &key (filled nil) &allow-other-keys)
   (declare (dynamic-extent drawing-options))
   (let ((offset 2))
     (apply #'draw-rectangle* stream

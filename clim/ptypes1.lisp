@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.20 92/11/13 14:45:59 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.21 92/12/03 10:27:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -422,6 +422,9 @@
 (defmethod acceptable-presentation-type-class ((class (eql (find-class 't)))) t)
 (defmethod acceptable-presentation-type-class ((class t)) nil)
 
+#+Allegro
+(defmethod acceptable-presentation-type-class ((class (eql (find-class 'common-lisp:structure-object)))) t)
+
 ;;; Abstract flavors aren't accepted since CLASS-PROTOTYPE signals an error
 #+Genera
 (defmethod acceptable-presentation-type-class ((class clos-internals::flavor-class))
@@ -529,7 +532,7 @@
 	(warn "It is not valid to define a presentation type abbreviation with~@
 	       the same name as a CLOS class.")))
     ;; Generate the expander function and pass it to load-presentation-type-abbreviation
-    `(progn
+    `(define-group ,name define-presentation-type-abbreviation
        (eval-when (compile)
 	 #+(or Genera Cloe-Runtime Minima CCL-2)
 	   (setf (compile-time-property ',name 'presentation-type-abbreviation)
