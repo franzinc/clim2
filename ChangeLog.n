@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.9
+
+2000-03-10  Kevin Layer  <layer@ultra>
+
+	* wnn/jl.c: to compile on linuxppc r5
+
+*******************************************************************************
 2.2.2.8
 
 Fri Mar  3 20:47:21 PST 2000  Duane Rettig  <duane@beta>

@@ -1,5 +1,5 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.4 1998/08/06 23:15:36 layer Exp $
+;; $Id: buildclim.cl,v 1.5 2000/03/13 00:30:11 layer Exp $
 
 (excl:generate-application
  #+ics "climi" #-ics "clim"
@@ -36,6 +36,4 @@
  #+(and mswindows ics) "climi.exe"
  #+(and mswindows (not ics)) "clim.exe"
  #+(and (not mswindows) ics) "climi"
- #+(and (not mswindows) (not ics)) "clim"
-
- :link-ok t)
+ #+(and (not mswindows) (not ics)) "clim")

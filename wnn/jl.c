@@ -1,5 +1,5 @@
 /*
- * $Id: jl.c,v 1.2 1998/05/19 18:51:33 layer Exp $
+ * $Id: jl.c,v 1.3 2000/03/13 00:30:13 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -2616,7 +2616,7 @@ register char	*s;
 	struct	passwd	*u;
         extern char *getenv();
 	extern struct	passwd	*getpwnam();
-#if defined(SYSVR2) && !defined(AIXV3)
+#if defined(SYSVR2) && !defined(AIXV3) && !defined(PPC)
 	extern char * strchr();
 #endif
 
