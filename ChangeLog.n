@@ -11,6 +11,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.5.2
+
+Wed Feb 11 16:53:04 1998    <layer@HOBART>
+
+	* demo/README: fix instructions
+
+*******************************************************************************
 2.2.1.5.1
 
 Fri Feb  6 17:24:48 1998  Kevin Layer  <layer@ultra>
