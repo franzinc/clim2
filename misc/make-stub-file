@@ -1,4 +1,5 @@
 #! /bin/sh
+# $fiHeader$
 
 header=$1
 shift;
