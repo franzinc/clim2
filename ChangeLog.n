@@ -11,6 +11,11 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Thu Apr 16 11:55:08 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile: add default HOST for aix/rs6000
+
+*******************************************************************************
 2.2.1.13
 
 Wed Apr 15 10:21:39 1998  Kevin Layer  <layer@ultra>
