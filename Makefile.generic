@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.20 1993/09/17 06:34:09 duane Exp $
+# $fiHeader: Makefile.generic,v 1.23 1993/11/24 03:56:46 duane Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -87,7 +87,7 @@ climgg.fasl	: $(GENERIC-GADGETS)
 	ls -lt climgg.fasl
 
 
-climxm.fasl	: $(MOTIF-OBJS) $(XLIB-CLIM-OBJS)
+climxm.fasl	: $(MOTIF-OBJS)
 	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climxm.fasl
 	ls -lt climxm.fasl >> Clim-sizes.n
@@ -151,9 +151,9 @@ clim-xm:	FORCE $(MOTIF_OBJS)
 	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'motif-clim) \
-		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
+		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(DUMP-CLIM) $(CLIMXM)
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMXM)
 	ls -lLt $(CLIMXM) >> Clim-sizes.n
 	size $(CLIMXM) >> Clim-sizes.n
 	ls -lLt $(CLIMXM)
@@ -167,9 +167,9 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'openlook-clim) \
-		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
+		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(DUMP-CLIM) $(CLIMOL)
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMOL)
 	ls -lLt $(CLIMOL) >> Clim-sizes.n
 	size $(CLIMOL) >> Clim-sizes.n
 	ls -lLt $(CLIMOL)
@@ -178,9 +178,9 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 clim-small:	FORCE
 	$(ECHO) " \
 		(load \"misc/load-xm.lisp\") \
-		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
+		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(DUMP-CLIM) $(CLIM-SMALL)
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
 	size $(CLIM-SMALL) >> Clim-sizes.n
 	ls -lt $(CLIM-SMALL)

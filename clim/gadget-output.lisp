@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.54 1993/10/25 16:15:26 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.55 1993/11/18 18:44:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -700,8 +700,12 @@
 	       (accept-values-query-valid-p 
 		 query (accept-values-query-presentation query)))
       (handler-case
-	(multiple-value-bind (object type index)
-	    (accept-from-string (accept-values-query-type query) new-value)
+	  (multiple-value-bind (object type index)
+	      ;; we specify :activation-gestures nil so that we can
+	      ;; accept multi-line strings in text-editors (cim)
+	    (accept-from-string (accept-values-query-type query)
+				new-value
+				:activation-gestures nil)
 	  (declare (ignore type))
 	  (assert (= index (length new-value)))
 	  object)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.84 1993/10/26 03:22:51 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.85 1993/11/18 18:45:37 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1678,26 +1678,25 @@
 
 (defmethod initialize-instance :after ((sp motif-scroller-pane) &key
                                                                 scroll-bars contents
-								frame-manager frame)
+                                                                frame-manager frame)
   (if (setf (scroller-pane-gadget-supplies-scrolling-p sp)
         (gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
       (when (member scroll-bars '(t :both :dynamic :vertical))
-	(let ((sb (make-pane 'scroll-bar
-			     :orientation :vertical :id :vertical
-			     :client sp)))
-	  (setf (scroller-pane-vertical-scroll-bar sp) sb)
-	  (sheet-adopt-child sp sb)))
+        (let ((sb (make-pane 'scroll-bar
+                             :orientation :vertical :id :vertical
+                             :client sp)))
+          (setf (scroller-pane-vertical-scroll-bar sp) sb)
+          (sheet-adopt-child sp sb)))
       (when (member scroll-bars '(t :both :dynamic :horizontal))
-	(let ((sb (make-pane 'scroll-bar 
-			     :orientation :horizontal :id :horizontal
-			     :client sp)))
-	  (setf (scroller-pane-horizontal-scroll-bar sp) sb)
-	  (sheet-adopt-child sp sb)))
-      (sheet-adopt-child sp (setf (slot-value sp 'viewport) 
-			      (make-pane 'viewport
-					 :scroller-pane sp)))
+        (let ((sb (make-pane 'scroll-bar 
+                             :orientation :horizontal :id :horizontal
+                             :client sp)))
+          (setf (scroller-pane-horizontal-scroll-bar sp) sb)
+          (sheet-adopt-child sp sb)))
+      (sheet-adopt-child sp (setf (slot-value sp 'viewport)
+                              (make-pane 'viewport :scroller-pane sp)))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
 
 (defmethod gadget-supplies-scrolling-p ((sheet t)) nil)

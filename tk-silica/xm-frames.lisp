@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.64 1993/10/26 03:22:47 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.65 1993/11/18 18:45:35 cer Exp $
 
 (in-package :xm-silica)
 
@@ -50,7 +50,7 @@
   ;;-- Conversely querygeoetry will return bogus results otherwise.
   (frobulate-menubars frame))
 
-(defmethod clim-internals::note-frame-current-layout-changed ((frame-manager motif-frame-manager) (frame t))
+(defmethod note-frame-layout-changed ((frame-manager motif-frame-manager) (frame t))
   (frobulate-menubars frame))
 
 (defun frobulate-menubars (frame)

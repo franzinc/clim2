@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.72 1993/11/18 18:44:04 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.73 1993/11/23 19:58:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -334,6 +334,7 @@
 
 ;; So the continuation can run with the proper value of *APPLICATION-FRAME*
 (defvar *avv-calling-frame*)
+
 
 (defun invoke-accepting-values (stream continuation
 				 &key frame-class command-table

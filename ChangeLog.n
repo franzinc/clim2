@@ -1,3 +1,61 @@
+from colin: Mon Dec  6 21:30:54 PST 1993	
+
+Makefile.defs, Makefile.generic
+			got rid of DUMP-CLIM - no longer necessary
+
+Makefile.generic	fixed bug in rule for climxm.fasl
+
+clim/accept.lisp	fixed :activation-gestures and :delimiter gestures
+			for accept-1 and accept-from-string
+
+clim/frames.lisp	made resizable frames resize when layout changes
+			added note-frame-layout-changed
+
+clim/gadget-output.lisp	fixed accepting of multi-line string in
+			accept-values-string-field-changed-callback
+
+clim/standard-types.lisp	
+			completeley rewrote accept of expressions - this
+			fixes a bunch of longstanding bugs
+
+clim/stream-class-defs.lisp	
+			standard-sequence-output-history now the
+			default instead of coordinate-sorted-set
+
+silica/layout.lisp	simplified resize-sheet (basic-sheet t t)
+
+silica/mirror.lisp	removed bogus sheet-native-transformation method on
+			basic-sheet
+
+tk/event.lisp, tk-silica/ol-silica.lisp, tk-silica/xt-silica.lisp
+			fixed bug with event type preferencing causing
+			problems for motif dnd
+
+tk-silica/ol-gadgets.lisp	
+			hacked ol scroll panes again so that
+			scroll-bars vertical works properly
+
+tk-silica/xm-frames.lisp
+			changed note-frame-current-layout to
+			note-frame-layout 
+
+tk-silica/xm-gadgets.lisp
+			bug fix in motif scroller panes
+
+tk-silica/xm-silica.lisp
+			named xm-cursor widget - aides debugging
+
+tk-silica/xt-pixmap.lisp
+			changed all calls to sheet-native-transformation to
+			calls to sheet-device-transformation
+
+tk-silica/xt-silica.lisp
+			simplified find-shell-parent
+			added clim keysym for XK_End
+
+utils/packages.lisp	exported note-frame-layout-changed from clim package
+
+------------------------------------------------------------
 Fri Dec  3 15:28:36 1993  Duane Rettig  (duane at clay)
 
 (for 4.2.devel.22 merge):

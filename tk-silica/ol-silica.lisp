@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.21 1993/07/27 01:55:11 colin Exp $
+;; $fiHeader: ol-silica.lisp,v 1.22 1993/09/17 19:07:04 cer Exp $
 
 (in-package :xm-silica)
 
@@ -110,3 +110,23 @@
 
 (defun ol-get-focus-widget (widget)
   (tk::intern-widget (tk::ol_get_current_focus_widget widget)))
+
+(defmethod process-an-event ((port ol-port) mask reason)
+  (with-slots (context) port
+    ;; Because of a feature in the OLIT toolkit we need to
+    ;; give preference to events rather than timer events
+
+    #+debug
+    (when (logtest mask tk::*xt-im-xevent*)
+      (let ((event (x11:make-xevent)))
+	(unless (zerop (tk::xt_app_peek_event context event))
+	  (print (tk::event-type event) excl:*initial-terminal-io*))))
+
+    (tk::process-one-event context
+			   (if (logtest mask tk::*xt-im-xevent*)
+			       tk::*xt-im-xevent*
+			     mask)
+			   reason)))
+
+  
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.17 1993/07/27 01:55:53 colin Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.18 1993/11/18 18:45:45 cer Exp $
 
 
 (in-package :xm-silica)
@@ -67,9 +67,8 @@
     ((from-medium xt-medium) from-x from-y width height
      (to-medium xt-medium) to-x to-y
      &optional (function boole-1))
-  ;;--- Shouldn't this be the sheet-device-transformation????
-  (let ((from-transform (sheet-native-transformation (medium-sheet from-medium)))
-	(to-transform (sheet-native-transformation (medium-sheet to-medium))))
+  (let ((from-transform (sheet-device-transformation (medium-sheet from-medium)))
+	(to-transform (sheet-device-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates from-transform from-x from-y)
     (convert-to-device-coordinates to-transform to-x to-y)
     (convert-to-device-distances from-transform width height)
@@ -116,7 +115,7 @@
 			    (allocate-event 'window-repaint-event
 					    :native-region (make-bounding-rectangle minx miny maxx maxy)
 					    :region (untransform-region
-						     (sheet-native-transformation sheet)
+						     (sheet-device-transformation sheet)
 						     (make-bounding-rectangle minx miny maxx maxy))
 					    :sheet sheet))))
 		       (setq event (tk::get-event-matching-sequence-and-types
@@ -131,7 +130,7 @@
      (to-medium xt-medium) to-x to-y
      &optional (function boole-1))
   ;;-- What about the graphics exposure event problem
-  (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
+  (let ((transform (sheet-device-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates transform to-x to-y)
     (convert-to-device-distances transform width height)
     (fix-coordinates from-x from-y)
@@ -149,7 +148,7 @@
      (pixmap xt-pixmap) to-x to-y
      &optional (function boole-1))
   ;;-- What about the graphics exposure event problem
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
+  (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y)
     (convert-to-device-distances transform width height)
     (fix-coordinates to-x to-y)

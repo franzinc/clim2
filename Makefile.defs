@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.26 1993/11/18 18:43:56 cer Exp $
+# $fiHeader: Makefile.defs,v 1.27 1993/11/23 19:58:26 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -65,21 +65,18 @@ SAFETY	= 1
 DEBUG   = 2
 
 COMPILE_PRINT=nil 
-# Where to dump all clim images
-DUMP-CLIM = $(TMP)/clim.temp_`whoami`
-# Where images are then move to (can be same as DUMP-CLIM)
-CLIM	= ./slim
-CLIMOL= $(CLIM)
-CLIMXM= $(CLIM)
 
+# where to dump the CLIM images
+CLIM-SMALL	= ./slim-small
+CLIM		= ./slim
+CLIMOL		= $(CLIM)
+CLIMXM		= $(CLIM)
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD
 LDFLAGS=
 OLDSPACE = 15000000
 NEWSPACE = 5000000
 PREMALLOCS = '-m 401408'
-
-CLIM-SMALL	= ./slim-small
 
 PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
 DIRS0	=  tk tk-silica misc cloe climtoys hpgl
@@ -561,7 +558,7 @@ make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
 	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
 	RECORD_XREF_INFO=${RECORD_XREF_INFO} CL=${CL} \
-	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} DUMP-CLIM=${DUMP-CLIM} \
+	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} \
 	COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP} -f ${Makefile}
 
 CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl

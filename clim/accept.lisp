@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.24 1993/06/02 18:40:25 cer Exp $
+;; $fiHeader: accept.lisp,v 1.25 1993/07/27 01:38:16 colin Exp $
 
 (in-package :clim-internals)
 
@@ -180,12 +180,14 @@
 	  (let ((start-position (stream-scan-pointer stream)))
 	    (with-input-context (type)
 				(object presentation-type nil options)
-	      (with-activation-gestures ((or activation-gestures
-					     additional-activation-gestures
-					     *standard-activation-gestures*)
+	      (with-activation-gestures ((if activation-gestures-p
+					     activation-gestures
+					   (or additional-activation-gestures
+					       *standard-activation-gestures*))
 					 :override activation-gestures-p)
-		(with-delimiter-gestures ((or delimiter-gestures
-					      additional-delimiter-gestures)
+		(with-delimiter-gestures ((if delimiter-gestures-p
+					      delimiter-gestures
+					    additional-delimiter-gestures)
 					  :override delimiter-gestures-p)
 		  (handler-bind
 		      ((parse-error
@@ -333,12 +335,14 @@
   (let ((index start))
     (multiple-value-bind (the-object the-type)
 	(with-input-from-string (stream string :start start :end end :index index)
-	  (with-activation-gestures ((or activation-gestures
-					 additional-activation-gestures
-					 *standard-activation-gestures*)
+	  (with-activation-gestures ((if activation-gestures-p
+					 activation-gestures
+				       (or additional-activation-gestures
+					   *standard-activation-gestures*))
 				     :override activation-gestures-p)
-	    (with-delimiter-gestures ((or delimiter-gestures
-					  additional-delimiter-gestures)
+	    (with-delimiter-gestures ((if delimiter-gestures-p
+					  delimiter-gestures
+					additional-delimiter-gestures)
 				      :override delimiter-gestures-p)
 	      (handler-bind 
 		  ((parse-error

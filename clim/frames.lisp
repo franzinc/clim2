@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.74 1993/09/22 21:21:08 cer Exp $
+;; $fiHeader: frames.lisp,v 1.75 1993/11/18 18:44:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -570,15 +570,18 @@
       (setf (sheet-enabled-p sheets) nil)
       (sheet-adopt-child (frame-top-level-sheet frame) sheets)
       (multiple-value-call #'layout-frame
-	frame (bounding-rectangle-size (frame-top-level-sheet frame)))
+	frame 
+	(if (frame-resizable frame)
+	    (values)
+	  (bounding-rectangle-size (frame-top-level-sheet frame))))
       ;;--- Don't throw, just recompute stream bindings in a principled way
       (setf (sheet-enabled-p sheets) t))
-    (note-frame-current-layout-changed (frame-manager frame) frame)
+    (note-frame-layout-changed (frame-manager frame) frame)
     (handler-case
         (throw 'layout-changed nil)
       (error () nil))))
 
-(defmethod note-frame-current-layout-changed ((frame-manager standard-frame-manager) (frame t))
+(defmethod note-frame-layout-changed ((frame-manager standard-frame-manager) (frame t))
   nil)
 
 (defun adjust-layout-requirements (frame layout)
@@ -705,10 +708,10 @@
     (error "Cannot enable a disowned frame ~S" frame))
   (destructuring-bind (&key left top width height &allow-other-keys)
       (frame-geometry frame)
-    (ecase (frame-state frame)
-      (:enabled)
-      ((:disabled :disowned)
-       (let ((old-state (frame-state frame)))
+    (let ((old-state (frame-state frame)))
+      (ecase old-state
+	(:enabled)
+	((:disabled :disowned)
 	 (setf (frame-state frame) :enabled)
 	 ;; If this is a new frame then if the user specified a width
 	 ;; then we should be using that
@@ -717,18 +720,18 @@
 	 (multiple-value-bind (width height)
 	     (ecase old-state
 	       (:disowned 
-		 (if (and width height)
-		     (values width height)
-		     (values)))
+		(if (and width height)
+		    (values width height)
+		  (values)))
 	       (:disabled
-		 (bounding-rectangle-size
-		   (frame-top-level-sheet frame))))  
+		(bounding-rectangle-size
+		 (frame-top-level-sheet frame))))  
 	   (layout-frame frame width height)
 	   (when (and left top)
 	     (move-sheet (frame-top-level-sheet frame) left top))
-	   (note-frame-enabled (frame-manager frame) frame))))
-      (:shrunk 
-        (note-frame-deiconified (frame-manager frame) frame)))))
+	   (note-frame-enabled (frame-manager frame) frame)))
+	(:shrunk 
+	 (note-frame-deiconified (frame-manager frame) frame))))))
 
 (defmethod shrink-frame ((frame standard-application-frame))
   (note-frame-iconified (frame-manager frame) frame))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.91 1993/10/26 03:22:58 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.92 1993/11/18 18:45:48 cer Exp $
 
 (in-package :xm-silica)
 
@@ -665,7 +665,10 @@
       (sheet-mirror-for-parenting ma))))
 
 (defmethod sheet-mirror-for-parenting ((sheet basic-sheet))
-  ;; There might be a situation where a sheet is mirrored by a whil
+  ;; There might be a situation where a sheet is mirrored by a tree of
+  ;; children. Here you would want the mirror for parenting to be a leaf
+  ;; rather than the root of the tree. For the moment a sheet is only
+  ;; mirrored by one widget so the following is ok
   (sheet-mirror sheet))
 
 (defmethod find-shell-of-calling-frame ((sheet basic-sheet))
@@ -679,16 +682,11 @@
 	 (sheet-shell cf))))
 
 (defmethod find-shell-parent ((port xt-port) sheet)
-  (or 
-   (and  
-    ;;--- hack alert
-    ;;**** Not needed any more [clim2bug462]
-    ;; (popup-frame-p sheet)
-    (let ((shell (find-shell-of-calling-frame sheet)))
-      (and shell
-	   (eq (xt::widget-display shell) (port-display port))
-	   shell)))
-   (port-application-shell port)))
+  (let ((shell (find-shell-of-calling-frame sheet)))
+    (if (and shell
+	     (eq (xt::widget-display shell) (port-display port)))
+	shell
+      (port-application-shell port))))
 
 (defmethod find-shell-class-and-initargs ((port xt-port) (sheet t))
   (values 'top-level-shell 
@@ -864,7 +862,11 @@
 	    (tk::wait-for-event context
 				:wait-function wait-function
 				:timeout 0))
-	  (tk::process-one-event context mask reason))))))
+	  (process-an-event port mask reason))))))
+
+(defmethod process-an-event ((port xt-port) mask reason)
+  (with-slots (context) port
+    (tk::process-one-event context mask reason)))
 
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style 
@@ -1077,7 +1079,12 @@
 
 ;; Other useful characters
 (define-xt-keysym (keysym 255 #x6a) :help)
+
+;; we have two keysyms for :end - XK_End and XK_R13 (which is marked
+;; end on certain sun keyboards)
+
 (define-xt-keysym (keysym 255 #xde) :end)
+(define-xt-keysym (keysym 255 #x57) :end)
 
 (define-xt-keysym (keysym 255 #x68) :complete) ; Not on my keyboard
 (define-xt-keysym (keysym 255 #x69) :abort) ; Not on my keyboard

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.60 1993/09/22 18:26:58 layer Exp $
+;; $fiHeader: packages.lisp,v 1.61 1993/11/18 18:45:55 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2741,6 +2741,7 @@
     note-frame-disabled
     note-frame-enabled
     note-frame-iconified
+    note-frame-layout-changed
     notify-user
     pane-frame
     pane-name

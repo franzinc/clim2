@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: mirror.lisp,v 1.32 1993/07/27 01:50:57 colin Exp $
+;; $fiHeader: mirror.lisp,v 1.33 1993/09/17 19:06:18 cer Exp $
 
 (in-package :silica)
 
@@ -41,7 +41,11 @@
 
 ;;; Native transformation
 
+;;--- I'm sure that this is wrong so I'm commented it out - if nothing
+;;breaks in six months time then remove it (cim 11/1/93)
+
 ;;--- This should be cached so that it doesn't cons...
+#+ignore
 (defmethod sheet-native-transformation ((sheet basic-sheet))
   (compose-transformations 
     (sheet-transformation sheet)
@@ -68,7 +72,7 @@
 (defmethod sheet-device-transformation :around ((sheet mirrored-sheet-mixin))
   (if (sheet-direct-mirror sheet)
       (sheet-native-transformation sheet)
-      (call-next-method)))
+    (call-next-method)))
 
 ;;; Native region
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.12 93/01/21 14:58:17 cer Exp $
+;; $fiHeader: stream-class-defs.lisp,v 1.13 1993/07/27 01:41:10 colin Exp $
 
 (in-package :clim-internals)
 
@@ -76,7 +76,12 @@
 		       :initarg :excl-recording-p))
   (:default-initargs :draw-p t :record-p t	;!!!
 
-		     :output-record (make-instance 'standard-tree-output-history)))
+		     :output-record 
+		     ;; this used to be standard-tree-output-history
+		     ;; but because of longstanding bugs in
+		     ;; coordinate sorted sets, we should avoid this
+		     ;; for the default (cim 11/30/93)
+		     (make-instance 'standard-sequence-output-history)))
 
 
 ;; For any window-specific output recording methods

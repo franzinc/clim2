@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.62 1993/10/26 03:22:43 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.63 1993/11/18 18:45:32 cer Exp $
 
 
 (in-package :xm-silica)
@@ -1412,28 +1412,28 @@
 			    sheet))))
 
 
-;;--- this is almost identical to the motif code
+;;--- this is identical to the motif code
 
 (defmethod initialize-instance :after ((sp openlook-scrolling-window)
-				       &key scroll-bars contents frame-manager frame)
-  #-bad-hack (declare (ignore scroll-bars))
+                                       &key scroll-bars contents frame-manager frame)
   (if (setf (scroller-pane-gadget-supplies-scrolling-p sp)
-	(gadget-supplies-scrolling-p contents))
+        (gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
-      (let ((sb (make-pane 'scroll-bar 
-			   :enabled (and (member scroll-bars '(:both t dynamic :vertical))
-					 t)
-			   :orientation :vertical :id :vertical :client sp)))
-	(setf (scroller-pane-vertical-scroll-bar sp) sb)
-	(sheet-adopt-child sp sb))
-      (let ((sb (make-pane 'scroll-bar 
-			   :enabled (and (member scroll-bars '(t :both :dynamic :horizontal))
-					 t)
-			   :orientation :horizontal :id :horizontal :client sp)))
-	(setf (scroller-pane-horizontal-scroll-bar sp) sb)
-	(sheet-adopt-child sp sb))
-      (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
+      (when (member scroll-bars '(t :both :dynamic :vertical))
+        (let ((sb (make-pane 'scroll-bar
+                             :orientation :vertical :id :vertical
+                             :client sp)))
+          (setf (scroller-pane-vertical-scroll-bar sp) sb)
+          (sheet-adopt-child sp sb)))
+      (when (member scroll-bars '(t :both :dynamic :horizontal))
+        (let ((sb (make-pane 'scroll-bar 
+                             :orientation :horizontal :id :horizontal
+                             :client sp)))
+          (setf (scroller-pane-horizontal-scroll-bar sp) sb)
+          (sheet-adopt-child sp sb)))
+      (sheet-adopt-child sp (setf (slot-value sp 'viewport)
+                              (make-pane 'viewport :scroller-pane sp)))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
 
 (defmethod realize-widget-mirror ((port openlook-port) (parent-sheet openlook-scrolling-window)
@@ -1476,7 +1476,7 @@
   ;;--- bigger than this. But atleast its a start
   ;;-- We check to see which scrollbars we have
 
-  (let* ((fudge 7) 			; This was from trial and
+  (let* ((fudge 8) 			; This was from trial and
 					; error but at least 4 (1point) is from
 					; the contents border
 	 (spacing (+ fudge 0) #+ignore (tk::get-values (sheet-mirror fr) :spacing))
@@ -1518,7 +1518,7 @@
     (multiple-value-bind
 	(swidth sheight) (tk::get-values (sheet-direct-mirror
 					  scrolling-window) :width :height)
-      (let* ((fudge 7)
+      (let* ((fudge 8)
 	     (vsbp 
 	      (let ((sb (scroller-pane-vertical-scroll-bar scrolling-window)))
 		(and sb (sheet-enabled-p sb))))
@@ -1557,9 +1557,8 @@
 		    ,(and (member scroll-bars '(t :both :dynamic :horizontal))
 			  t)))
 		`(:h-auto-scroll nil 
-				 :v-auto-scroll nil
-				 :compute-geometries ,*scrolling-window-geometry-function-address*
-				 )))))
+		  :v-auto-scroll nil
+		  :compute-geometries ,*scrolling-window-geometry-function-address*)))))
 
 
 

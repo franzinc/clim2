@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.22 1993/11/18 18:45:25 cer Exp $
+;; $fiHeader: event.lisp,v 1.23 1993/11/23 19:58:55 cer Exp $
 
 (in-package :tk)
 
@@ -55,19 +55,17 @@
   (let* ((mask 0)
 	 (fds (mapcar #'(lambda (display) (x11::display-fd display))
 		      (application-context-displays context)))
-	 result
 	 (reason nil))
     (declare (fixnum mask))
     
     (flet ((wait-function (fd)
 	     (declare (ignore fd))
 	     (let ((*inside-event-wait-function* fds))
-	       (setq result
-		 (catch *inside-event-wait-function*
-		   (or (plusp (setq mask (xt_app_pending context)))
-		       (and wait-function
-			    (funcall wait-function)
-			    (setq reason :wait))))))))
+	       (catch *inside-event-wait-function*
+		 (or (plusp (setq mask (xt_app_pending context)))
+		     (and wait-function
+			  (funcall wait-function)
+			  (setq reason :wait)))))))
       
       (let* ((interval (xt_app_interval_next_timer context))
 	     (new-timeout (if (plusp interval)
@@ -86,18 +84,7 @@
 
 (defun process-one-event (context mask reason)
   (cond ((plusp mask)
-
-	 #+debug
-	 (when (logtest mask *xt-im-xevent*)
-	   (let ((event (x11:make-xevent)))
-	     (unless (zerop (xt_app_peek_event context event))
-	       (print (event-type event) excl:*initial-terminal-io*))))
-
-	 (xt_app_process_event
-	  context
-	  ;; Because of a feature in the OLIT toolkit we need to
-	  ;; give preference to events rather than timer events
-	  (if (logtest mask *xt-im-xevent*) *xt-im-xevent* mask))
+	 (xt_app_process_event context mask)
 	 t)
 	(reason :wait-function)
 	(t :timeout)))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.40 1993/11/18 18:45:40 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.41 1993/11/23 19:59:07 cer Exp $
 
 (in-package :xm-silica)
 
@@ -139,12 +139,13 @@
 	(widget (sheet-mirror sheet)))
     (when cursor
       (let ((input-widget (make-instance 'tk::xm-my-drawing-area
-					 :parent widget
-					 :background (tk::get-values widget
-								     :background)
-					 :width 1
-					 :height 1
-					 :managed (cursor-active cursor))))
+			    :name :xm-cursor
+			    :parent widget
+			    :background (tk::get-values widget
+							:background)
+			    :width 1
+			    :height 1
+			    :managed (cursor-active cursor))))
 	(with-slots (clim-internals::plist) cursor
 	  (setf (getf clim-internals::plist :input-widget) input-widget)
 	  (tk::add-callback input-widget

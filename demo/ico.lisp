@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.19 1993/09/17 00:20:37 colin Exp $
+;; $fiHeader: ico.lisp,v 1.21 1993/11/24 03:56:55 duane Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -353,7 +353,6 @@
 		     (clim-utils:with-collection
 		       (dotimes (i nv)
 			 (clim-utils:collect (list (make-ico-point 0 0) 0))))))
-#-allegro
 (defparameter v2-fill (make-array (* nv 2) :displaced-to v2))
 
 (defparameter drawn      (make-array (list nv nv) :initial-element nil))

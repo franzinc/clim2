@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.31 1993/06/02 18:41:53 cer Exp $
+;; $fiHeader: layout.lisp,v 1.32 1993/06/21 20:51:19 cer Exp $
 
 (in-package :silica)
 
@@ -145,25 +145,24 @@
   (unless (and (> width 0) (> height 0))
     (error "Trying to resize sheet ~S to be too small (~D x ~D)"
 	   sheet width height))
-  (when (or width height)
-    (with-bounding-rectangle* (left top right bottom) sheet
-      (let ((owidth (- right left))
-	    (oheight (- bottom top)))
-	(if (or (and width (/= owidth width))
-		(and height (/= oheight height))
-		#+Allegro
-		(mirror-needs-resizing-p sheet width height))
-	    ;; It should be safe to modify the sheet's region, since
-	    ;; each sheet gets a fresh region when it is created
-	    (let ((region (sheet-region sheet)))
-	      (setf (slot-value region 'left) left
-		    (slot-value region 'top)  top
-		    (slot-value region 'right)  (if width (+ left width) right)
-		    (slot-value region 'bottom) (if height (+ top height) bottom))
-	      (note-sheet-region-changed sheet))
-	    ;;--- Do this so that we relayout the rest of tree.
-	    ;;--- I guess we do not want to do this always but ...
-	    (allocate-space sheet owidth oheight))))))
+  (with-bounding-rectangle* (left top right bottom) sheet
+    (let ((owidth (- right left))
+	  (oheight (- bottom top)))
+      (if (or (/= owidth width)
+	      (/= oheight height)
+	      #+Allegro
+	      (mirror-needs-resizing-p sheet width height))
+	  ;; It should be safe to modify the sheet's region, since
+	  ;; each sheet gets a fresh region when it is created
+	  (let ((region (sheet-region sheet)))
+	    (setf (slot-value region 'left) left
+		  (slot-value region 'top)  top
+		  (slot-value region 'right) (+ left width)
+		  (slot-value region 'bottom) (+ top height))
+	    (note-sheet-region-changed sheet))
+	;;--- Do this so that we relayout the rest of tree.
+	;;--- I guess we do not want to do this always but ...
+	(allocate-space sheet owidth oheight)))))
 
 ;;;-- This sucks but it seems to get round the problem of the mirror
 ;;;-- geometry being completely wrong after the layout has been changed

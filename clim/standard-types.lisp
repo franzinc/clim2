@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.29 1993/05/25 20:41:05 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.30 1993/09/17 19:05:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1463,10 +1463,11 @@
       (when (input-editing-stream-p stream)
 	(rescan-if-necessary stream))
       (multiple-value-bind (expression index)
-	  (read-from-string string nil string)
-	(when (eq expression string)
-	  (simple-parse-error "The input ~S is not a complete Lisp expression."
-			      (evacuate-temporary-string string)))
+	  (handler-case
+	      (read-from-string string)
+	    (error ()
+	      (simple-parse-error "The input ~S is not a complete Lisp expression."
+				  (evacuate-temporary-string string))))
 	;; Too bad READ-FROM-STRING doesn't take a :JUNK-ALLOWED argument.
 	;; Simulate what it would do
 	(unless (>= index (length string))
@@ -1513,57 +1514,57 @@
 			      (#\" . #\")
 			      (#\| . #\|)))
 
-
 ;;; Ignore issues like comments for now.
 (defun read-recursive (stream input-buffer desired-delimiter &key auto-activate)
-  (unless auto-activate
-    (setq desired-delimiter nil))
-  (loop
-    (with-input-context ('expression)
-			(object type)
-	 (let ((char (read-char stream (not auto-activate) :eof))
-	       (other-delimiter nil))
-	   (cond ((eq char :eof)
-		  ;;-- what is the right thing?
-		  (return))
-		 ((and (activation-gesture-p char) (not desired-delimiter))
-		  (unread-char char stream)
-		  (return))
-		 ((and (delimiter-gesture-p char) (not desired-delimiter)
-		       auto-activate)
-		  (beep stream))
-		 ((and (delimiter-gesture-p char) (not desired-delimiter)
-		       (not auto-activate))
-		  (unread-char char stream) 
-		  (return))
-		 ((not (or (ordinary-char-p char)
-			   (diacritic-char-p char)))
-		  (beep stream))
-		 ((and (zerop (fill-pointer input-buffer))	;ignore leading space
-		       (whitespace-char-p char)))
-		 ((char-equal char #\\)			;check for quoting character
-		  (vector-push-extend char input-buffer)
-		  (let ((char (read-char stream)))
-		    (vector-push-extend char input-buffer)))
-		 (t
-		  (when (activation-gesture-p char)
-		    ;; I guess it wasn't really an activation gesture...
-		    (unless (stream-rescanning-p stream)
-		      (replace-input stream (string char))))
-		  (vector-push-extend char input-buffer)
-		  (cond ((and desired-delimiter 
-			      (char-equal char desired-delimiter))
-			 (return))
-			((setq other-delimiter (cdr (assoc char *char-associations*)))
-			 (read-recursive stream input-buffer other-delimiter
-					 :auto-activate auto-activate)
-			 (unless desired-delimiter (return)))
-			((and (whitespace-char-p char) (not desired-delimiter) 
-			      auto-activate)
-			 (unread-char char stream)
-			 (return))
-			(t nil)))))
-       (t
+  (let ((top-level (not desired-delimiter)))
+    (loop
+      (with-input-context ('expression)
+	(object type)
+	(let ((char (read-char stream nil :eof)))
+	  (cond ((eq char :eof)
+		 (return))
+		
+		;; ignore leading space
+		((and (zerop (fill-pointer input-buffer))
+		      (whitespace-char-p char)))
+
+		;; terminate with white space when at top level with auto-activate
+		((and top-level
+		      auto-activate
+		      (whitespace-char-p char))
+		 (unread-char char stream)
+		 (return))
+		
+		;; ALWAYS terminate with delimiter or activation gesture
+		((or (activation-gesture-p char)
+		     (delimiter-gesture-p char))
+		 (unread-char char stream)
+		 (return))
+		
+		((not (or (ordinary-char-p char)
+			  (diacritic-char-p char)))
+		 (beep stream))
+
+		((char-equal char #\\) ;check for quoting character
+		 (vector-push-extend char input-buffer)
+		 (let ((escaped-char (read-char stream nil)))
+		   (when escaped-char
+		     (vector-push-extend escaped-char input-buffer))))
+		
+		(t
+		 (vector-push-extend char input-buffer)
+		 
+		 (if (and desired-delimiter 
+			  (char-equal char desired-delimiter))
+		     (return)
+		   (let ((other-delimiter (cdr (assoc char *char-associations*))))
+		     (when other-delimiter
+		       (read-recursive stream input-buffer other-delimiter
+				       :auto-activate auto-activate)
+		       (when (and top-level
+				  auto-activate)
+			 (return))))))))
+	(t
 	 ;; Put this thing into the input editor's buffer
 	 (when (input-editing-stream-p stream)
 	   (presentation-replace-input stream object type +textual-view+))
@@ -1571,9 +1572,11 @@
 	 (let ((n (length *read-recursive-objects*)))
 	   (setq *read-recursive-objects* (nconc *read-recursive-objects* (list object)))
 	   (doseq (char (format nil " #.(~S ~D ~S) "
-			  'nth n '*read-recursive-objects*))
-	     (vector-push-extend char input-buffer)))
-	 (unless desired-delimiter (return))))))
+				'nth n '*read-recursive-objects*))
+		  (vector-push-extend char input-buffer)))
+	 (when (and top-level
+		    auto-activate)
+	   (return)))))))
 
 (defun print-recursive (object stream
 			&key (make-presentation t)
