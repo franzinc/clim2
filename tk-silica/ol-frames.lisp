@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.16 92/11/06 19:04:26 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.17 92/11/09 19:55:54 cer Exp $
 
 
 (in-package :xm-silica)
@@ -75,7 +75,8 @@
 	 (font-args (and font (list :font font))))
 
     (tk::set-values menu-shell :title (or label "Choose"))
-    (when font (tk::set-values menu-shell :font font))
+    ;;-- Does not have a font resource
+    ;;    (when font (tk::set-values menu-shell :font font))
 
     (labels ((make-menu-button (item class parent &rest options)
 	       (let ((button
