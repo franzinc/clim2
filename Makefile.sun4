@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sun4,v 1.8 1993/09/17 06:34:14 duane Exp $
+# $fiHeader: Makefile.sun4,v 1.10 1994/12/18 06:44:42 duane Exp $
 #
 #  Makefile.sun4 for CLIM 2.0
 #
@@ -15,16 +15,14 @@ XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include
 
-XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 # Do we really need this. Why is it referenced?
 # MOTIFXTRAOS=$(MOTIFHOME)/usr/lib/Motif/Sun/dlsym.o
 
-OPENLOOKHOME=/net/vapor/x11/olit-3.0
+OPENLOOKHOME=/usr/openwin
 OPENLOOKLIB=$(OPENLOOKHOME)/lib/libXol.a
 OLXLIB=$(OPENLOOKHOME)/lib/libX11.a
 OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
-
-OLINCLUDES=-I$(OPENLOOKHOME)/OWV3/src/include/
+OLINCLUDES=-I$(OPENLOOKHOME)/include
 
 SAVEEXP = 
 RESTEXP = 

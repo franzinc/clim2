@@ -1,4 +1,4 @@
-/* $fiHeader: xtsupport.c,v 1.9 1993/12/04 00:32:10 duane Exp $ */
+/* $fiHeader: xtsupport.c,v 1.10 1994/12/04 23:59:55 colin Exp $ */
 
 #include <X11/Intrinsic.h>
 
@@ -6,9 +6,36 @@
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/CoreP.h>
-#include "IntrinsicI.h"
+#include <X11/Xos.h>
 
+/* All the following are defintions from various X11R5 Xlib and Xt */
+/* files. Their purpose is solely to enable XtAppIntervalNextTimer to */
+/* be compiled. */
 
+typedef struct _ProcessContextRec {
+    XtAppContext	defaultAppContext;
+    XtAppContext	appContextList;
+} ProcessContextRec, *ProcessContext;
+
+typedef struct internalCallbackRec {
+    unsigned short count;
+    char	   is_padded;	/* contains NULL padding for external form */
+    char	   call_state;  /* combination of _XtCB{FreeAfter}Calling */
+    /* XtCallbackList */
+} InternalCallbackRec, *InternalCallbackList;
+
+typedef struct _TimerEventRec {
+        struct timeval        te_timer_value;
+	struct _TimerEventRec *te_next;
+} TimerEventRec;
+
+typedef struct _XtAppStruct {
+    XtAppContext next;		/* link to next app in process context */
+    ProcessContext process;	/* back pointer to our process context */
+    InternalCallbackList destroy_callbacks;
+    Display **list;
+    TimerEventRec *timerQueue;
+} XtAppStruct;
 
 /* Some systems running NTP daemons are known to return strange usec
  * values from gettimeofday.  At present (3/90) this has only been
@@ -42,8 +69,6 @@
 #define FIXUP_TIMEVAL(t)
 #endif /*NEEDS_NTPD_FIXUP*/
 
-
-
 /*
  * Private routines
  */
@@ -68,6 +93,8 @@
 #define IS_AT_OR_AFTER(t1, t2) (((t2).tv_sec > (t1).tv_sec) \
 	|| (((t2).tv_sec == (t1).tv_sec)&& ((t2).tv_usec >= (t1).tv_usec)))
 
+
+/* End of code extracts from X11R5 source tree */
 
 /*
  * This is what it's all for

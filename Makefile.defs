@@ -33,7 +33,7 @@ TRAIN_LISP= \
 	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
 		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
 		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
-		:hpglview $(HPGLVIEW))
+		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\")
 
 TRAIN_TEXT = \
 	$(ECHO) "\

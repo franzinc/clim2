@@ -1,3 +1,16 @@
+Thu Mar 23 16:20:50 1995  George Jacob  (georgej@lava)
+
+	* Makefile.defs (TRAIN_TEXT): Changed TRAIN_LISP to call
+	train-clim with report-file arg set to $REPORT_FILE
+	
+	* misc/train.lisp: Modified train-clim to take a report-file kwdarg
+
+	* Makefile.sun4: Used Colin's updated version.
+
+	* misc/xtsupport.c: Used Colin's updated version.
+
+	* Makefile.cobjs-svr4: Added MOTIFXTRAOS to MAIN_OBJ link rule
+
 (for 4.2.devel.28 merge):
 
 Sat Dec 17 22:30:41 1994  Duane Rettig  (duane at clay)
