@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.18 1997/12/23 22:44:50 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.19 1998/03/18 20:27:52 layer Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -7,17 +7,15 @@
 
 stub-motif.c: $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
 	misc/make-stub-file "void ___lisp_load_motif_stub ()"  \
-		$(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
+		$(XM_UNDEFS) > stub-motif.c
 	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()" \
-		$(XMC_UNDEFS) >> /tmp/`whoami`stub-motif.c 
-	$(MV) /tmp/`whoami`stub-motif.c stub-motif.c 
+		$(XMC_UNDEFS) >> stub-motif.c
 
 stub-olit.c: $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
 	misc/make-stub-file "void ___lisp_load_olit_stub ()"  \
-		$(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
+		$(OL_UNDEFS) > stub-olit.c 
 	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()" \
-		$(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
-	$(MV) /tmp/`whoami`stub-olit.c stub-olit.c 
+		$(OLC_UNDEFS) >> stub-olit.c 
 
 stub-xt.c: $(XT_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_xt_stub ()" \
@@ -52,25 +50,25 @@ xlibsupport.o : xlib/xlibsupport.c
 
 # .so's made from above support files (for dynamic loading)
 
-climxm.$(SHARED_EXT): xlibsupport.o xtsupport.o xmsupport.o
+climxm.$(SHARED_EXT): xlibsupport.o xtsupport.o xmsupport.o $(IMPORTS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.$(SHARED_EXT) \
 		xlibsupport.o xtsupport.o xmsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
-# climxm.sl: xlibsupport.o xtsupport.o xmsupport.o
+# climxm.sl: xlibsupport.o xtsupport.o xmsupport.o $(IMPORTS)
 # 	(eval '$(SET_LIBRARY_PATH)' ; \
 # 	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.sl \
 # 		xlibsupport.o xtsupport.o xmsupport.o \
 # 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
-climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o
+climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o $(IMPORTS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.$(SHARED_EXT) \
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
 
-# climol.sl: xlibsupport.o xtsupport.o olsupport.o
+# climol.sl: xlibsupport.o xtsupport.o olsupport.o $(IMPORTS)
 # 	(eval '$(SET_LIBRARY_PATH)' ; \
 # 	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.sl \
 # 		xlibsupport.o xtsupport.o olsupport.o \

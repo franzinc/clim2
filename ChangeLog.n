@@ -11,6 +11,21 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.10
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+Wed Mar 18 10:26:23 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.objs: don't use mv-nfs
+	* Makefile.defs: don't use mv-nfs
+	* Makefile.generic: don't hack
+	logical-pathname-translations-database-pathnames return value, not
+	needed anyway
+	* tk/load-xm.lisp: only hack *dlopen-mode* on suns
+
+*******************************************************************************
 2.2.1.9
 
 Documentation changes:	none

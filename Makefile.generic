@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.46 1998/03/06 19:06:39 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.47 1998/03/18 20:27:52 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -15,8 +15,6 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
-	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
-	    (logical-pathname-translations-database-pathnames)) \
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
@@ -41,81 +39,75 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 cat: $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS)
 
 climg.fasl: $(GENERIC-FASLS)
-	$(CAT) $(GENERIC-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climg.fasl
+	$(CAT) $(GENERIC-FASLS) > climg.fasl
 	ls -lt climg.fasl >> Clim-sizes.n
 	ls -lt climg.fasl
 
 climdemo.fasl: $(DEMO-FASLS)
-	$(CAT) $(DEMO-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climdemo.fasl
+	$(CAT) $(DEMO-FASLS) > climdemo.fasl
 	ls -lt climdemo.fasl >> Clim-sizes.n
 	ls -lt climdemo.fasl
 
 climgg.fasl: $(HOMEGROWN-GADGET-FASLS)
-	$(CAT) $(HOMEGROWN-GADGET-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climgg.fasl
+	$(CAT) $(HOMEGROWN-GADGET-FASLS) > climgg.fasl
 	ls -lt climgg.fasl >> Clim-sizes.n
 	ls -lt climgg.fasl
 
 clim-debug.fasl: $(DEBUG-FASLS)
-	$(CAT) $(DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` clim-debug.fasl
+	$(CAT) $(DEBUG-FASLS) > clim-debug.fasl
 	ls -lt clim-debug.fasl >> Clim-sizes.n
 	ls -lt clim-debug.fasl
 
 climxm.fasl: $(XM-FASLS)
-	$(CAT) $(XM-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climxm.fasl
+	$(CAT) $(XM-FASLS) > climxm.fasl
 	ls -lt climxm.fasl >> Clim-sizes.n
 	ls -lt climxm.fasl
 
 clim-debugxm.fasl: $(XM-DEBUG-FASLS)
-	$(CAT) $(XM-DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` clim-debugxm.fasl
+	$(CAT) $(XM-DEBUG-FASLS) > clim-debugxm.fasl
 	ls -lt clim-debugxm.fasl >> Clim-sizes.n
 	ls -lt clim-debugxm.fasl
 
 climol.fasl: $(OL-FASLS)
-	$(CAT) $(OL-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climol.fasl
+	$(CAT) $(OL-FASLS) > climol.fasl
 	ls -lt climol.fasl >> Clim-sizes.n
 	ls -lt climol.fasl
 
 clim-debugol.fasl: $(OL-DEBUG-FASLS)
-	$(CAT) $(OL-DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` clim-debugol.fasl
+	$(CAT) $(OL-DEBUG-FASLS) > clim-debugol.fasl
 	ls -lt clim-debugol.fasl >> Clim-sizes.n
 	ls -lt clim-debugol.fasl
 
 climwnn.fasl: $(WNN-FASLS)
-	$(CAT) $(WNN-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climwnn.fasl
+	$(CAT) $(WNN-FASLS) > climwnn.fasl
 	ls -lt climwnn.fasl >> Clim-sizes.n
 	ls -lt climwnn.fasl
 
 clim-debugwnn.fasl: $(WNN-DEBUG-FASLS)
-	$(CAT) $(WNN-DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` clim-debugwnn.fasl
+	$(CAT) $(WNN-DEBUG-FASLS) > clim-debugwnn.fasl
 	ls -lt clim-debugwnn.fasl >> Clim-sizes.n
 	ls -lt clim-debugwnn.fasl
 
 climps.fasl: $(POSTSCRIPT-FASLS)
-	$(CAT) $(POSTSCRIPT-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climps.fasl
+	$(CAT) $(POSTSCRIPT-FASLS) > climps.fasl
 
 climhpgl.fasl: $(HPGL-FASLS)
-	$(CAT) $(HPGL-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` climhpgl.fasl
+	$(CAT) $(HPGL-FASLS) > climhpgl.fasl
 
 clim1compat.fasl: $(CLIM1COMPAT-FASLS)
-	$(CAT) $(CLIM1COMPAT-FASLS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` clim1compat.fasl
+	$(CAT) $(CLIM1COMPAT-FASLS) > clim1compat.fasl
 	ls -lt clim1compat.fasl >> Clim-sizes.n
 	ls -lt clim1compat.fasl
 
 # Building (loading and dumping)
 
+# It is VERY important not to side-effect
+# logical-pathname-translations-database-pathnames in the building phase of
+# clim*.dxl.  The reason: this change is propagated to delivered images,
+# which is very bad.  Mostly, it's bad for testing because usually the 
+# value of (current-directory) below is accessible during testing and it is
+# the wrong thing (we always want sys:hosts.cl to be used when testing a
+# distribution that users will get).
 $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	-$(RM) -f $(CLIM)
 	(eval '$(SET_LIBRARY_PATH)' ; \
@@ -128,8 +120,6 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	   :pre-load-form \
 	   (quote \
 	     (progn \
-	       (push (merge-pathnames (current-directory) \"hosts.cl\") \
-		     (logical-pathname-translations-database-pathnames)) \
 	       (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	       (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	       (setq sys::*libx11-pathname* \"$(XLIB)\") \
@@ -138,6 +128,7 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	       (load-it '$(SYSTEM)))) \
 	   :autoload-warning nil \
 	   :image-only t \
+	   :print-startup-message :default \
 	   :purify t \
 	   :debug-on-error t \
 	   :internal-debug \"build-clim.out\" \
@@ -175,8 +166,6 @@ load-train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
-	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
-	    (logical-pathname-translations-database-pathnames)) \
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
@@ -226,6 +215,7 @@ clean:
 	rm -f *.o *.$(SHARED_EXT) *.a slim \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
 	rm -f *.z *.Z *.gz *.ilt *.out so_locations
+	rm -f *.pll *.dxl
 
 clean-notes:
 	cd notes ; find . -name '*.lisp' -print | xargs rm -f

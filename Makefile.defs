@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.44 1998/03/06 19:06:39 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.45 1998/03/18 20:27:52 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -18,7 +18,7 @@ CAT	= /bin/cat
 ECHO	= /bin/echo
 TAGS	= /usr/fi/etags
 TMP	= /usr/tmp
-MV	= /usr/fi/mv-nfs
+MV	= mv
 
 SHELL	= /bin/sh
 
