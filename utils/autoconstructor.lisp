@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/autoconstructor.lisp,v 1.6 1997/02/05 01:54:27 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/autoconstructor.lisp,v 1.7 1998/05/19 18:51:23 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporation.  All rights reserved.

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-gadgets.lisp,v 1.46 1997/02/05 01:54:11 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-gadgets.lisp,v 1.47 1998/05/19 18:51:20 layer Exp $
 
 (in-package :xm-silica)
 
@@ -328,21 +328,29 @@
        :min-height (and min-height (process-height-specification sheet min-height))
        :max-height (and max-height (process-height-specification sheet max-height))))))
 
-(defvar *funny-accelerator-characters*
+;; Patched from spr17194 to make backspace and arrow keys work
+;; as accelerators.
+(setq xm-silica::*funny-accelerator-characters*
     '(
       ((#\\ :\\) "backslash")
       ((#\space :\ ) "space")
       ((#\: :\: ) "colon")
       ((#\, :\, ) "comma")
+      ((:left-arrow) "Left")
+      ((:right-arrow) "Right")
+      ((:up-arrow) "Up")
+      ((:down-arrow) "Down")
+      ((#\backspace) "BackSpace")
       ))
 
-(defun get-accelerator-text (keystroke &optional olit)
+(defun xm-silica::get-accelerator-text (keystroke &optional olit)
   (let ((key (car keystroke)))
-    (let ((x (assoc key *funny-accelerator-characters*
+    (let ((x (assoc key xm-silica::*funny-accelerator-characters*
 		    :test #'member)))
       (values (format nil
 		      (if olit "<~A>" "<Key>~A")
 		      (if x (second x) key))
-	      (format nil "~:@(~A~)" key)))))
+	      (if x (second x)
+		(format nil "~:@(~A~)" key))))))
 
 

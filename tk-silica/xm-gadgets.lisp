@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-gadgets.lisp,v 1.97 1998/03/25 03:52:28 duane Exp $
+;; $Id: xm-gadgets.lisp,v 1.98 1998/05/19 18:51:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1810,14 +1810,6 @@
 
 (defvar *file-search-proc-callback-address* (ff:register-function 'file-search-proc-callback))
 
-#+(version>= 5 0)
-(excl::without-package-locks
-(defun tk::reinitialize-silica-callbacks ()
-  (setup-mda)
-  (setq *file-search-proc-callback-address*
-    (ff:register-foreign-callable 'file-search-proc-callback :reuse)))
-)
-
 (defun make-file-search-proc-function (dialog file-search-proc)
   (push (cons :file-search-proc file-search-proc)
         (tk::widget-callback-data dialog))
@@ -2178,4 +2170,14 @@
 	     (setq font-list
 	       (font-set-from-font-list port font-list)))))
     `(:font-list ,font-list ,@initargs)))
+
+#+(version>= 5 0)
+(in-package :tk)
+
+#+(version>= 5 0)
+(defun reinitialize-silica-callbacks ()
+  (xm-silica::setup-mda)
+  (setq xm-silica::*file-search-proc-callback-address*
+    (ff:register-foreign-callable
+     'xm-silica::file-search-proc-callback :reuse)))
 

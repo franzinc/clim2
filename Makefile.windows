@@ -1,0 +1,9 @@
+# $Id: Makefile.windows,v 1.2 1998/05/19 18:50:20 layer Exp $
+#
+#  Makefile.windows for CLIM 2.0
+
+include Makefile.defs
+
+Makefile=Makefile.windows
+
+include Makefile.generic

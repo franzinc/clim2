@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/demo-driver.lisp,v 1.33 1997/09/03 04:03:34 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/demo-driver.lisp,v 1.34 1998/05/19 18:50:49 layer Exp $
 
 (in-package :clim-demo)
 
@@ -59,6 +59,8 @@
   (run-demo demo :port (port *application-frame*) :force t :background t))
 
 (defun run-demo (demo &key (port (find-port)) force background)
+  #+(and os-threads microsoft-32)
+  (setq force t)
   (flet ((do-it ()
 	   (let* ((entry (assoc port (demo-frames demo)))
 		  (frame (cdr entry))
@@ -80,16 +82,24 @@
 		   (raise-frame frame))
 	       (run-frame-top-level frame)))))
     (if background 
-	#+aclpc (do-it)
-    #-aclpc (mp:process-run-function 
+	(mp:process-run-function 
 	 `(:name ,(demo-name demo)
 	   :initial-bindings ((*package* . ',*package*)))
 	 #'do-it)
       (do-it))))
 	
-(let ((demo (make-instance 'demo
-	      :name "Demo Driver" :class 'demo-driver
-	      :initargs '(:left 0 :top 0))))
-  (defun start-demo (&key (port (find-port)) (background #+aclpc nil #-aclpc t) force)
-    (run-demo demo :port port :background background :force force)))
+(defvar *demo-frame* nil)
+
+(defun start-demo (&key (port (find-port)) 
+			(background #+aclpc nil #-aclpc t) 
+			force)
+  (unless *demo-frame*
+    (setq *demo-frame* 
+      (make-instance 'demo
+	:name "Demo Driver" :class 'demo-driver
+	:initargs '(:left 0 :top 0))))
+  (run-demo *demo-frame* :port port :background background :force force)
+  #+(and os-threads microsoft-32)
+  (setq *demo-frame* nil)
+  )
 

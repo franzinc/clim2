@@ -41,7 +41,7 @@
   	                (:percentage  ; drag thumb
                         (+ min
                            (* (- max min (scroll-bar-size pane)) 
-                              (/ silica::amount (float *win-scroll-grain*))))))))))))
+                              (/ silica::amount (float acl-clim::*win-scroll-grain*))))))))))))
 
 (define-event-resource scrollbar-event 10)
 
@@ -110,7 +110,7 @@
 		(scroll-to-position pane orientation amount)))))
 
 (defmethod scroll-bar-value-changed-callback
-  (sheet (client scroller-pane) id value size)
+    (sheet (client scroller-pane) id value size)
   (with-slots (viewport contents) client
     (let* ((extent (viewport-contents-extent viewport))
            (region (viewport-viewport-region viewport)))
@@ -212,14 +212,12 @@
 		(win-id (if (eq orientation :vertical) win:SB_VERT win:SB_HORZ))
 		(win-pos (floor (* pos acl-clim::*win-scroll-grain*)))
 		(win-size (floor (* size (1+ acl-clim::*win-scroll-grain*)))))
-	    (#+aclpc ct:csets #+acl86win32 win:csets
-		     win::scrollinfo scrollinfo-struct
-		     win::cbSize (#+aclpc ct:sizeof #+acl86win32 cg::sizeof
-				  win::scrollinfo)
-		     win::fMask #.(logior win::SIF_PAGE win::SIF_POS
-					  win::SIF_DISABLENOSCROLL)
-		     win::nPage win-size
-		     win::nPos win-pos)
+	    (ct:csets win::scrollinfo scrollinfo-struct
+		      win::cbSize (ct:sizeof win::scrollinfo)
+		      win::fMask #.(logior win::SIF_PAGE win::SIF_POS
+					   win::SIF_DISABLENOSCROLL)
+		      win::nPage win-size
+		      win::nPos win-pos)
 	    (win::SetScrollInfo (sheet-mirror scroll-bar) win-id scrollinfo-struct t))
 	  (case orientation
 	    (:vertical
@@ -376,17 +374,19 @@
   (with-slots (current-vertical-size current-vertical-value
 	       current-horizontal-size current-horizontal-value
 	       viewport contents) scroller-pane
-    (let* ((flag (case orientation
+    (let* (#+ignore
+	   (flag (case orientation
 		   (:vertical win:sb_vert)
 		   (:horizontal win:sb_horz)))
+	   #+ignore
 	   (current-value (case orientation
 			    (:horizontal current-horizontal-value)
 			    (:vertical  current-vertical-value)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
-	   (contents-range (contents-range scroller-pane orientation))
-	   (viewport-range (bounding-rectangle-max-y viewport))
+	   ;;(contents-range (contents-range scroller-pane orientation))
+	   ;;(viewport-range (bounding-rectangle-max-y viewport))
 	   (new-value (/ pos (float acl-clim::*win-scroll-grain*))))
       (scroll-bar-value-changed-callback
        scroller-pane scroller-pane orientation new-value current-size))))
@@ -445,3 +445,8 @@
     (resize-sheet child nwidth nheight)	;;; get the viewport sized correctly!
     (allocate-space child nwidth nheight)))
 
+
+
+(eval-when (compile load eval)
+  (provide :climnt)
+  (setq excl::*enable-package-locked-errors* nil))

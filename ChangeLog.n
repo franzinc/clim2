@@ -11,6 +11,192 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
+next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.16
+
+Mon May 18 18:00:43 1998  Kevin Layer  <layer@ultra>
+
+merge changes from acl50pnc branch (2.2.1.14.*) onto acl50 branch
+
+tag on acl50pnc branch for next join: acl50pnc_join_1
+
+*******************************************************************************
+2.2.1.15
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+Wed May 13 08:15:36 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: don't hardwire source file and xref info
+	* tk-silica/last.lisp: load-patches call was wrong
+	* tk-silica/xm-gadgets.lisp: deal with package violation
+
+*******************************************************************************
+2.2.1.14.4 (on acl50pnc branch)
+
+1998-05-18    <layer@HOBART>
+
+Jeff, please look at the jm>> flagged changes.  Thanks.
+
+    The big picture:
+	* reduce compile time warnings
+	* Franz uses gnu make and Makefile (and Makefile.windows),
+	  PNC uses nmake and Makefile.win32
+    The changes:
+	* Makefile: include ../makefile.defs
+	* Makefile.windows: new file
+	* Makefile.generic: more windows friendly
+	* Makefile.win32: don't mess with c:\.clinit.cl
+	* Makefile.* (rest of them): remove old stuff
+	* buildclim.cl: fixes for windows
+    >> all .lisp files have changes to lessen the compile time warnings
+	* aclpc/acl-class.lisp: remove mm defclass hack
+	* aclpc/acl-dc.lisp: warnings
+	* aclpc/acl-mirror.lisp: remove mm defclass hack
+	* aclpc/acl-port.lisp: use multi-case friendly constructs
+	* aclpc/acl-prel.lisp: use multi-case friendly constructs
+	* aclpc/acl-scroll.lisp: reformatting
+	* aclpc/acl-widget.lisp: move (method draw-picture-button
+	(hbutton-pane) t t t) method after definition of hbutton-pane
+	class
+	* clim/accept-values.lisp: warnings
+	* clim/basic-translators.lisp: warnings
+	* clim/db-menu.lisp: remove mm defclass hack;
+jm>>	On Windows, don't use
+jm>>	(method handle-event (pull-down-menu pointer-exit-event))
+jm>>	from this file, use the one defined elsewhere; 
+jm>>	On Windows, don't use `choose-from-pull-down-menu' defined in this
+jm>>	file; 
+	* clim/db-text.lisp: remove 2nd definition of
+	(method handle-repaint :around (text-editor-mixin t)) per Jeff Morrill
+	* clim/frames.lisp: remove mm defclass hack
+	* clim/gadget-output.lisp: warnings
+	* clim/graph-formatting.lisp: warnings
+	* clim/input-editor-commands.lisp: warnings
+	* clim/input-protocol.lisp: warnings; remove mm defclass hack
+	* clim/interactive-protocol.lisp: remove mm defclass hack
+	* clim/output-protocol.lisp: warnings
+	* clim/ptypes1.lisp: remove mm defclass hack
+	* clim/recording-protocol.lisp: warnings
+	* postscript/postscript-medium.lisp: warnings
+	* postscript/sysdcl.lisp: remove redundant load of clim-standalone
+	* silica/db-button.lisp: warnings
+	* silica/db-scroll.lisp: remove mm defclass hack; warnings
+	* silica/framem.lisp: warnings
+	* silica/gadgets.lisp: remove mm defclass hack
+	* silica/mirror.lisp: don't use "defun-inline mirror->sheet" on
+	Windows (use definition from elsewhere)
+	* silica/scroll-pane.lisp: warnings
+	* sys/compile.lisp: force case insensitive lower compile when in
+	case sensitive lisp; many other changes to reduce number of
+	compile time warnings and build fasl files on Windows
+	* utils/base-designs.lisp: formatting
+	* utils/designs.lisp: warnings
+	* utils/packages.lisp: multi-case friendly
+	* utils/processes.lisp: mdproc is outta here
+
+*******************************************************************************
+2.2.1.14.3 (on acl50pnc branch)
+
+From PNC on 5/15/98
+
+        * silica/medium.lisp - Cleanup dead aclpc code
+        * clim/tracking-pointer.lisp - Patched for spr17056
+        * aclpc/pkgdcl.lisp - Improve required modules
+        * aclpc/acl-class.lisp - Tweak processing of WM_SETCURSOR
+        * aclpc/acl-frames.lisp - Fix select-file for spr17465
+        * aclpc/acl-medium.lisp - A portion of spr17487
+          aclpc/acl-prel.lisp
+        * aclpc/acl-port.lisp - Better fonts and background colors
+          aclpc/acl-widget.lisp
+        * aclpc/acl-scroll.lisp - (provide :climnt) 
+*******************************************************************************
+2.2.1.14.2 (on acl50pnc branch)
+
+Fri May  8 14:20:32 1998  Kevin Layer  <layer@ultra>
+
+	all changes to remove dependence on aclpc/winapi.lisp and
+	aclpc/cgapi.lisp:
+
+	* Makefile.win32
+	* aclpc/acl-class.lisp
+	* aclpc/acl-frames.lisp
+	* aclpc/acl-medium.lisp
+	* aclpc/acl-mirror.lisp
+	* aclpc/acl-port.lisp
+	* aclpc/acl-prel.lisp
+	* aclpc/acl-scroll.lisp
+	* aclpc/acl-widget.lisp
+	* aclpc/Attic/cgapi.lisp
+	* aclpc/clim.ico
+	* aclpc/pkgdcl.lisp
+	* aclpc/sysdcl.lisp
+	* aclpc/winwidgh.lisp
+	* demo/winlisp.lisp
+
+*******************************************************************************
+2.2.1.14.1 (on acl50pnc branch)
+
+CLIM Port to ACL 5.0
+
+Documentation changes: none
+Tests for new features: no new features
+
+Fri May 1 10:00:00 1998  jmorrill@pointnclick.com and kreti
+     * Makefile.win32: New file for automating clim builds on Windows
+     * aclpc\winapi: New file containing foreign function interface to Windows
+     * aclpc\cgapi: New file containing random bits from common graphics
+     * aclpc\*: Lots of changes to remove common graphics, to revise the 
+       foreign function definitions, to accomodate real OS threads, to
+       accomodate Windows95, and to support Makefile.win32.
+     * clim\basic-translators: Prevent compile-time problem redefining comtab.
+     * clim\frames: Move some aclpc stuff from here to aclpc\acl-frames.
+     * clim\menus: (#+microsoft-32) don't reuse windows across OS threads
+     * demo\demo-driver: (#+microsoft-32) don't reuse windows across OS threads
+     * silica\event: convert port-event-wait from function to method so we
+       can specialize on it.
+     * silica\port: never run an OS thread at priority 1000.
+     * silica\sheet: clean up a duplicate definition
+     * tk-silica\xt-gadgets: Make arrow keys work as menu bar 
+       command accelerators (spr17142)
+     * utils\packages: added defn for rcsnote so NT builds work at PNC.
+     * wnn\bdic.c: include unistd.h so unix builds work at PNC.
+     * wnn\jl.c: include unistd.h so unix builds work at PNC.
+     * wnn\js.c: fix socket calls so unix builds work at PNC.
+       I don't see how this ever compiled.  There was
+       even a typo (sockaddr_un should be sockaddr_in).
+
+*******************************************************************************
+2.2.1.14
+
+Mon Apr 27 16:21:48 1998  Kevin Layer  <layer@ultra>
+
+	* utils/packages.lisp: fix hacking of excl::*version-info*
+
+*******************************************************************************
+Thu Apr 16 11:55:08 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile: add default HOST for aix/rs6000
+
+*******************************************************************************
+2.2.1.13
+
+Wed Apr 15 10:21:39 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: new rule: cleanfasls
+	* misc/compile-1.lisp: set *print-case* to ;downcase since we
+	compile in a case insensitive lower mode
+
+*******************************************************************************
+Wed Apr  8 10:13:57 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile: set default host for SGI
+	* Makefile.generic: add wnn.xx to depend list for `compile'
+
 Sun Apr  5 20:59:41 1998  Kevin Layer  <layer@ultra>
 
 	* Makefile: set default host for HP

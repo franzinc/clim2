@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/foreign.lisp,v 1.22 1997/02/05 01:52:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/foreign.lisp,v 1.23 1998/05/19 18:51:12 layer Exp $
 
 (in-package :tk)
 
@@ -32,21 +32,22 @@
 (defclass application-context (ff:foreign-pointer)
   ((displays :initform nil :accessor application-context-displays)))
 
-(defparameter *error-handler-function-address*
-  (register-function 'toolkit-error-handler))
-
-(defparameter *warning-handler-function-address*
-  (register-function 'toolkit-warning-handler))
+(defparameter *error-handler-function-address* nil)
+(defparameter *warning-handler-function-address* nil)
 
 (defmethod initialize-instance :after ((c application-context) &key context)
   (let ((context (or context (xt_create_application_context))))
     (setf (foreign-pointer-address c) context)
     (xt_app_set_error_handler
      context
-     *error-handler-function-address*)
+     (or *error-handler-function-address*
+	 (setq *error-handler-function-address* 
+	   (register-function 'toolkit-error-handler))))
     (xt_app_set_warning_handler
      context
-     *warning-handler-function-address*)))
+     (or *warning-handler-function-address*
+	 (setq *warning-handler-function-address*
+	   (register-function 'toolkit-warning-handler))))))
 
 (defun create-application-context ()
   (make-instance 'application-context))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-menu.lisp,v 1.9 1997/02/05 01:43:07 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-menu.lisp,v 1.10 1998/05/19 18:50:30 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -26,11 +26,11 @@
 (defclass menu-bar-button (push-button-pane)
     ((next-menu :initform nil :initarg :next-menu)))
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'pull-down-menu))
-      (defclass pull-down-menu () ())))
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'pull-down-menu))
+;;;      (defclass pull-down-menu () ())))
 
 #+(or aclpc acl86win32)
 (defmethod handle-event ((pane menu-bar-button) (event pointer-enter-event))
@@ -205,7 +205,7 @@
              (plusp (pointer-event-y event)))
     (setf (pull-down-menu-entered pane) t)))
 
-#+(or aclpc acl86win32)
+#-(or aclpc acl86win32)
 (defmethod handle-event ((pane pull-down-menu) (event pointer-exit-event))
   ;; Don't punt if we've never entered the menu, or if we are entering
   ;; one of the buttons within the menu
@@ -260,9 +260,9 @@
      (layout-frame (pane-frame ,menu))
      ,menu))
 
-#+(or aclpc acl86win32)
+#-(or aclpc acl86win32)
 (defvar *subsidiary-pull-down-menu* nil)
-#+(or aclpc acl86win32)
+#-(or aclpc acl86win32)
 (defun choose-from-pull-down-menu (menu &optional button &key cascade-p)
   (let ((menu-frame (pane-frame menu))
         (event-queue (sheet-event-queue menu)))
@@ -331,74 +331,77 @@
 #+(or aclpc acl86win32)
 (defun compute-menu-bar-pane (frame command-table)
   (let* ((text-style (and (listp command-table)
-                         (getf (cdr command-table) :text-style)
-                         `(:text-style ,(getf (cdr command-table) :text-style))))
+			  (getf (cdr command-table) :text-style)
+			  `(:text-style ,(getf (cdr command-table) :text-style))))
          (command-table (if (listp command-table) (car command-table) command-table)))
-    (when ;mm was:(eq command-table 't)
-        ;; command-table arg comes from menu-bar slot of frame
-        ;; and may be NIL T=menu-hbox-pane command-table-arg
+    (when ;;mm was:(eq command-table 't)
+	;; command-table arg comes from menu-bar slot of frame
+	;; and may be NIL T=menu-hbox-pane command-table-arg
         (default-command-table-p command-table)
       (setq command-table (frame-command-table frame)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (labels
-        ((make-command-table-buttons (command-table top-level)
-           (let ((buttons nil))
-             (map-over-command-table-menu-items
-               #'(lambda (menu keystroke item)
-                   (let ((type (command-menu-item-type item))
-                         (value (command-menu-item-value item)))
-                     (case type
-                       (:command 
-                         (push (apply #'make-pane
-                                      (if top-level
-                                        'push-button
-                                        #+(or aclpc acl86win32) 'pull-down-button-logic
-                                        #-(or aclpc acl86win32) 'pull-down-menu-button)
-                                      :label menu
-                                      :activate-callback
-                                        #'(lambda (button)
-                                            (menu-bar-command-callback
-                                              button command-table value))
-                                      text-style)
+	  ((make-command-table-buttons (command-table top-level)
+	     (let ((buttons nil))
+	       (map-over-command-table-menu-items
+		#'(lambda (menu keystroke item)
+		    (declare (ignore keystroke))
+		    (let ((type (command-menu-item-type item))
+			  (value (command-menu-item-value item)))
+		      (case type
+			(:command 
+                         (push
+			  (apply
+			   #'make-pane
+			   (if top-level
+			       'push-button
+			     #+(or aclpc acl86win32) 'pull-down-button-logic
+			     #-(or aclpc acl86win32) 'pull-down-menu-button)
+			   :label menu
+			   :activate-callback
+			   #'(lambda (button)
+			       (menu-bar-command-callback
+				button command-table value))
+			   text-style)
                                buttons))
-                       (:function
-                         ;;--- Do something about this
+			(:function
+			 ;;--- Do something about this
                          )
-                       (:menu
+			(:menu
                          (push (apply #'make-pane
                                       (if top-level
-                                        #-(or aclpc acl86win32) 'menu-bar-button
-                                        #+(or aclpc acl86win32) 'menu-bar-button-logic
-                                        #+(or aclpc acl86win32) 'pull-down-button-logic
-                                        #-(or aclpc acl86win32) 'pull-down-menu-button)
+					  #-(or aclpc acl86win32) 'menu-bar-button
+					  #+(or aclpc acl86win32) 'menu-bar-button-logic
+					  #+(or aclpc acl86win32) 'pull-down-button-logic
+					  #-(or aclpc acl86win32) 'pull-down-menu-button)
                                       :label menu
                                       :next-menu (make-command-table-menu value nil)
                                       :activate-callback nil
                                       text-style)
                                buttons))
-                       (:divider
+			(:divider
                          (unless top-level
-                           ;;--- Do something about this
+			   ;;--- Do something about this
                            )))))
-               command-table)
-             (nreverse buttons)))
-         (make-command-table-menu (command-table top-level)
-           (let ((buttons (make-command-table-buttons command-table top-level)))
-             (if top-level
-                 #-(or ACLPC acl86win32)
-                 (outlining ()
-                   (make-pane 'hbox-pane :contents buttons))
-                 ;;mm: We need to remember the ultimate menu-bar pane so that
-                 ;;    we can resize if all the buttons are dropped, or we go
-                 ;;    from no buttons to some.
-                 #+(or ACLPC acl86win32)
-                 (outlining ()
-                   (setf (slot-value frame 'menu-bar)
-                         (make-pane 'hbox-pane :contents buttons 
-                            :min-height 2 :height 2)))
-                 (let ((menu (make-pull-down-menu :port (port frame))))
-                   (initialize-pull-down-menu menu buttons)
-                   menu)))))
+		command-table)
+	       (nreverse buttons)))
+	   (make-command-table-menu (command-table top-level)
+	     (let ((buttons (make-command-table-buttons command-table top-level)))
+	       (if top-level
+		   #-(or ACLPC acl86win32)
+		   (outlining ()
+		     (make-pane 'hbox-pane :contents buttons))
+		   ;;mm: We need to remember the ultimate menu-bar pane so that
+		   ;;    we can resize if all the buttons are dropped, or we go
+		   ;;    from no buttons to some.
+		   #+(or ACLPC acl86win32)
+		   (outlining ()
+		     (setf (slot-value frame 'menu-bar)
+		       (make-pane 'hbox-pane :contents buttons 
+				  :min-height 2 :height 2)))
+		   (let ((menu (make-pull-down-menu :port (port frame))))
+		     (initialize-pull-down-menu menu buttons)
+		     menu)))))
         (declare (dynamic-extent #'make-command-table-buttons #'make-command-table-menu))
         (make-command-table-menu command-table t)))))
 

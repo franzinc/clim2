@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84 1998/03/25 03:52:30 duane Exp $
+;; $Id: packages.lisp,v 1.85 1998/05/19 18:51:28 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -2999,7 +2999,7 @@
 
 #+(or aclpc acl86win32)
 (eval-when (compile load eval)
- (intern "NON-DYNAMIC-EXTENT" (find-package "CLIM-UTILS")))
+ (intern '#:non-dynamic-extent (find-package :clim-utils)))
 
 (defpackage clim-silica
    (:nicknames silica pyrex)
@@ -3299,12 +3299,13 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 12)
+(cl:defvar *clim-build-version* 17)
 
 (cl:defparameter *clim-version*
-    (cl:format () "CLIM ~d.~d.~d.~a"
+    (cl:format () "~d.~d.~d.~a"
 	       *clim-major-version* *clim-minor-version*
 	       *clim-generation-version* *clim-build-version*))
 
-#-aclpc
-(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.84 1998/03/25 03:52:30 duane Exp $")
+#+(version>= 5 0)
+(cl:when (cl:boundp 'excl::*version-info*)
+  (cl:push (cl:cons "CLIM" *clim-version*) excl::*version-info*))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.35 1997/09/03 04:03:28 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.36 1998/05/19 18:50:35 layer Exp $
 
 (in-package :clim-internals)
 
@@ -164,11 +164,12 @@ This may confused the input editor" gestures))
   (with-slots (numeric-argument last-command-type command-state
                                 command-mode) istream
     (cond (#+Allegro
-	       (excl:ics-target-case
+	   (excl:ics-target-case
             (:+ics (eq command-mode *kana-input-editor-command-aarray*)))
            #-Allegro nil
            (setq last-command-type 'character)
-           (kana-process-gesture istream gesture type))
+	   (excl:ics-target-case
+            (:+ics (kana-process-gesture istream gesture type))))
           ((eq command-state command-mode)
            (setq last-command-type 'character)
            (values gesture type))

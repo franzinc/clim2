@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/utilities.lisp,v 1.11 1997/05/24 03:52:48 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/utilities.lisp,v 1.12 1998/05/19 18:51:29 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 

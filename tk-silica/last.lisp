@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Thu Apr 15 18:06:28 1993 by layer]-
+;;				-[Mon May 18 17:59:41 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,19 +19,14 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/Attic/last.lisp,v 1.9 1997/02/05 01:53:49 tomj Exp $
-
+;; $Id: last.lisp,v 1.10 1998/05/19 18:51:15 layer Exp $
 
 (in-package :system)
 
 (defvar system::*devel* nil)
 
 (load-application
- (load-patches
-  "patch"
-  (namestring
-   (merge-pathnames ";update-clim2;"
-		    excl::*library-pathname*)))
+ (load-patches "patch" "sys:;update-clim2;")
  :devel (locally (declare (special system::*devel*)) system::*devel*))
 
 (provide

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/ol-silica.lisp,v 1.26 1997/02/05 01:53:55 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/ol-silica.lisp,v 1.27 1998/05/19 18:51:17 layer Exp $
 
 (in-package :xm-silica)
 

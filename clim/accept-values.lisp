@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.82 1997/09/03 04:03:25 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.83 1998/05/19 18:50:28 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1170,16 +1170,17 @@
   (updating-output (stream :unique-id query-identifier :id-test #'equal
                            :cache-value cache-value :cache-test cache-test)
     (flet ((doit (stream)
-             (with-output-as-presentation (stream
-                                           (make-instance 'accept-values-command-button
-                                                          :continuation continuation
-                                                          :documentation documentation
-                                                          :resynchronize resynchronize)
-                                           'accept-values-command-button)
+             (with-output-as-presentation
+		 (stream
+		  (make-instance 'accept-values-command-button
+		    :continuation continuation
+		    :documentation documentation
+		    :resynchronize resynchronize)
+		  'accept-values-command-button)
                (if (stringp prompt)
                    (write-string prompt stream)
                  (funcall prompt stream)))))
-      (let ((align-prompts (slot-value stream 'align-prompts)) query)
+      (let ((align-prompts (slot-value stream 'align-prompts)))
         (if align-prompts
             (formatting-row (stream)
               (formatting-cell (stream) stream)

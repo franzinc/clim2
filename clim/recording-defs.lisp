@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/recording-defs.lisp,v 1.5 1997/02/05 01:44:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/recording-defs.lisp,v 1.6 1998/05/19 18:50:39 layer Exp $
 
 (in-package :clim-internals)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/color-editor.lisp,v 1.15 1997/02/05 01:47:11 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/color-editor.lisp,v 1.16 1998/05/19 18:50:49 layer Exp $
 
 (in-package :clim-demo)
 

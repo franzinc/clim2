@@ -20,18 +20,28 @@
 (defvar *null-pen*)
 (defvar *black-pen*)
 (defvar *white-pen*)
+(defvar *ltgray-pen*)
 
 (defvar *null-brush*)
 (defvar *black-brush*)
 (defvar *white-brush*)
+(defvar *ltgray-brush*)
 
 ;;; Original objects
-; (defvar *color-to-image* (make-hash-table))
 (defvar *black-image*)
 (defvar *white-image*)
 (defvar *blank-image*)
-; (defvar *ink-to-image* (make-hash-table))
-; (defvar *rectangle-to-region* (make-hash-table :test #'equal))
+(defvar *ltgray-image*)
+
+(defconstant +ltgray+ (make-instance 'design))
+
+(defmethod make-load-form ((design (eql (symbol-value '+ltgray+))) &optional environment)
+  (declare (ignore environment))
+  '+ltgray+)
+
+(defmethod print-object ((object (eql (symbol-value '+ltgray+))) stream)
+  (format stream "#<CLIM LtGray>"))
+
 (defvar *original-font* nil)
 
 ;;; Created Objects
@@ -61,30 +71,45 @@
   (setf *null-pen* (win::getStockObject win::null_pen))
   (setf *black-pen* (win::getStockObject win::black_pen))
   (setf *white-pen* (win::getStockObject win::white_pen))
+  (setf *ltgray-pen* 
+    (win::createPen win::ps_solid 1 (win::getSysColor win::COLOR_BTNFACE)))
   
   (setf *null-brush* (win::getStockObject win::null_brush))
   (setf *black-brush* (win::getStockObject win::black_brush))
   (setf *white-brush* (win::getStockObject win::white_brush))
-
-;  (clrhash *color-to-image*)
-;  (clrhash *ink-to-image*)
-;  (clrhash *rectangle-to-region*)
+  (setf *ltgray-brush* 
+      (win::createSolidBrush (win::getSysColor win::COLOR_BTNFACE)))
+  
   (setf *black-image*
 	(make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
 		       :text-color #x000000 :background-color nil))
-;  (setf (gethash #x000000 *color-to-image*) *black-image*)
   (setf *white-image*
 	(make-dc-image :solid-1-pen *white-pen* :brush *white-brush*
 		       :text-color #xffffff :background-color nil))
-;  (setf (gethash #xffffff *color-to-image*) *white-image*)
   (setf *blank-image*
-	(make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
-		       :text-color #x000000 :background-color nil
-		       :rop2 win::r2_nop ))
+    #+possibly
+    (make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
+		   :text-color #xffffffff ; see CLR_NONE
+                   :background-color nil
+		   :rop2 win::r2_mergepen )
+    (make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
+		   :text-color #x000000 
+		   :background-color nil
+		   :rop2 win::r2_nop ))
+  
+  (setf *ltgray-image*
+    (make-dc-image :solid-1-pen *ltgray-pen* 
+                   :brush *ltgray-brush*
+                   :text-color (win::getSysColor win::COLOR_BTNFACE)
+                   :background-color nil))
+  
   (setq *dc-initialized* t)
   )
 
 ;;;
+
+(defvar *original-bitmap* nil)
+(defvar *extra-objects* nil)
 
 (defun release-objects (window dc)
   (when *created-pen*
@@ -119,9 +144,8 @@
 
 (defvar *note-created* ())
 
-(defvar *extra-objects* nil)
-
 (defun note-created (kind obj)
+  (declare (ignore kind))
   #+ignore (push (cons obj kind)  *note-created*)
   obj)
 
@@ -168,22 +192,19 @@
 (defmacro with-dc ((window dc) &rest body)
   `(let ((,dc nil))
      (if (typep ,window 'acl-pixmap)
-       (with-slots (cdc for-medium) ,window
-	 (let ((,dc cdc)
-	       (medium for-medium)
-	       )
-	   (progn
-	     ,@body)
-	 ))
+	 (with-slots (cdc for-medium) ,window
+	   (let ((,dc cdc)
+		 (medium for-medium)
+		 )
+	     medium
+	     ,@body))
        (unwind-protect
-	 (progn
-	   (setf ,dc (win::getDc ,window))
-	   ,@body)
+	   (progn
+	     (setf ,dc (win::getDc ,window))
+	     ,@body)
 	 (release-objects ,window ,dc))       
        )))
 
-
-(defvar *original-bitmap* nil)
 
 (defmacro with-compatible-dc ((dc cdc) &rest body)
   `(let ((,cdc nil))
@@ -226,6 +247,18 @@
   image)
 
 (defun set-dc-for-filling (dc image)
+  (let ((background-color (dc-image-background-color image))
+        (text-color (dc-image-text-color image)))
+    (win::selectObject dc *null-pen*)
+    (when background-color
+      (win::setBkColor dc background-color))
+    (when text-color
+      (win::setTextColor dc text-color))
+    (win::selectObject dc (dc-image-brush image))
+    (win::setRop2 dc (dc-image-rop2 image))))
+
+#+old
+(defun set-dc-for-filling (dc image)
   (win::selectObject dc *null-pen*)
   (win::selectObject dc (dc-image-brush image))
   (let ((background-color (dc-image-background-color image)))
@@ -240,33 +273,33 @@
       (set-dc-for-filling dc image))))
 
 (defun set-cdc-for-pattern (dc medium ink line-style)
+  (declare (ignore line-style))
   (let ((image (dc-image-for-ink medium ink))
-		size)
-	(when (typep ink 'pattern)
-	  (multiple-value-bind (array designs)
-						   (decode-pattern ink)
-						   (setf size (length designs)))
-	  (setf *created-bitmap* (dc-image-bitmap image))
-	  (cond
-		((or (not *created-bitmap*)
-			 (ct::null-handle-p win::hbitmap *created-bitmap*))
-		 (format *terminal-io* "No bitmap (~s) ~%" *created-bitmap*))
+	size)
+    (when (typep ink 'pattern)
+      (multiple-value-bind (array designs) (decode-pattern ink)
+	(declare (ignore array))
+	(setf size (length designs)))
+      (setf *created-bitmap* (dc-image-bitmap image))
+      (cond ((or (not *created-bitmap*)
+		 (ct::null-handle-p win::hbitmap *created-bitmap*))
+	     (format *terminal-io* "No bitmap (~s) ~%" *created-bitmap*))
 		
-		((ct::null-handle-p win::hdc dc)
-		 (format *terminal-io* "No DC (~s) ~%" dc))
-		(t
-		  (setf *original-bitmap* (win::selectObject dc *created-bitmap*))))
-	  (unless (> size 2)
-		(let ((background-color (dc-image-background-color image))
-			  (text-color (dc-image-text-color image)))
-		  (when background-color
-			(win::setBkColor dc background-color))
-		  (when text-color
-			(win::setTextColor dc text-color)))
-		(win::setRop2 dc (dc-image-rop2 image))))
-	#+ignore
-	(format *terminal-io* "~%Size: ~S ~S" size designs)
-	(if (> size 2) win::srccopy win::notsrccopy)))
+	    ((ct::null-handle-p win::hdc dc)
+	     (format *terminal-io* "No DC (~s) ~%" dc))
+	    (t
+	     (setf *original-bitmap* (win::selectObject dc *created-bitmap*))))
+      (unless (> size 2)
+	(let ((background-color (dc-image-background-color image))
+	      (text-color (dc-image-text-color image)))
+	  (when background-color
+	    (win::setBkColor dc background-color))
+	  (when text-color
+	    (win::setTextColor dc text-color)))
+	(win::setRop2 dc (dc-image-rop2 image))))
+    #+ignore
+    (format *terminal-io* "~%Size: ~S ~S" size designs)
+    (if (> size 2) win::srccopy win::notsrccopy)))
 
 (defun set-dc-for-text (dc medium ink font)
   (let* ((image (dc-image-for-ink medium ink))

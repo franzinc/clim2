@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/interactive-protocol.lisp,v 1.37 1997/02/05 01:44:03 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/interactive-protocol.lisp,v 1.38 1998/05/19 18:50:36 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1042,16 +1042,16 @@
                  :buffer-start location :rescan nil))
 
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'accept-values-pane))
-      (defclass accept-values-pane () ()))
-   (unless (ignore-errors (find-class 'accept-values-stream))
-      (defclass accept-values-stream () ()))
-   (unless (ignore-errors (find-class 'accept-values))
-      (defclass accept-values () ()))
-   )
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'accept-values-pane))
+;;;      (defclass accept-values-pane () ()))
+;;;   (unless (ignore-errors (find-class 'accept-values-stream))
+;;;      (defclass accept-values-stream () ()))
+;;;   (unless (ignore-errors (find-class 'accept-values))
+;;;      (defclass accept-values () ()))
+;;;   )
 
 (defmethod frame-manager-display-input-editor-error 
            ((framem standard-frame-manager) frame (stream standard-input-editing-stream) anerror)

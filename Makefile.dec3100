@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.dec3100,v 1.8 1997/02/05 01:41:49 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.dec3100,v 1.9 1998/05/19 18:50:19 layer Exp $
 #
 #  Makefile.dec3100 for CLIM 2.0
 #
@@ -12,8 +12,5 @@ XTLIB=/usr/lib/DXM/lib/Xt/libXt.a
 XLIB=/usr/lib/libX11.a
 
 XINCLUDES=-I/usr/lib/DXM/lib -I/usr/lib/DXM/lib/Xt
-
-MV=mv 
-TMP=.
 
 include Makefile.generic

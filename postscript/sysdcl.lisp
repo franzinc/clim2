@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/sysdcl.lisp,v 1.12 1997/05/24 03:52:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/sysdcl.lisp,v 1.13 1998/05/19 18:50:58 layer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -9,7 +9,9 @@
 (defsystem postscript-clim
     (:default-pathname "clim2:;postscript;")
   (:serial
-   clim-standalone
+;;;;; No reason to have this here, it just causes more damn warnings from
+;;;;; defconstants being redefined:
+   #+ignore clim-standalone
    ("pkgdcl")
    #+(and Allegro (not acl86win32)) ("postscript-s") ;; why not?
    ("postscript-port")

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/input-protocol.lisp,v 1.51 1997/10/04 00:56:26 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/input-protocol.lisp,v 1.52 1998/05/19 18:50:35 layer Exp $
 
 (in-package :clim-internals)
 
@@ -57,10 +57,14 @@
       (setf (cursor-stream cursor) stream))))
 
 #+(or aclpc acl86win32)
-(defmethod stream-set-cursor-position (stream x y) nil)
+(defmethod stream-set-cursor-position (stream x y)
+  (declare (ignore stream x y))
+  nil)
 
 #+(or aclpc acl86win32)
-(defmethod stream-set-cursor-position-internal (stream x y) nil)
+(defmethod stream-set-cursor-position-internal (stream x y)
+  (declare (ignore stream x y))
+  nil)
 
 ;;--- Cross-protocol violation here because CURSOR-POSITION is a method on
 ;;--- extended-OUTPUT-protocol right now.  Secondly, this should probably be a
@@ -77,7 +81,9 @@
       (cursor-set-position cursor x y t))))
 
 #+(or aclpc acl86win32)
-(defmethod initialize-menu (port menu &key label) nil)
+(defmethod initialize-menu (port menu &key label)
+  (declare (ignore port menu label))
+  nil)
 
 (defmethod initialize-menu :before (port (menu input-protocol-mixin) &key label)
   (declare (ignore port label))
@@ -414,14 +420,14 @@
                  :test #'keyboard-event-matches-gesture-name-p)
          (process-abort-gesture stream gesture))))
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'interactor-pane))
-      (defclass interactor-pane () ()))
-   (unless (ignore-errors (find-class 'application-pane))
-      (defclass application-pane () ()))
-   )
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'interactor-pane))
+;;;      (defclass interactor-pane () ()))
+;;;   (unless (ignore-errors (find-class 'application-pane))
+;;;      (defclass application-pane () ()))
+;;;   )
 
 (defun process-abort-gesture (stream gesture)
   (let* ((frame (pane-frame stream))

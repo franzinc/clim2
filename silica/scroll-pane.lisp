@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/scroll-pane.lisp,v 1.8 1998/03/21 01:55:06 smh Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/scroll-pane.lisp,v 1.9 1998/05/19 18:51:07 layer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -29,7 +29,8 @@
   (deallocate-event event))
 
 (defmethod allocate-space :before ((scroller generic-scroller-pane) width height)
-  #-aclpc (declare (ignore width height))
+  #-(or aclpc acl86win32)
+  (declare (ignore width height))
   ;; Adjust the status of the scrollbars
   #-(or aclpc acl86win32)
   (multiple-value-bind (changedp 
@@ -383,7 +384,7 @@
 ;;; Set the indicator to the proper size and location (size and value are between 0 and 1)
 (defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane)
                                      &key slider-size value line-increment)
-  (declare (ignore line-increment))
+  (declare (ignore line-increment slider-size))
   (setf (gadget-value scroll-bar :invoke-callback nil) value)
   ;;(setf (scroll-bar-current-size scroll-bar) slider-size)
   (let* ((scroller (gadget-client scroll-bar))

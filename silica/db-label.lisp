@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/silica/db-label.lisp,v 1.4 1997/02/05 01:50:46 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-label.lisp,v 1.5 1998/05/19 18:51:02 layer Exp $
 
 ;;; This file also exists in clim2/homegrown. The homegrown directory
 ;;; contains files to implement CLIM's generic gadgets. Native backends

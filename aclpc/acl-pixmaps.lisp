@@ -15,6 +15,7 @@
 			     width height
 			     (to-medium acl-window-medium) to-x to-y
 			     &optional function)
+  (declare (ignore function))
   (unless (eq from-medium to-medium)
     (cerror "Continue" "Can't copy areas."))
   (let ((window (medium-drawable from-medium)))
@@ -28,13 +29,13 @@
 	      (rtop (min from-y to-y))
 	      (rright (+ (max from-x to-x) width))
 	      (rbottom (+ (max from-y to-y) height)))
-          (let ((scrollrect (ct::callocate win::rect
-                              ; win::left rleft 
-                              ; win::top rtop 
-                              ; win::right rright
-						      ; win::bottom rbottom
+          (let ((scrollrect (ct:callocate win:rect
+					; win::left rleft 
+					; win::top rtop 
+					; win::right rright
+					; win::bottom rbottom
                              ))
-                (cliprect (ct::callocate win::rect 
+                (cliprect (ct:callocate win:rect 
                               ; win::left rleft
                               ; win::top rtop 
 						      ; win::right rright
@@ -60,40 +61,27 @@
 (defun bop->winop (bop)
   (let ((val
          (cond
-           ((eq bop boole-1)     #xcc0020) ; srccopy
-	   ((eq bop boole-2)     #xaa0029) ;
-	   ((eq bop boole-clr)   #xff0062) ; whiteness
-	   ((eq bop boole-set)   #x42)	   ; blackness
-	   ((eq bop boole-c1)    #x330008) ; notsrccopy
-	   ((eq bop boole-c2)    #x550009) ; dstinvert
-	   ((eq bop boole-and)   #x8800c6) ; srcand
-	   ((eq bop boole-ior)   #xee0086) ; srcpaint
-	   ((eq bop boole-xor)   #x660046) ; srcinvert
-	   ((eq bop boole-eqv)   #x990066) ;
-	   ((eq bop boole-nand)  #x7700e6) ; 
-	   ((eq bop boole-nor)   #x1100a6) ; notsrcerase
-	   ((eq bop boole-andc1) #x220326) ;
-	   ((eq bop boole-andc2) #x440328) ; srcerase
-	   ((eq bop boole-orc1)  #xbb0226) ; mergepaint 
-	   ((eq bop boole-orc2)  #xdd0228) ;
-	   (t win::srccopy)
-	   ))
-        (winop (ct::ccallocate :long)))
-     #+aclpcx (ct::%set-long winop 4 0 val)
-     #+aclntx (setf (cg::word-vector-long-ref *win-result* 0) val)
-     #+ignore
-     winop
-     val))
-
-#+ignore ; moved to acl-dc
-(defclass acl-pixmap (pixmap)
-    ((bitmap :initarg :bitmap)
-     (for-medium :initarg :for-medium)
-     (cdc :initarg :cdc :reader pixmap-cdc)
-     (width :initarg :width :reader pixmap-width)
-     (height :initarg :height :reader pixmap-height)
-     (original-bitmap :initarg :original-bitmap)
-))
+	  ((eq bop boole-1)     #xcc0020) ; srccopy
+	  ((eq bop boole-2)     #xaa0029) ;
+	  ((eq bop boole-clr)   #xff0062) ; whiteness
+	  ((eq bop boole-set)   #x42)	; blackness
+	  ((eq bop boole-c1)    #x330008) ; notsrccopy
+	  ((eq bop boole-c2)    #x550009) ; dstinvert
+	  ((eq bop boole-and)   #x8800c6) ; srcand
+	  ((eq bop boole-ior)   #xee0086) ; srcpaint
+	  ((eq bop boole-xor)   #x660046) ; srcinvert
+	  ((eq bop boole-eqv)   #x990066) ;
+	  ((eq bop boole-nand)  #x7700e6) ; 
+	  ((eq bop boole-nor)   #x1100a6) ; notsrcerase
+	  ((eq bop boole-andc1) #x220326) ;
+	  ((eq bop boole-andc2) #x440328) ; srcerase
+	  ((eq bop boole-orc1)  #xbb0226) ; mergepaint 
+	  ((eq bop boole-orc2)  #xdd0228) ;
+	  (t win:srccopy)
+	  ))
+	#+ignore
+        (winop (ct:ccallocate :long)))
+    val))
 
 ;;; consider caching instance in port
 (defmethod port-allocate-pixmap ((port acl-port) medium width height)
@@ -103,9 +91,9 @@
         (cdc nil)
 	(window (medium-drawable medium)))
     (with-dc (window dc)
-      (setq cdc (win::createCompatibleDC dc))
-      (setq bitmap (win::createCompatibleBitmap dc width height))
-      (setf obitmap (win::selectObject cdc bitmap)))
+      (setq cdc (win:createCompatibleDC dc))
+      (setq bitmap (win:createCompatibleBitmap dc width height))
+      (setf obitmap (win:selectObject cdc bitmap)))
     (make-instance 'acl-pixmap 
       :bitmap bitmap
       :for-medium medium
@@ -119,16 +107,15 @@
 (defmethod port-deallocate-pixmap ((port acl-port) (pixmap acl-pixmap))
   (with-slots (bitmap cdc original-bitmap) pixmap
     (when bitmap
-      (win::deleteObject bitmap)
+      (win:deleteObject bitmap)
       (setq bitmap nil))
     (when cdc
-      (win::selectObject cdc original-bitmap)
-      (win::deleteDC cdc)
+      (win:selectObject cdc original-bitmap)
+      (win:deleteDC cdc)
       (setq bitmap nil cdc nil))))
 
 (defmethod port ((pixmap acl-pixmap))
-  *acl-port* ;(port (slot-value pixmap 'for-medium))
-  )
+  *acl-port*)
 
 (defclass acl-pixmap-medium (acl-medium basic-pixmap-medium)
   ((drawable :initform nil :reader medium-drawable)))
@@ -154,7 +141,7 @@
     (convert-to-device-distances transform width height)
     (with-dc (window dc)
       (when (select-acl-dc from-medium window dc)
-	(win::bitblt cdc to-x to-y width height dc from-x from-y 
+	(win:bitblt cdc to-x to-y width height dc from-x from-y 
 		    (bop->winop alu))))))
 
 (defmethod medium-copy-area 
@@ -166,7 +153,7 @@
     (convert-to-device-coordinates transform to-x to-y)
     (with-dc (window dc)
       (when (select-acl-dc to-medium window dc)
-        (win::bitblt dc to-x to-y width height cdc from-x from-y 
+        (win:bitblt dc to-x to-y width height cdc from-x from-y 
 	            (bop->winop alu))))))
 
 (defmethod medium-copy-area 
@@ -179,7 +166,7 @@
     (convert-to-device-distances transform width height)
     (with-dc (window dc)
       (when (select-acl-dc from-medium window dc)
-	(win::bitblt cdc to-x to-y width height dc from-x from-y 
+	(win:bitblt cdc to-x to-y width height dc from-x from-y 
 		    (bop->winop alu))))))
 
 (defmethod medium-copy-area 
@@ -191,7 +178,7 @@
     (convert-to-device-coordinates transform to-x to-y)
     (with-dc (window dc)
       (when (select-acl-dc to-medium window dc)
-        (win::bitblt dc to-x to-y width height cdc from-x from-y 
+        (win:bitblt dc to-x to-y width height cdc from-x from-y 
 	            (bop->winop alu))))))
 
 (defmethod medium-draw-pixmap* ((medium acl-medium) pixmap x y
@@ -199,8 +186,3 @@
   (let* ((w (pixmap-width pixmap))
 	 (h (pixmap-height pixmap)))
     (copy-from-pixmap pixmap 0 0 w h medium x y function)))
-
-
-
-
-

@@ -22,7 +22,7 @@
 (in-package :lucid)
 
 
-;;; $Header: /repo/cvs.copy/clim2/clim/lucid-after.lisp,v 1.4 1997/02/05 01:44:12 tomj Exp $
+;;; $Header: /repo/cvs.copy/clim2/clim/lucid-after.lisp,v 1.5 1998/05/19 18:50:36 layer Exp $
 ;;; Workaround for a disksave/hash bug.  
 ;;;
 (defun rehash-ptypes ()

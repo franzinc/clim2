@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/medium.lisp,v 1.42 1997/02/05 01:51:10 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/medium.lisp,v 1.43 1998/05/19 18:51:05 layer Exp $
 
 (in-package :silica)
 
@@ -96,20 +96,10 @@
 
 ;; removed out hard-wired white background hack for nt (cim 10/9/96)
 
-#-(or aclpc-ignore aclnt-ignore)
 (defclass sheet-with-resources-mixin ()
   ((foreground :initform nil :accessor pane-foreground)
    (background :initform nil :accessor pane-background)
    (text-style :initform nil :accessor pane-text-style)
-   (initargs :initform nil :reader sheet-with-resources-initargs)))
-  
-#+(or aclpc-ignore aclnt-ignore) ; help with background color, initargs
-(defclass sheet-with-resources-mixin ()
-  ((foreground :initform nil :initarg :foreground :accessor pane-foreground)
-   (background :initform +white+
-               :initarg :background
-               :accessor pane-background)
-   (text-style :initform nil :initarg :text-style :accessor pane-text-style)
    (initargs :initform nil :reader sheet-with-resources-initargs)))
   
 (defmethod initialize-instance :after 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.51 1997/05/31 01:00:31 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.52 1998/05/19 18:50:37 layer Exp $
 
 (in-package :clim-internals)
 
@@ -68,7 +68,13 @@
                                        :parent-frame (pane-frame root)))
              :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
                            (eq (not label) (not (menu-frame-label (pane-frame menu))))
-                           (eq (frame-manager menu) (frame-manager root)))
+                           (eq (frame-manager menu) (frame-manager root))
+			   
+			   #+microsoft-32 ; frames don't work across threads
+			   (eq (current-process) (sheet-thread
+						  (frame-top-level-sheet
+						   (pane-frame menu))))			   
+			   )
 
              :deinitializer (progn
                               (setf (window-visibility menu) nil)

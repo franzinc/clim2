@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88 1998/03/21 01:54:59 smh Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.89 1998/05/19 18:50:33 layer Exp $
 
 (in-package :clim-internals)
 
@@ -104,30 +104,6 @@
         (frame-manager-palette framem)
       (and (port frame)
            (port-default-palette (port frame))))))
-
-#+(or aclpc acl86win32) ;; pr Aug97
-(defun clean-frame (frame)
-  ;; (disable-frame frame)
-  ;; (enable-frame frame)
-  nil)
-
-#+(or aclpc acl86win32) ;; pr Aug97
-(defun frame-find-position (frame)
-  (when frame 
-    (let ((wrect (ct::ccallocate win::rect))
-          (handle (sheet-mirror (frame-top-level-sheet frame))))
-      (win::GetWindowRect handle wrect)
-      (values (ct::cref win::rect wrect win::left) 
-              (ct::cref win::rect wrect win::top)))))
-
-#+(or aclpc acl86win32) ;; pr Aug97
-(defun frame-set-position (frame x y)
-  (win::setWindowPos (sheet-mirror (frame-top-level-sheet frame))
-     (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
-     x y 0 0
-     (logior win::swp_noactivate
-	     win::swp_nozorder
-	     win::swp_nosize)))
 
 (defmethod color-stream-p ((stream stream))
   nil)
@@ -1188,6 +1164,9 @@
   (read-command (frame-command-table frame) :stream stream))
 
 
+#+(or aclpc acl86win32)
+(defvar *frame*)
+
 ;;; This is the wrong modularity... Bury calls in commands for acl case later.
 ;;;-- pr Aug97
 (defmacro with-menu-disabled (frame &body body)
@@ -1295,11 +1274,11 @@
 (defmethod handle-event (sheet (event presentation-event))
   (process-command-event sheet event))
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'activity-frame))
-      (defclass activity-frame () ())))
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'activity-frame))
+;;;      (defclass activity-frame () ())))
 
 (defun process-command-event (sheet event)
   ;;--- This code is as bad as I feel.

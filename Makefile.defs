@@ -1,26 +1,35 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.45 1998/03/18 20:27:52 layer Exp $
+# $Id: Makefile.defs,v 1.46 1998/05/19 18:50:19 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
-#
+
+# where to dump the CLIM images
+CLIM		= clim.dxl
 
 SHARED_EXT = so
 
+ifeq ($(OS_NAME),windows)
+LISP	= ../src/lisp
+DCL	= dcl
+else
 LISP	= ../src/lispi
 DCL	= dcli
-CLIM	= climi.dxl
+endif
 
 CL	= $(LISP) -I $(DCL)
 CLOPTS	= -qq -batch -backtrace-on-error
 
-DEVICE	= /dev/null
-RM	= /bin/rm
-CAT	= /bin/cat
-ECHO	= /bin/echo
-TAGS	= /usr/fi/etags
-TMP	= /usr/tmp
-MV	= mv
+RM	= rm
+CAT	= cat
+ECHO	= echo
+TAGS	= etags
 
 SHELL	= /bin/sh
+
+# Lisp optimization for compiling
+SPEED	= 3
+SAFETY	= 1
+# This next should be set to 1 for distribution
+DEBUG   = 1
 
 # Training
 
@@ -33,36 +42,10 @@ TRAIN_PROFILEP=t
 TRAIN_BM=t
 FRAME_TESTS=t
 
-# Info
-LOAD_LOCAL_NAMES_INFO=t
-LOAD_SOURCE_FILE_INFO=t
-LOAD_XREF_INFO=nil
-SAVE_LOCAL_NAMES=t
-RECORD_SOURCE_FILE_INFO=t
-RECORD_XREF_INFO=nil
-
-# Lisp optimization for compiling
-SPEED	= 3
-SAFETY	= 1
-# This next should be set to 1 for distribution
-DEBUG   = 2
-
-gc_print	= nil
-compile_verbose	= t
-compile_print	= nil
-redef_warning	= t
-
+ifneq ($(OS_NAME),windows)
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
 	 	-DUSE_RE_COMP -DUSER_GETWD
-LDFLAGS=
-OLDSPACE = 15000000
-NEWSPACE = 5000000
-PREMALLOCS = '-m 401408'
-
-SAVEEXP	= echo no exports file in this port
-RESTEXP = echo no exports file in this port
-SAVEEXPI = echo no exports file in this port
-RESTEXPI = echo no exports file in this port
+endif
 
 # Used for tags
 ALL_SRC = *.lisp */*.lisp *.cl */*.cl *.c */*.c *.h */*.h
@@ -71,6 +54,7 @@ ALL_SRC = *.lisp */*.lisp *.cl */*.cl *.c */*.c *.h */*.h
 PRODUCT_SRC_FILES = sys/*.lisp utils/*.lisp  silica/*.lisp clim/*.lisp \
 	demo/*.lisp test/test-suite.lisp
 
+ifneq ($(OS_NAME),windows)
 # This has to be kept consistent with xlib/xlib-funs.lisp
 UNDEFS=misc/undefinedsymbols
 
@@ -113,8 +97,6 @@ SHARED-OL-OBJS= climol.$(SHARED_EXT)
 WNNLIB = libwnn.a
 STATIC-WNN-OBJS=stub-wnn.o $(WNNLIB)
 
-# The default is for statically linked Motif
-
 SYSTEM=		motif-clim
 
 PRODUCT-FASLS=  $(PRODUCT-GENERIC-FASLS) $(PRODUCT-XM-FASLS)
@@ -122,10 +104,6 @@ PRODUCT-OBJS=	$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
 
 ICS-PRODUCT-FASLS= $(PRODUCT-WNN-FASLS)
 ICS-PRODUCT-OBJS=  $(STATIC-WNN-OBJS)
-
-#
-# "Load time objects" -- these go into clim.fasl
-#
 
 GENERIC-FASLS= \
 	utils/excl-verification.fasl utils/packages.fasl \
@@ -248,17 +226,9 @@ XM-DEBUG-FASLS = tk/xm-defs.fasl tk/xm-funs.fasl
 OL-DEBUG-FASLS = tk/ol-defs.fasl tk/ol-funs.fasl
 
 WNN-DEBUG-FASLS = wnn/jl-defs.fasl wnn/jl-funs.fasl
+endif
 
-# end of fasls
-
-
-make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
-	LOAD_LOCAL_NAMES_INFO=${LOAD_LOCAL_NAMES_INFO} \
-	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
-	SAVE_LOCAL_NAMES=${SAVE_LOCAL_NAMES} \
-	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
-	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
-	RECORD_XREF_INFO=${RECORD_XREF_INFO} CL=${CL} ALLEGRO_CL_HOME=${ALLEGRO_CL_HOME} \
-	CLIM=${CLIM} compile_print=${compile_print} TMP=${TMP} -f ${Makefile}
+# not used anymore
+make = xxx
 
 BENCHMARK_FILE=nil

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/ol-callbacks.lisp,v 1.13 1997/02/05 01:52:56 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/ol-callbacks.lisp,v 1.14 1998/05/19 18:51:12 layer Exp $
 
 (in-package :tk)
 
@@ -57,7 +57,9 @@
   (values (ol-scroll-bar-verify-new-location data)))
 
 (defun add-ol-callback (widget name type function &rest args)
-  (ol_add_callback widget name *callback-handler-address*
+  (ol_add_callback widget name 
+		   (or *callback-handler-address*
+		       (setq *callback-handler-address* (register-function 'callback-handler)))
 		   (caar (push
 			  (list (new-callback-id) (cons function args) type)
 			  (widget-callback-data widget)))))
