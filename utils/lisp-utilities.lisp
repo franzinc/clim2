@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.15 92/08/18 17:24:06 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.16 92/09/08 15:17:03 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -1200,7 +1200,7 @@
 	 (rational ,(convert min nil) ,(convert max nil)))))
 
 (defconstant *end-of-file-marker* :eof)
-(deftype end-of-file-marker () '(eql :eof))
+(deftype end-of-file-marker () '(member :eof))
 
 
 ;;; Use a lambda-list to extract arguments from a list and bind variables.

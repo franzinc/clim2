@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.42 92/09/08 10:35:37 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.43 92/09/08 15:19:22 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -35,7 +35,9 @@
      (safe-backing-store :initform nil :accessor port-safe-backing-store)
      (event-lock :initform (clim-sys:make-lock "port event lock")
 		 :reader port-event-lock)
-     (rotated-font-cache :initform nil :accessor port-rotated-font-cache))
+     (rotated-font-cache :initform nil :accessor port-rotated-font-cache)
+     (depth :accessor port-depth)
+     (visual-class :accessor port-visual-class))
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
@@ -78,6 +80,8 @@
 	 (declare (ignore ,ignore))
        ,@body)))
        
+(defparameter *use-color* t)		; For debugging monochrome
+
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
   (destructuring-bind
       (&key (display nil display-p)
@@ -102,7 +106,17 @@
 		   (not (search "Network Computing Devices" vendor))
 		   (not (search "Tektronix" vendor)))
 	      (setf (slot-value port 'safe-backing-store) t)))
-	(initialize-xlib-port port display)))))
+	(initialize-xlib-port port display)))
+    ;;
+    (let ((display (port-display port)))
+      (setf (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
+	    (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))))))
+
+(defmethod port-color-p ((port xt-port))
+  (and *use-color*
+       (> (port-depth port) 2)
+       (member (port-visual-class port)
+	       '(:static-color :true-color :pseudo-color :direct-color))))
 
 (defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
 			     (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")

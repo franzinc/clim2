@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.32 92/09/08 10:35:03 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.33 92/09/08 15:18:44 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -336,25 +336,29 @@ people, shall not perish from the earth.
 (define-test (region-equal-tests graphics) (stream)
   "Exercise REGION-EQUAL."
   (formatting-table (stream :x-spacing "  ")
-    (abbreviated-regions-column-headings
-      *test-regions-for-region-equal* stream 'region-equal)
+      (abbreviated-regions-column-headings
+       *test-regions-for-region-equal* stream 'region-equal)
     (dolist (region1 *test-regions-for-region-equal*)
       (formatting-row (stream)
-	(formatting-cell (stream :align-x :right)
-	  (with-text-face (stream :italic)
-	    (format stream "~A" region1)))
+	  (formatting-cell (stream :align-x :right)
+	      (with-text-face (stream :italic)
+		(format stream "~A" region1)))
 	(dolist (region2 *test-regions-for-region-equal*)
 	  (formatting-cell (stream :align-x :center)
-	    (let ((result (region-equal (eval region1) (eval region2)))
-		  (correct-result (equal region1 region2)))
 	      (with-output-as-presentation 
 		  (stream `(region-equal ,region1 ,region2) 'form
-		   :single-box t)
-		(if (eq result correct-result)
-		    (format stream "~A" result)
-		  (with-text-face (stream :bold)
-		    (format stream "~A" result))))))))))
-   (region-test-comment stream))
+			  :single-box t)
+		(handler-case
+		    (let ((result (region-equal (eval region1) (eval region2)))
+			  (correct-result (equal region1 region2)))
+		      (if (eq result correct-result)
+			  (format stream "~A" result)
+			(with-text-face (stream :bold)
+			  (format stream "~A" result))))
+		  (error ()
+		    (with-text-face (stream :bold)
+		      (write-string "Error signalled"))))))))))
+  (region-test-comment stream))
 
 (defparameter *test-regions-for-region-contains-position-p*
 	      ;; region position correct-result
@@ -385,18 +389,18 @@ people, shall not perish from the earth.
     (setq regions (nreverse regions)
 	  positions (nreverse positions))
     (formatting-table (stream :x-spacing "  ")
-      (formatting-row (stream)
-	(formatting-cell (stream)
-	  (declare (ignore stream)))		;make a column for the row headings
-	(dolist (position positions)
-	  (formatting-cell (stream) 
-	    (with-text-face (stream :italic)
-	      (format stream "(~D,~D)" (first position) (second position))))))
+	(formatting-row (stream)
+	    (formatting-cell (stream)
+		(declare (ignore stream))) ;make a column for the row headings
+	  (dolist (position positions)
+	    (formatting-cell (stream) 
+		(with-text-face (stream :italic)
+		  (format stream "(~D,~D)" (first position) (second position))))))
       (dolist (region regions)
 	(formatting-row (stream)
-	  (formatting-cell (stream :align-x :right)
-	    (with-text-face (stream :italic)
-	      (format stream "~A" region)))
+	    (formatting-cell (stream :align-x :right)
+		(with-text-face (stream :italic)
+		  (format stream "~A" region)))
 	  (dolist (position positions)
 	    (let ((res (find-if #'(lambda (result-entry)
 				    (and (equal (first result-entry) region)
@@ -406,14 +410,18 @@ people, shall not perish from the earth.
 		  (y (second position)))
 	      (with-output-as-presentation 
 		  (stream `(region-contains-position-p ,region ,x ,y) 'form
-		   :single-box t)
+			  :single-box t)
 		(formatting-cell (stream :align-x :center)
-		  (when res
-		    (let* ((correct-result (third res))
-			   (result (region-contains-position-p (eval region) x y)))
-		      (with-text-face (stream
-				       (if (eq correct-result result) nil :bold))
-			(format stream "~A" result)))))))))))
+		    (when res
+		      (handler-case 
+			  (let* ((correct-result (third res))
+				 (result (region-contains-position-p (eval region) x y)))
+			    (with-text-face (stream
+					     (if (eq correct-result result) nil :bold))
+			      (format stream "~A" result)))
+			(error ()
+			  (with-text-face (stream :bold)
+			    (write-string "Error signalled"))))))))))))
     (region-test-comment stream)))
 
 (defparameter *test-regions-for-region-contains-region-p*
@@ -453,24 +461,28 @@ people, shall not perish from the earth.
 		 (return-from lookup-result (fourth result))))
 	     (or (equal region1 region2) :none)))
       (formatting-table (stream :x-spacing "  ")
-	(abbreviated-regions-column-headings regions stream 'region-contains-region-p)
+	  (abbreviated-regions-column-headings regions stream 'region-contains-region-p)
 	(dolist (region1 regions)
 	  (formatting-row (stream)
-	    (formatting-cell (stream :align-x :right)
-	      (with-text-face (stream :italic)
-		(format stream "~A" region1)))
+	      (formatting-cell (stream :align-x :right)
+		  (with-text-face (stream :italic)
+		    (format stream "~A" region1)))
 	    (dolist (region2 regions)
 	      (with-output-as-presentation 
 		  (stream `(region-contains-region-p ,region1 ,region2) 'form
-		   :single-box t)
+			  :single-box t)
 		(formatting-cell (stream :align-x :center)
-		  (let ((res (lookup-result region1 region2))
-			(result (region-contains-region-p (eval region1) (eval region2))))
-		    (if (eq res :none)
-			(write-char #\space stream)	;the presentation demands some ink
-		      (with-text-face (stream
-				       (if (eq res result) nil :bold))
-			(format stream "~A" result)))))))))))
+		    (handler-case
+			(let ((res (lookup-result region1 region2))
+			      (result (region-contains-region-p (eval region1) (eval region2))))
+			  (if (eq res :none)
+			      (write-char #\space stream) ;the presentation demands some ink
+			    (with-text-face (stream
+					     (if (eq res result) nil :bold))
+			      (format stream "~A" result))))
+		      (error ()
+			(with-text-face (stream :bold)
+			  (write-string "Error signalled")))))))))))
     (region-test-comment stream)))
 
 (defparameter *test-regions-for-region-intersects-region-p*
@@ -525,12 +537,12 @@ people, shall not perish from the earth.
 		(formatting-cell (stream :align-x :center)
 		    (handler-case 
 			(let ((res (lookup-result region1 region2))
-			(result (region-intersects-region-p (eval region1) (eval region2))))
-		    (if (eq res :none)
-			(write-char #\space stream)	;the presentation demands some ink
-		      (with-text-face (stream
-				       (if (eq res result) nil :bold))
-			(format stream "~A" result))))
+			      (result (region-intersects-region-p (eval region1) (eval region2))))
+			  (if (eq res :none)
+			      (write-char #\space stream) ;the presentation demands some ink
+			    (with-text-face (stream
+					     (if (eq res result) nil :bold))
+			      (format stream "~A" result))))
 		      (error ()
 			(with-text-face (stream :bold)
 			  (write-string "Error signalled")))))))))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.24 92/08/18 17:53:48 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.25 92/09/08 10:34:08 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -259,10 +259,9 @@
 
 (defclass colormap (display-object) ())
 
-(defun default-colormap (display &optional (screen 0))
+(defun default-colormap (display &optional (screen (display-screen-number display)))
   (intern-object-xid
-   (x11:xdefaultcolormap display
-			 screen)
+   (x11:xdefaultcolormap display screen)
    'colormap
    display
    :display 

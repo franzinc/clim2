@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.36 92/09/08 10:35:35 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.37 92/09/08 15:19:18 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -142,7 +142,7 @@
 			     :drawable drawable
 			     :function boole-xor)))
       (unless tile-gcontext
-	(setf color-p (color-medium-p medium))
+	(setf color-p (port-color-p (port medium)))
 	(setf white-pixel (x11:xwhitepixel display screen))
 	(setf black-pixel (x11:xblackpixel display screen))
 	(setf tile-gcontext (make-instance 'fast-gcontext
@@ -170,13 +170,6 @@
       (loose-gc background-gcontext)
       (loose-gc flipping-gcontext)
       (loose-gc tile-gcontext))))
-
-(defparameter *use-color* t)		; For debugging monochrome
-(defun color-medium-p (medium)
-  ;;-- This should just look at this port
-  (and *use-color*
-       (let ((display (port-display (port (medium-sheet medium)))))
-	 (> (x11:xdefaultdepth display (tk::display-screen-number display)) 2))))
 
 (defun recompute-gcs (medium)
   (with-slots 
@@ -338,6 +331,7 @@
 		   (setf (tk::gcontext-foreground new-gc)
 		     (logxor (decode-color medium color1)
 			     (decode-color medium color2))))
+		  ;;-- support gray-scale here
 		  (t
 		   ;; in a monochrome context there is only one
 		   ;; flipping ink availiable ie white <-> black
@@ -358,6 +352,7 @@
 	  (cond (color-p
 		 (setf (tk::gcontext-foreground new-gc)
 		   (decode-color medium ink)))
+		;;-- support gray-scale here
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
 		   (let* ((luminosity (color-luminosity r g b))
@@ -371,10 +366,10 @@
 			   (t		; color is an image
 			    (setf (tk::gcontext-fill-style new-gc) :tiled)
 			    (let ((pixmap (make-instance 'tk::pixmap
-					    :drawable drawable
-					    :width (tk::image-width color)
-					    :height (tk::image-height color)
-					    :depth (tk::drawable-depth drawable))))
+							 :drawable drawable
+							 :width (tk::image-width color)
+							 :height (tk::image-height color)
+							 :depth (tk::drawable-depth drawable))))
 			      (tk::put-image pixmap tile-gcontext color)
 			      (setf (tk::gcontext-tile new-gc) pixmap))))))))
 	  (setf (gethash ink ink-table) new-gc)))))
@@ -445,6 +440,7 @@ and on color servers, unless using white or black")
 				       :red (truncate (* x red))
 				       :green (truncate (* x green))
 				       :blue (truncate (* x blue)))))))
+		  ;;-- support gray-scale here
 		  (t
 		   (multiple-value-bind (r g b) (color-rgb ink)
 		     (let ((luminosity (color-luminosity r g b)))
