@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+
+2003-10-29  Kevin Layer  <layer@crikey>
+
+	* Makefile.macosx: try and make it work on jax now that openmotif
+	  2.2.2 is installed on Mac OS X 10.3.... no dice!
+
+*******************************************************************************
 2.3.19
 
 2003-08-25  Kevin Layer  <layer@crikey>
