@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.2 92/03/04 16:22:22 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.3 92/03/10 10:12:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -78,7 +78,7 @@
 		      (text-style-descent text-style #-Silica stream #+Silica port)))
 	 (glyph-buffer (stream-output-glyph-buffer stream))
 	 (color (slot-value record 'ink)))
-    (declare (fixnum start end))
+    (declare (type fixnum start end))
     (#-Silica progn
      #+Silica with-sheet-medium #+Silica (medium stream)
      (macrolet
@@ -89,9 +89,7 @@
 				  new-cursor-x new-baseline new-height font)
 		(stream-scan-string-for-writing stream #+Silica medium
 						string start ,end-position text-style
-						cursor-x
-						;;--- MOST-POSITIVE-FIXNUM loses
-						most-positive-fixnum 
+						cursor-x +largest-coordinate+
 						glyph-buffer)
 	      ;; GLYPH-BUFFER NIL => pass the string to the port-specific code.
 	      #-Silica
@@ -119,15 +117,14 @@
 		       (multiple-value-bind (new-cursor-x new-cursor-y)
 			   (stream-draw-lozenged-character
 			     stream write-char cursor-x cursor-y new-baseline new-height
-			     ;;--- MOST-POSITIVE-FIXNUM loses
-			     text-style most-positive-fixnum nil t)
+			     text-style +largest-coordinate+ nil t)
 			 (setf cursor-x new-cursor-x
 			       cursor-y new-cursor-y))))
 		(incf start))))))
       (multiple-value-bind (cursor-x cursor-y) 
-	  (output-record-start-cursor-position* record)
+	  (output-record-start-cursor-position record)
 	(declare (type coordinate cursor-x cursor-y))
-	(translate-fixnum-positions x-offset y-offset cursor-x cursor-y)
+	(translate-coordinates x-offset y-offset cursor-x cursor-y)
 	(do-it end)
 	#-Silica
 	(when (slot-value record 'wrapped-p)
@@ -145,7 +142,7 @@
 	 (baseline (slot-value record 'baseline))
 	 (glyph-buffer (stream-output-glyph-buffer stream))
 	 (color (slot-value record 'ink)))
-    (declare (fixnum start end))
+    (declare (type fixnum start end))
     (#-Silica progn
      #+Silica with-sheet-medium #+Silica (medium stream)
      (macrolet
@@ -156,9 +153,7 @@
 				  new-cursor-x new-baseline new-height font)
 		(stream-scan-string-for-writing stream #+Silica medium
 						string start ,end-position text-style
-						cursor-x
-						;;--- LOSES
-						most-positive-fixnum 
+						cursor-x +largest-coordinate+
 						glyph-buffer)
 	      #-Silica
 	      (if glyph-buffer
@@ -185,15 +180,14 @@
 		       (multiple-value-bind (new-cursor-x new-cursor-y)
 			   (stream-draw-lozenged-character
 			     stream write-char cursor-x cursor-y new-baseline new-height
-			     ;;--- LOSES
-			     text-style most-positive-fixnum nil t)
+			     text-style +largest-coordinate+ nil t)
 			 (setf cursor-x new-cursor-x
 			       cursor-y new-cursor-y))))
 		(incf start))))))
       (multiple-value-bind (cursor-x cursor-y) 
-	  (output-record-start-cursor-position* record)
+	  (output-record-start-cursor-position record)
 	(declare (type coordinate cursor-x cursor-y))
-	(translate-fixnum-positions x-offset y-offset cursor-x cursor-y)
+	(translate-coordinates x-offset y-offset cursor-x cursor-y)
 	(dolist (text-style-change (slot-value record 'text-style-changes))
 	  (let ((new-text-style (car text-style-change))
 		(change-position (cdr text-style-change)))
@@ -216,7 +210,7 @@
 	  (multiple-value-bind (xoff yoff)
 	      (convert-from-descendant-to-ancestor-coordinates record parent)
 	    (declare (type coordinate xoff yoff))
-	    (translate-fixnum-positions xoff yoff old-left old-top old-right old-bottom)
+	    (translate-coordinates xoff yoff old-left old-top old-right old-bottom)
 	    (call-next-method)
 	    (recompute-extent-for-changed-child parent record
 						old-left old-top old-right old-bottom)))
@@ -226,7 +220,7 @@
 					     text-string start end text-style
 					     new-width new-height new-baseline)
   (declare (ignore text-style new-baseline))
-  (declare (fixnum start end))
+  (declare (type fixnum start end))
   (when (>= start end)
     (return-from add-string-output-to-text-record))
   (let* ((count (the fixnum (- end start)))
@@ -243,7 +237,7 @@
 (defmethod add-string-output-to-text-record ((record styled-text-output-record)
 					     text-string start end text-style
 					     new-width new-height new-baseline)
-  (declare (fixnum start end))
+  (declare (type fixnum start end))
   (when (>= start end)
     (return-from add-string-output-to-text-record))
   (let* ((count (the fixnum (- end start)))
@@ -288,11 +282,11 @@
 
 (defmethod prepare-text-record-for-appending
     ((record standard-text-output-record) space-needed style)
-  (declare (fixnum space-needed))
+  (declare (type fixnum space-needed))
   (declare (ignore style))
   (let* ((string (slot-value record 'string))
 	 (fill-pointer (fill-pointer string)))
-    (declare (fixnum fill-pointer))
+    (declare (type fixnum fill-pointer))
     (when (> (the fixnum (+ fill-pointer space-needed)) (array-dimension string 0))
       (setf string (adjust-array string (the fixnum (+ fill-pointer space-needed 16))))
       (setf (slot-value record 'string) string))
@@ -300,7 +294,7 @@
 
 (defmethod prepare-text-record-for-appending
     ((record styled-text-output-record) space-needed style)
-  (declare (fixnum space-needed))
+  (declare (type fixnum space-needed))
   (with-slots (initial-text-style current-text-style
 	       text-style-changes baseline) record
     (let* ((string (slot-value record 'string))
@@ -341,18 +335,18 @@
 	  ;; make sure that old bounding-rect is the same relative position from
 	  ;; old-start-position as the bounding-rect is from start-position
 	  (multiple-value-bind (delta-x delta-y)
-	      (multiple-value-bind (ex ey) (bounding-rectangle-position* text)
+	      (multiple-value-bind (ex ey) (bounding-rectangle-position text)
 		(declare (type coordinate ex ey))
 		(multiple-value-bind (sx sy) 
-		    (output-record-start-cursor-position* text)
+		    (output-record-start-cursor-position text)
 		  (declare (type coordinate sx sy))
-		  (position-difference* ex ey sx sy)))
+		  (position-difference ex ey sx sy)))
 	    (declare (type coordinate delta-x delta-y))
 	    (multiple-value-bind (old-start-x old-start-y)
-		(multiple-value-bind (px py) (bounding-rectangle-position* match)
+		(multiple-value-bind (px py) (bounding-rectangle-position match)
 		  (declare (type coordinate px py))
-		  (position-difference* px py delta-x delta-y))
-	      (output-record-set-old-start-cursor-position*
+		  (position-difference px py delta-x delta-y))
+	      (output-record-set-old-start-cursor-position
 		text old-start-x old-start-y))))))))
 
 (defmethod recompute-contents-ok ((text styled-text-output-record))
@@ -380,18 +374,18 @@
 	  ;; make sure that old bounding-rect is the same relative position from
 	  ;; old-start-position as the bounding-rect is from start-position
 	  (multiple-value-bind (delta-x delta-y)
-	      (multiple-value-bind (ex ey) (bounding-rectangle-position* text)
+	      (multiple-value-bind (ex ey) (bounding-rectangle-position text)
 		(declare (type coordinate ex ey))
 		(multiple-value-bind (sx sy) 
-		    (output-record-start-cursor-position* text)
+		    (output-record-start-cursor-position text)
 		  (declare (type coordinate sx sy))
-		  (position-difference* ex ey sx sy)))
+		  (position-difference ex ey sx sy)))
 	    (declare (type coordinate delta-x delta-y))
 	    (multiple-value-bind (old-start-x old-start-y)
-		(multiple-value-bind (px py) (bounding-rectangle-position* match)
+		(multiple-value-bind (px py) (bounding-rectangle-position match)
 		  (declare (type coordinate px py))
-		  (position-difference* px py delta-x delta-y))
-	      (output-record-set-old-start-cursor-position*
+		  (position-difference px py delta-x delta-y))
+	      (output-record-set-old-start-cursor-position
 		text old-start-x old-start-y))))))))
 
 (defmethod get-text-output-record ((stream output-recording-mixin) style)
@@ -411,12 +405,12 @@
 		       (make-standard-text-output-record (medium-ink stream) string))))
       (setf (stream-text-output-record stream) record)
       (multiple-value-bind (abs-x abs-y)
-	  (point-position*
+	  (point-position
 	    (stream-output-history-position stream))
 	(declare (type coordinate abs-x abs-y))
-	(multiple-value-bind (cx cy) (stream-cursor-position* stream)
+	(multiple-value-bind (cx cy) (stream-cursor-position stream)
 	  (declare (type coordinate cx cy))
-	  (output-record-set-start-cursor-position*
+	  (output-record-set-start-cursor-position
 	    record (- cx abs-x) (- cy abs-y))))
       ;; Moved to STREAM-CLOSE-TEXT-OUTPUT-RECORD, since we don't need this thing
       ;; in the history until then.  This should save an extra recompute-extent call
@@ -453,7 +447,7 @@
 (defun find-text-baseline (record stream)
   ;; This finds the lowest baseline of the text in RECORD, which will be slower than, say,
   ;; the first baseline but more likely to look good with misaligned things.
-  (let ((baseline 0)
+  (let ((baseline (coordinate 0))
 	(style (medium-default-text-style stream))
 	#+Silica (port (port stream)))
     (declare (type coordinate baseline))
@@ -468,13 +462,13 @@
 			    (- (text-style-height style #-Silica stream #+Silica port)
 			       (text-style-descent style #-Silica stream #+Silica port)))))
 		 (t
-		   (multiple-value-bind (xoff yoff) (output-record-position* record)
+		   (multiple-value-bind (xoff yoff) (output-record-position record)
 		     (declare (type coordinate yoff))
 		     (declare (ignore xoff))
 		     (map-over-output-records #'find-or-recurse record
 					      0 0 (+ yoff y-offset)))))))
       (declare (dynamic-extent #'find-or-recurse))
-      (find-or-recurse record 0))
+      (find-or-recurse record (coordinate 0)))
     baseline)) 
 
 ;; Copy just the text from the window to the stream.  If REGION is supplied,
@@ -489,7 +483,7 @@
 			    :fill-pointer 0 :adjustable t :initial-element nil)))
     (labels ((collect (record x-offset y-offset)
 	       (multiple-value-bind (start-x start-y)
-		   (output-record-start-cursor-position* record)
+		   (output-record-start-cursor-position record)
 		 (translate-positions x-offset y-offset start-x start-y)
 		 (when (typep record 'standard-text-output-record)
 		   (vector-push-extend (list* start-y start-x (slot-value record 'string))
@@ -498,12 +492,12 @@
 		   #'collect record region 
 		   (- x-offset) (- y-offset) start-x start-y))))
       (declare (dynamic-extent #'collect))
-      (collect history 0 0))
+      (collect history (coordinate 0) (coordinate 0)))
     (sort array #'(lambda (r1 r2)
 		    (or (< (first r1) (first r2))
 			(and (= (first r1) (first r2))
 			     (< (second r1) (second r2))))))
-    (let ((current-x 0)
+    (let ((current-x (coordinate 0))
 	  (current-y (first (aref array 0))))
       (dotimes (i (fill-pointer array))
 	(let* ((item (aref array i))
@@ -513,7 +507,7 @@
 	    (dotimes (j (round (- y current-y) line-height))
 	      #-(or Allegro Minima) (declare (ignore j))
 	      (terpri stream)
-	      (setq current-x 0))
+	      (setq current-x (coordinate 0)))
 	    (setq current-y y))
 	  (unless (= x current-x)
 	    (dotimes (j (round (- x current-x) char-width))

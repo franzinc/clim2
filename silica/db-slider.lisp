@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: db-slider.lisp,v 1.4 92/03/24 19:36:30 cer Exp $
+
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader: db-slider.lisp,v 1.4 92/03/24 19:36:30 cer Exp Locker: cer $
-
+;; $fiHeader: db-slider.lisp,v 1.5 92/04/03 12:04:13 cer Exp Locker: cer $
 (in-package :silica)
 
 
@@ -147,7 +148,6 @@
 	 (max-value (slot-value pane 'max-value))
 	 (value (compute-symmetric-value min max coord min-value max-value)))
     (setf (gadget-value pane) value)))
-
 
 (defmethod (setf gadget-value) :around (nv (pane slider-pane) &key)
   (declare (ignore nv))

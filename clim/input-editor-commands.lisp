@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.5 92/03/10 10:12:37 cer Exp Locker: cer $
+;; $fiHeader: input-editor-commands.lisp,v 1.6 92/03/10 15:40:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -250,7 +250,7 @@
 		       (stream-output-history window))))
     (when (and window
 	       (pane-viewport window))
-      (multiple-value-bind (x y) (window-viewport-position* window)
+      (multiple-value-bind (x y) (window-viewport-position window)
 	(incf y (* (if (= distance 1)
 		       (bounding-rectangle-height (window-viewport window))
 		       (* distance (stream-line-height window)))
@@ -258,7 +258,7 @@
 	(with-bounding-rectangle* (hleft htop hright hbottom) history
 	  (declare (ignore hleft hright))
 	  (setq y (min (max htop y) hbottom)))
-	(window-set-viewport-position* window x y)))))
+	(window-set-viewport-position window x y)))))
 
 
 ;;; Some macrology for talking about the input-buffer
@@ -670,8 +670,8 @@
   (:ie-forward-word	    :\F  :meta)
   (:ie-backward-character   :\B  :control)
   (:ie-backward-word	    :\B  :meta)
-  (:ie-beginning-of-buffer  :\< :meta)
-  (:ie-end-of-buffer	    :\> :meta)
+  (:ie-beginning-of-buffer  :\<  :meta)
+  (:ie-end-of-buffer	    :\>  :meta)
   (:ie-beginning-of-line    :\A  :control)
   (:ie-end-of-line	    :\E  :control)
   (:ie-next-line	    :\N  :control)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.13 92/03/24 19:36:47 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.14 92/03/30 17:52:06 cer Exp $
 
 (in-package :silica)
 
@@ -181,6 +181,7 @@
   (when (sheet-direct-mirror sheet)
     (disable-mirror (port sheet) sheet)))
 
+
 ;;--- What sucks big?
 (warn "This sucks big")
 
@@ -188,7 +189,8 @@
   (when (sheet-direct-mirror sheet)
     (update-mirror-region (port sheet) sheet)))
 
-(defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) &key port-did-it)
+(defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) 
+					     &key port-did-it)
   (when (sheet-direct-mirror sheet)
     (unless port-did-it
       (update-mirror-region (port sheet) sheet))))
@@ -198,9 +200,10 @@
 ;; invalidate-cached-transformations does it anyway.
 
 #+ignore
-(defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) &key port-did-it)
+(defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) 
+						     &key port-did-it)
   (when (sheet-direct-mirror sheet)
-    (unless port
+    (unless port-did-it
       (update-mirror-region (port sheet) sheet))))
 
 (defun sheet-top-level-mirror (sheet)

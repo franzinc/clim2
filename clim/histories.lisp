@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.3 92/02/24 13:07:47 cer Exp $
+;; $fiHeader: histories.lisp,v 1.4 92/03/04 16:21:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -445,6 +445,16 @@
 
 (defmethod canonicalize-default ((history presentation-history) element)
   (unparse-presentation-history-element history element))
+
+#+compulsive-type-checking
+(defmethod push-history-element :around ((history presentation-history) element)
+  (when (and (presentation-typep
+	       (presentation-history-element-object element)
+	       (presentation-history-element-type element))
+	     (presentation-subtypep
+	       (presentation-history-element-type element)
+	       (presentation-history-type history)))
+    (call-next-method)))
 
 (defmethod history-replace-input
 	   ((history presentation-history) (istream input-editing-stream-mixin) element

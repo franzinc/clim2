@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.3 92/02/24 13:06:55 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.4 92/03/04 16:21:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -153,3 +153,42 @@
     (with-presentation-type-parameters (input-editor context-type)
       (history-replace-input history stream element)
       (queue-rescan stream ':activation))))
+
+
+;; Display a menu of completions
+(define-presentation-action menu-of-completions
+    (blank-area completer global-command-table
+     :gesture :menu
+     :documentation "Menu of completions")
+    (context-type window)
+  (with-presentation-type-parameters (completer context-type)
+    (multiple-value-bind (string success object nmatches possibilities)
+	(funcall function prefix :possibilities)
+      (declare (ignore string object success))
+      (unless (or (= nmatches 0) (null possibilities))
+	;;--- Just using the first non-COMPLETER context type is far too simplistic
+	(let ((type (evacuate-list
+		      (input-context-type (second *input-context*)))))
+	  (labels ((print-possibility (possibility stream)
+		     (cond (possibility-printer
+			    (funcall possibility-printer possibility type stream))
+			   (type
+			    (present (second possibility) type :stream stream))
+			   (t
+			    (format stream "~A" (first possibility)))))
+		   (menu-choose-body (stream presentation-type)
+		     (declare (ignore presentation-type))
+		     (formatting-table (stream :multiple-columns t)
+		       (dolist (possibility possibilities)
+			 (formatting-row (stream)
+			   (formatting-cell (stream)
+			     (print-possibility possibility stream)))))))
+	    (declare (dynamic-extent #'print-possibility #'menu-choose-body))
+	    (with-menu (menu window)
+	      #-Silica (setf (window-label menu) "Menu of completions")
+	      (with-end-of-line-action (menu :allow)
+		(let ((object
+			(menu-choose-from-drawer menu type #'menu-choose-body)))
+		  (when object
+		    (presentation-replace-input stream object type +textual-view+
+						:buffer-start location :rescan t)))))))))))

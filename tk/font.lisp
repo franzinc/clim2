@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.7 92/03/09 17:40:39 cer Exp $
+;; $fiHeader: font.lisp,v 1.8 92/03/30 17:51:32 cer Exp $
 
 (in-package :tk)
 
@@ -36,7 +36,7 @@
     (let ((x (x11:xloadqueryfont display name)))
       (when (zerop x) (error "Cannot find font: ~S" name))
       (setf (foreign-pointer-address f) x)
-      (register-address f x))))
+      (register-address f))))
 
 
 (defun query-font (display font-id)

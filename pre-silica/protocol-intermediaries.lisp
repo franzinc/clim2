@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: protocol-intermediaries.lisp,v 1.1 92/01/31 14:28:04 cer Exp $
+;; $fiHeader: protocol-intermediaries.lisp,v 1.2 92/02/24 13:08:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -18,29 +18,29 @@
   (multiple-value-bind (nx ny) (viewport-to-drawing-surface-coordinates window x y)
     (call-next-method window pointer button modifier-state nx ny)))
 
-(defmethod stream-pointer-position* :around ((window input-and-window-protocol-intermediary)
-					     &rest args)
+(defmethod stream-pointer-position :around ((window input-and-window-protocol-intermediary)
+					    &rest args)
   (declare (ignore args))
   (multiple-value-bind (x y)
       (call-next-method)
     (viewport-to-drawing-surface-coordinates window x y)))
 
-(defmethod stream-set-pointer-position* :around
+(defmethod stream-set-pointer-position :around
   ((window input-and-window-protocol-intermediary) x y &key pointer)
   (multiple-value-bind (nx ny) (viewport-to-drawing-surface-coordinates window x y)
     (call-next-method window nx ny :pointer pointer)))
 
-(defmethod stream-set-cursor-position* :after ((window input-and-window-protocol-intermediary)
-					       x y)
+(defmethod stream-set-cursor-position :after ((window input-and-window-protocol-intermediary)
+					      x y)
   (let ((cursor (stream-text-cursor window)))
     (when cursor
-      (cursor-set-position* cursor x y))))
+      (cursor-set-position cursor x y))))
 
-(defmethod stream-set-cursor-position*-internal :after
+(defmethod stream-set-cursor-position-internal :after
 	   ((window input-and-window-protocol-intermediary) x y)
   (let ((cursor (stream-text-cursor window)))
     (when cursor
-      (cursor-set-position* cursor x y))))
+      (cursor-set-position cursor x y))))
 
 
 ;;; Methods for streams that are both windows and extended output streams
@@ -89,10 +89,10 @@
 			(not draw)
 			(not (stream-recording-p stream)))))
     (multiple-value-bind (old-x old-y)
-	(when restore-p (stream-cursor-position* stream))
+	(when restore-p (stream-cursor-position stream))
       (unwind-protect
 	  (progn
 	    (stream-close-text-output-record stream)
 	    (call-next-method stream continuation record draw))
-	(when restore-p (stream-set-cursor-position* stream old-x old-y))))))
+	(when restore-p (stream-set-cursor-position stream old-x old-y))))))
 

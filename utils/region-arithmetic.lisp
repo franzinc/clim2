@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.4 92/03/04 16:20:22 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.5 92/03/10 10:11:59 cer Exp $
 
 (in-package :clim-utils)
 
@@ -193,7 +193,7 @@
   (and (= (- right1 left1) (- right2 left2))
        (= (- bottom1 top1) (- bottom2 top2))))
 
-(defun ltrb-contains-point*-p (left top right bottom x y)
+(defun ltrb-contains-position-p (left top right bottom x y)
   (declare (type coordinate left top right bottom x y))
   (and (<= left x)
        (<= top y)

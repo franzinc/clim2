@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: db-button.lisp,v 1.4 92/03/24 19:36:24 cer Exp $
+
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
-
-;; $fiHeader: db-button.lisp,v 1.4 92/03/24 19:36:24 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -120,7 +120,6 @@
 ;; This is done in the (SETF GADGET-VALUE) method because that's where it 
 ;; would be done in, say, Motif.  (I.e. we'd pass the SET-GADGET-VALUE off
 ;; to Motif which would toggle the indicator.)
-
 (defmethod (setf gadget-value) :after (nv (pane toggle-button-pane) &key)
   (when (port pane)
     ;; If it's not grafted, don't draw it.
@@ -131,8 +130,7 @@
 	       (cx (+ left radius))
 	       (cy (+ top (round (- bottom top) 2))))
 	  (draw-circle* medium cx cy (round radius 2)
-			:ink (if (gadget-value pane) +foreground-ink+
-			       +background-ink+)))))))
+			:ink (if (gadget-value pane) +foreground-ink+ +background-ink+)))))))
 
 (defmethod handle-event ((pane toggle-button-pane) (event pointer-button-press-event))
   (with-slots (armed) pane
@@ -188,6 +186,8 @@
 	   ((selection toggle-button) (client radio-box-pane) gadget-id new-value)
   (declare (ignore gadget-id))
   (let ((old-selection (radio-box-current-selection client)))
+    ;;--- Note the the Motif version of this sets the current selection
+    ;;--- to the ID, *not* the new value.  Howcum?
     (cond ((eql selection old-selection)
 	   (setf (radio-box-current-selection client) (and new-value selection)))
 	  (old-selection
@@ -204,14 +204,15 @@
   (let ((inferiors
 	  (with-look-and-feel-realization (frame-manager frame)
 	    (make-pane 'hbox-pane
-			  :spacing 5
-			  :contents choices))))
+		       :spacing 5
+		       :contents choices))))
     (sheet-adopt-child pane inferiors)
     (when selection
       (setf (gadget-value selection) t))))
 
 ;; This macro is just an example of one possible syntax.  The obvious "core"
-;; syntax is (make-pane 'radio-box :choices (list ...) :selection ...)
+;; syntax is (MAKE-PANE 'RADIO-BOX :CHOICES (LIST ...) :SELECTION ...)
+
 (defmacro with-radio-box ((&rest options) &body body)
   (declare (ignore options))
   (let ((current-selection '#:current-selection)
@@ -221,5 +222,5 @@
 		    `(setq ,',current-selection ,form)))
 	 (let ((,choices (list ,@body)))
 	   (make-pane 'radio-box
-			 :choices ,choices
-			 :selection ,current-selection))))))
+		      :choices ,choices
+		      :selection ,current-selection))))))

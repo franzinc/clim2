@@ -1,9 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: clx-mirror.lisp,v 1.3 92/03/04 16:20:54 cer Exp $
+
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
-;;; $fiHeader: clx-mirror.lisp,v 1.2 92/02/24 13:23:50 cer Exp $
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
 
@@ -11,7 +12,7 @@
   (with-slots (display screen) port
     (multiple-value-bind (left top right bottom)
 	(sheet-native-region* sheet)
-      (integerize-coordinates left top right bottom)
+      (fix-coordinates left top right bottom)
       (let* ((clx-parent (sheet-mirror sheet))
 	     (mirror
 	       (xlib:create-window 
@@ -140,10 +141,10 @@
 				    left top right bottom)
   (let* ((mirror (sheet-mirror sheet))
 	 (display (port-display port))
-	 (w (integerize-coordinate (- right left)))
-	 (h (integerize-coordinate (- bottom top)))
-	 (x (integerize-coordinate left))
-	 (y (integerize-coordinate top)))
+	 (w (fix-coordinate (- right left)))
+	 (h (fix-coordinate (- bottom top)))
+	 (x (fix-coordinate left))
+	 (y (fix-coordinate top)))
     (xlib:with-display (display)
       (setf (xlib:drawable-x mirror) x
 	    (xlib:drawable-y mirror) y

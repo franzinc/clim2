@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.5 92/03/04 16:21:59 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.6 92/03/10 10:12:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -151,11 +151,11 @@
       (unless end-position (setf end-position (fill-pointer input-buffer)))
       ;; cursor-X, cursor-Y are right if the start position is the insertion position.
       (cond ((= start-position 0)
-	     (multiple-value-setq (cursor-x cursor-y) (start-cursor-position* istream)))
+	     (multiple-value-setq (cursor-x cursor-y) (start-cursor-position istream)))
 	    ((= start-position insertion-pointer))
 	    (t
 	     (multiple-value-setq (cursor-x cursor-y)
-	       (input-buffer-input-position->cursor-position* istream start-position))))
+	       (input-buffer-input-position->cursor-position istream start-position))))
       ;; OK, now we know our cursor-(X,Y) and the line height.  Now scan things from here.
       (do-input-buffer-pieces (input-buffer :start start-position :end end-position)
 			      (from to noise-string)
@@ -229,8 +229,8 @@
 		     (accept-result-presentation-type next-char)))
 	    (t (apply #'accept-1 (or *original-stream* istream) type args))))))
 
-(defmethod input-buffer-input-position->cursor-position* ((istream input-editing-stream-mixin)
-							  &optional position)
+(defmethod input-buffer-input-position->cursor-position ((istream input-editing-stream-mixin)
+							 &optional position)
     (multiple-value-bind (cursor-x cursor-y)
 	(flet ((ignore (&rest args)
 		 (declare (ignore args))))
@@ -243,8 +243,8 @@
 				&optional (start-position 0))
   (with-slots (input-buffer stream insertion-pointer) istream
     (multiple-value-bind (x-pos y-pos)
-	(input-buffer-input-position->cursor-position* istream start-position)
-      (stream-set-cursor-position* stream x-pos y-pos))
+	(input-buffer-input-position->cursor-position istream start-position)
+      (stream-set-cursor-position stream x-pos y-pos))
     (macrolet ((do-part (from &optional to)
 		 `(do-input-buffer-pieces (input-buffer :start ,from :end ,to)
 					  (start-index end-index noise-string)
@@ -264,10 +264,10 @@
       (let ((ip (min insertion-pointer (fill-pointer input-buffer))))
 	(do-part start-position ip)
 	;; Remember where the cursor goes (at the insertion pointer!)
-	(multiple-value-bind (x-pos y-pos) (stream-cursor-position* istream)
+	(multiple-value-bind (x-pos y-pos) (stream-cursor-position istream)
 	  (do-part ip)
 	  ;; And put it there.
-	  (stream-set-cursor-position* stream x-pos y-pos))))
+	  (stream-set-cursor-position stream x-pos y-pos))))
     (force-output stream)))
 
 ;;--- Too bad this never gets called...
@@ -340,10 +340,10 @@
       (throw 'rescan (values)))))
 
 (defun shift-buffer-portion (buffer from-index to-index)
-  (declare (fixnum from-index to-index))
+  (declare (type fixnum from-index to-index))
   (let (#+(or Genera Minima) (buffer buffer)
 	(length (fill-pointer buffer)))
-    (declare (fixnum length))
+    (declare (type fixnum length))
     #+Genera (declare (sys:array-register buffer))
     #+Minima (declare (type vector buffer))
     (cond ((< from-index to-index)
@@ -411,7 +411,7 @@
   (with-slots (stream input-buffer scan-pointer insertion-pointer
 	       activation-gesture rescanning-p
 	       numeric-argument previous-history) istream
-    (declare (fixnum scan-pointer insertion-pointer))
+    (declare (type fixnum scan-pointer insertion-pointer))
     (loop	;until a real gesture is read or we throw out
       ;; First look in the input-buffer of the input-editor and see
       ;; if there's something there.
@@ -441,16 +441,16 @@
       ;;--- This is presumably much slower than necessary.
       ;;--- Perhaps there is a better way to keep track of where the cursor should be.
       (multiple-value-bind (x-pos y-pos)
-	  (input-buffer-input-position->cursor-position* istream insertion-pointer)
+	  (input-buffer-input-position->cursor-position istream insertion-pointer)
 	(declare (type coordinate x-pos y-pos))
 	(multiple-value-bind (cx cy)
-	    (stream-cursor-position* stream)
+	    (stream-cursor-position stream)
 	  (declare (type coordinate cx cy))
 	  ;; Don't set the cursor position if it's already right.
 	  ;; This prevents the input editor from scrolling the window after
 	  ;; the user has scrolled it back until the cursor position actually changes.
 	  (unless (and (= cx x-pos) (= cy y-pos))
-	    (stream-set-cursor-position* stream x-pos y-pos))))
+	    (stream-set-cursor-position stream x-pos y-pos))))
 
       (setf rescanning-p nil)
       (multiple-value-bind (thing type)
@@ -628,10 +628,10 @@
 (defmethod replace-input ((istream input-editing-stream-mixin) new-input
 			  &key (start 0) end rescan
 			       (buffer-start (input-position istream)))
-  (declare (fixnum start buffer-start))
+  (declare (type fixnum start buffer-start))
   (let ((rescan-p nil))
     (with-slots (input-buffer scan-pointer insertion-pointer) istream
-      (declare (fixnum scan-pointer insertion-pointer))
+      (declare (type fixnum scan-pointer insertion-pointer))
       (let* ((the-end (the fixnum (or end (length new-input))))
 	     (nchars (the fixnum (- the-end start)))
 	     (buffer-total-length (the fixnum (array-dimension input-buffer 0)))
@@ -737,7 +737,7 @@
       (original-stream-recording-p :accessor original-stream-recording-p)))
 
 ;;; Required methods:
-(defmethod start-cursor-position* ((istream standard-input-editing-stream))
+(defmethod start-cursor-position ((istream standard-input-editing-stream))
   (with-slots (start-x-position start-y-position) istream
     (values start-x-position start-y-position)))
 
@@ -747,13 +747,13 @@
 	;; in this specific implementation it's ok for
 	;; us to know that our encapsulated stream will
 	;; support the extended output protocol.
-	(stream-cursor-position* stream)
+	(stream-cursor-position stream)
       (setf start-x-position x
 	    start-y-position y))))
 
 (defmethod reset-cursor-position ((istream standard-input-editing-stream))
   (with-slots (stream start-x-position start-y-position) istream
-    (stream-set-cursor-position* stream start-x-position start-y-position)))
+    (stream-set-cursor-position stream start-x-position start-y-position)))
 
 (defmethod erase-input-buffer ((istream standard-input-editing-stream)
 			       &optional (start-position 0))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.8 92/03/24 19:36:50 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.9 92/03/30 17:52:08 cer Exp $
 
 (in-package :silica)
 
@@ -134,37 +134,35 @@
 
 ;;;;
 
-(defgeneric map-sheet-point*-to-parent (sheet x y)
+(defgeneric map-sheet-position-to-parent (sheet x y)
   (:method (sheet x y)
-   (transform-point* (sheet-transformation sheet) x y)))
+   (transform-position (sheet-transformation sheet) x y)))
 
 
-(defgeneric map-sheet-point*-to-child (sheet x y)
+(defgeneric map-sheet-position-to-child (sheet x y)
   (:method (sheet x y)
-   (untransform-point* (sheet-transformation sheet) x y)))
+   (untransform-position (sheet-transformation sheet) x y)))
 
-(defgeneric map-child-bounding-rectangle*-to-parent (sheet min-x min-y max-x max-y)
+(defgeneric map-sheet-rectangle*-to-parent (sheet min-x min-y max-x max-y)
   (:method (sheet min-x min-y max-x max-y)
    (transform-rectangle*
      (sheet-transformation sheet)
      min-x min-y max-x max-y)))
 
-(defgeneric map-parent-bounding-rectangle*-to-child (sheet min-x min-y max-x max-y)
+(defgeneric map-sheet-rectangle*-to-child (sheet min-x min-y max-x max-y)
   (:method (sheet min-x min-y max-x max-y)
    (untransform-rectangle*
      (sheet-transformation sheet)
      min-x min-y max-x max-y)))
 
-(defgeneric child-containing-point (sheet point))
+(defgeneric child-containing-position (sheet x y))
 
-(defgeneric child-containing-point* (sheet x y))
-
-(defmethod child-containing-point* (sheet x y)
+(defmethod child-containing-position (sheet x y)
   (find-if #'(lambda (child)
 	       (and (sheet-enabled-p child)
 		    (multiple-value-bind (x y)
-			(untransform-point* (sheet-transformation child) x y)
-		      (region-contains-point*-p (sheet-region child) x y))))
+			(untransform-position (sheet-transformation child) x y)
+		      (region-contains-position-p (sheet-region child) x y))))
 	   (sheet-children sheet)))
 
 
@@ -247,30 +245,33 @@
      (or (graftp parent)
 	 (sheet-engrafted-p parent)))))
 
-;;---
 
 (defmethod (setf sheet-region) :after (nv sheet)
   (note-sheet-region-changed sheet))
 
 (defgeneric note-sheet-region-changed (sheet &key port-did-it)
-  (:method (sheet &key port-did-it) (declare (ignore port-did-it)) nil))
+  (:method (sheet &key port-did-it)
+   (declare (ignore port-did-it))
+   nil))
 
+;;--- 
 (defmethod (setf sheet-transformation) :after (nv sheet)
   (note-sheet-transformation-changed sheet))
 
 (defgeneric note-sheet-transformation-changed (sheet &key port-did-it)
-  (:method (sheet &key port-did-it) (declare (ignore port-did-it)) nil))
-
+  (:method (sheet &key port-did-it) 
+   (declare (ignore port-did-it)) 
+   nil))
 
 (defgeneric invalidate-cached-transformations (sheet)
   (:method ((sheet t)) nil)
   (:method :after ((sheet sheet-parent-mixin))
-	   (mapc #'invalidate-cached-transformations (sheet-children sheet))))
+    (mapc #'invalidate-cached-transformations (sheet-children sheet))))
 	     
 (defgeneric invalidate-cached-regions (sheet)
-    (:method ((sheet t)) nil)
+  (:method ((sheet t)) nil)
   (:method :after ((sheet sheet-parent-mixin))
-	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
+    (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
 (defmethod note-sheet-region-changed :before (sheet &key port-did-it)
   (declare (ignore port-did-it))
@@ -281,7 +282,6 @@
   (declare (ignore port-did-it))
   (invalidate-cached-transformations sheet)
   (invalidate-cached-regions sheet))
-
 
 (defgeneric update-native-transformation (port sheet))
 

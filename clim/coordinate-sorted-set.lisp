@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.2 92/02/24 13:07:10 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.3 92/03/04 16:21:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,7 +19,7 @@
 ;;;  map-over-output-records-overlapping-region:
 ;;;   (function record region
 ;;;    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
-;;;  map-over-output-records-containing-point*:
+;;;  map-over-output-records-containing-position:
 ;;;   (function record x y
 ;;;    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
 
@@ -27,7 +27,7 @@
 	  (output-record-mixin output-record-element-mixin output-record)
     ((coordinate-sorted-set)			;a simple vector, by gawd
      (fill-pointer :initform 0)
-     (tallest-box-height :initform 0)))
+     (tallest-box-height :initform (coordinate 0))))
 
 (defmethod initialize-instance :after ((record standard-tree-output-record)
 				       &key (size 200))
@@ -57,7 +57,7 @@
 
 (defmethod clear-output-record ((record standard-tree-output-record))
   (with-slots (coordinate-sorted-set fill-pointer tallest-box-height) record
-    (setf tallest-box-height 0)
+    (setf tallest-box-height (coordinate 0))
     ;; Release pointers to objects
     (fill coordinate-sorted-set nil :start 0 :end fill-pointer)
     (setf fill-pointer 0)))
@@ -67,7 +67,7 @@
     (let ((vector coordinate-sorted-set)
 	  (fp fill-pointer))
       (declare (type simple-vector vector) #+Genera (sys:array-register vector))
-      (declare (fixnum fp))
+      (declare (type fixnum fp))
       (maxf tallest-box-height (bounding-rectangle-height child))
       (with-bounding-rectangle* (left top right bottom) child
         (declare (ignore left top))
@@ -86,7 +86,7 @@
 	      (simple-vector-push-extend child vector fp 200))
 	  (let ((index (coordinate-sorted-set-index-for-position
 			 vector right bottom 0 fp)))
-	    (declare (fixnum index))
+	    (declare (type fixnum index))
 	    ;; Make sure that the new child comes after any child it overlaps
 	    ;; so that replaying happens in the right order.
 	    (loop
@@ -110,7 +110,8 @@
 		 ;; Shift the whole vector downward
 		 (do ((i (the fixnum index) (1+ i)))
 		     ((= i new-fp))
-		   (declare (fixnum i) (optimize (speed 3) (safety 0)))
+		   (declare (type fixnum i)
+			    (optimize (speed 3) (safety 0)))
 		   (setf (svref vector i) (svref vector (1+ i)))))
 	       (setf fill-pointer new-fp)
 	       t))
@@ -131,17 +132,17 @@
 	(dovector ((child index) vector :start 0 :end length :simple-p t)
 	  (apply function child continuation-args))
       (with-bounding-rectangle* (left1 top1 right1 bottom1) region
-	(translate-fixnum-positions x-offset y-offset left1 top1 right1 bottom1)
+	(translate-coordinates x-offset y-offset left1 top1 right1 bottom1)
 	(let ((start (coordinate-sorted-set-index-for-position vector 0 top1 0 length))
 	      (limit (+ bottom1 (slot-value record 'tallest-box-height))))
-	  (declare (fixnum start limit))
+	  (declare (type fixnum start limit))
 	  ;; Subtract out the record offset from the region, to make comparison fair
 	  (multiple-value-bind (xoff yoff)
-	      (output-record-position* record)
-	    (translate-fixnum-positions (- xoff) (- yoff) left1 top1 right1 bottom1))
+	      (output-record-position record)
+	    (translate-coordinates (- xoff) (- yoff) left1 top1 right1 bottom1))
 	  (do ((index start (the fixnum (1+ (the fixnum index)))))
 	      ((= (the fixnum index) length))
-	    (declare (fixnum index))
+	    (declare (type fixnum index))
 	    (let ((child (svref vector index)))
 	      (with-bounding-rectangle* (left2 top2 right2 bottom2) child
 		(when (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1
@@ -150,13 +151,13 @@
 		(when (> bottom2 limit)
 		  (return nil))))))))))
 
-(defmethod map-over-output-records-containing-point*
+(defmethod map-over-output-records-containing-position
 	   (function (record standard-tree-output-record) x y
 	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (declare (type coordinate x-offset y-offset))
   (declare (optimize (safety 0)))
-  (translate-fixnum-positions x-offset y-offset x y)
+  (translate-coordinates x-offset y-offset x y)
   (let ((vector (slot-value record 'coordinate-sorted-set))
 	(length (slot-value record 'fill-pointer))
 	(bound (slot-value record 'tallest-box-height)))
@@ -164,16 +165,16 @@
 	     #+Genera (sys:array-register vector))
     (let ((end (coordinate-sorted-set-index-for-position vector 0 (+ y bound 1) 0 length))
 	  (limit (- y bound)))
-      (declare (fixnum end limit))
+      (declare (type fixnum end limit))
       (multiple-value-bind (xoff yoff)
-	  (output-record-position* record)
-	(translate-fixnum-positions (- xoff) (- yoff) x y))
+	  (output-record-position record)
+	(translate-coordinates (- xoff) (- yoff) x y))
       (do ((index (min (1- length) end) (the fixnum (1- (the fixnum index)))))
 	  ((< (the fixnum index) 0))
-	(declare (fixnum index))
+	(declare (type fixnum index))
 	(let ((child (svref vector index)))
 	  (with-bounding-rectangle* (left top right bottom) child
-	    (when (ltrb-contains-point*-p left top right bottom x y)
+	    (when (ltrb-contains-position-p left top right bottom x y)
 	      (apply function child continuation-args))
 	    (when (< bottom limit)
 	      (return nil))))))))
@@ -187,7 +188,7 @@
     ;; Binary search to find where this one goes.
     (let ((search-index (coordinate-sorted-set-index-for-position
 			  vector right bottom 0 fill-pointer)))
-      (declare (fixnum search-index))
+      (declare (type fixnum search-index))
       ;; Search back over things in the same place.
       (when (< search-index fill-pointer)
 	(dovector ((record index) vector :start 0 :end (1+ search-index)
@@ -215,7 +216,7 @@
   (declare (optimize (speed 3) (safety 0)))
   (let ((below start)
 	(above end))
-    (declare (fixnum below above))
+    (declare (type fixnum below above))
     (assert (<= below above))			;Binary search will loop otherwise.
     (let (#+(or Genera Minima) (vector vector))
       #+Genera (declare (sys:array-register vector))

@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: genera-mirror.lisp,v 1.2 92/03/04 16:22:50 cer Exp $
+
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 International Lisp Associates."
-;;; $fiHeader: genera-mirror.lisp,v 1.1 92/02/24 13:28:07 cer Exp $
 
 
 (defvar *clim-window-count* 0)
@@ -14,7 +15,7 @@
   (with-slots (screen height-pixels) port
     (multiple-value-bind (left top right bottom)
 	(sheet-native-region* sheet)
-      (integerize-coordinates left top right bottom)
+      (fix-coordinates left top right bottom)
       (let* ((genera-parent (sheet-mirror sheet))
 	     (name (format nil "CLIM window ~D" (incf *clim-window-count*)))
 	     (mirror
@@ -157,10 +158,8 @@
       (multiple-value-bind (left top right bottom)
 	  (fit-region*-in-region* left top right bottom
 				  clip-left clip-top clip-right clip-bottom)
-	(scl:send mirror :set-edges (integerize-coordinate left)
-				    (integerize-coordinate top)
-				    (integerize-coordinate right)
-				    (integerize-coordinate bottom))))))
+	(scl:send mirror :set-edges (fix-coordinate left)  (fix-coordinate top)
+				    (fix-coordinate right) (fix-coordinate bottom))))))
 
 
 ;; Port trigger not nil means that the port is triggering the

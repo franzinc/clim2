@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-implementation.lisp,v 1.1 92/01/31 14:28:01 cer Exp $
+;; $fiHeader: postscript-implementation.lisp,v 1.2 92/02/24 13:08:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -90,14 +90,15 @@
 ;;; This structure is used to represent a PostScript font masquerading as a
 ;;; CLIM-world entity.  They populate the font-map array of the stream.
 (defstruct (ps-font-compat-kludge (:conc-name psfck-))
-  index						;index into stream's array.
-  style-descriptor				;parse-text-style output.
-  true-ps-descriptor				;("Times" :italic 6 [pts])
-  points					;point-size
-  clim-height					;equivalent size in CLIM "pixels"
-  clim-ascent					;top-to-baseline, "pixels"
-  clim-descent					;baseline-to-bottom
-  width-table)					;width array or constant #.
+  index					;index into stream's array.
+  style-descriptor			;parse-text-style output.
+  true-ps-descriptor			;("Times" :italic 6 [pts])
+  points				;point-size
+  clim-height				;equivalent size in CLIM "pixels"
+  clim-ascent				;top-to-baseline, "pixels"
+  clim-descent				;baseline-to-bottom
+  width-table				;width array or constant #.
+  (established nil))			;T ==> written to the printer
 
 ;;; Each element is ((family face) width-or-width-table-array height ascent descent)
 (defvar *char-width-tables* nil)
@@ -262,6 +263,7 @@
       (header-comments :initform nil :initarg :header-comments)
       (orientation :initform :portrait :initarg :orientation)
       ;; For multi-page output, analogous to a window's scroll position
+      (multi-page :initform nil :initarg :multi-page)
       (viewport-x :initform 0)
       (viewport-y :initform 0)))
 
@@ -546,15 +548,24 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 
 (defmethod postscript-prologue ((stream postscript-implementation-mixin))
   (with-slots (printer-stream header-comments display-device-type orientation) stream
-    (format printer-stream "%! nonconforming~%")
-    (format printer-stream "%%Creator: CLIM 1.0~%")
+    (format printer-stream "%!PS-Adobe-2.0 EPSF-2.0~%")
+    (multiple-value-bind (left top right bottom)
+	(postscript-bounding-box-edges stream)
+      (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
+	left top right bottom))
+    (format printer-stream "%%Creator: CLIM 2.0~%")
     (let ((title (getf header-comments :title)))
       (when title
         (format printer-stream "%%Title: ~A~%" title)))
     (let ((for (or (getf header-comments :for) #+Genera zl:user-id)))
       (when for
         (format printer-stream "%%For: ~A~%" for)))
-    #+Genera (format printer-stream "%%CreationDate: ~\\date\\~%" (get-universal-time))
+    (multiple-value-bind (second minute hour date month year)
+	(decode-universal-time (get-universal-time))
+      (format printer-stream "%%CreationDate: ~D-~A-~D ~2,'0D:~2,'0D:~2,'0D~%"
+	date (svref #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
+		      "Jul" "Aug" "Sep" "Oct" "Nov" "Dec") month) year
+	hour minute second))
     (format printer-stream "%%DocumentFonts: (atend)~%")
     (format printer-stream "%%EndComments~%")
     (write-string *postscript-prologue* printer-stream)
@@ -570,7 +581,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
     (format printer-stream
         "/new-matrix {0 format-y-translation translate
 		      format-rotation rotate} def
-	 /new-page {showpage new-matrix} def")
+	 /new-page {showpage new-matrix} def~%")
     (format printer-stream "%%EndProlog~%")
     (format printer-stream "~%new-matrix~%")))
 
@@ -969,21 +980,27 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (format printer-stream ") show~%"))
 
 (defmethod get-font-compat-str ((stream postscript-implementation-mixin) text-style)
-  (with-slots (font-map printer-stream) stream 
-    (let ((styledesc (parse-text-style text-style))
-	  (al (length font-map)))
-      (do ((i 0 (1+ i)))
-	  ((>= i al)
-	   (error "Font map overflow for ~S" stream))
-	(let ((fcs (aref font-map i)))
-	  (when (null fcs)
-	    (setq fcs (make-new-fcs styledesc i))
-	    (setf (aref font-map i) fcs)
-	    (format printer-stream "~D ~D /~A estfont~%" 
-	      (psfck-index fcs) (psfck-points fcs) (get-ps-fam-face-name fcs))
-	    (return fcs))
-	  (when (eq styledesc (psfck-style-descriptor fcs))
-	    (return fcs)))))))
+  (with-slots (font-map printer-stream draw-p) stream 
+    (let* ((styledesc (parse-text-style text-style))
+	   (al (length font-map))
+	   (fcs
+	     (do ((i 0 (1+ i)))
+		 ((>= i al)
+		  (error "Font map overflow for ~S" stream))
+	       (let ((fcs (aref font-map i)))
+		 (when (null fcs)
+		   (setq fcs (make-new-fcs styledesc i))
+		   (setf (aref font-map i) fcs)
+		   (return fcs))
+		 (when (eq styledesc (psfck-style-descriptor fcs))
+		   (return fcs))))))
+      (when (and fcs 
+		 draw-p
+		 (not (psfck-established fcs)))
+	(format printer-stream "~D ~D /~A estfont~%"
+	  (psfck-index fcs) (psfck-points fcs) (get-ps-fam-face-name fcs))
+	(setf (psfck-established fcs) t))
+      fcs)))
 
 
 ;; PostScript's "default user space" is measured in printers' points.
@@ -1094,15 +1111,19 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (:default-initargs :display-device-type *postscript-device*
 		     :default-text-margin 1000))
 
-(defmethod initialize-instance :after ((stream postscript-stream) &key)
-  (postscript-prologue stream))
-
 (defun make-postscript-stream (stream)
   (make-instance 'postscript-stream :stream stream))
 
 (defmethod close ((stream postscript-stream) &key abort)
-  (declare (ignore abort))
-  (postscript-epilogue stream))
+  (unless abort
+    (postscript-epilogue stream)))
+
+(defmethod postscript-bounding-box-edges ((stream postscript-stream))
+  (with-bounding-rectangle* (left top right bottom)
+      (stream-output-history stream)
+    (pixels-to-points left top right bottom)
+    (values (round left) (round top)
+	    (round right) (round bottom))))
 
 (defmethod window-inside-width ((stream postscript-implementation-mixin))
   (with-slots (display-device-type) stream
@@ -1129,39 +1150,39 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 ;; Replay some PostScript output, breaking it into multiple pages
 (defmethod stream-replay ((stream postscript-implementation-mixin) &optional region)
   (with-slots (output-record record-p draw-p display-device-type 
-	       printer-stream orientation viewport-x viewport-y) stream
+	       printer-stream orientation multi-page viewport-x viewport-y) stream
     (when draw-p
       (when output-record
 	(letf-globally ((record-p nil))
-	  (if region 
+	  (if (or region (not multi-page))
 	      (replay output-record stream region)
-	    (with-bounding-rectangle* (left top right bottom) output-record
-	      (let* ((page-width
-		       (floor (* (slot-value display-device-type 'page-width)
-				 (slot-value display-device-type 'device-units-per-inch))
-			      *1-pixel=points*))
-		     (page-height
-		       (floor (* (slot-value display-device-type 'page-height)
-				 (slot-value display-device-type 'device-units-per-inch))
-			      *1-pixel=points*))
-		     (first-page t))
-		(setq viewport-x 0 viewport-y 0)
-		;; Draw each chunk of output on its own page
-		(unwind-protect
-		    (do ((y top (+ y page-height)))
-			((> y bottom))
-		      (do ((x left (+ x page-width)))
-			  ((> x right))
-			(if first-page
-			    (setq first-page nil)
-			    (format printer-stream "new-page~%"))
-			(let ((region (make-bounding-rectangle
-					x y (+ x page-width) (+ y page-height))))
-			  (replay output-record stream region))
-			(incf viewport-x page-width))
-		      (setf viewport-x 0)
-		      (incf viewport-y page-height))
-		(setq viewport-x 0 viewport-y 0))))))))))
+	      (with-bounding-rectangle* (left top right bottom) output-record
+		(let* ((page-width
+			 (floor (* (slot-value display-device-type 'page-width)
+				   (slot-value display-device-type 'device-units-per-inch))
+				*1-pixel=points*))
+		       (page-height
+			 (floor (* (slot-value display-device-type 'page-height)
+				   (slot-value display-device-type 'device-units-per-inch))
+				*1-pixel=points*))
+		       (first-page t))
+		  (setq viewport-x 0 viewport-y 0)
+		  ;; Draw each chunk of output on its own page
+		  (unwind-protect
+		      (do ((y top (+ y page-height)))
+			  ((> y bottom))
+			(do ((x left (+ x page-width)))
+			    ((> x right))
+			  (if first-page
+			      (setq first-page nil)
+			      (format printer-stream "gsave new-page grestore~%"))
+			  (let ((region (make-bounding-rectangle
+					  x y (+ x page-width) (+ y page-height))))
+			    (replay output-record stream region))
+			  (incf viewport-x page-width))
+			(setf viewport-x 0)
+			(incf viewport-y page-height))
+		    (setq viewport-x 0 viewport-y 0))))))))))
 		
 
 (defmacro with-output-to-postscript-stream ((stream-var file-stream &rest args) &body body)
@@ -1184,17 +1205,17 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 					  :stream file-stream
 					  :display-device-type display-device
 					  :header-comments header-comments
-					  :orientation orientation))
+					  :orientation orientation
+					  :multi-page multi-page))
 	(abort-p t))
-    (with-output-recording-options (postscript-stream :record t :draw (not multi-page))
+    (with-output-recording-options (postscript-stream :record t :draw nil)
       (unwind-protect
 	  (multiple-value-prog1
 	    (funcall continuation postscript-stream)
-	    (when multi-page
-	      ;; In the case of multi-page output, we have not actually output
-	      ;; anything to the printer yet.  Do so now, breaking the output
-	      ;; up into multiple pages.
-	      (with-output-recording-options (postscript-stream :record nil :draw t)
-		(frame-replay *application-frame* postscript-stream)))
+	    (postscript-prologue postscript-stream)
+	    ;; Now do the output to the printer, breaking up the output into
+	    ;; multiple pages if that was requested
+	    (with-output-recording-options (postscript-stream :record nil :draw t)
+	      (frame-replay *application-frame* postscript-stream))
 	    (setq abort-p nil))
 	(close postscript-stream :abort abort-p)))))

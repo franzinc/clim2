@@ -20,10 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.6 92/03/09 17:40:35 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.7 92/03/30 17:51:31 cer Exp $
 
 (in-package :tk)
-
 
 (defun simple-event-loop (context)
   (loop 
@@ -73,8 +72,6 @@
 
 (defun app-process-event (context mask)
   (app_process_event context mask))
-
-
 
 (defvar *event* nil)
 

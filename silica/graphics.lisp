@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.7 92/03/24 19:36:41 cer Exp Locker: cer $
+;; $fiHeader: graphics.lisp,v 1.8 92/04/10 14:26:33 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -88,51 +88,46 @@
 					    arguments)
   (declare (ignore spread-arguments))
   (list
-   `(define-compiler-macro ,spread-name 
-	(&whole form 
-		medium-or-stream 
-		,@spread-argument-names &rest drawing-options-and-keyword-arguments)
-      (or (transform-graphics-function-call 
-	   medium-or-stream
-	   ',medium-graphics-function-name
-	   ',drawing-options
-	   ',other-keyword-arguments
-	   (list ,@spread-argument-names)
-	   drawing-options-and-keyword-arguments)
-	  form))
-   `(define-compiler-macro ,name 
-	(&whole form medium-or-stream ,@unspread-argument-names 
-	 &rest drawing-options-and-keyword-arguments)
-      (or (transform-graphics-function-call 
-	   medium-or-stream
-	   ',medium-graphics-function-name
-	   ',drawing-options
-	   ',other-keyword-arguments
-	   (list ,@unspread-argument-names)
-	   drawing-options-and-keyword-arguments
-	   ',arguments)
-	  form))))
+    `(define-compiler-macro ,spread-name 
+			    (&whole form medium-or-stream ,@spread-argument-names
+			     &rest drawing-options-and-keyword-arguments)
+       (or (transform-graphics-function-call 
+	     medium-or-stream
+	     ',medium-graphics-function-name
+	     ',drawing-options
+	     ',other-keyword-arguments
+	     (list ,@spread-argument-names)
+	     drawing-options-and-keyword-arguments)
+	   form))
+    `(define-compiler-macro ,name 
+			    (&whole form medium-or-stream ,@unspread-argument-names 
+			     &rest drawing-options-and-keyword-arguments)
+       (or (transform-graphics-function-call 
+	     medium-or-stream
+	     ',medium-graphics-function-name
+	     ',drawing-options
+	     ',other-keyword-arguments
+	     (list ,@unspread-argument-names)
+	     drawing-options-and-keyword-arguments
+	     ',arguments)
+	   form))))
 
 (defun generate-argument-spreading-code (x)
   (if (consp x)
       (destructuring-bind (argname type . names) x
 	(ecase type
 	  (point-sequence
-	   (destructuring-bind (new-name) names
-	     (values argname
-		     (list `(unspread-point-sequence ,argname))
-		     (list new-name))))
+	    (destructuring-bind (new-name) names
+	      (values argname
+		      (list `(unspread-point-sequence ,argname))
+		      (list new-name))))
 	  (point
-	   (destructuring-bind (x y) names
-	     (values
-	      argname
-	      (list `(point-x ,argname)
-		    `(point-y ,argname))
-	      (list x y))))))
-    (values
-     x
-     (list x)
-     (list x))))
+	    (destructuring-bind (x y) names
+	      (values argname
+		      (list `(point-x ,argname)
+			    `(point-y ,argname))
+		      (list x y))))))
+      (values x (list x) (list x))))
 
 (defun decode-graphics-function-arguments (arguments)
   (let* ((keyn (position '&key arguments))
@@ -142,12 +137,11 @@
 	 spread-arguments 
 	 spread-argument-names)
     (dolist (x no-keyword)
-      (multiple-value-bind
-	  (argname spread-args spread-values)
+      (multiple-value-bind (argname spread-args spread-values)
 	  (generate-argument-spreading-code x)
-	  (push argname unspread-argument-names)
+	(push argname unspread-argument-names)
 	  (dolist (x spread-args) (push x spread-arguments))
-	  (dolist (x spread-values) (push x spread-argument-names))))
+ 	  (dolist (x spread-values) (push x spread-argument-names))))
     (values (nreverse unspread-argument-names)
 	    (nreverse spread-arguments)
 	    (nreverse spread-argument-names)
@@ -165,14 +159,13 @@
 					 other-keyword-arguments
 					 required-arguments
 					 rest-argument
-					 &optional 
-					 arguments)
+					 &optional arguments)
   (let ((drawing-options
-	 (mapcar #'(lambda (x)
-		     (intern x :keyword))
-		 drawing-options)))
+	  (mapcar #'(lambda (x)
+		      (intern (symbol-name x) :keyword))
+		  drawing-options)))
     (flet ((kw-arg-keyword (x)
-	     (intern (if (consp x) (car x) x) :keyword))
+	     (intern (symbol-name (if (consp x) (car x) x)) :keyword))
 	   (kw-arg-default-value (x)
 	     (and (consp x) (second x))))
       (when (do ((args rest-argument (cddr args)))
@@ -184,96 +177,96 @@
 				(when (eq (kw-arg-keyword arg) (car args))
 				  (return t)))))
 		     (return nil))))
-	(let (bindings)
+	(let ((bindings nil))
 	  (when arguments
 	    (setq required-arguments
-	      (mapcan #'(lambda (arg req-arg)
-			  (let ((g (gensym)))
-			    (push (list g req-arg) bindings)
-			    (if (consp arg)
-				(nth-value
-				 1
-				 (generate-argument-spreading-code
-				  (cons g
-					(cdr arg))))
-			      (list g))))
-		      arguments
-		      required-arguments))
+		  (mapcan #'(lambda (arg req-arg)
+			      (let ((g (gensym)))
+				(push (list g req-arg) bindings)
+				(if (consp arg)
+				    (multiple-value-bind (name spread)
+					(generate-argument-spreading-code
+					  (cons g (cdr arg)))
+				      (declare (ignore name))
+				      spread)
+				    (list g))))
+			  arguments
+			  required-arguments))
 	    (setq bindings (nreverse bindings)))
 	  (let* ((stuff
-		  (do ((args rest-argument (cddr args))
-		       (result nil))
-		      ((null args)
-		       (nreverse result))
-		    (let ((kw (car args))
-			  (value (cadr args)))
-		      (push (list kw (gensym) value) result))))
-		 (medium-or-stream-name (gensym))
+		   (do ((args rest-argument (cddr args))
+			(result nil))
+		       ((null args)
+			(nreverse result))
+		     (let ((kw (car args))
+			   (value (cadr args)))
+		       (push (list kw (gensymbol kw) value) result))))
+		 (medium-or-stream-name (gensymbol 'medium))
 		 (call
-		  `(,medium-graphics-function-name
-		    ,medium-or-stream-name
-		    ,@required-arguments
-		    ,@(mapcar #'(lambda (kw-arg)
-				  (or 
-				   (second (assoc (kw-arg-keyword kw-arg) stuff))
-				   (kw-arg-default-value kw-arg)))
-			      other-keyword-arguments)))
+		   `(,medium-graphics-function-name
+		     ,medium-or-stream-name
+		     ,@required-arguments
+		     ,@(mapcar #'(lambda (kw-arg)
+				   (or (second (assoc (kw-arg-keyword kw-arg) stuff))
+				       (kw-arg-default-value kw-arg)))
+			       other-keyword-arguments)))
 		 (supplied-drawing-options
-		  (mapcan #'(lambda (do)
-			      (let ((x (assoc do stuff)))
-				(and x (list do (second x)))))
-			  drawing-options)))
+		   (mapcan #'(lambda (do)
+			       (let ((x (assoc do stuff)))
+				 (and x (list do (second x)))))
+			   drawing-options)))
 	    
 	    `(let ((,medium-or-stream-name ,medium-or-stream))
 	       (let ,bindings
 		 (let ,(mapcar #'(lambda (x)
-				 (list (second x) (third x)))
-		      stuff)
-		 ,(if supplied-drawing-options
-		      `(with-drawing-options 
+				   (list (second x) (third x)))
+			       stuff)
+		   ,(if supplied-drawing-options
+			`(with-drawing-options 
 			   (,medium-or-stream-name ,@supplied-drawing-options)
-			 ,call)
-		    call))))))))))
-)					;eval-when
+			   ,call)
+		        call))))))))))
+
+)	;eval-when
 
 
-(defmacro transform-points ((transform) &rest points)
-  (when points
-    (assert (evenp (length points)) ()
-	    "Points must be x/y pairs.  There are an odd number of elements in ~S"
-	    points)
+(defmacro transform-positions ((transform) &rest positions)
+  (when positions
+    (assert (evenp (length positions)) ()
+	    "Positions must be x/y pairs.  There are an odd number of elements in ~S"
+	    positions)
     (let ((xform '#:transform))
       `(let ((,xform ,transform))
-	 ,@(do* ((points points (cddr points))
-		 (x (first points) (first points))
-		 (y (second points) (second points))
+	 ,@(do* ((positions positions (cddr positions))
+		 (x (first positions) (first positions))
+		 (y (second positions) (second positions))
 		 (forms nil))
-		((null points) (nreverse forms))
+		((null positions) (nreverse forms))
 	     (push `(multiple-value-setq (,x ,y)
-		      (transform-point* ,xform ,x ,y))
+		      (transform-position ,xform ,x ,y))
 		   forms))
 	 (values)))))
 
-;;; Update the points list in the reference.
-(defmacro transform-point-sequence ((transform) points-reference)
-  (let ((pts-sequence '#:points-sequence)
-	(pts-temp '#:points)
-	(original-pts-temp '#:original-points)
+;;; Update the positions list in the reference.
+(defmacro transform-position-sequence ((transform) positions-reference)
+  (let ((pts-sequence '#:position-sequence)
+	(pts-temp '#:positions)
+	(original-pts-temp '#:original-positions)
 	(xform '#:transform))
     ;;--- is a run-time error check worth it?
-    `(let ((,pts-sequence ,points-reference)
+    `(let ((,pts-sequence ,positions-reference)
 	   (,xform ,transform))
        (assert (evenp (length ,pts-sequence)) ()
-	       "Points must be x/y pairs.  There are an odd number of elements in ~S"
+	       "Positions must be x/y pairs.  There are an odd number of elements in ~S"
 	       ,pts-sequence)
-       (setf ,points-reference
+       (setf ,positions-reference
 	     (let* ((,pts-temp (copy-list ,pts-sequence))
 		    (,original-pts-temp ,pts-temp))
 	       (dorest (pt ,pts-sequence cddr)
 		 (let ((x (first pt))
 		       (y (second pt)))
 		   (multiple-value-bind (nx ny)
-		       (transform-point* ,xform x y)
+		       (transform-position ,xform x y)
 		     (setf (car ,pts-temp) nx
 			   ,pts-temp (cdr ,pts-temp)
 			   (car ,pts-temp) ny
@@ -341,16 +334,6 @@
 	 (setf (get ',name 'args)
 	       '((,@spread-argument-names ,@keyword-argument-names)
 		 ,@args)) 
-	 ,@(write-graphics-function-transformer
-	    name 
-	    medium-graphics-function-name
-	    unspread-argument-names
-	    spread-arguments
-	    spread-name
-	    spread-argument-names
-	    drawing-options
-	    other-keyword-arguments
-	    arguments)
 	 (defmethod ,medium-graphics-function-name ((sheet sheet) 
 						    ,@spread-argument-names
 						    ,@keyword-argument-names)
@@ -364,7 +347,7 @@
 	   (let* ((sheet (medium-sheet medium)))
 	     ;; want to tranform stuff, set up clipping region etc etc
 	     ,@(and points-to-transform
-		    `((transform-points
+		    `((transform-positions
 			((medium-transformation medium))
 			,@points-to-transform)))
 	     ,@(and distances-to-transform
@@ -372,22 +355,25 @@
 			((medium-transformation medium))
 			,@distances-to-transform)))
 	     ,@(mapcar #'(lambda (seq)
-			   `(transform-point-sequence
+			   `(transform-position-sequence
 			      ((medium-transformation medium)) 
 			      ,seq))
 		       point-sequences-to-transform)
 	     (,port-function-name (port medium)
 				  sheet medium
 				  ,@spread-argument-names
-				  ,@keyword-argument-names)))))))
+				  ,@keyword-argument-names)))
+	 ,@(write-graphics-function-transformer
+	     name 
+	     medium-graphics-function-name
+	     unspread-argument-names
+	     spread-arguments
+	     spread-name
+	     spread-argument-names
+	     drawing-options
+	     other-keyword-arguments
+	     arguments)))))
 
-
-
-
-
-
-	       
-			    
 
 (define-graphics-function draw-point ((point point x y))
   :drawing-options :point
@@ -498,7 +484,9 @@
 	(height (pattern-height pattern)))
     (if (or clipping-region transformation)
 	(with-drawing-options (medium :clipping-region clipping-region
-				      :transformation transformation))
+				      :transformation transformation)
+	  (draw-rectangle* medium x y (+ x width) (+ y height)
+			   :filled t :ink pattern))
 	(draw-rectangle* medium x y (+ x width) (+ y height)
 			 :filled t :ink pattern))))
 

@@ -1,69 +1,43 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.5 92/01/31 14:57:36 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.6 92/02/24 13:06:56 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-(defun-inline position-translate (point dx dy)
-  (values (+ (point-x point) dx)
-	  (+ (point-y point) dy)))
-
-(defun-inline position-translate* (x y dx dy)
-  (values (+ x dx)
-	  (+ y dy)))
-
-(defmacro translate-positions (x-delta y-delta &body coordinate-pairs)
+;; POSITIONS is a list of pairs of numbers.
+;; No assumptions are made about the types of the numbers.
+(defmacro translate-positions (x-delta y-delta &body positions)
   (once-only (x-delta y-delta)
     `(progn
        ,@(let ((forms nil))
-	   (dorest (pts coordinate-pairs cddr)
+	   (dorest (pts positions cddr)
 	     (push `(incf ,(first pts)  ,x-delta) forms)
 	     (push `(incf ,(second pts) ,y-delta) forms))
 	   (nreverse forms)))))
 
-#-Silica
-;;--- Use COORDINATEs here...
-(defmacro translate-fixnum-positions (x-delta y-delta &body coordinate-pairs)
-  (once-only (x-delta y-delta)
-    `(progn
-       ,@(let ((forms nil))
-	   (dorest (pts coordinate-pairs cddr)
-	     (push `(setf ,(first pts)  (the fixnum (+ ,(first pts)  ,x-delta))) forms)
-	     (push `(setf ,(second pts) (the fixnum (+ ,(second pts) ,y-delta))) forms))
-	   (nreverse forms)))))
-
-#+Silica
-(defmacro translate-fixnum-positions (x-delta y-delta &body coordinate-pairs)
-  (once-only (x-delta y-delta)
-    `(progn
-       ,@(let ((forms nil))
-	   (dorest (pts coordinate-pairs cddr)
-	     (push `(setf ,(first pts)  (+ ,(first pts)  ,x-delta)) forms)
-	     (push `(setf ,(second pts) (+ ,(second pts) ,y-delta)) forms))
-	   (nreverse forms)))))
-
-(defun translate-point-sequence (x-delta y-delta points)
-  (let ((new-points (make-list (length points))))
-    (do ((coords points (cddr coords))
-	 (new-coords new-points (cddr new-coords)))
-	((null coords))
-      (let ((x (first coords))
-	    (y (second coords)))
+(defun translate-position-sequence (x-delta y-delta positions)
+  (let ((new-positions (make-list (length positions))))
+    (do ((positions positions (cddr positions))
+	 (new-positions new-positions (cddr new-positions)))
+	((null positions))
+      (let ((x (first positions))
+	    (y (second positions)))
 	(translate-positions x-delta y-delta x y)
-	(setf (first new-coords) x)
-	(setf (second new-coords) y)))
-    new-points))
+	(setf (first new-positions) x)
+	(setf (second new-positions) y)))
+    new-positions))
 
 ;; Destructive version of the above
-(defun ntranslate-point-sequence (x-delta y-delta points)
-  (do ((coords points (cddr coords)))
-      ((null coords))
-    (translate-positions x-delta y-delta (first coords) (second coords)))
-  points)
+(defun ntranslate-position-sequence (x-delta y-delta positions)
+  (do ((positions positions (cddr positions)))
+      ((null positions))
+    (translate-positions x-delta y-delta (first positions) (second positions)))
+  positions)
 
+
 (defclass io-buffer
 	  ()
      ((size :accessor io-buffer-size :initarg :size)
@@ -102,10 +76,10 @@
 (defmacro with-stream-cursor-position-saved ((stream) &body body)
   (let ((x '#:x)
 	(y '#:y))
-    `(multiple-value-bind (,x ,y) (stream-cursor-position* ,stream)
+    `(multiple-value-bind (,x ,y) (stream-cursor-position ,stream)
        (unwind-protect
 	   (progn ,@body)
-	 (stream-set-cursor-position* ,stream ,x ,y)))))
+	 (stream-set-cursor-position ,stream ,x ,y)))))
 
 (defmacro with-output-recording-options 
 	  ((stream &key (draw nil draw-supplied)
@@ -266,6 +240,46 @@
 		  ,@body)
 	 (when ,old-input-focus
 	   (stream-restore-input-focus ,stream ,old-input-focus))))))
+
+
+(defmacro completing-from-suggestions ((stream &rest options) &body body)
+  (declare (arglist (stream &key partial-completers allow-any-input possibility-printer)
+		    &body body))
+  (declare (values object success string nmatches))
+  #+Genera (declare (zwei:indentation 0 3 1 1))
+  (let ((string '#:string)
+	(action '#:action))
+    `(flet ((completing-from-suggestions-body (,string ,action)
+	      (suggestion-completer (,string :action ,action
+				     ,@(remove-keywords options '(:allow-any-input
+							       :possibility-printer)))
+		,@body)))
+       (declare (dynamic-extent #'completing-from-suggestions-body))
+       (complete-input ,stream #'completing-from-suggestions-body ,@options))))
+
+;; The second argument to the generator function is a function to be
+;; called on a string (and object and presentation type) to suggest
+;; that string.
+(defmacro suggestion-completer ((string &key action partial-completers) &body body)
+  #+Genera (declare (zwei:indentation 0 3 1 1))
+  (let ((function '#:function))
+    `(flet ((suggestion-completer-body (,string ,function)
+	      (declare (ignore ,string))
+	      (flet ((suggest (&rest args)
+		       (declare (dynamic-extent args))
+		       (apply ,function args)))
+		nil		;workaround broken compilers
+		,@body)))
+       (declare (dynamic-extent #'suggestion-completer-body))
+       (complete-from-generator ,string #'suggestion-completer-body
+				,partial-completers :action ,action))))
+
+;; Very few lisp compilers seem to be able to handle the case where this top-level
+;; macro is shadowed by the FLET in the continuation above.
+#+Genera
+(defmacro suggest (name &rest objects)
+  (declare (ignore name objects))
+  (error "You cannot use ~S outside of ~S" 'suggest 'completing-from-suggestions))
 
 
 ;;; From MENUS.LISP

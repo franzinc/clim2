@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: extended-regions.lisp $
+;; $fiHeader: extended-regions.lisp,v 1.1 92/02/24 13:13:38 cer Exp $
 
 (in-package :clim-utils)
 
@@ -78,7 +78,7 @@
 ;; By using perpendicular-distance from line instead of slope and intercept
 ;; we don't have to worry about divide by zero in slope and we're also more
 ;; robust against roundoff error.
-(defmethod region-contains-point*-p ((line standard-line) x y)
+(defmethod region-contains-position-p ((line standard-line) x y)
   (with-slots (start-x start-y end-x end-y) line
     (let ((x1 start-x) (y1 start-y) (x2 end-x) (y2 end-y))
       (when (or (<= x1 x x2)
@@ -89,8 +89,8 @@
 
 (defmethod region-contains-region-p ((line1 standard-line) (line2 standard-line))
   (with-slots (start-x start-y end-x end-y) line2
-    (and (region-contains-point*-p line1 start-x start-y)
-	 (region-contains-point*-p line1 end-x end-y))))
+    (and (region-contains-position-p line1 start-x start-y)
+	 (region-contains-position-p line1 end-x end-y))))
 
 (defmethod region-intersects-region-p ((line1 standard-line) (line2 standard-line))
   (with-slots ((sx1 start-x) (sy1 start-y) (ex1 end-x) (ey1 end-y)) line1
@@ -114,9 +114,9 @@
 (defmethod transform-region (transformation (line standard-line))
   (with-slots (start-x start-y end-x end-y) line
     (multiple-value-bind (sx sy)
-	(transform-point* transformation start-x start-y)
+	(transform-position transformation start-x start-y)
       (multiple-value-bind (ex ey)
-	  (transform-point* transformation end-x end-y)
+	  (transform-position transformation end-x end-y)
 	(make-line* sx sy ex ey)))))
 
 (defmethod bounding-rectangle* ((line standard-line))
@@ -162,11 +162,11 @@
 	  (when (polyline-closed polygon)
 	    (funcall function x y x1 y1)))
 	(multiple-value-bind (x1 y1)
-	    (point-position* (aref points 0))
+	    (point-position (aref points 0))
 	  (let ((x x1) (y y1))
 	    (dotimes (i (1- (length points)))
 	      (multiple-value-bind (nx ny)
-		  (point-position* (aref points (1+ i)))
+		  (point-position (aref points (1+ i)))
 		(funcall function x y nx ny)
 		(psetf x nx y ny)))
 	    (when (polyline-closed polygon)
@@ -202,7 +202,7 @@
   (let ((coords nil))
     (flet ((transform-coord (x y)
 	     (multiple-value-bind (nx ny)
-		 (transform-point* transformation x y)
+		 (transform-position transformation x y)
 	       (push ny coords)
 	       (push nx coords))))
       (declare (dynamic-extent #'transform-coord))
@@ -228,7 +228,7 @@
   (let ((coords nil))
     (flet ((transform-coord (x y)
 	     (multiple-value-bind (nx ny)
-		 (transform-point* transformation x y)
+		 (transform-position transformation x y)
 	       (push ny coords)
 	       (push nx coords))))
       (declare (dynamic-extent #'transform-coord))
@@ -303,7 +303,7 @@
   (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	       start-angle end-angle) ellipse
     (multiple-value-bind (cx cy)
-	(transform-point* transformation center-x center-y)
+	(transform-position transformation center-x center-y)
       (multiple-value-bind (r1-dx r1-dy)
 	  (transform-distance transformation radius-1-dx radius-1-dy)
 	(multiple-value-bind (r2-dx r2-dy)
@@ -359,7 +359,7 @@
   (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	       start-angle end-angle) ellipse
     (multiple-value-bind (cx cy)
-	(transform-point* transformation center-x center-y)
+	(transform-position transformation center-x center-y)
       (multiple-value-bind (r1-dx r1-dy)
 	  (transform-distance transformation radius-1-dx radius-1-dy)
 	(multiple-value-bind (r2-dx r2-dy)

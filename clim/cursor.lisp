@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.7 92/03/04 16:21:20 cer Exp Locker: cer $
+;; $fiHeader: cursor.lisp,v 1.8 92/04/03 12:04:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -30,6 +30,7 @@
 ;;; to go through to the port level, where an appropriate host-window-system thing
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
 
+;;--- The positions here should be a COORDINATE pair, no?
 (defclass text-cursor
 	  (cursor #+Silica region)
     ((x :initarg :x)
@@ -60,12 +61,12 @@
 (defmethod (setf cursor-stream) (new-value (cursor text-cursor))
   (setf (slot-value cursor 'stream) new-value))
 
-(defmethod cursor-position* ((cursor text-cursor))
+(defmethod cursor-position ((cursor text-cursor))
   (with-slots (x y) cursor
     (values x y)))
 
 #-Silica
-(defmethod cursor-set-position* ((cursor text-cursor) nx ny)
+(defmethod cursor-set-position ((cursor text-cursor) nx ny)
   (with-slots (x y visibility) cursor
     (unless (and (= x nx)
 		 (= y ny))
@@ -76,9 +77,19 @@
 	(draw-cursor cursor T)))))
 
 #+Silica
-(defmethod cursor-set-position* ((cursor text-cursor) nx ny)
+(defmethod cursor-set-position ((cursor text-cursor) nx ny)
   (with-slots (x y visibility) cursor
     (setf x nx y ny)))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (cursor-position* cursor-position)
+			       (cursor)
+  (cursor-position cursor))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (cursor-set-position* cursor-set-position)
+			       (cursor x y)
+  (cursor-set-position cursor x y))
 
 (defmethod (setf cursor-state) (new-state (cursor text-cursor))
   (multiple-value-bind (active state focus)
@@ -206,14 +217,13 @@
 	(with-output-recording-options (stream :record nil)
 	  (draw-line-internal
 	    stream 0 0
-	    ;;--- gack
-	    (the fixnum x) (the fixnum (+ y height))
-	    (the fixnum (+ x 2)) (the fixnum (+ y height 2))
+	    (the coordinate x) (the coordinate (+ y height))
+	    (the coordinate (+ x 2)) (the coordinate (+ y height 2))
 	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+)
 	  (draw-line-internal
 	    stream 0 0
-	    (the fixnum x) (the fixnum (+ y height))
-	    (the fixnum (- x 2)) (the fixnum (+ y height 2))
+	    (the coordinate x) (the coordinate (+ y height))
+	    (the coordinate (- x 2)) (the coordinate (+ y height 2))
 	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+))
 	;; --- do we really want to do this here??
 	(force-output stream)))))

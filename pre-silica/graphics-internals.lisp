@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-internals.lisp,v 1.1 92/01/31 14:27:56 cer Exp $
+;; $fiHeader: graphics-internals.lisp,v 1.2 92/02/24 13:07:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -33,7 +33,7 @@
 	   ((record output-record-mixin) x-offset y-offset)
   (let ((designs nil))
     (flet ((make-design (record)
-	     (multiple-value-bind (xoff yoff) (output-record-position* record)
+	     (multiple-value-bind (xoff yoff) (output-record-position record)
 	       (declare (type coordinate xoff yoff))
 	       (let ((design
 		       (make-design-from-output-record-1
@@ -57,7 +57,7 @@
 (defmethod draw-design ((point standard-point) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
-  (multiple-value-bind (x y) (point-position* point)
+  (multiple-value-bind (x y) (point-position point)
     (apply #'draw-point* stream x y args)))
 
 
@@ -142,8 +142,6 @@
      (with-slots (x1 y1 x2 y2 line-style) record
        (or (null line-style)
 	   (with-half-thickness (lthickness rthickness) line-style
-	     ;; Don't use LTRB-CONTAINS-POINT*-P, since that expects fixnums
-	     ;;---- Not any more!
 	     (not (and (<= (+ x1 rthickness) x)
 		       (<= (+ y1 rthickness) y)
 		       (>= (- x2 lthickness) x)
@@ -205,7 +203,7 @@
 	   ((polygon polygon-displayed-output-record) x-offset y-offset)
   (with-slots (list-of-xs-and-ys closed line-style ink) polygon
     (let ((coords (copy-list list-of-xs-and-ys)))
-      (translate-point-sequence x-offset y-offset coords)
+      (translate-position-sequence x-offset y-offset coords)
       (compose-in
 	ink
 	(if (null line-style)

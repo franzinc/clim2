@@ -1,5 +1,5 @@
 ;; -*- mode: common-lisp; package: x11 -*-
-;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
+;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-funs.lisp,v 1.2 92/03/24 19:37:22 cer Exp Locker: cer $
+;;; $fiHeader: xlib-funs.lisp,v 1.3 92/03/30 17:52:19 cer Exp $
 
 (in-package :x11)
 

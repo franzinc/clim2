@@ -1,9 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: genera-medium.lisp,v 1.2 92/03/04 16:22:49 cer Exp $
+
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: genera-medium.lisp,v 1.1 92/02/24 13:28:05 cer Exp $
+
 
 (defclass genera-medium (medium)
     ((window :initform nil)
@@ -403,7 +405,7 @@
 		      (eq region +nowhere+))	;---yow! howcum?
 		  (kernel window)
 		(with-bounding-rectangle* (left top right bottom) region
-		  (integerize-coordinates left top right bottom)
+		  (fix-coordinates left top right bottom)
 		  (with-stack-list (cr (+ (tv:sheet-left-margin-size window) left)
 				       (+ (tv:sheet-top-margin-size window) top)
 				       (+ (tv:sheet-right-margin-size window) right)
@@ -821,8 +823,8 @@
 	  (height (if (<= target-y source-y) (+ height) (- height))))
       (tv:bitblt-from-sheet-to-sheet
 	boole (round width) (round height)	;--- round???
-	source-drawable (integerize-coordinate source-x) (integerize-coordinate source-y)
-	target-drawable (integerize-coordinate target-x) (integerize-coordinate target-y)))))
+	source-drawable (fix-coordinate source-x) (fix-coordinate source-y)
+	target-drawable (fix-coordinate target-x) (fix-coordinate target-y)))))
 
 ;;; X also has a way to copy from a medium into a pixmap.  Should this be allowed here?
 (defmethod copy-area ((pixmap pixmap) dst-x dst-y 
@@ -839,6 +841,7 @@
 	     (raster (realize-pixmap port pixmap)))
 	(scl:send drawable :bitblt-from-sheet boole
 		  (round device-width) (round device-height)	;--- round???
-		  (integerize-coordinate device-min-x) (integerize-coordinate device-min-y)
-		  raster (integerize-coordinate dst-x) (integerize-coordinate dst-y))))))
+		  (fix-coordinate device-min-x) (fix-coordinate device-min-y)
+		  raster 
+		  (fix-coordinate dst-x) (fix-coordinate dst-y))))))
 ||#

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: defun-utilities.lisp,v 1.5 92/02/24 13:05:30 cer Exp $
+;;; $fiHeader: defun-utilities.lisp,v 1.6 92/03/04 16:20:13 cer Exp $
 
 (in-package :clim-utils)
 
@@ -51,4 +51,45 @@
 		     (return-from process-declarations)))))))
     (values documentation `((declare ,@declarations)) body)))
 
+
+;;; DEFINE-GROUP: defines a "group" of definitions which are related
+;;; somehow.  In Genera, this causes the function-parents to be set
+;;; correctly, for example, and also if you attempt to abort out of the
+;;; middle you get told that something might be left inconsistent.
+#+Genera 
+(defmacro define-group (name type &body body)
+  `(sys:multiple-definition ,name ,type ,@body))
+
+#+(and Allegro (version>= 4 1))
+(defmacro define-group (name type &body body)
+  `(progn
+     (excl::record-source-file ',name :type ',type)
+     ,@body))
+
+#-(or Genera (and Allegro (version>= 4 1)))
+(defmacro define-group (name type &body body)
+  (declare (ignore name type))
+  `(progn ,@body))
+
+(defmacro with-warnings-for-definition (name type &body body)
+  #+Genera `(let ((compiler:default-warning-function ,name)
+		  (compiler:default-warning-definition-type ',type))
+	      ,@body)
+  #-Genera `(let () ,@body))
+
+(defmacro defun-inline (name lambda-list &body body)
+  `(define-group ,name defun-inline
+     (eval-when (compile load eval) (proclaim '(inline ,name)))
+     (defun ,name ,lambda-list
+       ,@body)))
+
+#+Genera
+(progn
+  (setf (get 'defun-inline 'zwei:definition-function-spec-parser)
+	(zl:::scl:function (:property zl:::scl:defun zwei:definition-function-spec-parser)))
+  (setf (get 'defun-inline 'zwei:definition-function-spec-type) 'zl:::scl:defun)
+  (setf (get 'defun-inline 'gprint::formatter) 
+	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
+  (push 'defun-inline zwei:*irrelevant-functions*)
+  (push 'defun-inline zwei:*irrelevant-defining-forms*))
 

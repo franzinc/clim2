@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-implementation.lisp,v 1.3 92/03/04 16:21:10 cer Exp $
+;; $fiHeader: clx-implementation.lisp,v 1.4 92/03/10 10:12:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -439,7 +439,7 @@
 		 (multiple-value-bind (x y same-screen-p child mask root-x root-y root)
 		     (xlib:query-pointer root-window)
 		   (declare (ignore x y same-screen-p child mask root))
-		   (pointer-set-position* pointer root-x root-y)
+		   (pointer-set-position pointer root-x root-y)
 		   (setf (pointer-window pointer) ws)
 		   (setf (pointer-motion-pending ws pointer) t))
 		 (return-from event-loop :mouse-motion))
@@ -456,7 +456,6 @@
 		   (setf (pointer-window pointer) ws)
 		   ;; Resolve the selected-window issue.  We currently just put the
 		   ;; button-press "blip" in the clicked-on window's input buffer.
-		   ;; X and Y are presumed to be fixnums here
 		   (case event-key
 		     (:button-press
 		       (stream-note-pointer-button-press
@@ -645,21 +644,21 @@
   (and *clx-use-color*
        (> (xlib:screen-root-depth (clx-stream-screen stream)) 2)))
 
-(defparameter *clx-scrollbar-border-width* 0)
-(defparameter *clx-scrollbar-width* 14)
+(defparameter *clx-scroll-bar-border-width* 0)
+(defparameter *clx-scroll-bar-width* 14)
 
-;;--- Scrollbars have an inner margin
+;;--- Scroll-Bars have an inner margin
 ;;--- Perhaps we should use window-margin!
-(defvar *clx-scrollbar-inner-margin* 2)
+(defvar *clx-scroll-bar-inner-margin* 2)
 
-(defclass clx-scrollbar (clx-window) 
+(defclass clx-scroll-bar (clx-window) 
     ((scroll-bar-values-1 :initform nil
 			  :accessor scroll-bar-values-1)
      (scroll-bar-values-2 :initform nil
 			  :accessor scroll-bar-values-2)))
 
-(defclass clx-h-scrollbar (clx-scrollbar) ())
-(defclass clx-v-scrollbar (clx-scrollbar) ())
+(defclass clx-h-scroll-bar (clx-scroll-bar) ())
+(defclass clx-v-scroll-bar (clx-scroll-bar) ())
 
 (defmethod initialize-instance :before ((stream clx-window) &key parent)
   (setf (slot-value stream 'display-device-type)
@@ -763,7 +762,7 @@
   (when scroll-bars
     ;; Adjust right and bottom for the border of the window
     (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
-      (declare (fixnum rom bom) (ignore lom tom))
+      (declare (type coordinate rom bom) (ignore lom tom))
       (decf right rom)
       (decf bottom bom))
     (with-slots (horizontal-scroll-bar vertical-scroll-bar) stream
@@ -772,11 +771,11 @@
 	(when hp
 	  (setf horizontal-scroll-bar 
 		(open-window-stream :parent stream 
-				    :window-class 'clx-h-scrollbar
+				    :window-class 'clx-h-scroll-bar
 				    :borders nil
-				    :left (if vp *clx-scrollbar-width* 0) 
+				    :left (if vp *clx-scroll-bar-width* 0) 
 				    :right right
-				    :top (- bottom top *clx-scrollbar-width*) 
+				    :top (- bottom top *clx-scroll-bar-width*) 
 				    :bottom (- bottom top)
 				    :scroll-bars nil))
 	  (setf (stream-recording-p horizontal-scroll-bar) nil)
@@ -785,11 +784,11 @@
 	  (setf vertical-scroll-bar
 		(open-window-stream :parent stream 
 				    :borders nil
-				    :window-class 'clx-v-scrollbar
+				    :window-class 'clx-v-scroll-bar
 				    :left 0 
-				    :right *clx-scrollbar-width*
+				    :right *clx-scroll-bar-width*
 				    :top 0
-				    :bottom (- bottom top (if hp *clx-scrollbar-width* 0))
+				    :bottom (- bottom top (if hp *clx-scroll-bar-width* 0))
 				    :scroll-bars nil))
 	  (setf (stream-recording-p vertical-scroll-bar) nil)
 	  (window-expose vertical-scroll-bar))))))
@@ -797,11 +796,11 @@
 
 ;;; Scroll bars
 
-(defmethod stream-replay ((stream clx-scrollbar) &optional region)
+(defmethod stream-replay ((stream clx-scroll-bar) &optional region)
   (declare (ignore region))
-  (draw-scrollbar stream t))
+  (draw-scroll-bar stream t))
 
-(defmethod stream-note-pointer-button-press ((bar clx-v-scrollbar)
+(defmethod stream-note-pointer-button-press ((bar clx-v-scroll-bar)
 					     pointer button modifier-state x y)
   (declare (ignore pointer modifier-state x))
   (let* ((stream (window-parent bar))
@@ -811,14 +810,14 @@
 	(declare (ignore hleft hright))
 	(with-bounding-rectangle* (v-left v-top v-right v-bottom) (window-viewport stream)
 	  (declare (ignore v-right))
-	  (window-set-viewport-position* stream 
+	  (window-set-viewport-position stream 
 	    v-left
 	    (compute-scroll-to-value
 	      y (bounding-rectangle-width bar) (bounding-rectangle-height bar)
 	      htop hbottom v-top v-bottom button))
-	  (draw-scrollbar bar))))))
+	  (draw-scroll-bar bar))))))
 
-(defmethod stream-note-pointer-button-press ((bar clx-h-scrollbar)
+(defmethod stream-note-pointer-button-press ((bar clx-h-scroll-bar)
 					     pointer button modifier-state x y)
   (declare (ignore pointer modifier-state y))
   (let* ((stream (window-parent bar))
@@ -828,12 +827,12 @@
 	(declare (ignore htop hbottom))
 	(with-bounding-rectangle* (v-left v-top v-right v-bottom) (window-viewport stream)
 	  (declare (ignore v-bottom))
-	  (window-set-viewport-position* stream 
+	  (window-set-viewport-position stream 
 	    (compute-scroll-to-value
 	      x (bounding-rectangle-height bar) (bounding-rectangle-width bar)
 	      hleft hright v-left v-right button)
 	    v-top)
-	  (draw-scrollbar bar))))))
+	  (draw-scroll-bar bar))))))
 
 (defun compute-scroll-to-value (y bar-width bar-height
 				history-top history-bottom viewport-top viewport-bottom
@@ -863,7 +862,7 @@
 	      (scroll-bar-values-2 stream) slug-length)
        ,@body)))
 
-(defmethod draw-scrollbar ((stream clx-v-scrollbar) &optional force-p)
+(defmethod draw-scroll-bar ((stream clx-v-scroll-bar) &optional force-p)
   (with-bounding-rectangle* (left top right bottom) stream
     (let ((width (- right left))
 	  (height (- bottom top))
@@ -875,8 +874,8 @@
 				  (window-viewport win)
 	  (declare (ignore viewport-left viewport-right))
 	  (multiple-value-bind (y1 y2 y3 y4 x1 x2 slug-start slug-length)
-	      (compute-scrollbar-values
-		height width *clx-scrollbar-inner-margin*
+	      (compute-scroll-bar-values
+		height width *clx-scroll-bar-inner-margin*
 		extent-top extent-bottom viewport-top viewport-bottom)
 	    (with-scroll-bar-update 
 	      (if (or force-p (null old-slug-start))
@@ -899,7 +898,7 @@
 		(1+ x1) slug-start (1- x2) (+ slug-start slug-length)
 		:ink +light-gray+))))))))
 
-(defmethod draw-scrollbar ((stream clx-h-scrollbar) &optional force-p)
+(defmethod draw-scroll-bar ((stream clx-h-scroll-bar) &optional force-p)
   (with-bounding-rectangle* (left top right bottom) stream
     ;; The -1 adjusts for X unfilled rectangles being one pixel too big.  jdi
     (let ((width (- right left 1))
@@ -912,8 +911,8 @@
 				  (window-viewport win)
 	  (declare (ignore viewport-top viewport-bottom))
 	  (multiple-value-bind (x1 x2 x3 x4 y1 y2 slug-start slug-length)
-	      (compute-scrollbar-values
-		width height *clx-scrollbar-inner-margin*
+	      (compute-scroll-bar-values
+		width height *clx-scroll-bar-inner-margin*
 		extent-left extent-right viewport-left viewport-right)
 	    (with-scroll-bar-update 
 	      (if (or force-p (null old-slug-start))
@@ -936,7 +935,7 @@
 		slug-start (1+ y1) (+ slug-start slug-length) (1- y2)
 		:ink +light-gray+))))))))
  
-(defun compute-scrollbar-values (long short margin
+(defun compute-scroll-bar-values (long short margin
 				 extent-min extent-max viewport-min viewport-max)
   (let* ((square (- short (* 2 margin)))
 	 (x1 margin)
@@ -956,30 +955,30 @@
       (values x1 x2 x3 x4 y1 y2 (floor slug-start) (floor slug-length))))
 
 ;; Update the scroll-bars when their parent window changes
-(defun update-scrollbars (stream width height)
+(defun update-scroll-bars (stream width height)
   ;; Adjust width and height for the border of the window
   (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
-    (declare (fixnum lom tom rom bom))
+    (declare (type coordinate lom tom rom bom))
     (decf width (+ lom rom))
     (decf height (+ tom bom)))
   (with-slots (horizontal-scroll-bar vertical-scroll-bar) stream
     (when vertical-scroll-bar
       (let ((new-height
-	     (if horizontal-scroll-bar (- height *clx-scrollbar-width*) height)))
+	     (if horizontal-scroll-bar (- height *clx-scroll-bar-width*) height)))
 	(when (/= new-height (bounding-rectangle-height vertical-scroll-bar))
 	  (bounding-rectangle-set-size 
 	   vertical-scroll-bar
 	   (bounding-rectangle-width vertical-scroll-bar)
 	   new-height)
-	  (draw-scrollbar vertical-scroll-bar t))))
+	  (draw-scroll-bar vertical-scroll-bar t))))
     (when horizontal-scroll-bar
       (bounding-rectangle-set-edges
 	horizontal-scroll-bar
-	(if vertical-scroll-bar *clx-scrollbar-width* 0)
-	(- height *clx-scrollbar-width*)
+	(if vertical-scroll-bar *clx-scroll-bar-width* 0)
+	(- height *clx-scroll-bar-width*)
 	width
 	height)
-      (draw-scrollbar horizontal-scroll-bar))))
+      (draw-scroll-bar horizontal-scroll-bar))))
 
 (defmethod host-window-margins ((stream clx-window))
   (let* ((parent (window-parent stream)))
@@ -1002,17 +1001,17 @@
   (let ((h (window-horizontal-scroll-bar stream))
 	(v (window-vertical-scroll-bar stream)))
     (values (if v 
-		(+ (* 2 *clx-scrollbar-border-width*) (bounding-rectangle-width v))
+		(+ (* 2 *clx-scroll-bar-border-width*) (bounding-rectangle-width v))
 	        0)
 	    0 
 	    0
 	    (if h
-		(+ (* 2 *clx-scrollbar-border-width*) (bounding-rectangle-height h))
+		(+ (* 2 *clx-scroll-bar-border-width*) (bounding-rectangle-height h))
 	        0))))
 
 (defmethod window-note-size-or-position-change :after
 	   ((stream clx-window) new-left new-top new-right new-bottom)
-  (update-scrollbars stream (- new-right new-left) (- new-bottom new-top)))
+  (update-scroll-bars stream (- new-right new-left) (- new-bottom new-top)))
 
 
 (defmethod (setf medium-foreground) :after (ink (stream clx-window))
@@ -1142,12 +1141,12 @@
 (defmethod invoke-with-clipping-region
 	   ((stream clx-window) continuation (region standard-bounding-rectangle))
   (with-slots (window clip-mask) stream
-    (multiple-value-bind (x y) (window-viewport-position* stream)
+    (multiple-value-bind (x y) (window-viewport-position stream)
       (declare (type coordinate x y))
       (multiple-value-bind (ml mt) (window-margins stream)
 	(declare (type coordinate ml mt))
       	(with-bounding-rectangle* (left top right bottom) region
-	  (translate-fixnum-positions (- ml x) (- mt y)
+	  (translate-coordinates (- ml x) (- mt y)
 	    left top right bottom)
 	  (fix-points left top right bottom)
 	  ;;--- How not to cons? (this list and the rectangles)
@@ -1246,7 +1245,7 @@
   (let ((width (- right left))
 	(height (- bottom top)))
     (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
-      (declare (fixnum lom tom rom bom))
+      (declare (type coordinate lom tom rom bom))
       (let ((x-width (- width lom rom))
 	    (x-height (- height tom bom)))
 	(assert (plusp x-width) (x-width)
@@ -1259,12 +1258,12 @@
 		  (xlib:drawable-y window) top
 		  (xlib:drawable-width window) x-width
 		  (xlib:drawable-height window) x-height)))))
-    (update-scrollbars stream width height))
+    (update-scroll-bars stream width height))
   (clx-force-output-if-necessary stream t))
 
 (defmethod bounding-rectangle-set-size :after ((stream clx-window) width height)
   (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
-    (declare (fixnum lom tom rom bom))
+    (declare (type coordinate lom tom rom bom))
     (with-slots (window) stream
       (let ((x-width (- width lom rom))
 	    (x-height (- height tom bom)))
@@ -1275,10 +1274,10 @@
 	(xlib:with-state (window)
 	  (setf (xlib:drawable-width window) x-width
 		(xlib:drawable-height window) x-height)))))
-  (update-scrollbars stream width height)
+  (update-scroll-bars stream width height)
   (clx-force-output-if-necessary stream t))
 
-(defmethod bounding-rectangle-set-position* :after ((stream clx-window) new-left new-top)
+(defmethod bounding-rectangle-set-position :after ((stream clx-window) new-left new-top)
   (with-slots (window) stream
     (xlib:with-state (window)
       (setf (xlib:drawable-x window) new-left)
@@ -1288,9 +1287,9 @@
 (defmethod redisplay-decorations ((stream clx-window))
   (with-slots (horizontal-scroll-bar vertical-scroll-bar) stream
     (when vertical-scroll-bar
-      (draw-scrollbar vertical-scroll-bar))
+      (draw-scroll-bar vertical-scroll-bar))
     (when horizontal-scroll-bar
-      (draw-scrollbar horizontal-scroll-bar))))
+      (draw-scroll-bar horizontal-scroll-bar))))
 
 
 
@@ -1708,11 +1707,12 @@
 (defmethod draw-polygon-internal ((stream clx-window) x-offset y-offset
 				  list-of-x-and-ys closed ink line-style)
   (setq list-of-x-and-ys
-	(mapcar #'round (translate-point-sequence x-offset y-offset list-of-x-and-ys)))
+	(mapcar #'round 
+		(translate-position-sequence x-offset y-offset list-of-x-and-ys)))
   (let ((minx most-positive-fixnum)
 	(miny most-positive-fixnum)
 	(points list-of-x-and-ys))
-    (declare (fixnum minx miny))
+    (declare (type fixnum minx miny))
     (do* ((points list-of-x-and-ys (cddr points))
 	  (x (car points) (car points))
 	  (y (cadr points) (cadr points)))

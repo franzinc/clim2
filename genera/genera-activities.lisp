@@ -1,12 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.1 92/02/24 13:28:00 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.3 92/03/10 10:13:06 cer Exp $
 
 (in-package :genera-clim)
 
-
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: genera-activities.lisp,v 1.1 92/02/24 13:28:00 cer Exp $
+
 
 (defvar *sheet-roots* nil)
 (defvar *deactivated-clim-activities* nil)

@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.8 92/04/10 14:26:29 cer Exp Locker: cer $
+;; $fiHeader: db-table.lisp,v 1.9 92/04/14 15:29:35 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -50,8 +50,8 @@
 
 (defmacro tabling (options &body contents)
   `(make-pane 'table-pane
-		 :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
-		 ,@options))
+	      :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
+	      ,@options))
 
 (defmethod compose-space ((x table-pane) &key width height)
   (declare (ignore width height))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.3 92/01/31 14:58:50 cer Exp $
+;; $fiHeader: surround-output.lisp,v 1.4 92/02/24 13:08:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -89,7 +89,7 @@
       (multiple-value-bind (xoff yoff)
 	  (convert-from-relative-to-absolute-coordinates
 	    stream (output-record-parent (output-record-parent body)))
-	(translate-fixnum-positions xoff yoff left top right bottom))
+	(translate-coordinates xoff yoff left top right bottom))
       (with-output-recording-options (stream :draw nil :record t)
 	(with-new-output-record (stream 'standard-sequence-output-record nil
 				 :parent border-record)

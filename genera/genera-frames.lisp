@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
+;; $fiHeader: genera-frames.lisp,v 1.2 92/03/04 16:22:45 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: genera-frames.lisp,v 1.2 92/03/04 16:22:45 cer Exp Locker: cer $
 
 (defclass genera-frame-manager (standard-frame-manager)
     ())
@@ -19,9 +19,9 @@
 	  (vertically ()
 	    (outlining ()
 	      (make-pane 'command-menu-pane
-			    :display-function 
-			      `(display-command-menu :command-table ,menu-bar)
-			    :width :compute :height :compute))
+			 :display-function 
+			   `(display-command-menu :command-table ,menu-bar)
+			 :width :compute :height :compute))
 	    pane))
 	pane)))
 

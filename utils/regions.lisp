@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.4 92/02/24 13:05:57 cer Exp $
+;; $fiHeader: regions.lisp,v 1.5 92/03/04 16:20:23 cer Exp $
 
 (in-package :clim-utils)
 
@@ -11,14 +11,14 @@
 (defgeneric transform-region (transformation region))
 (defgeneric untransform-region (transformation region))
 
-(defgeneric point-position* (point)
+(defgeneric point-position (point)
   (declare (values x y)))
 (defgeneric point-x (point))
 (defgeneric point-y (point))
 
 ;;--- Many of these methods could stand to be written...
 (defgeneric region-equal (region1 region2))
-(defgeneric region-contains-point*-p (region x y))
+(defgeneric region-contains-position-p (region x y))
 (defgeneric region-contains-region-p (region1 region2))
 (defgeneric region-intersects-region-p (region1 region2))
 
@@ -69,7 +69,7 @@
   (declare (values left top right bottom)))
 (defgeneric bounding-rectangle-set-edges (region left top right bottom)
   (declare (values region)))
-(defgeneric bounding-rectangle-set-position* (region x y)
+(defgeneric bounding-rectangle-set-position (region x y)
   (declare (values region)))
 (defgeneric bounding-rectangle-set-size (region width height)
   (declare (values region)))
@@ -79,19 +79,11 @@
      (defmethod ,name (,region1 ,region2) ,@body)
      (defmethod ,name (,region2 ,region1) ,@body)))
 
-#-Silica
 (defmacro fix-rectangle (left top right bottom)
-  `(values (the fixnum (floor ,left))
-	   (the fixnum (floor ,top))
-	   (the fixnum (ceiling ,right))
-	   (the fixnum (ceiling ,bottom))))
-
-#+Silica
-(defmacro fix-rectangle (left top right bottom)
-  `(values (float ,left 0f0)
-	   (float ,top 0f0)
-	   (float ,right 0f0)
-	   (float ,bottom 0f0)))
+  `(values (the coordinate (coordinate ,left 'floor))
+	   (the coordinate (coordinate ,top  'floor))
+	   (the coordinate (coordinate ,right  'ceiling))
+	   (the coordinate (coordinate ,bottom 'ceiling))))
 
 
 ;;; The basic design protocol classes
@@ -119,10 +111,6 @@
 
 (define-protocol-class region (design))
 
-(defmethod transform-region ((transformation identity-transformation) region) region)
-
-(defmethod untransform-region ((transformation identity-transformation) region) region)
-
 (defmethod untransform-region ((transformation transformation) region)
   (transform-region (invert-transformation transformation) region))
 
@@ -136,7 +124,7 @@
 
 (defmethod region-equal ((nowhere1 nowhere) (nowhere2 nowhere)) t)
 
-(defmethod region-contains-point*-p ((nowhere nowhere) x y)
+(defmethod region-contains-position-p ((nowhere nowhere) x y)
   (declare (ignore x y))
   nil)
 
@@ -166,7 +154,7 @@
 
 (defmethod region-equal ((everywhere1 everywhere) (everywhere2 everywhere)) t)
 
-(defmethod region-contains-point*-p ((everywhere everywhere) x y) 
+(defmethod region-contains-position-p ((everywhere everywhere) x y) 
   (declare (ignore x y))
   t)
 
@@ -212,16 +200,21 @@
   (with-slots (x y) point
     `(make-point ,x ,y)))
 
-(defmethod point-position* ((point standard-point))
+(defmethod point-position ((point standard-point))
   (with-slots (x y) point
     (values x y)))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (point-position* point-position)
+			       (point)
+  (point-position point))
 
 (defmethod region-equal ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
     (with-slots ((x2 x) (y2 y)) point2
       (and (= x1 x2) (= y1 y2)))))
 
-(defmethod region-contains-point*-p ((point standard-point) x y)
+(defmethod region-contains-position-p ((point standard-point) x y)
   (with-slots ((px x) (py y)) point
     (and (= px x) (= py y))))
 
@@ -232,7 +225,7 @@
 
 (defmethod region-contains-region-p ((region region) (point standard-point))
   (with-slots (x y) point
-    (region-contains-point*-p region x y)))
+    (region-contains-position-p region x y)))
 
 (defmethod region-intersects-region-p ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
@@ -242,7 +235,7 @@
 (define-symmetric-region-method region-intersects-region-p
 				((point standard-point) (region region))
   (with-slots ((px x) (py y)) point
-    (region-contains-point*-p region px py)))
+    (region-contains-position-p region px py)))
 
 (defmethod region-intersection ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
@@ -252,7 +245,7 @@
 (defmethod transform-region (transformation (point standard-point))
   (with-slots (x y) point
     (multiple-value-bind (x y)
-	(transform-point* transformation x y)
+	(transform-position transformation x y)
       (make-point-1 x y))))
 
 (defmethod bounding-rectangle* ((point standard-point))
@@ -303,8 +296,8 @@
   :min-x min-x :min-y min-y :max-x max-x :max-y max-y :points points)
 
 (defun make-rectangle (min-point max-point)
-  (multiple-value-bind (min-x min-y) (point-position* min-point)
-    (multiple-value-bind (max-x max-y) (point-position* max-point)
+  (multiple-value-bind (min-x min-y) (point-position min-point)
+    (multiple-value-bind (max-x max-y) (point-position max-point)
       (assert (<= min-x max-x))
       (assert (<= min-y max-y))
       (make-rectangle-1 min-x min-y max-x max-y
@@ -375,9 +368,9 @@
       (ltrb-equals-ltrb-p sx1 sy1 ex1 ey1
 			  sx2 sy2 ex2 ey2))))
 
-(defmethod region-contains-point*-p ((rectangle standard-rectangle) x y)
+(defmethod region-contains-position-p ((rectangle standard-rectangle) x y)
   (with-slots (min-x min-y max-x max-y) rectangle
-    (ltrb-contains-point*-p min-x min-y max-x max-y x y)))
+    (ltrb-contains-position-p min-x min-y max-x max-y x y)))
 
 (defmethod region-contains-region-p ((rect1 standard-rectangle) (rect2 standard-rectangle))
   (with-slots ((sx1 min-x) (sy1 min-y) (ex1 max-x) (ey1 max-y)) rect1
@@ -395,14 +388,14 @@
   (with-slots (min-x min-y max-x max-y) rectangle
     (if (rectilinear-transformation-p transformation)
 	(multiple-value-bind (x1 y1)
-	    (transform-point* transformation min-x min-y)
+	    (transform-position transformation min-x min-y)
 	  (multiple-value-bind (x2 y2)
-	      (transform-point* transformation max-x max-y)
+	      (transform-position transformation max-x max-y)
 	    (make-rectangle* x1 y1 x2 y2)))
       (let ((coords nil))
 	(flet ((transform-coord (x y)
 		 (multiple-value-bind (nx ny)
-		     (transform-point* transformation x y)
+		     (transform-position transformation x y)
 		   (push ny coords)
 		   (push nx coords))))
 	  (declare (dynamic-extent #'transform-coord))
@@ -429,10 +422,10 @@
 ;;--- Can we simply inherit from STANDARD-RECTANGLE and flush some
 ;;--- of the methods below?
 (defclass standard-bounding-rectangle (region bounding-rectangle)
-    ((left   :initarg :left   :accessor rectangle-min-x)
-     (top    :initarg :top    :accessor rectangle-min-y)
-     (right  :initarg :right  :accessor rectangle-max-x)
-     (bottom :initarg :bottom :accessor rectangle-max-y)))
+    ((left   :initarg :left   :accessor rectangle-min-x :type coordinate)
+     (top    :initarg :top    :accessor rectangle-min-y :type coordinate)
+     (right  :initarg :right  :accessor rectangle-max-x :type coordinate)
+     (bottom :initarg :bottom :accessor rectangle-max-y :type coordinate)))
 
 (defmethod print-object ((object standard-bounding-rectangle) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -446,12 +439,11 @@
 		    (left top right bottom)
   :left left :top top :right right :bottom bottom)
 
-#-Silica
 (defun make-bounding-rectangle (x1 y1 x2 y2)
-  (let ((x1 (floor x1))
-	(y1 (floor y1))
-	(x2 (floor x2))
-	(y2 (floor y2)))
+  (let ((x1 (coordinate x1))
+	(y1 (coordinate y1))
+	(x2 (coordinate x2))
+	(y2 (coordinate y2)))
     (declare (type coordinate x1 y1 x2 y2))
     (when (> x1 x2) (rotatef x1 x2))
     (when (> y1 y2) (rotatef y1 y2))
@@ -526,9 +518,9 @@
       (ltrb-equals-ltrb-p sx1 sy1 ex1 ey1
 			  sx2 sy2 ex2 ey2))))
 
-(defmethod region-contains-point*-p ((rectangle standard-bounding-rectangle) x y)
+(defmethod region-contains-position-p ((rectangle standard-bounding-rectangle) x y)
   (with-slots (left top right bottom) rectangle
-    (ltrb-contains-point*-p left top right bottom x y)))
+    (ltrb-contains-position-p left top right bottom x y)))
 
 (defmethod region-contains-region-p ((rect1 standard-bounding-rectangle) 
 				     (rect2 standard-bounding-rectangle))
@@ -569,6 +561,7 @@
 
 ;; Set the edges of the rectangle, and return the rectangle as the value
 ;; LEFT, TOP, RIGHT, and BOTTOM had better be of type COORDINATE
+;;--- Or should this coerce to COORDINATE?
 (defmethod bounding-rectangle-set-edges ((rectangle standard-bounding-rectangle)
 					 left top right bottom)
   (declare (type coordinate left top right bottom))
@@ -627,18 +620,13 @@
     (declare (ignore min-x min-y))
     (make-point max-x max-y)))
 
-(defun-inline bounding-rectangle-position* (region)
+(defun-inline bounding-rectangle-position (region)
   (with-bounding-rectangle* (left top right bottom) region 
     (declare (ignore right bottom))
     (values left top)))
 
-(defun bounding-rectangle-position (region)
-  (with-bounding-rectangle* (left top right bottom) region 
-    (declare (ignore right bottom))
-    (make-point left top)))
-
 ;; Set the position of the rectangle, and return the rectangle as the value
-(defmethod bounding-rectangle-set-position* ((rectangle standard-bounding-rectangle) x y)
+(defmethod bounding-rectangle-set-position ((rectangle standard-bounding-rectangle) x y)
   (declare (type coordinate x y))
   (with-slots (left top right bottom) rectangle
     (declare (type coordinate left top right bottom))
@@ -650,6 +638,18 @@
 	    right  (+ x width)
 	    bottom (+ y  height))))
   rectangle)
+
+#+CLIM-1-compatibility
+(define-compatibility-function (bounding-rectangle-position*
+				bounding-rectangle-position)
+			       (region)
+  (bounding-rectangle-position region))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (bounding-rectangle-set-position* 
+				bounding-rectangle-set-position)
+			       (region x y)
+  (bounding-rectangle-set-position region))
 
 ;; Make a new bounding rectangle for the region, and shift its position by DX,DY,
 ;; and return the new rectangle.
@@ -666,9 +666,9 @@
     rectangle))
 
 (defun bounding-rectangle-position-equal (region1 region2)
-  (multiple-value-bind (x1 y1) (bounding-rectangle-position* region1)
+  (multiple-value-bind (x1 y1) (bounding-rectangle-position region1)
     (declare (type coordinate x1 y1))
-    (multiple-value-bind (x2 y2) (bounding-rectangle-position* region2)
+    (multiple-value-bind (x2 y2) (bounding-rectangle-position region2)
       (declare (type coordinate x2 y2))
       (and (= x1 x2)
 	   (= y1 y2)))))
@@ -682,16 +682,16 @@
 	   (= bottom1 bottom2)))))
 
 ;; This should only be used to compare COORDINATEs
-(defun-inline position-difference* (x1 y1 x2 y2)
+(defun-inline position-difference (x1 y1 x2 y2)
   (declare (type coordinate x1 y1 x2 y2))
   (values (- x1 x2) (- y1 y2)))
 
 (defun bounding-rectangle-position-difference (region1 region2)
-  (multiple-value-bind (x1 y1) (bounding-rectangle-position* region1)
+  (multiple-value-bind (x1 y1) (bounding-rectangle-position region1)
     (declare (type coordinate x1 y1))
-    (multiple-value-bind (x2 y2) (bounding-rectangle-position* region2)
+    (multiple-value-bind (x2 y2) (bounding-rectangle-position region2)
       (declare (type coordinate x2 y2))
-      (position-difference* x1 y1 x2 y2))))
+      (position-difference x1 y1 x2 y2))))
 
 (defun-inline bounding-rectangle-width (region)
   (with-bounding-rectangle* (left top right bottom) region
@@ -795,12 +795,12 @@
   ;;--- How to do this?
   )
 
-(defmethod region-contains-point*-p ((region-set region-set) x y)
-  (flet ((contains-point*-p (region)
-	   (when (region-contains-point*-p region x y)
-	     (return-from region-contains-point*-p t))))
-    (declare (dynamic-extent #'contains-point*-p))
-    (map-over-region-set-regions #'contains-point*-p region-set))
+(defmethod region-contains-position-p ((region-set region-set) x y)
+  (flet ((contains-position-p (region)
+	   (when (region-contains-position-p region x y)
+	     (return-from region-contains-position-p t))))
+    (declare (dynamic-extent #'contains-position-p))
+    (map-over-region-set-regions #'contains-position-p region-set))
   nil)
 
 (defmethod region-contains-region-p ((region-set region-set) (other-region region))

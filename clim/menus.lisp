@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.17 92/04/03 12:04:36 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.18 92/04/10 14:27:04 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -17,7 +17,8 @@
       (outlining ()
 	(scrolling ()
 	  (setq menu (make-pane 'clim-stream-pane
-				   :initial-cursor-visibility nil))))))
+				:initial-cursor-visibility nil))))))
+
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -107,7 +108,7 @@
 		       parent-width)
 		  (min (+ (max label-height height) bottom-margin wtm wbm tm bm)
 		       parent-height)))))))
-      (window-set-viewport-position* menu left top)
+      (window-set-viewport-position menu left top)
       ;; blech
       (clear-input menu))))
 
@@ -121,7 +122,7 @@
 	     (width (min gw (+ (- maxx minx) right-margin)))
 	     (height (min gh (+ (- maxy miny) bottom-margin))))
 	(window-set-inside-size menu width height)
-	(window-set-viewport-position* menu minx miny)))))
+	(window-set-viewport-position menu minx miny)))))
 
 #-Silica
 (defun position-window-near-carefully (window x y)
@@ -137,8 +138,8 @@
 	  (setq left (- parent-width width)))
 	(when (> bottom parent-height)
 	  (setq top (- parent-height height)))
-	(bounding-rectangle-set-position* window
-					  (max 0 left) (max 0 top))))))
+	(bounding-rectangle-set-position window
+					 (max 0 left) (max 0 top))))))
 
 #-Silica
 (defun position-window-near-pointer (window &optional x y)
@@ -482,7 +483,7 @@
 	  #+Cloe-Runtime (stream-set-input-focus menu)
 	  (when default-presentation
 	    (with-bounding-rectangle* (left top right bottom) default-presentation
-	      (stream-set-pointer-position*
+	      (stream-set-pointer-position
 		menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
 	  ;; Pointer documentation usually adds no information, and slows things
 	  ;; down in a big way, which is why we defaultly disable it.

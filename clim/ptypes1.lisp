@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.8 92/03/10 10:12:47 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.9 92/04/10 14:27:06 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1415,6 +1415,12 @@
 	,@(when parameters-var `(,parameters-var))
 	,@(when options-var `(,options-var))
 	,@arguments))))
+
+(defmacro funcall-presentation-generic-function (presentation-function-name &body arguments)
+  `(call-presentation-generic-function ,presentation-function-name ,@arguments))
+
+(defmacro apply-presentation-generic-function (presentation-function-name &body arguments)
+  `(call-presentation-generic-function apply ,presentation-function-name ,@arguments))
 
 ;;; Presentation generic functions have their own class just so we can define
 ;;; one method that aids in implementing presentation-method-combination

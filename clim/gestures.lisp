@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.4 92/03/04 16:21:43 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.5 92/03/10 10:12:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -69,7 +69,7 @@
 
 ;; BUTTON is a button number (0, 1, or 2), and MODIFIER-STATE is a mask
 (defun-inline button-and-modifier-state-gesture-names (button modifier-state)
-  (declare (fixnum button modifier-state))
+  (declare (type fixnum button modifier-state))
   (aref *button-and-modifier-key->gesture* button modifier-state))
 
 ;; BUTTON is a button number (0, 1, or 2), and MODIFIER-STATE is a mask
@@ -138,7 +138,7 @@
 
 ;; We typically have our hands on a button index and a modifier key state,
 ;; and we need to know if it matches a named gesture
-;; BUTTON is a button number (0, 1, or 2), and STATE is a mask.
+
 (defun-inline button-and-modifier-state-matches-gesture-name-p (button state gesture-name)
   (or (eq gesture-name 't)
       (member gesture-name (button-and-modifier-state-gesture-names button state))))
@@ -159,12 +159,12 @@
 (defun button-press-event-matches-gesture-name-p (event gesture-name)
   (let ((button (pointer-event-button event))
 	(modifier-state (event-modifier-state event)))
-    (declare (fixnum button modifier-state))
+    (declare (type fixnum button modifier-state))
     (button-and-modifier-state-matches-gesture-name-p
       (- (integer-length button) #.(integer-length +pointer-left-button+))
       modifier-state gesture-name)))
 
-;;--- Shouldn't #\A match (:A :SHIFT), and so forth?
+;; GESTURE-NAME either names a gesture, or is a canonicalized gesture spec
 (defun keyboard-event-matches-gesture-name-p (event gesture-name)
   (when (and (characterp event)
 	     (characterp gesture-name)
@@ -173,40 +173,66 @@
   (multiple-value-bind (keysym modifier-state character)
       (etypecase event
 	(character
+	  ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
+	  ;;--- and so forth
 	  (values nil 0 event))
 	(key-press-event
 	  (values (keyboard-event-key-name event)
 		  (event-modifier-state event)
 		  (keyboard-event-character event))))
-    (declare (fixnum modifier-state))
-    (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
-      ;;--- Presently allows both keysyms and characters.  Is that right?
-      (or (member gesture-name (cdr (assoc keysym bucket)))
-	  (member gesture-name (cdr (assoc character bucket)))))))
+    (declare (type fixnum modifier-state))
+    (cond ((consp gesture-name)
+	   (and (eql keysym (first gesture-name))
+		(eq modifier-state (apply #'make-modifier-state (rest gesture-name)))))
+	  (t
+	   (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
+	     (or (member gesture-name (cdr (assoc keysym bucket)))
+		 (member gesture-name (cdr (assoc character bucket)))))))))
 
 (defun-inline keyboard-event-p (x)
   (or (characterp x)
       (typep x 'key-press-event)))
 
+;;--- This accepts way too much...
 (defun keyboard-gesture-spec-p (x)
-  (let ((keysym (if (consp x) (first x) x))
-	(modifiers (and (consp x) (rest x))))
-    (and (or (characterp keysym)
-	     (symbolp keysym))
-	 (every #'(lambda (x) (find x *modifier-keys*)) modifiers))))
+  (multiple-value-bind (keysym modifiers) (decode-gesture-spec x)
+    (declare (ignore modifiers))
+    keysym))
 
-;;--- Shouldn't #\A match (:A :SHIFT), and so forth?
-(defun gesture-eql (gesture1 gesture2)
-  (let ((g1-keysym (if (consp gesture1) (first gesture1) gesture1))
-	(g1-modifiers (and (consp gesture1) (rest gesture1)))
-	(g2-keysym (if (consp gesture2) (first gesture2) gesture2))
-	(g2-modifiers (and (consp gesture2) (rest gesture2))))
-    (and (or (eql g1-keysym g2-keysym)
-	     (and (characterp g1-keysym)
-		  (characterp g2-keysym)
-		  (char-equal g1-keysym g2-keysym)))
-	 (every #'(lambda (x) (member x g2-modifiers)) g1-modifiers)
-	 (every #'(lambda (x) (member x g1-modifiers)) g2-modifiers))))
+(defun gesture-spec-eql (gesture1 gesture2)
+  (multiple-value-bind (k1 m1) (decode-gesture-spec gesture1)
+    (multiple-value-bind (k2 m2) (decode-gesture-spec gesture2)
+      (and (or (eql k1 k2)
+	       (and (characterp k1)
+		    (characterp k2)
+		    (char-equal k1 k2)))
+	   (equal m1 m2)))))
+
+(defun decode-gesture-spec (gesture-spec &key (errorp t))
+  (declare (values button modifiers))
+  (when (atom gesture-spec)
+    (return-from decode-gesture-spec
+      (values gesture-spec nil)))
+  (let ((modifiers nil)
+	(button nil))
+    (dolist (x gesture-spec)
+      (cond ((find x *modifier-keys*)
+	     (if (member x modifiers)
+		 (if errorp
+		     (cerror "Ignore the extra modifier"
+			     "The modifier ~S appears more than once in the gesture spec ~S"
+			     x gesture-spec)
+		     (return-from decode-gesture-spec nil))
+		 (push x modifiers)))
+	    (button
+	     (if errorp
+		 (error "The gesture spec ~S is invalid" gesture-spec)
+		 (return-from decode-gesture-spec nil)))
+	    (t
+	     (setq button x))))
+    ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
+    ;;--- and so forth.
+    (values button (nreverse modifiers))))
 
 
 (defun add-gesture-name (name type gesture-spec &key (unique t))
@@ -215,10 +241,9 @@
     (delete-gesture-name name))
   (ecase type
     (:keyboard
-      (destructuring-bind (key-name &rest modifiers) gesture-spec
+      (multiple-value-bind (key-name modifiers)
+	  (decode-gesture-spec gesture-spec)
 	(check-type key-name (or symbol character))
-	(assert (every #'(lambda (x) (find x *modifier-keys*)) modifiers) (modifiers)
-		"~S is not a subset of ~S" modifiers '(:shift :control :meta :super :hyper))
 	(let* ((index (apply #'make-modifier-state modifiers))
 	       (bucket (aref *keysym-and-modifier-key->gesture* index))
 	       (entry (assoc key-name bucket)))
@@ -230,10 +255,9 @@
 		 (push entry (aref *keysym-and-modifier-key->gesture* index))))
 	  bucket)))
     (:pointer-button
-      (destructuring-bind (button &rest modifiers) gesture-spec
+      (multiple-value-bind (button modifiers)
+	  (decode-gesture-spec gesture-spec)
 	(check-type button (member :left :middle :right))
-	(assert (every #'(lambda (x) (find x *modifier-keys*)) modifiers) (modifiers)
-		"~S is not a subset of ~S" modifiers '(:shift :control :meta :super :hyper))
 	(pushnew name (button-and-modifier-state-gesture-names
 			(button-index button)
 			(apply #'make-modifier-state modifiers)))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.4 92/02/24 13:08:36 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.5 92/03/04 16:22:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -170,7 +170,10 @@
 
 (defmethod tree-recompute-extent-1 ((record output-record-mixin))
   (let ((once nil)
-	(min-x 0) (min-y 0) (max-x 0) (max-y 0))
+	(min-x (coordinate 0))
+	(min-y (coordinate 0))
+	(max-x (coordinate 0))
+	(max-y (coordinate 0)))
     (declare (type coordinate min-x min-y max-x max-y))
     (multiple-value-bind (x-offset y-offset)
 	(convert-from-descendant-to-ancestor-coordinates
@@ -194,9 +197,12 @@
 	(declare (dynamic-extent #'recompute-extent-of-child))
 	(map-over-output-records #'recompute-extent-of-child record))
       (when (null min-x)
-	(setq min-x 0 min-y 0 max-x 0 max-y 0))
+	(setq min-x (coordinate 0)
+	      min-y (coordinate 0)
+	      max-x (coordinate 0)
+	      max-y (coordinate 0)))
       #+ignore (assert (ltrb-well-formed-p min-x min-y max-x max-y))
-      (translate-fixnum-positions x-offset y-offset min-x min-y max-x max-y)
+      (translate-coordinates x-offset y-offset min-x min-y max-x max-y)
       (bounding-rectangle-set-edges record min-x min-y max-x max-y)
       (values min-x min-y max-x max-y))))
 
@@ -242,7 +248,7 @@
 	 (x-spacing (slot-value table 'x-spacing))
 	 (y-spacing (slot-value table 'y-spacing))
 	 (equalize-column-widths (slot-value table 'equalize-column-widths)))
-    (declare (fixnum nrows cells))
+    (declare (type fixnum nrows cells))
     (declare (type coordinate x-spacing y-spacing))
     (labels ((count-rows (row)
 	       (incf nrows)
@@ -265,12 +271,14 @@
       (with-stack-array (column-array ncells :initial-element nil)
 	(let ((x-pos nil)
 	      (y-pos nil)
-	      (row-count 0) (column-count 0)
-	      (total-width 0) (total-height 0))
-	  (declare (fixnum row-count column-count))
+	      (row-count 0)
+	      (column-count 0)
+	      (total-width (coordinate 0))
+	      (total-height (coordinate 0)))
+	  (declare (type fixnum row-count column-count))
 	  (declare (type coordinate total-width total-height))
 	  ;; We always want the table to start at its START-X and START-Y positions.
-	  (multiple-value-setq (x-pos y-pos) (output-record-position* table))
+	  (multiple-value-setq (x-pos y-pos) (output-record-position table))
 	  (macrolet (#-CCL-2 (row-max-height (row-number)
 			       `(svref row-array ,row-number))
 		     #-CCL-2 (column-max-width (column-number)
@@ -305,9 +313,9 @@
 	      (declare (dynamic-extent #'row-mapper))
 	      (funcall table-mapper #'row-mapper table))
 	    (when equalize-column-widths
-	      (let ((column-width 0)
+	      (let ((column-width (coordinate 0))
 		    (n-columns (1+ column-count)))
-		(declare (fixnum n-columns))
+		(declare (type fixnum n-columns))
 		(declare (type coordinate column-width))
 		(dotimes (i n-columns)
 		  (maxf column-width (column-max-width i)))
@@ -338,9 +346,11 @@
 				  (ecase (slot-value cell 'x-alignment)
 				    (:left )
 				    (:right
-				      (setq x-alignment-adjust (- column-width cell-width)))
+				      (setq x-alignment-adjust
+					    (- column-width cell-width)))
 				    (:center
-				      (setq x-alignment-adjust (floor (- column-width cell-width) 2))))
+				      (setq x-alignment-adjust
+					    (floor (- column-width cell-width) 2))))
 				  (ecase (slot-value cell 'y-alignment)
 				    (:top )
 				    (:bottom
@@ -353,7 +363,7 @@
 				      (convert-from-ancestor-to-descendant-coordinates
 					(output-record-parent table) (output-record-parent cell))
 				    (declare (type coordinate x-offset y-offset))
-				    (output-record-set-position*
+				    (output-record-set-position
 				      cell
 				      (+ x-offset total-width  x-alignment-adjust)
 				      (+ y-offset total-height y-alignment-adjust)))
@@ -373,7 +383,7 @@
 (defmethod adjust-multiple-columns ((table standard-table-output-record) stream
 				    &optional n-columns x-spacing)
   (let ((row-count 0))
-    (declare (fixnum row-count))
+    (declare (type fixnum row-count))
     (when (slot-value table 'row-table-p)
       (flet ((row-counter (row)
 	       (declare (ignore row))
@@ -395,31 +405,32 @@
 					      ':multiple-columns-x-spacing)
 		         (stream-string-width stream " ")))
 		   (column-width (+ table-width between-column-margin))
-		   (possible-columns (or n-columns (floor stream-width column-width)))
+		   (possible-columns (or n-columns
+					 (max (floor stream-width column-width) 1)))
 		   (y-spacing (slot-value table 'y-spacing))
 		   (rows-per-column (max 3 (ceiling row-count possible-columns)))
 		   (row-number 0)
-		   (row-x 0)
-		   (row-y 0))
+		   (row-x (coordinate 0))
+		   (row-y (coordinate 0)))
 	      (declare (type coordinate table-width between-column-margin
 				        column-width row-x row-y))
 	      (declare (type fixnum possible-columns rows-per-column row-number))
 	      (flet ((layout-multiple-columns (row)
-		       (multiple-value-bind (rl rt) (bounding-rectangle-position* row)
+		       (multiple-value-bind (rl rt) (bounding-rectangle-position row)
 			 (multiple-value-bind (xoff yoff)
 			     (convert-from-descendant-to-ancestor-coordinates
 			       row (output-record-parent table))
 			   (declare (type coordinate xoff yoff))
-			   (translate-fixnum-positions xoff yoff rl rt))
+			   (translate-coordinates xoff yoff rl rt))
 			 ;; Position the row so that the X position relative to the
 			 ;; original table is preserved, so that :ALIGN-X :RIGHT works
 			 ;;--- ROW-Y needs the same treatment for :ALIGN-Y
-			 (output-record-set-position* row (+ row-x (- rl tleft)) row-y)
+			 (output-record-set-position row (+ row-x (- rl tleft)) row-y)
 			 (incf row-number)
 			 (incf row-y (+ (bounding-rectangle-height row) y-spacing))
 			 (when (zerop (mod row-number rows-per-column))
 			   (setq row-x (+ row-x column-width)
-				 row-y 0)))))
+				 row-y (coordinate 0))))))
 		(declare (dynamic-extent #'layout-multiple-columns))
 		(map-over-table-rows #'layout-multiple-columns table)))))
 	(tree-recompute-extent table)))))
@@ -433,7 +444,7 @@
       #'(lambda (cell)
 	  (with-bounding-rectangle* (left top right bottom) cell
 	    (declare (ignore bottom))
-	    (output-record-set-position* cell x-position top)
+	    (output-record-set-position cell x-position top)
 	    (incf x-position (+ (- right left) x-spacing))))
       row)))
 
@@ -441,15 +452,16 @@
   (declare (ignore stream))
   #+ignore
   (let ((x-spacing (slot-value (output-record-parent column) 'x-spacing))
-	(x-position 0))
+	(x-position (coordinate 0)))
     (map-over-row-cells 
       #'(lambda (cell)
 	  (with-bounding-rectangle* (left top right bottom) cell
 	    (declare (ignore bottom))
-	    (output-record-set-position* cell x-position top)
+	    (output-record-set-position cell x-position top)
 	    (incf x-position (+ (- right left) x-spacing))))
       column)))
 
+;;--- Should this return a COORDINATE?
 (defun process-spacing-arg (stream spacing form &optional clause)
   (cond ((null spacing) nil)
 	((integerp spacing) spacing)
@@ -520,17 +532,18 @@
   ;;--- inline in FORMATTING-CELL it would just work.  We could skip the IF and
   ;;--- just call INVOKE-WITH-NEW-OUTPUT-RECORD...
   (let ((stream (or *original-stream* stream)))
-    (multiple-value-bind (x y) (stream-cursor-position* stream)
-      (if (eq record-type 'standard-cell-output-record)
-	  (with-new-output-record (stream 'standard-cell-output-record nil
-				   :align-x align-x :align-y align-y
-				   :min-width min-width :min-height min-height)
-	    (funcall continuation stream))
-          (with-new-output-record (stream record-type nil
-				   :align-x align-x :align-y align-y
-				   :min-width min-width :min-height min-height)
-	    (funcall continuation stream)))
-      (stream-set-cursor-position* stream x y))))
+    (multiple-value-bind (x y) (stream-cursor-position stream)
+      (prog1
+	(if (eq record-type 'standard-cell-output-record)
+	    (with-new-output-record (stream 'standard-cell-output-record nil
+				     :align-x align-x :align-y align-y
+				     :min-width min-width :min-height min-height)
+	      (funcall continuation stream))
+            (with-new-output-record (stream record-type nil
+				     :align-x align-x :align-y align-y
+				     :min-width min-width :min-height min-height)
+	      (funcall continuation stream)))
+	(stream-set-cursor-position stream x y)))))
 
 (defmethod invoke-formatting-cell :around ((stream output-recording-mixin) continuation
 					   &rest options)
@@ -586,8 +599,8 @@
   (let ((ncolumns (slot-value menu 'n-columns))
 	(nrows (slot-value menu 'n-rows))
 	(ncells 0)
-	(max-cell-width 0)
-	(max-cell-height 0)
+	(max-cell-width (coordinate 0))
+	(max-cell-height (coordinate 0))
 	(x-spacing (slot-value menu 'x-spacing))
 	(y-spacing (slot-value menu 'y-spacing))
 	(initial-spacing (slot-value menu 'initial-spacing))
@@ -629,7 +642,7 @@
 	   ;; could compute this better
 	   (setq nrows 
 		 (max 1
-		      (let ((acc-height 0)
+		      (let ((acc-height (coordinate 0))
 			    (count 0))
 			(loop 
 			  (incf acc-height max-cell-height)
@@ -674,7 +687,7 @@
       (with-stack-array (column-array ncolumns :initial-element nil)
 	(let ((row-count 0)
 	      (column-count 0))
-	  (declare (fixnum row-count column-count))
+	  (declare (type fixnum row-count column-count))
 	  (macrolet (#-CCL-2 (row-height (row-number)
 			       `(svref row-array ,row-number))
 		     #-CCL-2 (column-width (column-number)
@@ -708,12 +721,12 @@
 			*default-minimum-menu-x-spacing*)))
 	    (setq row-count 0
 		  column-count 0)
-	    (multiple-value-bind (left-margin top-margin) (bounding-rectangle-position* menu)
+	    (multiple-value-bind (left-margin top-margin) (bounding-rectangle-position menu)
 	      (declare (type coordinate left-margin top-margin))
-	      (let ((accumulated-height 0)
+	      (let ((accumulated-height (coordinate 0))
 		    (accumulated-width 
 		      (if (or (stream-redisplaying-p stream) initial-spacing)
-			  0
+			  (coordinate 0)
 			  x-spacing)))
 		(declare (type coordinate accumulated-height accumulated-width))
 		(flet ((adjust-cells (cell)
@@ -729,20 +742,24 @@
 			   (ecase (slot-value cell 'x-alignment)
 			     (:left )
 			     (:right
-			       (setq x-alignment-adjust (- column-width cell-width)))
+			       (setq x-alignment-adjust
+				     (- column-width cell-width)))
 			     (:center
-			       (setq x-alignment-adjust (floor (- column-width cell-width) 2))))
+			       (setq x-alignment-adjust
+				     (floor (- column-width cell-width) 2))))
 			   (ecase (slot-value cell 'y-alignment)
 			     (:top )
 			     (:bottom
-			       (setq y-alignment-adjust (- row-height cell-height)))
+			       (setq y-alignment-adjust 
+				     (- row-height cell-height)))
 			     (:center
-			       (setq y-alignment-adjust (floor (- row-height cell-height) 2))))
+			       (setq y-alignment-adjust
+				     (floor (- row-height cell-height) 2))))
 			   (multiple-value-bind (x-offset y-offset)
 			       (convert-from-ancestor-to-descendant-coordinates
 				 (output-record-parent menu) (output-record-parent cell))
 			     (declare (type coordinate x-offset y-offset))
-			     (output-record-set-position*
+			     (output-record-set-position
 			       cell
 			       (+ x-offset left-margin accumulated-width x-alignment-adjust)
 			       (+ y-offset top-margin accumulated-height y-alignment-adjust))))
@@ -752,7 +769,7 @@
 			 (when (= column-count ncolumns)
 			   (setf accumulated-width 
 				 (if (or (stream-redisplaying-p stream) initial-spacing)
-				     0
+				     (coordinate 0)
 				     x-spacing))
 			   (incf accumulated-height (row-height row-count))
 			   (incf accumulated-height y-spacing)

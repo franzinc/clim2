@@ -1,9 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: clx-port.lisp,v 1.4 92/03/10 10:12:08 cer Exp $
+
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
-;;; $fiHeader: clx-port.lisp,v 1.4 92/03/10 10:12:08 cer Exp Locker: cer $
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
 
@@ -564,8 +565,8 @@
 
 (defmethod set-cursor-location ((port clx-port) sheet x y)
   (xlib:warp-pointer (sheet-mirror sheet)
-		     (integerize-coordinate x)
-		     (integerize-coordinate y)))
+		     (fix-coordinate x) (fix-coordinate y)))
+
 
 
 ;;--- Doesn't this need a sheet/stream argument?

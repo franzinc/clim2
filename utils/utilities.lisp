@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.3 92/02/24 13:06:01 cer Exp $
+;; $fiHeader: utilities.lisp,v 1.4 92/03/04 16:20:27 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -56,18 +56,18 @@
 	   #+Allegro `(let ((temp ,array))
 			(etypecase temp
 			  (simple-vector temp)
-			  ((vector t) (let ((temp2 (excl::ah_data temp)))
-					(setq temp2 (if (consp temp2)
-							(cdr temp2)
-						      temp2))
-					(assert (and 
-						  (zerop (the fixnum
-							      (excl::ah_displacement temp)))
-						  (typep temp2 'simple-vector))
-						()
-						"Arrays passed to ~S must be non-displaced"
-						'with-fast-vector-references)
-					temp2))))
+			  ((vector t)
+			   (let ((temp2 (excl::ah_data temp)))
+			     (setq temp2 (if (consp temp2)
+					     (cdr temp2)
+					     temp2))
+			     (assert (and 
+				       (zerop (the fixnum (excl::ah_displacement temp)))
+				       (typep temp2 'simple-vector))
+				     ()
+				     "Arrays passed to ~S must be non-displaced"
+				     'with-fast-vector-references)
+			     temp2))))
 	   #+Genera array
 	   #-(or Allegro Genera) array)
 	 (internal-binding-declarations (variables)

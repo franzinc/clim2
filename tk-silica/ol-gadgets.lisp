@@ -20,14 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.7 92/03/24 19:37:01 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.8 92/04/10 14:27:47 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
 
 (defmethod make-pane-class ((framem openlook-frame-manager) class &rest options) 
   (declare (ignore options))
-  (second (assoc class '((scroll-bar openlook-scrollbar)
+  (second (assoc class '((scroll-bar openlook-scroll-bar)
 			 (slider openlook-slider)
 			 (push-button openlook-push-button)
 			 (label-pane openlook-label-pane)
@@ -54,26 +54,26 @@
 
 ;;;;;;;;;;;;;;;;;;;;
 
-(defclass openlook-scrollbar (xt-leaf-pane
-			      scrollbar)
+(defclass openlook-scroll-bar (xt-leaf-pane
+			      scroll-bar)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
-						     (sheet openlook-scrollbar))
+						     (sheet openlook-scroll-bar))
   (with-accessors ((orientation gadget-orientation)) sheet
-		  (values 'tk::scrollbar
+		  (values 'tk::scroll-bar
 			  (list :orientation orientation))))
 
-(defmethod (setf silica::scrollbar-size) (nv (sb openlook-scrollbar))
+(defmethod (setf silica::scroll-bar-size) (nv (sb openlook-scroll-bar))
   ;; (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
   nv)
 
-(defmethod (setf silica::scrollbar-value) (nv (sb openlook-scrollbar))
+(defmethod (setf silica::scroll-bar-value) (nv (sb openlook-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :slider-value nv)
   nv)
 
-(defmethod change-scrollbar-values ((sb openlook-scrollbar) &rest args 
+(defmethod change-scroll-bar-values ((sb openlook-scroll-bar) &rest args 
 				    &key slider-size value)
   (declare (ignore args))
   (tk::set-values
@@ -82,24 +82,24 @@
    :slider-value value))
 
 
-(defmethod add-sheet-callbacks ((port openlook-port) (sheet openlook-scrollbar) (widget t))
+(defmethod add-sheet-callbacks ((port openlook-port) (sheet openlook-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :slider-moved
-		    'scrollbar-changed-callback-1
+		    'scroll-bar-changed-callback-1
 		    sheet))
 
-(defmethod scrollbar-changed-callback-1 ((widget t) (sheet openlook-scrollbar))
+(defmethod scroll-bar-changed-callback-1 ((widget t) (sheet openlook-scroll-bar))
   (multiple-value-bind
       (value size)
       (tk::get-values widget :slider-value :proportion-length)
-    (scrollbar-value-changed-callback
+    (scroll-bar-value-changed-callback
      sheet
      (gadget-client sheet)
      (gadget-id sheet)
      value
      size)))
 
-(defmethod compose-space ((m openlook-scrollbar) &key width height)
+(defmethod compose-space ((m openlook-scroll-bar) &key width height)
   (let ((x 16))
     (ecase (gadget-orientation m)
       (:vertical
@@ -151,7 +151,6 @@
   (tk::add-callback widget 
 		    :resize-callback 'sheet-mirror-resized-callback
 		    sheet))
-
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -259,7 +258,6 @@
 
 (defun command-button-callback-ol (button frame item)
   (command-button-callback button nil frame item))
-
 
 
 ;;; Label pane

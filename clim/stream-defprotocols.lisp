@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.4 92/02/24 13:08:31 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.5 92/03/04 16:22:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -107,11 +107,11 @@
 (defoperation stream-input-wait basic-extended-input-protocol 
   ((stream basic-extended-input-protocol) &key timeout input-wait-test))
 
-(defoperation stream-pointer-position* basic-extended-input-protocol
+(defoperation stream-pointer-position basic-extended-input-protocol
   ((stream basic-extended-input-protocol) &key (timeout 0) pointer)
   (declare (values x y)))
 
-(defoperation stream-set-pointer-position* basic-extended-input-protocol
+(defoperation stream-set-pointer-position basic-extended-input-protocol
   ((stream basic-extended-input-protocol) x y &key pointer))
 
 (defoperation stream-note-pointer-button-press basic-extended-input-protocol
@@ -232,19 +232,19 @@
 			       (stream)
   (stream-vertical-spacing stream))
 
-(defoperation stream-cursor-position* basic-extended-output-protocol
+(defoperation stream-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol))
   (declare (values x y)))
 
-(defoperation stream-set-cursor-position* basic-extended-output-protocol
+(defoperation stream-set-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y))
 
-;; Like STREAM-SET-CURSOR-POSITION*, but is more conservative about closing
+;; Like STREAM-SET-CURSOR-POSITION, but is more conservative about closing
 ;; the current text output record.
-(defoperation stream-set-cursor-position*-internal basic-extended-output-protocol
+(defoperation stream-set-cursor-position-internal basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y))
 
-(defoperation stream-increment-cursor-position* basic-extended-output-protocol
+(defoperation stream-increment-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol) dx dy))
 
 (defoperation stream-ensure-cursor-visible basic-extended-output-protocol
@@ -279,17 +279,17 @@
   ((stream basic-extended-output-protocol) &optional brief-p))
 
 #+Genera
-(defoperation stream-compatible-cursor-position* basic-extended-output-protocol
+(defoperation stream-compatible-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol) &optional unit)
   (:selector :read-cursorpos))
 
 #+Genera
-(defoperation stream-compatible-set-cursor-position* basic-extended-output-protocol
+(defoperation stream-compatible-set-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y &optional unit)
   (:selector :set-cursorpos))
 
 #+Genera
-(defoperation stream-compatible-increment-cursor-position* basic-extended-output-protocol
+(defoperation stream-compatible-increment-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y &optional unit)
   (:selector :increment-cursorpos))
 
@@ -364,10 +364,10 @@
 (defoperation window-drawing-possible window-mixin
   ((window window-mixin)))
 
-(defoperation window-viewport-position* window-mixin
+(defoperation window-viewport-position window-mixin
   ((window window-mixin)))
 
-(defoperation window-set-viewport-position* window-mixin
+(defoperation window-set-viewport-position window-mixin
   ((window window-mixin) x y))
 
 (defoperation redisplay-decorations window-mixin

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.5 92/03/04 16:22:21 cer Exp $
+;; $fiHeader: text-formatting.lisp,v 1.6 92/03/10 10:12:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -102,8 +102,8 @@
     (stream-write-string stream buffer)
     (setf (fill-pointer buffer) 0)
     ;; Move to the next line if necessary, writing the prefix string
-    ;;--- STREAM-CURSOR-POSITION* is the wrong thing to look at
-    (when (> (stream-cursor-position* stream) fill-width)
+    ;;--- STREAM-CURSOR-POSITION is the wrong thing to look at
+    (when (> (stream-cursor-position stream) fill-width)
       (stream-terpri stream)
       (filling-stream-handle-line-break filling-stream))
     (let ((*original-stream* (or *original-stream* filling-stream)))
@@ -187,8 +187,8 @@
 				      :indentation indentation)
 	       (with-new-output-record (stream)
 		 (funcall continuation stream))))))
-    (multiple-value-bind (x y) (output-record-position* indenting-record)
-      (output-record-set-position* indenting-record (+ x indentation) y))
+    (multiple-value-bind (x y) (output-record-position indenting-record)
+      (output-record-set-position indenting-record (+ x indentation) y))
     (tree-recompute-extent indenting-record)
     (replay indenting-record stream)
     (when move-cursor

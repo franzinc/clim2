@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.9 92/03/10 10:12:39 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.10 92/03/30 17:52:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -89,20 +89,20 @@
       (setf (cursor-stream text-cursor) stream)
       (setf (cursor-visibility text-cursor) initial-cursor-visibility))))
 
-;;; --- Cross-protocol violation here because the cursor-position* is a method on
-;;; --- extended-OUTPUT-protocol right now.  Secondly, this should probably be a method
-;;; --- on the abstract class, anyway.
+;;; --- Cross-protocol violation here because CURSOR-POSITION is a method on
+;;; --- extended-OUTPUT-protocol right now.  Secondly, this should probably be a
+;;; --- method on the abstract class, anyway.
 #+Silica
-(defmethod stream-set-cursor-position* :after ((stream input-protocol-mixin) x y)
+(defmethod stream-set-cursor-position :after ((stream input-protocol-mixin) x y)
   (let ((cursor (stream-text-cursor stream)))
     (when cursor
-      (cursor-set-position* cursor x y))))
+      (cursor-set-position cursor x y))))
 
 #+Silica
-(defmethod stream-set-cursor-position*-internal :after ((stream input-protocol-mixin) x y)
+(defmethod stream-set-cursor-position-internal :after ((stream input-protocol-mixin) x y)
   (let ((cursor (stream-text-cursor stream)))
     (when cursor
-      (cursor-set-position* cursor x y))))
+      (cursor-set-position cursor x y))))
 
 
 (defmethod initialize-menu :before (port (menu input-protocol-mixin) associated-window)
@@ -127,7 +127,7 @@
       (when (and (cursor-active cursor)
 		 (cursor-state cursor)
 		 (cursor-focus cursor))
-	(multiple-value-bind (x y) (cursor-position* cursor)
+	(multiple-value-bind (x y) (cursor-position cursor)
 	  (multiple-value-bind (width height)
 	      (cursor-width-and-height-pending-protocol cursor)
 	    (let ((cursor-rect (make-bounding-rectangle x y (+ x width) (+ y height))))
@@ -200,8 +200,8 @@
 
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-motion-event))
   (let ((pointer (stream-primary-pointer stream)))
-    (pointer-set-position* pointer (pointer-event-x event) (pointer-event-y event))
-    (pointer-set-native-position*
+    (pointer-set-position pointer (pointer-event-x event) (pointer-event-y event))
+    (pointer-set-native-position
       pointer 
       (pointer-event-native-x event) (pointer-event-native-y event))
     (setf (pointer-button-state pointer) 
@@ -243,15 +243,15 @@
     (set-pointer-window-and-location window pointer)))
 
 #-Silica
-(defmethod window-set-viewport-position* :around ((stream input-protocol-mixin) new-x new-y)
+(defmethod window-set-viewport-position :around ((stream input-protocol-mixin) new-x new-y)
   (declare (ignore new-x new-y))
   (let ((cursor (stream-text-cursor stream)))
     (if cursor
 	;; Shifting the viewport may need to redraw the cursor
 	(multiple-value-bind (x y)
-	    (cursor-position* cursor)
+	    (cursor-position cursor)
 	  (call-next-method)
-	  (cursor-set-position* cursor x y))
+	  (cursor-set-position cursor x y))
 	(call-next-method))))
 
 
@@ -461,11 +461,11 @@
 ;;; stream-read-gesture directly.
 (defun read-gesture (&rest args &key (stream *standard-input*) &allow-other-keys)
   (declare (arglist &key (stream *standard-input*)
-		    timeout peek-p input-wait-test input-wait-handler
-		    pointer-button-press-handler))
+			 timeout peek-p input-wait-test input-wait-handler
+			 pointer-button-press-handler))
   (declare (dynamic-extent args))
   (with-keywords-removed (keywords args '(:stream))
-		 (apply #'stream-read-gesture stream keywords)))
+    (apply #'stream-read-gesture stream keywords)))
 
 (defmethod stream-unread-gesture ((stream input-protocol-mixin) gesture)
   (queue-unget (stream-input-buffer stream) gesture))
@@ -687,20 +687,32 @@
   nil)
 
 
-;;; STREAM-POINTER-POSITION* method returns x,y in history coordinates.
+;;; STREAM-POINTER-POSITION method returns X,Y in history coordinates.
 ;;; Around methods take care of this (see protocol-intermediaries.lisp)
-(defmethod stream-pointer-position* ((stream input-protocol-mixin) &key (timeout 0) pointer)
+(defmethod stream-pointer-position ((stream input-protocol-mixin) &key (timeout 0) pointer)
   (stream-pointer-position-in-window-coordinates stream :timeout timeout :pointer pointer))
 
-(defmethod stream-set-pointer-position* ((stream input-protocol-mixin) x y &key pointer)
+(defmethod stream-set-pointer-position ((stream input-protocol-mixin) x y &key pointer)
   (set-stream-pointer-position-in-window-coordinates stream x y :pointer pointer))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (stream-pointer-position* 
+				stream-pointer-position)
+			       (stream)
+  (stream-pointer-position stream))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (stream-set-pointer-position*
+				stream-set-pointer-position)
+			       (stream x y)
+  (stream-set-pointer-position stream x y))
 
 ;;; The primitive we are interested in.  The pointer is in inside-host-window coords.
 #+Silica
 (defun stream-pointer-position-in-window-coordinates (stream &key (timeout 0) pointer)
   (declare (ignore timeout))
   (let ((pointer (or pointer (stream-primary-pointer stream))))
-    (pointer-position* pointer)))
+    (pointer-position pointer)))
 
 #-Silica
 (defun stream-pointer-position-in-window-coordinates (stream &key (timeout 0) pointer)
@@ -710,17 +722,17 @@
     (multiple-value-bind (left top) (window-offset stream)
       (declare (type coordinate left top))
       (if pointer
-	  (multiple-value-bind (x y) (pointer-position* pointer)
+	  (multiple-value-bind (x y) (pointer-position pointer)
 	    (declare (type coordinate x y))
 	    (values (- x left) (- y top)))
-	  (values 0 0)))))
+	  (values (coordinate 0) (coordinate 0))))))
 
 (defun set-stream-pointer-position-in-window-coordinates (stream x y &key pointer)
   (declare (type coordinate x y))
   (unless pointer (setf pointer (stream-primary-pointer stream)))
   (setf (pointer-position-changed pointer) t)
   #+Silica
-  (pointer-set-position* pointer x y)
+  (pointer-set-position pointer x y)
   #-Silica
   (multiple-value-bind (left top) (window-offset stream)
     (declare (type coordinate left top))
@@ -734,8 +746,9 @@
   (with-slots (input-buffer) stream
     (queue-put input-buffer
 	       ;; X and Y had better be fixnums
-	       ;;--- Coerce to COORDINATE
-	       (make-button-press-event stream x y button modifier-state))))
+	       (make-button-press-event stream 
+					(coordinate x) (coordinate y)
+					button modifier-state))))
 
 #-Silica
 (defmethod stream-note-pointer-button-release ((stream input-protocol-mixin)
@@ -743,9 +756,9 @@
   (declare (ignore pointer))
   (with-slots (input-buffer) stream
     (queue-put input-buffer
-	       ;; X and Y had better be fixnums
-	       ;;--- Coerce to COORDINATE
-	       (make-button-release-event stream x y button modifier-state))))
+	       (make-button-release-event stream
+					  (coordinate x) (coordinate y)
+					  button modifier-state))))
 
 #+Silica
 (defmethod stream-set-input-focus ((stream input-protocol-mixin))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.7 92/03/30 17:51:33 cer Exp Locker: cer $
+;; $fiHeader: foreign.lisp,v 1.8 92/04/03 12:03:57 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -86,5 +86,3 @@
   (setf (foreign-pointer-address d)
     (or display
 	(apply #'open-display args))))
-
-

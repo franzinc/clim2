@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.13 92/04/10 14:26:56 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.14 92/04/14 15:29:50 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -186,21 +186,21 @@
   (:pane 
     (with-slots (stream own-window  exit-button-stream) *application-frame*
       (vertically ()
-	 (outlining ()
-	    (scrolling (:scroll-bars :dynamic)
-		       (progn
-			 (setq stream
-			   (make-instance 'accept-values-stream
-					  :stream (setf own-window
-						    (make-pane 'clim-stream-pane
-							       :initial-cursor-visibility nil))))
-			 own-window)))
-	 (outlining ()
-	    (setf exit-button-stream
+	  (outlining ()
+	(scrolling (:scroll-bars :dynamic)
+	  (progn
+	    (setq stream
+		  (make-instance 'accept-values-stream
+				 :stream (setf own-window
+					       (make-pane 'clim-stream-pane
+							  :initial-cursor-visibility nil))))
+	    own-window)))
+	  (outlining ()
+	(setf exit-button-stream
 	      (make-pane 'clim-stream-pane
-			    :initial-cursor-visibility nil))))))
-  (:top-level (accept-values-top-level))
+			 :initial-cursor-visibility nil))))))
   (:menu-bar nil)
+  (:top-level (accept-values-top-level))
   (:command-table accept-values)
   (:command-definer nil))
 
@@ -278,8 +278,8 @@
 	 (bottom-margin 10))
      (if own-window
 	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
-					      :parent *application-frame*
 					      :calling-frame *application-frame*
+					      :parent *application-frame*
 					      :continuation continuation
 					      :exit-boxes exit-boxes
 					      :own-window the-own-window
@@ -525,8 +525,8 @@
       (multiple-value-bind (xoff yoff)
 	  (convert-from-relative-to-absolute-coordinates
 	    stream (output-record-parent presentation))
-	(multiple-value-bind (x y) (output-record-position* presentation)
-	  (stream-set-cursor-position* stream (+ x xoff) (+ y yoff))))
+	(multiple-value-bind (x y) (output-record-position presentation)
+	  (stream-set-cursor-position stream (+ x xoff) (+ y yoff))))
       (erase-output-record presentation stream)
       (catch-abort-gestures ("Abort editing the current field")
 	(let ((new-value nil)
@@ -806,7 +806,7 @@
       ;; :X-SPACING makes it not spread the choices to fill the whole width.
       ;; :INITIAL-SPACING NIL makes it not add whitespace at the start of the field.
       (formatting-item-list (stream :max-width (- (stream-text-margin stream)
-						  (stream-cursor-position* stream))
+						  (stream-cursor-position stream))
 				    :x-spacing '(2 :character)
 				    :initial-spacing nil)
 	(doseq (object sequence)
@@ -1041,30 +1041,22 @@
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
 	    (make-pane 'push-button
-			  :activate-callback
-			  #'(lambda (gadget)
-			      (declare (ignore gadget))
-			      (com-abort-avv))
-			  :client frame
-			  :id :abort
-			  :label abort)))
+		       :label abort
+		       :client frame :id :abort
+		       :activate-callback
+		         #'(lambda (gadget)
+			     (declare (ignore gadget))
+			     (com-abort-avv)))))
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
 	    (make-pane 'push-button
-			  :activate-callback
-			  #'(lambda (gadget)
-			      (declare (ignore gadget))
-			      (com-exit-avv))
-			  :client frame
-			  :id :exit
-			  :label exit))))))))
+		       :label exit
+		       :client frame :id :exit
+		       :activate-callback
+		         #'(lambda (gadget)
+			    (declare (ignore gadget))
+			    (com-exit-avv))))))))))
 
-;; Callback for exit boxes
-#+ignore
-(defmethod activate-callback ((button push-button) (client accept-values) id)
-  (ecase id
-    (:abort (com-abort-avv))
-    (:exit (com-exit-avv))))
 
 ;; It's OK that this is only in the ACCEPT-VALUES command table because
 ;; we're going to execute it manually in the callbacks below
@@ -1075,25 +1067,6 @@
     (setf value new-value
 	  changed-p t)))
 
-#+ignore
-(defmethod value-changed-callback :around ((gadget value-gadget)
-					   (client accept-values-stream) id new-value)
-  (declare (ignore new-value))
-  (when (accept-values-query-valid-p (accept-values-query-presentation id))
-    ;; Only call the callback if the query is still valid
-    (call-next-method)))
-
-#+ignore
-(defmethod value-changed-callback ((gadget value-gadget)
-				   (client accept-values-stream) id new-value)
-  (do-avv-command new-value client id))
-
-#+ignore
-(defmethod value-changed-callback ((gadget radio-box)
-				   (client accept-values-stream) id new-value)
-  (do-avv-command (gadget-id new-value) client id))
-
-
 (defun accept-values-value-changed-callback (gadget new-value stream query-id)
   (declare (ignore gadget))
   (when (accept-values-query-valid-p (accept-values-query-presentation query-id))
@@ -1103,8 +1076,6 @@
 (defun make-accept-values-value-changed-callback (stream query-id)
   ;; We attach a callback function directly now
   `(,#'accept-values-value-changed-callback ,stream ,query-id))
-
-;;;;;;;;;;;;;;;
 
 (defun do-avv-command (new-value client id)
   (throw-highlighted-presentation
@@ -1122,58 +1093,39 @@
 
 ;; This is how we associate an output-record with the button
 (defmethod invoke-accept-values-command-button
-    (stream continuation (view gadget-dialog-view) prompt
-     &key (documentation (if (stringp prompt)
-			     prompt
-			   (with-output-to-string (stream)
-			     (funcall prompt stream))))
-	  (query-identifier (list ':button documentation))
-	  (cache-value t) (cache-test #'eql)
-	  resynchronize)
+    	   (stream continuation (view gadget-dialog-view) prompt
+	    &key (documentation (if (stringp prompt)
+				    prompt
+				    (with-output-to-string (stream)
+				      (funcall prompt stream))))
+		 (query-identifier (list ':button documentation))
+		 (cache-value t) (cache-test #'eql)
+		 resynchronize)
   (declare (dynamic-extent prompt))
   (updating-output 
    (stream :unique-id query-identifier :id-test #'equal
 	   :cache-value cache-value :cache-test cache-test)
    (with-output-as-gadget (stream)
-     (let ((id (stream-current-output-record (slot-value stream
-							 'stream)))
+     (let ((id (stream-current-output-record (slot-value stream 'stream)))
 	   (client (make-instance 'accept-values-command-button
 				  :continuation continuation
 				  :documentation documentation
 				  :resynchronize resynchronize)))
        (make-pane 'push-button
-		     :activate-callback
-		     #'(lambda (button)
-			 (when (accept-values-query-valid-p id)
-			   (throw-highlighted-presentation
-			    (make-instance 'standard-presentation
-					   :object `(com-avv-command-button ,client ,id)
-					   :type 'command)
-			    *input-context*
-			    ;;--- It would be nice if we had the real event...
-			    (make-instance 'pointer-button-press-event
-					   :sheet (sheet-parent button)
-					   :x 0
-					   :y 0
-					   :modifiers 0
-					   :button 256))))
-		     :label prompt
-		     :id id
-		     :client client)))))
-
-#+ignore
-(defmethod activate-callback ((button push-button)
-			      (client accept-values-command-button) id)
-  (when (accept-values-query-valid-p id)
-    (throw-highlighted-presentation
-      (make-instance 'standard-presentation
-		     :object `(com-avv-command-button ,client ,id)
-		     :type 'command)
-      *input-context*
-      ;;--- It would be nice if we had the real event...
-      (make-instance 'pointer-button-press-event
-		     :sheet (sheet-parent button)
-		     :x 0
-		     :y 0
-		     :modifiers 0
-		     :button 256))))
+		  :label prompt
+		  :id id :client client
+		  :activate-callback
+		    #'(lambda (button)
+		        (when (accept-values-query-valid-p id)
+			      (throw-highlighted-presentation
+				(make-instance 'standard-presentation
+					       :object `(com-avv-command-button ,client ,id)
+					       :type 'command)
+				*input-context*
+				;;--- It would be nice if we had the real event...
+				(make-instance 'pointer-button-press-event
+					       :sheet (sheet-parent button)
+					       :x 0
+					       :y 0
+					       :modifiers 0
+					       :button +pointer-left-button+)))))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.4 92/03/24 19:38:15 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.5 92/04/10 14:27:29 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -21,23 +21,23 @@
 
 (defmethod bounding-rectangle* ((thing basic-thing))
   (with-slots (x y size) thing
-    #-Silica (declare (fixnum x y size))
+    (declare (type coordinate x y size))
     (values x y (+ x size) (+ y size))))
 
-(defmethod region-contains-point*-p ((thing basic-thing) x y)
+(defmethod region-contains-position-p ((thing basic-thing) x y)
   (with-bounding-rectangle* (left top right bottom) thing
     (and (<= left x)
 	 (<= top y)
 	 (>= right x)
 	 (>= bottom y))))
 
-(defmethod output-record-start-cursor-position* ((thing basic-thing))
+(defmethod output-record-start-cursor-position ((thing basic-thing))
   (values 0 0))
 
-;; NEW-X and NEW-Y had better be fixnums
-(defmethod output-record-set-position* ((thing basic-thing) new-x new-y)
+(defmethod output-record-set-position ((thing basic-thing) new-x new-y)
   (with-slots (x y) thing
-    (setf x new-x y new-y)))
+    (setf x (coordinate new-x)
+	  y (coordinate new-y))))
 
 (defmethod map-over-output-records-overlapping-region
 	   (function (thing basic-thing) region
@@ -46,7 +46,7 @@
   (declare (dynamic-extent continuation-args))
   nil)
 
-(defmethod map-over-output-records-containing-point*
+(defmethod map-over-output-records-containing-position
 	   (function (thing basic-thing) x y
 	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
   (declare (ignore x y function x-offset y-offset continuation-args))
@@ -80,10 +80,10 @@
   (with-slots (x y) thing
     (values x y)))
 
-;; NEW-X and NEW-Y had better be fixnums
 (defmethod move ((thing basic-thing) new-x new-y)
   (with-slots (x y) thing
-    (setf x new-x y new-y)))
+    (setf x (coordinate new-x)
+	  y (coordinate new-y))))
 
 
 ;;;****************************************************************
@@ -133,7 +133,7 @@
 (defmethod bounding-rectangle* ((conn connection))
   (let ((fudge 2))
     (with-slots (x y size) conn
-      #-Silica (declare (fixnum x y size))
+      (declare (type coordinate x y size))
       ;; size is a radius, but make the box larger so that connections
       ;; are easier to point to
       (values (- x size fudge) (- y size fudge)
@@ -297,10 +297,10 @@
     ;; Not (- X SIZE) because the component is a half-circle
     (values x (- y size) (+ x size) (+ y size))))
 
-;; NEW-X and NEW-Y had better be fixnums
-(defmethod output-record-set-position* ((thing basic-thing) new-x new-y)
+(defmethod output-record-set-position ((thing basic-thing) new-x new-y)
   (with-slots (x y size) thing
-    (setf x new-x y (+ new-y size))))
+    (setf x (coordinate new-x)
+	  y (coordinate (+ new-y size)))))
 
 
 (defmethod presentation-type ((comp component))
@@ -499,13 +499,11 @@
       (cond ((eq ink +background-ink+)
 	     ;;--- gee, am I getting carried away?
 	     (multiple-value-bind (nx ny)
-		 #+ignore drawing-surface-to-viewport-coordinates
-		 (values x y)
-		 (decf ny *component-size*)
-		 (with-sheet-medium (medium stream)
-		   (draw-rectangle* medium
-				    (- nx 10) (- ny 10) nx (+ ny 20)
-				    :ink +background-ink+))))
+ 		 (values x (- y *component-size*))
+	       (with-sheet-medium (medium stream)
+		 (draw-rectangle* medium
+				  (- nx 10) (- ny 10) nx (+ ny 20)
+				  :ink +background-ink+))))
 	    (t
 	     (draw-text* stream name (- x 10) (- y 10)))))))
 
@@ -531,25 +529,19 @@
 
 ;;; First define a "application" that manages the application's state variables
 ;;; and defines a high-level division of screen real estate.
-
-
-
 (define-application-frame cad-demo
 			  (standard-application-frame output-record)
-  ((object-list :initform nil))
+    ((object-list :initform nil))
   (:panes
-   (design-area 
-    (make-pane 'application-pane)))
+    (design-area 
+      (make-pane 'application-pane)))
   (:pointer-documentation t)
   (:layout
-   (:default
-       (scrolling ()
-		  design-area)))
+    (default
+      (scrolling ()
+	design-area)))
   (:top-level
     (default-frame-top-level :partial-command-parser cad-demo-partial-command-parser)))
-
-;;--- I am amazed every day by something
-;; and this was it today !!!!
 
 (defmethod initialize-instance :around ((cd cad-demo) &key)
   (call-next-method)
@@ -557,7 +549,7 @@
     ;;--- kludge this one pane
     (setf (stream-output-history dp) cd)
     (setf (stream-recording-p dp) nil)))
-  
+
 (defun cad-demo-partial-command-parser (partial-command command-table stream start-location)
   (let ((name (command-name partial-command)))
     (if (eq name 'com-create-component)
@@ -596,16 +588,16 @@
 		object region x-offset y-offset))
       (apply function object continuation-args))))
 
-(defmethod map-over-output-records-containing-point*
+(defmethod map-over-output-records-containing-position
 	   (function (cd cad-demo) x y
 	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
   (declare (dynamic-extent continuation-args))
   (translate-positions x-offset y-offset x y)
   (dolist (object (slot-value cd 'object-list))
-    (when (region-contains-point*-p object x y)
+    (when (region-contains-position-p object x y)
       (apply function object continuation-args))))
 
-(defmethod output-record-start-cursor-position* ((record cad-demo))
+(defmethod output-record-start-cursor-position ((record cad-demo))
   (values 0 0))
 
 (defmethod add-output-record (element (record cad-demo))
@@ -623,7 +615,7 @@
     (setq region nil))
   (multiple-value-bind (rl rt rr rb)
       (and region (bounding-rectangle* region))
-    (multiple-value-bind (xoff yoff) (output-record-position* record)
+    (multiple-value-bind (xoff yoff) (output-record-position record)
       (map-over-output-records-overlapping-region
 	#'(lambda (element)
 	    (with-bounding-rectangle* (left top right bottom) element
@@ -680,7 +672,6 @@
 ;(make-component-prototypes)
 
 ;;; Return the class name of the selected component
-
 (defun select-component (parent)
   (labels ((draw-icon-menu (menu presentation-type)
 	     (formatting-table (menu :x-spacing 5)
@@ -691,8 +682,8 @@
 		       (progn ;; (with-user-coordinates (menu)
 			 (draw-self icon menu)
 			 (multiple-value-bind (x y)
-			     (stream-cursor-position* menu)
-			   (stream-set-cursor-position*
+			     (stream-cursor-position menu)
+			   (stream-set-cursor-position
 			     menu
 			     ;; fudge for the fact that the presentation encloses the
 			     ;; half of the circle that's invisible
@@ -722,8 +713,8 @@
 		       (with-user-coordinates (menu)
 			 (draw-self icon menu)
 			 (multiple-value-bind (x y)
-			     (stream-cursor-position* menu)
-			   (stream-set-cursor-position*
+			     (stream-cursor-position menu)
+			   (stream-set-cursor-position
 			     menu
 			     ;; fudge for the fact that the presentation encloses the
 			     ;; half of the circle that's invisible
@@ -877,7 +868,7 @@
     ((output 'output :gesture :describe))
   (let ((comp (connection-component output))
 	(win (get-frame-pane *application-frame* 'design-area)))
-    (stream-set-cursor-position* win 0 0)
+    (stream-set-cursor-position win 0 0)
     (draw-rectangle* win 0 0 800 20 :ink +background-ink+)
     (with-text-style (win '(:sans-serif :bold :very-large))
       (format win "~A" (equation-part comp)))))
@@ -889,18 +880,16 @@
 
 (define-cad-demo-command (com-exit-CAD-demo :menu "Exit" :keystroke #\X)
     ()
-  ;; assume called via run-cad-demo
   (frame-exit *application-frame*))
 
-;;;------------
-;;; Right now there is only one
-;(define-cad-demo-command (com-swap-layouts :menu "Swap Layouts")
-;    ()
-;  (let ((current-layout (frame-current-layout *application-frame*)))
-;    (setf (frame-current-layout *application-frame*)
-;	  (case current-layout
-;	    (main 'other)
-;	    (other 'main)))))
+#+++ignore	;--- right now there is only one layout
+(define-cad-demo-command (com-swap-layouts :menu "Swap Layouts")
+    ()
+  (let ((current-layout (frame-current-layout *application-frame*)))
+    (setf (frame-current-layout *application-frame*)
+	  (case current-layout
+	    (main 'other)
+	    (other 'main)))))
 
 #||
 
@@ -919,14 +908,9 @@ but first get better menu formatting!
   (let ((cd (cdr (assoc root *cad-demos*)))
 	(*highlight-ink* (if (color-stream-p root) +red+ +flipping-ink+)))
     (when (or (null cd) reinit)
-      (setq cd (make-application-frame 'cad-demo :parent root))
-      (push (cons root cd) *cad-demos*)
-      ;; The application implements its own output history
-      (let ((dp (get-frame-pane cd 'design-area)))
-	;;--- kludge this one pane
-	(setf (stream-output-history dp) cd)
-	(setf (stream-recording-p dp) nil)))
-    (catch 'exit-cad-demo
-      (run-frame-top-level cd))))
+      (setq cd (make-application-frame 'cad-demo
+				       :width 700 :height 600))
+      (push (cons root cd) *cad-demos*))
+    (run-frame-top-level cd)))
 
 (define-demo "Mini-CAD" (run-cad-demo :root *demo-root*))

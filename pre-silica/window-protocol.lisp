@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.3 92/02/24 13:08:54 cer Exp $
+;; $fiHeader: window-protocol.lisp,v 1.4 92/03/04 16:22:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -78,7 +78,7 @@
   (let ((*synchronous-window-operation-being-processed* T))
     (call-next-method)))
 
-(defmethod bounding-rectangle-set-position* :around ((window window-mixin) nx ny)
+(defmethod bounding-rectangle-set-position :around ((window window-mixin) nx ny)
   (declare (ignore nx ny))
   (let ((*synchronous-window-operation-being-processed* t))
     (call-next-method)))
@@ -89,13 +89,25 @@
     (call-next-method)))
 
 ;;; These methods are needed for hooks on other mixins to work.
-(defmethod window-viewport-position* ((window window-mixin))
+(defmethod window-viewport-position ((window window-mixin))
   (with-slots (viewport) window
-    (bounding-rectangle-position* viewport)))
+    (bounding-rectangle-position viewport)))
 
-(defmethod window-set-viewport-position* ((window window-mixin) x y)
+(defmethod window-set-viewport-position ((window window-mixin) x y)
   (with-slots (viewport) window
-    (bounding-rectangle-set-position* viewport x y)))
+    (bounding-rectangle-set-position viewport x y)))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (window-viewport-position*
+				window-viewport-position)
+			       (window)
+  (window-viewport-position window))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (window-set-viewport-position*
+				window-set-viewport-position)
+			       (window x y)
+  (window-set-viewport-position window x y))
 
 (defmethod window-with-zero-viewport-position
 	   ((window window-mixin) continuation)
@@ -103,19 +115,19 @@
   ;; Margin components should not respect the stream transform
   (letf-globally (((medium-transformation window) +identity-transformation+))
     (let ((viewport (window-viewport window)))
-      (multiple-value-bind (x y) (bounding-rectangle-position* viewport)
+      (multiple-value-bind (x y) (bounding-rectangle-position viewport)
 	(unwind-protect
-	    (progn (bounding-rectangle-set-position* viewport 0 0)
+	    (progn (bounding-rectangle-set-position viewport 0 0)
 		   (funcall continuation))
-	  (bounding-rectangle-set-position* viewport x y))))))
+	  (bounding-rectangle-set-position viewport x y))))))
 
 (defmethod window-clear ((window window-mixin))
   (window-erase-viewport window)
   (when (extended-output-stream-p window)	;can we assume this?
-    (stream-set-cursor-position* window 0 0)
+    (stream-set-cursor-position window 0 0)
     (setf (stream-baseline window) 0
 	  (stream-current-line-height window) 0))
-  (bounding-rectangle-set-position* (window-viewport window) 0 0))
+  (bounding-rectangle-set-position (window-viewport window) 0 0))
 
 ;;; Basically a hook for other mixins.
 (defmethod window-refresh ((window window-mixin))
@@ -128,9 +140,9 @@
 
 ;;; --- This needs to be on window-output...
 ;(defmethod window-fresh-page ((stream window-mixin))
-;  (multiple-value-call #'window-set-viewport-position*
+;  (multiple-value-call #'window-set-viewport-position
 ;		       window
-;		       (window-stream-cursor-position* stream)))
+;		       (window-stream-cursor-position stream)))
 ;
 
 (defun window-size-viewport-to-fit (window)
@@ -140,63 +152,60 @@
 
 ;;; Coordinate translations
 
-;;;--- FIXNUM stuff
-
 ;;; The true interfaces: 
 ;;; WINDOW-TO-SCREEN-COORDINATES Window-X Window-Y -> Screen-X Screen-Y
 (defmethod window-to-screen-coordinates ((window window-mixin) x y)
   (declare (type coordinate x y))
   (multiple-value-bind (dx dy) (window-to-screen-coordinate-translations window)
     (declare (type coordinate dx dy))
-    (values (the fixnum (+ x dx)) (the fixnum (+ y dy)))))
+    (values (the coordinate (+ x dx)) (the coordinate (+ y dy)))))
 
 (defmethod screen-to-window-coordinates ((window window-mixin) x y)
   (declare (type coordinate x y))
   (multiple-value-bind (dx dy) (window-to-screen-coordinate-translations window)
     (declare (type coordinate dx dy))
-    (values (the fixnum (- x dx)) (the fixnum (- y dy)))))
+    (values (the coordinate (- x dx)) (the coordinate (- y dy)))))
 	   
 ;;; An internal routine
 (defmethod window-to-screen-coordinate-translations ((window window-mixin))
   (with-slots (left top viewport parent) window
-    (declare (fixnum left top))
+    (declare (type coordinate left top))
     (multiple-value-bind (left-translation top-translation) (window-margins window)
-      (declare (fixnum left-translation top-translation))
-      (setq left-translation (the fixnum (+ left-translation left)))
-      (setq top-translation (the fixnum (+ top-translation top)))
+      (declare (type coordinate left-translation top-translation))
+      (setq left-translation (the coordinate (+ left-translation left)))
+      (setq top-translation (the coordinate (+ top-translation top)))
       (when parent
 	(multiple-value-bind (parent-left parent-top)
 	    (window-to-screen-coordinate-translations parent)
-	  (declare (fixnum parent-left parent-top))
-	  (setq left-translation (the fixnum (+ left-translation parent-left)))
-	  (setq top-translation (the fixnum (+ top-translation parent-top)))))
+	  (declare (type coordinate parent-left parent-top))
+	  (setq left-translation (the coordinate (+ left-translation parent-left)))
+	  (setq top-translation (the coordinate (+ top-translation parent-top)))))
       (when viewport
 	(multiple-value-bind (viewport-left viewport-top)
-	    (bounding-rectangle-position* viewport)
-	  (declare (fixnum viewport-left viewport-top))
-	  (setq left-translation (the fixnum (- left-translation viewport-left)))
-	  (setq top-translation (the fixnum (- top-translation viewport-top)))))
+	    (bounding-rectangle-position viewport)
+	  (declare (type coordinate viewport-left viewport-top))
+	  (setq left-translation (the coordinate (- left-translation viewport-left)))
+	  (setq top-translation (the coordinate (- top-translation viewport-top)))))
       (values left-translation top-translation))))
 
 (defmethod drawing-surface-to-viewport-coordinates ((window window-mixin) dsx dsy)
-  (declare (fixnum dsx dsy))
-  (multiple-value-bind (vx vy) (window-viewport-position* window)
-    (declare (fixnum vx vy))
+  (declare (type coordinate dsx dsy))
+  (multiple-value-bind (vx vy) (window-viewport-position window)
+    (declare (type coordinate vx vy))
     (multiple-value-bind (ml mt) (window-margins window)
-      (declare (fixnum ml mt))
-      (values (the fixnum (+ (the fixnum (- dsx vx)) ml))
-	      (the fixnum (+ (the fixnum (- dsy vy)) mt))))))
+      (declare (type coordinate ml mt))
+      (values (the coordinate (+ (the coordinate (- dsx vx)) ml))
+	      (the coordinate (+ (the coordinate (- dsy vy)) mt))))))
 
 (defmethod viewport-to-drawing-surface-coordinates ((window window-mixin) x y)
-  (declare (fixnum x y))
-  (multiple-value-bind (vx vy) (window-viewport-position* window)
-    (declare (fixnum vx vy))
+  (declare (type coordinate x y))
+  (multiple-value-bind (vx vy) (window-viewport-position window)
+    (declare (type coordinate vx vy))
     (multiple-value-bind (ml mt) (window-margins window)
-      (declare (fixnum ml mt))
-      (values (the fixnum (- (the fixnum (+ x vx)) ml))
-	      (the fixnum (- (the fixnum (+ y vy)) mt))))))
+      (declare (type coordinate ml mt))
+      (values (the coordinate (- (the coordinate (+ x vx)) ml))
+	      (the coordinate (- (the coordinate (+ y vy)) mt))))))
 
-;;;--- FIXNUM stuff
 ;;; Hmm.
 (defmethod bounding-rectangle-set-edges :after ((window window-mixin) left top right bottom)
   (declare (ignore left top right bottom))
@@ -210,29 +219,30 @@
 
 (defmethod window-inside-size ((window window-mixin))
   (multiple-value-bind (left top right bottom) (window-inside-edges window)
-    (declare (fixnum left top right bottom))
-    (values (the fixnum (- right left)) (the fixnum (- bottom top)))))
+    (declare (type coordinate left top right bottom))
+    (values (the coordinate (- right left)) (the coordinate (- bottom top)))))
 
 (defmethod window-inside-edges ((stream window-mixin))
   (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
-    (declare (fixnum lom tom rom bom))
+    (declare (type coordinate lom tom rom bom))
     (multiple-value-bind (lim tim rim bim) (window-margins stream)
-      (declare (fixnum lim tim rim bim))
+      (declare (type coordinate lim tim rim bim))
       (with-bounding-rectangle* (left top right bottom) stream
-	(values (the fixnum (+ left lom lim))  (the fixnum (+ top tom tim))
-		(the fixnum (- right rom rim)) (the fixnum (- bottom bom bim)))))))
+	(values (the coordinate (+ left lom lim))  (the coordinate (+ top tom tim))
+		(the coordinate (- right rom rim)) (the coordinate (- bottom bom bim)))))))
 
 (defmethod window-set-inside-edges ((stream window-mixin) 
 				    new-left new-top new-right new-bottom)
-  (declare (fixnum new-left new-top new-right new-bottom))
   (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
-    (declare (fixnum lom tom rom bom))
+    (declare (type coordinate lom tom rom bom))
     (multiple-value-bind (lim tim rim bim) (window-margins stream)
-      (declare (fixnum lim tim rim bim))
+      (declare (type coordinate lim tim rim bim))
       (bounding-rectangle-set-edges
        stream
-       (the fixnum (- new-left lom lim))  (the fixnum (- new-top tom tim))
-       (the fixnum (+ new-right rom rim)) (the fixnum (+ new-bottom bom bim))))))
+       (the coordinate (- (coordinate new-left)   lom lim))
+       (the coordinate (- (coordinate new-top)    tom tim))
+       (the coordinate (+ (coordinate new-right)  rom rim))
+       (the coordinate (+ (coordinate new-bottom) bom bim))))))
 
 ;; the port needs to define host-window-margins
 
@@ -317,24 +327,22 @@
   ;; for the time being, make the viewport fill the window
   (window-size-viewport-to-fit window))
 
-;;;--- FIXNUM stuff
-
 ;;; Offset from root
 (defun window-offset (stream)
   (let ((x-offset 0)
 	(y-offset 0))
-    (declare (fixnum x-offset y-offset))
+    (declare (type coordinate x-offset y-offset))
     (do ((s stream (window-parent s)))
 	((null s) nil)
-      (multiple-value-bind (x y) (bounding-rectangle-position* s)
-	(declare (fixnum x y))
+      (multiple-value-bind (x y) (bounding-rectangle-position s)
+	(declare (type coordinate x y))
 	(multiple-value-bind (ml mt) (host-window-margins s)
-	  (declare (fixnum ml mt))
-	  (setq x-offset (the fixnum (+ x-offset x ml)))
-	  (setq y-offset (the fixnum (+ y-offset y mt))))))
+	  (declare (type coordinate ml mt))
+	  (setq x-offset (the coordinate (+ x-offset x ml)))
+	  (setq y-offset (the coordinate (+ y-offset y mt))))))
     (values x-offset y-offset)))
 
-;; This is called by OUTPUT-RECORDING-MIXIN's whopper on set-viewport-position*.
+;; This is called by OUTPUT-RECORDING-MIXIN's whopper on SET-VIEWPORT-POSITION.
 ;; It shifts a region of the "host screen" that's visible to some other visible
 ;; location.  It does NOT do any cleaning up after itself.  It does not side-effect
 ;; the output history of the window.  It calls COPY-AREA whose contract is to 
@@ -373,7 +381,7 @@
 	  (multiple-value-bind (ml mt) 
 	      (window-margins window)
 	    (declare (type coordinate ml mt))
-	    (translate-fixnum-positions ml mt from-x from-y)
+	    (translate-coordinates ml mt from-x from-y)
 	    (copy-area window
 		       from-x from-y
 		       (+ from-x width) (+ from-y height)
@@ -395,11 +403,11 @@
 (defmethod stream-advance-cursor-line :after ((stream output-and-window-protocol-intermediary))
   (stream-ensure-cursor-visible stream))
 
-(defmethod stream-set-cursor-position* :after ((stream output-and-window-protocol-intermediary)
+(defmethod stream-set-cursor-position :after ((stream output-and-window-protocol-intermediary)
 					      new-x new-y)
   (stream-ensure-cursor-visible stream new-x new-y))
 
-(defmethod stream-set-cursor-position*-internal :after
+(defmethod stream-set-cursor-position-internal :after
 	   ((stream output-and-window-protocol-intermediary) new-x new-y)
   (stream-ensure-cursor-visible stream new-x new-y))
 
@@ -407,7 +415,7 @@
 					 &optional cx cy)
   (when (or (not (output-recording-stream-p stream))
 	    (stream-drawing-p stream))
-    (unless cy (multiple-value-setq (cx cy) (stream-cursor-position* stream)))
+    (unless cy (multiple-value-setq (cx cy) (stream-cursor-position stream)))
     (with-bounding-rectangle* (vleft vtop vright vbottom) (window-viewport stream)
       (let ((new-x nil)
 	    (new-y nil))
@@ -423,7 +431,7 @@
 	    (setf new-x (max 0 (- cx (- vright vleft 
 					(* 4 (stream-character-width stream #\W))))))))
 	(when (or new-x new-y)
-	  (window-set-viewport-position* stream (or new-x vleft) (or new-y vtop)))))))
+	  (window-set-viewport-position stream (or new-x vleft) (or new-y vtop)))))))
 
 ;;; Rudimentary audio
 

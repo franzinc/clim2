@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.2 92/01/31 14:58:31 cer Exp $
+;; $fiHeader: present.lisp,v 1.3 92/02/24 13:08:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -43,10 +43,10 @@
 				    :single-box single-box
 				    :allow-sensitive-inferiors allow-sensitive-inferiors
 				    :record-type record-type)
-	(call-presentation-generic-function present
+	(funcall-presentation-generic-function present
 	  object presentation-type stream view
 	  :acceptably acceptably :for-context-type for-context-type))
-      (call-presentation-generic-function present
+      (funcall-presentation-generic-function present
 	object presentation-type stream view
 	:acceptably acceptably :for-context-type for-context-type)))
 

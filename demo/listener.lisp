@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.7 92/03/10 10:13:08 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.8 92/04/10 14:27:32 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -119,7 +119,7 @@
       (when (eq type :keystroke)
 	(let ((command (lookup-keystroke-command-item command-or-form command-table 
 						      :numeric-argument numeric-arg)))
-	  (unless (clim-internals::keyboard-gesture-p command)
+	  (unless (clim-internals::keyboard-event-p command)
 	    (when (partial-command-p command)
 	      (setq command (funcall *partial-command-parser*
 				     command command-table *standard-input* nil
@@ -333,15 +333,16 @@
     (formatting-table (stream :x-spacing "   ")
       (dolist (pathname pathnames)
 	(let (size creation-date author)
-	  #-genera
+	  #-Genera
 	  (with-open-file (file-stream pathname :direction :input) 
 	    (setf size (file-length file-stream)
 		  creation-date (file-write-date file-stream)
 		  author (file-author file-stream)))
-	  #+genera
+	  #+Genera
 	  (setf size (getf (rest pathname) :length-in-bytes)
 		creation-date (getf (rest pathname) :modification-date)
-		author (getf (rest pathname) :author))
+		author (getf (rest pathname) :author)
+		pathname (first pathname))
 	  (with-output-as-presentation (stream pathname 'pathname
 					:single-box t)
 	    (formatting-row (stream)

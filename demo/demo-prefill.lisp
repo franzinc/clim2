@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-prefill.lisp,v 1.1 92/01/31 14:32:00 cer Exp $
+;; $fiHeader: demo-prefill.lisp,v 1.2 92/02/24 13:09:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -132,7 +132,7 @@
 		      (CLIM-DEMO::LISP-LISTENER T)) 
   (MAP-OVER-OUTPUT-RECORDS-OVERLAPPING-REGION
     (T CLIM-DEMO::CAD-DEMO T)) 
-  (MAP-OVER-OUTPUT-RECORDS-CONTAINING-POINT*
+  (MAP-OVER-OUTPUT-RECORDS-CONTAINING-POSITION
     (T CLIM-DEMO::CAD-DEMO T T)) 
   (READ-FRAME-COMMAND (CLIM-DEMO::GRAPHICS-DEMO) 
 		      (CLIM-DEMO::FLIGHT-PLANNER) 

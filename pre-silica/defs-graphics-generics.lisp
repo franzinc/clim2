@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defs-graphics-generics.lisp,v 1.2 92/02/24 13:07:23 cer Exp $
+;; $fiHeader: defs-graphics-generics.lisp,v 1.3 92/03/04 16:21:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -93,43 +93,43 @@
 		    forms))
 	  (values)))
 
-(defmacro transform-points ((transform) &rest points)
-  (when points
-    (assert (evenp (length points)) ()
-	    "Points must be x/y pairs.  There are an odd number of elements in ~S"
-	    points)
+(defmacro transform-positions ((transform) &rest positions)
+  (when positions
+    (assert (evenp (length positions)) ()
+	    "Positions must be x/y pairs.  There are an odd number of elements in ~S"
+	    positions)
     (let ((xform '#:transform))
       `(let ((,xform ,transform))
-	 ,@(do* ((points points (cddr points))
-		 (x (first points) (first points))
-		 (y (second points) (second points))
+	 ,@(do* ((positions positions (cddr positions))
+		 (x (first positions) (first positions))
+		 (y (second positions) (second positions))
 		 (forms nil))
-		((null points) (nreverse forms))
+		((null positions) (nreverse forms))
 	     (push `(multiple-value-setq (,x ,y)
-		      (transform-point* ,xform ,x ,y))
+		      (transform-position ,xform ,x ,y))
 		   forms))
 	 (values)))))
 
-;;; Update the points list in the reference.
-(defmacro transform-point-sequence ((transform) points-reference)
-  (let ((pts-sequence '#:points-sequence)
-	(pts-temp '#:points)
-	(original-pts-temp '#:original-points)
+;;; Update the positions list in the reference.
+(defmacro transform-position-sequence ((transform) positions-reference)
+  (let ((pts-sequence '#:position-sequence)
+	(pts-temp '#:positions)
+	(original-pts-temp '#:original-positions)
 	(xform '#:transform))
     ;;--- is a run-time error check worth it?
-    `(let ((,pts-sequence ,points-reference)
+    `(let ((,pts-sequence ,positions-reference)
 	   (,xform ,transform))
        (assert (evenp (length ,pts-sequence)) ()
-	       "Points must be x/y pairs.  There are an odd number of elements in ~S"
+	       "Positions must be x/y pairs.  There are an odd number of elements in ~S"
 	       ,pts-sequence)
-       (setf ,points-reference
+       (setf ,positions-reference
 	     (let* ((,pts-temp (copy-list ,pts-sequence))
 		    (,original-pts-temp ,pts-temp))
 	       (dorest (pt ,pts-sequence cddr)
 		 (let ((x (first pt))
 		       (y (second pt)))
 		   (multiple-value-bind (nx ny)
-		       (transform-point* ,xform x y)
+		       (transform-position ,xform x y)
 		     (setf (car ,pts-temp) nx
 			   ,pts-temp (cdr ,pts-temp)
 			   (car ,pts-temp) ny
@@ -194,20 +194,20 @@
 	  (assert (evenp (length (rest spec))) ()
 		  "Points must be listed in x/y pairs. ~S has an odd number of elements."
 		  (rest spec))
-	  (push `(transform-points (,transform) ,@(rest spec))
+	  (push `(transform-positions (,transform) ,@(rest spec))
 		clauses))
 	(rectangle
 	  ;; The rest of the spec if a list of left/top/right/bottom 4-tuples.
 	  (assert (zerop (mod (length (rest spec)) 4)) ()
 		  "Rectangles must have four values, left top right bottom.  ~S"
 		  (rest spec))
-	  (push `(transform-points (,transform) ,@(rest spec))
+	  (push `(transform-positions (,transform) ,@(rest spec))
 		clauses))
 	(point-sequence
 	  ;; Elements of REST are references containing lists of points.
 	  (dolist (ps (rest spec))
 	    ;; No compile-time ASSERTion.
-	    (push `(transform-point-sequence (,transform) ,ps)
+	    (push `(transform-position-sequence (,transform) ,ps)
 		  clauses)))
 	(distance
 	  ;; The rest of the spec is a list of dx/dy pairs indicating a distance
@@ -239,7 +239,7 @@
 	   (,sy 0))
        (when ,array
 	 (multiple-value-bind (,vx ,vy)
-	     (window-viewport-position* ,stream)
+	     (window-viewport-position ,stream)
 	   (multiple-value-bind (,sw ,sh)
 	       (values-list (array-dimensions ,array))
 	     (translate-positions (mod ,vx ,sw) (mod ,vy ,sh) ,sx ,sy))))
@@ -293,7 +293,7 @@
 	(when (stream-recording-p stream)
 	  ,output-recording-hook
 	  (multiple-value-bind (abs-x abs-y)
-	      (point-position*
+	      (point-position
 		(stream-output-history-position stream))
 	    (declare (type coordinate abs-x abs-y))
 	    ;; Adjust the coordinates by the position of the current record
@@ -305,9 +305,9 @@
 		  rec
 		  (- lf abs-x) (- tp abs-y)
 		  (- rt abs-x) (- bt abs-y)))
-	      (multiple-value-bind (cx cy) (stream-cursor-position* stream)
+	      (multiple-value-bind (cx cy) (stream-cursor-position stream)
 		(declare (type coordinate cx cy))
-		;; Doing this directly beats calling OUTPUT-RECORD-SET-START-CURSOR-POSITION*
+		;; Doing this directly beats calling OUTPUT-RECORD-SET-START-CURSOR-POSITION
 		(with-slots (start-x start-y) rec
 		  (setq start-x (- cx abs-x)
 			start-y (- cy abs-y)))
@@ -318,8 +318,8 @@
 		,@(when point-sequence-to-convert
 		    `((with-slots (,point-sequence-to-convert) rec
 			(setq ,point-sequence-to-convert
-			      (ntranslate-point-sequence (- abs-x) (- abs-y)
-							 ,point-sequence-to-convert))))))
+			      (ntranslate-position-sequence (- abs-x) (- abs-y)
+							    ,point-sequence-to-convert))))))
 	      (stream-add-output-record stream rec))))
 	(when (stream-drawing-p stream)
 	  (call-next-method)))

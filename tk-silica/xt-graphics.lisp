@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.14 92/03/30 17:52:48 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.15 92/04/10 14:27:58 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -102,8 +102,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 (defun color-medium-p (medium)
   (and *use-color*
        (let ((display (port-display (port (medium-sheet medium)))))
-	 (> (x11:xdefaultdepth display
-			       (tk::display-screen-number display)) 2))))
+	 (> (x11:xdefaultdepth display (tk::display-screen-number display)) 2))))
 
 (defun recompute-gcs (medium)
   (with-slots 
@@ -342,21 +341,15 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
       (unless (eq mcr +everywhere+)
 	(setq mcr (transform-region (sheet-device-transformation sheet) mcr))
 	(setq dr (region-intersection dr (bounding-rectangle mcr))))
-      (cond ((or #+ignore t (eq dr +everywhere+))
-	     (setf (tk::gcontext-clip-mask gc) 
-	       :none))
+      (cond ((eq dr +everywhere+)
+	     (setf (tk::gcontext-clip-mask gc) :none))
 	    ((eq dr +nowhere+)
-	     (setf (tk::gcontext-clip-mask gc) 
-	       :nowhere))
+	     (setf (tk::gcontext-clip-mask gc) :nowhere))
 	    (t
-	     (with-bounding-rectangle*
-		 (a b c d) dr
-		 (with-stack-list (x 
-				   (integerize-coordinate a) 
-				   (integerize-coordinate b) 
-				   (integerize-coordinate (- c a)) 
-				   (integerize-coordinate (- d b)))
-		   (setf (tk::gcontext-clip-mask gc) x))))))
+	     (with-bounding-rectangle* (a b c d) dr
+	       (with-stack-list (x (fix-coordinate a) (fix-coordinate b) 
+				   (fix-coordinate (- c a)) (fix-coordinate (- d b)))
+		 (setf (tk::gcontext-clip-mask gc) x))))))
     
     (when (eq (tk::gcontext-fill-style gc) :tiled)
       (setf (tk::gcontext-ts-x-origin gc) x-origin
@@ -489,7 +482,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 			      (incf npoints))
 			     (t npoints)))))
 	 (window (medium-drawable medium))
-	 ;;--- is this right
+	 ;; These really are fixnums, since we're fixing coordinates below
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum))
     (do ((ps list-of-x-and-ys (cddr ps))
@@ -513,10 +506,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	   (tk::object-display window)
 	   window
 	   (adjust-ink medium
-					      (decode-ink (medium-ink medium) medium)
-					      (medium-ink medium)
-					      (medium-line-style medium)
-					      minx miny)
+		       (decode-ink (medium-ink medium) medium)
+		       (medium-ink medium)
+		       (medium-line-style medium)
+		       minx miny)
 	   points
 	   npoints
 	   x11:complex
@@ -525,10 +518,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  (tk::object-display window)
 	  window
 	  (adjust-ink medium
-					 (decode-ink (medium-ink medium) medium)
-					 (medium-ink medium)
-					 (medium-line-style medium)
-					 minx miny)
+		      (decode-ink (medium-ink medium) medium)
+		      (medium-ink medium)
+		      (medium-line-style medium)
+		      minx miny)
 	  points
 	  npoints
 	  x11:coordmodeorigin)))))

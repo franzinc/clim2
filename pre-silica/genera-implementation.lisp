@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-implementation.lisp,v 1.2 92/02/24 13:07:36 cer Exp $
+;; $fiHeader: genera-implementation.lisp,v 1.3 92/03/04 16:21:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -100,7 +100,7 @@
 	  (translate-positions wl wt left top right bottom))))
     (scl:send window :set-edges left top right bottom)))
 
-(defmethod bounding-rectangle-set-position* :after
+(defmethod bounding-rectangle-set-position :after
 	   ((stream sheet-implementation-mixin) new-left new-top)
   (with-slots (window) stream
     (let ((superior (tv:sheet-superior window)))
@@ -201,7 +201,7 @@
   (with-slots (update-region) stream
     (when update-region
       (multiple-value-bind (vx vy)
-	  (window-viewport-position* stream)
+	  (window-viewport-position stream)
 	(dolist (rectangle update-region)
 	  (with-bounding-rectangle* (left top right bottom) rectangle
 	    (translate-positions (- vx) (- vy) left top right bottom)
@@ -1120,7 +1120,7 @@
 	(with-bounding-rectangle* (hleft htop hright hbottom) history
 	  (declare (ignore hleft hright))
 	  (setq top (min (max htop top) hbottom))))
-      (window-set-viewport-position* stream left top))))
+      (window-set-viewport-position stream left top))))
 
 (scl:defmethod (:x-scroll-to clim-sheet) (position type)
   (let* ((stream (sheet-for-genera-window scl:self))
@@ -1131,7 +1131,7 @@
 	(with-bounding-rectangle* (hleft htop hright hbottom) history
 	  (declare (ignore htop hbottom))
 	  (setq left (min (max left hleft) hright))))
-      (window-set-viewport-position* stream left top))))
+      (window-set-viewport-position stream left top))))
 
 ;;; The window manager should manipulate the highest "CLIM sheet" when invoked
 ;;; on an inferior.
@@ -1197,7 +1197,7 @@
   (let ((window (sheet-for-genera-window scl:self)))
     (setf (slot-value window 'highlighted-presentation) nil)
     (multiple-value-bind (viewport-x viewport-y)
-	(bounding-rectangle-position* (window-viewport window))
+	(bounding-rectangle-position (window-viewport window))
       (frame-replay *application-frame*
 		    window (make-bounding-rectangle (+ left viewport-x)
 						    (+ top viewport-y)
@@ -1407,7 +1407,7 @@
 (defmethod invoke-with-clipping-region
 	   ((stream sheet-implementation-mixin) continuation (region standard-bounding-rectangle))
   (let ((window (slot-value stream 'window)))
-    (multiple-value-bind (vx vy) (window-viewport-position* stream)
+    (multiple-value-bind (vx vy) (window-viewport-position stream)
       (declare (type coordinate vx vy))
       (multiple-value-bind (ml mt) (window-margins stream)
 	(declare (type coordinate ml mt))
@@ -1453,7 +1453,7 @@
     (setf (pointer-window pointer)
 	  (sheet-for-genera-window (tv:window-under-mouse-internal mouse)
 				       :error-if-no-match nil))
-    (pointer-set-position* pointer (tv:mouse-x mouse) (tv:mouse-y mouse))))
+    (pointer-set-position pointer (tv:mouse-x mouse) (tv:mouse-y mouse))))
 
 (defmethod stream-event-handler ((stream sheet-window-stream)
 				 &key (timeout nil) (input-wait-test nil))
@@ -1531,7 +1531,6 @@
 			   (let ((pw (sheet-for-genera-window mouse-window)))
 			     (setf (pointer-window pointer) pw)
 			     (multiple-value-bind (xm ym) (scl:send mouse-window :margins)
-			       ;; X and Y are presumed to be fixnums here
 			       (stream-note-pointer-button-press
 				 pw pointer (ash 1 (si:mouse-char-button char))
 				 (mouse-char-bits->modifier-state (si:mouse-char-bits char))
@@ -1539,7 +1538,7 @@
 		    (t (queue-put (stream-input-buffer stream) character)))))
 	  (:mouse-motion
 	    ;; ---
-	    (pointer-set-position* pointer (mouse-x) (mouse-y))
+	    (pointer-set-position pointer (mouse-x) (mouse-y))
 	    (let ((window (sheet-for-genera-window (tv:window-under-mouse-internal mouse)
 						       :error-if-no-match nil)))
 	      (setf (pointer-window pointer) window)
@@ -1557,7 +1556,7 @@
 (defmethod stream-pointer-input-rectangle* ((stream sheet-window-stream) pointer
 					    &key left top right bottom)
   (declare (ignore pointer))
-  (multiple-value-bind (dx dy) (window-viewport-position* stream)
+  (multiple-value-bind (dx dy) (window-viewport-position stream)
     (setq left (if (typep left 'real) (round left) dx))
     (setq top  (if (typep top  'real) (round top) dy))
     (setq right  (if (typep right  'real) (round right) (+ left 50)))
@@ -1815,11 +1814,11 @@
   new-value)
 
 #-Silica
-(defmethod cursor-position* ((cursor sheet-text-cursor))
+(defmethod cursor-position ((cursor sheet-text-cursor))
   (values (slot-value cursor 'x) (slot-value cursor 'y)))
 
 #-Silica
-(defmethod cursor-set-position* ((cursor sheet-text-cursor) x y)
+(defmethod cursor-set-position ((cursor sheet-text-cursor) x y)
   (setf (slot-value cursor 'x) x
 	(slot-value cursor 'y) y)
   (let ((blinker (slot-value cursor 'blinker)))

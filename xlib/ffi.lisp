@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.8 92/03/24 19:37:20 cer Exp Locker: cer $
+;; $fiHeader: ffi.lisp,v 1.9 92/03/30 17:52:16 cer Exp $
 
 (in-package :x11)
 
@@ -93,9 +93,23 @@
       (:pointer `(* ,(second type)))
       (:array
        (destructuring-bind
-	   (ignore type indicies) type
-	 (declare (ignore ignore))
-	 `(,@indicies ,type))))))
+	  (ignore type indicies) type
+	(declare (ignore ignore))
+	`(,@indicies ,type))))))
+
+#+ignore
+(defmacro def-exported-foreign-function ((name &rest options) &rest args)
+  `(foreign-functions:defforeign 
+       ',name 
+       :arguments ',(mapcar #'(lambda (x) x t) args)
+       :call-direct t
+       :callback nil
+       :arg-checking nil
+       :return-type 'integer
+       :entry-point ,(second (assoc :name options))))
+
+
+;;; Delay version
 
 (defun trans-arg-type (type)
   (excl:if* (consp type)
@@ -126,20 +140,6 @@
 	    (:signed-32bit :integer)
 	    (t :unsigned-integer))))
   
-#+ignore
-(defmacro def-exported-foreign-function ((name &rest options) &rest args)
-  `(foreign-functions:defforeign 
-       ',name 
-       :arguments ',(mapcar #'(lambda (x) x t) args)
-       :call-direct t
-       :callback nil
-       :arg-checking nil
-       :return-type 'integer
-       :entry-point ,(second (assoc :name options))))
-
-
-;;; Delay version
-
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
   `(progn
      (eval-when (eval load compile)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.20 92/04/10 14:27:50 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.21 92/04/14 15:30:10 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -28,7 +28,7 @@
 			 ;; experiment
 			 (outlined-pane motif-frame-pane)
 			 ;;
-			 (scroll-bar motif-scrollbar)
+			 (scroll-bar motif-scroll-bar)
 			 (slider motif-slider)
 			 (push-button motif-push-button)
 			 (label-pane motif-label-pane)
@@ -251,59 +251,56 @@
 (defmethod compose-space ((m motif-slider) &key width height)
   (declare (ignore width height))
   (destructuring-bind
-      (label scrollbar) (tk::widget-children (sheet-direct-mirror m))
-    (declare (ignore scrollbar))
+      (label scroll-bar) (tk::widget-children (sheet-direct-mirror m))
+    (declare (ignore scroll-bar))
     (multiple-value-bind
 	(label-x label-y label-width label-height)
-	(and (gadget-label m)
-	     (tk::widget-best-geometry label))
+	(if (gadget-label m)
+	    (tk::widget-best-geometry label)
+	  (values nil nil 0 0))
       (declare (ignore label-x label-y))
       ;;-- We need to estimate the space requirements for the value if
       ;;-- that is shown
       (let ((fudge 16))
 	(ecase (gadget-orientation m)
 	  (:vertical
-	   (make-space-requirement :width (if (gadget-label m) ;
-					      (+ fudge label-width)
-					    fudge)
+	   (make-space-requirement :width (+ fudge label-width)
 				   :min-height fudge
 				   :height (max (* 2 fudge) label-height)
 				   :max-height +fill+))
 	  (:horizontal
-	   (make-space-requirement :height (if (gadget-label m) ;
-					       (+ fudge label-height)
-					     fudge)
+	   (make-space-requirement :height (+ fudge label-height)
 				   :min-width fudge
 				   :width (max (* 2 fudge) label-width)
 				   :max-width +fill+)))))))
 
-;;; Scrollbar
+;;; Scroll-Bar
 
 
-(defclass motif-scrollbar (xt-leaf-pane
-			   scrollbar)
+(defclass motif-scroll-bar (xt-leaf-pane
+			   scroll-bar)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
-						     (sheet motif-scrollbar))
+						     (sheet motif-scroll-bar))
   (with-accessors ((orientation gadget-orientation)) sheet
     ;;-- we should really decide what the min and max resources should be
     (values 'tk::xm-scroll-bar 
 	    (list :orientation orientation))))
 
-(defmethod (setf silica::scrollbar-size) (nv (sb motif-scrollbar))
+(defmethod (setf silica::scroll-bar-size) (nv (sb motif-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :slider-size (floor nv))
   nv)
 
-(defmethod (setf silica::scrollbar-value) (nv (sb motif-scrollbar))
+(defmethod (setf silica::scroll-bar-value) (nv (sb motif-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :value nv)
   nv)
 
 ;;;--- We should use the motif functions for getting and changing the
 ;;;--- values
 
-(defmethod change-scrollbar-values ((sb motif-scrollbar) &key slider-size value)
+(defmethod change-scroll-bar-values ((sb motif-scroll-bar) &key slider-size value)
   (let ((mirror (sheet-direct-mirror sb)))
     (multiple-value-bind
 	(smin smax) (silica::gadget-range* sb)
@@ -312,28 +309,28 @@
 	(tk::set-values
 	 mirror
 	 :slider-size 
-	 (integerize-coordinate
+	 (fix-coordinate
 	  (silica::compute-symmetric-value
 		       smin smax slider-size mmin mmax))
-	 :value (integerize-coordinate
+	 :value (fix-coordinate
 		 (silica::compute-symmetric-value
 		  smin smax value mmin mmax)))))))
 
 
-(defmethod add-sheet-callbacks ((port motif-port) (sheet motif-scrollbar) (widget t))
+(defmethod add-sheet-callbacks ((port motif-port) (sheet motif-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :value-changed-callback
-		    'scrollbar-changed-callback-1
+		    'scroll-bar-changed-callback-1
 		    sheet))
 
 
-(defun scrollbar-changed-callback-1 (widget sheet)
+(defun scroll-bar-changed-callback-1 (widget sheet)
   (multiple-value-bind
       (smin smax) (silica::gadget-range* sheet)
     (multiple-value-bind
 	(value size mmin mmax)
 	(tk::get-values widget :value :slider-size :minimum :maximum)
-      (scrollbar-value-changed-callback
+      (scroll-bar-value-changed-callback
        sheet
        (gadget-client sheet)
        (gadget-id sheet)
@@ -343,7 +340,7 @@
 	mmin mmax size smin smax)))))
 
 
-(defmethod compose-space ((m motif-scrollbar) &key width height)
+(defmethod compose-space ((m motif-scroll-bar) &key width height)
   (let ((x 16))
     (ecase (gadget-orientation m)
       (:vertical
@@ -357,13 +354,12 @@
 			       :width (* 2 x)
 			       :max-width +fill+)))))
 
-;; Should we stick in our preferred scrollbar geometry here?
+;; Should we stick in our preferred scroll-bar geometry here?
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (defclass motif-top-level-sheet (top-level-sheet) ())
-
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet motif-top-level-sheet)
@@ -466,7 +462,6 @@
 	    (getf initargs :y) (floor top))
     initargs))
 
-
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
@@ -474,6 +469,7 @@
     (setf (space-requirement-max-width sr) +fill+
 	  (space-requirement-max-height sr) +fill+)
     sr))
+
 
 ;;; Toggle button
 
@@ -515,7 +511,7 @@
 		    sheet))
 
 
-(defun scrollbar-changed-callback (widget which scroller)
+(defun scroll-bar-changed-callback (widget which scroller)
   (let* ((vp (sheet-child scroller))
 	 (viewport (viewport-viewport-region vp))
 	 (extent (stream-output-history (sheet-child vp))))

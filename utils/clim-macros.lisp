@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-macros.lisp,v 1.2 92/02/24 13:05:18 cer Exp $
+;; $fiHeader: clim-macros.lisp,v 1.3 92/03/04 16:20:03 cer Exp $
 
 (in-package :clim-utils)
 
@@ -93,9 +93,9 @@
     `(let ((,cx ,x)
 	   (,cy ,y))
        (unless (and ,cx ,cy)
-	 (multiple-value-setq (,cx ,cy) (stream-cursor-position* ,stream)))
+	 (multiple-value-setq (,cx ,cy) (stream-cursor-position ,stream)))
        (multiple-value-bind (,tx ,ty)
-	   (transform-point* (medium-transformation ,stream) 0 0)
+	   (transform-position (medium-transformation ,stream) 0 0)
 	 (with-drawing-options
 	     (,stream :transformation (make-translation-transformation
 					(- ,cx ,tx) (- ,cy ,ty)))
@@ -110,9 +110,9 @@
     `(let ((,cx ,x)
 	   (,cy ,y))
        (unless (and ,cx ,cy)
-	 (multiple-value-setq (,cx ,cy) (stream-cursor-position* ,stream)))
+	 (multiple-value-setq (,cx ,cy) (stream-cursor-position ,stream)))
        (multiple-value-bind (,tx ,ty)
-	   (transform-point* (medium-transformation ,stream) 0 0)
+	   (transform-position (medium-transformation ,stream) 0 0)
 	 (with-drawing-options
 	     ;; Don't flip the stream over if we already have
 	     (,stream :transformation (if (silica:medium-+Y-upward-p ,stream)

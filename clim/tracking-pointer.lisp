@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.5 92/03/04 16:22:24 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.6 92/03/10 10:12:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -148,9 +148,9 @@
 	     ;; Genera's ancient window system cannot be easily cajoled into
 	     ;; doing this, so we'll do it by hand right here.
 	     (make-release-event (window pointer buttons)
-	       (multiple-value-bind (px py) (pointer-position* pointer)
+	       (multiple-value-bind (px py) (pointer-position pointer)
 		 (multiple-value-bind (ox oy)
-		     #+Silica (values 0 0)
+		     #+Silica (values (coordinate 0) (coordinate 0))
 		     #-Silica (window-offset window)
 		   (let ((wx (- px ox))
 			 (wy (- py oy))
@@ -165,8 +165,8 @@
 				    :x wx :y wy)))
 		       (when transformp
 			 (multiple-value-bind (tx ty)
-			     (transform-point* (medium-transformation window)
-					       wx wy)
+			     (transform-position (medium-transformation window)
+						 wx wy)
 			   (setq wx (floor tx)
 				 wy (floor ty))))
 		       (values event wx wy)))))))
@@ -185,7 +185,7 @@
 		(when (or motion-function presentation-motion-function highlight)
 		  (when multiple-window
 		    (setq current-window (or (pointer-window pointer) (pointer-root pointer))))
-		  (multiple-value-bind (x y) (pointer-position* pointer)
+		  (multiple-value-bind (x y) (pointer-position pointer)
 		    (when moved-p
 		      (setq moved-p nil)
 		      (setq last-x x last-y y
@@ -193,7 +193,7 @@
 		      ;; Pointer position is in root coordinates
 		      ;;--- What to do about window offset and drawing-to-surface-coordinates?
 		      (multiple-value-bind (ox oy) 
-			  #+Silica (values 0 0)
+			  #+Silica (values (coordinate 0) (coordinate 0))
 			  #-Silica (window-offset current-window)
 			(declare (type coordinate ox oy))
 			(let ((wx (- x ox))
@@ -220,8 +220,8 @@
 			  (when motion-function
 			    (when transformp
 			      (multiple-value-bind (tx ty)
-				  (transform-point* (medium-transformation current-window)
-						    wx wy)
+				  (transform-position (medium-transformation current-window)
+						      wx wy)
 				(setq wx (floor tx)
 				      wy (floor ty))))
 			    (funcall motion-function
@@ -278,8 +278,8 @@
 				    (wy py))
 			       (when transformp
 				 (multiple-value-bind (tx ty)
-				     (transform-point* (medium-transformation current-window)
-						       px py)
+				     (transform-position (medium-transformation current-window)
+							 px py)
 				   (setq wx (floor tx)
 					 wy (floor ty))))
 			       (typecase gesture

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: aaai-demo-driver.lisp,v 1.3 92/02/26 10:23:54 cer Exp $
+;; $fiHeader: aaai-demo-driver.lisp,v 1.4 92/03/04 16:22:56 cer Exp $
 
 (in-package :clim-demo)
 
@@ -47,6 +47,8 @@
     (lisp:format t "~&No current value for *DEMO-ROOT*.  Use what value? ")
     (setq root (eval (lisp:read)))
     (setq *demo-root* root))
+  #+Silica
+  (unless root (setq root (find-graft)))
   (labels ((demo-menu-drawer (stream type &rest args)
 	     (declare (dynamic-extent args))
 	     (with-text-style (stream '(:serif :roman :very-large))
@@ -72,6 +74,6 @@
 (defparameter *color-stream-p* t)
 (defun color-stream-p (stream)
   #-Genera *color-stream-p*		;--- kludge
-  #+Genera (if (eql (port-type (port stream)) ':genera)
+  #+Genera (if (eql (silica:port-type (port stream)) ':genera)
 	       (slot-value stream 'clim-internals::color-p)
 	       *color-stream-p*))

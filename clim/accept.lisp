@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.4 92/03/04 16:21:07 cer Exp $
+;; $fiHeader: accept.lisp,v 1.5 92/03/10 10:12:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -222,13 +222,13 @@
 					    (make-presentation-history-element
 					      :object default :type default-type)))
 				      (with-default-bound-in-history history default-element
-					(call-presentation-generic-function accept
+					(funcall-presentation-generic-function accept
 					  type stream view
 					  :default default :default-type default-type)))
-				    (call-presentation-generic-function accept
+				    (funcall-presentation-generic-function accept
 				      type stream view
 				      :default default :default-type default-type))
-			        (call-presentation-generic-function accept
+			        (funcall-presentation-generic-function accept
 				  type stream view)))))))))
 
 	       ;; A presentation translator was invoked
@@ -351,10 +351,11 @@
 				   (return-from accept-from-string
 				     (values default default-type index)))))))
 	    (if default-supplied-p
-		(call-presentation-generic-function accept
+		(funcall-presentation-generic-function accept
 		  type stream view
 		  :default default :default-type default-type)
-	        (call-presentation-generic-function accept type stream view))))
+	        (funcall-presentation-generic-function accept
+		  type stream view))))
       (values the-object (or the-type type) index))))
 
 ;; Make ACCEPT work inside WITH-INPUT-FROM-STRING

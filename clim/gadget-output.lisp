@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.8 92/03/24 19:37:52 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.9 92/04/10 14:27:02 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -41,7 +41,7 @@
   (setf (output-record-gadget rec) gadget)
   (let ((sr (compose-space gadget)))
     (multiple-value-bind (abs-x abs-y)
-	(point-position*
+	(point-position
 	 (stream-output-history-position stream))
       (decf x abs-x)
       (decf y abs-y)
@@ -62,7 +62,7 @@
   (declare (ignore  a b c d))
   (update-gadget-position rec))
 
-(defmethod bounding-rectangle-set-position* :after ((rec gadget-output-record) a b)
+(defmethod bounding-rectangle-set-position :after ((rec gadget-output-record) a b)
   (declare (ignore  a b))
   (update-gadget-position rec))
 
@@ -75,7 +75,7 @@
 	  (do ((parent record (output-record-parent parent)))
 	      ((null parent))
 	    (multiple-value-bind (x y)
-		(output-record-position* parent)
+		(output-record-position parent)
 	      (incf xoff x)
 	      (incf yoff y)))
 	  (move-and-resize-sheet* gadget
@@ -126,13 +126,13 @@
     (assert frame)
     (assert framem)
     (multiple-value-bind (x y)
-	(stream-cursor-position* stream)
+	(stream-cursor-position stream)
       (let* (gadget
 	     (record
 	      (with-new-output-record (stream 'gadget-output-record record)
-		;;--- Do we really need to do this. under what
-		;;--- situations does this happen and why cant we loose
-		;;--- the gadget
+		;;--- Do we really need to do this?  Under what
+		;;--- situations does this happen and why can't we
+		;;--- release the gadget?
 		(unless (setq gadget (output-record-gadget record))
 		  (associate-record-and-gadget
 		   record
@@ -148,7 +148,7 @@
     (assert frame)
     (assert framem)
     (multiple-value-bind (x y)
-	(stream-cursor-position* stream)
+	(stream-cursor-position stream)
       (let* (gadget
 	     (record
 	      (with-new-output-record (stream 'gadget-output-record record)
@@ -227,22 +227,21 @@
   ;; value-key, test, sequence
   (with-output-as-gadget (stream)
     (let* ((gadget
-	    (make-pane 'radio-box 
-			  :label (and (stringp prompt) prompt)
-			  :value-changed-callback
+	     (make-pane 'radio-box 
+			:label (and (stringp prompt) prompt)
+			:client stream :id query-identifier
+			:value-changed-callback
 			  (make-accept-values-value-changed-callback
-			   stream query-identifier)
-			  :client stream
-			  :id query-identifier)))
+			    stream query-identifier))))
       (dolist (element sequence)
 	(make-pane 'toggle-button 
-		      :value (and default-supplied-p
-				  (funcall test 
-					   (funcall value-key element)
-					   (funcall value-key default)))
-		      :label (princ-to-string element)
-		      :id element
-		      :parent gadget))
+		   :label (princ-to-string element)
+		   :value (and default-supplied-p
+			       (funcall test 
+					(funcall value-key element)
+					(funcall value-key default)))
+		   :id element
+		   :parent gadget))
       gadget)))
 
 
@@ -258,20 +257,19 @@
 						    present-p query-identifier
 						    &key (prompt t))
   (declare (ignore default-supplied-p present-p))
-  (let ((x (with-output-as-gadget (stream)
-	     (make-pane 'toggle-button
-			   :client stream 
-			   :value-changed-callback
-			   (make-accept-values-value-changed-callback
-			    stream query-identifier)
-			   :id query-identifier
-			   :value default
-			   :label (and (stringp prompt) prompt)))))
-    ;;--- WE end up not making a new gadget sometimes, I think because
+  (let ((gadget
+	  (with-output-as-gadget (stream)
+	    (make-pane 'toggle-button
+		       :label (and (stringp prompt) prompt)
+		       :value default
+		       :client stream :id query-identifier
+		       :value-changed-callback
+		         (make-accept-values-value-changed-callback
+			   stream query-identifier)))))
+    ;;--- We end up not making a new gadget sometimes, I think because
     ;;--- we find a gadget already in the record so we need to modify
-    ;;-- the value!
-    (setf (gadget-value x) default)))
-    
+    ;;--- the value!
+    (setf (gadget-value gadget) default)))
 
 ;;; Integer gadget
 
@@ -287,14 +285,13 @@
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
     (make-pane 'slider
-		  :value-changed-callback
-		  (make-accept-values-value-changed-callback
-		   stream query-identifier)
-		  :client stream
-		  :width 100
-		  :value (if default-supplied-p default 0)
-		  :id query-identifier
-		  :label (and (stringp prompt) prompt))))
+	       :label (and (stringp prompt) prompt)
+	       :value (if default-supplied-p default 0)
+	       :client stream :id query-identifier
+	       :value-changed-callback
+	         (make-accept-values-value-changed-callback
+		   stream query-identifier))))
+
 
 
 ;;--- These should be defined in the standard DEFOPERATION way...

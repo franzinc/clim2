@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.10 92/04/03 12:04:16 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.11 92/04/10 14:26:34 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -94,34 +94,35 @@
 
 (defmacro vertically (options &body contents)
   `(make-pane 'vbox-pane
-		 :contents (list ,@contents)
-		 ,@options))
+	      :contents (list ,@contents)
+	      ,@options))
+
 
 
 (defmacro horizontally (options &body contents)
   `(make-pane 'hbox-pane
-		 :contents (list ,@contents)
-		 ,@options))
+	      :contents (list ,@contents)
+	      ,@options))
+
 
 
 (defmethod resize-sheet* ((sheet sheet) width height &key force)
   (when (or width height)
-    (with-bounding-rectangle* 
-	(minx miny maxx maxy) sheet
-	(when (or force
-		  (and width (/= (- maxx minx) width))
-		  (and height (/= (- maxy miny) height)))
-	  (setf (sheet-region sheet)
-	    (make-bounding-rectangle
-	     minx miny
-	     (if width (+ width minx) maxx)
-	     (if height (+ height miny) maxy)))))))
+    (with-bounding-rectangle* (minx miny maxx maxy) sheet
+      (when (or force
+		(and width (/= (- maxx minx) width))
+		(and height (/= (- maxy miny) height)))
+	(setf (sheet-region sheet)
+	      (make-bounding-rectangle
+		minx miny
+		(if width (+ width minx) maxx)
+		(if height (+ height miny) maxy)))))))
 
 (defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
   (resize-sheet* sheet width height)
   (let ((trans (sheet-transformation sheet)))
     (multiple-value-bind (x y)
-	(transform-point* trans 0 0)
+	(transform-position trans 0 0)
       (when (or (and minx (/= x minx))
 		(and miny (/= y miny)))
 	(setf (sheet-transformation sheet)
@@ -133,7 +134,7 @@
 (defmethod move-sheet* ((sheet sheet) minx miny)
   (let ((trans (sheet-transformation sheet)))
     (multiple-value-bind (x y)
-	(transform-point* trans 0 0)
+	(transform-position trans 0 0)
       (when (or (/= x minx)
 		(/= y miny))
 	(setf (sheet-transformation sheet)
@@ -294,43 +295,37 @@
 
 
 ;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
-
 (defclass top-level-sheet 
-    (
-     ;; Have these so that we can use 
-     clim-internals::window-stream
-     ;;
-     pane
-     wrapping-space-mixin
-     mirrored-sheet-mixin
-     sheet-multiple-child-mixin)
+	  (;;--- Temporary kludge until we get the protocols correct
+	   ;;--- so that ACCEPT works correctly on a raw sheet
+	   clim-internals::window-stream
+	   pane
+	   wrapping-space-mixin
+	   mirrored-sheet-mixin
+	   sheet-multiple-child-mixin)
     ()
-  (:default-initargs :text-cursor nil :text-margin 10))
+    ;;--- More of same...
+    (:default-initargs :text-cursor nil :text-margin 10))
 
-
-;; invoke-with-recording-options
-;; default-text-margin
-;; stream-read-gesture
-
+;;--- Needed methods include:
+;;---   INVOKE-WITH-RECORDING-OPTIONS
+;;---   DEFAULT-TEXT-MARGIN
+;;---   STREAM-READ-GESTURE
 
 (defmethod note-layout-mixin-region-changed ((pane top-level-sheet) &key port)
   (if port
       (multiple-value-call #'layout-frame
 	(pane-frame pane) 
 	(bounding-rectangle-size pane))
-    (call-next-method)))
+      (call-next-method)))
 
-;(defmethod allocate-space ((sheet top-level-sheet) width height)
-;  ;;--- To make openlook windows fill the vertical dimension we need
-;  ;;--- to do this why???. Actually doing this seems to make a lot of sense
-;  ;;--- Perhaps what should happen is that if the sheet-region is
-;  ;;--- changed by the port we should layout the entire frame instead
-;  (clear-space-requirement-caches-in-tree (first (sheet-children sheet)))
-;  ;;
-;  (resize-sheet* (first (sheet-children sheet)) width height))
-;
-;(defmethod compose-space ((sheet top-level-sheet) &key width height)
-;  (compose-space (first (sheet-children sheet)) :width width :height height))
+#+++ignore
+(defmethod allocate-space ((sheet top-level-sheet) width height)
+  (resize-sheet* (first (sheet-children sheet)) width height))
+
+#+++ignore
+(defmethod compose-space ((sheet top-level-sheet) &key width height)
+  (compose-space (first (sheet-children sheet)) :width width :height height))
 
 
 (defclass leaf-pane 

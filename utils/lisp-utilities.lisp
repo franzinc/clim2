@@ -1,6 +1,6 @@
  ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.6 92/03/10 10:11:52 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.7 92/03/30 17:52:12 cer Exp $
 
 (in-package :clim-utils)
 
@@ -28,7 +28,22 @@
   ;;--- Turn this into 'SINGLE-FLOAT after debugging the type declarations
   #+Silica 't)
 
-;;--- Should this use FLOOR, CEILING, or ROUND?
+;; Convert a number of arbitrary type into a COORDINATE
+(defmacro coordinate (x &optional (round-direction 'round))
+  #+Silica (declare (ignore round-direction))
+  #-Silica (ecase round-direction
+	     (round
+	       `(the fixnum (values (floor (+ ,x .5f0)))))
+	     (floor
+	       `(the fixnum (values (floor ,x))))
+	     (ceiling
+	       `(the fixnum (values (ceiling ,x)))))
+  #+Silica `(the coordinate (float ,x 0f0)))
+
+(defconstant +largest-coordinate+
+	     #-Silica most-positive-fixnum
+	     #+Silica (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0))
+
 (defmacro integerize-single-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
 
@@ -38,10 +53,19 @@
 (defmacro integerize-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the float ,coord) .5)))))
 
-#-allegro
-(defun integerize-coordinate (coord)
-  (declare (optimize (speed 3) (safety 0))
-	   (:explain :calls :types))
+#+(or Genera Minima)
+(defun-inline fix-coordinate (coord)
+  (if (typep coord 'fixnum)
+      coord
+      (the fixnum (values (floor (+ coord .5f0))))))
+
+#+Allegro
+(defmacro fix-coordinate (coord)
+  ;; ROUND is good enough in Allegro for 90% of the speed, and it's less filling.
+  `(the fixnum (round ,coord)))
+
+#-(or Genera Minima Allegro)
+(defun fix-coordinate (coord)
   (etypecase coord
     (fixnum coord)
     (single-float
@@ -55,18 +79,57 @@
     ;; disallow bignums and other types of numbers
     ))
 
-#+allegro
-(defmacro integerize-coordinate (coord)
-  ;; Round is good enough in Allegro for 90% of the speed, and it's less
-  ;; filling.
-  `(the fixnum (round ,coord)))
-
-
-(defmacro integerize-coordinates (&body coords)
+(defmacro fix-coordinates (&body coords)
   `(progn
-     ,@(mapcar #'(lambda (x)
-		   `(setq ,x (integerize-coordinate ,x)))
+     ,@(mapcar #'(lambda (x) `(setq ,x (fix-coordinate ,x)))
 	       coords)))
+
+;;; ONCE-ONLY does the same thing as it does in zetalisp.  I should have just
+;;; lifted it from there but I am honest.  Not only that but this one is
+;;; written in Common Lisp.  I feel a lot like bootstrapping, or maybe more
+;;; like rebuilding Rome.
+(defmacro once-only (vars &body body)
+  (let ((gensym-var (gensym))
+        (run-time-vars (gensym))
+        (run-time-vals (gensym))
+        (expand-time-val-forms ()))
+    (dolist (var vars)
+      (push `(if (or (symbolp ,var)
+                     (numberp ,var)
+                     (and (listp ,var)
+			  (member (car ,var) '(quote function))))
+                 ,var
+                 (let ((,gensym-var (gensym)))
+                   (push ,gensym-var ,run-time-vars)
+                   (push ,var ,run-time-vals)
+                   ,gensym-var))
+            expand-time-val-forms))    
+    `(let* (,run-time-vars
+            ,run-time-vals
+            (wrapped-body
+	      (let ,(mapcar #'list vars (reverse expand-time-val-forms))
+		,@body)))
+       `(let ,(mapcar #'list (reverse ,run-time-vars)
+			     (reverse ,run-time-vals))
+	  ,wrapped-body))))
+
+(defmacro dorest ((var list &optional (by 'cdr)) &body body)
+  `(do ((,var ,list (,by ,var)))
+       ((null ,var) nil)
+     ,@body))
+
+;; COORDINATE-PAIRS is a list of pairs of coordinates.
+;; The coordinates must be of type COORDINATE
+(defmacro translate-coordinates (x-delta y-delta &body coordinate-pairs)
+  (once-only (x-delta y-delta)
+    `(progn
+       ,@(let ((forms nil))
+	   (dorest (pts coordinate-pairs cddr)
+	     (push `(setf ,(first pts)  
+			  (the coordinate (+ ,(first pts)  ,x-delta))) forms)
+	     (push `(setf ,(second pts)
+			  (the coordinate (+ ,(second pts) ,y-delta))) forms))
+	   (nreverse forms)))))
 
 (defmacro convert-to-device-coordinates (transform &body positions)
   (assert (evenp (length positions)) (positions)
@@ -79,8 +142,8 @@
 	     (y (pop positions)))
 	(push `(multiple-value-setq (,x ,y)
 		 (multiple-value-bind (nx ny) 
-		     (transform-point* ,transform ,x ,y)
-		   (values (integerize-coordinate nx) (integerize-coordinate ny))))
+		     (transform-position ,transform ,x ,y)
+		   (values (fix-coordinate nx) (fix-coordinate ny))))
 	      forms)))))
 
 (defmacro convert-to-device-distances (transform &body positions)
@@ -95,7 +158,7 @@
 	(push `(multiple-value-setq (,x ,y)
 		 (multiple-value-bind (nx ny) 
 		     (transform-distance ,transform ,x ,y)
-		   (values (integerize-coordinate nx) (integerize-coordinate ny))))
+		   (values (fix-coordinate nx) (fix-coordinate ny))))
 	      forms)))))
 
 
@@ -376,48 +439,6 @@
          ,@body))))
 
 
-;;; DEFINE-GROUP: defines a "group" of definitions which are related
-;;; somehow.  In Genera, this causes the function-parents to be set
-;;; correctly, for example, and also if you attempt to abort out of the
-;;; middle you get told that something might be left inconsistent.
-#+Genera 
-(defmacro define-group (name type &body body)
-  `(sys:multiple-definition ,name ,type ,@body))
-
-#+(and Allegro (version>= 4 1))
-(defmacro define-group (name type &body body)
-  `(progn
-     (excl::record-source-file ',name :type ',type)
-     ,@body))
-
-#-(or Genera (and Allegro (version>= 4 1)))
-(defmacro define-group (name type &body body)
-  (declare (ignore name type))
-  `(progn ,@body))
-
-(defmacro with-warnings-for-definition (name type &body body)
-  #+Genera `(let ((compiler:default-warning-function ,name)
-		  (compiler:default-warning-definition-type ',type))
-	      ,@body)
-  #-Genera `(let () ,@body))
-
-(defmacro defun-inline (name lambda-list &body body)
-  `(define-group ,name defun-inline
-     (eval-when (compile load eval) (proclaim '(inline ,name)))
-     (defun ,name ,lambda-list
-       ,@body)))
-
-#+Genera
-(progn
-  (setf (get 'defun-inline 'zwei:definition-function-spec-parser)
-	(zl:::scl:function (:property zl:::scl:defun zwei:definition-function-spec-parser)))
-  (setf (get 'defun-inline 'zwei:definition-function-spec-type) 'zl:::scl:defun)
-  (setf (get 'defun-inline 'gprint::formatter) 
-	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
-  (push 'defun-inline zwei:*irrelevant-functions*)
-  (push 'defun-inline zwei:*irrelevant-defining-forms*))
-
-
 ;;; Bindings on the stack.  A work in progress.
 ;;; Which Lisps support this?
 
@@ -630,7 +651,7 @@
 	      (,endd ,(if simple-p `,end `(or ,end (length ,fvector))))
 	      (,index (if ,from-end (1- ,endd) ,startd))
 	      (,limit (if ,from-end (1- ,startd) ,endd)))
-	 (declare (fixnum ,endd ,index ,limit)
+	 (declare (type fixnum ,endd ,index ,limit)
 		  ;; Turn on the afterburners...
 		  (optimize (speed 3) (safety 0))
 		  ,@(and simple-p `((type simple-vector ,fvector)))
@@ -649,11 +670,6 @@
        (etypecase ,sequence
 	 (list (dolist (thing ,sequence) (,fcn thing)))
 	 (vector (dovector (thing ,sequence) (,fcn thing)))))))
-
-(defmacro dorest ((var list &optional (by 'cdr)) &body body)
-  `(do ((,var ,list (,by ,var)))
-       ((null ,var) nil)
-     ,@body))
 
 (defmacro writing-clauses (&body body)
   (let ((clauses-var (gensymbol 'clauses)))
@@ -994,7 +1010,7 @@
 	   (,next-var nil)
 	   ,@(when (cdr special-characters)
 	       `((,char-var ,(car special-characters)))))
-       (declare (fixnum ,start-index-var ,end-var ,end-index-var)
+       (declare (type fixnum ,start-index-var ,end-var ,end-index-var)
 		(type (or fixnum null) ,next-var)
 		(character ,char-var))
        (loop
@@ -1153,34 +1169,6 @@
     `(or (float ,(convert min t) ,(convert max t))
 	 (rational ,(convert min nil) ,(convert max nil)))))
 
-;;; ONCE-ONLY does the same thing as it does in zetalisp.  I should have just
-;;; lifted it from there but I am honest.  Not only that but this one is
-;;; written in Common Lisp.  I feel a lot like bootstrapping, or maybe more
-;;; like rebuilding Rome.
-(defmacro once-only (vars &body body)
-  (let ((gensym-var (gensym))
-        (run-time-vars (gensym))
-        (run-time-vals (gensym))
-        (expand-time-val-forms ()))
-    (dolist (var vars)
-      (push `(if (or (symbolp ,var)
-                     (numberp ,var)
-                     (and (listp ,var)
-			  (member (car ,var) '(quote function))))
-                 ,var
-                 (let ((,gensym-var (gensym)))
-                   (push ,gensym-var ,run-time-vars)
-                   (push ,var ,run-time-vals)
-                   ,gensym-var))
-            expand-time-val-forms))    
-    `(let* (,run-time-vars
-            ,run-time-vals
-            (wrapped-body
-	      (let ,(mapcar #'list vars (reverse expand-time-val-forms))
-		,@body)))
-       `(let ,(mapcar #'list (reverse ,run-time-vars)
-			     (reverse ,run-time-vals))
-	  ,wrapped-body))))
 
 ;;; Use a lambda-list to extract arguments from a list and bind variables.
 ;;; This "should" signal an error if the list doesn't match the lambda-list.
@@ -1359,7 +1347,7 @@
 ;;; Simple vector support
 
 (defun-inline copy-vector-portion (from-vector from-start to-vector to-start length)
-  (declare (fixnum from-start to-start length)
+  (declare (type fixnum from-start to-start length)
 	   (type simple-vector from-vector to-vector))
   (declare (optimize (speed 3) (safety 0)))
   (cond (#+Genera (< length 8) #-Genera t
@@ -1382,9 +1370,10 @@
 ;; (MULTIPLE-VALUE-SETQ (VECTOR FP) (SIMPLE-VECTOR-PUSH-EXTEND ELEMENT VECTOR FP)).
 (defun simple-vector-push-extend (element vector fill-pointer &optional extension)
   (declare (values vector fill-pointer))
-  (declare (fixnum fill-pointer) (type simple-vector vector))
+  (declare (type fixnum fill-pointer)
+	   (type simple-vector vector))
   (let ((length (array-dimension vector 0)))
-    (declare (fixnum length))
+    (declare (type fixnum length))
     (when (= fill-pointer length)
       ;; Grow the vector
       (let ((new-vector (make-array (+ length (max (ash length -1) (or extension 20)))
@@ -1398,9 +1387,10 @@
 
 (defun simple-vector-insert-element (element index vector fill-pointer &optional extension)
   (declare (values vector fill-pointer))
-  (declare (fixnum index fill-pointer) (type simple-vector vector))
+  (declare (type fixnum index fill-pointer)
+	   (type simple-vector vector))
   (let ((length (array-dimension vector 0)))
-    (declare (fixnum length))
+    (declare (type fixnum length))
     (cond ((= fill-pointer length)
 	   ;; Grow the vector, leaving a hole for the new element
 	   (let ((new-vector (make-array (+ length (max (ash length -1) (or extension 20)))
@@ -1415,7 +1405,7 @@
 	     #+Minima (declare (type vector vector))
 	     (do ((i fill-pointer (1- i)))
 		 ((= i index))
-	       (declare (fixnum i)
+	       (declare (type fixnum i)
 			(optimize (speed 3) (safety 0)))
 	       (setf (svref vector i) (svref vector (1- i)))))))
     ;; Plug in the new element and return the right values

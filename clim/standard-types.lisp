@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.4 92/03/04 16:22:15 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.5 92/03/10 10:12:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -407,10 +407,13 @@
 				   (pathname-complete string action default))
 			:allow-any-input t :help-displays-possibilities nil)
       (declare (ignore success))
-      (unless pathname
-	(setq pathname (parse-namestring string nil default)))
-      (when merge-default
-	(setq pathname (merge-pathnames pathname default default-version)))
+      (handler-bind ((error
+		       #'(lambda (error)
+			   (simple-parse-error "Error parsing pathname string ~A" string))))
+        (unless pathname
+	  (setq pathname (parse-namestring string nil default)))
+	(when merge-default
+	  (setq pathname (merge-pathnames pathname default default-version))))
       (unless (rescanning-p stream)
 	(presentation-replace-input stream pathname type view
 				    :buffer-start buffer-start))
@@ -497,7 +500,8 @@
 
 ;;;; "One-of" Presentation Types
 
-(define-presentation-type completion (sequence &key (test 'eql) (value-key 'identity))
+(define-presentation-type completion (&optional (sequence nil)
+				      &key (test 'eql) (value-key 'identity))
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
 	    (partial-completers '(#\Space))))
@@ -655,8 +659,8 @@
 
 ;;;; "Some-of" Presentation Types
 
-(define-presentation-type subset-completion
-			  (sequence &key (test 'eql) (value-key 'identity))
+(define-presentation-type subset-completion (&optional (sequence nil)
+					     &key (test 'eql) (value-key 'identity))
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
 	    (partial-completers '(#\Space))
@@ -980,13 +984,13 @@
 	       (if default-supplied-p
 		   (if history
 		       (with-default-bound-in-history history default-element
-			 (call-presentation-generic-function accept
+			 (funcall-presentation-generic-function accept
 			   element-type stream view
 			   :default element-default :default-type element-default-type))
-		       (call-presentation-generic-function accept
+		       (funcall-presentation-generic-function accept
 			 element-type stream view
 			 :default element-default :default-type element-default-type))
-		   (call-presentation-generic-function accept
+		   (funcall-presentation-generic-function accept
 		     element-type stream view))))
 	 ;; The user clicked on an object having the element type
 	 (t
@@ -1151,7 +1155,7 @@
     (when (presentation-typep object type)
       (return-from present
 	;; This must call the real present function, rather than using
-	;; call-presentation-generic-function, so that a nested presentation
+	;; CALL-PRESENTATION-GENERIC-FUNCTION, so that a nested presentation
 	;; of the correct type will be created
 	;;--- Maybe.  See RWK comment in the DW version.
 	(apply #'present object type :stream stream :view view options))))
@@ -1192,13 +1196,13 @@
 		       (presentation-typep default type))
 		  (if history
 		      (with-default-bound-in-history history default-element
-			(call-presentation-generic-function accept
+			(funcall-presentation-generic-function accept
 			  type stream view
 			  :default default :default-type default-type))
-		      (call-presentation-generic-function accept
+		      (funcall-presentation-generic-function accept
 			type stream view
 			:default default :default-type default-type))
-		  (call-presentation-generic-function accept
+		  (funcall-presentation-generic-function accept
 		    type stream view))
 	    (return-from accept
 	      (values object (or object-type type)))))))
@@ -1281,14 +1285,14 @@
 
 (define-presentation-method present (object (type and) stream view &rest options)
   (declare (dynamic-extent options))
-  (call-presentation-generic-function apply present
+  (apply-presentation-generic-function present
     object (first types) stream view options))
 
 (define-presentation-method accept ((type and) stream view &rest options)
   (declare (dynamic-extent options))
   (loop
     (multiple-value-bind (object input-type)
-	(call-presentation-generic-function apply accept
+	(apply-presentation-generic-function accept
 	  (first types) stream view options)
       (when (every #'(lambda (type) (and-presentation-typep object type)) (rest types))
 	(return-from accept (values object input-type)))
@@ -1313,12 +1317,12 @@
 (define-presentation-method accept ((type boolean) stream view &rest options)
   (declare (dynamic-extent options))
   (values
-    (call-presentation-generic-function apply accept
+    (apply-presentation-generic-function accept
       *boolean-member-type* stream view options)))
 
 (define-presentation-method present (object (type boolean) stream view &rest options)
   (declare (dynamic-extent options))
-  (call-presentation-generic-function apply present
+  (apply-presentation-generic-function present
     object *boolean-member-type* stream view options))
 
 ;; Supplying this gives us a nice "pushbutton" effect for booleans, too

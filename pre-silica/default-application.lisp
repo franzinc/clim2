@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-application.lisp,v 1.3 92/03/04 16:21:23 cer Exp $
+;; $fiHeader: default-application.lisp,v 1.4 92/03/10 10:12:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -27,7 +27,7 @@
     #+Allegro
     (when (and *click-outside-menu-handler*
 		(output-recording-stream-p window)
-		(not (region-contains-point*-p (stream-output-history window) x y)))
+		(not (region-contains-position-p (stream-output-history window) x y)))
       (funcall *click-outside-menu-handler*))
     (when highlighted-presentation
       ;; Unhighlight on the way out.
@@ -109,7 +109,7 @@
 (defun frame-document-highlighted-presentation-1
        (frame presentation input-context window x y stream)
   (let ((modifier-state (window-modifier-state window)))
-    (declare (fixnum modifier-state))
+    (declare (type fixnum modifier-state))
     (multiple-value-bind (left   left-presentation   left-context
 			  middle middle-presentation middle-context
 			  right  right-presentation  right-context)
@@ -126,7 +126,7 @@
 		 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
 		 (let ((bit #o20)
 		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
-		   (declare (fixnum bit))
+		   (declare (type fixnum bit))
 		   (dotimes (i 5)
 		     #-(or Allegro Minima) (declare (ignore i))
 		     (unless (zerop (logand bit modifier-state))

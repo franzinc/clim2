@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.17 92/04/03 12:04:58 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.18 92/04/10 14:27:59 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -37,7 +37,6 @@
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
-
 (defmethod port-copy-gc ((port xt-port))
   (with-slots (copy-gc display) port
     (or copy-gc
@@ -45,7 +44,6 @@
 	  (make-instance 'tk::gcontext
 			 :display display
 			 :foreign-address (x11:screen-default-gc (x11:xdefaultscreenofdisplay (port-display port))))))))
-
 
 (defmacro destructure-x-server-path ((&key display) path &body body)
   ;;-- Of course the port ends up with an unspecified server-path.
@@ -70,11 +68,11 @@
 	    (slot-value port 'display) display)
       (initialize-xlib-port port display))))
 
-(defvar *clx-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
-			      (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
-			      (:serif "*-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
-			       "*-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
-			       "*-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
+(defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+			     (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+			     (:serif "*-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
+			      "*-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+			      "*-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -90,7 +88,7 @@
     (reverse tokens)))
 
 
-(defvar *clx-fallback-font* "8x13"
+(defvar *xt-fallback-font* "8x13"
   "When non NIL and nothing better exists use this as the fallback font")
 
 (defmethod initialize-xlib-port (port display)
@@ -109,7 +107,7 @@
 		  (point-size (float designed-point-size))
 		  (size (/ point-size 10)))
 	     (make-text-style family face size))))
-    (dolist (family-stuff *clx-font-families*)
+    (dolist (family-stuff *xt-font-families*)
       (let ((family (car family-stuff)))
 	(dolist (font-pattern (cdr family-stuff))
 	  (dolist (xfont (tk::list-font-names display font-pattern))
@@ -123,22 +121,22 @@
 	))
     (let (temp)
       (cond ((setq temp
-		   (dolist (family *clx-font-families*)
+		   (dolist (family *xt-font-families*)
 		     (when (text-style-mapping-exists-p port `(,(car family) :roman 10))
 		       (return (make-text-style (car family) :roman 10)))))
 	     (setf (text-style-mapping port (port-undefined-text-style port)) temp))
 	    ;; Perhaps we should look for some other conveniently sized
 	    ;; fonts.
-	    (*clx-fallback-font*
+	    (*xt-fallback-font*
 	     (setf (text-style-mapping port (port-undefined-text-style port))
 		   (make-instance 'tk::font 
 				  :display display
-				  :name *clx-fallback-font*)))
+				  :name *xt-fallback-font*)))
 	    ;;; Perhaps we should just grab the first font we can find.
 	    (t
 	     (error "Unable to determine default font"))))))
 
-(defparameter *clx-logical-size-alist*
+(defparameter *xt-logical-size-alist*
 	      '((:tiny       6)
 		(:very-small 8)
 		(:small	     10)
@@ -150,13 +148,12 @@
 (defmethod standardize-text-style ((port xt-port) style
 				   &optional (character-set *standard-character-set*))
   (standardize-text-style-1
-    port style character-set *clx-logical-size-alist*))
+    port style character-set *xt-logical-size-alist*))
 
 
 (defmethod destroy-mirror ((port xt-port) sheet)
   ;;-- I dont think that we should do this.
-  (tk::destroy-widget (sheet-direct-mirror sheet))
-  )
+  (tk::destroy-widget (sheet-direct-mirror sheet)))
 
 (defmethod realize-mirror ((port xt-port) sheet)
   (let ((parent (find-widget-parent port sheet)))
@@ -197,27 +194,25 @@
 		 sheet)
 		nil)
 	       (:key-press
-		(multiple-value-bind
-		    (character keysym)
+		(multiple-value-bind (character keysym)
 		    (lookup-character-and-keysym sheet widget event)
 		  (make-instance 'key-press-event
 				 :key-name keysym
 				 :character character
 				 :sheet sheet
-				 :modifiers 
+				 :modifiers
 				 (state->modifiers
 				  (x11::xkeyevent-state event)
 				  nil))))
     
 	       (:key-release
-		(multiple-value-bind
-		    (character keysym)
+		(multiple-value-bind (character keysym)
 		    (lookup-character-and-keysym sheet widget event)
 		  (make-instance 'key-release-event
 				 :key-name keysym
 				 :character character
 				 :sheet sheet
-				 :modifiers
+				 :modifiers 
 				 (state->modifiers
 				  (x11::xkeyevent-state event)
 				  nil))))
@@ -253,25 +248,25 @@
 			       :button (x-button->silica-button button)
 			       :modifiers
 			       (state->modifiers
-				modifiers)
+				(x11::xkeyevent-state event))
 			       :sheet sheet))
 	       (:enter-notify
 		(make-instance 'pointer-enter-event
 			       :native-x native-x
 			       :native-y native-y
 			       :button (x-button->silica-button button)
-			       :modifiers
+			       :modifiers 
 			       (state->modifiers
-				modifiers)
+				(x11::xkeyevent-state event))
 			       :sheet sheet))
 	       (:motion-notify
 		(make-instance 'pointer-motion-event
 			       :native-x native-x
 			       :native-y native-y
 			       :button (x-button->silica-button button)
-			       :modifiers
+			       :modifiers 
 			       (state->modifiers
-				modifiers)
+				(x11::xkeyevent-state event))
 			       :sheet sheet)))))
 	(when clim-event
 	  (distribute-event
@@ -320,31 +315,29 @@
     (:key-press
       (distribute-event
 	(port sheet)
-	(multiple-value-bind
-		    (character keysym)
-		    (lookup-character-and-keysym sheet widget event)
-		  (make-instance 'key-press-event
-				 :key-name keysym
-				 :character character
-				 :sheet sheet
-				 :modifiers
-				 (state->modifiers
-				  (x11::xkeyevent-state event)
-				  nil)))))
+	(multiple-value-bind (character keysym)
+	    (lookup-character-and-keysym sheet widget event)
+	  (make-instance 'key-press-event
+			 :key-name keysym
+			 :character character
+			 :sheet sheet
+			 :modifiers
+			 (state->modifiers
+			  (x11::xkeyevent-state event)
+			  nil)))))
     (:key-release
-     (distribute-event
-      (port sheet)
-      (multiple-value-bind
-	  (character keysym)
-	  (lookup-character-and-keysym sheet widget event)
-	(make-instance 'key-release-event
-		       :key-name keysym
-		       :character character
-		       :sheet sheet
-		       :modifiers
-		       (state->modifiers
-			(x11::xkeyevent-state event)
-			nil)))))
+      (distribute-event
+	(port sheet)
+	(multiple-value-bind (character keysym)
+	    (lookup-character-and-keysym sheet widget event)
+	  (make-instance 'key-release-event
+			 :key-name keysym
+			 :character character
+			 :sheet sheet
+			 :modifiers
+			 (state->modifiers
+			  (x11::xkeyevent-state event)
+			  nil)))))
     (:button-press
       (distribute-event
 	(port sheet)
@@ -352,7 +345,7 @@
 		       :sheet sheet
 		       :x :??
 		       :y :??
-		       :modifiers
+		       :modifiers 
 		       (state->modifiers
 			(x11::xkeyevent-state event))
 		       :button (x-button->silica-button 
@@ -397,10 +390,10 @@
       ;;--- We do not want to specify the x,y if this is a top-level
       ;;sheet.
       (unless (typep parent 'tk::shell)
-	(setf (getf initargs :x) (integerize-coordinate left)
-	      (getf initargs :y) (integerize-coordinate top)))
-      (setf (getf initargs :width) (integerize-coordinate (- right left))
-	    (getf initargs :height) (integerize-coordinate (- bottom top)))))
+	(setf (getf initargs :x) (fix-coordinate left)
+	      (getf initargs :y) (fix-coordinate top)))
+      (setf (getf initargs :width)  (fix-coordinate (- right left))
+	    (getf initargs :height) (fix-coordinate (- bottom top)))))
   initargs)
 
 ;; If we are creating a top level sheet then we have to create a shell for it
@@ -518,10 +511,10 @@
 				    target-right target-bottom)
   (let ((w (- target-right  target-left))
 	(h (- target-bottom target-top)))
-    (setf target-left (integerize-coordinate target-left)
-	  target-top (integerize-coordinate target-top)
-	  w (integerize-coordinate w)
-	  h (integerize-coordinate h))
+    (setf target-left (fix-coordinate target-left)
+	  target-top  (fix-coordinate target-top)
+	  w (fix-coordinate w)
+	  h (fix-coordinate h))
     (change-widget-geometry
      ;;--- For top level sheets the sheet-parent is the graft whose
      ;; mirror is the application shell
@@ -621,176 +614,173 @@
     (and frame
 	 (popup-frame-p frame))))
 
+
 ;;; Keysym stuff
 
-(defvar *clx-keysym->clim-keysym-table*
-    (make-hash-table))
+(defvar *xt-keysym->clim-keysym-table* (make-hash-table))
+(defvar *clim-keysym->xt-keysym-table* (make-hash-table))
 
-(defvar *clim-keysym->clx-keysym-table* (make-hash-table))
-
-(defmacro define-clx-keysym (clx-keysym clim-keysym)
+(defmacro define-xt-keysym (xt-keysym clim-keysym)
   `(progn 
-     (setf (gethash ,clx-keysym *clx-keysym->clim-keysym-table*) ',clim-keysym)
-     (unless (gethash ,clim-keysym *clim-keysym->clx-keysym-table*)
-       (setf (gethash ,clim-keysym *clim-keysym->clx-keysym-table*) ',clx-keysym))))
+     (setf (gethash ,xt-keysym *xt-keysym->clim-keysym-table*) ',clim-keysym)
+     (unless (gethash ,clim-keysym *clim-keysym->xt-keysym-table*)
+       (setf (gethash ,clim-keysym *clim-keysym->xt-keysym-table*) ',xt-keysym))))
 
-(defun-inline clx-keysym->keysym (clx-keysym)
-  (gethash clx-keysym *clx-keysym->clim-keysym-table*))
+(defun-inline xt-keysym->keysym (xt-keysym)
+  (gethash xt-keysym *xt-keysym->clim-keysym-table*))
 
-(defun-inline keysym->clx-keysym (keysym)
-  (gethash keysym *clim-keysym->clx-keysym-table*))
+(defun-inline keysym->xt-keysym (keysym)
+  (gethash keysym *clim-keysym->xt-keysym-table*))
 
 ;; The standard characters
-(define-clx-keysym 032 :space)
-(define-clx-keysym 033 :\!)
-(define-clx-keysym 034 :\")
-(define-clx-keysym 035 :\#)
-(define-clx-keysym 036 :\$)
-(define-clx-keysym 037 :\%)
-(define-clx-keysym 038 :\&)
-(define-clx-keysym 039 :\')
-(define-clx-keysym 040 :\()
-(define-clx-keysym 041 :\))
-(define-clx-keysym 042 :\*)
-(define-clx-keysym 043 :\+)
-(define-clx-keysym 044 :\,)
-(define-clx-keysym 045 :\-)
-(define-clx-keysym 046 :\.)
-(define-clx-keysym 047 :\/)
-(define-clx-keysym 048 :\0)
-(define-clx-keysym 049 :\1)
-(define-clx-keysym 050 :\2)
-(define-clx-keysym 051 :\3)
-(define-clx-keysym 052 :\4)
-(define-clx-keysym 053 :\5)
-(define-clx-keysym 054 :\6)
-(define-clx-keysym 055 :\7)
-(define-clx-keysym 056 :\8)
-(define-clx-keysym 057 :\9)
-(define-clx-keysym 058 :\:)
-(define-clx-keysym 059 :\;)
-(define-clx-keysym 060 :\<)
-(define-clx-keysym 061 :\=)
-(define-clx-keysym 062 :\>)
-(define-clx-keysym 063 :\?)
-(define-clx-keysym 064 :\@)
-(define-clx-keysym 065 :\A)
-(define-clx-keysym 097 :\A)
-(define-clx-keysym 066 :\B)
-(define-clx-keysym 098 :\B)
-(define-clx-keysym 067 :\C)
-(define-clx-keysym 099 :\C)
-(define-clx-keysym 068 :\D)
-(define-clx-keysym 100 :\D)
-(define-clx-keysym 069 :\E)
-(define-clx-keysym 101 :\E)
-(define-clx-keysym 070 :\F)
-(define-clx-keysym 102 :\F)
-(define-clx-keysym 071 :\G)
-(define-clx-keysym 103 :\G)
-(define-clx-keysym 072 :\H)
-(define-clx-keysym 104 :\H)
-(define-clx-keysym 073 :\I)
-(define-clx-keysym 105 :\I)
-(define-clx-keysym 074 :\J)
-(define-clx-keysym 106 :\J)
-(define-clx-keysym 075 :\K)
-(define-clx-keysym 107 :\K)
-(define-clx-keysym 076 :\L)
-(define-clx-keysym 108 :\L)
-(define-clx-keysym 077 :\M)
-(define-clx-keysym 109 :\M)
-(define-clx-keysym 078 :\N)
-(define-clx-keysym 110 :\N)
-(define-clx-keysym 079 :\O)
-(define-clx-keysym 111 :\O)
-(define-clx-keysym 080 :\P)
-(define-clx-keysym 112 :\P)
-(define-clx-keysym 081 :\Q)
-(define-clx-keysym 113 :\Q)
-(define-clx-keysym 082 :\R)
-(define-clx-keysym 114 :\R)
-(define-clx-keysym 083 :\S)
-(define-clx-keysym 115 :\S)
-(define-clx-keysym 084 :\T)
-(define-clx-keysym 116 :\T)
-(define-clx-keysym 085 :\U)
-(define-clx-keysym 117 :\U)
-(define-clx-keysym 086 :\V)
-(define-clx-keysym 118 :\V)
-(define-clx-keysym 087 :\W)
-(define-clx-keysym 119 :\W)
-(define-clx-keysym 088 :\X)
-(define-clx-keysym 120 :\X)
-(define-clx-keysym 089 :\Y)
-(define-clx-keysym 121 :\Y)
-(define-clx-keysym 090 :\Z)
-(define-clx-keysym 122 :\Z)
-(define-clx-keysym 091 :\[)
-(define-clx-keysym 092 :\\)
-(define-clx-keysym 093 :\])
-(define-clx-keysym 094 :\^)
-(define-clx-keysym 095 :\_)
-(define-clx-keysym 096 :\`)
-(define-clx-keysym 123 :\{)
-(define-clx-keysym 124 :\|)
-(define-clx-keysym 125 :\})
-(define-clx-keysym 126 :\~)
+(define-xt-keysym 032 :space)
+(define-xt-keysym 033 :\!)
+(define-xt-keysym 034 :\")
+(define-xt-keysym 035 :\#)
+(define-xt-keysym 036 :\$)
+(define-xt-keysym 037 :\%)
+(define-xt-keysym 038 :\&)
+(define-xt-keysym 039 :\')
+(define-xt-keysym 040 :\()
+(define-xt-keysym 041 :\))
+(define-xt-keysym 042 :\*)
+(define-xt-keysym 043 :\+)
+(define-xt-keysym 044 :\,)
+(define-xt-keysym 045 :\-)
+(define-xt-keysym 046 :\.)
+(define-xt-keysym 047 :\/)
+(define-xt-keysym 048 :\0)
+(define-xt-keysym 049 :\1)
+(define-xt-keysym 050 :\2)
+(define-xt-keysym 051 :\3)
+(define-xt-keysym 052 :\4)
+(define-xt-keysym 053 :\5)
+(define-xt-keysym 054 :\6)
+(define-xt-keysym 055 :\7)
+(define-xt-keysym 056 :\8)
+(define-xt-keysym 057 :\9)
+(define-xt-keysym 058 :\:)
+(define-xt-keysym 059 :\;)
+(define-xt-keysym 060 :\<)
+(define-xt-keysym 061 :\=)
+(define-xt-keysym 062 :\>)
+(define-xt-keysym 063 :\?)
+(define-xt-keysym 064 :\@)
+(define-xt-keysym 065 :\A)
+(define-xt-keysym 097 :\A)
+(define-xt-keysym 066 :\B)
+(define-xt-keysym 098 :\B)
+(define-xt-keysym 067 :\C)
+(define-xt-keysym 099 :\C)
+(define-xt-keysym 068 :\D)
+(define-xt-keysym 100 :\D)
+(define-xt-keysym 069 :\E)
+(define-xt-keysym 101 :\E)
+(define-xt-keysym 070 :\F)
+(define-xt-keysym 102 :\F)
+(define-xt-keysym 071 :\G)
+(define-xt-keysym 103 :\G)
+(define-xt-keysym 072 :\H)
+(define-xt-keysym 104 :\H)
+(define-xt-keysym 073 :\I)
+(define-xt-keysym 105 :\I)
+(define-xt-keysym 074 :\J)
+(define-xt-keysym 106 :\J)
+(define-xt-keysym 075 :\K)
+(define-xt-keysym 107 :\K)
+(define-xt-keysym 076 :\L)
+(define-xt-keysym 108 :\L)
+(define-xt-keysym 077 :\M)
+(define-xt-keysym 109 :\M)
+(define-xt-keysym 078 :\N)
+(define-xt-keysym 110 :\N)
+(define-xt-keysym 079 :\O)
+(define-xt-keysym 111 :\O)
+(define-xt-keysym 080 :\P)
+(define-xt-keysym 112 :\P)
+(define-xt-keysym 081 :\Q)
+(define-xt-keysym 113 :\Q)
+(define-xt-keysym 082 :\R)
+(define-xt-keysym 114 :\R)
+(define-xt-keysym 083 :\S)
+(define-xt-keysym 115 :\S)
+(define-xt-keysym 084 :\T)
+(define-xt-keysym 116 :\T)
+(define-xt-keysym 085 :\U)
+(define-xt-keysym 117 :\U)
+(define-xt-keysym 086 :\V)
+(define-xt-keysym 118 :\V)
+(define-xt-keysym 087 :\W)
+(define-xt-keysym 119 :\W)
+(define-xt-keysym 088 :\X)
+(define-xt-keysym 120 :\X)
+(define-xt-keysym 089 :\Y)
+(define-xt-keysym 121 :\Y)
+(define-xt-keysym 090 :\Z)
+(define-xt-keysym 122 :\Z)
+(define-xt-keysym 091 :\[)
+(define-xt-keysym 092 :\\)
+(define-xt-keysym 093 :\])
+(define-xt-keysym 094 :\^)
+(define-xt-keysym 095 :\_)
+(define-xt-keysym 096 :\`)
+(define-xt-keysym 123 :\{)
+(define-xt-keysym 124 :\|)
+(define-xt-keysym 125 :\})
+(define-xt-keysym 126 :\~)
 
 ;; The semi-standard characters
-
-
 (defmacro keysym (b &rest more)
   (dolist (n more)
     (setq b (+ (ash b 8) n)))
   b)
 
-(define-clx-keysym (keysym 255 013) :return)
-(define-clx-keysym (keysym 255 009) :tab)
-(define-clx-keysym (keysym 255 255) :rubout)
-(define-clx-keysym (keysym 255 008) :backspace)
-(define-clx-keysym (keysym 009 227) :page)
-(define-clx-keysym (keysym 255 010) :linefeed)
+(define-xt-keysym (keysym 255 013) :return)
+(define-xt-keysym (keysym 255 009) :tab)
+(define-xt-keysym (keysym 255 255) :rubout)
+(define-xt-keysym (keysym 255 008) :backspace)
+(define-xt-keysym (keysym 009 227) :page)
+(define-xt-keysym (keysym 255 010) :linefeed)
 
 ;; Other useful characters
-(define-clx-keysym (keysym 255 087) :end)
-(define-clx-keysym (keysym 255 105) :abort)
-(define-clx-keysym (keysym 255 106) :help)
-(define-clx-keysym (keysym 255 104) :complete)
-(define-clx-keysym (keysym 255 086) :scroll)
-(define-clx-keysym (keysym 255 097) :refresh)
-(define-clx-keysym (keysym 255 011) :clear-input)
+(define-xt-keysym (keysym 255 087) :end)
+(define-xt-keysym (keysym 255 105) :abort)
+(define-xt-keysym (keysym 255 106) :help)
+(define-xt-keysym (keysym 255 104) :complete)
+(define-xt-keysym (keysym 255 086) :scroll)
+(define-xt-keysym (keysym 255 097) :refresh)
+(define-xt-keysym (keysym 255 011) :clear-input)
 
 ;; Finally, the shifts
 ;; snarfed from translate.cl
 
-(defconstant left-shift-keysym (keysym 255 225))
+(defconstant left-shift-keysym  (keysym 255 225))
 (defconstant right-shift-keysym (keysym 255 226))
-(defconstant left-control-keysym (keysym 255 227))
+(defconstant left-control-keysym  (keysym 255 227))
 (defconstant right-control-keysym (keysym 255 228))
-(defconstant caps-lock-keysym (keysym 255 229))
+(defconstant caps-lock-keysym  (keysym 255 229))
 (defconstant shift-lock-keysym (keysym 255 230))
-(defconstant left-meta-keysym (keysym 255 231))
+(defconstant left-meta-keysym  (keysym 255 231))
 (defconstant right-meta-keysym (keysym 255 232))
-(defconstant left-alt-keysym (keysym 255 233))
+(defconstant left-alt-keysym  (keysym 255 233))
 (defconstant right-alt-keysym (keysym 255 234))
-(defconstant left-super-keysym (keysym 255 235))
+(defconstant left-super-keysym  (keysym 255 235))
 (defconstant right-super-keysym (keysym 255 236))
-(defconstant left-hyper-keysym (keysym 255 237))
+(defconstant left-hyper-keysym  (keysym 255 237))
 (defconstant right-hyper-keysym (keysym 255 238))
 
-(define-clx-keysym left-shift-keysym :left-shift)
-(define-clx-keysym right-shift-keysym :right-shift)
-(define-clx-keysym left-control-keysym :left-control)
-(define-clx-keysym right-control-keysym :right-control)
-(define-clx-keysym caps-lock-keysym :caps-lock)
-(define-clx-keysym shift-lock-keysym :shift-lock)
-(define-clx-keysym left-meta-keysym :left-meta)
-(define-clx-keysym right-meta-keysym :right-meta)
-(define-clx-keysym left-super-keysym :left-super)
-(define-clx-keysym right-super-keysym :right-super)
-(define-clx-keysym left-hyper-keysym :left-hyper)
-(define-clx-keysym right-hyper-keysym :right-hyper)
+(define-xt-keysym left-shift-keysym  :left-shift)
+(define-xt-keysym right-shift-keysym :right-shift)
+(define-xt-keysym left-control-keysym  :left-control)
+(define-xt-keysym right-control-keysym :right-control)
+(define-xt-keysym caps-lock-keysym  :caps-lock)
+(define-xt-keysym shift-lock-keysym :shift-lock)
+(define-xt-keysym left-meta-keysym  :left-meta)
+(define-xt-keysym right-meta-keysym :right-meta)
+(define-xt-keysym left-super-keysym  :left-super)
+(define-xt-keysym right-super-keysym :right-super)
+(define-xt-keysym left-hyper-keysym  :left-hyper)
+(define-xt-keysym right-hyper-keysym :right-hyper)
 
 (defun lookup-character-and-keysym (sheet mirror event)
   (declare (ignore sheet mirror))
@@ -829,18 +819,13 @@
 			      cltl1:char-control-bit 0)
 			  (if (logtest x +meta-key+)
 			      cltl1:char-meta-bit 0))))))
-    (values character
-	    (clx-keysym->keysym keysym))))
+    (values character (xt-keysym->keysym keysym))))
 
 
-(defun state->modifiers (x &optional (shiftit t))
+(defun state->modifiers (x &optional (shift-it t))
   (logior
-   (if (and shiftit (logtest x x11:shiftmask)) +shift-key+ 0)
-   (if (logtest x x11:controlmask) +control-key+ 0)
-   (if (logtest x x11:mod1mask) +meta-key+ 0)
-   (if (logtest x x11:mod2mask) +super-key+ 0)
-   (if (logtest x x11:mod3mask) +hyper-key+ 0)))
-
-
-
-
+    (if (and shift-it (logtest x x11:shiftmask)) +shift-key+ 0)
+    (if (logtest x x11:controlmask) +control-key+ 0)
+    (if (logtest x x11:mod1mask) +meta-key+ 0)
+    (if (logtest x x11:mod2mask) +super-key+ 0)
+    (if (logtest x x11:mod3mask) +hyper-key+ 0)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.2 92/03/30 17:52:26 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.3 92/04/14 15:29:53 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -58,12 +58,12 @@
 			    (member 'line-style medium-components))
 		   `((when filled (setq line-style nil))))
 	       (multiple-value-bind (abs-x abs-y)
-		   (point-position* (stream-output-history-position medium))
+		   (point-position (stream-output-history-position medium))
 		 (declare (type coordinate abs-x abs-y))
 		 ,@(mapcar #'(lambda (p)
-			       `(transform-point-sequence (transformation) ,p))
+			       `(transform-position-sequence (transformation) ,p))
 			   point-sequences-to-transform)
-		 (transform-points (transformation) ,@points-to-transform)
+		 (transform-positions (transformation) ,@points-to-transform)
 		 (transform-distances (transformation) ,@distances-to-transform)
 		 (let ((record
 			 (make-instance ',class
@@ -76,10 +76,10 @@
 		     (bounding-rectangle-set-edges
 		       record
 		       (- lf abs-x) (- tp abs-y) (- rt abs-x) (- bt abs-y))
-		     (multiple-value-bind (cx cy) (stream-cursor-position* medium)
+		     (multiple-value-bind (cx cy) (stream-cursor-position medium)
 		       (declare (type coordinate cx cy))
 		       ;; Doing this directly beats calling
-		       ;; OUTPUT-RECORD-SET-START-CURSOR-POSITION*
+		       ;; OUTPUT-RECORD-SET-START-CURSOR-POSITION
 		       (with-slots (start-x start-y) record
 			 (setq start-x (- cx abs-x)
 			       start-y (- cy abs-y))))
@@ -107,30 +107,30 @@
 	   (with-slots (,@slots) record
 	     (with-sheet-medium (medium stream)
 	       (letf-globally (((medium-transformation medium) +identity-transformation+))
-	        (with-drawing-options 
-		   (medium ,@(mapcan #'(lambda (medium-component)
-					 (list (intern (symbol-name medium-component)
-						       *keyword-package*)
-					       medium-component))
-				     medium-components))
-		  (let (,@(when (and (member 'filled function-args)
-				    (member 'line-style medium-components))
-			   `((filled (not line-style))))
-		       ,@(mapcar #'(lambda (p) (list p p))
-				 points-to-transform)
-		       ,@(mapcar #'(lambda (p) (list p p))
-				 point-sequences-to-transform))
-		   ,@(mapcar #'(lambda (p)
-				 `(setq ,p (adjust-point-sequence 
-					     ,p (- x-offset) (- y-offset))))
-			     point-sequences-to-transform)
-		   (setf ,@(do ((p points-to-transform (cddr p))
-				r)
-			       ((null p) (nreverse r))
-			     (push (first p) r)
-			     (push `(+ ,(first p) x-offset) r)
-			     (push (second p) r)
-			     (push `(+ ,(second p) y-offset) r)))
+	         (with-drawing-options 
+		     (medium ,@(mapcan #'(lambda (medium-component)
+					   (list (intern (symbol-name medium-component)
+							 *keyword-package*)
+						 medium-component))
+				       medium-components))
+		   (let (,@(when (and (member 'filled function-args)
+				      (member 'line-style medium-components))
+			     `((filled (not line-style))))
+			 ,@(mapcar #'(lambda (p) (list p p))
+				   points-to-transform)
+			 ,@(mapcar #'(lambda (p) (list p p))
+				   point-sequences-to-transform))
+		     ,@(mapcar #'(lambda (p)
+				   `(setq ,p (adjust-point-sequence 
+					       ,p (- x-offset) (- y-offset))))
+			       point-sequences-to-transform)
+		     (setf ,@(do ((p points-to-transform (cddr p))
+				  r)
+				 ((null p) (nreverse r))
+			       (push (first p) r)
+			       (push `(+ ,(first p) x-offset) r)
+			       (push (second p) r)
+			       (push `(+ ,(second p) y-offset) r)))
 		     (,medium-graphics-function* medium ,@function-args)))))))
 	 
 	 ,@(when highlighting-test
@@ -165,7 +165,7 @@
 	   ((record output-record-mixin) x-offset y-offset)
   (let ((designs nil))
     (flet ((make-design (record)
-	     (multiple-value-bind (xoff yoff) (output-record-position* record)
+	     (multiple-value-bind (xoff yoff) (output-record-position record)
 	       (declare (type coordinate xoff yoff))
 	       (let ((design
 		       (make-design-from-output-record-1
@@ -241,7 +241,7 @@
 (defmethod draw-design ((point standard-point) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
-  (multiple-value-bind (x y) (point-position* point)
+  (multiple-value-bind (x y) (point-position point)
     (apply #'draw-point* stream x y args)))
 
 
@@ -328,8 +328,6 @@
      (with-slots (x1 y1 x2 y2 line-style) record
        (or (null line-style)
 	   (with-half-thickness (lthickness rthickness) line-style
-	     ;; Don't use LTRB-CONTAINS-POINT*-P, since that expects fixnums
-	     ;;---- Not any more!
 	     (not (and (<= (+ x1 rthickness) x)
 		       (<= (+ y1 rthickness) y)
 		       (>= (- x2 lthickness) x)
@@ -380,7 +378,7 @@
 	   ((polygon polygon-output-record) x-offset y-offset)
   (with-slots (list-of-xs-and-ys closed line-style ink) polygon
     (let ((coords (copy-list list-of-xs-and-ys)))
-      (translate-point-sequence x-offset y-offset coords)
+      (translate-position-sequence x-offset y-offset coords)
       (compose-in
 	ink
 	(if (null line-style)
@@ -420,6 +418,15 @@
   (do ((p list-of-x-and-ys (cddr p)))
       ((null p))
     (funcall fn (car p) (cadr p))))
+
+(defun adjust-point-sequence (list-of-x-and-ys dx dy)
+  (let (r)
+    (map-point-sequence
+     #'(lambda (x y)
+	 (push (- x dx) r)
+	 (push (- y dy) r))
+     list-of-x-and-ys)
+    (nreverse r)))
 
 
 (define-output-recorder ellipse-output-record draw-ellipse (ink line-style)
@@ -553,16 +560,3 @@
 		     vb (+ y (round height 2)))))
     (values vx vt vr vb)))
 
-
-;;--- Does anyone use this?
-(defun adjust-point-sequence (list-of-x-and-ys dx dy)
-  (let (r)
-    (map-point-sequence
-     #'(lambda (x y)
-	 (push (- x dx) r)
-	 (push (- y dy) r))
-     list-of-x-and-ys)
-    (nreverse r)))
-
-
-       

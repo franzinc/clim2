@@ -20,15 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.3 92/02/24 13:06:28 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.4 92/03/04 16:20:45 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
 
 (defmethod port-allocate-pixmap ((port xt-port) sheet width height)
   (declare (ignore sheet))
-  (assert (integerp width))
-  (assert (integerp height))
+  (fix-coordinates width height)
   (let ((root (tk::display-root-window (port-display port))))
     (make-instance 'tk::pixmap
       :drawable root

@@ -1,9 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: clx-medium.lisp,v 1.4 92/03/10 10:12:06 cer Exp $
+
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: clx-medium.lisp,v 1.3 92/03/04 16:20:52 cer Exp $
 
 
 (defclass clx-medium (medium)
@@ -467,7 +468,8 @@
     (let ((minx most-positive-fixnum)
 	  (miny most-positive-fixnum)
 	  (points (copy-list points)))
-      (declare (fixnum minx miny))
+      ;; These really are fixnums, since we're fixing coordinates below
+      (declare (type fixnum minx miny))
       (do* ((points points (cddr points)))
 	   ((null points))
 	(let ((x (first points))
@@ -682,8 +684,9 @@
       (xlib:copy-area (realize-pixmap port source) gcontext
 		      left 
 		      (- (pixmap-height source) (+ bottom height))
-		      width height
-		      drawable (integerize-coordinate x) (integerize-coordinate y)))))
+		      (fix-coordinate width) (fix-coordinate height)
+		      drawable 
+		      (fix-coordinate x) (fix-coordinate y)))))
 
 (defmethod copy-area
 	   ((medium clg-display-medium) x y 
@@ -702,10 +705,10 @@
 			      (+ left width) (+ bottom height))))
     (xlib:with-gcontext (gcontext :function boole)
       (xlib:copy-area (slot-value source 'drawable) gcontext
-		      (integerize-coordinate left)
-		      (integerize-coordinate bottom)
+		      (fix-coordinate left) (fix-coordinate bottom)
 		      (round width) (round height)	;--- round???
-		      drawable (integerize-coordinate x) (integerize-coordinate y)))))
+		      drawable
+		      (fix-coordinate x) (fix-coordinate y)))))
 
 (defmethod copy-area ((pixmap pixmap) dst-x dst-y 
 		      (medium clg-display-medium) src-x src-y src-w src-h
@@ -719,7 +722,7 @@
     (let ((xbm (realize-pixmap port pixmap)))
       (xlib:with-gcontext (gcontext :function boole)
 	(xlib:copy-area drawable gcontext
-			(integerize-coordinate src-x) (integerize-coordinate src-y)
+			(fix-coordinate src-x) (fix-coordinate src-y)
 			src-w src-h
 			xbm dst-x (- (pixmap-height pixmap) dst-y src-h))))))
 ||#

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.3 92/02/24 13:05:23 cer Exp $
+;; $fiHeader: clos.lisp,v 1.4 92/03/04 16:20:08 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -253,7 +253,7 @@
 		 `(funcall #',',setf-function-name ,@store-temps ,@temps)
 		 `(,',accessor-name ,@temps))))))
 
-;; For example, (DEFGENERIC* (SETF POSITION*) (X Y OBJECT))
+;; For example, (DEFGENERIC* (SETF CURSOR-POSITION) (X Y CURSOR))
 (defmacro defgeneric* (function-spec lambda-list &body options)
   (assert (and (listp function-spec)
 	       (eq (first function-spec) 'setf)
@@ -268,8 +268,8 @@
        ,(expand-defsetf-for-defmethod* accessor-name accessor-arg
 				       lambda-list setf-function-name))))
 
-;; For example, (DEFMETHOD* (SETF POSITION*) (NX NY (OBJECT T)) ...)
-;; Then (SETF (POSITION* object) (VALUES nx ny))
+;; For example, (DEFMETHOD* (SETF CURSOR-POSITION) (NX NY (CURSOR T)) ...)
+;; Then (SETF (CURSOR-POSITION cursor) (VALUES nx ny))
 (defmacro defmethod* (name &body quals-lambda-list-and-body)
   (declare (arglist name [qualifiers]* lambda-list &body body))
   #+Genera (declare (zwei:indentation . zwei:indent-for-clos-defmethod))

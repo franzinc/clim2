@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.3 92/03/24 19:36:37 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.4 92/04/10 14:26:31 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -33,11 +33,11 @@
 
 (defun find-frame-manager (&rest options 
 			   &key (port (apply #'find-port options))
-				&allow-other-keys)
+			   &allow-other-keys)
   (declare (dynamic-extent options))
   (second (or (assoc port *frame-managers*)
-		(car (push (list port (make-frame-manager port))
-			   *frame-managers*)))))
+	      (car (push (list port (make-frame-manager port))
+			 *frame-managers*)))))
 
 (defmethod make-frame-manager (port)
   (cerror "Make a default frame manager"
@@ -59,12 +59,10 @@
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet 
-				  :region (multiple-value-bind (width height)
-					      (bounding-rectangle-size top-pane)
-					    (make-bounding-rectangle 
-					      0 0 width height))
-				  :parent (find-graft
-					   :port (port frame))))))
+			       :region (multiple-value-bind (width height)
+					   (bounding-rectangle-size top-pane)
+					 (make-bounding-rectangle 0 0 width height))
+			       :parent (find-graft :port (port frame))))))
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))

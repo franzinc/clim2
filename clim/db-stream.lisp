@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.10 92/03/24 19:37:47 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.11 92/04/10 14:26:58 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -32,6 +32,7 @@
 ;;; CLIM stream sheets and panes
 
 ;;--- How to keep PANE-BACKGROUND/FOREGROUND in sync with the medium?
+;;--- I'm not convinced that including WINDOW-STREAM here is right...
 (defclass clim-stream-sheet 
 	  (window-stream			;includes output recording
 	   pane
@@ -193,8 +194,8 @@
 
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())
-(defclass pointer-documentation-pane (clim-stream-pane) ())
 (defclass command-menu-pane (clim-stream-pane) ())
+(defclass pointer-documentation-pane (clim-stream-pane) ())
 
 (defmethod compose-space :before ((pane command-menu-pane) &key width height)
   (declare (ignore width height))
@@ -227,8 +228,8 @@
 	(setq pane `(vertically ()
 		      ,pane
 		      (make-pane 'label-pane 
-				    :text ,label
-				    :max-width +fill+))))
+				 :text ,label
+				 :max-width +fill+))))
       `(outlining (:thickness 1)
 	 ,pane))))
 
@@ -247,7 +248,7 @@
       (clear-output-history stream)
       (window-erase-viewport stream)
       (when (extended-output-stream-p stream)	;can we assume this?
-	(stream-set-cursor-position* stream 0 0)
+	(stream-set-cursor-position stream 0 0)
 	(setf (stream-baseline stream) 0
 	      (stream-current-line-height stream) 0))
       ;; Flush the old mouse position relative to this window
@@ -272,8 +273,7 @@
   (with-sheet-medium (medium stream)
     (multiple-value-call #'draw-rectangle*
       medium
-      (bounding-rectangle* (or (pane-viewport stream)
-			       stream))
+      (bounding-rectangle* (or (pane-viewport stream) stream))
       :ink +background-ink+)))
 
 (defmethod window-expose ((stream clim-stream-sheet))
@@ -294,10 +294,10 @@
 (defmethod window-viewport ((stream clim-stream-sheet))
   (pane-viewport-region stream))
 
-(defmethod window-viewport-position* ((stream clim-stream-sheet))
-  (bounding-rectangle-position* (pane-viewport-region stream)))
+(defmethod window-viewport-position ((stream clim-stream-sheet))
+  (bounding-rectangle-position (pane-viewport-region stream)))
 
-(defmethod window-set-viewport-position* ((stream clim-stream-sheet) x y)
+(defmethod window-set-viewport-position ((stream clim-stream-sheet) x y)
   (scroll-extent stream :x x :y y))
 
 (defmethod window-inside-size ((stream clim-stream-sheet))
@@ -326,20 +326,11 @@
 (defun beep (&optional (stream *standard-output*))
   (port-beep (port stream) stream))
 
-;; This is called by OUTPUT-RECORDING-MIXIN's whopper on set-viewport-position*.
+;; This is called by OUTPUT-RECORDING-MIXIN's whopper on set-viewport-position.
 ;; It shifts a region of the "host screen" that's visible to some other visible
 ;; location.  It does NOT do any cleaning up after itself.  It does not side-effect
 ;; the output history of the window.  It calls COPY-AREA whose contract is to 
 ;; do the above, the whole above, and nothing but the above.
-
-;;;---
-(defmethod window-shift-visible-region ((window t)
-					old-left old-top old-right old-bottom
-					new-left new-top new-right
-					new-bottom)
-  (declare (ignore old-left old-top old-right old-bottom new-left new-top new-right new-bottom))
-  nil)
-
 (defmethod window-shift-visible-region ((window clim-stream-sheet)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)
@@ -372,15 +363,23 @@
 	(let ((width (- stream-width (abs delta-x)))
 	      (height (- stream-height (abs delta-y))))
 	  (multiple-value-bind (ml mt) 
-	      (values 0 0)
+	      (values (coordinate 0) (coordinate 0))
 	    (declare (type coordinate ml mt))
-	    (translate-fixnum-positions ml mt from-x from-y)
+	    (translate-coordinates ml mt from-x from-y)
 	    (let ((tf (sheet-transformation window)))
  	      (multiple-value-call #'copy-area 
 		window
-		(untransform-point* tf from-x from-y)
-		(untransform-point* tf (+ from-x width) (+ from-y height))
-		(untransform-point* tf (+ from-x delta-x) (+ from-y delta-y))))))))))
+		(untransform-position tf from-x from-y)
+		(untransform-position tf (+ from-x width) (+ from-y height))
+		(untransform-position tf (+ from-x delta-x) (+ from-y delta-y))))))))))
+
+;;;--- Why do we need this?
+(defmethod window-shift-visible-region ((window t)
+					old-left old-top old-right old-bottom
+					new-left new-top new-right new-bottom)
+  (declare (ignore old-left old-top old-right old-bottom
+		   new-left new-top new-right new-bottom))
+  nil)
 
 #+Genera
 (defgeneric stream-compatible-inside-size (window)

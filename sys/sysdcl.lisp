@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.11 92/04/03 12:04:39 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.12 92/04/10 14:27:13 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -277,9 +277,9 @@
   ("window-stream")
 
   ;; Presentation types
-  ("completer")
   ("ptypes1"
    :load-before-compile ("clim-defs"))
+  ("completer")
   ("presentations"
    :load-before-compile ("ptypes1"))
   ("translators"
@@ -385,7 +385,7 @@
 (clim-defsys:defsystem genera-clim
     (:default-pathname "SYS:CLIM;REL-2;GENERA;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
-     :needed-systems (clim-standalone)
+o     :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("genera-port")
@@ -412,9 +412,9 @@
 #+(and Silica Allegro)
 (clim-defsys:defsystem xlib
     (:default-pathname (frob-pathname "xlib")
-	:default-binary-pathname (frob-pathname "xlib")
-	:needed-systems (clim-standalone)
-	:load-before-compile (clim-standalone))
+     :default-binary-pathname (frob-pathname "xlib")
+     :needed-systems (clim-standalone)
+     :load-before-compile (clim-standalone))
   ("pkg")
   #+++ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
 					       "xlib/last.lisp")))
@@ -424,7 +424,6 @@
   ("xlib-funs" :load-before-compile ("ffi"))
   ("x11-keysyms" :load-before-compile ("ffi"))
   ("last" :load-before-compile ("load-xlib" "xlib-funs")))
-
 
 #+(and Silica Allegro)
 (clim-defsys:defsystem xt-tk
@@ -443,7 +442,7 @@
   ("graphics")
   
   ;; Toolkit stuff
-  ;;; ("load-xt")
+  ;; ("load-xt")
   ("xtk")
   ("meta-tk")
   ("make-classes")
@@ -462,11 +461,11 @@
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; Motif specific stuff
-  ("xm-classes")
   ("load-xm")
   ;;--- This is really in tk but because of the loading
   ("xt-funs")
   ("xm-funs")
+  ("xm-classes")
   ("xm-init")
   ("xm-widgets")
   ("xm-font-list")
@@ -484,9 +483,9 @@
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
-  ("ol-classes")
   ("load-ol")
   ("xt-funs")
+  ("ol-classes")
   ("ol-init")
   ("ol-callbacks")
   #+ignore("ol-examples")
@@ -620,12 +619,12 @@
 #+(and Silica ignore)
 (clim-defsys:import-into-sct 'motif-clim :subsystem t
 			:pretty-name "Motif CLIM"
-			:default-pathname "SYS:CLIM;REL-2;XM-SILICA;")
+			:default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
 #+(and Silica ignore)
 (clim-defsys:import-into-sct 'openlook-clim :subsystem t
 			:pretty-name "OpenLook CLIM"
-			:default-pathname "SYS:CLIM;REL-2;XM-SILICA;")
+			:default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
 #+(and Silica ignore)
 (sct:defsystem clim-tags-table

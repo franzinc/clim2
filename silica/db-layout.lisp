@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.10 92/03/24 19:36:26 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.11 92/03/30 17:52:01 cer Exp $
 
 (in-package :silica)
 
@@ -81,11 +81,10 @@
 (defmethod note-space-requirement-changed (parent child)
   nil)
 
-
 (defmethod note-sheet-region-changed :after ((pane layout-mixin) &key port-did-it)
-    (note-layout-mixin-region-changed pane :port port-did-it))
-   
-(defmethod note-layout-mixin-region-changed ((pane layout-mixin) &key port)
+  (note-layout-mixin-region-changed pane :port port-did-it))
+
+(defmethod note-layout-mixin-region-changed ((pane layout-mixin) &key port)  
   (declare (ignore port))
   (multiple-value-bind (width height) (bounding-rectangle-size pane)
     (allocate-space pane width height)))
@@ -258,12 +257,8 @@ slot that defaults to NIL"))
 					    (height 0)
 					    (min-height height)
 					    (max-height height))
-  (values width
-	  min-width
-	  max-width
-	  height
-	  min-height
-	  max-height))
+  (values width min-width max-width
+	  height min-height max-height))
 
 ;;;;
 
@@ -517,12 +512,10 @@ provided elsewhere"))
     ())
 
 
-;;-- Does this need to be more complicated.
-;; What is the correct behavior. Should it take a space requirement??
-;; and just call allocate-space
-
-(defclass bboard-pane (space-requirement-mixin layout-pane) 
-	  ())
+;;--- Does this need to be more complicated?
+;;--- What is the correct behavior.  Should it take a space requirement?
+;;--- and just call ALLOCATE-SPACE?
+(defclass bboard-pane (space-requirement-mixin layout-pane) ())
 
 (defmethod allocate-space ((pane bboard-pane) width height)
   (declare (ignore width height))
@@ -531,4 +524,3 @@ provided elsewhere"))
       (resize-sheet* child 
 		     (space-requirement-width space-req)
 		     (space-requirement-height space-req)))))
-

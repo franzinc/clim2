@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.8 92/03/04 16:22:03 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.9 92/03/09 17:41:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -23,17 +23,18 @@
 
 (defclass output-protocol-mixin
 	  (basic-extended-output-protocol)
-     ((cursor-x :initform 0)
-      (cursor-y :initform 0)
-      (baseline :initform 0 :accessor stream-baseline)
+     ((cursor-x :initform (coordinate 0))
+      (cursor-y :initform (coordinate 0))
+      (baseline :initform (coordinate 0) :accessor stream-baseline)
       (foreground :initform +black+
 		  :accessor medium-foreground
 		  :initarg :stream-foreground)
       (background :initform +white+
 		  :accessor medium-background
 		  :initarg :stream-background)
-      (current-line-height :initform 0 :accessor stream-current-line-height)
-      (vertical-space :initform 2 :initarg :vertical-spacing 
+      (current-line-height :initform (coordinate 0)
+			   :accessor stream-current-line-height)
+      (vertical-space :initform (coordinate 2) :initarg :vertical-spacing 
 		      :accessor stream-vertical-spacing)
       (end-of-line-action :initarg :end-of-line-action
 			  :accessor stream-end-of-line-action)
@@ -135,7 +136,8 @@
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)
 
-(defmethod stream-vertical-spacing ((stream t)) 0)
+(defmethod stream-vertical-spacing ((stream t)) 
+  (coordinate 0))
 
 ;;; The default text margin, by the way, isn't in user-visible coordinates.
 (defmethod stream-text-margin ((stream output-protocol-mixin))
@@ -214,42 +216,52 @@
 							  default-text-style))
 	       (setf merged-text-style-valid t)))))
 
-(defmethod stream-cursor-position* ((stream output-protocol-mixin))
+(defmethod stream-cursor-position ((stream output-protocol-mixin))
   (with-slots (cursor-x cursor-y) stream
     (values cursor-x cursor-y)))
 
-;; X and Y had better be fixnums
-;;--- Coerce to COORDINATE
-(defmethod stream-set-cursor-position* ((stream output-protocol-mixin) x y)
+(defmethod stream-set-cursor-position ((stream output-protocol-mixin) x y)
   (declare (type coordinate x y))
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
-    (when x (setf cursor-x x))
+    (when x 
+      (setf cursor-x (coordinate x)))
     (when y
       (unless (eq y cursor-y)
-	(setf current-line-height 0 baseline 0))	;going to a new line
-      (setf cursor-y y)))
+	(setf current-line-height (coordinate 0)	;going to a new line
+	      baseline (coordinate 0)))
+      (setf cursor-y (coordinate y))))
   #+Silica
-  ;; --- Call explicitly in Silica version, rather than around methods on
-  ;; --- intermediary class.
+  ;;--- In the non-Silica case, this happens via an intermediary class
   (stream-ensure-cursor-visible stream x y))
 
-;; X and Y had better be fixnums
-;;--- Coerce to COORDINATE
-(defmethod stream-set-cursor-position*-internal ((stream output-protocol-mixin) x y)
+#+CLIM-1-compatibility
+(define-compatibility-function (stream-cursor-position*
+				stream-cursor-position)
+			       (stream)
+  (stream-cursor-position stream))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (stream-set-cursor-position*
+				stream-set-cursor-position)
+			       (stream x y)
+  (stream-set-cursor-position stream x y))
+
+(defmethod stream-set-cursor-position-internal ((stream output-protocol-mixin) x y)
   (declare (type coordinate x y))
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
-    (when x (setf cursor-x x))
+    (when x 
+      (setf cursor-x (coordinate x)))
     (when y
       (unless (eq y cursor-y)
-	(setf current-line-height 0 baseline 0))	;going to a new line
-      (setf cursor-y y)))
+	(setf current-line-height (coordinate 0)	;going to a new line
+	      baseline (coordinate 0)))
+      (setf cursor-y (coordinate y))))
   #+Silica
-  ;; --- Call explicitly in Silica version, rather than around methods on
-  ;; --- intermediary class.
+  ;;--- In the non-Silica case, this happens via an intermediary class
   (stream-ensure-cursor-visible stream x y))
 
 #+Genera
-(defmethod stream-compatible-cursor-position* ((stream output-protocol-mixin) &optional unit)
+(defmethod stream-compatible-cursor-position ((stream output-protocol-mixin) &optional unit)
   (with-slots (cursor-x cursor-y) stream
     (if (eq unit :character)
 	(values (floor cursor-x (stream-character-width stream #\m))
@@ -257,22 +269,22 @@
 	(values cursor-x cursor-y))))
 
 #+Genera
-(defmethod stream-compatible-set-cursor-position* ((stream output-protocol-mixin) x y
-						   &optional unit)
+(defmethod stream-compatible-set-cursor-position ((stream output-protocol-mixin) x y
+						  &optional unit)
   (when (eq unit :character)
     (setq x (* x (stream-character-width stream #\m))
 	  y (* y (stream-line-height stream))))
-  (stream-set-cursor-position* stream x y))
+  (stream-set-cursor-position stream x y))
 
 #+Genera
-(defmethod stream-compatible-increment-cursor-position* ((stream output-protocol-mixin) x y
-							 &optional unit)
+(defmethod stream-compatible-increment-cursor-position ((stream output-protocol-mixin) x y
+							&optional unit)
   (when (eq unit :character)
     (when x
       (setq x (* x (stream-character-width stream #\m))))
     (when y
       (setq y (* y (stream-line-height stream)))))
-  (stream-increment-cursor-position* stream x y))
+  (stream-increment-cursor-position stream x y))
 
 
 ;;; Make normal output streams obey some parts of other protocols for efficiency.
@@ -349,46 +361,52 @@
     (declare (ignore origin-x origin-y))
     (let ((new-x (floor (* column space-width))))
       (when (< (slot-value output-stream 'cursor-x) new-x)
-	(stream-set-cursor-position* output-stream new-x nil)
+	(stream-set-cursor-position output-stream new-x nil)
 	t))))
 
-(defmethod stream-increment-cursor-position* ((stream output-protocol-mixin) dx dy)
+(defmethod stream-increment-cursor-position ((stream output-protocol-mixin) dx dy)
   (declare (type coordinate dx dy))
   (with-slots (cursor-x cursor-y) stream
     (declare (type coordinate cursor-x cursor-y))
     (let ((cx (if dx (+ cursor-x dx) cursor-x))
 	  (cy (if dy (+ cursor-y dy) cursor-y)))
-      (stream-set-cursor-position* stream cx cy))))
+      (stream-set-cursor-position stream cx cy))))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (stream-increment-cursor-position*
+				stream-increment-cursor-position)
+			       (stream dx dy)
+  (stream-increment-cursor-position stream dx dy))
 
 (defmethod stream-advance-cursor-x ((stream output-protocol-mixin) amount)
   (declare (type coordinate amount))
   (with-slots (cursor-x cursor-y) stream
     (declare (type coordinate cursor-x cursor-y))
-    (stream-set-cursor-position* 
+    (stream-set-cursor-position 
       stream (+ cursor-x amount) cursor-y)))
 
 (defmethod stream-advance-cursor-line ((stream output-protocol-mixin))
   (with-slots (cursor-x cursor-y vertical-space current-line-height baseline) stream
     (declare (type coordinate cursor-x cursor-y
 		              vertical-space current-line-height baseline))
-    (stream-set-cursor-position* 
+    (stream-set-cursor-position 
       stream 0 (+ cursor-y (stream-line-height stream) vertical-space))))
 
 (defmethod window-clear :before ((stream output-protocol-mixin))
   (with-slots (baseline current-line-height) stream
-    (setf baseline 0
-	  current-line-height 0)))
+    (setf baseline (coordinate 0)
+	  current-line-height (coordinate 0))))
 
 ;;; --- Should probably be on some intermediary class, since it can only
 ;;; be run when the stream is part of a WINDSHIELD hierarchy.
 #+Silica
-;; --- See comment on stream-set-cursor-position*
+;; --- See comment on stream-set-cursor-position
 (defmethod stream-ensure-cursor-visible ((stream output-protocol-mixin)
 					 &optional cx cy)
   (when (and (or (not (output-recording-stream-p stream))
 		 (stream-drawing-p stream))
 	     (pane-scroller stream))
-    (unless cy (multiple-value-setq (cx cy) (stream-cursor-position* stream)))
+    (unless cy (multiple-value-setq (cx cy) (stream-cursor-position stream)))
     (let ((viewport (pane-viewport-region stream))
 	  (new-x nil)
 	  (new-y nil)
@@ -416,11 +434,11 @@
 	;; If the cursor moves outside the current region, expand
 	;; it to include the new cursor position.
 	(when (> cy (bounding-rectangle-height stream))
-	  (update-region stream 
-			 (bounding-rectangle-min-x stream)
-			 (bounding-rectangle-min-y stream)
-			 cx 
-			 cy :no-repaint t))
+   	  (update-region stream 
+ 			 (bounding-rectangle-min-x stream)
+ 			 (bounding-rectangle-min-y stream)
+ 			 cx cy
+			 :no-repaint t))
 	(when (or new-x new-y)
 	  (scroll-extent stream :x (or new-x vleft) :y (or new-y vtop)))))))
 
@@ -673,11 +691,11 @@
   (declare (values last-x largest-x last-y total-height baseline))
   (unless end (setf end (length string)))
   (let ((style (or text-style (medium-merged-text-style stream)))
-	(cursor-x 0)
-	(cursor-y 0)
-	(height 0)
-	(baseline 0)
-	(largest-x 0))
+	(cursor-x (coordinate 0))
+	(cursor-y (coordinate 0))
+	(height (coordinate 0))
+	(baseline (coordinate 0))
+	(largest-x (coordinate 0)))
     (declare (type coordinate cursor-x cursor-y height baseline largest-x))
     (let (#+Silica (medium (sheet-medium stream)))
       (loop
@@ -685,9 +703,7 @@
 	(multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
 	    (stream-scan-string-for-writing stream #+Silica medium
 					    string start end style
-					    ;;--- MOST-POSITIVE-FIXNUM will
-					    ;;--- lose, use a big single-float
-					    cursor-x most-positive-fixnum)
+					    cursor-x +largest-coordinate+)
 	  (declare (type coordinate new-cursor-x new-baseline new-height))
 	  (maxf largest-x new-cursor-x)
 	  (maxf baseline new-baseline)
@@ -699,9 +715,7 @@
 		  ((or (graphic-char-p write-char) (diacritic-char-p write-char))
 		   (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height)
 		       (stream-scan-character-for-writing stream character style
-							  ;;--- MOST-POSITIVE-FIXNUM will
-							  ;;--- lose, use a big single-float
-							  cursor-x most-positive-fixnum)
+							  cursor-x +largest-coordinate+)
 		     (declare (ignore no-wrap))
 		     (maxf largest-x new-cursor-x)
 		     (maxf baseline new-baseline)
@@ -709,9 +723,9 @@
 		     (setf cursor-x new-cursor-x)))
 		  ((or (eql write-char #\Newline)
 		       (eql write-char #\Return))
-		   (setf cursor-x 0)
+		   (setf cursor-x (coordinate 0))
 		   (incf cursor-y height)
-		   (setf baseline 0
+		   (setf baseline (coordinate 0)
 			 height (stream-line-height stream style)))
 		  ((eql write-char #\Tab)
 		   (setf cursor-x (stream-next-tab-column stream cursor-x style))
@@ -720,9 +734,7 @@
 		   (multiple-value-bind (new-cursor-x new-cursor-y new-baseline new-height)
 		       (stream-draw-lozenged-character 
 			 stream write-char cursor-x cursor-y baseline height text-style
-			 ;;--- MOST-POSITIVE-FIXNUM will
-			 ;;--- lose, use a big single-float
-			 most-positive-fixnum nil nil)
+			 +largest-coordinate+ nil nil)
 		     (setf cursor-x new-cursor-x cursor-y new-cursor-y
 			   baseline new-baseline height new-height))))
 	    (incf start)))))
@@ -746,10 +758,10 @@
 	     (values bb-x bb-y)))
 	  ((or (eql character #\Newline)
 	       (eql character #\Return))
-	   (values (- (stream-cursor-position* stream))
+	   (values (- (stream-cursor-position stream))
 		   (stream-line-height stream style)))
 	  ((eql character #\Tab)
-	   (let ((here (stream-cursor-position* stream)))
+	   (let ((here (stream-cursor-position stream)))
 	     (- (stream-next-tab-column stream here style) here)))
 	  (t (cerror "Continue without drawing the character"
 		     "Can't yet draw lozenged characters: ~@C" character)))))
@@ -821,7 +833,7 @@
 (defmethod decode-stream-for-writing ((stream output-protocol-mixin) &optional brief-p)
   (declare (values cursor-x cursor-y baseline line-height
 		   style max-x record-p draw-p glyph-buffer))
-  (multiple-value-bind (cursor-x cursor-y) (stream-cursor-position* stream)
+  (multiple-value-bind (cursor-x cursor-y) (stream-cursor-position stream)
     (let ((baseline (stream-baseline stream))
 	  (line-height (stream-current-line-height stream))
 	  (wrap-p (unless brief-p (eq (stream-end-of-line-action stream) ':wrap))))
@@ -831,16 +843,14 @@
 		  (medium-merged-text-style stream)
 		  (cond ((and wrap-p
 			      (stream-text-margin stream)))
-			;;--- MOST-POSITIVE-FIXNUM will
-			;;--- lose, use a big single-float
-			(t most-positive-fixnum))
+			(t +largest-coordinate+))
 		  (stream-recording-p stream)
 		  (stream-drawing-p stream)
 		  (stream-output-glyph-buffer stream))))))
 
 (defmethod encode-stream-after-writing ((stream output-protocol-mixin) cursor-x cursor-y
 					baseline line-height)
-  (stream-set-cursor-position*-internal stream cursor-x cursor-y)
+  (stream-set-cursor-position-internal stream cursor-x cursor-y)
   (setf (stream-baseline stream) baseline
 	(stream-current-line-height stream) line-height))
 
@@ -872,8 +882,8 @@
 ;;; translation is done, and STREAM-WRITE-STRING-1 will be called with the
 ;;; original string, not the glyph buffer.
 (defmacro stream-scan-string-for-writing-body ()
-  '(let ((baseline 0)
-	 (height 0)
+  '(let ((baseline (coordinate 0))
+	 (height (coordinate 0))
 	 (our-font nil)
 	 (next-glyph (if (and glyph-buffer (array-has-fill-pointer-p glyph-buffer))
 			 (fill-pointer glyph-buffer)
@@ -904,15 +914,13 @@
 	       #-Silica stream #+Silica medium 
 	       character style our-font)
 	   (declare (ignore escapement-y origin-x bb-x))
-	   (declare (fixnum index))
-	   (declare (type coordinate origin-y bb-y))
+	   (declare (type fixnum index)
+		    (type coordinate origin-y bb-y))
 	   (when fixed-width-font-p
 	     (let* ((room-left (- max-x cursor-x *character-wrap-indicator-width*))
 		    (spaces-left (floor room-left escapement-x))
 		    (chars-left (- end start))
 		    (glyphs-left
-			;;--- MOST-POSITIVE-FIXNUM will
-			;;--- lose, use a big single-float
 		      (if max-glyph (- max-glyph next-glyph) most-positive-fixnum))
 		    (chars-to-do (min spaces-left chars-left glyphs-left))
 		    (chars-done 0)
@@ -962,7 +970,7 @@
 					   cursor-x max-x &optional glyph-buffer)
   (declare (values write-char next-char-index new-cursor-x new-baseline new-height font))
   (declare (type coordinate cursor-x max-x))
-  (declare (fixnum start end))
+  (declare (type fixnum start end))
   (stream-scan-string-for-writing-body))
 
 ;;; This function returns NIL as its first value if the character won't
@@ -1008,6 +1016,9 @@
   (declare (type coordinate cursor-x))
   (let ((tab-size (stream-tab-size stream style)))
     (* tab-size (ceiling (1+ cursor-x) tab-size))))
+
+
+;;; Genera hooks
 
 #+Genera
 (defmethod stream-compatible-output-as-presentation-1
@@ -1057,6 +1068,38 @@
       (with-text-style (stream new-style)
 	(declare (ignore stream))
 	(funcall continuation xstream))))
+
+#+Genera
+;; Allows outputting a fat string to a CLIM stream
+(defmethod stream-write-string :around ((stream output-protocol-mixin) string
+					&optional (outer-start 0) outer-end)
+  (unless outer-end
+    (setq outer-end (length string)))
+  (unless (and (> outer-end outer-start) (scl:string-fat-p string))
+    (return-from stream-write-string (call-next-method)))
+  (let ((string string))
+      (declare (sys:array-register string))
+      (loop for start = outer-start then end
+	    while start
+	    as char = (char string start)
+	    as style = (si:char-style char)
+	    as end = (position style string
+			       :test-not #'eql :key #'si:char-style
+			       :start start :end outer-end)
+	    do
+	(scl:with-character-style (style stream)
+	  (call-next-method
+	    stream
+	    (scl:string-thin string :start start :end (or end outer-end)))))))
+
+#+Genera
+;; Allows outputting a fat character to a CLIM stream
+(defmethod stream-write-char :around ((stream output-protocol-mixin) character)
+  (unless (scl:char-fat-p character)
+    (return-from stream-write-char (call-next-method)))
+  (scl:with-character-style ((si:char-style character) stream)
+    (call-next-method stream (si:strip-style character))))
+
 
 ;;; Input Editor support.  This does STREAM-SCAN-STRING-FOR-WRITING and
 ;;; other stuff, and calls the continuation so the Input Editor can know
@@ -1072,7 +1115,8 @@
   (let ((vsp (stream-vertical-spacing stream))
 	#+Silica (medium (sheet-medium stream)))
     (loop
-      (when (>= start end) (return (values cursor-x cursor-y height baseline)))
+      (when (>= start end)
+	(return (values cursor-x cursor-y height baseline)))
       (multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
 	  (stream-scan-string-for-writing stream #+Silica medium
 					  string start end style
@@ -1089,7 +1133,9 @@
 		   (eql write-char #\Newline)
 		   (eql write-char #\Return))
 	       (incf cursor-y (+ height vsp))
-	       (setf height 0 cursor-x 0 baseline 0)
+	       (setf height (coordinate 0)
+		     cursor-x (coordinate 0)
+		     baseline (coordinate 0))
 	       ;; If we wrapped, rescan the character normally, but if this is a newline
 	       ;; we're done with it.
 	       (when (or (eql write-char #\Newline)
@@ -1103,7 +1149,9 @@
 	       (let ((new-cursor-x (stream-next-tab-column stream cursor-x style)))
 		 (when (> (+ new-cursor-x *character-wrap-indicator-width*) max-x)
 		   (incf cursor-y (+ height vsp))
-		   (setf height 0 cursor-x 0 baseline 0)
+		   (setf height (coordinate 0)
+			 cursor-x (coordinate 0)
+			 baseline (coordinate 0))
 		   (setf new-cursor-x (stream-next-tab-column stream cursor-x style)))
 		 (funcall continuation cursor-x cursor-y
 				       new-cursor-x (+ cursor-y height vsp) baseline)

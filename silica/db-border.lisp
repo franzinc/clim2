@@ -5,7 +5,7 @@
 
 (in-package :silica)
 
-;; $fiHeader: db-border.lisp,v 1.4 92/03/10 10:11:34 cer Exp Locker: cer $
+;; $fiHeader: db-border.lisp,v 1.5 92/04/10 14:26:24 cer Exp Locker: cer $
 
 ;;; Border Panes
 (defclass border-pane (layout-pane)
@@ -32,9 +32,8 @@
   
 (defmacro bordering (options &body contents)
   `(make-pane 'border-pane
-		 :contents ,@contents
-		 ,@options))
-
+	      :contents ,@contents
+	      ,@options))
 
 (defclass outlined-pane (border-pane)
   ((background :initform +black+ :accessor pane-background)))
@@ -51,14 +50,14 @@
 
 (defmacro outlining (options &body contents)
   `(make-pane 'outlined-pane
-		 :contents ,@contents
-		 ,@options))
-
+	      :contents ,@contents
+	      ,@options))
 
 (defclass spacing-pane (border-pane) ()
   (:default-initargs :thickness 2))
 
 (defmacro spacing (options &body contents)
   `(make-pane 'spacing-pane
-		 :contents ,@contents
-		 ,@options))
+	      :contents ,@contents
+	      ,@options))
+

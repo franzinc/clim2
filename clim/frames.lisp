@@ -1,6 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; ;; $fiHeader: frames.lisp,v 1.12 92/04/03 12:04:34 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.11 92/03/24 19:37:49 cer Exp $
+
 
 (in-package :clim-internals)
 
@@ -13,7 +14,6 @@
 ;;--- We should add an input event-queue to frames, so that other
 ;;--- processes can queue up requests.  This queue should be managed
 ;;--- like other event queues.  It can contains "command" events, too.
-
 (defclass standard-application-frame (application-frame)
     ;;--- Is it right for these to be SHEET accessors??
     ((name :initarg :name :accessor frame-name)
@@ -41,15 +41,13 @@
 		     :reader frame-current-layout)
      (default-size :initform nil :initarg :default-size)
      (shell :accessor frame-shell)
-     (pointer-documentationp
-      :initarg :pointer-documentation
-      :reader frame-pointer-documentationp)
+     (pointer-documentation-p :initarg :pointer-documentation
+			      :reader frame-pointer-documentation-p)
      (pointer-documentation-pane :initform nil)
      (properties :initform nil :initarg :properties
 		 :accessor frame-properties))
-  (:default-initargs 
-      :pointer-documentation nil
-      :top-level 'default-frame-top-level))
+  (:default-initargs :pointer-documentation nil
+		     :top-level 'default-frame-top-level))
 
 (defmethod port ((frame standard-application-frame))
   (port (frame-manager frame)))
@@ -57,29 +55,24 @@
 (defmethod graft ((frame standard-application-frame))
   (graft (frame-manager frame)))
 
-
-(defmethod frame-pointer-documentation-output ((frame standard-application-frame))
-  (with-slots (pointer-documentation-pane) frame
-    pointer-documentation-pane))
-
 #+CLIM-1-compatibility
 (define-compatibility-function (frame-top-level-window frame-top-level-sheet)
 			       (frame)
   (frame-top-level-sheet frame))
 
 (defmethod initialize-instance :after ((frame standard-application-frame) 
-				       &rest args &key 
-						  frame-manager
-						  (parent frame-manager))
+				       &rest args
+				       &key frame-manager
+					    (parent frame-manager))
   (declare (ignore args))
   (let ((frame-manager
-	 (etypecase parent
-	   (null (find-frame-manager))
-	   (list (apply #'find-frame-manager parent))
-	   (frame-manager parent)
-	   (application-frame (frame-manager parent))
-	   (port (find-frame-manager :port parent))
-	   (sheet (frame-manager (pane-frame parent))))))
+	  (etypecase parent
+	    (null (find-frame-manager))
+	    (list (apply #'find-frame-manager parent))
+	    (frame-manager parent)
+	    (application-frame (frame-manager parent))
+	    (port (find-frame-manager :port parent))
+	    (sheet (frame-manager (pane-frame parent))))))
     (setf (slot-value frame 'frame-manager) frame-manager)
     (adopt-frame frame-manager frame)))
 
@@ -103,8 +96,7 @@
 (defmacro define-application-frame (name superclasses slots &rest options)
   #+Genera (declare (zwei:indentation 1 25 2 3 3 1))
   (with-warnings-for-definition name define-application-frame
-    (let (pane panes layout top-level menu-bar
-	  pointer-documentation
+    (let (pane panes layout top-level menu-bar pointer-documentation
 	  command-definer command-table disabled-commands)
       (macrolet ((extract (name keyword default &optional (pair t))
 		   `(let ((entry (assoc ',keyword options)))
@@ -119,14 +111,13 @@
 				   `((assert (listp (rest entry)) (entry)
 					     "The remainder of ~S must be a list" entry)
 				     (setq ,name (rest entry)
-					   options (delete entry
-							   options)))))))))
-	(extract pointer-documentation :pointer-documentation nil)
+					   options (delete entry options)))))))))
 	(extract pane :pane nil)
 	(extract panes :panes nil nil)
 	(extract layout :layout nil nil)
 	(extract top-level :top-level '(default-frame-top-level))
 	(extract menu-bar :menu-bar t)
+	(extract pointer-documentation :pointer-documentation nil)
 	(extract command-definer :command-definer t)
 	(extract command-table :command-table t)
 	(extract disabled-commands :disabled-commands nil))
@@ -175,8 +166,8 @@
 	   (defclass ,name ,superclasses ,slots
 	     ,@options
 	     (:default-initargs
-		 :pointer-documentation ',pointer-documentation
-		 :menu-bar ',menu-bar
+	       :menu-bar ',menu-bar
+	       :pointer-documentation ',pointer-documentation
 	       ,@(and command-table `(:command-table ',(car command-table)))
 	       ,@(and top-level `(:top-level ',top-level))
 	       ,@(and panes `(:pane-constructors ,pane-constructors))
@@ -378,16 +369,13 @@
 	  (setq width  (space-requirement-width sr)
 		height (space-requirement-height sr))))
       ;;--- Don't bother with this if the size didn't change?
-      ;;-- This is wrong We want to resize the top level sheet
-      ;;; (allocate-space panes width height)
       (resize-sheet* 
-       (or (frame-top-level-sheet frame)
-	   panes)
-       width height
-       ;;-- we need to do this because if the wm has changed the sheet
-       ;; then this will not change its size but we need it to start
-       ;; the layout stuff
-       :force t))))
+	(or (frame-top-level-sheet frame) panes)
+	width height
+	;; We need to do this because if the WM has changed the sheet
+	;; then this will not change its size but we need it to start
+	;; the layout stuff
+	:force t))))
 
 (defmethod (setf frame-current-layout) (nv (frame standard-application-frame))
   (unless (eq (frame-current-layout frame) nv)
@@ -549,34 +537,33 @@
   (loop
     (catch 'layout-changed
       (let* ((*standard-output*
-	      (or (frame-standard-output frame) *standard-output*))
+	       (or (frame-standard-output frame) *standard-output*))
 	     (*standard-input* 
-	      (or (frame-standard-input frame) *standard-output*))
+	       (or (frame-standard-input frame) *standard-output*))
 	     (*query-io* 
-	      (or (frame-query-io frame) *standard-input*))
+	       (or (frame-query-io frame) *standard-input*))
 	     (*error-output* 
-	      (or (frame-error-output frame) *standard-output*))
+	       (or (frame-error-output frame) *standard-output*))
 	     (interactor
-	      (not (null (find-frame-pane-of-type frame 'interactor-pane))))
+	       (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 	     (*command-parser*
-	      (or command-parser
-		  (if interactor
-		      #'command-line-command-parser
-		    #'menu-command-parser)))
+	       (or command-parser
+		   (if interactor
+		       #'command-line-command-parser
+		       #'menu-command-parser)))
 	     (*command-unparser*
-	      (or command-unparser 
-		  #'command-line-command-unparser))
+	       (or command-unparser 
+		   #'command-line-command-unparser))
 	     (*partial-command-parser* 
-	      (or partial-command-parser
-		  (if interactor
-		      #'command-line-read-remaining-arguments-for-partial-command
-		    #'menu-read-remaining-arguments-for-partial-command)))
+	       (or partial-command-parser
+		   (if interactor
+		       #'command-line-read-remaining-arguments-for-partial-command
+		       #'menu-read-remaining-arguments-for-partial-command)))
 	     (command-stream
-	      (typecase *standard-input*
-		(output-protocol-mixin
-		 *standard-input*)
-		(t
-		 (frame-top-level-sheet frame)))))
+	       ;;--- I'm not really convinced that this is right
+	       (typecase *standard-input*
+		 (output-protocol-mixin *standard-input*)
+		 (t (frame-top-level-sheet frame)))))
 	#+Allegro
 	(unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
 	  (assert (port *standard-input*)))
@@ -663,23 +650,23 @@
   (cond ((pane-display-function pane)
 	 (let* ((ir (slot-value pane 'incremental-redisplay-p))
 		(redisplay-p (if (listp ir) (first ir) ir))
-		(check-overlapping (or (atom ir) ;default is T
+		(check-overlapping (or (atom ir)	;default is T
 				       (getf (rest ir) :check-overlapping t))))
 	   (with-simple-restart (nil "Skip redisplaying pane ~S" pane)
 	     (loop
 	       (with-simple-restart (nil "Retry displaying pane ~S" pane)
 		 (return
 		   (let ((redisplay-record
-			  (and redisplay-p
-			       (let ((history (stream-output-history pane)))
-				 (when history
-				   #+compulsive-redisplay
-				   (when (> (output-record-count history) 1)
-				     (cerror "Clear the output history and proceed"
-					     "There is more than one element in this redisplay pane")
-				     (window-clear pane))
-				   (unless (zerop (output-record-count history))
-				     (output-record-element history 0)))))))
+			   (and redisplay-p
+				(let ((history (stream-output-history pane)))
+				  (when history
+				    #+compulsive-redisplay
+				    (when (> (output-record-count history) 1)
+				      (cerror "Clear the output history and proceed"
+					      "There is more than one element in this redisplay pane")
+				      (window-clear pane))
+				    (unless (zerop (output-record-count history))
+				      (output-record-element history 0)))))))
 		     (cond ((and redisplay-p
 				 (or force-p (null redisplay-record)))
 			    (when force-p
@@ -689,8 +676,7 @@
 			    (redisplay redisplay-record pane 
 				       :check-overlapping check-overlapping))
 			   (t
-			    (invoke-pane-display-function frame
-							  pane))))))))))
+			    (invoke-pane-display-function frame pane))))))))))
 	(force-p
 	 ;;-- Is there anything else we need to do?
 	 (stream-replay pane))))
@@ -791,7 +777,7 @@
     #+Allegro
     (when (and *click-outside-menu-handler*
 		(output-recording-stream-p window)
-		(not (region-contains-point*-p (stream-output-history window) x y)))
+		(not (region-contains-position-p (stream-output-history window) x y)))
       (funcall *click-outside-menu-handler*))
     (when highlighted-presentation
       ;; Unhighlight on the way out.
@@ -827,14 +813,17 @@
 (defmethod frame-error-output ((frame standard-application-frame))
   (frame-standard-output frame))
 
+(defmethod frame-pointer-documentation-output ((frame standard-application-frame))
+  (with-slots (pointer-documentation-pane) frame
+    pointer-documentation-pane))
+
 ;;--- This causes direct-manipulation and menu-driven applications not to
 ;;--- maintain histories.  Is there a better heuristic?
 (defmethod frame-maintain-presentation-histories ((frame standard-application-frame))
   (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 
-;;--- What should this really do?
-
 (defmethod notify-user (frame format-string &rest format-arguments) 
+  (declare (dynamic-extent format-arguments))
   (apply #'port-notify-user (port frame) frame format-string format-arguments))
 
 
@@ -891,7 +880,7 @@
 (defun frame-document-highlighted-presentation-1
        (frame presentation input-context window x y stream)
   (let ((modifier-state (window-modifier-state window)))
-    (declare (fixnum modifier-state))
+    (declare (type fixnum modifier-state))
     (multiple-value-bind (left   left-presentation   left-context
 			  middle middle-presentation middle-context
 			  right  right-presentation  right-context)
@@ -908,7 +897,7 @@
 		 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
 		 (let ((bit #o20)
 		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
-		   (declare (fixnum bit))
+		   (declare (type fixnum bit))
 		   (dotimes (i 5)
 		     #-(or Allegro Minima) (declare (ignore i))
 		     (unless (zerop (logand bit modifier-state))
@@ -922,6 +911,8 @@
 						   :documentation-type :pointer)
 		 (write-string separator stream)))
 	  (declare (dynamic-extent #'document-translator))
+	  ;;--- The button names should be hard-wired in.  Consider 1-button
+	  ;;--- Macs and 2-button PCs...
 	  (when left
 	    (let ((button-name (cond ((and (eq left middle)
 					   (eq left right))

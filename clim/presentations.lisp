@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.6 92/03/04 16:22:07 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.7 92/03/10 10:12:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -92,7 +92,7 @@
 		   (if (eq record child)
 		       (call-next-method)	;avoid infinite recursion
 		       (highlight-output-record-1 child stream state)))
-		 (multiple-value-bind (xoff yoff) (output-record-position* child)
+		 (multiple-value-bind (xoff yoff) (output-record-position child)
 		   (declare (type coordinate xoff yoff))
 		   (map-over-output-records
 		     #'highlight child 0 0
@@ -187,14 +187,14 @@
       (when parent				;we're done if it's null
 	(multiple-value-bind (xoff yoff)
 	    (convert-from-relative-to-absolute-coordinates stream parent)
-	  (translate-fixnum-positions xoff yoff left top right bottom)))
+	  (translate-coordinates xoff yoff left top right bottom)))
       (loop
 	(cond ((or (null parent)
 		   (with-bounding-rectangle* (pleft ptop pright pbottom) parent
 		     (multiple-value-bind (xoff yoff)
 			 (convert-from-relative-to-absolute-coordinates 
 			   stream (output-record-parent parent))
-		       (translate-fixnum-positions xoff yoff pleft ptop pright pbottom))
+		       (translate-coordinates xoff yoff pleft ptop pright pbottom))
 		     (not (ltrb-equals-ltrb-p left top right bottom
 					      pleft ptop pright pbottom))))
 	       (return nil))
@@ -268,7 +268,7 @@
   (declare (type coordinate x y))
   ;; Depth first search for a presentation that is both under the pointer and
   ;; matches the input context.
-  ;; This relies on MAP-OVER-OUTPUT-RECORDS-CONTAINING-POINT* traversing
+  ;; This relies on MAP-OVER-OUTPUT-RECORDS-CONTAINING-POSITION traversing
   ;; the most recently drawn of overlapping output records first.
   (labels ((mapper (record presentations x-offset y-offset)
 	     (declare (type coordinate x-offset y-offset))
@@ -316,8 +316,8 @@
 		   (setq presentations more-presentations))
   
 		 ;; Depth-first recursion
-		 (multiple-value-bind (dx dy) (output-record-position* record)
-		   (map-over-output-records-containing-point* 
+		 (multiple-value-bind (dx dy) (output-record-position record)
+		   (map-over-output-records-containing-position 
 		     #'mapper record x y
 		     (- x-offset) (- y-offset)
 		     presentations (+ x-offset dx) (+ y-offset dy)))
@@ -363,7 +363,7 @@
     (when history-window
       (with-slots (highlighted-presentation) history-window
 	(multiple-value-bind (px py)
-	    (stream-pointer-position* history-window)
+	    (stream-pointer-position history-window)
 	  (let ((presentation (frame-find-innermost-applicable-presentation
 				frame input-context history-window px py)))
 	    (when (and (null presentation) 

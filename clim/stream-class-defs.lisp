@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.3 92/01/31 14:58:45 cer Exp $
+;; $fiHeader: stream-class-defs.lisp,v 1.4 92/02/24 13:08:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -17,8 +17,8 @@
 					 left top right bottom)
   (bounding-rectangle-set-edges (slot-value stream 'stream) left top right bottom))
 
-(defmethod bounding-rectangle-set-position* ((stream standard-encapsulating-stream) x y)
-  (bounding-rectangle-set-position* (slot-value stream 'stream) x y))
+(defmethod bounding-rectangle-set-position ((stream standard-encapsulating-stream) x y)
+  (bounding-rectangle-set-position (slot-value stream 'stream) x y))
 
 (defmethod bounding-rectangle-set-size ((stream standard-encapsulating-stream) width height)
   (bounding-rectangle-set-size (slot-value stream 'stream) width height))

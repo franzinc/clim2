@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.6 92/02/24 13:07:40 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.7 92/03/04 16:21:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -75,13 +75,13 @@
   (bounding-rectangle-left node))
 
 (defmethod (setf graph-node-x) (new-value (node standard-graph-node-output-record))
-  (output-record-set-position* node new-value (bounding-rectangle-top node)))
+  (output-record-set-position node new-value (bounding-rectangle-top node)))
 
 (defmethod graph-node-y ((node standard-graph-node-output-record))
   (bounding-rectangle-top node))
 
 (defmethod (setf graph-node-y) (new-value (node standard-graph-node-output-record))
-  (output-record-set-position* node (bounding-rectangle-left node) new-value))
+  (output-record-set-position node (bounding-rectangle-left node) new-value))
 
 
 ;; For compatibility...
@@ -216,7 +216,7 @@
 		  (node-breadth (node-breadth ,node-var))
 		  (breadth-margin ,within-generation-separation-var)
 		  (depth-margin ,generation-separation-var)
-		  (tallest-child 0))
+		  (tallest-child (coordinate 0)))
 	      (declare (type coordinate start-breadth node-breadth
 			     		depth-margin breadth-margin tallest-child))
 	      (dolist (child children)
@@ -298,7 +298,7 @@
 				 (parent-attachment-position parent)
 			       (multiple-value-bind (child-x child-y)
 				   (child-attachment-position child)
-				 (translate-fixnum-positions xoff yoff
+				 (translate-coordinates xoff yoff
 				   parent-x parent-y child-x child-y)
 				 ;;--- This really needs to pass the objects, too
 				 (apply arc-drawer stream
@@ -386,21 +386,21 @@
   (with-slots (orientation center-nodes
 	       generation-separation within-generation-separation n-generations
 	       root-nodes hash-table) graph
-    (let ((start-x 0)
-	  (start-y 0))
+    (let ((start-x (coordinate 0))
+	  (start-y (coordinate 0)))
       (flet ((inferior-mapper (function node)
 	       (map nil function (graph-node-children node)))
-	     (yx-output-record-set-position* (record y x)
-	       (output-record-set-position* record x y)))
-	(declare (dynamic-extent #'inferior-mapper #'yx-output-record-set-position*))
+	     (yx-output-record-set-position (record y x)
+	       (output-record-set-position record x y)))
+	(declare (dynamic-extent #'inferior-mapper #'yx-output-record-set-position))
 	(multiple-value-bind (breadthfun depthfun set-positionfun start-breadth start-depth)
 	    (ecase orientation
 	      ((:vertical :down :up)
 	       (values #'bounding-rectangle-width #'bounding-rectangle-height
-		       #'output-record-set-position* start-x start-y))
+		       #'output-record-set-position start-x start-y))
 	      ((:horizontal :right :left)
 	       (values #'bounding-rectangle-height #'bounding-rectangle-width
-		       #'yx-output-record-set-position* start-y start-x)))
+		       #'yx-output-record-set-position start-y start-x)))
 	  (macrolet ((traverse (new-node-function &optional (old-node-function '#'false))
 		       `(traverse-graph root-nodes #'inferior-mapper 
 					hash-table #'identity
@@ -414,7 +414,7 @@
 			  collect (make-generation-descriptor
 				    :generation generation
 				    :breadth-so-far start-breadth)))
-		  (max-gen-breadth 0) 
+		  (max-gen-breadth (coordinate 0)) 
 		  broadest-gen-descr)
 	      (when (member orientation '(:up :left))
 		(setq generation-descriptors (nreverse generation-descriptors)))
@@ -460,7 +460,8 @@
 				  (generation-breadth-so-far descr)
 				  (if center-nodes
 				      (+ (generation-start-depth descr)
-					 (floor (- (generation-depth descr) (depth child-node)) 2))
+					 (floor (- (generation-depth descr)
+						   (depth child-node)) 2))
 				      (generation-start-depth descr)))
 			 (incf (generation-breadth-so-far descr) (breadth child-node)))))
 		(declare (dynamic-extent #'place-node))
@@ -508,7 +509,7 @@
 				 (funcall parent-attach parent)
 			       (multiple-value-bind (child-x child-y)
 				   (funcall child-attach child)
-				 (translate-fixnum-positions xoff yoff
+				 (translate-coordinates xoff yoff
 				   parent-x parent-y child-x child-y)
 				 ;;--- This really needs to pass the objects, too
 				 (apply arc-drawer stream 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.5 92/03/10 10:12:20 cer Exp Locker: cer $
+;; $fiHeader: command-processor.lisp,v 1.6 92/03/24 19:37:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -46,11 +46,10 @@
 	   (with-accept-help ((:top-level-help #'command-help))
 	     (multiple-value-bind (command final-delimiter)
 		 (invoke-command-name-parser-and-collect-1 
-		  command-name arg-parser delimiter-parser stream)
-	       ;;-- In the cad demo this ends up as NIL. Is that ok??
+		   command-name arg-parser delimiter-parser stream)
 	       (if (and final-delimiter
 			(member final-delimiter *command-previewers*
-			   :test #'keyboard-event-matches-gesture-name-p))
+				:test #'keyboard-event-matches-gesture-name-p))
 		   (with-input-editor-typeout (stream)
 		     (accept-values-command-parser
 		       command-name command-table 
@@ -126,8 +125,8 @@
 	     (write-string (first possibility) stream)
 	     (let ((documentation (assoc (second possibility) keyword-documentation)))
 	       (when documentation
-		 (multiple-value-bind (x y) (stream-cursor-position* stream)
-		   (stream-set-cursor-position* stream (max 200 (+ x 20)) y)
+		 (multiple-value-bind (x y) (stream-cursor-position stream)
+		   (stream-set-cursor-position stream (max 200 (+ x 20)) y)
 		   (write-string (second documentation) stream)))))))
     (declare (dynamic-extent #'print-keyword))
     (values (completing-from-suggestions (stream :possibility-printer #'print-keyword)
@@ -396,7 +395,6 @@
 				   (let ((command 
 					   (lookup-keystroke-command-item
 					     keystroke command-table
-					     :test #'keyboard-event-matches-gesture-name-p
 					     :numeric-argument numeric-arg)))
 				     (when (presentation-typep command command-type)
 				       (return-from menu-command-parser
@@ -669,16 +667,14 @@
 			  (command-parser *command-parser*)
 			  (command-unparser *command-unparser*)
 			  (partial-command-parser *partial-command-parser*)
-			  (use-keystrokes nil)
-			  (keystroke-test #'keyboard-event-matches-gesture-name-p))
+			  (use-keystrokes nil))
   (if use-keystrokes
       (with-command-table-keystrokes (keystrokes command-table)
 	(read-command-using-keystrokes command-table keystrokes
 				       :stream stream
 				       :command-parser command-parser
 				       :command-unparser command-unparser
-				       :partial-command-parser partial-command-parser
-				       :keystroke-test keystroke-test))
+				       :partial-command-parser partial-command-parser))
       (let ((*command-parser* command-parser)
 	    (*command-unparser* command-unparser)
 	    (*partial-command-parser* partial-command-parser))
@@ -691,8 +687,7 @@
 				      &key (stream *query-io*)
 					   (command-parser *command-parser*)
 					   (command-unparser *command-unparser*)
-					   (partial-command-parser *partial-command-parser*)
-					   (keystroke-test #'keyboard-event-matches-gesture-name-p))
+					   (partial-command-parser *partial-command-parser*))
   (let ((*command-parser* command-parser)
 	(*command-unparser* command-unparser)
 	(*partial-command-parser* partial-command-parser))
@@ -710,7 +705,6 @@
 		      :stream stream :prompt nil))))
       (if (keyboard-event-p command)
 	  (let ((command (lookup-keystroke-command-item command command-table
-							:test keystroke-test
 							:numeric-argument numeric-arg)))
 	    (if (partial-command-p command)
 		(funcall *partial-command-parser*
@@ -802,7 +796,7 @@
 	(with-stack-list (type 'command-name ':command-table command-table)
 	  ;; Use a lower level function for speed
 	  (return-from document-presentation-to-command-translator
-	    (call-presentation-generic-function present
+	    (funcall-presentation-generic-function present
 	      command-name type stream +textual-view+))))))
   (format stream "Command translator ~S" (presentation-translator-name translator))
   (values))

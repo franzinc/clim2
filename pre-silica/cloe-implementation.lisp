@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-implementation.lisp,v 1.2 92/02/24 13:07:01 cer Exp $
+;; $fiHeader: cloe-implementation.lisp,v 1.3 92/03/10 10:12:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -588,16 +588,14 @@
 			 (round (+ (* (cos end-angle) x-radius) center-x))
 			 (round (+ (* (sin end-angle) y-radius) center-y))
 			 (round (+ (* (cos start-angle) x-radius) center-x))
-			 (round (+ (* (sin start-angle) y-radius) center-y))
-	
-			 ))
+			 (round (+ (* (sin start-angle) y-radius) center-y))))
 	      (t
 	       ;; drawing an arc
 	       (win::arc window left top right bottom
-			 (+ (* (cos start-angle) x-radius) center-x)
-			 (+ (* (sin start-angle) y-radius) center-y)
-			 (+ (* (cos end-angle) x-radius) center-x)
-			 (+ (* (sin end-angle) y-radius) center-y))))))))
+			 (round (+ (* (cos end-angle) x-radius) center-x))
+			 (round (+ (* (sin end-angle) y-radius) center-y))
+			 (round (+ (* (cos start-angle) x-radius) center-x))
+			 (round (+ (* (sin start-angle) y-radius) center-y)))))))))
 
 
 

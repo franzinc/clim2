@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.4 92/02/24 13:08:55 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.5 92/03/10 10:13:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -157,13 +157,16 @@
     (when bottom
       (error "Can't supply both :BOTTOM and :HEIGHT."))
     (setq bottom (+ top height)))
-  (make-instance 'window-stream :parent parent :min-x left :min-y top :max-x right :max-y bottom))
+  (make-instance 'window-stream 
+		 :parent parent
+		 :left left :top top
+		 :right right :bottom bottom))
 
 
 #-Silica (progn
 
 ;;; For hooking up with host window decorations.
-(defmethod window-set-viewport-position* :after ((window window-stream) new-x new-y)
+(defmethod window-set-viewport-position :after ((window window-stream) new-x new-y)
   (declare (ignore new-x new-y))
   (redisplay-decorations window))
 
@@ -171,7 +174,7 @@
   (declare (ignore left top right bottom))
   (redisplay-decorations window))
 
-(defmethod bounding-rectangle-set-position* :after ((window window-stream) left top)
+(defmethod bounding-rectangle-set-position :after ((window window-stream) left top)
   (declare (ignore left top))
   (redisplay-decorations window))
 

@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: standard-tree.lisp,v 1.1 91/11/25 10:00:54 cer Exp Locker: cer $
+;; $fiHeader: standard-tree.lisp,v 1.2 92/03/09 17:41:53 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -235,11 +235,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;		 (= miny nminy)
 ;		 (= maxx nmaxx)
 ;		 (= maxy nmaxy))
-;      ;; This should update the scrollbars etc 
+;      ;; This should update the scroll-bars etc 
 ;      (let* ((stream (stream-output-history-mixin-stream r))
 ;	     (vp (pane-viewport-sheet stream)))
 ;	(when vp
-;	  (update-scrollbars vp))
+;	  (update-scroll-bars vp))
 ;	(update-region stream 
 ;		       nminx
 ;		       nminy

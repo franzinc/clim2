@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.4 92/02/24 13:08:24 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.5 92/03/04 16:22:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,8 +68,8 @@
 		(handler-case
 		    (with-stack-list* (class-and-parameters class parameters-given)
 		      (with-stack-list* (type-specifier class-and-parameters options-given)
-			(call-presentation-generic-function presentation-type-specifier-p
-							    type-specifier)))
+			(funcall-presentation-generic-function
+			  presentation-type-specifier-p type-specifier)))
 		  (error () nil))
 	        ;; If no parameters nor options, no need for user-defined validation
 	        t)))))))
@@ -99,7 +99,7 @@
 	  (let ((description (getf options :description)))
 	    (if description
 		(default-describe-presentation-type description stream plural-count)
-		(call-presentation-generic-function describe-presentation-type
+		(funcall-presentation-generic-function describe-presentation-type
 		  type stream plural-count)))))))
 
 ;;; The default method that works for describing most presentation types
@@ -143,7 +143,8 @@
 (defun presentation-type-history (presentation-type)
   (let ((type (expand-presentation-type-abbreviation presentation-type)))
     (loop
-      (let ((history (call-presentation-generic-function presentation-type-history type)))
+      (let ((history 
+	      (funcall-presentation-generic-function presentation-type-history type)))
 	(cond ((null history)
 	       (return-from presentation-type-history nil))
 	      ((typep history 'basic-history)
@@ -169,7 +170,7 @@
 
 (defun presentation-default-preprocessor (default presentation-type &key default-type)
   (let ((type (expand-presentation-type-abbreviation presentation-type)))
-    (call-presentation-generic-function presentation-default-preprocessor
+    (funcall-presentation-generic-function presentation-default-preprocessor
       default type :default-type default-type)))
 
 (define-default-presentation-method presentation-default-preprocessor
@@ -186,7 +187,7 @@
 #+Genera (zwei:defindentation (map-over-presentation-type-supertypes 1 2))
 (defun map-over-presentation-type-supertypes (presentation-type function)
   (declare (dynamic-extent function))
-  (call-presentation-generic-function map-over-presentation-type-supertypes
+  (funcall-presentation-generic-function map-over-presentation-type-supertypes
     presentation-type function))
 
 ;;; Map over unparameterized presentation types, including some mappings
@@ -235,7 +236,7 @@
 	;; that object is a member of the correct class, or to do it all.
 	;; No default method should be defined, since what the default method
 	;; could do (call typep) has already been done above.
-	(call-presentation-generic-function presentation-typep object type)))))
+	(funcall-presentation-generic-function presentation-typep object type)))))
 
 
 ;;; SUBTYPEP
@@ -280,7 +281,7 @@
 		    (values t t))		;Everything is its own subtype
 		   (t
 		    (multiple-value-bind (subtype-p known-p)
-			(call-presentation-generic-function presentation-subtypep
+			(funcall-presentation-generic-function presentation-subtypep
 			  type putative-supertype)
 		      ;; Catch a common mistake in PRESENTATION-SUBTYPEP methods
 		      (when (and subtype-p (not known-p))
@@ -330,7 +331,8 @@
 				 (values t t))	;Everything is its own subtype
 				(t		;Call method to figure out the parameters
 				 (multiple-value-bind (subtype-p known-p)
-				     (call-presentation-generic-function presentation-subtypep
+				     (funcall-presentation-generic-function
+				       presentation-subtypep
 				       ntype putative-supertype)
 				   (when (and subtype-p (not known-p))
 				     (cerror "Return the two values T and T"
@@ -362,7 +364,7 @@
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
 			       present-p query-identifier &key (prompt t))
-  (call-presentation-generic-function accept-present-default
+  (funcall-presentation-generic-function accept-present-default
     presentation-type stream view default default-supplied-p present-p query-identifier
     :prompt prompt))
 
@@ -383,7 +385,7 @@
 (defun highlight-presentation (record presentation-type stream state)
   (unless (eq record *null-presentation*)
     (with-output-recording-options (stream :record nil)
-      (call-presentation-generic-function highlight-presentation
+      (funcall-presentation-generic-function highlight-presentation
 	presentation-type record stream state)
       (force-output stream))))
 

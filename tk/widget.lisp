@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.14 92/03/30 17:51:51 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.15 92/04/10 14:26:19 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -46,8 +46,6 @@
 	    :display display
 	    args))))
 
-
-
 (defun create-widget (name widget-class parent &rest args)
   (apply #'create-widget-1 
 	 #'create_widget name widget-class parent 
@@ -69,40 +67,29 @@
 	     arglist
 	     (truncate (length arglist) 2))))
 
-
-
 (defun realize-widget (widget)
   (realize_widget widget))
-
-
 
 (defun manage-child (child)
   (manage_child child))
 
-
-
+(defun unmanage-child (child)
+  (unmanage_child child))
 
 (defun is-managed-p (widget)
     (not (zerop (xt_is_managed widget))))
-
-(defun unmanage-child (child)
-  (unmanage_child child))
 
 (defun manage-children (children)
   (manage_children (map '(simple-array (signed-byte 32))
 		     #'ff:foreign-pointer-address 
 		     children)
 		   (length children)))
-
-
+		     
 (defun destroy-widget (widget)
   (destroy_widget widget))
 
-
-
 (defun popup (shell)
-       (_popup shell
-	       0))
+       (_popup shell 0))
 
 (defun popdown (shell)
        (_popdown shell))
@@ -149,7 +136,7 @@
 
 (defmethod initialize-instance :after ((w xt-root-class) 
 				       &rest args 
-				       &key foreign-address
+				       &key foreign-address 
 				       parent display
 				       &allow-other-keys)
   (when (or display parent)
@@ -238,7 +225,6 @@
        (logtest r x11:cwwidth)
        (logtest r x11:cwheight)
        (logtest r x11:cwborderwidth)))))
-
 
 ;;--- Should call either XtResizeWidget or XtConfigureWidget
 

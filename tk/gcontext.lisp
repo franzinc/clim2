@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.8 92/03/09 17:40:43 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.9 92/03/30 17:51:35 cer Exp $
 
 (in-package :tk)
 
@@ -78,7 +78,6 @@
 
 (defclass gcontext (display-object)
   ())
-	  
 
 
 (defmethod initialize-instance :after ((gcontext gcontext)
@@ -93,6 +92,7 @@
 				       exposures clip-x clip-y
 				       clip-mask clip-ordering 
 				       dash-offset dashes)
+
   (unless foreign-address
     (setf foreign-address (x11::xcreategc display drawable 0 0)
 	  (foreign-pointer-address gcontext) foreign-address

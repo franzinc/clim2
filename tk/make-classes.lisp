@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.11 92/03/30 17:51:42 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.12 92/04/03 12:04:03 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -81,6 +81,7 @@
 
 (defmethod widget-display ((object xt-root-class))
   (object-display object))
+
 
 (defclass rect (xt-root-class) ())
 (defclass un-named-obj (rect) ())
@@ -159,7 +160,7 @@
 		:resources all-resources
 		:constraints  all-constraints
 		:entry-point class-ep
-		:foreign-address (get-foreign-variable-value class-ep))))
+		:foreign-address  (get-foreign-variable-value class-ep))))
 	  (register-address class)
 	  (add-accessors-for-toolkit-class class)
 	  (push class r)))))))
@@ -245,7 +246,7 @@
 
 
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
-  (error "toolkit errror: ~a" (char*-to-string message)))
+  (error "toolkit error: ~a" (char*-to-string message)))
 
 (defun-c-callable toolkit-warning-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))

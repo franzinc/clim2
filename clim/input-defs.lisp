@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.5 92/02/24 13:07:51 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.6 92/03/04 16:21:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -16,8 +16,11 @@
     ((root :accessor pointer-root :initform nil :initarg :root)
      (window :accessor pointer-window :initform nil)
      ;; Position in root coordinates 
+     ;;--- Are these of type COORDINATE or FIXNUM?
      (x-position :accessor pointer-x-position :initform 0)
      (y-position :accessor pointer-y-position :initform 0)
+     ;;--- Are these of type COORDINATE or FIXNUM?
+     ;;--- It's clear that they need to be FIXed before passing them to the host
      (native-x-position :accessor pointer-native-x-position :initform 0)
      (native-y-position :accessor pointer-native-y-position :initform 0)
      (button-state :accessor pointer-button-state :initform 0)
@@ -35,31 +38,35 @@
 (progn
   (declaim (notinline pointer-window (setf pointer-window))))
 
-(defmethod pointer-position* ((pointer standard-pointer))
+(defmethod pointer-position ((pointer standard-pointer))
   (with-slots (x-position y-position) pointer
     (values x-position y-position)))
 
-;; NEW-X and NEW-Y had better be fixnums
-;;--- Coerce X and Y to COORDINATE
-(defmethod pointer-set-position* ((pointer standard-pointer) new-x new-y)
-  (declare (type coordinate new-x new-y))
+(defmethod pointer-set-position ((pointer standard-pointer) new-x new-y)
   (with-slots (x-position y-position position-changed) pointer
-    (setf x-position new-x
-	  y-position new-y
+    (setf x-position (coordinate new-x)
+	  y-position (coordinate new-y)
 	  position-changed t))
   (values new-x new-y))
 
-(defmethod pointer-native-position* ((pointer standard-pointer))
+#+CLIM-1-compatibility
+(define-compatibility-function (pointer-position* pointer-position)
+			       (pointer)
+  (pointer-position pointer))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (pointer-set-position* pointer-set-position)
+			       (pointer x y)
+  (pointer-set-position pointer x y))
+
+(defmethod pointer-native-position ((pointer standard-pointer))
   (with-slots (native-x-position native-y-position) pointer
     (values native-x-position native-y-position)))
 
-;; NEW-X and NEW-Y had better be fixnums
-;;--- Coerce X and Y to COORDINATE
-(defmethod pointer-set-native-position* ((pointer standard-pointer) new-x new-y)
-  (declare (type coordinate new-x new-y))
+(defmethod pointer-set-native-position ((pointer standard-pointer) new-x new-y)
   (with-slots (native-x-position native-y-position position-changed) pointer
-    (setf native-x-position new-x
-	  native-y-position new-y
+    (setf native-x-position (coordinate new-x)
+	  native-y-position (coordinate new-y)
 	  position-changed t))
   (values new-x new-y))
 
@@ -80,8 +87,8 @@
       (let ((native-x-position (pointer-native-x-position pointer))
 	    (native-y-position (pointer-native-y-position pointer)))
 	(multiple-value-setq (native-x-position native-y-position)
-	  (untransform-point* (sheet-native-transformation window) 
-			      native-x-position native-y-position))
+	  (untransform-position (sheet-native-transformation window) 
+				native-x-position native-y-position))
 	(setf (pointer-x-position pointer) native-x-position
 	      (pointer-y-position pointer) native-y-position)))))
 

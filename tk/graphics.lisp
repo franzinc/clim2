@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.5 92/03/09 17:40:45 cer Exp Locker: cer $
+;; $fiHeader: graphics.lisp,v 1.6 92/03/24 19:36:10 cer Exp $
 
 (in-package :tk)
 
@@ -99,8 +99,7 @@
        (- center-y y-radius)
        (* 2 x-radius)
        (* 2 y-radius)
-       start-angle 
-       end-angle))))
+       start-angle end-angle))))
 
 (defstub draw-lines (drawable gcontext points &key relative-p fill-p
 			    (shape :complex))
@@ -190,7 +189,6 @@
 (defun draw-string (drawable gc x y string &optional (start 0) end)
   (unless start (setq start 0))
   (unless end (setq end (length string)))
-  #-ignore
   (x11::xdrawstring
    (object-display drawable)
    drawable

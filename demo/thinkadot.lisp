@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.4 92/03/24 19:38:23 cer Exp Locker: cer $
+;; $fiHeader: thinkadot.lisp,v 1.5 92/04/10 14:27:38 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -39,24 +39,24 @@
 
 
 (define-application-frame thinkadot ()
-  ((node1)
-   (node2)
-   (node3)
-   (node4)
-   (node5)
-   (node6)
-   (node7)
-   (node8)
-   (all-nodes)
-   (lexit)
-   (rexit))
+    ((node1)
+     (node2)
+     (node3)
+     (node4)
+     (node5)
+     (node6)
+     (node7)
+     (node8)
+     (all-nodes)
+     (lexit)
+     (rexit))
   (:panes
-   (display
-    (make-pane 'application-pane
-		  :display-function 'draw-the-display
-		  :incremental-redisplay t)))
+    (display
+      (make-pane 'application-pane
+		 :display-function 'draw-the-display
+		 :incremental-redisplay t)))
   (:layout
-   (:default (scrolling () display))))
+    (:default (scrolling () display))))
 
 (defmethod initialize-instance :after ((frame thinkadot) &key)
   (multiple-value-bind (w h)
@@ -89,7 +89,6 @@
 (defvar *dot-radius* 10)
 (defvar *light-color* (make-gray-color 0.667))
 (defvar *dark-color* +black+)
-
 
 (defmethod draw-the-display ((frame thinkadot) stream &key max-width max-height)
   (declare (ignore max-width max-height))
@@ -143,7 +142,7 @@
 
 (define-presentation-to-command-translator drop-a-marble
     (entry-node com-drop-marble thinkadot
-		:documentation "Drop Marble")
+     :documentation "Drop a Marble")
     (object)
   `(,object))
 

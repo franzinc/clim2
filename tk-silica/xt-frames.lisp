@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.6 92/03/24 19:37:13 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.7 92/04/10 14:27:56 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -33,33 +33,33 @@
 (defmethod frame-wrapper ((framem xt-frame-manager) 
 			  (frame standard-application-frame) pane)
   (declare (ignore pane))
-  (let ((menu-bar (slot-value frame 'menu-bar)))
-    (if menu-bar
-	(with-look-and-feel-realization (framem frame)
-	  (let ((mb (make-pane 'menu-bar
-			  :command-table (if (eq menu-bar t)
-					     (frame-command-table frame)
-					   (find-command-table
-					    menu-bar))))
-		(next (call-next-method))
-		(pointer
-		 (if (clim-internals::frame-pointer-documentationp frame)
-		     (setf (slot-value frame 'clim-internals::pointer-documentation-pane)
-		       (make-pane
-			'clim-internals::pointer-documentation-pane
-			:max-width +fill+
-			;;-- This should be a better value!
-			:height 15)))))
-	    (if pointer
-		(vertically () mb next pointer)
-	      (vertically () mb next))))
-	(call-next-method))))
+  (with-look-and-feel-realization (framem frame)
+    (let* ((menu-bar (slot-value frame 'menu-bar))
+	   (menu-bar-pane
+	     (and menu-bar
+		  (make-pane 'menu-bar
+			     :command-table (if (eq menu-bar t)
+						(frame-command-table frame)
+						(find-command-table menu-bar)))))
+	   (pointer-doc-pane
+	     ;;--- Don't like these forward references
+	     (and (clim-internals::frame-pointer-documentation-p frame)
+		  (setf (slot-value frame 'clim-internals::pointer-documentation-pane)
+			(make-pane
+			  'clim-internals::pointer-documentation-pane
+			  :max-width +fill+
+			  ;;--- This should be one line height in some text style
+			  :height 15))))
+	   (application-panes (call-next-method)))
+      (cond ((and menu-bar-pane pointer-doc-pane)
+	     (vertically () menu-bar-pane application-panes pointer-doc-pane))
+	    (menu-bar-pane
+	     (vertically () menu-bar-pane application-panes))
+	    (pointer-doc-pane
+	     (vertically () application-panes pointer-doc-pane))
+	    (t
+	     application-panes)))))
 
-
-(defmethod clim-internals::port-notify-user ((port xt-port) frame format-string &rest format-arguments)
-  (format excl::*initial-terminal-io* 
-	  "Notify ~a~%" 
-	  (list frame format-string format-arguments)))
 
 ;;;
 
@@ -87,3 +87,8 @@
 		   :sheet (frame-top-level-sheet frame)
 		   :value (second item))))
 
+(defmethod clim-internals::port-notify-user ((port xt-port) 
+					     frame format-string &rest format-arguments)
+  (format excl::*initial-terminal-io* 
+	  "Notify ~a~%" 
+	  (list frame format-string format-arguments)))

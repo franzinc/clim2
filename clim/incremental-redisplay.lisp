@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.3 92/02/24 13:07:49 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.4 92/03/04 16:21:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -43,7 +43,8 @@
       ;; UPDATING-OUTPUT-RECORD's can be easily moved through the
       ;; hierarchy, in which case it would be slightly expensive to
       ;; convert from relative to absolute coordinates.
-      (old-position :initform (make-point 0 0) :initarg :old-position
+      (old-position :initform (make-point (coordinate 0) (coordinate 0)) 
+		    :initarg :old-position
 		    :accessor output-record-old-cursor-position)
       (old-parent :initform nil :initarg :old-parent
 		  :accessor output-record-old-parent)))
@@ -51,7 +52,9 @@
 (define-output-record-constructor standard-updating-output-record
 				  (&key x-position y-position (size 25)
 					unique-id cache-value fixed-position
-					displayer all-new (old-position (make-point 0 0))
+					displayer all-new
+					(old-position 
+					  (make-point (coordinate 0) (coordinate 0)))
 					old-parent)
   :x-position x-position :y-position y-position :size size
   :unique-id unique-id :cache-value cache-value :fixed-position fixed-position
@@ -72,7 +75,7 @@
     (if (null old-bounding-rectangle)
 	(setf old-bounding-rectangle (bounding-rectangle record))	;cons a new rectangle
 	(bounding-rectangle record old-bounding-rectangle))
-    (output-record-set-old-start-cursor-position* record start-x start-y)
+    (output-record-set-old-start-cursor-position record start-x start-y)
     (setf contents-ok (not (null old-is-ok)))
     (unless old-is-ok
       (setf parent nil))))
@@ -129,6 +132,7 @@
 ;; some of the arguments, and then passes it on to the real (and generic)
 ;; FIND-INFERIOR-OUTPUT-RECORD.  FIND-INFERIOR-OUTPUT-RECORD is the exported
 ;; interface, and is defined in the protocol.
+;;--- Rename to FIND-CHILD-OUTPUT-RECORD-1
 (defun find-inferior-output-record-1 (record record-type &rest init-args)
   (declare (dynamic-extent init-args))
    (apply #'find-inferior-output-record
@@ -138,6 +142,7 @@
 	  record-type
 	  init-args))
 
+;;--- Rename to DECACHE-CHILD-OUTPUT-RECORD-1
 (defun decache-inferior-output-record-1 (record child)
   (decache-inferior-output-record
     record child
@@ -172,6 +177,7 @@
 	(find item sequence :key key :test #'robust-test)
         (find item sequence :key key))))
 
+;;--- Rename to FIND-CHILD-OUTPUT-RECORD
 (defmethod find-inferior-output-record
 	   ((record output-record-mixin) use-old-children record-type
 	    &rest init-args &key unique-id id-test &allow-other-keys)
@@ -223,6 +229,7 @@
 		    #'no-unique-id) 
 		record)))))))
 
+;;--- Rename to DECACHE-CHILD-OUTPUT-RECORD-1
 (defmethod decache-inferior-output-record
 	   ((record output-record-mixin) child use-old-children)
   (when use-old-children
@@ -269,12 +276,12 @@
 				    (and (zerop width) (zerop height)))
 				  (multiple-value-bind (our-delta-x our-delta-y)
 				      (multiple-value-bind (sx sy)
-					  (output-record-start-cursor-position* child)
+					  (output-record-start-cursor-position child)
 					(declare (type coordinate sx sy))
 					(multiple-value-bind (osx osy)
-					    (output-record-old-start-cursor-position* child)
+					    (output-record-old-start-cursor-position child)
 					  (declare (type coordinate osx osy))
-					  (position-difference* sx sy osx osy)))
+					  (position-difference sx sy osx osy)))
 				    (declare (type coordinate our-delta-x our-delta-y))
 				    (if (null delta-x)
 					(setf delta-x our-delta-x delta-y our-delta-y)
@@ -294,7 +301,7 @@
 		      (if old-bounding-rectangle
 			  (bounding-rectangle-position-difference
 			    record old-bounding-rectangle)
-			  (values 0 0))
+			  (values (coordinate 0) (coordinate 0)))
 		    (and (= delta-x e-delta-x) (= delta-y e-delta-y))))
 	  (setf (output-record-contents-ok record) t)
 	  ;; If delta-x wasn't set, then we didn't see any relevant
@@ -306,9 +313,9 @@
 	    ;; COMPUTE-DIFFERENCES will never walk down past this record,
 	    ;; since contents-ok is T.
 	    (multiple-value-bind (new-x new-y)
-		(output-record-start-cursor-position* record)
+		(output-record-start-cursor-position record)
 	      (declare (type coordinate new-x new-y))
-	      (output-record-set-old-start-cursor-position*
+	      (output-record-set-old-start-cursor-position
 		record (- new-x delta-x) (- new-y delta-y)))))))))
 
 
@@ -336,11 +343,11 @@
     (multiple-value-bind (x y)
 	(if y
 	    (values (+ x (- parent-x sup-x)) (+ y (- parent-y sup-y)))
-	    (output-record-position* record))
+	    (output-record-position record))
       (declare (type coordinate x y))
       (with-end-of-page-action (stream :allow)
 	(with-stream-cursor-position-saved (stream)
-	  (stream-set-cursor-position*
+	  (stream-set-cursor-position
 	    stream (+ sup-x x) (+ sup-y y))
 	  (with-stream-redisplaying (stream)
 	    (let ((parent (output-record-parent record)))
@@ -366,7 +373,9 @@
 	  (output-record-parent record) record :change
 	  ;; You can use the state saved by COPY-DISPLAY-STATE here, since
 	  ;; the contract of NEW-OUTPUT-RECORDS is to maintain the old state.
-	  (output-record-old-start-cursor-position record)
+	  (multiple-value-bind (x y)
+	      (output-record-old-start-cursor-position record)
+	    (make-point x y))
 	  (output-record-old-bounding-rectangle record)
 	  stream
 	  erases moves draws erase-overlapping move-overlapping))))
@@ -388,6 +397,7 @@
 ;; Mode is one of :DELETE, :ADD, :CHANGE, :MOVE, or :NONE
 ;; If you don't recursively call your parent, then it is >your<
 ;; responsibility to call INCREMENTAL-REDISPLAY.
+;;--- Rename to NOTE-OUTPUT-RECORD-CHILD-CHANGED
 (defmethod inferior-output-record-changed ((parent output-record-mixin) child mode
 					   old-child-position old-child-extent	;of child
 					   stream
@@ -402,7 +412,10 @@
 						 old-child-position old-child-extent)
      (with-slots (old-bounding-rectangle start-x start-y old-start-x old-start-y) parent
        (let ((old-parent-extent old-bounding-rectangle)
-	     (old-parent-position (output-record-old-start-cursor-position parent)))
+	     (old-parent-position
+	       (multiple-value-bind (x y)
+		   (output-record-old-start-cursor-position record)
+		 (make-point x y))))
 	 (setf old-start-x start-x old-start-y start-y)
 	 (if (null old-bounding-rectangle)
 	     (setf old-bounding-rectangle (bounding-rectangle parent))
@@ -420,7 +433,10 @@
 	       new-erases new-moves new-draws
 	       new-erase-overlapping new-move-overlapping))))))
     (t
-     (incremental-redisplay stream (output-record-start-cursor-position parent)
+     (incremental-redisplay stream 
+			    (multiple-value-bind (x y)
+				(output-record-start-cursor-position parent)
+			      (make-point x y))
 			    erases moves draws erase-overlapping move-overlapping))))
 
 ;; for efficiency we might want to pass in the five elements as an
@@ -432,6 +448,7 @@
 ;; from that origin to the parent of RECORD.
 ;;
 ;; Need to clip this to the visible viewport, but we'll do that later, too.
+;;--- Rename to COMPUTE-DIFFERENCE-SET
 (defmethod compute-differences ((record output-record-element-mixin)
 				&optional (check-overlapping nil)
 					  (x-offset 0) (y-offset 0)
@@ -455,10 +472,10 @@
 	     ;;--- but do we want to penalize the user?
 	     (when old-bounding-rectangle
 	       (multiple-value-bind (e-x e-y)
-		   (bounding-rectangle-position* record)
+		   (bounding-rectangle-position record)
 		 (declare (type coordinate e-x e-y))
 		 (multiple-value-bind (old-e-x old-e-y)
-		     (bounding-rectangle-position* old-bounding-rectangle)
+		     (bounding-rectangle-position old-bounding-rectangle)
 		   (declare (type coordinate old-e-x old-e-y))
 		   (unless (and (= (+ x-offset e-x) (+ old-x-offset old-e-x))
 				(= (+ y-offset e-y) (+ old-y-offset old-e-y)))
@@ -486,10 +503,10 @@
 	       (when (output-record-p record)
 		 ;; We have to look at the children.
 		 (multiple-value-bind (start-x start-y)
-		     (output-record-start-cursor-position* record)
+		     (output-record-start-cursor-position record)
 		   (declare (type coordinate start-x start-y))
 		   (multiple-value-bind (o-start-x o-start-y)
-		       (output-record-old-start-cursor-position* record)
+		       (output-record-old-start-cursor-position record)
 		     (declare (type coordinate o-start-x o-start-y))
 		     (dolist (child (output-record-old-children record))
 		       (erase child (bounding-rectangle-shift-position
@@ -539,10 +556,10 @@
 		     draws))
 	     (when (output-record-p record)
 	       (multiple-value-bind (start-x start-y)
-		   (output-record-start-cursor-position* record)
+		   (output-record-start-cursor-position record)
 		 (declare (type coordinate start-x start-y))
 		 (multiple-value-bind (o-start-x o-start-y)
-		     (output-record-old-start-cursor-position* record)
+		     (output-record-old-start-cursor-position record)
 		   (declare (type coordinate o-start-x o-start-y))
 		   (let ((x-offset (+ x-offset start-x))
 			 (y-offset (+ y-offset start-y))
@@ -562,7 +579,7 @@
 				  erase-overlapping move-overlapping)
   (with-output-recording-options (stream :draw t :record nil)
     (multiple-value-bind (xoff yoff)
-	(bounding-rectangle-position* position)
+	(bounding-rectangle-position position)
       (declare (type coordinate xoff yoff))
       ;; Do the erases first, then the moves, then the draws.
       ;; Do the draws in the "right" order.
@@ -580,12 +597,13 @@
       ;; All of this must be done relative to position...
       (flet ((erase-rectangle (stream rectangle)
 	       (with-bounding-rectangle* (left top right bottom) rectangle
-		 (translate-fixnum-positions xoff yoff left top right bottom)
-		 (draw-rectangle* stream left top right bottom :ink +background-ink+ :filled t)))
+		 (translate-coordinates xoff yoff left top right bottom)
+		 (draw-rectangle* stream left top right bottom
+				  :ink +background-ink+ :filled t)))
 	     (replay-record (record stream region)
 	       ;; REGION is the bounding rectangle
-	       (multiple-value-bind (x y) (bounding-rectangle-position* record)
-		 (multiple-value-bind (eleft etop) (bounding-rectangle-position* region)
+	       (multiple-value-bind (x y) (bounding-rectangle-position record)
+		 (multiple-value-bind (eleft etop) (bounding-rectangle-position region)
 		   (replay-output-record record stream nil
 					 (+ xoff (- eleft x)) (+ yoff (- etop y)))))))
 	(dolist (erase erases)
@@ -616,22 +634,22 @@
 (defmethod new-output-records ((record output-record-element-mixin) stream)
   ;; Position and bounding rectangle are identical on these guys.
   (multiple-value-bind (cursor-x cursor-y)
-      (stream-cursor-position* stream)
+      (stream-cursor-position stream)
     (declare (type coordinate cursor-x cursor-y))
     (multiple-value-bind (new-x new-y)
 	(multiple-value-bind (px py)
-	    (point-position*
+	    (point-position
 	      (stream-output-history-position stream))
 	  (declare (type coordinate px py))
-	  (position-difference* cursor-x cursor-y px py))
+	  (position-difference cursor-x cursor-y px py))
       (declare (type coordinate new-x new-y))
       ;; because we don't know what to do, just do the same thing as before...
       (copy-display-state record t)
-      (output-record-set-start-cursor-position* record new-x new-y))
+      (output-record-set-start-cursor-position record new-x new-y))
     (multiple-value-bind (delta-x delta-y)
-	(output-record-end-cursor-position* record)
+	(output-record-end-cursor-position record)
       (declare (type coordinate delta-x delta-y))
-      (stream-set-cursor-position*
+      (stream-set-cursor-position
 	stream (+ cursor-x delta-x) (+ cursor-y delta-y)))))
 
 ;; If you do REDISPLAY on a random output-record, do you want it to walk
@@ -658,10 +676,13 @@
 ;; old-inferior-extent and inferior-extent, are all relative to the
 ;; parents start-position.  Nothing is relative to the parent's
 ;; old-start-position.
+;;--- Rename to PROPAGATE-OUTPUT-RECORD-CHANGES-P
 (defmethod propagate-inferior-output-record-changes-p
 	   ((record output-record-mixin) child mode
 	    &optional (old-child-position 
-			(output-record-old-start-cursor-position child))
+			(multiple-value-bind (x y)
+			    (output-record-old-start-cursor-position child)
+			  (make-point x y)))
 		      (old-child-extent
 			(output-record-old-bounding-rectangle child)))
   #---ignore
@@ -670,14 +691,16 @@
   (and (if (or (eq mode :change) (eq mode :move) (eq mode :none))
 	   (or (not (bounding-rectangle-position-equal
 		      old-child-position 
-		      (output-record-start-cursor-position child)))
+		      (multiple-value-bind (x y)
+		          (output-record-start-cursor-position child)
+			(make-point x y))))
 	       (not (bounding-rectangle-edges-equal
 		      old-child-extent (bounding-rectangle child))))
 	   ;; mode is :add or :delete.
 	   (multiple-value-bind (width height) (bounding-rectangle-size child)
 	     (declare (type coordinate width height))
 	     (not (and (zerop width) (zerop height)))))
-       (multiple-value-bind (x-offset y-offset) (output-record-position* record)
+       (multiple-value-bind (x-offset y-offset) (output-record-position record)
 	 (declare (type coordinate x-offset y-offset))
 	 (with-bounding-rectangle* (left top right bottom) record
 	   (block anything-needs-moving
@@ -713,8 +736,12 @@
 ;; --- still needs to be implemented...
 (defmethod propagate-output-record-changes
 	   ((record output-record-mixin) child mode
-	    &optional (old-child-position (output-record-old-start-cursor-position child))
-		      (old-child-extent (output-record-old-bounding-rectangle child))
+	    &optional (old-child-position 
+			(multiple-value-bind (x y)
+			    (output-record-old-start-cursor-position child)
+			  (make-point x y)))
+		      (old-child-extent
+			(output-record-old-bounding-rectangle child))
 		      erases moves draws erase-overlapping move-overlapping)
   (declare (values new-mode new-erases new-moves new-draws
 		   new-erase-overlapping new-move-overlapping))
@@ -737,6 +764,7 @@
 
 ;; just use default, for now.
 #+ignore
+;;--- Rename to FIND-CHILD-OUTPUT-RECORD
 (defmethod find-inferior-output-record ((record standard-updating-output-record)
 					use-old-children record-type
 					&rest init-args &key unique-id id-test
@@ -755,7 +783,7 @@
 (defmethod reposition-output-record ((output-record standard-updating-output-record)
 				     stream x y abs-x abs-y)
   (multiple-value-bind (delta-x delta-y)
-      (output-record-end-cursor-position* output-record)
+      (output-record-end-cursor-position output-record)
     (declare (type coordinate delta-x delta-y))
     (copy-display-state output-record t)
     (cond ((output-record-fixed-position output-record)
@@ -767,16 +795,16 @@
 	   ;; well-thought-out design.  It just seemed like the right
 	   ;; thing after three minutes of thought.
 	   (multiple-value-bind (abs-x abs-y)
-	       (point-position*
+	       (point-position
 		 (stream-output-history-position stream))
 	     (declare (type coordinate abs-x abs-y))
-	     (multiple-value-bind (x y) (output-record-position* output-record)
+	     (multiple-value-bind (x y) (output-record-position output-record)
 	       (declare (type coordinate x y))
-	       (stream-set-cursor-position*
+	       (stream-set-cursor-position
 		 stream (+ abs-x x delta-x) (+ abs-y y delta-y)))))
 	  (t
-	   (output-record-set-start-cursor-position* output-record x y)
-	   (stream-set-cursor-position*
+	   (output-record-set-start-cursor-position output-record x y)
+	   (stream-set-cursor-position
 	     stream (+ abs-x delta-x) (+ abs-y delta-y))))))
 
 ;; The contents of the output-record are not yet known to be ok, so we're going to have to run
@@ -789,7 +817,7 @@
   (letf-globally (((stream-current-redisplay-record stream) output-record))
     ;; OK, now copy and reinitialize
     (copy-display-state output-record nil)
-    (output-record-set-start-cursor-position* output-record x y)
+    (output-record-set-start-cursor-position output-record x y)
     (with-output-record-1 continuation
 			  stream output-record abs-x abs-y)))
 
@@ -903,13 +931,13 @@
     (if output-record
 	;; we've already been through this path once, just update if necessary.
 	(multiple-value-bind (cursor-x cursor-y)
-	    (stream-cursor-position* stream)
+	    (stream-cursor-position stream)
 	  (declare (type coordinate cursor-x cursor-y))
 	  (multiple-value-bind (x y)
 	      (multiple-value-bind (px py)
-		  (point-position* current-output-record-position)
+		  (point-position current-output-record-position)
 		(declare (type coordinate px py))
-		(position-difference* cursor-x cursor-y px py))
+		(position-difference cursor-x cursor-y px py))
 	    (declare (type coordinate x y))
 	    ;; Update displayer, in case something changed.  
 	    (flet ((updating-output-displayer (stream)
@@ -932,10 +960,10 @@
 	      ;; old extent is bogus, since it is relative to
 	      ;; old-parent. Convert it to be relative to current-output-record.
 	      (multiple-value-call 
-		#'output-record-set-start-cursor-position*
+		#'output-record-set-start-cursor-position
 		output-record
 		;; could be wildly out of bounding box, but that's OK.
-		(bounding-rectangle-position-difference	;this works on points, too
+		(bounding-rectangle-position-difference
 		  ;; old-position is cached absolute coordinates
 		  (output-record-old-cursor-position output-record)
 		  current-output-record-position)))
@@ -982,7 +1010,7 @@
 		   (when redisplay-piece
 		     (cache-output-record redisplay-piece record unique-id id-test))
 		   (multiple-value-bind (x y)
-		       (stream-cursor-position* stream)
+		       (stream-cursor-position stream)
 		     (letf-globally (((stream-current-redisplay-record stream) record))
 		       (funcall continuation stream))
 		     (let ((position (output-record-old-cursor-position record)))

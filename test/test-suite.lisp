@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.14 92/03/24 19:38:02 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.15 92/04/10 14:27:18 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -812,7 +812,7 @@ people, shall not perish from the earth.
 	 (rect-width (- (floor width 11) 10))
 	 (spacing 8))
     (multiple-value-bind (x y)
-	(stream-cursor-position* stream)
+	(stream-cursor-position stream)
       (dotimes (i 11)
 	(stream-set-cursor-position* stream x y)
 	(write-string (format nil "~1$" (float (/ i 10))) stream)
@@ -1213,7 +1213,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-table-cell-test stream-cursor-position "multiple-value-bind, draw-rectangle"
   (multiple-value-bind (x y)
-      (stream-cursor-position* stream)
+      (stream-cursor-position stream)
     (draw-rectangle* stream x y (+ x 10) (+ y 10) :ink +yellow+)))
 
 (define-table-cell-test simple-surrounding "create record, query size, surround with rect"
@@ -2050,49 +2050,49 @@ Luke Luck licks the lakes Luke's duck likes."))
        (y start-y (+ y delta)))
       ((= y y-excursion))
     (declare (fixnum x y))
-    (window-set-viewport-position* stream x y)
+    (window-set-viewport-position stream x y)
     (force-output stream))
   (do ((x start-x)
        (y y-excursion (- y delta)))
       ((= y start-y))
     (declare (fixnum x y))
-    (window-set-viewport-position* stream x y)
+    (window-set-viewport-position stream x y)
     (force-output stream))
   (do ((x start-x (+ x delta))
        (y start-y))
       ((= x x-excursion))
     (declare (fixnum x y))
-    (window-set-viewport-position* stream x y)
+    (window-set-viewport-position stream x y)
     (force-output stream))
   (do ((x x-excursion (- x delta))
        (y start-y))
       ((= x start-x))
     (declare (fixnum x y))
-    (window-set-viewport-position* stream x y)
+    (window-set-viewport-position stream x y)
     (force-output stream)))
 
 (define-benchmark (text-scrolling) (stream)
   "Scroll a window full of text, horizontally and vertically"
   (multiple-value-bind (start-x start-y)
-      (window-viewport-position* stream)
+      (window-viewport-position stream)
     (repeat 25
       (write-string "Four score and seven years ago, our fathers..." stream)
       (terpri stream))
     (force-output stream)
-    (window-set-viewport-position* stream start-x start-y)
+    (window-set-viewport-position stream start-x start-y)
     (scroll-kernel stream start-x start-y 400 400 25)))
 
 (define-benchmark (graphics-scrolling) (stream)
   "Scroll a window full of graphics, horizontally and vertically"
   (multiple-value-bind (start-x start-y)
-      (window-viewport-position* stream)
+      (window-viewport-position stream)
     (line-drawing-kernel stream 20)
     (shape-drawing-kernel stream 10 nil :clear nil)
     (scroll-kernel stream start-x start-y 400 400 25)))
 
 (defun refresh-kernel (stream iterations start-x start-y)
   (force-output stream)
-  (window-set-viewport-position* stream start-x start-y)
+  (window-set-viewport-position stream start-x start-y)
   (repeat iterations
     (window-refresh stream)
     (force-output stream)))
@@ -2100,7 +2100,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (text-refresh) (stream)
   "Refresh a window full of text"
   (multiple-value-bind (start-x start-y)
-      (window-viewport-position* stream)
+      (window-viewport-position stream)
     (repeat 25
       (write-string "Four score and seven years ago, our fathers..." stream)
       (terpri stream))
@@ -2109,7 +2109,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (graphics-refresh) (stream)
   "Refresh a window full of graphics"
   (multiple-value-bind (start-x start-y)
-      (window-viewport-position* stream)
+      (window-viewport-position stream)
     (line-drawing-kernel stream 20)
     (shape-drawing-kernel stream 10 nil :clear nil)
     (refresh-kernel stream 5 start-x start-y)))
@@ -2213,7 +2213,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	((>= y 200))
       (do ((x 0 (+ x 15)))
 	  ((>= x 450))
-	(stream-set-pointer-position* stream x y)
+	(stream-set-pointer-position stream x y)
 	 (highlight-applicable-presentation
 	   *application-frame* stream input-context nil)))))
 
@@ -2222,7 +2222,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (defun draw-menu-benchmark (stream)
   (fresh-line stream)
   (multiple-value-bind (x0 y0)
-      (stream-cursor-position* stream)
+      (stream-cursor-position stream)
     (declare (ignore x0))
     (formatting-item-list (stream :move-cursor t)
       (dolist (item '(("Red" :value +red+)
@@ -2241,7 +2241,7 @@ Luke Luck licks the lakes Luke's duck likes."))
     (fresh-line stream)
     (force-output stream)
     (multiple-value-bind (x1 y1)
-	(stream-cursor-position* stream)
+	(stream-cursor-position stream)
       (declare (ignore x1))
       (values y0 y1))))
 
@@ -2254,7 +2254,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (repeat 10
 	(do ((y y0 (+ y 3)))
 	    ((>= y y1))
-	  (stream-set-pointer-position* stream 20 y)
+	  (stream-set-pointer-position stream 20 y)
 	  (highlight-applicable-presentation
 	    *application-frame* stream input-context nil))))))
 

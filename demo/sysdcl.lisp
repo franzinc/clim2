@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.6 92/03/24 19:38:22 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.7 92/04/10 14:27:37 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -22,26 +22,23 @@
 			    #+Allegro (frob-pathname "demo")
 			    #+CMU "/home/hornig/clim/rel-2/cmu/"
 			    #+CCL-2 "ccl;clim-2.0:fasls:"
-;;;; :needed-systems (clim-standalone)
-			    )
+   ;;--- :needed-systems (clim-standalone)
+   )
 
   ("packages")
   ("aaai-demo-driver" :load-before-compile ("packages"))
   ("listener"       :load-before-compile ("aaai-demo-driver" "packages"))
   ("graphics-demos" :load-before-compile ("aaai-demo-driver" "packages")
 		    :features (not Minima))
-  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
   ("cad-demo"	    :load-before-compile ("aaai-demo-driver" "packages")
 		    :features (not Minima))
   ("navdata"	    :load-before-compile ("packages")
 		    :features (not Minima))
   ("navfun"         :load-before-compile ("aaai-demo-driver" "navdata" "packages")
 		    :features (not Minima))
-  ("address-book"   :load-before-compile ("aaai-demo-driver"
-					  "packages"))
-  ("thinkadot"      :load-before-compile ("aaai-demo-driver"
-					  "packages"))
-  
+  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
+  ("address-book"   :load-before-compile ("aaai-demo-driver" "packages"))
+  ("thinkadot"      :load-before-compile ("aaai-demo-driver" "packages"))
   ("demo-prefill" :features (and (not Silica) (or Genera Cloe-Runtime))))
 
 #+Genera

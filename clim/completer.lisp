@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.4 92/03/04 16:21:17 cer Exp $
+;; $fiHeader: completer.lisp,v 1.5 92/03/10 10:12:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -22,6 +22,17 @@
 ;; This is just to prevent extraneous consing in COMPLETE-INPUT
 (defvar *magic-completion-gestures*
 	(append *completion-gestures* *help-gestures* *possibilities-gestures*))
+
+(define-presentation-type completer (&key stream function possibility-printer
+					  prefix location))
+
+(define-presentation-method presentation-typep (object (type completer))
+  (declare (ignore object))
+  nil)
+
+(define-presentation-method presentation-subtypep ((subtype completer) supertype)
+  (declare (ignore supertype))
+  t)
 
 (defun complete-input (stream function
 		       &key partial-completers allow-any-input possibility-printer
@@ -58,8 +69,15 @@
 	  (loop
 	    ;; Maybe these, as well as TOKEN and CH should be LET inside the loop...
 	    (setq unread nil return nil extend nil)
-	    (setq token (read-token stream))
-	    (setq ch (read-gesture :stream stream))	;don't care about wait functions
+	    (with-input-context (`(completer :stream ,stream
+					     :function ,function
+					     :possibility-printer ,possibility-printer
+					     :prefix ,stuff-so-far
+					     :location ,location)) ()
+	         (progn 
+		   (setq token (read-token stream))
+		   (setq ch (read-gesture :stream stream)))
+	      (t (beep)))
 	    (extend-vector stuff-so-far token)
 	    (cond ((null ch)
 		   (error "Null ch?"))
@@ -206,45 +224,6 @@
 		       (formatting-row (stream)
 			 (formatting-cell (stream)
 			   (print-possibility possibility stream)))))))))))))
-
-(defmacro completing-from-suggestions ((stream &rest options) &body body)
-  (declare (arglist (stream &key partial-completers allow-any-input possibility-printer)
-		    &body body))
-  (declare (values object success string nmatches))
-  #+Genera (declare (zwei:indentation 0 3 1 1))
-  (let ((string '#:string)
-	(action '#:action))
-    `(flet ((completing-from-suggestions-body (,string ,action)
-	      (suggestion-completer (,string :action ,action
-				     ,@(remove-keywords options '(:allow-any-input
-							       :possibility-printer)))
-		,@body)))
-       (declare (dynamic-extent #'completing-from-suggestions-body))
-       (complete-input ,stream #'completing-from-suggestions-body ,@options))))
-
-;; The second argument to the generator function is a function to be
-;; called on a string (and object and presentation type) to suggest
-;; that string.
-(defmacro suggestion-completer ((string &key action partial-completers) &body body)
-  #+Genera (declare (zwei:indentation 0 3 1 1))
-  (let ((function '#:function))
-    `(flet ((suggestion-completer-body (,string ,function)
-	      (declare (ignore ,string))
-	      (flet ((suggest (&rest args)
-		       (declare (dynamic-extent args))
-		       (apply ,function args)))
-		nil		;workaround broken compilers
-		,@body)))
-       (declare (dynamic-extent #'suggestion-completer-body))
-       (complete-from-generator ,string #'suggestion-completer-body
-				,partial-completers :action ,action))))
-
-;; Very few lisp compilers seem to be able to handle the case where this top-level
-;; macro is shadowed by the FLET in the continuation above.
-#+Genera
-(defmacro suggest (name &rest objects)
-  (declare (ignore name objects))
-  (error "You cannot use ~S outside of ~S" 'suggest 'completing-from-suggestions))
 
 (defvar *null-object* '#:null)
 

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.18 92/04/03 12:04:42 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.19 92/04/10 14:27:21 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -51,12 +51,12 @@
     (scrolling ()
 	       (make-pane 'interactor-pane))))
 
+
 (define-application-frame test-frame01 () ()
   (:command-table test-frame)
   (:pane 
     (scrolling ()
       (make-pane 'interactor-pane))))
-
 
 (define-application-frame test-frame2 () ()
   (:command-table test-frame)
@@ -182,9 +182,9 @@
 	(d 10))
     (accepting-values (stream :own-window own-window)
       (clim-internals::letf-globally (((stream-default-view stream)
-		       (if textual-view 
-			   +textual-dialog-view+
-			   (stream-default-view stream))))
+				       (if textual-view 
+					   +textual-dialog-view+
+					 (stream-default-view stream))))
 	(setq a (accept 'boolean  
 			:stream stream
 			:default a :prompt "a"))
@@ -236,7 +236,7 @@
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
 	      (surrounding-output-with-border (stream)
-		(clim-internals::with-output-as-gadget (stream)
+		(with-output-as-gadget (stream)
 		  (scrolling ()
 		    (make-pane 'interactor-pane)))))))))
 
@@ -345,7 +345,6 @@
 (defun slider-dragged-callback (slider value)
   (format t "~&Slider ~A dragged to ~S" (gadget-label slider) value))
 
-
 (defun text-field-changed (tf value)
   (format t "~&Text field ~A changed to ~S"  tf value))
 
@@ -364,6 +363,7 @@
 	  :prompt "Select an insect"))
   (describe bug))
 
+
 (define-application-frame tf100 
     () ()
     (:command-table test-frame)
@@ -380,6 +380,7 @@
 					  :value "harlqn sucks more"
 					  :ncolumns 30
 					  :nlines 10)))))
+
 
 (define-application-frame tf99 () ()
   (:command-table test-frame)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.4 92/04/10 14:27:34 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.5 92/04/14 15:30:01 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -42,6 +42,9 @@
 
 (defvar *label-text-style* #+Genera '(:fix :roman :small)
 			   #-Genera '(:fix :roman :normal))
+
+(defclass iconic-view (gadget-view) ())
+(defvar +iconic-view+ (make-instance 'iconic-view))
 
 
 ;;; Basic data structures - points and positions
@@ -220,11 +223,11 @@
   (draw-coastline *coastline*)
   (flet ((present-position (object)
 	   (present object (class-name (class-of object))
-		    :view +gadget-view+ :single-box t)))
+		    :view +iconic-view+ :single-box t)))
     (mapc #'present-position *position-list*))
   (flet ((present-route (object)
 	   (present object (class-name (class-of object))
-		    :view +gadget-view+ :single-box nil)))
+		    :view +iconic-view+ :single-box nil)))
     (mapc #'present-route *route-list*)
     (mapc #'present-route *victor-airway-list*)))
 
@@ -313,8 +316,8 @@
 (eval-when (compile load eval)
   (defclass named-intersection (named-position) ()))
 
-(defmethod draw-position ((named-intersection named-intersection) stream &optional label)
-  (with-slots (longitude latitude) named-intersection
+(defmethod draw-position ((intersection named-intersection) stream &optional label)
+  (with-slots (longitude latitude) intersection
     (multiple-value-bind (x y) (scale-coordinates longitude latitude)
       (rounding-coordinates (x y)
 	(let ((color-args (and (color-stream-p stream)
@@ -343,7 +346,7 @@
 
 (define-presentation-type ground-position ())
 
-(define-presentation-method present (object (type ground-position) stream (view gadget-view) &key)
+(define-presentation-method present (object (type ground-position) stream (view iconic-view) &key)
   (draw-position object stream))
 
 
@@ -354,7 +357,7 @@
   (let ((*print-object-readably* acceptably))
     (format stream "~A" (position-name object))))
 
-(define-presentation-method present (object (type named-position) stream (view gadget-view)
+(define-presentation-method present (object (type named-position) stream (view iconic-view)
 				     &key)
   (draw-position object stream
 		 (and (typep object 'named-position)
@@ -494,7 +497,7 @@
   (let ((*print-object-readably* acceptably))
     (format stream "~A" (route-name object))))
 
-(define-presentation-method present (object (type route) stream (view gadget-view) &key)
+(define-presentation-method present (object (type route) stream (view iconic-view) &key)
   (let ((drawing-args (if (color-stream-p stream)
 			  (list :ink +red+)
 			  '(:line-dashes t))))
@@ -522,7 +525,7 @@
   (let ((*print-object-readably* acceptably))
     (format stream "~A" (route-name object))))
 
-(define-presentation-method present (object (type victor-airway) stream (view gadget-view)
+(define-presentation-method present (object (type victor-airway) stream (view iconic-view)
 				     &key)
   (let ((drawing-args (if (color-stream-p stream)
 			  (list :ink +blue+)
@@ -1010,25 +1013,24 @@
     (multiple-value-bind (x y)
 	(scale-coordinates longitude latitude)
     (with-bounding-rectangle* (left top right bottom) (window-viewport window)
-      (window-set-viewport-position* window
-				     (max 0 (- (floor x) (floor (- right left) 2)))
-				     (max 0 (- (floor y) (floor (- bottom top) 2))))))))
+      (window-set-viewport-position window
+				    (max 0 (- (floor x) (floor (- right left) 2)))
+				    (max 0 (- (floor y) (floor (- bottom top) 2))))))))
 
 
 ;;; Flight-Planner user interface
 
 (define-application-frame Flight-Planner
-    ()
-  ((fp-window))
+			  ()
+    ((fp-window))
   (:panes 
-   (display (make-pane 'application-pane))
-   (interactor (make-pane 'interactor-pane)))
+    (display (make-pane 'application-pane))
+    (interactor (make-pane 'interactor-pane)))
   (:layout 
-   (default
-       (vertically 
-	()
-	(scrolling () display)
-	(scrolling () interactor)))))
+    (default
+      (vertically ()
+ 	(scrolling () display)
+ 	(scrolling () interactor)))))
 
 (define-Flight-Planner-command (com-Zoom-In :name t :menu t) ()
   (multiple-value-bind (longitude latitude)
@@ -1119,17 +1121,17 @@
     (ground-position
       (let ((new-position (query-new-position)))
 	(when new-position
-	  (present new-position 'ground-position :view +gadget-view+)
+	  (present new-position 'ground-position :view +iconic-view+)
 	  (push new-position *position-list*))))
     (route
       (let* ((new-route (query-new-route :route-start route-start)))
 	(when new-route
-	  (present new-route 'route :view +gadget-view+)
+	  (present new-route 'route :view +iconic-view+)
 	  (push new-route *route-list*))))
     (victor-airway
       (let ((new-victor-airway (query-new-victor-airway)))
 	(when new-victor-airway
-	  (present new-victor-airway 'victor-airway :view +gadget-view+)
+	  (present new-victor-airway 'victor-airway :view +iconic-view+)
 	  (push new-victor-airway *victor-airway-list*))))
     (aircraft
       (let ((new-aircraft (query-new-aircraft)))
@@ -1601,13 +1603,18 @@
 
 (defun customize-database ()
   ;; Airports
-  (add-position "HFD" 'airport (degminsec 41 44) (degminsec 72 39) 19  15 "Hartford-Brainard")
+  (add-position "HFD" 'airport
+		(degminsec 41 44) (degminsec 72 39) 19  15 "Hartford-Brainard")
  
-  ;; Named-Intersections
-  (add-position "DREEM" 'named-intersection (degminsec 42 21.6) (degminsec 71 44.3) 0 15 "DREEM")
-  (add-position "GRAYM" 'named-intersection (degminsec 42 06.1) (degminsec 72 01.9) 0 15 "GRAYM")
-  (add-position "WITNY" 'named-intersection (degminsec 42 03) (degminsec 72 14.2) 0 15 "WITNY")
-  (add-position "EAGRE" 'named-intersection (degminsec 41 45) (degminsec 72 20.6) 0 15 "EAGRE")
+  ;; Intersections
+  (add-position "DREEM" 'named-intersection
+		(degminsec 42 21.6) (degminsec 71 44.3) 0 15 "DREEM")
+  (add-position "GRAYM" 'named-intersection
+		(degminsec 42 06.1) (degminsec 72 01.9) 0 15 "GRAYM")
+  (add-position "WITNY" 'named-intersection
+		(degminsec 42 03) (degminsec 72 14.2) 0 15 "WITNY")
+  (add-position "EAGRE" 'named-intersection
+		(degminsec 41 45) (degminsec 72 20.6) 0 15 "EAGRE")
 
   ;; VOR's
 
@@ -1649,7 +1656,8 @@
 (defun run-flight-planner (&key reinit root)
   (let ((fp (cdr (assoc root *flight-planners*))))
     (when (or (null fp) reinit)
-      (setq fp (make-application-frame 'flight-planner :parent root))
+      (setq fp (make-application-frame 'flight-planner
+				       :width 1000 :height 800))
       (push (cons root fp) *flight-planners*))
     (run-frame-top-level fp)))
 

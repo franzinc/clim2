@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.7 92/03/04 16:19:36 cer Exp $
+;; $fiHeader: event.lisp,v 1.8 92/03/10 10:11:38 cer Exp $
 
 (in-package :silica)
 
@@ -225,8 +225,8 @@
 		       (dotimes (i (fill-pointer v) (fill-pointer v))
 			 (unless (zerop i)
 			   (multiple-value-setq (new-x new-y)
-			     (map-sheet-point*-to-child (aref v i) new-x new-y)))
-			 (unless (region-contains-point*-p 
+			     (map-sheet-position-to-child (aref v i) new-x new-y)))
+			 (unless (region-contains-position-p 
 				   (sheet-region (aref v i)) new-x new-y)
 			   (return i))))
 		     0)))
@@ -237,14 +237,14 @@
 	      (generate-enter-event (aref v (1- i)))))
 	  (setf (fill-pointer v) m)))
       ;; If its empty initialize it
-      (when (region-contains-point*-p (sheet-region sheet) x y)
+      (when (region-contains-position-p (sheet-region sheet) x y)
 	(when (zerop (fill-pointer v))
 	  (vector-push-extend sheet v)
 	  (generate-enter-event sheet))
 	;; We have to get the sheets into the correct coordinate space
 	(loop for i from (1+ (position sheet v)) below (fill-pointer v)
 	    do (multiple-value-setq (x y)
-		 (map-sheet-point*-to-child (aref v i) x y)))
+		 (map-sheet-position-to-child (aref v i) x y)))
 	;; Add children
 	(let ((new-x x)
 	      (new-y y)
@@ -253,13 +253,13 @@
 	  (loop
 	    (unless (typep sheet 'sheet-parent-mixin) 
 	      (return nil))
-	    (setq child (child-containing-point* sheet new-x new-y))
+	    (setq child (child-containing-position sheet new-x new-y))
 	    (unless child
 	      (return nil))
 	    (generate-exit-event sheet)
 	    (generate-enter-event child)
 	    (multiple-value-setq (new-x new-y)
-	      (map-sheet-point*-to-child child new-x new-y))
+	      (map-sheet-position-to-child child new-x new-y))
 	    (setq sheet child)
 	    (vector-push-extend child v)))))))
       
@@ -275,7 +275,7 @@
 		      (aref v (1- (fill-pointer v)))))))
     (when (and sheet (port sheet))
       (multiple-value-bind (tx ty)
-	  (untransform-point*
+	  (untransform-position
 	    (sheet-device-transformation sheet) x y)
 	(dispatch-event
 	  sheet

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.3 92/03/24 19:38:14 cer Exp Locker: cer $
+;; $fiHeader: address-book.lisp,v 1.4 92/04/10 14:27:28 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -38,18 +38,16 @@
   (setq *addresses* (sort *addresses* #'string-lessp :key #'address-last-name)))
 
 (progn
-  (add-address (make-address :name "Bill York"
-			     :address "ILA, Mountain View"
-			     :number "415-968-3656"))
-  (add-address (make-address :name "Dennis Doughty"
-			     :address "ILA, Cambridge"
-			     :number "617-576-1151"))
-  (add-address (make-address :name "Mark Son-Bell"
-			     :address "ILA, Cambridge"
-			     :number "617-576-1151"))
-  (add-address (make-address :name "Richard Lamson"
-			     :address "ILA, San Francisco"
-			     :number "415-661-5477")))
+  (add-address (make-address :name "Chris Richardson"
+			     :address "Franz Inc"
+			     :number "510-548-3600"))
+  (add-address (make-address :name "John Irwin"
+			     :address "Franz Inc"
+			     :number "510-548-3600"))
+  (add-address (make-address :name "Scott Mckay"
+			     :address "Symbolics Inc"
+			     :number "617-221-xxxx"))
+)
 
 ;;; --------------------------------
 ;;; Define the user interface here.
@@ -94,34 +92,32 @@
       (write-string number stream))))
 
 ;;; Define the application-frame for our application
-
 (define-application-frame address-book
-    ()
-  ;; This application has two state variables, the currently displayed
-  ;; address and the window from which user queries should be read.
-  ((current-address :initform nil)
-   (interaction-pane )
-   (name-pane))
-  
+			  ()
+    ;; This application has two state variables, the currently displayed
+    ;; address and the window from which user queries should be read.
+    ((current-address :initform nil)
+     (interaction-pane )
+     (name-pane))
   (:panes
-   (interactor
-    (scrolling ()
-	       (make-pane 'interactor-pane)))
-   (address
-    (scrolling ()
-	       (make-pane 'application-pane
-			     :incremental-redisplay t
-			     :display-function
-			     'display-current-address)))
-   (names
-    (scrolling ()
-	       (make-pane 'application-pane
-			     :incremental-redisplay t
-			     :display-function 'display-names))))
+    (interactor
+      (scrolling ()
+        (make-pane 'interactor-pane)))
+    (address
+      (scrolling ()
+        (make-pane 'application-pane
+		   :incremental-redisplay t
+		   :display-function 'display-current-address)))
+    (names
+      (scrolling ()
+        (make-pane 'application-pane
+		   :incremental-redisplay t
+		   :display-function 'display-names))))
   (:layout
-   (default
-       (vertically ()
-	(horizontally () address names)
+    (default
+      (vertically ()
+        (horizontally ()
+	  address names)
 	interactor))))
 
 ;;; This is the display-function for the upper-left pane, which specified 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.13 92/04/03 12:04:06 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.14 92/04/10 14:26:17 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -32,8 +32,6 @@
      (defmethod convert-resource-in ((parent t) (type (eql ',type)) value)
        (setq value (ash value -24))
        (elt ',elements value))))
-
-
 
 
 (defun set-values (widget &rest values)
@@ -63,6 +61,11 @@
 	(push (convert-resource-out parent (resource-type resource) value)
 	      new-args)))))
 
+
+(defmethod convert-resource-out (parent type value)
+  (cerror "Try again" "cannot convert-out resource for ~S,~S,~S" parent type value)
+  (convert-resource-out parent type value))
+
 (defmethod convert-resource-out :around (parent type value)
   (declare (optimize (speed 3))
 	   (ignore parent type value))
@@ -71,11 +74,6 @@
 	result
       (ff:foreign-pointer-address result))))
 
-(defmethod convert-resource-out (parent type value)
-  (cerror "Try again" "cannot convert-out resource for ~S,~S,~S" parent type value)
-  (convert-resource-out parent type value))
-
-
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
   (string_create_l_to_r (string-to-char* value) (string-to-char* "")))
 
@@ -83,8 +81,6 @@
   (ecase value
     (:vertical 1)
     (:horizontal 2)))
-
-
 
 (def-c-type (x-arglist :in-foreign-space) 1 :unsigned-long)
 

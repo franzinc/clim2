@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.5 92/03/04 16:21:30 cer Exp $
+;; $fiHeader: dragging-output.lisp,v 1.6 92/03/10 10:12:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,14 +29,14 @@
 	;; Clipping region for repainting the damaged region
 	(region (bounding-rectangle output-record)))
     (multiple-value-bind (initial-x initial-y)
-	(stream-pointer-position* stream)
+	(stream-pointer-position stream)
       (declare (type coordinate initial-x initial-y))
       (multiple-value-bind (x-offset y-offset)
 	  (convert-from-relative-to-absolute-coordinates
 	    stream (output-record-parent output-record))
 	(declare (type coordinate x-offset y-offset))
 	(multiple-value-bind (record-x record-y)
-	    (bounding-rectangle-position* output-record)
+	    (bounding-rectangle-position output-record)
 	  ;; Deltas are the position of the mouse in the local coordinate
 	  ;; system of the record
 	  (setq delta-x (- initial-x record-x)
@@ -52,7 +52,7 @@
 		   ;; because the user can be moving the pointer really fast,
 		   ;; causing FINISH to be called on coordinates which are
 		   ;; "before" the values of LAST-X/Y.
-		   (output-record-set-position* output-record (- x delta-x) (- y delta-y))
+		   (output-record-set-position output-record (- x delta-x) (- y delta-y))
 		   (when parent
 		     (add-output-record output-record parent)
 		     (tree-recompute-extent output-record))
@@ -78,9 +78,11 @@
 		         (funcall erase output-record stream)))
 		   (setq last-x x last-y y)
 		   ;; Remember the space the record used to occupy
-		   (setq region (bounding-rectangle output-record region))
+		   (with-bounding-rectangle* (rl rt rr rb) output-record
+		     (translate-coordinates x-offset y-offset rl rt rr rb)
+		     (bounding-rectangle-set-edges region rl rt rr rb))
 		   ;; Move the record
-		   (output-record-set-position* output-record (- x delta-x) (- y delta-y))
+		   (output-record-set-position output-record (- x delta-x) (- y delta-y))
 		   ;; Replay the region it used to live in, and then replay
 		   ;; the record in its new home.
 		   (when repaint

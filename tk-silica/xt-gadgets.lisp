@@ -20,21 +20,20 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.8 92/04/03 12:04:56 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.9 92/04/10 14:27:57 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
 (defclass ask-widget-for-size-mixin () ())
 
 (defmethod make-pane-1 ((framem xt-frame-manager)
-			   frame abstract-type &rest options)
+			frame abstract-type &rest options)
   (let ((type (apply #'make-pane-class framem abstract-type options)))
     (if type
 	(apply #'make-instance type 
 	       :frame frame
 	       :frame-manager framem
-	       (apply #'make-pane-arglist
-		      framem abstract-type options))
+	       (apply #'make-pane-arglist framem abstract-type options))
 	(call-next-method))))
 
 (defmethod compose-space ((pane ask-widget-for-size-mixin) &key width height)
@@ -131,6 +130,8 @@
 			ask-widget-for-size-mixin)
 	  ())
 
+;;--- This isn't really right.  Genera and CLX ports have kludges
+;;--- for the time being, too.
 (defmethod sheet-shell (sheet)
   (do ((w (sheet-mirror sheet) (tk::widget-parent w)))
       ((typep w '(or tk::shell null))

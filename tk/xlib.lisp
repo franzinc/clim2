@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.12 92/03/10 15:39:53 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.13 92/03/30 17:51:52 cer Exp $
 
 (in-package :tk)
 
@@ -80,8 +80,8 @@
 
 (defmethod drawable-backing-store ((window window))
   (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (display-handle (object-display window))
-			      (object-handle window)
+    (x11:xgetwindowattributes (object-display window)
+			      window
 			      attrs)
     (not (zerop (x11:xwindowattributes-backing-store attrs)))))
 
@@ -118,13 +118,14 @@
   (let ((s (string-to-char* (make-string 1000))))
     (x11::xgeterrortext display-handle code s 1000)
     (char*-to-string s)))
-
+      
 (defun setup-error-handlers ()
   (x11:xseterrorhandler (register-function 'x-error-handler))
   (x11:xsetioerrorhandler (register-function 'x-io-error-handler)))
 
 (eval-when (load)
   (setup-error-handlers))
+
 
 (defmethod display-root-window (display)
   (intern-object-xid
@@ -148,8 +149,7 @@
 
 (defclass color (ff:foreign-pointer) ())
 
-(defmethod initialize-instance :after ((x color) &key foreign-address red green
-				       blue)
+(defmethod initialize-instance :after ((x color) &key foreign-address red green blue)
   (unless foreign-address
     (setq foreign-address (x11::make-xcolor))
     (setf (x11::xcolor-red foreign-address) red
@@ -164,7 +164,7 @@
    (let ((cm o))
      (format s "~D,~D,~D"
 	     (x11:xcolor-red cm)
-	     (x11:xcolor-green  cm)
+	     (x11:xcolor-green cm)
 	     (x11:xcolor-blue cm)))))
 
 (defun lookup-color (colormap color-name)
@@ -181,8 +181,7 @@
 	      (make-instance 'color :foreign-address closest)))))
 
 (defun allocate-color (colormap x)
-  (let ((y (x11::make-xcolor))
-	(x x))
+  (let ((y (x11::make-xcolor)))
     (setf (x11:xcolor-red y) (x11:xcolor-red x)
 	  (x11:xcolor-green y) (x11:xcolor-green x)
 	  (x11:xcolor-blue y) (x11:xcolor-blue x))
@@ -227,11 +226,11 @@
 	  (values
 	   t
 	   (intern-object-xid
-	    (aref root 0)
+	    (aref root 0) 
 	    'window
 	    :display display)
 	   (intern-object-xid
-	    (aref child 0)
+	    (aref child 0) 
 	    'window
 	    :display display)
 	   (aref root-x 0)
@@ -341,7 +340,7 @@
        (x11:xlookupstring
 	event
 	buffer
-	2 
+	2
 	keysym
 	0)
        (prog1

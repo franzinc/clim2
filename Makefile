@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.20 92/04/03 12:04:47 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.21 92/04/10 14:27:40 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -143,8 +143,8 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/incremental-redisplay.fasl \
                         clim/coordinate-sorted-set.fasl \
                         clim/window-stream.fasl \
-                        clim/completer.fasl \
                         clim/ptypes1.fasl \
+                        clim/completer.fasl \
                         clim/presentations.fasl \
                         clim/translators.fasl \
                         clim/histories.fasl \
@@ -330,7 +330,8 @@ clim-small:	FORCE
 train	:	FORCE
 	$(ECHO) "\
 		(load \"/net/vapor/usr/tech/cer/stuff/misc/test-clim.lisp\") \
-		(clim-user::train-clim-2)" | $(CLIM) $(CLOPTS) -batch
+		(clim-user::train-clim-2) \
+		(exit 0) " | $(CLIM) $(CLOPTS) -batch
 
 # Misc
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.9 92/04/03 12:04:20 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.10 92/04/10 14:26:42 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1472,11 +1472,12 @@
     with-open-stream)
 
   (:export
-    ;; Geometry
+    ;; Regions
     +everywhere+
     +nowhere+
     area
     areap
+    coordinate
     ellipse
     ellipse-center-point
     ellipse-center-point*
@@ -1511,7 +1512,7 @@
     path
     pathp
     point
-    point-position*
+    point-position
     point-x
     point-y
     pointp
@@ -1534,7 +1535,7 @@
     rectangle-width
     rectanglep
     region
-    region-contains-point*-p
+    region-contains-position-p
     region-contains-region-p
     region-difference
     region-equal
@@ -1565,7 +1566,7 @@
     bounding-rectangle-min-x
     bounding-rectangle-min-y
     bounding-rectangle-p
-    bounding-rectangle-position*
+    bounding-rectangle-position
     bounding-rectangle-size
     bounding-rectangle-width
     bounding-rectangle-left
@@ -1606,7 +1607,7 @@
     scaling-transformation-p
     singular-transformation
     transform-distance
-    transform-point*
+    transform-position
     transform-rectangle*
     transform-region
     transformation
@@ -1616,7 +1617,7 @@
     transformationp
     translation-transformation-p
     untransform-distance
-    untransform-point*
+    untransform-position
     untransform-rectangle*
     untransform-region
     
@@ -1631,14 +1632,16 @@
     +shift-key+
     +super-key+
     add-watcher
+    allocate-medium
     bursting-input-queuer
     bury-sheet
-    child-containing-point
-    child-containing-point*
+    child-containing-position
     children-overlapping-rectangle*
     children-overlapping-region
     copy-event
+    deallocate-medium
     define-sheet-class
+    degraft-medium
     delegate-sheet-delegate
     delegate-sheet-input-mixin
     delete-watcher
@@ -1656,6 +1659,7 @@
     distribute-device-event
     distribute-event
     enable-mirror
+    engraft-medium
     enter-region
     event
     event-listen
@@ -1699,10 +1703,10 @@
     map-over-grafts
     map-over-ports
     map-over-sheets
-    map-sheet-bounding-rectangle*-to-child
-    map-sheet-bounding-rectangle*-to-parent
-    map-sheet-point*-to-child
-    map-sheet-point*-to-parent
+    map-sheet-position-to-child
+    map-sheet-position-to-parent
+    map-sheet-rectangle*-to-child
+    map-sheet-rectangle*-to-parent
     medium
     medium-background
     medium-clipping-region
@@ -1745,12 +1749,13 @@
     pointer-event-y
     pointer-exit-event
     pointer-motion-event
-    port-notify-user
     poll-pointer
     port
     port-keyboard-input-focus
+    port-notify-user
     port-properties
     port-server-path
+    port-type
     portp
     primitive-sheet-output-mixin
     process-next-event
@@ -1847,6 +1852,7 @@
     
     ;; Text styles
     *default-text-style*
+    *undefined-text-style*
     invoke-with-text-style
     make-device-font-text-style
     make-text-style
@@ -1922,7 +1928,7 @@
     port-draw-text*
     with-output-to-pixmap
     
-    ;; Color
+    ;; Colors
     +background-ink+
     +flipping-ink+
     +foreground-ink+
@@ -1943,7 +1949,7 @@
     opacity-value
     opacityp
     
-    ;; Patterns
+    ;; Designs
     compose-in
     compose-out
     compose-over
@@ -1958,7 +1964,7 @@
     cursor
     cursor-active
     cursor-focus
-    cursor-position*
+    cursor-position
     cursor-sheet
     cursor-state
     cursor-visibility
@@ -1975,13 +1981,13 @@
     stream-baseline
     stream-character-width
     stream-clear-output
-    stream-cursor-position*
+    stream-cursor-position
     stream-end-of-line-action
     stream-end-of-page-action
     stream-finish-output
     stream-force-output
     stream-fresh-line
-    stream-increment-cursor-position*
+    stream-increment-cursor-position
     stream-line-column
     stream-line-height
     stream-start-line-p
@@ -2015,18 +2021,18 @@
     invoke-with-output-recording-options
     invoke-with-output-to-output-record
     make-design-from-output-record
-    map-over-output-records-containing-point*
+    map-over-output-records-containing-position
     map-over-output-records-overlapping-region
     output-record
     output-record-children
     output-record-count
-    output-record-end-cursor-position*
-    output-record-hit-detection-rectangle*
+    output-record-end-cursor-position
+    output-record-hit-detection-rectangle
     output-record-p
     output-record-parent
-    output-record-position*
+    output-record-position
     output-record-refined-sensitivity-test
-    output-record-start-cursor-position*
+    output-record-start-cursor-position
     output-recording-stream
     output-recording-stream-p
     recompute-extent-for-changed-child
@@ -2146,9 +2152,16 @@
     updating-output-record-p
     
     ;; Extended input
+    *abort-gestures*
+    *accelerator-gestures*
     *input-wait-handler*
     *input-wait-test*
     *pointer-button-press-handler*
+    abort-gesture
+    abort-gesture-event
+    accelerator-gesture
+    accelerator-gesture-event
+    accelerator-gesture-numeric-argument
     add-gesture-name
     define-gesture-name
     delete-gesture-name
@@ -2164,7 +2177,7 @@
     pointer-buttons
     pointer-cursor
     pointer-port
-    pointer-position*
+    pointer-position
     pointer-sheet
     pointerp
     read-gesture
@@ -2176,7 +2189,7 @@
     stream-input-wait
     stream-listen
     stream-peek-char
-    stream-pointer-position*
+    stream-pointer-position
     stream-pointers
     stream-primary-pointer
     stream-read-char
@@ -2207,10 +2220,10 @@
     accept-method
     accept-present-default
     accept-present-default-method
+    apply-presentation-generic-function
     and
     blank-area
     boolean
-    call-presentation-generic-function
     call-presentation-menu
     call-presentation-translator
     character
@@ -2240,6 +2253,7 @@
     float
     form
     frame-document-highlighted-presentation
+    funcall-presentation-generic-function
     gadget-dialog-view
     gadget-menu-view
     gadget-view
@@ -2324,14 +2338,12 @@
     with-presentation-type-parameters
     
     ;; Input editing and completion
-    *abort-gestures*
     *activation-gestures*
     *completion-gestures*
     *delimiter-gestures*
     *help-gestures*
     *possibilities-gestures*
     *standard-activation-gestures*
-    abort-gesture
     activation-gesture-p
     complete-from-generator
     complete-from-possibilities
@@ -2369,6 +2381,7 @@
     write-token
     
     ;; Menus
+    draw-standard-menu
     menu-choose
     menu-choose-from-drawer
     menu-item
@@ -2385,6 +2398,7 @@
     accept-values-resynchronize
     accepting-values
     display-exit-boxes
+    invoke-accept-values-command-button
     
     ;; Command processor
     *command-argument-delimiters*
@@ -2465,6 +2479,7 @@
     application-pane
     client-setting
     command-enabled
+    command-menu-pane
     default-frame-top-level
     define-application-frame
     disable-frame
@@ -2487,6 +2502,7 @@
     frame-input-context-button-press-handler
     frame-maintain-presentation-histories
     frame-manager
+    frame-manager-frames
     frame-name
     frame-named-panes
     frame-pane
@@ -2516,8 +2532,6 @@
     pane-name
     pane-needs-redisplay
     panes-need-redisplay
-    pane-viewport
-    pane-viewport-region
     read-frame-command
     reconfigure-frame
     redisplay-frame-command-menu
@@ -2532,94 +2546,49 @@
     window-erase-viewport
     window-refresh
     window-viewport
-    window-viewport-position*
+    window-viewport-position
     with-application-frame
     with-frame-manager
     
     ;; Panes
     +fill+
+    allocate-space
+    bboard-pane
+    border-pane
     bordering
     change-space-requirement
     changing-space-requirements
     clim-stream-pane
     clim-stream-sheet
+    compose-space
+    hbox-pane
     horizontal-divider
     horizontally
+    hrack-pane
+    label-pane
     labelled
     lowering
     make-clim-pane
+    make-pane
+    make-pane-1
+    make-space-requirement
+    note-space-requirement-changed
+    outlined-pane
     outlining
     pane
     pane-background
     pane-foreground
+    pane-scroller
     pane-text-style
+    pane-viewport
+    pane-viewport-region
     raising
     make-pane
     make-pane-1
     restraining
+    restraining-pane
+    scroller-pane
     scrolling
-    spacing
-    tabling
-    text-editor
-    text-field
-    text-stream-pane
-    top-level-sheet
-    vertical-divider
-    vertically
-    viewport
-    with-look-and-feel-realization
-    
-    ;; Adaptive toolkit
-    activate-callback
-    armed-callback
-    cascade-button-menu-group
-    deactivate-gadget
-    disarmed-callback
-    drag-callback
-    gadget
-    gadget-alignment
-    gadget-client
-    gadget-id
-    gadget-indicator-type
-    gadget-label
-    gadget-orientation
-    gadget-min-value
-    gadget-max-value
-    gadget-range
-    gadget-range*
-    gadget-value
-    gadget-show-value-p
-    label-pane
-    menu-bar
-    note-gadget-activated
-    note-gadget-deactivated
-    push-button
-    push-button-show-as-default
-    radio-box
-    radio-box-current-selection
-    radio-box-selections
-    scrollbar
-    scroll-bar
-    scroll-bar-max-value
-    scroll-bar-min-value
-    scroll-bar-orientation
-    scroll-bar-page-increment
-    scroll-bar-unit-increment
-    slider
-    slider-max-value
-    slider-min-value
-    slider-orientation
-    slider-show-value
-    text-field
-    toggle-button
-    value-changed-callback
-    with-radio-box
-    
-    ;; Pane layout
-    allocate-space
-    compose-space
-    make-space-requirement
-    note-space-requirement-changed
     space-requirement
     space-requirement-height
     space-requirement-max-height
@@ -2627,7 +2596,84 @@
     space-requirement-min-height
     space-requirement-min-width
     space-requirement-width
+    spacing
+    spacing-pane
+    table-pane
+    tabling
+    text-stream-pane
+    top-level-sheet
+    vbox-pane
+    vertical-divider
+    vertically
+    viewport
+    viewport-viewport-region
+    vrack-pane
+    with-look-and-feel-realization
     
+    ;; Gadgets
+    action-gadget
+    activate-callback
+    activate-gadget
+    armed-callback
+    deactivate-gadget
+    disarmed-callback
+    drag-callback
+    gadget
+    gadget-activate-callback
+    gadget-armed-callback
+    gadget-client
+    gadget-disarmed-callback
+    gadget-id
+    gadget-indicator-type
+    gadget-label
+    gadget-label-align-x
+    gadget-label-align-y
+    gadget-label-text-style
+    gadget-min-value
+    gadget-max-value
+    gadget-orientation
+    gadget-output-record
+    gadget-orientation
+    gadget-min-value
+    gadget-max-value
+    gadget-range
+    gadget-range*
+    gadget-value
+    gadget-value-changed-callback
+    gadget-show-value-p
+    label-pane
+    labelled-gadget
+    menu-bar
+    menu-button
+    menu-button-pane
+    note-gadget-activated
+    note-gadget-deactivated
+    oriented-gadget
+    push-button
+    push-button-pane
+    push-button-show-as-default-p
+    radio-box
+    radio-box-current-selection
+    radio-box-pane
+    radio-box-selections
+    scroll-bar
+    scroll-bar-drag-callback
+    scroll-bar-pane
+    slider
+    slider-pane
+    slider-show-value-p
+    text-editor
+    text-editor-pane
+    text-field
+    text-field-pane
+    toggle-button
+    toggle-button-indicator-type
+    toggle-button-pane
+    value-changed-callback
+    value-gadget
+    with-output-as-gadget
+    with-radio-box
+
     ;; Encapsulating streams
     *original-stream*
     encapsulating-stream
@@ -2774,19 +2820,16 @@
 
   ;; Need to export these since we don't hack SETF* yet
   (:export
-    output-record-set-position*
-    cursor-set-position*
-    stream-set-cursor-position*
-    stream-set-pointer-position*
-    window-set-viewport-position*)
+    cursor-set-position
+    output-record-set-position
+    pointer-set-position
+    stream-set-cursor-position
+    stream-set-pointer-position
+    window-set-viewport-position)
 
   ;; Some extensions until we decide what to do...
   (:export
-    *accelerator-gestures*
     +iconic-view+
-    accelerator-gesture
-    accelerator-gesture-event
-    accelerator-gesture-numeric-argument
     accept-values-command-parser
     catch-abort-gestures
     convert-from-absolute-to-relative-coordinates
@@ -2796,15 +2839,17 @@
     convert-to-stream-coordinates
     copy-textual-output-history
     #+Genera define-genera-application
-    draw-standard-menu
     draw-triangle
     draw-triangle*
     drawing-surface-to-viewport-coordinates
+    fix-coordinate
+    fix-coordinates
     iconic-view
     open-root-window
     open-window-stream
     position-window-near-carefully
     stream-pointer-position-in-window-coordinates
+    translate-coordinates
     translate-positions
     viewport-to-drawing-surface-coordinates
     window-children
@@ -2846,10 +2891,14 @@
     add-output-record-element
     add-text-style-mapping
     blip-character-p
+    bounding-rectangle-position*
+    call-presentation-generic-function
     command-enabled-p
     compose-rotation-transformation
     compose-scaling-tansformation
     compose-translation-transformation
+    cursor-position*
+    cursor-set-position*
     delete-output-record-element
     dialog-view
     disable-command
@@ -2867,6 +2916,8 @@
     map-over-output-record-elements-overlapping-region
     menu-view
     output-record-end-position*
+    output-record-position*
+    output-record-set-position*
     output-record-set-end-position*
     output-record-set-start-position*
     output-record-start-position
@@ -2874,11 +2925,21 @@
     output-recording-stream-current-output-record-stack
     output-recording-stream-output-history
     output-recording-stream-replay
+    point-position*
+    pointer-set-position*
     pointer-event-shift-mask
+    pointer-position*
     set-frame-layout
+    stream-cursor-position*
+    stream-set-cursor-position*
     stream-draw-p
+    stream-increment-cursor-position*
+    stream-pointer-position*
+    stream-set-pointer-position*
     stream-record-p
     stream-vsp
+    window-viewport-position*
+    window-set-viewport-position*
     with-activation-characters
     with-blip-characters
     with-frame-state-variables))
@@ -2982,7 +3043,6 @@
     compile-time-property
     convert-to-device-coordinates
     convert-to-device-distances
-    coordinate
     define-class-mixture
     define-constructor
     define-constructor-using-prototype-instance
@@ -3003,8 +3063,7 @@
     gensymbol 
     get-compile-time-local-property
     ignore-arglist
-    integerize-coordinate
-    integerize-coordinates
+    +largest-coordinate+
     lambda-list-variables-used-in-body
     letf-globally
     letf-globally-if
@@ -3114,15 +3173,15 @@
     bounding-rectangle-position-difference
     bounding-rectangle-position-equal
     bounding-rectangle-set-edges
-    bounding-rectangle-set-position*
+    bounding-rectangle-set-position
     bounding-rectangle-set-size
     bounding-rectangle-shift-position
     bounding-rectangle-size-equal
-    position-difference*
+    position-difference
 
     ;; LTRBs
     ltrb-contains-ltrb-p
-    ltrb-contains-point*-p
+    ltrb-contains-position-p
     ltrb-difference
     ltrb-equals-ltrb-p
     ltrb-intersection
@@ -3196,31 +3255,24 @@
 
   (:export
     *all-drawing-options*
-    *default-text-style*
     *modifier-keys*
     *null-text-style*
     *pointer-buttons*
     *standard-character-set* 
     *undefined-text-style* 
     +highlighting-line-style+
-    action-gadget
     activate-gadget-event
     add-sheet-callbacks
     all-drawing-options-lambda-list
-    allocate-medium
-    bboard-pane
-    border-pane
     bury-mirror
     canvas
-    change-scrollbar-values
+    change-scroll-bar-values
     char-character-set-and-index
     char-width
     clear-space-requirement-caching-in-ancestors
     clear-space-requirement-caches-in-tree
     click-event
     client-overridability
-    command-menu-pane
-    deallocate-medium
     default-space-requirements
     define-character-face
     define-character-face-added-mappings
@@ -3229,30 +3281,18 @@
     define-graphics-function
     define-text-style-mappings
     define-text-style-mappings-1 
-    degraft-medium
     diacritic-char-p
     display-device 
-    engraft-medium
-    event
-    event-modifier-key-state
     find-port-type
     fit-region*-in-region*
-    frame-manager-frames
     frame-shell
     frame-wrapper
-    gadget-activate-callback
-    gadget-armed-callback
-    gadget-disarmed-callback
-    gadget-value-changed-callback
     get-drawing-function-description
     get-port-canonical-gesture-spec
     grid-pane
-    hbox-pane
-    hrack-pane
     intern-text-style
     invoke-callback-function
     label-button-pane
-    labelled-gadget
     line-editor-pane
     list-pane
     make-frame-manager
@@ -3272,10 +3312,7 @@
     move-sheet*
     mute-repainting-mixin
     non-drawing-option-keywords
-    oriented-gadget
     one-of-pane
-    outlined-pane
-    pane-scroller
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
     pointer-press-event
@@ -3296,23 +3333,16 @@
     port-modifier-state
     port-note-cursor-change
     port-pointer
-    port-server-path
-    port-type
     port-undefined-text-style
     port-write-char-1
     port-write-string-1
     process-event-locally
-    push-button-pane
-    radio-box-pane
     radio-button-pane
-    restraining-pane
     raise-mirror
     resize-sheet*
-    scrollbar-value-changed-callback
-    scroll-bar-pane
     scroll-extent
     scrollable-pane
-    scroller-pane
+    scroll-bar-value-changed-callback
     set-sheet-mirror-edges*
     shadow-pane
     sheet-actual-native-edges*
@@ -3321,10 +3351,8 @@
     sheet-shell
     sheet-top-level-mirror
     sheet-with-graphics-state
-    slider-pane
     space-requirement-components
     space-requirement-mixin
-    spacing-pane
     standard-sheet
     standard-sheet-input-mixin
     standardize-text-style 
@@ -3334,21 +3362,14 @@
     stream-write-string-1
     string-height 
     string-width 
-    table-pane
-    text-field-pane
     text-style-scale 
-    toggle-button-pane
     transform-distances
-    transform-point-sequence
-    transform-points
+    transform-position-sequence
+    transform-positions
     update-region
-    update-scrollbars
+    update-scroll-bars
     value-changed-gadget-event
-    value-gadget
-    vbox-pane
     viewport-region-changed
-    viewport-viewport-region
-    vrack-pane
     window-configuration-event
     window-repaint-event
     window-shift-visible-region))

@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-
-;; $fiHeader: coral-char-bits.lisp,v 1.3 92/02/24 13:05:27 cer Exp $
+;; $fiHeader: coral-char-bits.lisp,v 1.4 92/03/10 10:11:48 cer Exp $
 
 (in-package :clim-utils)
 
@@ -11,14 +10,14 @@
 ;; there ain't no such thing in ANSI CL.  Here in Coral, at least, we
 ;; can temporarily kludge around it.
 (defun %set-char-bits (ch b)
-  (declare (fixnum ch)) ; a lie
-  (let ((mask (ash b (- 8 3)))) ; fixnums are "shifted left" three bits
-    (declare (fixnum mask))
-    ; I'm so ashamed
+  (declare (type fixnum ch))			;a lie
+  (let ((mask (ash b (- 8 3))))		;fixnums are "shifted left" three bits
+    (declare (type fixnum mask))
+    ;; I'm so ashamed
     (logior ch mask)))
 
 (defun char-bits (ch)
-  (declare (fixnum ch))
+  (declare (type fixnum ch))
   ;; Extremely gross
   (ccl::lsh (logand ch (ash #x0000FF00 -3)) -5))
 
@@ -26,7 +25,7 @@
 (declaim (inline char=))
 
 (defun char= (ch1 ch2)
-  (declare (fixnum ch1 ch2))
+  (declare (type fixnum ch1 ch2))
   ;; Really gross!
   (ccl::require-type ch1 'character)
   (ccl::require-type ch2 'character)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.3 92/02/24 13:05:59 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.4 92/03/04 16:20:26 cer Exp $
 
 (in-package :clim-utils)
 
@@ -25,9 +25,9 @@
 (defgeneric compose-scaling-with-transformation (transform mx my &optional origin))
 (defgeneric compose-rotation-with-transformation (transform angle &optional origin))
 
-(defgeneric transform-point* (transform x y)
+(defgeneric transform-position (transform x y)
   (declare (values x y)))
-(defgeneric untransform-point* (transform x y)
+(defgeneric untransform-position (transform x y)
   (declare (values x y)))
 
 (defgeneric transform-distance (transform dx dy)
@@ -682,10 +682,10 @@
 
 ;;; Transforming and untransforming of points
 
-(defmethod transform-point* ((transform identity-transformation) x y)
+(defmethod transform-position ((transform identity-transformation) x y)
   (values x y))
 
-(defmethod transform-point* ((transform translation-transformation) x y)
+(defmethod transform-position ((transform translation-transformation) x y)
   (declare (type real x y))
   (let ((x (float x 0f0))
 	(y (float y 0f0)))
@@ -694,7 +694,7 @@
       (declare (type single-float tx ty))
       (values (+ x tx) (+ y ty)))))
 
-(defmethod transform-point* ((transform standard-transformation) x y)
+(defmethod transform-position ((transform standard-transformation) x y)
   (declare (type real x y))
   (let ((x (float x 0f0))
 	(y (float y 0f0)))
@@ -704,11 +704,16 @@
       (values (+ (* x mxx) (* y mxy) tx)
 	      (+ (* x myx) (* y myy) ty)))))
 
+#+CLIM-1-compatibility
+(define-compatibility-function (transform-point* transform-position)
+			       (transform x y)
+  (transform-position transform x y))
 
-(defmethod untransform-point* ((transform identity-transformation) x y)
+
+(defmethod untransform-position ((transform identity-transformation) x y)
   (values x y))
 
-(defmethod untransform-point* ((transform translation-transformation) x y)
+(defmethod untransform-position ((transform translation-transformation) x y)
   (declare (type real x y))
   (let ((x (float x 0f0))
 	(y (float y 0f0)))
@@ -717,9 +722,14 @@
       (declare (type single-float tx ty))
       (values (- x tx) (- y ty)))))
 
-(defmethod untransform-point* ((transform standard-transformation) x y)
+(defmethod untransform-position ((transform standard-transformation) x y)
   (declare (type real x y))
-  (transform-point* (slot-value transform 'inverse) x y))
+  (transform-position (slot-value transform 'inverse) x y))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (untransform-point* untransform-position)
+			       (transform x y)
+  (transform-position transform x y))
 
 
 ;;; Transforming and untransforming of distances

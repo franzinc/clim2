@@ -1,9 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: clx-frames.lisp,v 1.3 92/03/04 16:20:49 cer Exp $
+
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: clx-frames.lisp,v 1.3 92/03/04 16:20:49 cer Exp Locker: cer $
 
 
 (defclass clx-frame-manager (standard-frame-manager)
@@ -20,9 +21,9 @@
 	  (vertically ()
 	    (outlining ()
 	      (make-pane 'command-menu-pane
-			    :display-function 
-			      `(display-command-menu :command-table ,menu-bar)
-			    :width :compute :height :compute))
+			 :display-function 
+			   `(display-command-menu :command-table ,menu-bar)
+			 :width :compute :height :compute))
 	    pane))
 	pane)))
 
