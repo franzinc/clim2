@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Sat Mar 23 17:50:57 1996 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -133,6 +133,7 @@
 	  (dotimes (i n seq)
 	    (setf (elt seq i) (char*-to-string (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
+
 
 (defun list-font-names-with-info (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0 :int)

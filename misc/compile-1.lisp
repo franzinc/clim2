@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Thu Nov 10 02:16:15 1994 by smh]-
+;;				-[Mon Mar 18 19:27:39 1996 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -58,6 +58,7 @@
     (tenuring
      (excl:load-system sys))
 
+    #+ics
     (progn
       (excl:compile-system 'wnn :include-components t)
       (excl:load-system 'wnn))

@@ -1,27 +1,24 @@
-# $fiHeader: Makefile.sunx86,v 1.1 1996/01/23 06:46:25 duane Exp $
+# $fiHeader: Makefile.sun4-svr4,v 1.8 1995/10/17 05:00:59 colin Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
 
 include Makefile.defs
 
-# temp hack for sole
-TMP=/tmp
-
-Makefile=Makefile.sunx86
+Makefile=Makefile.linux86
 
 # for other Motif versions use
 # /net/sole/opt/ICS/Motif1.2.4/usr/include
 # /net/vapor/3rd/motif-1.2.2-sol2/ICS/Motif/usr/include
 
-XINCLUDES=-I/usr/openwin/include -I/usr/dt/include
+XINCLUDES=-I/usr/X11R6/include
 
-TKLIB=-lXm
+TKLIB=-L/usr/X11R6/lib -lXm
 XTLIB=-lXt
-XLIB=-lX11
+XLIB= -lXpm -lXext -lX11
 
 SET_LIBRARY_PATH= \
-  LD_LIBRARY_PATH=/usr/dt/lib:/usr/openwin/lib:/usr/lib; export LD_LIBRARY_PATH
+  LD_LIBRARY_PATH=/usr/X11R6/lib:/lib:/usr/lib:/usr/i486-linux/lib; export LD_LIBRARY_PATH
 
 # for other Motif versions use
 # /net/sole/opt/ICS/Motif1.2.4/usr/lib:/usr/lib
@@ -31,10 +28,15 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 # from here on this file should be the same as Makefile.sun4-svr4-ol
 
-MOTIFXTRAS=-lgen
+MOTIFXTRAS=
 
-PICFLAGS = -K pic
-SHAREFLAGS = -G
+PICFLAGS = -fPIC
+SHAREFLAGS = -shared
 MAKE_SHARED = ld
+STD_DEFINES = 
+AR = ar cq
+
+ICS-PRODUCT-OBJS = 
+ICS-PRODUCT-FASLS = 
 
 include Makefile.generic
