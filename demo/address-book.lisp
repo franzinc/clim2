@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.17 92/10/28 11:32:47 cer Exp Locker: cer $
+;; $fiHeader: address-book.lisp,v 1.18 92/10/28 13:17:32 cer Exp $
 
 (in-package :clim-demo)
 
@@ -148,26 +148,31 @@
 
 (define-address-book-command (com-new-address :menu "New")
     ()
-   (let ((name nil)
-	 (address nil)
-	 (number nil))
-     (let ((stream (frame-standard-input *application-frame*)))
-       (window-clear stream)
-       ;; ACCEPTING-VALUES collects all calls to ACCEPT within its body
-       ;; into dialog entries and allows parallel, random editing of the fields.
-       ;; In this case, a dialog that looks like:
-       ;;  Name: a string
-       ;;  Address: a string
-       ;;  Number: a string
-       ;; is produced, where each "a string" is sensitive and can be edited.
-       (accepting-values (stream)
-	 (setq name (accept 'string :stream stream :prompt "Name"))
-	 (terpri stream)
-	 (setq address (accept 'string :stream stream :prompt "Address"))
-	 (terpri stream)
-	 (setq number (accept 'string :stream stream :prompt "Number")))
-       (window-clear stream)
-       (add-address (make-address :name name :address address :number number)))))
+  (let ((name nil)
+	(address nil)
+	(number nil))
+    (let ((stream (frame-standard-input *application-frame*)))
+      (window-clear stream)
+      ;; ACCEPTING-VALUES collects all calls to ACCEPT within its body
+      ;; into dialog entries and allows parallel, random editing of the fields.
+      ;; In this case, a dialog that looks like:
+      ;;  Name: a string
+      ;;  Address: a string
+      ;;  Number: a string
+      ;; is produced, where each "a string" is sensitive and can be edited.
+      (accepting-values (stream)
+	(setq name (apply #'accept 'string :stream stream :prompt
+			  "Name" (and name (list :default name))))
+	(terpri stream)
+	(setq address (apply #'accept 'string :stream stream :prompt
+			     "Address" 
+			     (and address (list :default address))))
+	(terpri stream)
+	(setq number (apply #'accept 'string :stream stream :prompt
+			    "Number"
+			    (and number (list :default number)))))
+      (window-clear stream)
+      (add-address (make-address :name name :address address :number number)))))
 
 (define-address-book-command com-delete-address
     ((address 'address :gesture :delete))
