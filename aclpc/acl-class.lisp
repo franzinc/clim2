@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.11 1998/12/17 00:18:52 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.12 1999/01/08 07:07:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -806,12 +806,14 @@
   (setq *win-result* (win:DefWindowProc window msg wparam lparam))
   *win-result*)
 
+(defvar wres  (ct:callocate :long))
+(defvar wmsg  (ct:ccallocate win:msg))
+
 ;; Refer to the windows documentation on Tooltip controls.
 ;; The message stream needs to be relayed to the tooltip 
 ;; control for it to know when and where to display tool tips.
 (ff:defun-c-callable tooltip-relay (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0)
-	   (special wmsg)
 	   (optimize (safety 0) (speed 3)))
   (case msg
     ((#.win:WM_MOUSEMOVE 
@@ -1331,8 +1333,7 @@
       (win:SetScrollRange window win:SB_HORZ 0 *win-scroll-grain* 1))
     window))
 
-(defvar wres  (ct:callocate :long))
-(defvar wmsg  (ct:ccallocate win:msg))
+;; wres and wmsg move up in file to remove compile-time warning
 
 (defun wait-for-event ()
   (when (prog1

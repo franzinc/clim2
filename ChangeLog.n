@@ -16,9 +16,14 @@ Tests for new features:	<`no new features', `no tests for new features', or
 1999-01-07  Kevin Layer  <layer@ultra>
 
 	* Makefile.wnn: for redhat 5
+
 	* silica/classes.lisp: fix compile-time warning
 	* tk/font.lisp: fix compile-time warning
 	* utils/defun-utilities.lisp: fix compile-time warning
+
+	* aclpc/acl-class.lisp: fix compile-time warnings
+	* silica/scroll-pane.lisp: fix compile-time warnings
+	* utils/processes.lisp: fix compile-time warnings
 
 *******************************************************************************
 2.2.1.34

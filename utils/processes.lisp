@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: processes.lisp,v 1.20.22.3 1998/12/17 00:19:57 layer Exp $
+;; $Id: processes.lisp,v 1.20.22.4 1999/01/08 07:07:17 layer Exp $
 
 (in-package :clim-utils)
 
@@ -296,6 +296,7 @@
   }
   )
 
+#-mswindows
 (defun process-wait (wait-reason predicate)
   #+(or Genera Minima) (declare (dynamic-extent predicate))
   "Cause the current process to go to sleep until the predicate returns TRUE."
