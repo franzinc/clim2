@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Tue Apr 27 16:10:42 1993 by layer]-
+;;				-[Fri May 14 20:23:57 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -25,8 +25,10 @@
 (in-package :tk)
 
 (defun get-foreign-variable-value (x)
-  (let ((ep #+:hpprism (ff:get-extern-data-address x)
-	    #-:hpprism (ff:get-entry-point x)))
+  (let ((ep #+hpprism (ff:get-extern-data-address x)
+	    #-hpprism (ff:get-entry-point
+		       x
+		       #+svr4 :note-shared-library-references #+svr4  nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
 
