@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.19 1999/06/18 19:41:43 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.20 1999/06/23 15:25:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -147,12 +147,15 @@
   (declare (ignore width height))
   (with-slots (items name-key text-style visible-items
 		     initial-space-requirement) pane
-    (let ((name-width 0)
-	  (name-height 0)
-          (tsh 0)
-          (iwid (or (space-requirement-width initial-space-requirement) 0))
-          (ihgt (or (space-requirement-height initial-space-requirement) 0))
-	  )
+    (let* ((name-width 0)
+	   (name-height 0)
+	   (tsh 0)
+	   (iwid (or (space-requirement-width initial-space-requirement) 0))
+	   (ihgt (or (space-requirement-height initial-space-requirement) 0))
+	   (par (sheet-parent pane))
+	   (scroll-mode (and (acl-clim::scroller-pane-p par)
+			     (scroller-pane-scroll-bar-policy par)))
+	   )
       (multiple-value-setq (name-width tsh)
 	(compute-set-gadget-dimensions pane))
       (setq name-height (* (or visible-items (max (length items) 1))
@@ -161,9 +164,17 @@
           (setq name-width iwid)
           (setq name-width (max name-width iwid)))
       (setq name-height (max name-height ihgt))
-      (make-space-requirement
-        :width (+ name-width 20)
-        :height name-height))))
+
+      (let ((w (+ name-width 20))
+	    (h name-height))
+#+ign
+	(when (member scroll-mode '(:horizontal :both t :dynamic))
+	  (let ((wstx (win-scroll-thick :x)))
+	    ;; Allow for the horizontal scrollbar
+	    (setq h (+ h wstx))))
+	(make-space-requirement
+	 :width w
+	 :height h)))))
 
 (defmethod (setf set-gadget-items) :before (items (pane hlist-pane))
   ;; When items are set in an hlist-pane the  mirror must be
@@ -288,13 +299,13 @@
 	    (value (gadget-value pane))
 	    (min-h (process-height-specification pane '(1 :line))))
 	;; WIDTH
-	(cond (ncolumns
-	       (setq w (process-width-specification pane `(,ncolumns :character))))
-	      (initial-space-requirement
+	(cond (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
 			    75)))
+	      (ncolumns
+	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (process-width-specification pane value)))
 	      (t
@@ -307,13 +318,13 @@
 	(setq w (max w min-w))
 
 	;; HEIGHT
-	(cond (nlines
-	       (setq h (process-height-specification pane `(,nlines :line))))
-	      (initial-space-requirement
+	(cond (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
 			    25)))
+	      (nlines
+	       (setq h (process-height-specification pane `(,nlines :line))))
 	      ((stringp value)
 	       (setq h (process-height-specification pane value)))
 	      (t
@@ -407,21 +418,22 @@
 	(setq topline (acl-clim::frame-send-message 
 		       (pane-frame pane)
 		       mirror win:EM_GETFIRSTVISIBLELINE 0 0))
-	;; Don't redraw till I tell you:
+	;; Disable redraw to avoid flicker.
 	(acl-clim::frame-send-message
-	 (pane-frame pane)
-	 mirror win:WM_SETREDRAW 0 0)
+	 (pane-frame pane) mirror win:WM_SETREDRAW 0 0)
 	;; Here's the text:
 	(excl:with-native-string (s1 (xlat-newline-return new))
 	  (win:SetWindowText mirror s1))
 	;; Try to preserve the scroll position:
 	(acl-clim::frame-send-message
-	 (pane-frame pane)
-	 mirror win:EM_LINESCROLL leftchar topline)
-	;; Redraw now:
+	 (pane-frame pane) mirror win:EM_LINESCROLL leftchar topline)
+	;; Enable redraw
 	(acl-clim::frame-send-message
-	 (pane-frame pane)
-	 mirror win:WM_SETREDRAW 1 0)
+	 (pane-frame pane) mirror win:WM_SETREDRAW 1 0)
+	;; Force redraw
+	(win:InvalidateRect mirror 0 win:TRUE)
+	(or (win:UpdateWindow mirror)	; send a WM_PAINT message
+	    (acl-clim::check-last-error "UpdateWindow" :action :warn))
 	))))
 
 (defmethod gadget-value ((pane mswin-text-edit))
@@ -540,13 +552,13 @@
 	;; WIDTH
 	(cond (parent-viewport-p
 	       (setq w (process-width-specification pane width)))
-	      (ncolumns
-	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
 			    75)))
+	      (ncolumns
+	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (process-width-specification pane value)))
 	      (t
@@ -556,13 +568,13 @@
 	;; HEIGHT
 	(cond (parent-viewport-p
 	       (setq h (process-height-specification pane height)))
-	      (nlines
-	       (setq h (process-height-specification pane `(,nlines :line))))
 	      (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
 			    25)))
+	      (nlines
+	       (setq h (process-height-specification pane `(,nlines :line))))
 	      ((stringp value)
 	       (setq h (process-height-specification pane value)))
 	      (t

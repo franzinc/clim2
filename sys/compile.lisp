@@ -15,11 +15,13 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile.lisp,v 1.5.22.5 1999/01/30 19:12:53 layer Exp $
+;; $Id: compile.lisp,v 1.5.22.6 1999/06/23 15:25:24 layer Exp $
 
 (in-package :user)
 
 (set-case-mode :case-insensitive-upper)
+
+(proclaim '(optimize (speed 3) (safety 1) (debug 1)))
 
 #+(and allegro microsoft-32)
 (eval-when (compile load eval) 

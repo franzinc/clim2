@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ico.lisp,v 1.24.22.3 1999/06/18 19:41:45 layer Exp $
+;; $Id: ico.lisp,v 1.24.22.4 1999/06/23 15:25:21 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
@@ -209,7 +209,7 @@
 (defconstant ico-w/2 (floor ico-w 2))
 (defconstant ico-h/2 (floor ico-h 2))
 
-(defun run-ico (frame &optional (count 1000000))
+(defun run-ico (frame &optional (count 1000))
   (let* ((pane  (frame-target frame))
 	 (medium (sheet-medium pane))
 	 (win-w (bounding-rectangle-width pane))
@@ -232,62 +232,62 @@
 		     #-(or xlib-ignore genera) drawable))
 
     (with-slots (draw-faces draw-edges ico-buffers inks0 inks1 inks2 inks3) frame
-      (ecase *ico-mode*
-	(:clim)
-	(:dont))
+		(ecase *ico-mode*
+		  (:clim)
+		  (:dont))
 
-      (window-clear pane)
-      (dotimes (i count)
-	(let* ((ico-buffers ico-buffers)
-	       (inks0 inks0)
-	       (inks1 inks1)
-	       (inks2 inks2)
-	       (inks3 inks3)
-	       (buffer (mod i ico-buffers)))
-	  (multiple-value-setq (edges face-list)
-	    (calculate-ico ico-x ico-y draw-edges draw-faces edges face-list))
-	  ;; Draw ICO
-	  (ecase *ico-mode*
-	    (:clim
-	     (with-drawing-options (medium :draw-p t :record-p nil)
+		(window-clear pane)
+		(dotimes (i count)
+		  (let* ((ico-buffers ico-buffers)
+			 (inks0 inks0)
+			 (inks1 inks1)
+			 (inks2 inks2)
+			 (inks3 inks3)
+			 (buffer (mod i ico-buffers)))
+		    (multiple-value-setq (edges face-list)
+		      (calculate-ico ico-x ico-y draw-edges draw-faces edges face-list))
+		    ;; Draw ICO
+		    (ecase *ico-mode*
+		      (:clim
+		       (with-drawing-options (medium :draw-p t :record-p nil)
 
-	       (draw-rectangle* medium 0 0 win-w win-h 
-				:ink (svref inks0 buffer) 
-				:filled t)
-	       (when draw-edges
-		 (draw-lines* medium edges :ink (svref inks1 buffer)
-			      :line-thickness
-			      (ecase (slot-value frame 'ico-line-style)
-				(:thick 5)
-				(:thin nil))))
-	       (when draw-faces
-		 (do ((f face-list (cdr (cdddr (cdddr f)))))
-		     ((null f))
-		   (draw-polygon* medium (subseq f 1 7)
-				  :closed t
-				  :filled t
-				  :ink (if (oddp (car f))
-					   (svref inks2 buffer)
-					 (svref inks3 buffer)))))
-	       (when (> ico-buffers 1)
-		 (with-delayed-recoloring
-		     (setf (layered-color-color (svref inks0 buffer)) *background-color*
-			   (layered-color-color (svref inks1 buffer)) *line-color*
-			   (layered-color-color (svref inks2 buffer)) *face1-color*
-			   (layered-color-color (svref inks3 buffer)) *face2-color*)))
-	       (medium-force-output medium)))
-	    (:dont))
+					     (draw-rectangle* medium 0 0 win-w win-h 
+							      :ink (svref inks0 buffer) 
+							      :filled t)
+					     (when draw-edges
+					       (draw-lines* medium edges :ink (svref inks1 buffer)
+							    :line-thickness
+							    (ecase (slot-value frame 'ico-line-style)
+							      (:thick 5)
+							      (:thin nil))))
+					     (when draw-faces
+					       (do ((f face-list (cdr (cdddr (cdddr f)))))
+						   ((null f))
+						 (draw-polygon* medium (subseq f 1 7)
+								:closed t
+								:filled t
+								:ink (if (oddp (car f))
+									 (svref inks2 buffer)
+								       (svref inks3 buffer)))))
+					     (when (> ico-buffers 1)
+					       (with-delayed-recoloring
+						(setf (layered-color-color (svref inks0 buffer)) *background-color*
+						      (layered-color-color (svref inks1 buffer)) *line-color*
+						      (layered-color-color (svref inks2 buffer)) *face1-color*
+						      (layered-color-color (svref inks3 buffer)) *face2-color*)))
+					     (medium-force-output medium)))
+		      (:dont))
 
-	  (setq prev-x ico-x
-		prev-y ico-y)
-	  (incf ico-x ico-dx)
-	  (when (or (< ico-x 0) (> ico-x xtop))
-	    (decf ico-x (* ico-dx 2))
-	    (setq ico-dx (- ico-dx)))
-	  (incf ico-y ico-dy)
-	  (when (or (< ico-y 0) (> ico-y ytop))
-	    (decf ico-y (* ico-dy 2))
-	    (setq ico-dy (- ico-dy))))))))
+		    (setq prev-x ico-x
+			  prev-y ico-y)
+		    (incf ico-x ico-dx)
+		    (when (or (< ico-x 0) (> ico-x xtop))
+		      (decf ico-x (* ico-dx 2))
+		      (setq ico-dx (- ico-dx)))
+		    (incf ico-y ico-dy)
+		    (when (or (< ico-y 0) (> ico-y ytop))
+		      (decf ico-y (* ico-dy 2))
+		      (setq ico-dy (- ico-dy))))))))
 
 
 ;;;

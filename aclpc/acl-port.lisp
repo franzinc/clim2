@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.16 1999/06/18 19:41:41 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.17 1999/06/23 15:25:18 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -828,7 +828,8 @@
 
 ;; Redefine function from utils/processes.lisp.
 (defun clim-utils::process-wait (state function &rest args)
-  (declare (dynamic-extent function args))
+  (declare (dynamic-extent function args)
+	   (optimize (speed 3) (safety 0)))
   #+someday
   (apply #'mp:process-wait state function args)
   (let ((result nil))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.20 1999/06/22 21:40:28 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.21 1999/06/23 15:25:18 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -566,58 +566,66 @@ draw icons and mouse cursors on the screen.
   (error "Compositing is not supported."))
 
 (defmethod medium-draw-point* ((medium acl-medium) x y)
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-	(when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (medium-line-style medium)))
-	    (convert-to-device-coordinates transform x y)
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      ;;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
-	      (win:moveToEx dc x y null)
-	      (win:lineTo dc (+ x 1) (+ y 1))
-	      (when (valid-handle old) (SelectObject dc old))
-	      )))))))
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (medium-line-style medium)))
+	      (if (identity-transformation-p transform)
+		  (fix-coordinates x y)
+		(convert-to-device-coordinates transform x y))
+	      (with-set-dc-for-ink (dc medium ink line-style)
+		;;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
+		(win:moveToEx dc x y null)
+		(win:lineTo dc (+ x 1) (+ y 1))
+		(when (valid-handle old) (SelectObject dc old))
+		))))))))
 
 (defmethod medium-draw-points* ((medium acl-medium) position-seq)
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-	(when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (medium-line-style medium))
-		 (L (length position-seq)))
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      (do ((i 0 (+ i 2))
-		   (j 1 (+ j 2)))
-		  ((>= i L))
-		(let ((x (elt position-seq i))
-		      (y (elt position-seq j)))
-		  (convert-to-device-coordinates transform x y)
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (medium-line-style medium))
+		   (L (length position-seq)))
+	      (with-set-dc-for-ink (dc medium ink line-style)
+		(do ((i 0 (+ i 2))
+		     (j 1 (+ j 2)))
+		    ((>= i L))
+		  (let ((x (elt position-seq i))
+			(y (elt position-seq j)))
+		    (convert-to-device-coordinates transform x y)
 					;(win:rectangle dc x y x y)
-		  (win:moveToEx dc x y null)
-		  (win:lineTo dc (+ x 1) (+ y 1))))
-	      (when (valid-handle old) (SelectObject dc old)))))))))
+		    (win:moveToEx dc x y null)
+		    (win:lineTo dc (+ x 1) (+ y 1))))
+		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-line* ((medium acl-medium) x1 y1 x2 y2)
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-	(when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (medium-line-style medium)))
-	    (convert-to-device-coordinates transform x1 y1 x2 y2)
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      (win:moveToEx dc x1 y1 null)
-	      (win:lineTo dc x2 y2)
-	      (when (valid-handle old) (SelectObject dc old)))))))))
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (medium-line-style medium)))
+	      (convert-to-device-coordinates transform x1 y1 x2 y2)
+	      (with-set-dc-for-ink (dc medium ink line-style)
+		(win:moveToEx dc x1 y1 null)
+		(win:lineTo dc x2 y2)
+		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
   #+slow-but-sure
@@ -628,155 +636,158 @@ draw icons and mouse cursors on the screen.
 	   (clim:medium-draw-line* medium oldx oldy x y))
 	 (setq oldx x oldy y))
      position-seq))
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-        (when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (medium-line-style medium)))
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      (let ((init t))
-		(declare (optimize (speed 3) (safety 0)))
-		(labels ((visit1 (x y)
-			   (fix-coordinates x y)
-			   (cond (init
-				  (win:MoveToEx dc x y null)
-				  (setq init nil))
-				 (t
-				  (win:LineTo dc x y))))
-			 (visit2 (x y)
-			   (convert-to-device-coordinates transform x y)
-			   (cond (init
-				  (win:MoveToEx dc x y null)
-				  (setq init nil))
-				 (t
-				  (win:LineTo dc x y)))))
-		  (declare (dynamic-extent #'visit1 #'visit2))
-		  (if (identity-transformation-p transform)
-		      (silica:map-position-sequence #'visit1 position-seq)
-		    (silica:map-position-sequence #'visit2 position-seq))))
-	      (when (valid-handle old) (SelectObject dc old)))))))))
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (medium-line-style medium)))
+	      (with-set-dc-for-ink (dc medium ink line-style)
+		(let ((init t))
+		  (declare (optimize (speed 3) (safety 0)))
+		  (labels ((visit1 (x y)
+			     (fix-coordinates x y)
+			     (cond (init
+				    (win:MoveToEx dc x y null)
+				    (setq init nil))
+				   (t
+				    (win:LineTo dc x y))))
+			   (visit2 (x y)
+			     (convert-to-device-coordinates transform x y)
+			     (cond (init
+				    (win:MoveToEx dc x y null)
+				    (setq init nil))
+				   (t
+				    (win:LineTo dc x y)))))
+		    (declare (dynamic-extent #'visit1 #'visit2))
+		    (if (identity-transformation-p transform)
+			(silica:map-position-sequence #'visit1 position-seq)
+		      (silica:map-position-sequence #'visit2 position-seq))))
+		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-rectangle* ((medium acl-medium)
 				   left top right bottom filled)
   (declare (fixnum left top right bottom)
 	   (optimize (speed 3) (safety 0)))
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc) 
-      (with-selected-acl-dc (old) 
-	(medium window dc)
-	(when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (and (not filled) (medium-line-style medium))))
-	    (convert-to-device-coordinates transform
-					   left top right bottom)
-	    (when (< right left) (rotatef right left))
-	    (when (< bottom top) (rotatef bottom top))
-	    (cond ((isa-pattern ink)
-		   ;; DRAW-PATTERN* ends up here.  In principle
-		   ;; we could skip this case and rely on the "brush"
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc) 
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (and (not filled) (medium-line-style medium))))
+	      (convert-to-device-coordinates transform
+					     left top right bottom)
+	      (when (< right left) (rotatef right left))
+	      (when (< bottom top) (rotatef bottom top))
+	      (cond ((isa-pattern ink)
+		     ;; DRAW-PATTERN* ends up here.  In principle
+		     ;; we could skip this case and rely on the "brush"
 		   ;; to correctly paint the rectangle.  In practice,
-		   ;; this case is needed to correctly render patterns
-		   ;; larger than 8x8, due to limitations of CreatePatternBrush.
-		   (let ((cdc nil))
-		     (with-dc-image-for-ink (dc-image) 
-		       (medium ink)
+		     ;; this case is needed to correctly render patterns
+		     ;; larger than 8x8, due to limitations of CreatePatternBrush.
+		     (let ((cdc nil))
+		       (with-dc-image-for-ink (dc-image) 
+			 (medium ink)
 			
-		       ;; Create compatable memory dc
-		       (setq cdc (win:createcompatibledc dc))
-		       (assert (valid-handle cdc))	
-		       (cond ((listp dc-image)
-			      ;; This is the case of a pattern that contains transparent ink.
-			      ;; Windows does not support transparent ink directly.
-			      ;; You can do this by creating two pictures, 
-			      ;; one with white in the transparent area (The Picture)
-			      ;; and the other with black in the transparent area. (The Mask)
-			      ;; Then use the bitblt API to blit the picture with
-			      ;; the SRCAND (&h8800c6) flag.  Then blit the mask in the 
-			      ;; same location with the SRCOR (&hee0086) flag.
-			      (let* ((dci-pict (first dc-image))
-				     (dci-mask (second dc-image))
-				     (pictbm (dc-image-bitmap dci-pict))
-				     (maskbm (dc-image-bitmap dci-mask)))
+			 ;; Create compatable memory dc
+			 (setq cdc (win:createcompatibledc dc))
+			 (assert (valid-handle cdc))	
+			 (cond ((listp dc-image)
+				;; This is the case of a pattern that contains transparent ink.
+				;; Windows does not support transparent ink directly.
+				;; You can do this by creating two pictures, 
+				;; one with white in the transparent area (The Picture)
+				;; and the other with black in the transparent area. (The Mask)
+				;; Then use the bitblt API to blit the picture with
+				;; the SRCAND (&h8800c6) flag.  Then blit the mask in the 
+				;; same location with the SRCOR (&hee0086) flag.
+				(let* ((dci-pict (first dc-image))
+				       (dci-mask (second dc-image))
+				       (pictbm (dc-image-bitmap dci-pict))
+				       (maskbm (dc-image-bitmap dci-mask)))
+				  ;; select a (Device-Dependent) bitmap into the dc
+				  (when (valid-handle pictbm) (SelectObject cdc pictbm))
+				  ;; Copy bitmap from memory dc to screen dc
+				  (win:bitblt dc left top (- right left) (- bottom top)
+					      cdc 0 0 
+					      win:SRCAND)
+			 
+				  (when (valid-handle maskbm) (SelectObject cdc maskbm))
+				  (win:bitblt dc left top (- right left) (- bottom top)
+					      cdc 0 0 
+					      acl-clim::SRCOR)))
+			       (t
 				;; select a (Device-Dependent) bitmap into the dc
-				(when (valid-handle pictbm) (SelectObject cdc pictbm))
+				(let ((bm (dc-image-bitmap dc-image)))
+				  (when (valid-handle bm) (SelectObject cdc bm)))
 				;; Copy bitmap from memory dc to screen dc
 				(win:bitblt dc left top (- right left) (- bottom top)
-					    cdc 0 0 
-					    win:SRCAND)
-			 
-				(when (valid-handle maskbm) (SelectObject cdc maskbm))
-				(win:bitblt dc left top (- right left) (- bottom top)
-					    cdc 0 0 
-					    acl-clim::SRCOR)))
-			     (t
-			      ;; select a (Device-Dependent) bitmap into the dc
-			      (let ((bm (dc-image-bitmap dc-image)))
-				(when (valid-handle bm) (SelectObject cdc bm)))
-			      ;; Copy bitmap from memory dc to screen dc
-			      (win:bitblt dc left top (- right left) (- bottom top)
-					  cdc 0 0 win:SRCCOPY)))
-		       ;; Delete memory dc
-		       (win:deletedc cdc)
-		       (when (valid-handle old) (SelectObject dc old))))
-		   t)
-		  (t
-		   (let ((*the-dc* dc))
-		     (with-set-dc-for-ink (dc medium ink
-					      (if filled nil line-style)
-					      left top)
-		       (if filled
-			   (win:rectangle dc left top (1+ right) (1+ bottom))
-			 (win:rectangle dc left top right bottom))
-		       (when (valid-handle old) (SelectObject dc old))
-		       t
-		       ))))))))))
+					    cdc 0 0 win:SRCCOPY)))
+			 ;; Delete memory dc
+			 (win:deletedc cdc)
+			 (when (valid-handle old) (SelectObject dc old))))
+		     t)
+		    (t
+		     (let ((*the-dc* dc))
+		       (with-set-dc-for-ink (dc medium ink
+						(if filled nil line-style)
+						left top)
+			 (if filled
+			     (win:rectangle dc left top (1+ right) (1+ bottom))
+			   (win:rectangle dc left top right bottom))
+			 (when (valid-handle old) (SelectObject dc old))
+			 t
+			 )))))))))))
 
 (defmethod medium-draw-rectangles* ((medium acl-medium) position-seq filled)
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-        (when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (and (not filled) (medium-line-style medium)))
-		 (numrects (floor (length position-seq) 4))
-		 (rect -1))
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      (dotimes (i numrects)
-		(let ((left (elt position-seq (incf rect)))
-		      (top (elt position-seq (incf rect)))
-		      (right (elt position-seq (incf rect)))
-		      (bottom (elt position-seq (incf rect))))
-		  (convert-to-device-coordinates transform
-						 left top right bottom)
-		  (when (< right left) (rotatef right left))
-		  (when (< bottom top) (rotatef bottom top))
-		  (if filled
-		      (win:rectangle dc left top (1+ right) (1+ bottom))
-		    (win:rectangle dc left top right bottom))))
-	      (when (valid-handle old) (SelectObject dc old)))))))))
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (and (not filled) (medium-line-style medium)))
+		   (numrects (floor (length position-seq) 4))
+		   (rect -1))
+	      (with-set-dc-for-ink (dc medium ink line-style)
+		(dotimes (i numrects)
+		  (let ((left (elt position-seq (incf rect)))
+			(top (elt position-seq (incf rect)))
+			(right (elt position-seq (incf rect)))
+			(bottom (elt position-seq (incf rect))))
+		    (convert-to-device-coordinates transform
+						   left top right bottom)
+		    (when (< right left) (rotatef right left))
+		    (when (< bottom top) (rotatef bottom top))
+		    (if filled
+			(win:rectangle dc left top (1+ right) (1+ bottom))
+		      (win:rectangle dc left top right bottom))))
+		(when (valid-handle old) (SelectObject dc old))))))))))
 
-(defparameter *point-vector* (ff:allocate-fobject `(:array :long 100) :foreign-static-gc))
+(defparameter *point-vector* 
+    (ff:allocate-fobject `(:array :long 100) :foreign-static-gc))
 
-(eval-when (compile eval load)
-  ;; this type useful since we don't open code anonymous types well yet:
-  (ff:def-foreign-type foreign-long-array (:array :long 1))
-  )
+(defparameter *point-vector-type* 
+    (ff:compile-foreign-type `(:array :long 100)))
 
 (defun set-point (vector i x)
   (declare (optimize (speed 3) (safety 0))
-	   (type (SIMPLE-ARRAY EXCL:FOREIGN (101)) vector)
-	   (fixnum i)
-	   (type excl:foreign x))
-  (setf (ff:fslot-value-typed 'foreign-long-array :foreign-static-gc
+	   (fixnum i))
+  (setf (ff:fslot-value-typed *point-vector-type* :foreign-static-gc
 			      vector i)
-    x))
+    x)
+  nil)
 
 (defun fill-point-vector (vector transform position-seq closed)
   (declare (optimize (speed 3) (safety 0)))
@@ -796,15 +807,15 @@ draw icons and mouse cursors on the screen.
       (declare (dynamic-extent #'visit1 #'visit2))
       (if (identity-transformation-p transform)
 	  (silica:map-position-sequence #'visit1 position-seq)
-	  (silica:map-position-sequence #'visit2 position-seq))
+	(silica:map-position-sequence #'visit2 position-seq))
       (when closed
 	;; Make the first point be the last.
 	(set-point vector i 
-		   (ff:fslot-value-typed 'foreign-long-array :foreign
+		   (ff:fslot-value-typed *point-vector-type* :foreign
 					 vector 0))
 	(incf i)
 	(set-point vector i 
-		   (ff:fslot-value-typed 'foreign-long-array :foreign
+		   (ff:fslot-value-typed *point-vector-type* :foreign
 					 vector 1))
 	(incf i))
       i)))
@@ -834,14 +845,15 @@ draw icons and mouse cursors on the screen.
       t)))
 
 (defmethod medium-draw-polygon* ((medium acl-medium) position-seq closed filled)
-  (let ((window (medium-drawable medium))
-	(length (length position-seq)))
-    (assert (evenp length))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) 
-	(medium window dc)
-	(when old
-	  (draw-polygon-1 medium position-seq dc filled closed old))))))
+  (without-scheduling
+    (let ((window (medium-drawable medium))
+	  (length (length position-seq)))
+      (assert (evenp length))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (draw-polygon-1 medium position-seq dc filled closed old)))))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))
@@ -850,65 +862,67 @@ draw icons and mouse cursors on the screen.
 				 center-x center-y
 				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 				 start-angle end-angle filled)
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-        (when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (and (not filled) (medium-line-style medium))))
-	    (convert-to-device-coordinates transform center-x center-y)
-	    (convert-to-device-distances
-	     transform radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-	    (when (null start-angle)
-	      (setq start-angle 0.0
-		    end-angle 2pi))
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      (multiple-value-bind (x-radius y-radius)
-		  (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-			 (values (abs radius-2-dx) (abs radius-1-dy)))
-			((and (= radius-2-dx 0) (= radius-1-dy 0))
-			 (values (abs radius-1-dx) (abs radius-2-dy)))
-			(t
-			 (let ((s-1 (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy)))
-			       (s-2 (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy))))
-			   (if (= s-1 s-2)
-			       (let ((r (truncate (sqrt s-1))))
-				 (values r r))
-			     ;; Degrade to drawing a rectilinear ellipse
-			     (values (truncate (sqrt s-1)) 
-				     (truncate (sqrt s-2)))))))
-		(let (left top right bottom)
-		  (setq left (- center-x x-radius)
-			right (+ center-x x-radius)
-			top (- center-y y-radius)
-			bottom (+ center-y y-radius))
-		  (cond ((or (fl-= (- end-angle start-angle) 2pi)
-			     (fl-= (- end-angle start-angle) 0))
-			 #+ignore
-			 (and (= start-angle 0)
-			      (= end-angle 2pi))
-			 ;; drawing a full ellipse
-			 (win:ellipse dc left top right bottom))
-			((null line-style)
-			 ;; drawing a pie slice
-			 (win:pie
-			  dc left top right bottom
-			  (round (1- (+ center-x (* (cos start-angle) x-radius))))
-			  (round (1- (- center-y (* (sin start-angle) y-radius))))
-			  (round (1- (+ center-x (* (cos end-angle) x-radius))))
-			  (round (1- (- center-y (* (sin end-angle) y-radius))))))
-			(t
-			 ;; drawing an arc
-			 (win:arc
-			  dc left top right bottom
-			  (round (1- (+ center-x (* (cos start-angle) x-radius))))
-			  (round (1- (- center-y (* (sin start-angle) y-radius))))
-			  (round (1- (+ center-x (* (cos end-angle) x-radius))))
-			  (round (1- (- center-y (* (sin end-angle) y-radius)))))))
-		  ))
-	      (when (valid-handle old) (SelectObject dc old)))))))))
+  (without-scheduling
+    (let ((window (medium-drawable medium)))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (let* ((sheet (medium-sheet medium))
+		   (transform (sheet-device-transformation sheet))
+		   (ink (medium-ink medium))
+		   (line-style (and (not filled) (medium-line-style medium))))
+	      (convert-to-device-coordinates transform center-x center-y)
+	      (convert-to-device-distances
+	       transform radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+	      (when (null start-angle)
+		(setq start-angle 0.0
+		      end-angle 2pi))
+	      (with-set-dc-for-ink (dc medium ink line-style)
+		(multiple-value-bind (x-radius y-radius)
+		    (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+			   (values (abs radius-2-dx) (abs radius-1-dy)))
+			  ((and (= radius-2-dx 0) (= radius-1-dy 0))
+			   (values (abs radius-1-dx) (abs radius-2-dy)))
+			  (t
+			   (let ((s-1 (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy)))
+				 (s-2 (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy))))
+			     (if (= s-1 s-2)
+				 (let ((r (truncate (sqrt s-1))))
+				   (values r r))
+			       ;; Degrade to drawing a rectilinear ellipse
+			       (values (truncate (sqrt s-1)) 
+				       (truncate (sqrt s-2)))))))
+		  (let (left top right bottom)
+		    (setq left (- center-x x-radius)
+			  right (+ center-x x-radius)
+			  top (- center-y y-radius)
+			  bottom (+ center-y y-radius))
+		    (cond ((or (fl-= (- end-angle start-angle) 2pi)
+			       (fl-= (- end-angle start-angle) 0))
+			   #+ignore
+			   (and (= start-angle 0)
+				(= end-angle 2pi))
+			   ;; drawing a full ellipse
+			   (win:ellipse dc left top right bottom))
+			  ((null line-style)
+			   ;; drawing a pie slice
+			   (win:pie
+			    dc left top right bottom
+			    (round (1- (+ center-x (* (cos start-angle) x-radius))))
+			    (round (1- (- center-y (* (sin start-angle) y-radius))))
+			    (round (1- (+ center-x (* (cos end-angle) x-radius))))
+			    (round (1- (- center-y (* (sin end-angle) y-radius))))))
+			  (t
+			   ;; drawing an arc
+			   (win:arc
+			    dc left top right bottom
+			    (round (1- (+ center-x (* (cos start-angle) x-radius))))
+			    (round (1- (- center-y (* (sin start-angle) y-radius))))
+			    (round (1- (+ center-x (* (cos end-angle) x-radius))))
+			    (round (1- (- center-y (* (sin end-angle) y-radius)))))))
+		    ))
+		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod flipping-ink-p ((object t)) nil)
 (defmethod flipping-ink-p ((object clim-utils:flipping-ink)) t)
@@ -919,47 +933,48 @@ draw icons and mouse cursors on the screen.
   ;; This is not supposed to try to draw multiline text.
   ;; For that, use WRITE-STRING.
   (declare (ignore transform-glyphs))
-  (unless end (setq end (length string)))
-  (let* ((transform (sheet-device-transformation (medium-sheet medium))))
-    (convert-to-device-coordinates transform x y)
-    (when towards-x
-      (convert-to-device-coordinates transform towards-x towards-y)))
-  (let* ((port (port medium))
-	 (text-style (medium-merged-text-style medium))
-	 (font (text-style-mapping port text-style))
-	 (window (medium-drawable medium))
-	 (ink (medium-ink medium))
-	 (font-angle (pos-to-font-angle x y towards-x towards-y))
-	 (x-adjust 
-	  (compute-text-x-adjustment align-x medium 
-				     string text-style start end))
-	 (y-adjust
-	  (compute-text-y-adjustment align-y (acl-font-descent font) 
-				     (acl-font-ascent font) (acl-font-height font))))
-    (incf x x-adjust)
-    (incf y y-adjust)
-    (when towards-x
-      (incf towards-x x-adjust)
-      (incf towards-y y-adjust))
-    (cond ((zerop font-angle) 
-	   (decf y (acl-font-ascent font))) ;text is positioned by its top left 
-	  (t
-	   (setq font
-	     (port-find-rotated-font port font font-angle))))
-    (if (flipping-ink-p ink)
-	(medium-draw-inverted-string* medium string x y start end font text-style)
-      (with-medium-dc (medium dc)
-	(with-selected-acl-dc (old) (medium window dc)
-          (when old
-	    (with-temporary-substring (substring string start end)
-	      (with-set-dc-for-text (dc medium ink (acl-font-index font))
-		(multiple-value-bind (cstr len)
-		    (silica::xlat-newline-return substring)
-		  (or (excl:with-native-string (cstr cstr)
-			(win:TextOut dc x y cstr len))
-		      (check-last-error "TextOut" :action :warn)))
+  (without-scheduling
+    (unless end (setq end (length string)))
+    (let* ((transform (sheet-device-transformation (medium-sheet medium))))
+      (convert-to-device-coordinates transform x y)
+      (when towards-x
+	(convert-to-device-coordinates transform towards-x towards-y)))
+    (let* ((port (port medium))
+	   (text-style (medium-merged-text-style medium))
+	   (font (text-style-mapping port text-style))
+	   (window (medium-drawable medium))
+	   (ink (medium-ink medium))
+	   (font-angle (pos-to-font-angle x y towards-x towards-y))
+	   (x-adjust 
+	    (compute-text-x-adjustment align-x medium 
+				       string text-style start end))
+	   (y-adjust
+	    (compute-text-y-adjustment align-y (acl-font-descent font) 
+				       (acl-font-ascent font) (acl-font-height font))))
+      (incf x x-adjust)
+      (incf y y-adjust)
+      (when towards-x
+	(incf towards-x x-adjust)
+	(incf towards-y y-adjust))
+      (cond ((zerop font-angle) 
+	     (decf y (acl-font-ascent font))) ;text is positioned by its top left 
+	    (t
+	     (setq font
+	       (port-find-rotated-font port font font-angle))))
+      (if (flipping-ink-p ink)
+	  (medium-draw-inverted-string* medium string x y start end font text-style)
+	(with-medium-dc (medium dc)
+	  (with-selected-acl-dc (old) (medium window dc)
+				(when old
+				  (with-temporary-substring (substring string start end)
+				    (with-set-dc-for-text (dc medium ink (acl-font-index font))
+				      (multiple-value-bind (cstr len)
+					  (silica::xlat-newline-return substring)
+					(or (excl:with-native-string (cstr cstr)
+					      (win:TextOut dc x y cstr len))
+					    (check-last-error "TextOut" :action :warn)))
 		
-		(when (valid-handle old) (SelectObject dc old))))))))))
+				      (when (valid-handle old) (SelectObject dc old)))))))))))
 
 (defmethod medium-draw-inverted-string* ((medium acl-medium)
 					 string x y start end font text-style)
@@ -967,42 +982,44 @@ draw icons and mouse cursors on the screen.
   ;; Strings cannot be drawn by calling (SetROP2 dc R2_XORPEN).
   ;; This has no effect on TextOut.  To get the same effect,
   ;; draw the string into a bitmap and draw the bitmap onto the screen.
-  (let ((window (medium-drawable medium))
-	(width 100)
-	(height 100))
-    (multiple-value-setq (width height) 
-      (text-size medium string :text-style text-style
-		 :start start :end end))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-        (when old
-	  (with-temporary-substring (substring string start end)
-	    (let* ((cdc (win:CreateCompatibleDC dc))
-		   (hbm (win:CreateCompatibleBitmap cdc width height))
-		   (oldbm nil))
-	      (when (valid-handle hbm) (setq oldbm (SelectObject cdc hbm)))
-	      ;; Set the bitmap to black, then draw the text in white.
-	      (with-set-dc-for-text (cdc medium +black+ (acl-font-index font))
-		(win:rectangle cdc 0 0 width height)
-		(win:SetTextColor dc 0)	; white
-		(with-set-dc-for-text (cdc medium +white+ (acl-font-index font))
-		  (multiple-value-bind (cstr len)
-		      (silica::xlat-newline-return substring)
-		    (or (excl:with-native-string (cstr cstr)
-			  (win:TextOut cdc 0 0 cstr len))
-			(check-last-error "TextOut" :action :warn))
-		    )
-		  ;; Copy bitmap from memory dc to screen dc
-		  (win:BitBlt dc x y width height
-			      cdc 0 0 win:SRCINVERT)
-		  ;; Restore the old bitmap
-		  (when (valid-handle oldbm) (SelectObject cdc oldbm))
-		  ;; Delete the bitmap
-		  (or (win:DeleteObject hbm) (error "DeleteObject"))
-		  ;; Delete memory dc
-		  (win:DeleteDC cdc)
-		  (when (valid-handle old) (SelectObject dc old)))))))))
-    nil))
+  (without-scheduling
+    (let ((window (medium-drawable medium))
+	  (width 100)
+	  (height 100))
+      (multiple-value-setq (width height) 
+	(text-size medium string :text-style text-style
+		   :start start :end end))
+      (with-medium-dc (medium dc)
+	(with-selected-acl-dc (old) 
+	  (medium window dc)
+	  (when old
+	    (with-temporary-substring (substring string start end)
+	      (let* ((cdc (win:CreateCompatibleDC dc))
+		     (hbm (win:CreateCompatibleBitmap cdc width height))
+		     (oldbm nil))
+		(when (valid-handle hbm) (setq oldbm (SelectObject cdc hbm)))
+		;; Set the bitmap to black, then draw the text in white.
+		(with-set-dc-for-text (cdc medium +black+ (acl-font-index font))
+		  (win:rectangle cdc 0 0 width height)
+		  (win:SetTextColor dc 0) ; white
+		  (with-set-dc-for-text (cdc medium +white+ (acl-font-index font))
+		    (multiple-value-bind (cstr len)
+			(silica::xlat-newline-return substring)
+		      (or (excl:with-native-string (cstr cstr)
+			    (win:TextOut cdc 0 0 cstr len))
+			  (check-last-error "TextOut" :action :warn))
+		      )
+		    ;; Copy bitmap from memory dc to screen dc
+		    (win:BitBlt dc x y width height
+				cdc 0 0 win:SRCINVERT)
+		    ;; Restore the old bitmap
+		    (when (valid-handle oldbm) (SelectObject cdc oldbm))
+		    ;; Delete the bitmap
+		    (or (win:DeleteObject hbm) (error "DeleteObject"))
+		    ;; Delete memory dc
+		    (win:DeleteDC cdc)
+		    (when (valid-handle old) (SelectObject dc old)))))))))
+      nil)))
 
 ;;; Enhance the bounding-box calculation for rotated text.
 (defmethod clim-internals::medium-text-bounding-box :around

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: medium.lisp,v 1.42.22.2 1998/07/06 23:09:57 layer Exp $
+;; $Id: medium.lisp,v 1.42.22.3 1999/06/23 15:25:22 layer Exp $
 
 (in-package :silica)
 
@@ -343,10 +343,13 @@
                 (setf medium-transformation
                       (compose-transformations saved-transformation transformation)))
               (when clipping-region
-                (setf transformed-clipping-region
-                      (region-intersection saved-clipping-region
-                                           (transform-region medium-transformation
-                                                             clipping-region))))
+		(let ((tr (if (eq clipping-region +everywhere+)
+			      +everywhere+
+			    (transform-region medium-transformation clipping-region))))
+		  (setf transformed-clipping-region
+		    (if (eq tr +everywhere+)
+			saved-clipping-region
+		      (region-intersection saved-clipping-region tr)))))
               (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
                      (when (null line-style)
                        (setf line-style saved-line-style))

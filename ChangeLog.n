@@ -11,6 +11,21 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.66
+
+1999-06-23  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* demo/ico: limit number of cycles to 1000 to make timing more meaningful
+* silica/medium: optimization
+* sys/compile: set optimization levels for clim on Windows
+* test/test-suite: add test for select-file
+* aclpc/acl-class: fix bug in message processor
+* aclpc/acl-medium: optimization
+* aclpc/acl-port: optimization
+* aclpc/acl-widget: fix sizing of text editor, list panes; fix
+  redisplay problem of text fields
+
+*******************************************************************************
 2.2.1.65
 
 1999-06-22    <layer@HOBART>

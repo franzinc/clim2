@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.16 1999/06/18 19:41:39 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.17 1999/06/23 15:25:18 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1360,4 +1360,6 @@
 	    ((and hwnd (win:IsDialogMessage hwnd msg)))
 	    (t 
 	     (win:TranslateMessage msg)
-	     (win:DispatchMessage msg))))))
+	     (win:DispatchMessage msg)))
+      (when nonblocking (return t))
+      )))
