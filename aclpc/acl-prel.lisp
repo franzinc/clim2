@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.10 1999/03/31 18:49:29 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.11 1999/03/31 19:12:42 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -363,7 +363,6 @@
     (values bmi win:DIB_RGB_COLORS)))
 
 (defmethod get-texture (device-context pixel-map bitmapinfo)
-  (declare (ignore device-context))
   ;; The value of this function becomes the dc-image-bitmap.
   ;; It gets applied to the device context using SELECT-OBJECT.
   ;; Pixel-map is an array of integers.  The element type is
