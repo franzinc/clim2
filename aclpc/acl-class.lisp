@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14.24.2.12.2 2002/05/23 15:58:25 layer Exp $
+;; $Id: acl-class.lisp,v 1.14.24.2.12.3 2002/06/04 22:49:39 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1392,6 +1392,21 @@
 	     (win:DispatchMessage msg)))
       (when nonblocking (return t))
       )))
+
+(defvar *current-window*)
+(defvar *dc-initialized* nil)
+
+;;; Stock objects
+(defvar *null-pen*)
+(defvar *black-pen*)
+(defvar *ltgray-pen*)
+(defvar *null-brush*)
+(defvar *black-brush*)
+(defvar *ltgray-brush*)
+(defvar *blank-image*)
+(defvar *ltgray-image*)
+
+(defvar *background-brush* nil)
 
 ;;; spr25546
 ;;; Re-initialize a number of state-variables/pointers associated

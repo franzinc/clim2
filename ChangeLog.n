@@ -13,6 +13,11 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 post release patches:
 
+2002-06-04    <layer@HOBART>
+
+	* aclpc/acl-dc.lisp,
+	* aclpc/acl-class.lisp: fix warnings from last rev
+
 2002-05-22  Nichael Cramer <ncramer@pointnclick.com>
     from pnc 
         * clim/frames.lisp
