@@ -1,0 +1,88 @@
+%%  $fiHeader: $
+%%%%%%%%%%%%%%%%%%%%%%%%% CLIM 2.0 plan
+
+
+% Silica backends
+  * Genera
+  * Xt
+    - Motif
+    - OpenLook
+  * Postscript
+
+% Performance
+  * Make use of volatile regions and transformations
+  * Simplify transformation classes
+  * (deftype coordinate () )
+  * Ink caches
+  * Sheet region and transformation caches.
+  * Meet CLIM 1.0 performance goals
+  * Surpass CLIM 1.0 performance goals
+
+% Size issues
+  * Modularize with load on demand/required modules
+    - Regions
+    - Transformations
+
+% Holes to Fill-in
+  * Reinstate clipping regions
+  * Complete abstract gadgetsd
+  * Gesture stuff
+  * Reinstate Menubars
+  * Stream defprotocols
+  * Layout for gadgets within accepting-values
+  * Implement clean interface to throw-to-highlighted-presentation
+  * Interprocess communication, i.e one process to another to execute
+    a frame command.
+  * accepting-values :own-window architecture that allows integration
+    with toolkit dialogs
+  * Temporary-medium sheets
+    - medium accessors on a sheet with no medium?
+    - temporary medium need to have their state decached
+  * Sheet protocol 
+    - Where do event queues come from?
+    - Repaint protocol: who clears the area, sets the clipping region
+      when doing the repaint.
+    - How do we deal with the case where a sheet as one children and its
+    mirror allows one children only but the sheet actually has two children
+    (frame (horizontally () () ()))
+    - What is the precise value returned by event-sheet? Does the
+      event-sheet accessor return the sheet that the event was
+      dispatched to?
+  * Why does input-protocol-mixin define an input-buffer? Whats wrong
+    with the sheet-event queue?
+  * Multiple-layouts need to allow different size reqs for the sheets
+  * Implement :compute size spec
+  * Protocol to compute to the wm the desired geometry of the frame
+  * The code for switching layouts needs to be cleanup
+  * When the viewport is resized in might need to be moved, for
+    example, if it becomes big enough to display the entire window: In
+    the allocate-space for viewport.
+  * Pointer documentation panes and other pane types,
+  * Gadget-enable/disable protocol
+  * Event protocol:
+    - Consider design of distribute-event
+    - timestamp
+    - native-region
+% Bugs to fix.
+  * whats the problem with radio-boxes and move-cursor-after. The
+    alternative definitions almost work except for exit-buttons. I
+    think the bounding rectangle of gadget output records  is computed
+    incorrectly and that it works because the update-gadget-position
+    is broken to match.
+
+% Specification
+  * what happens when you draw on a sheet that is not grafted?
+  * Who enables a frame?
+    - run-frame-top-level or
+    - default-frame-top-level??
+  * document new callback function architecture.
+  * Who calls realized mirror?
+  * enable-mirror and enable->mirror, mirror->enable?
+  * sheet-region/transformation can change for two reasons: program
+    does a setf or the port sends a configure notify. Should we use
+    that :port-trigger keyword in the notification protocol?
+
+% User Guide
+% Demos and example code.
+% Franz specific stuff
+% [todo: /vapor/usr/tech/cer/todo/franz-clim.todo]
