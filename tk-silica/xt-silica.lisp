@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.1.14.3 2000/08/16 23:58:57 cley Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.1.14.4 2000/10/03 11:25:56 cley Exp $
 
 (in-package :xm-silica)
 
@@ -387,7 +387,7 @@ setup."
 	(clim-event nil))
     (when port
       (setq clim-event
-	(ecase (tk::event-type event)
+	(case (tk::event-type event)
 	  ((:reparent-notify :selection-clear :selection-request
 	    :selection-notify :client-message :mapping-notify :no-expose)
 	   nil)
@@ -523,7 +523,13 @@ setup."
 	  (:focus-in
 	   (allocate-event 'focus-in-event :sheet sheet))
 	  (:focus-out
-	   (allocate-event 'focus-out-event :sheet sheet)))))
+	   (allocate-event 'focus-out-event :sheet sheet))
+	  (otherwise
+	   ;; it seems better to warn about this rather than just dying, 
+	   ;; at least there might be some chance of continuing!
+	   (warn "Unhandled X event ~S, type ~A"
+		 event (tk::event-type event))
+	   nil))))
     (when clim-event
       (distribute-event port clim-event))))
 

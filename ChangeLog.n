@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.5.8
+
+2000-10-03 tfb@cley.com (Tim Bradshaw)
+
+	* tk/silica/xt-silica.lisp: added a default event case which warns,
+	  rather than throwing an error.  This should allow CLIM to carry on
+	  if it gets completely unrecognised X events.
+
+*******************************************************************************
 2.2.2.21.5.7
 
 2000-09-12 tfb@cley.com (Tim Bradshaw)
