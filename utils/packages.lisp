@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.2 1998/04/27 23:22:54 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.3 1998/04/28 05:54:06 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3307,5 +3307,5 @@
 	       *clim-generation-version* *clim-build-version*))
 
 #+(version>= 5 0)
-(when (boundp 'excl::*version-info*)
-  (push (cons "CLIM" *clim-version*) excl::*version-info*))
+(cl:when (cl:boundp 'excl::*version-info*)
+  (cl:push (cl:cons "CLIM" *clim-version*) excl::*version-info*))
