@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.48 93/04/23 09:18:21 cer Exp $
+;; $fiHeader: test.lisp,v 1.49 1993/05/13 16:24:27 cer Exp $
 
 (in-package :clim-user)
 
@@ -1003,17 +1003,17 @@
   (:command-table test-frame)
   (:pane 
    (bulletin-board ()
-     (list 10 10 (make-clim-interactor-pane
+     ((10 10) (make-clim-interactor-pane
 		  :height '(10 :line)
 		  :width '(50 :character)
 		  :foreground +green+
 		  :background +red+))
-     (list 50 200 (make-pane 'push-button
+     ((50 200) (make-pane 'push-button
 			     :label (with-menu (menu (graft *application-frame*))
 				      (with-output-to-pixmap (stream menu :width 100 :height 100)
 					(draw-rectangle* stream 0 0 100 100 :ink +background-ink+)
 					(draw-rectangle* stream 10 10 90 90 :ink +red+)))))
-     (list 90 300 (make-pane 'push-button
+     ((90 300) (make-pane 'push-button
 			     :label "press me"
 			     :background +black+
 			     :foreground +cyan+
@@ -1147,3 +1147,4 @@
 
 	      
 			    
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.19 92/11/20 08:44:51 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.20 92/12/03 10:27:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -468,10 +468,11 @@
 
 (defun find-appropriate-window (stream)
   ;;--- How do we hack multiple pointers?
-  (let* ((pointer (stream-primary-pointer stream))
-	 (window (pointer-sheet pointer)))
-    ;; It ain't no good if it doesn't have a history.
-    (when (and window
-	       (port window)
-	       (output-recording-stream-p window))
-      window)))
+  (when (extended-input-stream-p stream)
+    (let* ((pointer (stream-primary-pointer stream))
+	   (window (pointer-sheet pointer)))
+      ;; It ain't no good if it doesn't have a history.
+      (when (and window
+		 (port window)
+		 (output-recording-stream-p window))
+	window))))

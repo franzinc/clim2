@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.14 93/03/31 10:39:18 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.15 93/04/23 09:18:07 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -33,23 +33,29 @@
 	      forms)))))
 
 (defun use-line-style (medium line-style)
-  (let ((printer-stream (slot-value medium 'printer-stream))
-	(thickness (ecase (line-style-unit line-style)
-		     (:normal (normal-line-thickness 
-			        (port medium) (line-style-thickness line-style)))
-		     (:point (line-style-thickness line-style))))
-	(dashes (line-style-dashes line-style)))
-    (format printer-stream " ~D setlinewidth~%" (round thickness))
-    (when dashes
-      (when (eq dashes t)
-	(setq dashes '(4 4)))
-      (making-ps-array (printer-stream)
-        (let ((limit (length dashes)))
-	  (dotimes (i limit)
-	    (write (elt dashes i) :stream printer-stream :escape nil)
-	    (unless (>= (1+ i) limit)
-	      (write-char #\space printer-stream)))))
-      (format printer-stream "0 setdash~%"))))
+  (let* ((printer-stream (slot-value medium 'printer-stream))
+	 (thickness (ecase (line-style-unit line-style)
+		      (:normal (normal-line-thickness 
+				(port medium) (line-style-thickness line-style)))
+		      (:point (line-style-thickness line-style))))
+	 (dashes (line-style-dashes line-style))
+	 (new-line-style (cons thickness dashes)))
+    (with-slots (current-line-style) medium
+      (unless (equalp current-line-style new-line-style)
+	(setq current-line-style new-line-style)
+	(format printer-stream " ~D setlinewidth~%" (round thickness))
+	(if dashes
+	    (progn
+	      (when (eq dashes t)
+		(setq dashes '(4 4)))
+	      (making-ps-array (printer-stream)
+			       (let ((limit (length dashes)))
+				 (dotimes (i limit)
+				   (write (elt dashes i) :stream printer-stream :escape nil)
+				   (unless (>= (1+ i) limit)
+				     (write-char #\space printer-stream)))))
+	      (format printer-stream "0 setdash~%"))
+	  (format printer-stream "[] 0 setdash~%"))))))
 
 (defun color-equal (c1 c2)
   (or (eq c1 c2)

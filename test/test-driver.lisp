@@ -87,6 +87,10 @@
 (defvar *default-input-state-timeout* 300)
 (defun wait-for-clim-input-state (invocation &optional (timeout *default-input-state-timeout*))
   (let ((process (invocation-process invocation)))
+    ;;-- there really should be a port-finish-output
+    (let ((port (port (invocation-frame invocation))))
+      (when port
+	(x11:xsync (tk-silica::port-display port) 0)))
     (mp:process-allow-schedule)
     (if timeout
 	(let ((done nil))
@@ -252,11 +256,11 @@
 	     (let ((*invocation* invocation))
 	       (unwind-protect
 		   (etypecase command-continuation
+		       (null (sleep 5))
 		       (list
 			(execute-commands-in-invocation 
 			 invocation command-continuation))
-		       (function (funcall command-continuation))
-		       (null (sleep 5)))
+		       (function (funcall command-continuation)))
 		 (terminate-invocation invocation exit-command)
 		 (mp::process-kill (invocation-process invocation))
 		 (unless (wait-for-death (invocation-process invocation))
@@ -694,10 +698,12 @@
 
 (defun find-avv-query (avv-stream prompt)
   (maphash #'(lambda (query-id query)
-	       (when (and (consp query-id)
+	       (when (if (consp query-id) ;;--yuck
+			 (and
 			  (eq (car query-id) :query-identifier)
 			  (consp (cdr query-id))
 			  (equal (cadr query-id) prompt))
+		       (eq query-id prompt))
 		 (return-from find-avv-query query)))
 	   (slot-value (slot-value avv-stream 'clim-internals::avv-record) 'clim-internals::query-table)))
 

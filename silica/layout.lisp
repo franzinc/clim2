@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.30 1993/05/13 16:24:06 cer Exp $
+;; $fiHeader: layout.lisp,v 1.31 1993/06/02 18:41:53 cer Exp $
 
 (in-package :silica)
 
@@ -360,6 +360,9 @@
      (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))
   ;;--- More of same...
   (:default-initargs :text-cursor nil :text-margin most-positive-fixnum))
+
+(defmethod window-refresh ((sheet top-level-sheet))
+  nil)
 
 ;;--- Needed methods include:
 ;;---   INVOKE-WITH-RECORDING-OPTIONS

@@ -1,4 +1,34 @@
 -------------------------------------------------------------------------------
+from cer: Mon Jun 21 13:43:34 PDT 1993
+
+Makefile.defs			Use devel.13
+clim/accept-values.lisp		Make accept-values-pane-display take a view argument
+clim/frames.lisp		Name the restarts for pane redisplay errors
+clim/interactive-protocol.lisp		frame-manager-display-help
+				pops up a window if the frame type is
+				accept-values  
+clim/presentations.lisp		find-appropriate-window only does it
+				if its extended-input-stream
+climtoys/booch.lisp		Made it cool
+climtoys/ib.lisp		many changes
+climtoys/ibed.lisp		many changes
+climtoys/ibparse.lisp		many changes
+climtoys/ibgen.lisp		many changes
+climtoys/ibparse.lisp		many changes
+climtoys/ibtest.lisp		many changes
+postscript/postscript-medium.lisp 	Fix line-style problem
+postscript/postscript-port.lisp		Line style cache
+silica/db-box.lisp		Fixed bulletin-board-pane
+silica/db-layout.lisp		Removed duplicate bulletin-board-pane
+silica/layout.lisp		Added window-refresh for top-level-sheet
+test/test-demos.lisp		Added test for out bounds lines
+test/test-driver.lisp		Added xsync, query-identifier styff
+test/test.lisp			Fixed bulletin-board-pane
+tk-silica/xt-graphics.lisp	Fixed problem with clipper return NIL
+				when line should not be drawn
+
+
+-------------------------------------------------------------------------------
 
 from cer: Fri Jun  4 09:05:19 PDT 1993
 

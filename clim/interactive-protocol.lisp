@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.27 1993/05/13 16:29:07 colin Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.28 1993/05/25 20:40:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1025,7 +1025,8 @@
   (declare (ignore framem frame))
   ;;-- Yuck but think of a better way
   (let ((old-help *accept-help*))
-    (if (typep (encapsulating-stream-stream stream) '(or accept-values-pane accept-values-stream))
+    (if (or (typep (encapsulating-stream-stream stream) '(or accept-values-pane accept-values-stream))
+	    (typep *application-frame* 'accept-values))
 	(accepting-values (stream :exit-boxes '(:exit)
 				  :label "Input editor help"
 				  :own-window t)

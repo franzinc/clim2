@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.63 1993/05/25 20:40:32 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.64 1993/06/02 18:40:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1283,24 +1283,27 @@
 
 (defun accept-values-pane-displayer-1 (frame pane displayer align-prompts view)
   (let ((avv-stream (make-instance 'accept-values-stream 
-		      :stream pane :align-prompts align-prompts))
-	(avv-record nil))
+				   :stream pane :align-prompts align-prompts))
+	(avv-record nil)
+	(view (or view
+		  (frame-manager-dialog-view (frame-manager frame)))))
     (setf (slot-value avv-stream 'avv-frame) frame)
     (letf-globally (((stream-default-view pane)
-		     (or view
-			 (frame-manager-dialog-view (frame-manager frame)))))
+		     view))
       (setq avv-record
-	    (updating-output (avv-stream)
-	      (with-new-output-record 
-		  (avv-stream 'accept-values-output-record avv-record)
-		(setf (slot-value avv-stream 'avv-record) avv-record)
-		(if align-prompts
-		    (formatting-table (avv-stream)
-		      (funcall displayer frame avv-stream))
-		    (funcall displayer frame avv-stream))))))
+	(updating-output (avv-stream)
+	  (with-new-output-record 
+	      (avv-stream 'accept-values-output-record avv-record)
+	    (setf (slot-value avv-stream 'avv-record) avv-record)
+	    (if align-prompts
+		(formatting-table (avv-stream)
+		  (funcall displayer frame avv-stream))
+	      (progn
+		(display-view-background avv-stream view)
+		(funcall displayer frame avv-stream)))))))
     (unless *sizing-application-frame*
       (setf (gethash pane (frame-pane-to-avv-stream-table frame))
-	    (cons avv-stream avv-record)))))
+	(cons avv-stream avv-record)))))
 
 (define-command (com-edit-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.24 93/03/19 09:44:31 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.25 93/03/31 10:39:29 cer Exp $
 
 (in-package :silica)
 
@@ -192,17 +192,15 @@
 ;;; 
 
 (defclass bulletin-board-pane (layout-pane) 
-  ((contents :initarg :contents)))
+  ((contents :initarg :contents  :initform nil)))
 
-(defmacro bulletin-board (options &rest contents)
-  `(make-pane 'bulletin-board-pane
-	      :contents (list ,@contents)
-	      ,@options))
+(defmethod handle-event :after ((pane bulletin-board-pane) (event pointer-motion-event))
+  (deallocate-event event))
 
-(defmethod initialize-instance :after ((pane bulletin-board-pane) &key contents)      
-  (dolist (content contents)
-    (destructuring-bind (x y child) content
-      (declare (ignore x y))
+(defmethod initialize-instance :after ((pane bulletin-board-pane) &key contents)
+  (dolist (item contents)
+    (destructuring-bind (position child) item
+      (check-type position (or point cons))
       (sheet-adopt-child pane child))))
 
 (defmethod compose-space ((pane bulletin-board-pane) &key width height)
@@ -211,10 +209,17 @@
     (let ((max-x 0)
 	  (max-y 0))
       (dolist (content contents)
-	(destructuring-bind (x y pane) content
-	  (let ((sr (compose-space pane)))
-	    (maxf max-x (+ x (space-requirement-width sr)))
-	    (maxf max-y (+ y (space-requirement-height sr))))))
+	(destructuring-bind (position pane) content
+	  (multiple-value-bind (x y)
+	      (typecase position
+		(point (values (point-x position)
+			       (point-y position)))
+		(cons
+		 (values (first position)
+			 (second position))))
+	    (let ((sr (compose-space pane)))
+	      (maxf max-x (+ x (space-requirement-width sr)))
+	      (maxf max-y (+ y (space-requirement-height sr)))))))
       (make-space-requirement :width max-x :height max-y))))
 
 
@@ -222,10 +227,27 @@
   (declare (ignore width height))
   (with-slots (contents) pane
     (dolist (content contents)
-      (destructuring-bind (x y pane) content
+      (destructuring-bind (position pane) content
 	(let ((sr (compose-space pane)))
-	  (move-and-resize-sheet 
-	   pane x y 
-	   (space-requirement-width sr)
-	   (space-requirement-height sr)))))))
+	  (multiple-value-bind (x y)
+	      (typecase position
+		(point (values (point-x position)
+			       (point-y position)))
+		(cons
+		 (values (first position)
+			 (second position))))
+	    (move-and-resize-sheet 
+	     pane x y 
+	     (space-requirement-width sr)
+	     (space-requirement-height sr))))))))
+
+
+(defmacro bulletin-board (options &rest contents)
+  `(make-pane 'bulletin-board-pane
+	      :contents
+	      (list ,@(mapcar #'(lambda (item)
+				  (destructuring-bind (position sheet) item
+				    `(list (list ,@position) ,sheet)))
+			      contents))
+	      ,@options))
 

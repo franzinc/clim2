@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.1 93/03/19 09:46:37 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.2 1993/05/13 16:24:18 cer Exp $
 
 (define-frame-test test-puzzle-demo (clim-demo::puzzle)
   (
@@ -82,6 +82,8 @@
 	     :colon-prefix t)
    (:command clim-demo::interactor clim-demo::com-show-some-commands
 	     :colon-prefix t)
+   "(clim:draw-line* *standard-output* -51070 149 -51070 164)
+"
    )
   (:command clim-demo::interactor clim-demo::com-quit-listener 
 	    :colon-prefix t)

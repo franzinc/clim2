@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.73 1993/05/13 16:32:11 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.74 1993/05/25 20:42:45 cer Exp $
 
 (in-package :tk-silica)
 
@@ -802,10 +802,10 @@
 	   (:explain :calls :types)
 	   (fixnum x1 y1 x2 y2 xmin xmax ymin ymax))
   (macrolet ((outcodes (x y)
-	       `(+ (ash (if (minusp (- ymax ,y)) 1 0) 3)
-		   (ash (if (minusp (- ,y ymin)) 1 0) 2)
-		   (ash (if (minusp (- xmax ,x)) 1 0) 1)
-		   (if (minusp (- ,x xmin)) 1 0)))
+	       `(+ (ash (if (< ymax ,y) 1 0) 3)
+		   (ash (if (< ,y ymin) 1 0) 2)
+		   (ash (if (< xmax ,x) 1 0) 1)
+		   (if (< ,x xmin) 1 0)))
 	     (rejectp (oc1 oc2) `(plusp (logand ,oc1 ,oc2)))
 	     (acceptp (oc1 oc2)
 	       `(and (zerop ,oc1) (zerop ,oc2))))
@@ -817,6 +817,8 @@
 	#+ignore
 	(format excl:*initial-terminal-io* "oc1 = ~d, oc2 = ~d~%" outcode1 outcode2)
 	(if (rejectp outcode1 outcode2)
+	    ;; This means that both Ys or both Xs are out of the window
+	    ;; which means that there is nothing to draw
 	    (return-from clipper nil))
 	(if* (acceptp outcode1 outcode2)
 	   then (return)
@@ -858,7 +860,8 @@
   `(if (or (not (valid-point-p ,x1 ,y1))
 	   (not (valid-point-p ,x2 ,y2)))
        (multiple-value-setq (,x1 ,y1 ,x2 ,y2)
-	 (clipper ,x1 ,y1 ,x2 ,y2))))
+	 (clipper ,x1 ,y1 ,x2 ,y2))
+     t))
 
 ;; Discarding of other illegal graphics
 
@@ -1033,14 +1036,14 @@
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
 	(convert-to-device-coordinates transform x1 y1 x2 y2)
-	(clip-invalidate-line x1 y1 x2 y2)
-	(tk::draw-line
-	 drawable
-	 (adjust-ink (decode-ink ink medium)
-		     medium
-		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
-		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
-	 x1 y1 x2 y2)))))
+	(when (clip-invalidate-line x1 y1 x2 y2)
+	  (tk::draw-line
+	   drawable
+	   (adjust-ink (decode-ink ink medium)
+		       medium
+		       (the fixnum (min (the fixnum x1) (the fixnum x2)))
+		       (the fixnum (min (the fixnum y1) (the fixnum y2))))
+	   x1 y1 x2 y2))))))
 
 
 (defmethod medium-draw-lines* ((medium xt-medium) position-seq)
@@ -1062,37 +1065,39 @@
 			    (y2 ,y2))
 			(convert-to-device-coordinates transform x1 y1)
 			(convert-to-device-coordinates transform x2 y2)
-			(clip-invalidate-line x1 y1 x2 y2)
-			(minf minx x1)
-			(minf miny y1)
-			(minf minx x2)
-			(minf miny y2)
-			(setf (tk::xsegment-array-x1 points i) x1
-			      (tk::xsegment-array-y1 points i) y1
-			      (tk::xsegment-array-x2 points i) x2
-			      (tk::xsegment-array-y2 points i) y2))))
-	  (if (listp position-seq)
+			(when (clip-invalidate-line x1 y1 x2 y2)
+			  (minf minx x1)
+			  (minf miny y1)
+			  (minf minx x2)
+			  (minf miny y2)
+			  (setf (tk::xsegment-array-x1 points i) x1
+				(tk::xsegment-array-y1 points i) y1
+				(tk::xsegment-array-x2 points i) x2
+				(tk::xsegment-array-y2 points i) y2)))))
+	  (let ((i 0))
+	    (declare (fixnum i))
+	    (if (listp position-seq)
+		(do ((ps position-seq))
+		    ((null ps))
+		  (when (stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps))
+		    (incf i)))
 	      (do ((ps position-seq)
-		   (i 0 (1+ i)))
-		  ((null ps))
+		   (j 0 (+ j 4)))
+		  ((= j len))
 		(declare (fixnum i))
-		(stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps)))
-	    (do ((ps position-seq)
-		 (j 0 (+ j 4))
-		 (i 0 (1+ i)))
-		((= j len))
-	      (declare (fixnum i j))
-	      (stuff-line-guts (aref ps j) (aref ps (1+ j))
-			       (aref ps (+ 2 j)) (aref ps (+ 3 j)))))
-	  (setq ink 
-	    (adjust-ink (decode-ink (medium-ink medium) medium) medium
-			minx miny))
-	  (x11:xdrawsegments
-	   (tk::object-display drawable)
-	   drawable
-	   ink
-	   points
-	   npoints))))))
+		(when (stuff-line-guts (aref ps j) (aref ps (1+ j))
+				       (aref ps (+ 2 j)) (aref ps (+ 3 j)))
+		  (incf i))))
+	    (unless (zerop i)
+	      (setq ink 
+		(adjust-ink (decode-ink (medium-ink medium) medium) medium
+			    minx miny))
+	      (x11:xdrawsegments
+	       (tk::object-display drawable)
+	       drawable
+	       ink
+	       points
+	       i))))))))
 
 (defmethod medium-draw-rectangle* ((medium xt-medium) x1 y1 x2 y2 filled)
   (let ((drawable (medium-drawable medium)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.67 1993/05/13 16:23:04 cer Exp $
+;; $fiHeader: frames.lisp,v 1.68 1993/05/25 20:40:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1110,9 +1110,9 @@
 	 (redisplay-p (if (listp ir) (first ir) ir))
 	 (check-overlapping (or (atom ir)	;default is T
 				(getf (rest ir) :check-overlapping t))))
-    (with-simple-restart (nil "Skip redisplaying pane ~S" pane)
+    (with-simple-restart (skip-pane-redisplay "Skip redisplaying pane ~S" pane)
       (loop
-	(with-simple-restart (nil "Retry displaying pane ~S" pane)
+	(with-simple-restart (retry-pane-redisplay "Retry displaying pane ~S" pane)
 	  (when *frame-layout-changing-p*
 	    (setq force-p t))
 	  (unless *sizing-application-frame*

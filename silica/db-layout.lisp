@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.33 1993/05/05 01:39:39 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.34 1993/06/04 20:46:27 cer Exp $
 
 (in-package :silica)
 
@@ -421,44 +421,3 @@
 		       composite-pane)
     ())
 
-
-;;--- Does this need to be more complicated?
-;;--- What is the correct behavior.  Should it take a space requirement?
-;;--- and just call ALLOCATE-SPACE?
-
-(defclass bboard-pane (space-requirement-mixin layout-pane) 
-  ((contents :initarg :contents :initform nil)))
-
-(defmethod handle-event :after ((pane bboard-pane) (event pointer-motion-event))
-  (deallocate-event event))
-
-(defmethod initialize-instance :after ((pane bboard-pane) &key contents)
-  (dolist (item contents)
-    (destructuring-bind (position child) item
-      (check-type position (or position cons))
-      (sheet-adopt-child pane child))))
-
-(defmethod allocate-space ((pane bboard-pane) width height)
-  (declare (ignore width height))
-  (with-slots (contents) pane
-    (destructuring-bind (position child) item
-      (let ((space-req (compose-space child)))
-	(multiple-value-bind (x y)
-	    (typecase position
-	      (point (values (point-x position)
-			     (point-y position)))
-	      (cons
-	       (values (first position)
-		       (second position)))))
-	(move-and-resize-sheet 
-	 child x y
-	 (space-requirement-width space-req)
-	 (space-requirement-height space-req))))))
-
-(defmacro bulletin-board (options &rest contents)
-  `(make-pane 'bboard-pane
-	      (list ,@(mapcar #'(lambda (item)
-				  (destructuring-bind (position sheet) item
-				    `(list (list ,@position ,sheet))))
-			      contents))
-	      ,@options))
