@@ -13,4 +13,48 @@ developers or documentation.
 
 ************* add new entries below this line *********************************
 
-1. rfe/bug#  description....
+1. bug9206, bug9207, bug9208.
+   On HP systems, creation of various motif widgets -- such as 
+   dialog boxes resulting from calls to accepting-values -- can cause
+   errors because fontsets can not be created, with an immediately
+   preceding warning that the charset HP-ROMAN8 is missing when trying to 
+   create the fontset.  This should happen only when running CLIM in
+   an international Lisp, on an HP machine with the X display on a non-HP
+   machine.
+
+   The reason for this is that HP's default locales seem to specify that the
+   HP-ROMAN8 codeset must be available in X.  For non-HP X servers it 
+   typically is not available, and thus this error occurs.
+
+   There are two solutions (apart from displaying on an HP X server):
+
+   A. Run Lisp in a locale which does not require the HP-ROMAN8 codeset.  
+   HP provide such several locales which have names like <x>.iso88591.  So, 
+   for instance, rather than using the C locale, you should be able to use 
+   the C.iso88591 locale.
+
+   You can find out which locale you are in by issuing the `locale' shell 
+   command.
+   
+   You can list all available locales by issuing the `locale -a' command.
+
+   You can set the current locale for Lisp either by setting the LANG
+   environment variable before running Lisp:
+
+   Bourne shell:
+
+	LANG=C.iso88591; export LANG; mlisp
+
+   C shell:
+
+	setenv LANG C.iso88591; mlisp
+
+
+   or by running Lisp with the -locale switch:
+
+	mlisp -locale C.iso88591
+
+   B. Make the hp-roman8-encoded fonts available to the X server.
+   This could be done by running a funt server on the HP machine, or by
+   physically copying the fonts from the HP machine to the machine with
+   the X server.  The details of how to do this are not covered here.
