@@ -1,0 +1,450 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+
+;; $fiHeader: completer.lisp,v 1.1 91/09/09 12:41:32 cer Exp Locker: cer $
+
+(in-package :clim-internals)
+
+"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
+Copyright (c) 1991, Franz Inc. All rights reserved
+ Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
+
+;; VECTOR must be adjustable...
+(defun extend-vector (vector token)
+  (let* ((vector-max-length (array-dimension vector 0))
+	 (vector-end (length vector))
+	 (desired-length (+ vector-end (length token))))
+    (when (> desired-length vector-max-length)
+      (adjust-array vector desired-length))
+    (when (array-has-fill-pointer-p vector)
+      (setf (fill-pointer vector) desired-length))
+    (replace vector token :start1 vector-end))
+  vector)
+
+;; This is just to prevent extraneous consing in COMPLETE-INPUT
+(defvar *magic-completion-characters*
+	(append *complete-characters* *help-characters* *possibilities-characters*))
+
+(defun complete-input (stream function
+		       &key partial-completers allow-any-input possibility-printer
+			    (help-displays-possibilities t))
+  (declare (dynamic-extent function))
+  (declare (values answer-object success string))
+  (with-temporary-string (stuff-so-far :length 100 :adjustable t)
+   (with-blip-characters (partial-completers)
+    (with-activation-characters (*magic-completion-characters*)
+     (flet ((completion-help (stream action string-so-far)
+	      (declare (ignore string-so-far))
+	      (display-completion-possibilities
+		stream function stuff-so-far
+		:possibility-printer possibility-printer
+		:display-possibilities
+		  (or (eql action :possibilities)
+		      (and (eql action :help) help-displays-possibilities)))))
+      (declare (dynamic-extent #'completion-help))
+      (with-accept-help ((:subhelp #'completion-help))
+       ;; Keep the input editor from handling help and possibilities characters.
+       ;; They will get treated as activation characters, thus ensuring that 
+       ;; STUFF-SO-FAR will be accurate when we display the possibilities.
+       (let ((*ie-help-enabled* nil)
+	     (location (input-position stream))
+	     token ch
+	     unread return extend
+	     completion-mode completion-type
+	     answer-object)
+	(flet ((ends-in-char-p (string char)
+		 (let ((sl (length string)))
+		   (and (plusp sl)
+			(char-equal (aref string (1- sl)) char)))))
+	  (declare (dynamic-extent #'ends-in-char-p))
+	  (loop
+	    ;; Maybe these, as well as TOKEN and CH should be LET inside the loop...
+	    (setq unread nil return nil extend nil)
+	    (setq token (read-token stream))
+	    (setq ch (read-gesture :stream stream))	;don't care about wait functions
+	    (extend-vector stuff-so-far token)
+	    (cond ((null ch)
+		   (error "Null ch?"))
+		  ((characterp ch)
+		   (cond ((member ch *help-characters*)
+			  (setq completion-mode ':help))
+			 ((member ch *possibilities-characters*)
+			  (setq completion-mode ':possibilities))
+			 ((member ch *complete-characters*)
+			  (setq completion-mode ':complete-maximal))
+			 ((member ch partial-completers :test #'char-equal)
+			  (setq completion-mode ':complete-limited
+				unread t extend t return 'if-completed))
+			 ;; What about "overloaded" partial completers??
+			 ((blip-character-p ch)
+			  (setq completion-mode (if allow-any-input nil ':complete)
+				unread t extend t return t))
+			 ((activation-character-p ch)
+			  (setq completion-mode (if allow-any-input nil ':complete) 
+				unread t return t))))
+		  ((eq ch ':eof)
+		   (setq completion-mode (if allow-any-input nil ':complete) 
+			 return t))
+		  (t				;mouse click?
+		   (beep stream)))
+
+	    ;; OK, this is a SPECIAL case.  We check to see if the null string
+	    ;; was read, and if so, we signal a parse-error (because ACCEPT
+	    ;; handles this specially) so that the default value will be filled
+	    ;; in by ACCEPT.
+	    ;; There is a tension here between wanting to fill in the default and
+	    ;; use the maximal left substring when the user types #\End or a field
+	    ;; terminator that also does completion.  Putting this check before the
+	    ;; completion code means that the default always wins.
+	    (when (and return (zerop (fill-pointer stuff-so-far)))
+	      (when unread
+		(unread-gesture ch :stream stream))
+	      (when (interactive-stream-p stream)
+		(rescan-for-activation stream))
+	      (simple-parse-error "Attempting to complete the null string"))
+
+	    (cond ((or (eql completion-mode ':help)
+		       (eql completion-mode ':possibilities))
+		   ;; Since we've asked the input editor not to do this,
+		   ;; we must do it here ourselves
+		   (display-accept-help stream completion-mode "")
+		   (setq completion-type nil))
+		  (completion-mode
+		   (multiple-value-bind (string success object nmatches)
+		       (funcall function stuff-so-far completion-mode)
+		     (setq answer-object object)
+		     (cond ((= nmatches 0)
+			    ;; no valid completion, so no replace input
+			    (setq completion-type 'invalid)
+			    (when extend
+			      (vector-push-extend ch stuff-so-far)))
+			   ((= nmatches 1)
+			    (setq completion-type (if success 'unique 'ambiguous))
+			    ;; replace contents of stuff-so-far with completion
+			    (setf (fill-pointer stuff-so-far) 0)
+			    (extend-vector stuff-so-far string)
+			    )
+			   ((> nmatches 1)
+			    (setq completion-type 'ambiguous)
+			    ;; replace contents of stuff-so-far with completion
+			    (setf (fill-pointer stuff-so-far) 0)
+			    (extend-vector stuff-so-far string)
+			    ;; need-to-add-delimiter test??
+			    (when (and extend
+				       (not (ends-in-char-p string ch)))
+			      (vector-push-extend ch stuff-so-far)))))))
+
+	    ;; Check for errors unconditionally, remembering that we may not have
+	    ;; called the completer at all (completion-type = NIL)
+	    (ecase completion-type
+	      ((nil unique left-substring))	; no possible errors to report
+	      (invalid
+	       (unless allow-any-input
+		 (when unread
+		   (unread-gesture ch :stream stream))
+		 (simple-parse-error "Invalid completion: ~A" stuff-so-far)))
+	      (ambiguous
+	       ;; only beep on ambiguous full completions, in either ALLOW-ANY-INPUT mode
+	       (when (eq completion-mode :complete)
+		 (beep stream))))
+
+	    (when (eq return 'if-completed)
+	      (unless (eq completion-type 'unique)
+		(setq return nil)))
+
+	    ;; Decide whether or not to return, remembering that
+	    ;; we might have called the completer.
+	    (when return
+	      (when (or (member completion-type '(nil unique left-substring))
+			allow-any-input)
+		;; leave the last delimiter for our caller
+		(when unread
+		  (unread-gesture ch :stream stream))
+		;; Must replace-input after unread-gesture so the delimiter is unread
+		;; into the input editor's buffer, not the underlying stream's buffer
+		(unless (rescanning-p stream)
+		  (replace-input stream stuff-so-far :buffer-start location))
+		(return-from complete-input
+		  (values answer-object t (evacuate-temporary-string stuff-so-far)))))
+
+	    ;; Not returning yet, but update the input editor's buffer anyway
+	    (unless (rescanning-p stream)
+	      (replace-input stream stuff-so-far :buffer-start location)))))))))))
+
+(defun display-completion-possibilities (stream function stuff-so-far
+					 &key possibility-printer (display-possibilities t))
+  (when display-possibilities
+    (fresh-line stream)
+    (multiple-value-bind (string success object nmatches possibilities)
+	(funcall function stuff-so-far :possibilities)
+      (declare (ignore string object success))
+      (if (or (= nmatches 0) (null possibilities))
+	  (write-string "There are no possible completions" stream)
+	;;--- Just using the type from the innermost context is far too simplistic
+	;; Be sure to un-stack-cons the context type
+	(let ((type (evacuate-list
+		      (input-context-type (first *input-context*)))))
+	  (flet ((print-possibility (possibility stream)
+		   (cond (possibility-printer
+			  (funcall possibility-printer possibility type stream))
+			 (type
+			  (present (second possibility) type :stream stream))
+			 (t
+			  (format stream "~A" (first possibility))))))
+	    (declare (dynamic-extent #'print-possibility))
+	    (cond ((= nmatches 1)
+		   (write-string "The only possible completion is:" stream)
+		   (fresh-line stream)
+		   (print-possibility (first possibilities) stream))
+		  (t
+		   (write-string "The possible completions are:" stream)
+		   (fresh-line stream)
+		   (formatting-table (stream :multiple-columns t)
+		     (dolist (possibility possibilities)
+		       (formatting-row (stream)
+			 (formatting-cell (stream)
+			   (print-possibility possibility stream)))))))))))))
+
+(defmacro completing-from-suggestions ((stream &rest options) &body body)
+  (declare (arglist (stream &key partial-completers allow-any-input possibility-printer)
+		    &body body))
+  (declare (values object success string nmatches))
+  #+Genera (declare (zwei:indentation 0 3 1 1))
+  (let ((string '#:string)
+	(action '#:action))
+    `(flet ((completing-from-suggestions-body (,string ,action)
+	      (suggestion-completer (,string :action ,action
+				     ,@(rem-keywords options '(:allow-any-input
+							       :possibility-printer)))
+		,@body)))
+       (declare (dynamic-extent #'completing-from-suggestions-body))
+       (complete-input ,stream #'completing-from-suggestions-body ,@options))))
+
+;; The second argument to the generator function is a function to be
+;; called on a string (and object and presentation type) to suggest
+;; that string.
+(defmacro suggestion-completer ((string &key action partial-completers) &body body)
+  #+Genera (declare (zwei:indentation 0 3 1 1))
+  (let ((function '#:function))
+    `(flet ((suggestion-completer-body (,string ,function)
+	      (declare (ignore ,string))
+	      (flet ((suggest (&rest args)
+		       (declare (dynamic-extent args))
+		       (apply ,function args)))
+		nil		;workaround broken compilers
+		,@body)))
+       (declare (dynamic-extent #'suggestion-completer-body))
+       (complete-from-generator ,string #'suggestion-completer-body
+				,partial-completers :action ,action))))
+
+;;--- For compatibility with old binary files, remove it someday
+(defun suggestion-completer-internal (string generator
+				      &key (action :complete)
+					   partial-completers
+					   allow-any-input possibility-printer)
+  (declare (ignore allow-any-input possibility-printer))
+  (declare (dynamic-extent generator))
+  (complete-from-generator string generator partial-completers :action action))
+
+;; Very few lisp compilers seem to be able to handle the case where this top-level
+;; macro is shadowed by the FLET in the continuation above.
+#+Genera
+(defmacro suggest (name &rest objects)
+  (declare (ignore name objects))
+  (error "You cannot use ~S outside of ~S" 'suggest 'completing-from-suggestions))
+
+(defvar *null-object* '#:null)
+
+;; Complete STRING chunk-wise against the completion possibilities in the
+;; COMPLETIONS, using DELIMITERS to break the strings into chunks.  ACTION
+;; should be :COMPLETE, :COMPLETE-LIMITED, :COMPLETE-MAXIMAL, or
+;; :POSSIBILITIES (see below).  NAME-KEY and VALUE-KEY are used to extract
+;; the completion string and object from the entries in COMPLETIONS, and
+;; PREDICATE (if supplied) is applied to filter out unwanted objects.
+;; Returns five values, the completed string, whether or not the completion
+;; successfully matched, the object associated with the completion, the
+;; number of things that matches, and (if ACTION is :POSSIBILITIES) a list
+;; of possible completions.
+;;
+;; When ACTION is :COMPLETE, this completes the input as much as possible,
+;; except that if the user's input exactly matches one of the possibilities,
+;; even if it is a left substring of another possibility, the shorter
+;; possibility is returned as the result.
+;; When ACTION is :COMPLETE-LIMITED, this completes the input up to the next
+;; partial delimiter.
+;; When ACTION is :COMPLETE-MAXIMAL, this completes the input as much as possible.
+;; When ACTION is :POSSIBILITIES, this returns a list of the possible completions.
+(defun complete-from-possibilities (string completions delimiters
+				    &key (action :complete) predicate
+					 (name-key #'first) (value-key #'second))
+  (declare (values string success object nmatches possibilities))
+  (let* ((best-completion nil)
+	 (best-length nil)
+	 (best-object *null-object*)
+	 (nmatches 0)
+	 (possibilities nil))
+    (dolist (possibility completions)
+      (let ((completion (funcall name-key possibility))
+	    (object (funcall value-key possibility)))
+	(when (or (null predicate)
+		  (funcall predicate object))
+	  ;; If we are doing simple completion and the user-supplied string is
+	  ;; exactly equal to this completion, then claim success (even if there
+	  ;; are other completions that have this one as a left substring!).
+	  (when (and (eql action :complete)
+		     (string-equal string completion))
+	    (return-from complete-from-possibilities
+	      (values completion t object 1)))
+	  (multiple-value-setq (best-completion best-length best-object nmatches possibilities)
+	    (chunkwise-complete-string string completion object action delimiters
+				       best-completion best-length best-object
+				       nmatches possibilities)))))
+    (values (if best-completion (subseq best-completion 0 best-length) string)
+	    (not (eq best-object *null-object*))
+	    (if (eq best-object *null-object*) nil best-object)
+	    nmatches
+	    (nreverse possibilities))))
+
+;; Just like COMPLETE-FROM-POSSIBILITIES, except that the possibilities are
+;; gotten by funcalling a generator rather than from a completion alist.
+(defun complete-from-generator (string generator delimiters
+				&key (action :complete) predicate)
+  (declare (values string success object nmatches possibilities))
+  (declare (dynamic-extent generator))
+  (let* ((best-completion nil)
+	 (best-length nil)
+	 (best-object *null-object*)
+	 (possibilities nil)
+	 (nmatches 0))
+    (flet ((suggest-handler (completion object &optional presentation-type)
+	     (declare (ignore presentation-type))	;for now
+	     (when (or (null predicate)
+		       (funcall predicate object))
+	       (when (and (eql action :complete)
+			  (string-equal string completion))
+		 (return-from complete-from-generator
+		   (values completion t object 1)))
+	       (multiple-value-setq (best-completion best-length best-object nmatches possibilities)
+		 (chunkwise-complete-string string completion object action delimiters
+					    best-completion best-length best-object
+					    nmatches possibilities)))))
+      (declare (dynamic-extent #'suggest-handler))
+      (funcall generator string #'suggest-handler))
+    (values (if best-completion (subseq best-completion 0 best-length) string)
+	    (not (eq best-object *null-object*))
+	    (if (eq best-object *null-object*) nil best-object)
+	    nmatches
+	    (nreverse possibilities))))
+
+;; The common subroutine used to do chunkwise completion.
+;;--- Extending this to support completion aarrays is pretty straightforward
+(defun chunkwise-complete-string (string completion object action delimiters
+				  best-completion best-length best-object
+				  nmatches possibilities)
+  (declare (values best-completion best-length best-object nmatches possibilities))
+  (let ((length (length string))
+	(matches (chunkwise-string-compare string completion delimiters)))
+    (when (= matches length)
+      (incf nmatches)
+      (case action
+	(:possibilities
+	 (push (list completion object) possibilities))
+	((:complete :complete-maximal)
+	 nil)
+	(:complete-limited
+	 ;; Match up only as many chunks as the user has typed
+	 (flet ((delimiter-p (char)
+		  (member char delimiters)))
+	   (declare (dynamic-extent #'delimiter-p))
+	   (let* ((nchunks (1+ (count-if #'delimiter-p string)))
+		  (cutoff (let ((start 0)
+				(cutoff nil))
+			    (dotimes (i nchunks cutoff)
+			      #-excl (declare (ignore i))
+			      (let ((new (position-if #'delimiter-p completion :start start)))
+				(unless new (return nil))
+				(setq cutoff new
+				      start (1+ new)))))))
+	     (when cutoff
+	       (setq completion (subseq completion 0 (1+ cutoff)))
+	       ;; Increment this once more to make the higher level think
+	       ;; that the completion is ambiguous
+	       (incf nmatches))))))
+      (cond (best-completion
+	     (let ((new-length (chunkwise-string-compare best-completion completion delimiters
+							 t best-length)))
+	       (cond ((or (null best-length)
+			  (> new-length best-length))
+		      (setq best-length new-length
+			    best-object object))
+		     (t
+		      (setq best-length new-length
+			    best-object *null-object*)))))
+	    (t
+	     (setq best-completion (copy-seq completion)
+		   best-length (length best-completion)
+		   best-object object)))))
+  (values best-completion best-length best-object nmatches possibilities))
+
+;; Compare STRING1 against STRING2 in "chunks", using DELIMITERS to break
+;; the strings into chunks.  Returns two values, the index of the first place
+;; where the strings mismatches and the index of the last character that was
+;; unambiguous.  When MERGE-P, STRING1 gets side-effected.
+(defun chunkwise-string-compare (string1 string2 delimiters &optional merge-p end1)
+  (declare (values matched ambiguous))
+  (let ((len1 (or end1 (length string1)))
+	(len2 (length string2))
+	(matched 0)
+	ambiguous
+	(i1 0) (i2 0)
+	char1 char2)
+    (loop
+      (unless (and (< i1 len1) (< i2 len2))
+	(return))
+      (setq char1 (aref string1 i1)
+	    char2 (aref string2 i2))
+      (cond ((or (eql char1 char2) (char-equal char1 char2))
+	     (when merge-p
+	       (setf (aref string1 matched) char1))
+	     (incf matched) (incf i1) (incf i2))
+	    (t
+	     (unless ambiguous
+	       (setq ambiguous matched))
+	     (cond ((member char1 delimiters)
+		    (when (or (and (not merge-p)
+				   (> i1 matched))
+			      (member char2 delimiters))
+		      (return nil)))
+		   ((member char2 delimiters)
+		    (when (and (not merge-p)
+			       (> i2 matched))
+		      (return nil)))
+		   (t (unless merge-p
+			(return nil))))
+	     (loop
+	       (when (or (member (aref string1 i1) delimiters)
+			 (>= (incf i1) len1))
+		 (return)))
+	     (loop
+	       (when (or (member (aref string2 i2) delimiters)
+			 (>= (incf i2) len2))
+		 (return))))))
+    (values matched (or ambiguous matched))))

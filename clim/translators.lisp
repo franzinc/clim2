@@ -1,0 +1,544 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+
+;; $fiHeader: translators.lisp,v 1.8 91/08/05 14:35:47 cer Exp $
+
+(in-package :clim)
+
+"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1991, Franz Inc. All rights reserved"
+
+;;; Presentation Translators.
+
+(defvar *translators-cache-size* 25)
+(defvar *translators-cache-tick* 0)
+
+;;--- This should be more incremental, but that costs in paging time
+(defun invalidate-presentation-caches (class)
+  (declare (ignore class))
+  (incf *translators-cache-tick*))
+
+#+Genera
+(setq clos-internals::*invalidate-clim-handler-caches* #'invalidate-presentation-caches)
+
+(eval-when (compile load)
+
+(defvar *translator-function-arglist*
+	'(object presentation context-type frame event window x y)))
+
+(defclass presentation-translator ()
+     ((name      :initarg :name
+		 :reader presentation-translator-name)
+      (function  :initform nil :initarg :function 
+		 :reader presentation-translator-function)
+      (tester    :initform nil :initarg :tester
+		 :reader presentation-translator-tester)
+      (from-type :initarg :from-type
+		 :reader presentation-translator-from-type)
+      (to-type   :initarg :to-type
+		 :reader presentation-translator-to-type)
+      (gesture   :initarg :gesture-name
+		 :reader presentation-translator-gesture-name)
+      (menu      :initform nil :initarg :menu
+		 :reader presentation-translator-menu)
+      (documentation :initform nil :initarg :documentation
+		     :reader presentation-translator-documentation)
+      (pointer-documentation :initform nil :initarg :pointer-documentation
+			     :reader presentation-translator-pointer-documentation)
+      (priority :initform 0 :initarg :priority
+		:reader presentation-translator-priority)
+      (tester-definitive :initform t :initarg :tester-definitive
+			 :reader presentation-translator-tester-definitive)))
+
+(defmethod presentation-translator-command-name ((translator presentation-translator))
+  nil)
+
+(defmethod print-object ((object presentation-translator) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (with-slots (name from-type to-type) object
+      (format stream "~S (~S -> ~S)" name from-type to-type))))
+
+;; The :GESTURE in the list of options might better be called :GESTURE-NAME,
+;; but that seems a bit compulsive.  The EVENT argument in the arglist is
+;; the event object corresponding to the user's gesture.
+(defmacro define-presentation-translator
+	  (name
+	   (from-type to-type command-table
+	    &key (gesture ':select) tester tester-definitive
+		 documentation pointer-documentation
+		 (menu t) priority)
+	   arglist
+	   &body body)
+  #+Genera (declare (zwei:indentation 1 3 3 1))
+  `(define-presentation-translator-1 ,name
+       (,from-type ,to-type ,command-table
+	:gesture ,gesture
+	:tester ,tester
+	:documentation ,documentation
+	:pointer-documentation ,pointer-documentation
+	:menu ,menu
+	:priority ,priority
+	:tester-definitive ,tester-definitive)
+       ,arglist
+     ,@body))
+
+#+Genera
+(progn
+  (scl:defprop define-presentation-translator "CLIM Presentation Translator"
+	       si:definition-type-name)
+  (scl:defprop define-presentation-translator remove-presentation-translator
+	       zwei:kill-definition))
+
+(defmacro define-presentation-action
+	  (name
+	   (from-type to-type command-table
+	    &key (gesture ':select) tester
+		 documentation pointer-documentation
+		 (menu t) priority)
+	   arglist
+	   &body body &environment env)
+  #+Genera (declare (zwei:indentation 1 3 3 1))
+  (with-warnings-for-definition name define-presentation-translator
+    (multiple-value-bind (doc-string declarations body)
+	(extract-declarations body env)
+      (when body
+	(setq body `((progn ,@body))))
+      (setq body `(,@declarations
+		   ,doc-string
+		   ;; The body is run for its side-effects only
+		   (throw 'no-translation ,@body)))
+      `(define-presentation-translator-1 ,name
+	   (,from-type ,to-type ,command-table
+	    :gesture ,gesture
+	    :tester ,tester
+	    :documentation ,documentation
+	    :pointer-documentation ,pointer-documentation
+	    :menu ,menu
+	    :priority ,priority
+	    :tester-definitive t)
+	   ,arglist
+	 ,@body))))
+
+#+Genera
+(scl:defprop define-presentation-action define-presentation-translator
+	     zwei:definition-function-spec-type)
+
+(defmacro define-presentation-translator-1
+	  (name
+	   (from-type to-type command-table
+	    &rest translator-keys
+	    &key (gesture ':select) tester tester-definitive
+		 documentation pointer-documentation
+		 (menu t) priority translator-class
+	    &allow-other-keys)
+	   arglist
+	   &body body &environment env)
+  #+Genera (declare (zwei:indentation 1 3 3 1))
+  (with-warnings-for-definition name define-presentation-translator
+    (check-type name symbol)
+    (warn-if-presentation-type-specifier-invalid-1 from-type env
+      #'(lambda (thing string)
+	  (warn "~S is ~A in the from-type~:[ ~S~;~]."
+		thing string (eq thing from-type) from-type)))
+    (when to-type				;don't complain when to-type is NIL
+      (warn-if-presentation-type-specifier-invalid-1 to-type env
+        #'(lambda (thing string)
+	    (warn "~S is ~A in the to-type~:[ ~S~;~]."
+		  thing string (eq thing to-type) to-type))))
+    (unless (or (typep command-table 'command-table)  ;---is this possible?
+		(and (symbolp command-table)
+		     (or (find-command-table command-table :errorp nil)
+			 (compile-time-property command-table 'command-table-name))))
+      (warn "~S is not a defined command table name." command-table))
+    (unless (and (symbolp gesture)
+		 (or (null gesture)
+		     (gesture-name-button-and-shifts gesture)
+		     (compile-time-property gesture 'gesture-name)))
+      (warn "~S is not a defined gesture name." gesture))
+    (check-type tester (or symbol list))
+    (check-type tester-definitive boolean)
+    (check-type documentation (or string symbol list))
+    (check-type pointer-documentation (or string symbol list))
+    (check-type menu symbol)
+    (check-type priority (or null integer))
+    (check-type translator-class (or null symbol))
+    (let ((defining-forms nil)
+	  (translator-functions nil))
+      (macrolet ((emit (form)
+		   `(push ,form defining-forms))
+		 (do-translator-function (clause-name &optional extra-args string-ok)
+		   `(when ,clause-name
+		      (cond ((or (functionp ,clause-name)
+				 (symbolp ,clause-name))
+			     (push `',,clause-name translator-functions))
+			    ,@(when string-ok
+				`(((stringp ,clause-name)
+				   (push ,clause-name translator-functions))))
+			    (t
+			     (multiple-value-bind (function gensym)
+				 (write-translator-function ,clause-name
+							    name ',clause-name ,extra-args)
+			       (emit function)
+			       (push `#',gensym translator-functions))))
+		      (push (intern (symbol-name ',clause-name) *keyword-package*) 
+			    translator-functions))))
+	(do-translator-function tester)
+	(do-translator-function documentation '(stream) t)
+	(do-translator-function pointer-documentation '(stream) t)
+	(let ((function (cons arglist body)))
+	  (do-translator-function function))
+	(when from-type
+	  (setq from-type (expand-presentation-type-abbreviation from-type env)))
+	(when to-type
+	  (setq to-type (expand-presentation-type-abbreviation to-type env)))
+	`(define-group ,name define-presentation-translator
+	   ,@defining-forms
+	   (define-presentation-translator-2
+	     ',name ',from-type ',to-type ',command-table
+	     :gesture ',gesture
+	     :menu ',menu
+	     :priority ',priority
+	     :tester-definitive ',tester-definitive
+	     :translator-class ',translator-class
+	     ,@translator-functions
+	     ;; WITH-REM-KEYWORDS probably stack-conses...
+	     ,@(rem-keywords translator-keys
+			     '(:gesture :tester :tester-definitive
+			       :documentation :pointer-documentation
+			       :menu :priority :translator-class))))))))
+
+(defun define-presentation-translator-2 (translator-name from-type to-type command-table
+					 &rest init-keywords
+					 &key translator-class gesture
+					      documentation pointer-documentation
+					      tester tester-definitive priority
+					 &allow-other-keys)
+  (declare (dynamic-extent init-keywords))
+  (with-rem-keywords (init-keywords init-keywords
+				    '(:translator-class :gesture
+				      :pointer-documentation :tester-definitive :priority))
+    (let* ((translator-class
+	     (or translator-class 'presentation-translator))
+	   (translator
+	     (apply #'make-instance translator-class 
+				    :name translator-name
+				    :from-type from-type
+				    :to-type to-type
+				    :gesture-name gesture
+				    :pointer-documentation
+				      (or pointer-documentation documentation)
+				    ;; Err on the side of performance: if there's no tester, 
+				    ;; assume that it is definitive.
+				    :tester-definitive (or (null tester) tester-definitive)
+				    :priority (or priority 0)
+				    init-keywords)))
+      ;; You're allowed to explicitly supply NIL for the command table...
+      (when command-table
+	(add-presentation-translator-to-command-table command-table translator
+						      :errorp nil))
+      translator)))
+
+(defun write-translator-function (function translator-name clause-name extra-args)
+  (let ((function-name (gensymbol translator-name clause-name))
+	(arglist (first function))
+	(body (rest function)))
+    (multiple-value-bind (arglist ignores)
+	(canonicalize-and-match-lambda-lists
+	  (append *translator-function-arglist* extra-args) arglist)
+      (values `(defun ,function-name ,arglist
+		 ,@(and ignores `((declare (ignore ,@ignores))))
+		 ,@body)
+	      function-name))))
+
+
+(defun-inline call-presentation-translator (translator presentation context-type
+					    frame event window x y)
+  (let ((function (presentation-translator-function translator)))
+    (funcall function
+	     (presentation-object presentation) presentation context-type
+	     frame event window x y)))
+
+(defun-inline call-presentation-tester (translator presentation context-type
+					frame event window x y)
+  (let ((tester (presentation-translator-tester translator)))
+    (or (null tester)
+	(funcall tester
+		 (presentation-object presentation) presentation context-type
+		 frame event window x y))))
+
+;; Can't blithely use the type-name as the key for everything, since some types
+;; (such as AND and SEQUENCE) cannot work only using the type-name.
+(defmacro with-presentation-type-translator-key ((key type) &body body)
+  (let ((name (gensymbol 'name))
+	(parameters (gensymbol 'parameters)))
+    `(with-presentation-type-decoded (,name ,parameters) ,type
+       (with-stack-list* (,key ,name ,parameters)
+	 (unless (member ,name *presentation-type-parameters-are-types*)
+	   (setq ,key ,name))
+	 ,@body))))
+
+(defun find-presentation-translators (from-type to-type frame)
+  (let ((command-table (find-command-table (frame-command-table frame))))
+    (with-slots (translators-cache) command-table
+      (let ((cache translators-cache))		;for speed...
+	(with-presentation-type-translator-key (from-key from-type)
+	  (with-presentation-type-translator-key (to-key to-type)
+	    (with-stack-list (key from-key to-key)
+	      (multiple-value-bind (translators found-p)
+		  (and cache (gethash key cache))
+		(cond ((or (null found-p)
+			   (/= (pop translators) *translators-cache-tick*))
+		       (let ((translators (find-presentation-translators-1 
+					    from-key to-key command-table)))
+			 (when (null cache)
+			   (setq translators-cache
+				 (make-hash-table :size *translators-cache-size*
+						  :test #'equal))
+			   (setq cache translators-cache))
+			 ;; Need to copy the whole tree, since the from- and to-keys
+			 ;; could themselves be stack-consed. 
+			 (setf (gethash (copy-tree key) cache)
+			       (cons *translators-cache-tick* translators))
+			 translators))
+		      (t
+		       ;; Already popped above
+		       translators))))))))))
+
+;;--- This traverses a lot of very non-local data structures (presentation types,
+;;--- translators, command tables, etc).  What can we do to localize them?
+(defun find-presentation-translators-1 (from-key to-key command-table)
+  (let ((translators nil))
+    (flet ((collect-translators (translator)
+	     (with-presentation-type-translator-key
+	       (translator-from-key (presentation-translator-from-type translator))
+	       (with-presentation-type-translator-key
+		 (translator-to-key (presentation-translator-to-type translator))
+		 (when (and (presentation-subtypep from-key translator-from-key)
+			    ;; PRESENTATION-SUBTYPEP will return T when the
+			    ;; translator is "context independent", that is,
+			    ;; translator-to-key is NIL.
+			    (presentation-subtypep translator-to-key to-key))
+		   ;; If we're looking for a translator from LMFS-PATHNAME to COMMAND
+		   ;; a PATHNAME->FOO-COMMAND translator should apply.
+		   (push translator translators))))))
+      (declare (dynamic-extent #'collect-translators))
+      (map-over-command-table-translators #'collect-translators command-table))
+    ;; Inherited translators should come after the ones in this command table
+    (setq translators (nreverse translators))
+    ;; Now sort by priority
+    ;;--- This is not a complete enough way to handle priorities.
+    ;;--- Should this also sort based on CLOS class precedence?
+    (setq translators (stable-sort translators #'>
+				   :key #'presentation-translator-priority))
+    translators))
+
+;; Return a list of all classes that are not provably disjoint from CLASS
+(defun class-nondisjoint-classes (class)
+  (let ((class (find-presentation-type-class class)))
+    (when (or (eql class (find-class 't))
+	      (eql class (find-class 'standard-object))
+              #+(or Genera Cloe-Runtime)
+	      (eql class (find-class 'clos:structure-object)))
+      (return-from class-nondisjoint-classes t))
+    (labels ((transitive-closure (function element set)
+	       (pushnew element set)
+	       (dolist (new-element (funcall function element))
+		 (unless (member new-element set)
+		   (setq set (union (transitive-closure function new-element set) set))))
+	       set))
+      (let ((set (transitive-closure #'class-direct-subclasses class nil)))
+	(dolist (element set)
+	  (setq set (transitive-closure #'class-direct-superclasses element set)))
+	(delete-if-not #'acceptable-presentation-type-class set)))))
+
+(defun test-presentation-translator (translator presentation context-type
+				     frame window x y
+				     &key event (shift-mask 0) for-menu)
+  (and (presentation-translator-matches-event translator event shift-mask for-menu)
+       (test-presentation-translator-1 translator presentation context-type
+				       frame event window x y)))
+
+;; Does the translator match the pointer event?
+(defun test-presentation-translator-1 (translator presentation context-type
+				       frame event window x y)
+  (and
+    ;; Make sure that the presentation matches the from-type's parameters
+    (let ((from-type (presentation-translator-from-type translator)))
+      (with-presentation-type-decoded (name parameters) from-type
+	(declare (ignore name))
+	(or (null parameters)
+	    (presentation-typep (presentation-object presentation) from-type))))
+    ;; From-type parameters matched, run the tester
+    (call-presentation-tester translator presentation context-type
+			      frame event window x y)
+    ;; Tester matched, it has to either be definitive, or we need to run
+    ;; the body in the case where the input context has type parameters
+    ;; and verify that the body matches the context type
+    (or (presentation-translator-tester-definitive translator)
+	(with-presentation-type-decoded (name parameters) context-type
+	  (declare (ignore name))
+	  (null parameters))
+	(multiple-value-bind (translated-object translated-type)
+	    (call-presentation-translator translator presentation context-type
+					  frame event window x y)
+	  (declare (ignore translated-type))
+	  (presentation-typep translated-object context-type)))))
+
+;; EVENT is a button press event.  If it is NIL, then SHIFT-MASK should
+;; be the current shift mask.
+(defun presentation-translator-matches-event (translator event shift-mask
+					      &optional for-menu)
+  (let ((gesture-name (presentation-translator-gesture-name translator)))
+    (or (eq gesture-name t)
+	for-menu
+	(if (null event)
+	    (shift-mask-matches-gesture-name shift-mask gesture-name)
+	    (button-press-event-matches-gesture-name event gesture-name)))))
+
+(defun button-press-event-matches-gesture-name (event gesture-name)
+  (let ((button (pointer-event-button event))
+	(shift-mask (silica::event-modifier-key-state event)))
+    (declare (fixnum button shift-mask))
+    (button-and-shifts-matches-gesture-name
+     button shift-mask gesture-name)))
+
+(defvar *presentation-menu-translator* nil)
+
+;; Returns the first translator that matches the presentation in this context.
+(defun presentation-matches-context-type (presentation context-type
+					  frame window x y
+					  &key event (shift-mask 0))
+  (declare (values translator))
+  (let ((one-matched nil)
+	(translators
+	  (find-presentation-translators (presentation-type presentation)
+					 context-type frame)))
+    (when translators
+      (dolist (translator translators)
+	(let ((by-gesture
+		(presentation-translator-matches-event translator event shift-mask))
+	      (by-tester
+		(test-presentation-translator-1 translator presentation context-type
+						frame event window x y)))
+	  (when (and by-gesture by-tester)
+	    ;; Matched by both gesture and by the tester, we're done
+	    (return-from presentation-matches-context-type translator))
+	  (when by-tester
+	    ;; We matched by the tester, it's OK to try the menu translator.
+	    (setq one-matched t))))
+      ;; If EVENT is non-NIL, then we are running on behalf of the user having
+      ;; pressed a pointer button, which means that some translator must have
+      ;; matched during the test phase, which means that the PRESENTATION-MENU
+      ;; translator might be applicable, even though no others were found.
+      (when (and event one-matched
+		 *presentation-menu-translator*
+		 (test-presentation-translator *presentation-menu-translator*
+					       presentation context-type
+					       frame window x y
+					       :event event))
+	(return-from presentation-matches-context-type *presentation-menu-translator*))))
+  nil)
+
+;; When FASTP is T, that means "as soon as you find a matching translator, return
+;; that translator".  Otherwise, return a list of applicable translators.
+(defun find-applicable-translators (presentation input-context frame window x y
+				    &key event shift-mask (for-menu nil for-menu-p) fastp)
+  (let ((applicable-translators nil)
+	(from-type (presentation-type presentation)))
+    ;; Loop over the contexts, from the most specific to the least specific
+    (dolist (context input-context)
+      (let ((context-type (pop context))	;input-context-type = first
+	    (tag (pop context)))		;input-context-tag = second
+	(let ((translators (find-presentation-translators from-type context-type frame)))
+	  (when translators
+	    (dolist (translator translators)
+	      (when (and (or (not for-menu-p)
+			     (eql (presentation-translator-menu translator) for-menu))
+			 (test-presentation-translator translator
+						       presentation context-type
+						       frame window x y
+						       :event event :shift-mask shift-mask
+						       :for-menu for-menu))
+		(when fastp
+		  (return-from find-applicable-translators translator))
+		;; Evacuate the context-type, but don't bother evacuating the
+		;; tag since it will get used before its extent expires.
+		(push `(,translator ,(evacuate-list context-type) ,tag)
+		      applicable-translators))))
+	  ;; If we've accumulated any translators, maybe add on PRESENTATION-MENU.
+	  ;; If FASTP is T, we will have returned before we get here.
+	  (when (and applicable-translators
+		     *presentation-menu-translator*
+		     (or (not for-menu-p)
+			 (eql (presentation-translator-menu *presentation-menu-translator*)
+			      for-menu))
+		     (test-presentation-translator *presentation-menu-translator*
+						   presentation context-type
+						   frame window x y
+						   :event event :shift-mask shift-mask
+						   :for-menu for-menu))
+	    (push `(,*presentation-menu-translator* ,(evacuate-list context-type) ,tag)
+		  applicable-translators)))))
+    ;; Since we pushed translators onto the list, the least specific one
+    ;; will be at the beginning of the list.  DELETE-DUPLICATES is defined to
+    ;; remove duplicated items which appear earlier in the list, so it will
+    ;; remove duplicated less specific translators.  Finally, NREVERSE will
+    ;; get the translators in most-specific to least-specific order.
+    (nreverse (delete-duplicates applicable-translators :key #'first))))
+
+(defun document-presentation-translator (translator presentation context-type
+					 frame event window x y
+					 &key (stream *standard-output*)
+					      documentation-type)
+  (let ((documentation
+	  (if (eql documentation-type :pointer)
+	      (or (presentation-translator-pointer-documentation translator)
+		  (presentation-translator-documentation translator))
+	      (presentation-translator-documentation translator))))
+    (cond ((stringp documentation)
+	   (write-string documentation stream))
+	  (documentation
+	   (funcall documentation 
+		    (presentation-object presentation) presentation context-type
+		    frame event window x y
+		    stream))
+	  (t
+	   (when (eql documentation-type :from-body)
+	     ;; In general, it is not safe to run the body of a translator to get
+	     ;; its documentation, but sometimes that's the only way.  Command
+	     ;; menus are one such example.  (Beware of side-effects from actions.)
+	     (catch 'no-translation		;catch simple action errors
+	       (multiple-value-bind (translated-object translated-type)
+		   (call-presentation-translator translator presentation context-type
+						 frame event window x y)
+		 (present translated-object (or translated-type context-type)
+			  :stream stream)
+		 (return-from document-presentation-translator (values)))))
+	   ;; If we didn't get asked to run the body for the purpose of command
+	   ;; menus, then we might be able to take a different kind of short
+	   ;; cut for to-command translators.
+	   (when (eql (presentation-type-name (presentation-translator-to-type translator))
+		      'command)
+	     (return-from document-presentation-translator
+	       (document-presentation-to-command-translator
+		 translator presentation context-type frame event window x y stream)))
+	   ;; Final fallback, not pretty
+	   (format stream "Translator ~S" (presentation-translator-name translator))))))
