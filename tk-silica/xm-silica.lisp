@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.19 92/05/22 19:29:33 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.20 92/06/16 15:02:23 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -102,38 +102,29 @@
 (initializemydrawingareaquerygeometry 
  (ff:register-function 'my-drawing-area-query-geometry-stub))
 
-
 (defun my-drawing-area-query-geometry (widget intended desired)
-  (let* ((widget (tk::find-object-from-address widget))
-	 (display (tk::widget-display widget))
-	 (port (find-port-from-display display))
-	 (sheet (gethash widget (silica::port-mirror->sheet-table port))))
-    (let ((sr (compose-space sheet))
-	  (rm (tk::xt-widget-geometry-request-mode intended)))
-      ;; If its asking and its out of range then say so
-      (when (or (and (logtest rm x11:cwwidth)
-		     (not (<= (space-requirement-min-width sr)
-			      (tk::xt-widget-geometry-width intended)
-			      (space-requirement-max-width sr))))
-		(and (logtest rm x11:cwheight)
-		     (not (<= (space-requirement-min-height sr)
-			      (tk::xt-widget-geometry-height intended)
-			      (space-requirement-max-height sr)))))
-	(return-from my-drawing-area-query-geometry tk::xt-geometry-no))
+  (let* ((sheet (find-sheet-from-widget-address widget))
+	 (sr (compose-space sheet))
+	 (rm (tk::xt-widget-geometry-request-mode intended)))
+    ;; If its asking and its out of range then say so
+    (when (or (and (logtest rm x11:cwwidth)
+		   (not (<= (space-requirement-min-width sr)
+			    (tk::xt-widget-geometry-width intended)
+			    (space-requirement-max-width sr))))
+	      (and (logtest rm x11:cwheight)
+		   (not (<= (space-requirement-min-height sr)
+			    (tk::xt-widget-geometry-height intended)
+			    (space-requirement-max-height sr)))))
+      (return-from my-drawing-area-query-geometry tk::xt-geometry-no))
       
-      (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
-	(return-from my-drawing-area-query-geometry tk::xt-geometry-yes))
+    (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
+      (return-from my-drawing-area-query-geometry tk::xt-geometry-yes))
       
-      (setf (tk::xt-widget-geometry-width desired) (fix-coordinate 
-						    (space-requirement-width sr))
-	    (tk::xt-widget-geometry-height desired) (fix-coordinate
-						     (space-requirement-height sr))
-	(tk::xt-widget-geometry-request-mode desired) (logior x11:cwwidth x11:cwheight))
+    (setf (tk::xt-widget-geometry-width desired) (fix-coordinate 
+						  (space-requirement-width sr))
+	  (tk::xt-widget-geometry-height desired) (fix-coordinate
+						   (space-requirement-height sr))
+	  (tk::xt-widget-geometry-request-mode desired) (logior x11:cwwidth x11:cwheight))
 
-      (return-from my-drawing-area-query-geometry tk::xt-geometry-almost))))
-      
-(defun find-port-from-display (display)
-  (find-if #'(lambda (port)
-	       (and (typep port 'xt-port)
-		    (eq (port-display port) display)))
-	   silica::*ports*))
+    (return-from my-drawing-area-query-geometry tk::xt-geometry-almost)))
+

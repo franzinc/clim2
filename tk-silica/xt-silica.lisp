@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.31 92/06/16 19:11:15 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.32 92/06/23 08:20:20 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -106,7 +106,9 @@
 
 (defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
 			     (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
-			     (:serif "*-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
+			     (:serif 
+			      ;; This causes problems on OpenWindows 3.0!
+			      ;; "*-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
 			      "*-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
 			      "*-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
 
@@ -300,18 +302,38 @@
 	       (loose-em child)))))
     (loose-em sheet)))
 
-(defmethod realize-mirror ((port xt-port) sheet)
-  (let ((parent (find-widget-parent port sheet)))
-    (multiple-value-bind (class initargs)
-	(find-widget-class-and-initargs-for-sheet port (sheet-parent sheet) sheet)
-      (let ((widget (apply #'make-instance class
-			   :parent parent
-			   :managed (sheet-enabled-p sheet)
-			   initargs)))
-	(initialize-mirror port sheet widget)
-	widget))))
+(defmethod realize-widget-mirror ((port xt-port) (parent-sheet t) parent-widget sheet)
+  (multiple-value-bind (class initargs)
+      (find-widget-class-and-initargs-for-sheet port parent-widget sheet)
+    (apply #'make-instance class
+	   :parent parent-widget
+	   :managed nil			; See note below
+	   initargs)))
 
-(defmethod initialize-mirror ((port xt-port) sheet widget)
+(defmethod realize-mirror ((port xt-port) sheet)
+  (let* ((parent-widget (find-widget-parent port sheet))
+	 (parent (sheet-parent sheet))
+	 (widget (realize-widget-mirror port parent parent-widget sheet)))
+    (initialize-mirror port parent parent-widget sheet widget)
+    widget))
+
+;; You may wonder why this is being done in this perverse way
+;; Well its because if you create a managed child of ScrollingWindow then the
+;; scrolling window calls its query geometry method which can result
+;; in compose-space being invoked and the mirror<->sheet mapping has
+;; not been established nor has the rest of tree been mirrored.
+;; So it seems to work out really well to do this bottom up.
+
+(defmethod silica::note-sheet-tree-grafted :after ((port xt-port) (sheet mirrored-sheet-mixin))
+  (let ((mirror (sheet-direct-mirror sheet)))
+    (when (and (sheet-enabled-p sheet)
+	       (typep mirror 'xt::xt-root-class)) ; Pixmap streams are
+						  ; mirrored by a
+						  ; pixmap rather than
+						  ; by a widget
+      (tk::manage-child mirror))))
+
+(defmethod initialize-mirror ((port xt-port) (parent sheet) (parent-widget t) (sheet sheet) widget)
   (add-sheet-callbacks port sheet widget))
 
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
@@ -740,9 +762,11 @@
 	 (origin-y (tk::font-ascent x-font))
 	 (bb-x escapement-x)
 	 (bb-y (+ origin-y (tk::font-descent x-font))))
-    (when (zerop escapement-x) (break))
+    (when (zerop escapement-x) 
+      (setq escapement-x (tk::font-width x-font)))
     (values index x-font escapement-x escapement-y
 	    origin-x origin-y bb-x bb-y)))
+
 
 (defmethod text-style-mapping :around ((device xt-port) text-style
 				       &optional (character-set *standard-character-set*) etc)
@@ -1022,6 +1046,14 @@
 (defmethod engraft-medium :before ((medium t) (port xt-port) (pane viewport))
   (default-from-mirror-resources port pane))
 
+;; whats wrong with this?
+;; Well I think there is some dreadful method combination order
+;; problem which results in mediums being grafted before mirrors
+
+#+ignore
+(defmethod engraft-medium :before ((medium t) (port xt-port) (pane standard-sheet-output-mixin))
+  (default-from-mirror-resources port pane))
+
 
 ;;-- What do we do about pixmap streams. I guess they should inherit
 ;;-- properties from the parent.
@@ -1030,7 +1062,8 @@
 ;;--- been set we want to query the resource database for the values
 ;; Either (a) ask a widget or (b) Do it directly.
 ;; Well it looks like we have to use a widget
-;; If we wanted to get a font then we are in trouble because
+;; If we wanted to get a font then we are in trouble because there is
+;; not such resource here
 
 (defun default-from-mirror-resources (port pane)
   (unless (and (medium-foreground pane)
@@ -1153,3 +1186,21 @@ the geometry of the children. Instead the parent has control. "))
    (make-instance 'value-changed-gadget-event
 		  :gadget sheet
 		  :value value)))
+
+(defun find-sheet-from-widget-address (address)
+  (let* ((widget (tk::find-object-from-address address))
+	 (display (tk::widget-display widget))
+	 (port (find-port-from-display display)))
+    (find-widget-sheet port widget)))
+
+(defun find-widget-sheet (port widget &optional (errorp t))
+  (cond ((gethash widget (silica::port-mirror->sheet-table port)))
+	((not errorp))
+	(t (error "Could not find sheet for widget ~S" widget))))
+
+      
+(defun find-port-from-display (display)
+  (find-if #'(lambda (port)
+	       (and (typep port 'xt-port)
+		    (eq (port-display port) display)))
+	   silica::*ports*))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-funs.lisp,v 1.3 92/05/22 19:26:28 cer Exp Locker: cer $
+;; $fiHeader: ol-funs.lisp,v 1.4 92/06/23 08:19:14 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -57,3 +57,4 @@
 (defforeign 'ol_text_edit_read_substring :entry-point "_OlTextEditReadSubString")
 (defforeign 'ol_text_edit_insert :entry-point "_OlTextEditInsert")
 (defforeign 'ol_text_edit_get_last_position :entry-point "_OlTextEditGetLastPosition")
+(defforeign 'ol_register_help :entry-point "_OlRegisterHelp")

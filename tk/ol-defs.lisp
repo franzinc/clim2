@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-defs.lisp,v 1.3 92/05/22 19:26:27 cer Exp Locker: cer $
+;; $fiHeader: ol-defs.lisp,v 1.4 92/06/23 08:19:13 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -61,8 +61,28 @@
 
 (defconstant ol-string 63)
 
-(defconstant  ol_b_list_attr_appl	(byte 16 0))
-(defconstant  ol_b_list_attr_current	(byte 1 17))
-(defconstant  ol_b_list_attr_selected	(byte 1 18))
-(defconstant  ol_b_list_attr_focus	(byte 1 19))
+(defconstant ol_b_list_attr_appl	(byte 16 0))
+(defconstant ol_b_list_attr_current	(byte 1 17))
+(defconstant ol_b_list_attr_selected	(byte 1 18))
+(defconstant ol_b_list_attr_focus	(byte 1 19))
+(defconstant ol_widget_help 73)
+(defconstant ol_transparent_source 69)
 
+(def-c-type (ol-sw-geometries :no-defuns) :struct
+	    (sw * xt-widget)
+	    (vsb * xt-widget)
+	    (hsb * xt-widget)
+	    (bb-border-width xt-dimension)
+	    (vsb-width xt-dimension)
+	    (vsb-min-height xt-dimension)
+	    (hsb-height xt-dimension)
+	    (hsb-min-width xt-dimension)
+	    (sw-view-width xt-dimension)
+	    (sw-view-height xt-dimension)
+	    (bbc-width xt-dimension)
+	    (bbc-height xt-dimension)
+	    (bbc-real-width xt-dimension)
+	    (bbc-real-height xt-dimension)
+	    (force-hsb xt-dimension)
+	    (force-vsb xt-dimension)
+	    )

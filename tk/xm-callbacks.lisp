@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-callbacks.lisp,v 1.1 92/05/07 11:01:22 cer Exp Locker: cer $
+;; $fiHeader: xm-callbacks.lisp,v 1.2 92/05/07 13:11:01 cer Exp Locker: cer $
 
 
 (in-package :tk)
@@ -35,3 +35,17 @@
 	(r nil))
     (dotimes (i (xm-list-callback-struct-selected-item-count call-data) (nreverse r))
       (push (xm-selected-position-array si i) r))))
+
+;;--- This should probably be in xm-resources.lisp
+
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
+  (if value
+      (do* ((n (length value))
+	    (r (make-xm-string-table :number n :in-foreign-space t))
+	    (v value (cdr v))
+	    (i 0 (1+ i)))
+	  ((null v)
+	   r)
+	(setf (xm-string-table r i)
+	  (convert-resource-out parent 'xm-string (car v))))
+    0))

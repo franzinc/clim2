@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.23 92/05/22 19:26:52 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.24 92/06/23 08:19:24 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -141,7 +141,7 @@
 	    :accessor gadget-label)
      (alignment :initarg :align-x
 		:accessor gadget-alignment))
-  (:default-initargs :label nil :align-x :center))
+  (:default-initargs :label "" :align-x :center))
 
 ;;--- Do the right thing
 #---ignore
@@ -279,7 +279,7 @@
 ;;; Check-box
 
 (defclass check-box 
-	  (value-gadget oriented-gadget) 
+	  (value-gadget oriented-gadget-mixin) 
     ((selections :initform nil 
 		 :reader check-box-selections)
      ;;--- think about this...
@@ -333,7 +333,8 @@
 	   wrapping-space-mixin
 	   pane)
     ;; This describes the region that we are displaying
-    ((viewport-region :accessor viewport-viewport-region)))
+	  ((viewport-region :accessor viewport-viewport-region)
+	   (scroller-pane :initarg :scroller-pane :reader viewport-scroller-pane)))
 
 (defmethod initialize-instance :after ((viewport viewport) &key)
   (multiple-value-bind (width height)
@@ -410,7 +411,9 @@
 		vy)))))
     (clear-space-requirement-caches-in-tree scroller)
     (when relayout
-      (let ((table (sheet-child scroller)))
+      ;;--- This is kinda bogus. If this was a generic scroller then
+      ;;--- then you want to layout the table. 
+      (let ((table (slot-value scroller	'viewport)))
  	(multiple-value-bind (width height)
  	    (bounding-rectangle-size table)
  	  (allocate-space table width height))))))
@@ -447,7 +450,7 @@
 ;;; Then there is the layout stuff and scrolling macros
 
 (defmacro scrolling (options &body contents)
-  `(make-pane 'scroller-pane
+  `(make-pane 'generic-scroller-pane
 	      :contents ,@contents
 	      ,@options))
 

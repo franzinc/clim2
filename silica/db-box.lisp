@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.14 92/05/06 15:37:14 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.15 92/05/22 19:26:42 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -193,8 +193,10 @@
 	      contents sizes)))))
 
 ;;--- Yow
+;;--- In theory this should work ok.
 (defun frob-size (wanted-size available where-we-are-now)
-  (min wanted-size (1- (- available where-we-are-now))))
+  #-ignore wanted-size
+  #+ignore (min wanted-size (1- (- available where-we-are-now))))
 		   
 
 

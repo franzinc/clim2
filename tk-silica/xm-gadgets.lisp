@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
+; -*- mode: common-lisp; package: xm-silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,13 +18,14 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.33 92/06/16 15:02:21 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.34 92/06/23 08:20:15 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
 (defmethod make-pane-class ((framem motif-frame-manager) class &rest options) 
   (declare (ignore options))
   (second (assoc class '(
+			 ;; Another experiment
 			 ;; experiment
 			 (outlined-pane motif-frame-pane)
 			 ;;
@@ -351,23 +352,23 @@
 
 (defmethod change-scroll-bar-values ((sb motif-scroll-bar) &key slider-size value)
   (let ((mirror (sheet-direct-mirror sb)))
-    (multiple-value-bind
-	(mmin mmax) (tk::get-values mirror :minimum :maximum)
+    (when mirror
       (multiple-value-bind
-	  (real-value real-size) (compute-new-scroll-bar-values sb mmin mmax value slider-size)
-	(tk::set-values
-	 mirror
-	 :slider-size real-size
-	 :value real-value)))))
+	  (mmin mmax) (tk::get-values mirror :minimum :maximum)
+	(multiple-value-bind
+	    (real-value real-size) (compute-new-scroll-bar-values sb mmin mmax value slider-size)
+	  (tk::set-values
+	   mirror
+	   :slider-size real-size
+	   :value real-value))))))
 
 
    
-(defmethod add-sheet-callbacks ((port motif-port) (sheet motif-scroll-bar) (widget t))
+(defmethod add-sheet-callbacks :after ((port motif-port) (sheet motif-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :value-changed-callback
 		    'scroll-bar-changed-callback-1
 		    sheet))
-
 
 (defmethod scroll-bar-changed-callback-1 ((widget t) (sheet motif-scroll-bar))
   (multiple-value-bind
@@ -386,6 +387,7 @@
 
 
 (defmethod compose-space ((m motif-scroll-bar) &key width height)
+  ;;-- We should probably ask the widget
   (let ((x 16))
     (ecase (gadget-orientation m)
       (:vertical
@@ -524,6 +526,7 @@
     sr))
 
 
+#+ignore
 (defmethod silica::gadget-supplied-scrolling (frame-manager frame (contents motif-text-editor) &rest ignore)
   (declare (ignore ignore))
   (with-look-and-feel-realization (frame-manager frame)
@@ -615,17 +618,6 @@
 	    :resize-policy :none
 	    :scroll-bar-display-policy :static)))
 
-#+ignore
-(defmethod add-sheet-callbacks :after ((port motif-port) 
-				       (sheet xm-viewport)
-				       (widget tk::xm-my-drawing-area))
-  ;;--- I wonder whether this is needed since it should not be resized by
-  ;; the toolkit and only as part of the goe management code that will
-  ;; recurse to children anyway
-  (tk::add-callback widget 
-		    :resize-callback 
-		    'sheet-mirror-resized-callback
-		    sheet))
 
 (defclass motif-radio-box (motif-geometry-manager
 			   mirrored-sheet-mixin
@@ -717,15 +709,6 @@
 ;  ;;-- Is this what wrapping space mixin should do???
 ;  (move-and-resize-sheet* (sheet-child fr) 0 0 width height))
 
-
-(defmethod add-sheet-callbacks :after ((port motif-port) 
-				       (sheet xm-frame-viewport-mixin)
-				       (widget tk::xm-my-drawing-area))
-  (tk::add-callback widget 
-		    :resize-callback 
-		    'sheet-mirror-resized-callback
-		    sheet))
-
 (defclass motif-frame-pane (motif-geometry-manager
 			    mirrored-sheet-mixin
 			    sheet-single-child-mixin
@@ -763,37 +746,76 @@
 
 ;;; Scrolling Window
 
-(defclass motif-scrolling-window (motif-geometry-manager
-				  ask-widget-for-size-mixin
-				  mirrored-sheet-mixin
-				  sheet-single-child-mixin
-				  sheet-permanently-enabled-mixin
-				  pane)
+(defclass basic-motif-scrolling-window (motif-geometry-manager
+					ask-widget-for-size-mixin
+					mirrored-sheet-mixin
+					sheet-multiple-child-mixin
+					sheet-permanently-enabled-mixin
+					pane)
 	  ;;-- probably one of the options is whether to have vertical
 	  ;;-- and/or horizontal scrollbars
 	  ())
 
+#+ignore
+(defclass motif-scrolling-window (basic-motif-scrolling-window) ())
+
+#+ignore
 (defmethod initialize-instance :after ((pane motif-scrolling-window) &key contents)
   (sheet-adopt-child pane contents))
 
-(defmethod compose-space ((fr motif-scrolling-window) &key width height)
+(defmethod compose-space ((fr basic-motif-scrolling-window) &key width height)
   (declare (ignore width height))
   ;;--- This is not quite right because I think scrollbars are a bit
   ;;--- bigger than this. But atleast its a start
-  (let ((fudge-factor (+ 16
-			 (tk::get-values (sheet-mirror fr)
-					 :spacing)))
-	(sr (copy-space-requirement (compose-space (sheet-child fr)))))
-    (incf (space-requirement-width sr) fudge-factor)
-    (incf (space-requirement-height sr) fudge-factor)
-    ;;--- Is this the correct thing to do???
-    (setf (space-requirement-min-width sr) fudge-factor
-	  (space-requirement-min-height sr) fudge-factor)
+  ;;-- We check to see which scrollbars we have
+
+  (let* (
+	 (spacing (tk::get-values (sheet-mirror fr) :spacing))
+	 (sr (copy-space-requirement (compose-space (silica::pane-contents fr)))))
+
+    ;;--- if scroller-pane-gadget-supplies-scrolling-p is true we should
+    ;;--- do something different. Perhaps we can ask the widget itself
+    ;;--  for the overall size but what about the min size. Otherwise we
+    ;;-- might need to do this is a grubby way.
+    ;; Perhaps we just call compose-space on the child and then add in
+    ;; the size of the scroll-bars.
+    (if (silica::scroller-pane-gadget-supplies-scrolling-p fr)
+	(multiple-value-bind
+	    (hb vb)
+	    (tk::get-values (sheet-direct-mirror fr) :horizontal-scroll-bar :vertical-scroll-bar)
+	  (let ((ha (and hb (xt::is-managed-p hb) (tk::get-values hb :height)))
+		(va (and vb (xt::is-managed-p vb) (tk::get-values vb :width))))
+	    (when va (maxf (space-requirement-height sr) (+ spacing (* 2 va))))
+	    (when ha (incf (space-requirement-height sr) (+ spacing ha)))
+	    (when va (maxf (space-requirement-min-height sr) (+ spacing (* 2 va))))
+	    (when ha (incf (space-requirement-min-height sr) (+ spacing ha)))
+	    (maxf (space-requirement-max-height sr) (space-requirement-height sr))
+    
+	    (when ha (maxf (space-requirement-width sr) (+ spacing (* 2 ha))))
+	    (when va (incf (space-requirement-width sr) (+ spacing va)))
+	    (when ha (maxf (space-requirement-min-width sr) (+ spacing (* 2 ha))))
+	    (when va (incf (space-requirement-min-width sr) (+ spacing va)))
+	    (maxf (space-requirement-max-width sr) (space-requirement-width sr))))
+      (let* ((vsb (silica::scroller-pane-vertical-scroll-bar fr))
+	     (vsb-sr (and vsb (compose-space vsb)))
+	     (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
+	     (hsb-sr (and hsb (compose-space hsb))))
+	(when vsb-sr (maxf (space-requirement-height sr) (+ spacing (space-requirement-min-height vsb-sr))))
+	(when hsb-sr (incf (space-requirement-height sr) (+ spacing (space-requirement-height hsb-sr))))
+	(when vsb-sr (maxf (space-requirement-min-height sr) (+ spacing (space-requirement-min-height vsb-sr))))
+	(when hsb-sr (incf (space-requirement-min-height sr) (+ spacing (space-requirement-height hsb-sr))))
+	(maxf (space-requirement-max-height sr) (space-requirement-height sr))
+    
+	(when hsb-sr (maxf (space-requirement-width sr) (+ spacing (space-requirement-min-width hsb-sr))))
+	(when vsb-sr (incf (space-requirement-width sr) (+ spacing (space-requirement-width vsb-sr))))
+	(when hsb-sr (maxf (space-requirement-min-width sr) (+ spacing (space-requirement-min-width hsb-sr))))
+	(when vsb-sr (incf (space-requirement-min-width sr) (+ spacing (space-requirement-width vsb-sr))))
+	(maxf (space-requirement-max-width sr) (space-requirement-width sr))))
     sr))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
-						     (sheet motif-scrolling-window))
+						     (sheet basic-motif-scrolling-window))
   (values 'xt::xm-scrolled-window nil))
 
 ;; List-pane
@@ -813,7 +835,7 @@
 		   (mode list-pane-mode)
 		   (name-key set-gadget-name-key)) sheet
     (let ((selected-items
-	   (compute-list-pane-selected-items sheet value)))
+	   (silica::compute-list-pane-selected-items sheet value)))
       (values 'xt::xm-list 
 	      `(
 		,@(and selected-items
@@ -855,6 +877,7 @@
        (tk::add-callback widget :multiple-selection-callback 
 			 'list-pane-multiple-selection-callback sheet))))
 
+#+ignore
 (defmethod silica::gadget-supplied-scrolling (frame-manager frame
 					      (contents motif-list-pane)
 					      &rest ignore)
@@ -866,7 +889,7 @@
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror l)
     (let ((selected-items
-	   (compute-list-pane-selected-items l nv)))
+	   (silica::compute-list-pane-selected-items l nv)))
       (tk::set-values (sheet-direct-mirror l)
 		      :selected-item-count (length selected-items)
 		      :selected-items selected-items))))
@@ -1306,3 +1329,81 @@
 	 m 
 	 :width (fix-coordinate (space-requirement-width csr))
 	 :height (fix-coordinate (space-requirement-height csr)))))))
+
+
+
+
+;; Utilize a motif scrolling window to provide the scrollbars and
+;; geometry management
+
+(defmethod make-pane-class ((framem motif-frame-manager) (class (eql 'silica::generic-scroller-pane)) 
+							 &rest options) 
+  (declare (ignore options))
+  'motif-scroller-pane)
+
+
+(defclass motif-scroller-pane (scroller-pane basic-motif-scrolling-window) 
+	  ())
+
+(defmethod initialize-instance :after ((sp motif-scroller-pane) &key
+								scroll-bars 
+								contents frame-manager frame) 
+  (if (setf (silica::scroller-pane-gadget-supplies-scrolling-p sp)
+	(gadget-supplies-scrolling-p contents))
+      (sheet-adopt-child sp contents)
+    (with-look-and-feel-realization (frame-manager frame)
+      (when (member scroll-bars '(:both :dynamic :vertical))
+	(let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
+	  (setf (silica::scroller-pane-vertical-scroll-bar sp) sb)
+	  (sheet-adopt-child sp sb)))
+      (when (member scroll-bars '(:both :dynamic :horizontal))
+	(let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
+	  (setf (silica::scroller-pane-horizontal-scroll-bar sp) sb)
+	  (sheet-adopt-child sp sb)))
+      (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
+      (sheet-adopt-child (slot-value sp 'viewport) contents))))
+
+(defmethod gadget-supplies-scrolling-p ((sheet t)) nil)
+(defmethod gadget-supplies-scrolling-p ((sheet motif-text-editor)) t)
+(defmethod gadget-supplies-scrolling-p ((sheet motif-list-pane)) t)
+
+(defmethod initialize-mirror :after ((port motif-port)
+				     (parent motif-scroller-pane)
+				     (parent-widget t)
+				     (sheet motif-scroll-bar) 
+				     (widget t))
+  (tk::set-values parent-widget
+		  (if (eq sheet (silica::scroller-pane-vertical-scroll-bar parent))
+		      :vertical-scroll-bar :horizontal-scroll-bar)
+		  widget))
+
+(defmethod initialize-mirror :after ((port motif-port)
+				     (parent motif-scroller-pane)
+				     (parent-widget t)
+				     (sheet xm-viewport)
+				     (widget t))
+  (tk::set-values parent-widget :work-window widget))
+
+
+
+(defmethod initialize-mirror :after ((port motif-port)
+				     (parent motif-geometry-manager)
+				     (parent-widget t)
+				     (sheet t)
+				     (widget t))
+  ;; This is a pane in the butt since you only get configure-notify
+  ;; events after you have been created
+  ;; Really Xt should have a callback for this. Not the drawing area.
+  (typecase widget
+    (tk::xm-my-drawing-area
+     (tk::add-callback widget 
+      :resize-callback 
+      'sheet-mirror-resized-callback
+      sheet))
+    (t
+     (tk::add-event-handler widget
+			    '(:structure-notify)
+			    1
+			    'sheet-mirror-event-handler
+			    sheet))))
+

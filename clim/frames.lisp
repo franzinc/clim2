@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.25 92/06/16 15:01:44 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.26 92/06/23 08:19:46 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1152,6 +1152,7 @@
   (distribute-event
    (port frame)
    (make-instance 'presentation-event
+		  :frame frame
 		  :sheet (frame-top-level-sheet frame)
 		  :value command)))
 
@@ -1183,9 +1184,10 @@
 (defun process-command-event (sheet event)
   (when (and (eq *application-frame* (event-frame event)) *input-buffer-empty*)
     (signal 'synchronous-command-event :command (presentation-event-value event)))
-  ;; Perhaps if this results directly from a user action then either
-  ;; we should do it right away, ie. loose the input buffer or beep if
-  ;; it has to be deffered,
+  ;;--- Perhaps if this results directly from a user action then either
+  ;;--- we should do it right away, ie. loose the input buffer or beep if
+  ;;---  it has to be deffered.
+  ;; If you ask me it might be better to beep.
   (queue-frame-command (event-frame event) (presentation-event-value event)))
 
 (defun queue-frame-command (frame command)

@@ -20,14 +20,18 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.13 92/05/22 19:29:25 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.14 92/06/23 08:20:08 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
 
 (defmethod make-pane-class ((framem openlook-frame-manager) class &rest options) 
   (declare (ignore options))
-  (second (assoc class '((scroll-bar openlook-scroll-bar)
+  (second (assoc class '(
+			 ;; An experiment
+			 (outlined-pane openlook-frame-pane)
+			 ;;
+			 (scroll-bar openlook-scroll-bar)
 			 (slider openlook-slider)
 			 (push-button openlook-push-button)
 			 (label-pane openlook-label-pane)
@@ -76,7 +80,7 @@
 	 :proportion-length  real-size
 	 :slider-value real-value)))))
 
-(defmethod add-sheet-callbacks ((port openlook-port) (sheet openlook-scroll-bar) (widget t))
+(defmethod add-sheet-callbacks :after  ((port openlook-port) (sheet openlook-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :slider-moved
 		    'scroll-bar-changed-callback-1
@@ -113,7 +117,13 @@
 
 ;;; Ol DrawArea Widgets require all of this
 
-(defmethod add-sheet-callbacks ((port openlook-port) (sheet t) (widget tk::draw-area))
+(ff:defun-c-callable ol-ignore-help-function (id-type id src-x src-y)
+  (declare (ignore id-type id src-x src-y))
+  nil)
+
+(defvar *ol-ignore-help-function-address* (ff:register-function 'ol-ignore-help-function))
+
+(defmethod add-sheet-callbacks :after  ((port openlook-port) (sheet t) (widget tk::draw-area))
   (tk::add-callback widget 
 		    :expose-callback 
 		    'sheet-mirror-exposed-callback
@@ -137,7 +147,14 @@
 			   )
 			 1
 			 'sheet-mirror-event-handler
-			 sheet))
+			 sheet)
+  (tk::ol_register_help
+   tk::ol_widget_help
+   widget
+   "foo"
+   tk::ol_transparent_source
+   *ol-ignore-help-function-address*
+   ))
 
 ;;; top level sheet
 
@@ -153,9 +170,20 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-top-level-sheet))
-  (values 'tk::draw-area
-	  (list :layout :ignore)))
+  (values 'tk::draw-area (list :layout :ignore)))
 
+
+;;
+
+(defclass openlook-frame-pane (sheet-single-child-mixin
+			       sheet-permanently-enabled-mixin
+			       wrapping-space-mixin
+			       pane)
+	  ())
+
+(defmethod initialize-instance :after ((fr openlook-frame-pane) &key frame frame-manager contents thickness)
+  (declare (ignore frame frame-manager thickness))
+  (sheet-adopt-child fr contents))
 
 ;; OpenLook viewport
 
@@ -730,27 +758,92 @@
     (setf (text-editor-text gadget) nv)))
 
 
-(defmethod silica::gadget-supplied-scrolling (frame-manager frame 
-					      (contents openlook-text-editor) 
-					      &rest ignore)
-  (declare (ignore ignore))
-  (with-look-and-feel-realization (frame-manager frame)
-    (make-pane 'openlook-scrolling-window :contents contents)))
+(defmethod gadget-supplies-scrolling-p ((contents openlook-text-editor))
+  t)
 
 ;;;
 ;;;--- This code is so much like the motif one I think we could share
 ;;;--- code.
 
-(defclass openlook-scrolling-window (openlook-geometry-manager
-				  ask-widget-for-size-mixin
-				  mirrored-sheet-mixin
-				  sheet-single-child-mixin
-				  sheet-permanently-enabled-mixin
-				  pane)
+(defclass openlook-scrolling-window (scroller-pane
+				     openlook-geometry-manager
+				     ask-widget-for-size-mixin
+				     mirrored-sheet-mixin
+				     sheet-multiple-child-mixin
+				     sheet-permanently-enabled-mixin
+				     pane)
 	  ;;-- probably one of the options is whether to have vertical
 	  ;;-- and/or horizontal scrollbars
 	  ())
 
+
+;;-- Very similar to the motif code.
+
+(defmethod initialize-mirror :after ((port openlook-port)
+				     (parent openlook-geometry-manager)
+				     (parent-widget t)
+				     (sheet t)
+				     (widget t))
+  ;; This is a pane in the butt since you only get configure-notify
+  ;; events after you have been created
+  ;; Really Xt should have a callback for this. Not the drawing area.
+  (typecase widget
+    (tk::draw-area
+     (tk::add-callback widget 
+      :resize-callback 
+      'sheet-mirror-resized-callback
+      sheet))
+    (t
+     (tk::add-event-handler widget
+			    '(:structure-notify)
+			    1
+			    'sheet-mirror-event-handler
+			    sheet))))
+
+
+;;--- this is almost identical to the motif code
+
+(defmethod initialize-instance :after ((sp openlook-scrolling-window)
+				       &key scroll-bars contents frame-manager frame)
+  (if (setf (silica::scroller-pane-gadget-supplies-scrolling-p sp)
+	(gadget-supplies-scrolling-p contents))
+      (sheet-adopt-child sp contents)
+    (with-look-and-feel-realization (frame-manager frame)
+      (when (member scroll-bars '(:both :dynamic :vertical))
+	(let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
+	  (setf (silica::scroller-pane-vertical-scroll-bar sp) sb)
+	  (sheet-adopt-child sp sb)))
+      (when (member scroll-bars '(:both :dynamic :horizontal))
+	(let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
+	  (setf (silica::scroller-pane-horizontal-scroll-bar sp) sb)
+	  (sheet-adopt-child sp sb)))
+      (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
+      (sheet-adopt-child (slot-value sp 'viewport) contents))))
+
+(defmethod realize-widget-mirror ((port openlook-port) (parent-sheet openlook-scrolling-window)
+						       (parent-widget t)
+						       (sheet openlook-scroll-bar))
+  (tk::get-values parent-widget
+   (ecase (gadget-orientation sheet)
+     (:horizontal :h-scrollbar)
+     (:vertical  :v-scrollbar))))
+
+(defmethod gadget-supplies-scrolling-p ((contents t))
+  nil)
+
+(defmethod make-pane-class ((framem openlook-frame-manager) 
+			    (class (eql 'silica::generic-scroller-pane)) 
+			    &rest options
+			    &key contents)
+  (declare (ignore options))
+  (if (gadget-includes-scrollbars-p contents)
+      'openlook-frame-pane
+    'openlook-scrolling-window))
+
+(defmethod gadget-includes-scrollbars-p ((pane t))
+  nil)
+
+#+ignore
 (defmethod initialize-instance :after ((pane openlook-scrolling-window) &key contents)
   (sheet-adopt-child pane contents))
 
@@ -758,11 +851,62 @@
   (declare (ignore width height))
   ;;--- This is not quite right because I think scrollbars are a bit
   ;;--- bigger than this. But atleast its a start
-  (let ((fudge-factor (+ 16
+  ;;-- We check to see which scrollbars we have
+
+  (let* (
+	 (spacing 0 #+ignore (tk::get-values (sheet-mirror fr) :spacing))
+	 (sr (copy-space-requirement (compose-space (silica::pane-contents fr)))))
+
+    ;;--- if scroller-pane-gadget-supplies-scrolling-p is true we should
+    ;;--- do something different. Perhaps we can ask the widget itself
+    ;;--  for the overall size but what about the min size. Otherwise we
+    ;;-- might need to do this is a grubby way.
+    ;; Perhaps we just call compose-space on the child and then add in
+    ;; the size of the scroll-bars.
+    (if (silica::scroller-pane-gadget-supplies-scrolling-p fr)
+	(multiple-value-bind
+	    (hb vb)
+	    (tk::get-values (sheet-direct-mirror fr) :h-scrollbar :v-scrollbar)
+	  (let ((ha (and hb (xt::is-managed-p hb) (tk::get-values hb :height)))
+		(va (and vb (xt::is-managed-p vb) (tk::get-values vb :width))))
+	    (when va (maxf (space-requirement-height sr) (+ spacing (* 2 va))))
+	    (when ha (incf (space-requirement-height sr) (+ spacing ha)))
+	    (when va (maxf (space-requirement-min-height sr) (+ spacing (* 2 va))))
+	    (when ha (incf (space-requirement-min-height sr) (+ spacing ha)))
+	    (maxf (space-requirement-max-height sr) (space-requirement-height sr))
+    
+	    (when ha (maxf (space-requirement-width sr) (+ spacing (* 2 ha))))
+	    (when va (incf (space-requirement-width sr) (+ spacing va)))
+	    (when ha (maxf (space-requirement-min-width sr) (+ spacing (* 2 ha))))
+	    (when va (incf (space-requirement-min-width sr) (+ spacing va)))
+	    (maxf (space-requirement-max-width sr) (space-requirement-width sr))))
+      (let* ((vsb (silica::scroller-pane-vertical-scroll-bar fr))
+	     (vsb-sr (and vsb (compose-space vsb)))
+	     (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
+	     (hsb-sr (and hsb (compose-space hsb))))
+	(when vsb-sr (maxf (space-requirement-height sr) (+ spacing (space-requirement-min-height vsb-sr))))
+	(when hsb-sr (incf (space-requirement-height sr) (+ spacing (space-requirement-height hsb-sr))))
+	(when vsb-sr (maxf (space-requirement-min-height sr) (+ spacing (space-requirement-min-height vsb-sr))))
+	(when hsb-sr (incf (space-requirement-min-height sr) (+ spacing (space-requirement-height hsb-sr))))
+	(maxf (space-requirement-max-height sr) (space-requirement-height sr))
+    
+	(when hsb-sr (maxf (space-requirement-width sr) (+ spacing (space-requirement-min-width hsb-sr))))
+	(when vsb-sr (incf (space-requirement-width sr) (+ spacing (space-requirement-width vsb-sr))))
+	(when hsb-sr (maxf (space-requirement-min-width sr) (+ spacing (space-requirement-min-width hsb-sr))))
+	(when vsb-sr (incf (space-requirement-min-width sr) (+ spacing (space-requirement-width vsb-sr))))
+	(maxf (space-requirement-max-width sr) (space-requirement-width sr))))
+    sr))
+
+#+ignore
+(defmethod compose-space ((fr openlook-scrolling-window) &key width height)
+  (declare (ignore width height))
+  ;;--- This is not quite right because I think scrollbars are a bit
+  ;;--- bigger than this. But atleast its a start
+  (let ((fudge-factor (+ 21
 			 #+ignore
 			 (tk::get-values (sheet-mirror fr)
 					 :spacing)))
-	(sr (copy-space-requirement (compose-space (sheet-child fr)))))
+	(sr (copy-space-requirement (compose-space (silica::pane-contents fr)))))
     (incf (space-requirement-width sr) fudge-factor)
     (incf (space-requirement-height sr) fudge-factor)
     ;;--- Is this the correct thing to do???
@@ -770,10 +914,38 @@
 	  (space-requirement-min-height sr) fudge-factor)
     sr))
 
+
+(ff:defun-c-callable scrolling-window-geometry-function ((content :unsigned-long)
+							 (geometries :unsigned-long))
+  (let* ((viewport (find-sheet-from-widget-address content))
+	 (scrolling-window (sheet-parent viewport)))
+    (multiple-value-bind
+	(swidth sheight) (tk::get-values (sheet-direct-mirror
+					  scrolling-window) :width :height)
+      (let ((hsb-height (tk::ol-sw-geometries-hsb-height geometries))
+	    (vsb-width (tk::ol-sw-geometries-vsb-width geometries)))
+	(let ((w (- swidth vsb-width))
+	      (h (- sheight hsb-height)))
+	  (setf (tk::ol-sw-geometries-force-hsb geometries) 
+	    (if (silica::scroller-pane-horizontal-scroll-bar scrolling-window) 1 0))
+	  (setf (tk::ol-sw-geometries-force-vsb geometries) 
+	    (if (silica::scroller-pane-vertical-scroll-bar scrolling-window) 1 0))
+	  (when (plusp w) (setf (tk::ol-sw-geometries-bbc-width geometries) w))
+	  (when (plusp h) (setf (tk::ol-sw-geometries-bbc-height geometries) h)))))))
+
+(defvar *scrolling-window-geometry-function-address* 
+    (ff::register-function 'scrolling-window-geometry-function))
+
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-scrolling-window))
-  (values 'xt::scrolled-window nil))
+  (values 'xt::scrolled-window 
+	  (and (not (gadget-supplies-scrolling-p (silica::pane-contents sheet)))
+	       `(:h-auto-scroll nil 
+				:v-auto-scroll nil
+				:compute-geometries ,*scrolling-window-geometry-function-address*
+				))))
+
 
 
 ;;; 
@@ -783,10 +955,7 @@
 	   (token-list :accessor list-pane-token-list)
 	   (current-tokens :initform nil :accessor list-pane-current-tokens)))
 
-(defmethod silica::gadget-supplied-scrolling (frame-manager frame 
-					      (contents openlook-list-pane) 
-					      &rest ignore)
-  (declare (ignore ignore))
+(defmethod gadget-includes-scrollbars-p ((contents openlook-list-pane))
   contents)
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.3 92/02/24 13:06:06 cer Exp Locker: cer $
+;; $fiHeader: ol-frames.lisp,v 1.4 92/05/22 19:29:24 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -77,8 +77,7 @@
 			      :managed nil))
 	 (menu (tk::get-values menu-shell :menu-pane)))
 
-    (when label
-      (tk::set-values menu-shell :title label))
+    (tk::set-values menu-shell :title (or label "Choose"))
     
     (labels ((make-menu-button (item class parent &rest options)
 	       (let ((button

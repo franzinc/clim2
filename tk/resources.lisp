@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.24 92/06/16 19:10:54 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.25 92/06/23 08:19:17 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -390,7 +390,8 @@
     (pixel nil)
     (short nil)
     (int nil)
-   (t t)))
+    (function nil)
+    (t t)))
   
 (defmethod resource-type-get-memref-type (type)
   (case type
@@ -563,21 +564,6 @@
   (declare (ignore parent))
   0)
 
-
-
-(defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
-  (if value
-      (do* ((n (length value))
-	    ;;--- Malloc alert
-	    (r (excl::malloc (* n 4)))
-	    (v value (cdr v))
-	    (i 0 (1+ i)))
-	  ((null v)
-	   r)
-	(setf (xt-arglist r i)
-	  (convert-resource-out parent 'xm-string (car v))))
-    0))
-
 
 
 (defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
@@ -597,6 +583,10 @@
 
 (defmethod convert-resource-in ((widget t) (type (eql 'widget)) x)
   (intern-widget x :display (widget-display widget)))
+
+(defmethod convert-resource-in ((widget t) (type (eql 'window)) x)
+  (and (not (zerop x))
+       (intern-widget x :display (widget-display widget))))
 
 ;;; Accelerator table stuff
 (defmethod convert-resource-in (parent (type (eql 'xt::accelerator-table))

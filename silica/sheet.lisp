@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.16 92/06/16 15:01:18 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.17 92/06/23 08:19:27 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -75,7 +75,7 @@
 
 (defmethod sheet-adopt-child ((sheet sheet-single-child-mixin) child)
   (when (sheet-child sheet)
-    (error "Sheet Already has a child: ~S" sheet))
+    (error "Single child sheet already has a child: ~S" sheet))
   (setf (sheet-child sheet) child
 	(sheet-parent child) sheet))
 
@@ -110,8 +110,13 @@
   (note-sheet-grafted sheet)
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (sheet-children sheet))
-      (setf (port child :graft graft) port))))
+      (setf (port child :graft graft) port)))
+  (note-sheet-tree-grafted port sheet))
 
+(defmethod note-sheet-tree-grafted ((port port) (sheet sheet))
+  ;; This method is invoked when the sheet and its descendents have
+  ;; been mirrored
+  nil)
 
 (defmethod sheet-disown-child ((parent sheet-multiple-child-mixin) child)
   (unless (eq (sheet-parent child) parent)

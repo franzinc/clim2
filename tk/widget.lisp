@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.20 92/05/22 19:26:32 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.21 92/06/23 08:19:18 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -58,6 +58,7 @@
 
 
 (defun create-widget-1 (fn name widget-class parent &rest args)
+  (assert parent)
   (let* ((class (find-class-maybe widget-class))
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class parent args)))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.30 92/06/16 15:01:59 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.31 92/06/23 08:19:56 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -88,6 +88,7 @@
 			 (setf (aref x i j) (random 2))))
 		     x)
 		   (list +red+ +green+)))
+  (:pointer-documentation t)
   (:geometry :width 300 :height 300))
 
 
@@ -611,8 +612,10 @@
 		  (50 60 2)
 		  (0.0 1.0 2))))))
 
-(defun test-accepting-values (&optional (own-window t)
-			      (gadget-dialog-view t))
+(define-test-frame-command (com-test-accepting-values :menu t :name t)
+    (&key
+     (own-window 'boolean :default t)
+     (gadget-dialog-view 'boolean :default t))
   (let* ((stream *query-io*)
 	 (ptypes-and-prompts `((boolean "Finished it yet")
 			       ((member a b c) "3 Member test")
@@ -778,3 +781,9 @@
 
 ;; 
 
+(define-application-frame tf105 () ()
+  (:command-table test-frame)
+  (:panes
+   (c :interactor :height 200 :width 200))
+  (:layouts
+   (:default c)))

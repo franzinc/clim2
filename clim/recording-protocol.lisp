@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.12 92/05/22 19:28:26 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.13 92/06/02 13:30:58 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1295,4 +1295,8 @@
 		(apply continuation continuation-args))
 	      (apply continuation continuation-args))))))
 
+;; This looks kinda useful
 
+(defclass standard-sequence-output-history
+    (stream-output-history-mixin standard-sequence-output-record)
+    ())

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.21 92/05/22 19:26:47 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.22 92/05/26 14:32:58 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,18 +11,24 @@
 
 ;;--- Need to be able to specify horizontal and vertical separately
 ;;--- What do we need from CLIM 0.9's DB-NEW-SCROLL?
-(defclass scroller-pane (client-space-requirement-mixin
-			 wrapping-space-mixin
-			 layout-pane)
-    ((scroll-bars :initarg :scroll-bars :reader scroller-pane-scroll-bar-policy)
-     (vertical-scroll-bar :initform nil 
-			  :accessor scroller-pane-vertical-scroll-bar)
-     (horizontal-scroll-bar :initform nil
-			    :accessor scroller-pane-horizontal-scroll-bar)
-     (scrolling-supplied-by-gadget :initform nil)
-     contents
-     viewport)
+
+(defclass scroller-pane () 
+	  ((scroll-bars :initarg :scroll-bars :reader scroller-pane-scroll-bar-policy)
+	   viewport
+	   (vertical-scroll-bar :initform nil 
+				:accessor scroller-pane-vertical-scroll-bar)
+	   (horizontal-scroll-bar :initform nil
+				  :accessor
+				  scroller-pane-horizontal-scroll-bar)
+	   (contents :accessor pane-contents :initarg :contents)
+	   (scrolling-supplied-by-gadget :initform nil :accessor scroller-pane-gadget-supplies-scrolling-p))
   (:default-initargs :scroll-bars :both))
+
+(defclass generic-scroller-pane (scroller-pane 
+				 client-space-requirement-mixin
+				 wrapping-space-mixin
+				 layout-pane)
+    ())
 
 (defmethod pane-viewport ((x sheet))
   (and (typep (sheet-parent x) 'viewport)
@@ -35,16 +41,13 @@
 
 (defmethod pane-scroller ((x sheet))
   (and (pane-viewport x)
-       (sheet-parent (sheet-parent x))
-       (typep (sheet-parent (sheet-parent (sheet-parent x)))
-	      'scroller-pane)
-       (sheet-parent (sheet-parent (sheet-parent x)))))
+       (viewport-scroller-pane (pane-viewport x))))
 
 (defmethod gadget-supplied-scrolling (frame-manager frame contents &rest ignore)
   (declare (ignore frame-manager frame ignore contents))
   nil)
 
-(defmethod allocate-space :before ((scroller scroller-pane) width height)
+(defmethod allocate-space :before ((scroller generic-scroller-pane) width height)
   (declare (ignore width height))
   ;; Adjust the status of the scrollbars
   (multiple-value-bind (changedp 
@@ -56,7 +59,7 @@
 				  hscroll-bar hscroll-bar-enabled-p
 				  vscroll-bar vscroll-bar-enabled-p))))
 
-(defmethod compose-space ((scroller scroller-pane) &key width height)
+(defmethod compose-space ((scroller generic-scroller-pane) &key width height)
   (declare (ignore width height))
   (let ((sr (copy-space-requirement (call-next-method))))
     ;;--- Make sure the scroller pane is big enough to hold something
@@ -67,7 +70,7 @@
 ;;--- Ideally we should use a toolkit scrolling window. This will look
 ;;--- exactly right and will deal with user specified placement of scroll-bars.
 ;;--- However the geometry management problems are quite huge.
-(defmethod initialize-instance :after ((pane scroller-pane) 
+(defmethod initialize-instance :after ((pane generic-scroller-pane) 
 				       &key contents frame-manager frame
 				       scroll-bars)
   (let ((x (gadget-supplied-scrolling frame-manager frame contents
@@ -99,7 +102,7 @@
 				      :id :horizontal
 				      :client pane))
 		      c contents
-		      viewport (make-pane 'viewport))
+		      viewport (make-pane 'viewport :scroller-pane pane))
 		(sheet-adopt-child
 		  pane
 		  (cond ((and horizontalp verticalp)
@@ -121,27 +124,28 @@
 
 (defun update-scroll-bars (viewport)
   ;;--- This is not the most efficient thing in the world
-  (multiple-value-bind (changedp
-			hscroll-bar hscroll-bar-enabled-p
-			vscroll-bar vscroll-bar-enabled-p)
-      (compute-dynamic-scroll-bar-values (sheet-parent (sheet-parent viewport)))
-    (update-dynamic-scroll-bars
-      (sheet-parent (sheet-parent viewport)) changedp
-      hscroll-bar hscroll-bar-enabled-p 
-      vscroll-bar vscroll-bar-enabled-p t))
-  (with-bounding-rectangle* (minx miny maxx maxy) 
+  (let ((scroller (viewport-scroller-pane viewport)))
+    (multiple-value-bind (changedp
+			  hscroll-bar hscroll-bar-enabled-p
+			  vscroll-bar vscroll-bar-enabled-p)
+	(compute-dynamic-scroll-bar-values scroller)
+      (update-dynamic-scroll-bars
+       scroller changedp
+       hscroll-bar hscroll-bar-enabled-p 
+       vscroll-bar vscroll-bar-enabled-p t))
+    (with-bounding-rectangle* (minx miny maxx maxy) 
       (viewport-contents-extent viewport)
-    (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
+      (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
 	(viewport-viewport-region viewport)
-      (with-accessors ((horizontal-scroll-bar scroller-pane-horizontal-scroll-bar)
-		       (vertical-scroll-bar scroller-pane-vertical-scroll-bar))
-		      (sheet-parent (sheet-parent viewport))
-	(when vertical-scroll-bar
-	  (update-scroll-bar vertical-scroll-bar
-			     miny maxy vminy vmaxy))
-	(when horizontal-scroll-bar
-	  (update-scroll-bar horizontal-scroll-bar
-			     minx maxx vminx vmaxx))))))
+	(with-accessors ((horizontal-scroll-bar scroller-pane-horizontal-scroll-bar)
+			 (vertical-scroll-bar scroller-pane-vertical-scroll-bar))
+	    scroller
+	  (when vertical-scroll-bar
+	    (update-scroll-bar vertical-scroll-bar
+			       miny maxy vminy vmaxy))
+	  (when horizontal-scroll-bar
+	    (update-scroll-bar horizontal-scroll-bar
+			       minx maxx vminx vmaxx)))))))
 
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong. Check out the thinkadot demo.  It's
