@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos.lisp,v 1.17 1999/02/25 08:23:46 layer Exp $
+;; $Id: clos.lisp,v 1.18 1999/07/20 04:52:41 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
@@ -27,7 +27,7 @@
 (in-package :clim-utils)
 
 #+Allegro-v4.0-constructors
-(require :constructor)
+(eval-when (compile eval load) (require :constructor))
 
 ;;; ----------------
 ;;; Constructors
