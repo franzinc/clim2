@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.5 92/04/15 11:47:32 cer Exp $
+;; $fiHeader: window-protocol.lisp,v 1.6 92/05/07 13:13:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -141,8 +141,7 @@
 ;;; --- This needs to be on window-output...
 ;(defmethod window-fresh-page ((stream window-mixin))
 ;  (multiple-value-call #'window-set-viewport-position
-;		       window
-;		       (window-stream-cursor-position stream)))
+;    window (window-stream-cursor-position stream)))
 ;
 
 (defun window-size-viewport-to-fit (window)

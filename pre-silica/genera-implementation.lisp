@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-implementation.lisp,v 1.4 92/04/15 11:46:33 cer Exp $
+;; $fiHeader: genera-implementation.lisp,v 1.5 92/05/07 13:12:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1813,11 +1813,9 @@
       (tv:blinker-set-sheet blinker (slot-value new-value 'window))))
   new-value)
 
-#-Silica
 (defmethod cursor-position ((cursor sheet-text-cursor))
   (values (slot-value cursor 'x) (slot-value cursor 'y)))
 
-#-Silica
 (defmethod cursor-set-position ((cursor sheet-text-cursor) x y)
   (setf (slot-value cursor 'x) x
 	(slot-value cursor 'y) y)
