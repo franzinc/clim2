@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Wed Dec 14 02:35:23 1994 by duane]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: make-classes.lisp,v 1.38 1994/06/08 06:56:51 duane Exp $
 
@@ -56,9 +55,9 @@
 		  (make-instance resource-class
 		    :original-name original-name
 		    :name resource-name
-		    :class (lispify-resource-class 
+		    :class (lispify-resource-class
 			    (char*-to-string (xt-resource-class res)))
-		    :type (lispify-resource-type 
+		    :type (lispify-resource-type
 			   (char*-to-string (xt-resource-type res))))))))))
       (xt_free resources))
     result))
@@ -104,7 +103,7 @@
 
 ;; These next five aren't used except maybe by describe-widget.
 (defmethod class-resources ((class xt-class))
-  (append 
+  (append
    (slot-value class 'specially-hacked-resources)
    (get-resource-list class)))
 
@@ -123,18 +122,18 @@
 	       resource-class
 	       :original-name (xt-resource-name (xt-resource-list resources i))
 	       :name (lispify-resource-name (char*-to-string (xt-resource-name (xt-resource-list resources i))))
-	       :class (lispify-resource-class 
+	       :class (lispify-resource-class
 		       (char*-to-string (xt-resource-class (xt-resource-list resources i))))
-	       :type (lispify-resource-type 
+	       :type (lispify-resource-type
 		      (char*-to-string (xt-resource-type (xt-resource-list resources i)))))
 	      r))
       (xt_free resources)
       r)))
-      
-(defun get-resource-list (class) 
+
+(defun get-resource-list (class)
   (get-resource-list-internal class #'xt-get-resource-list 'resource))
 
-(defun get-constraint-resource-list (class) 
+(defun get-constraint-resource-list (class)
   (get-resource-list-internal class #'xt-get-constraint-resource-list
 			      'constraint-resource))
 
@@ -180,14 +179,14 @@
 
 (defclass resource (basic-resource)
   ())
-			 
+
 (defclass constraint-resource (basic-resource)
   ())
 
 
 (defun make-classes (classes)
   (let ((clist nil))
-    
+
     (dolist (class-ep classes)
       #+ignore
       (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
@@ -217,13 +216,13 @@
 
 
 (defun define-toolkit-classes (&rest classes)
-  (make-classes 
+  (make-classes
    (mapcar #-rs6000 #'ff:convert-to-lang
 	   #+rs6000 #'identity
-	   (remove-duplicates 
+	   (remove-duplicates
 	    (apply #'append classes)
 	    :test #'string=))))
-	
+
 (defun widget-class-name (h)
   (char*-to-string (xt-class-name h)))
 
@@ -232,12 +231,12 @@
       ((event-obj) event)
       ((control-area) control)))
 
-(defun lispify-class-name (x) 
+(defun lispify-class-name (x)
   (let ((name (lispify-tk-name x)))
     (or (cadr (assoc name *widget-name-to-class-name-mapping*
 		     :test #'member))
 	name)))
-  
+
 (defun lispify-tk-name (string &key (package *package*))
   (let* ((len (length string))
 	 (nbreaks 0))
@@ -257,7 +256,7 @@
 	  (j 0)
 	  l m n)
       (declare (fixnum j l m n))
-      
+
       (ecase excl:*current-case-mode*
 	((:case-sensitive-lower :case-insensitive-lower)
 	 (setq l #.(char-code #\A) m #.(char-code #\Z)
@@ -265,9 +264,9 @@
 	((:case-sensitive-upper :case-insensitive-upper)
 	 (setq l #.(char-code #\a) m #.(char-code #\z)
 	       n  #.(- (char-code #\A) (char-code #\a)))))
-      
+
       (macrolet ((push-char (c)
-		   `(progn 
+		   `(progn
 		      (setf (schar new j) ,c)
 		      (incf j))))
 	(dotimes (i len)
@@ -282,7 +281,7 @@
 			   (code-char (+ cc n))
 			 c)))))
       (if package
-	  (values 
+	  (values
 	   (intern new package))
 	new))))
 
@@ -303,9 +302,9 @@
 	  (j 0)
 	  (break class))
       (declare (fixnum j))
-            
+
       (macrolet ((push-char (c)
-		   `(progn 
+		   `(progn
 		      (setf (schar new j) ,c)
 		      (incf j))))
 	(dotimes (i len)
@@ -331,7 +330,7 @@
 		(setq break nil))))))
       new)))
 
-	  
+
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
     (error "Xt: ~a" (char*-to-string message))))

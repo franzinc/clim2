@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
 ;;				-[Fri Apr 16 11:55:09 1993 by layer]-
-;; 
+;;
 ;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
@@ -15,9 +15,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
 ;; $fiHeader: instclimol.lisp,v 1.7 1993/07/27 01:37:41 colin Exp $

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: convenience.lisp,v 1.16 1993/10/26 03:22:18 colin Exp $
 
@@ -27,7 +26,7 @@
 (eval-when (eval compile)
   (defmacro define-convenience-class (class superclasses entry-point)
     (let ((c-function-name
-	   (intern (substitute #\_ #\- 
+	   (intern (substitute #\_ #\-
 			       (lispify-tk-name entry-point :package nil)))))
       `(progn
 	 (eval-when (eval compile)
@@ -48,7 +47,7 @@
 				(find-class ',class)
 				parent
 				args))
-		      (o 
+		      (o
 		       (,c-function-name
 			parent
 			(note-malloced-object (string-to-char* name))
@@ -72,7 +71,7 @@
 (define-convenience-class xm-message-dialog (xm-message-box) "XmCreateMessageDialog")
 
 (define-convenience-class xm-file-selection-dialog
-    (xm-file-selection-box) 
+    (xm-file-selection-box)
   "XmCreateFileSelectionDialog")
 
 

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xt -*-
 ;;
 ;;				-[Wed Jul 28 14:04:19 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: ol-widgets.lisp,v 1.7 1993/10/26 03:22:28 colin Exp $
 
@@ -37,7 +36,7 @@
 			   (make-instance 'resource
 					  :name :menu-pane
 					  :type 'tk::widget
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "menuPane")))
 
@@ -46,7 +45,7 @@
 			   (make-instance 'resource
 					  :name :source
 					  :type 'string
-					  :original-name 
+					  :original-name
 					  (string-to-char* "source")))
 
 
@@ -54,7 +53,7 @@
 			   (make-instance 'resource
 					  :name :appl-add-item
 					  :type 'function
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "applAddItem")))
 
@@ -62,14 +61,14 @@
 			   (make-instance 'resource
 					  :name :appl-touch-item
 					  :type 'function
-					  :original-name 
+					  :original-name
 					  (string-to-char* "applTouchItem")))
 
 (tk::add-resource-to-class (find-class 'ol-list)
 			   (make-instance 'resource
 					  :name :appl-delete-item
 					  :type 'function
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "applDeleteItem")))
 
@@ -77,7 +76,7 @@
 			   (make-instance 'resource
 					  :name :view-height
 					  :type 'dimension
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "viewHeight")))
 
@@ -85,26 +84,26 @@
 			   (make-instance 'resource
 					  :name :recompute-width
 					  :type 'boolean
-					  :original-name 
+					  :original-name
 					  (string-to-char* "recomputeWidth")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
 			   (make-instance 'resource
 					  :name :busy
 					  :type 'boolean
-					  :original-name 
+					  :original-name
 					  (string-to-char* "busy")))
 
 (tk::add-resource-to-class (find-class 'text-field)
 			   (make-instance 'resource
 					  :name :font-color
 					  :type 'pixel
-					  :original-name 
+					  :original-name
 					  (string-to-char* "fontColor")))
 
 (tk::add-resource-to-class (find-class 'notice-shell)
 			   (make-instance 'resource
 					  :name :focus-widget
 					  :type 'widget
-					  :original-name 
+					  :original-name
 					  (string-to-char* "focusWidget")))

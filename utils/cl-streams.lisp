@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-LISP; Base: 10; Lowercase: Yes -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -14,9 +14,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
 ;; $fiHeader: cl-streams.lisp,v 1.2 92/02/24 13:05:16 cer Exp $
@@ -263,7 +262,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 #-ccl-2
 (defun signal-stream-eof (stream &optional recursive-p)
   (declare (ignore stream recursive-p))
-  (error "EOF"))      
+  (error "EOF"))
 
 ;;; Make FORMAT do something useful on CLIM windows.  (At least CLIM:FORMAT, that is.)
 ;;; This isn't needed in Genera and Cloe, where the system FORMAT works on CLIM windows.

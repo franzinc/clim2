@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: x11 -*-
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -15,9 +15,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -52,9 +51,9 @@
 (in-package :x11)
 
 ;;; X11 Keysyms from include/X11/keysymdef.h.   At the moment all of the keysym
-;;; definitions except for those in categories miscellaneous-keysyms and 
+;;; definitions except for those in categories miscellaneous-keysyms and
 ;;; latin-2-keysyms are ignored to save space.
-;;; 
+;;;
 ;;; The symbols defined here represent the corresponding X11 definitions literally,
 ;;; e.g. the X11 constant for XK_Return is "|XK-Return|".  This is because
 ;;; many of the keysym constant names are distinguished only by case, e.g. |XK-A|
@@ -87,74 +86,74 @@
 
 (defmacro def-x11-keysym (category name value)
   (let ((id (intern (substitute #\- #\_ name :start 1 :end (max 1 (1- (length name)))))))
-    `(progn 
+    `(progn
        (pushnew ',id ,category)
        (def-exported-constant ,id ,value))))
 
 
-(progn 
-  (def-x11-keysym keyboard-keysyms "XKG_VoidSymbol"          #xFFFFFF)       ;; void symbol 
-  (def-x11-keysym keyboard-keysyms "XK_BackSpace"            #xFF08) ;; back space, back char 
+(progn
+  (def-x11-keysym keyboard-keysyms "XKG_VoidSymbol"          #xFFFFFF)       ;; void symbol
+  (def-x11-keysym keyboard-keysyms "XK_BackSpace"            #xFF08) ;; back space, back char
   (def-x11-keysym keyboard-keysyms "XK_Tab"                  #xFF09)
-  (def-x11-keysym keyboard-keysyms "XK_Linefeed"             #xFF0A) ;; Linefeed, LF 
+  (def-x11-keysym keyboard-keysyms "XK_Linefeed"             #xFF0A) ;; Linefeed, LF
   (def-x11-keysym keyboard-keysyms "XK_Clear"                #xFF0B)
-  (def-x11-keysym keyboard-keysyms "XK_Return"               #xFF0D) ;; Return, enter 
-  (def-x11-keysym keyboard-keysyms "XK_Pause"                #xFF13) ;; Pause, hold 
+  (def-x11-keysym keyboard-keysyms "XK_Return"               #xFF0D) ;; Return, enter
+  (def-x11-keysym keyboard-keysyms "XK_Pause"                #xFF13) ;; Pause, hold
   (def-x11-keysym keyboard-keysyms "XK_Scroll_Lock"          #xFF14)
   (def-x11-keysym keyboard-keysyms "XK_Escape"               #xFF1B)
-  (def-x11-keysym keyboard-keysyms "XK_Delete"               #xFFFF) ;; Delete, rubout 
-  (def-x11-keysym keyboard-keysyms "XK_Multi_key"            #xFF20) ;; Multi-key character compose 
-  (def-x11-keysym keyboard-keysyms "XK_Kanji"                #xFF21) ;; Kanji, Kanji convert 
-  (def-x11-keysym keyboard-keysyms "XK_Muhenkan"             #xFF22) ;; Cancel Conversion 
-  (def-x11-keysym keyboard-keysyms "XK_Henkan_Mode"          #xFF23) ;; Start/Stop Conversion 
-  (def-x11-keysym keyboard-keysyms "XK_Henkan"               #xFF23) ;; Alias for Henkan_Mode 
-  (def-x11-keysym keyboard-keysyms "XK_Romaji"               #xFF24) ;; to Romaji 
-  (def-x11-keysym keyboard-keysyms "XK_Hiragana"             #xFF25) ;; to Hiragana 
-  (def-x11-keysym keyboard-keysyms "XK_Katakana"             #xFF26) ;; to Katakana 
-  (def-x11-keysym keyboard-keysyms "XK_Hiragana_Katakana"    #xFF27) ;; Hiragana/Katakana toggle 
-  (def-x11-keysym keyboard-keysyms "XK_Zenkaku"              #xFF28) ;; to Zenkaku 
-  (def-x11-keysym keyboard-keysyms "XK_Hankaku"              #xFF29) ;; to Hankaku 
-  (def-x11-keysym keyboard-keysyms "XK_Zenkaku_Hankaku"      #xFF2A) ;; Zenkaku/Hankaku toggle 
-  (def-x11-keysym keyboard-keysyms "XK_Touroku"              #xFF2B) ;; Add to Dictionary 
-  (def-x11-keysym keyboard-keysyms "XK_Massyo"               #xFF2C) ;; Delete from Dictionary 
-  (def-x11-keysym keyboard-keysyms "XK_Kana_Lock"            #xFF2D) ;; Kana Lock 
-  (def-x11-keysym keyboard-keysyms "XK_Kana_Shift"           #xFF2E) ;; Kana Shift 
-  (def-x11-keysym keyboard-keysyms "XK_Eisu_Shift"           #xFF2F) ;; Alphanumeric Shift 
-  (def-x11-keysym keyboard-keysyms "XK_Eisu_toggle"          #xFF30) ;; Alphanumeric toggle 
+  (def-x11-keysym keyboard-keysyms "XK_Delete"               #xFFFF) ;; Delete, rubout
+  (def-x11-keysym keyboard-keysyms "XK_Multi_key"            #xFF20) ;; Multi-key character compose
+  (def-x11-keysym keyboard-keysyms "XK_Kanji"                #xFF21) ;; Kanji, Kanji convert
+  (def-x11-keysym keyboard-keysyms "XK_Muhenkan"             #xFF22) ;; Cancel Conversion
+  (def-x11-keysym keyboard-keysyms "XK_Henkan_Mode"          #xFF23) ;; Start/Stop Conversion
+  (def-x11-keysym keyboard-keysyms "XK_Henkan"               #xFF23) ;; Alias for Henkan_Mode
+  (def-x11-keysym keyboard-keysyms "XK_Romaji"               #xFF24) ;; to Romaji
+  (def-x11-keysym keyboard-keysyms "XK_Hiragana"             #xFF25) ;; to Hiragana
+  (def-x11-keysym keyboard-keysyms "XK_Katakana"             #xFF26) ;; to Katakana
+  (def-x11-keysym keyboard-keysyms "XK_Hiragana_Katakana"    #xFF27) ;; Hiragana/Katakana toggle
+  (def-x11-keysym keyboard-keysyms "XK_Zenkaku"              #xFF28) ;; to Zenkaku
+  (def-x11-keysym keyboard-keysyms "XK_Hankaku"              #xFF29) ;; to Hankaku
+  (def-x11-keysym keyboard-keysyms "XK_Zenkaku_Hankaku"      #xFF2A) ;; Zenkaku/Hankaku toggle
+  (def-x11-keysym keyboard-keysyms "XK_Touroku"              #xFF2B) ;; Add to Dictionary
+  (def-x11-keysym keyboard-keysyms "XK_Massyo"               #xFF2C) ;; Delete from Dictionary
+  (def-x11-keysym keyboard-keysyms "XK_Kana_Lock"            #xFF2D) ;; Kana Lock
+  (def-x11-keysym keyboard-keysyms "XK_Kana_Shift"           #xFF2E) ;; Kana Shift
+  (def-x11-keysym keyboard-keysyms "XK_Eisu_Shift"           #xFF2F) ;; Alphanumeric Shift
+  (def-x11-keysym keyboard-keysyms "XK_Eisu_toggle"          #xFF30) ;; Alphanumeric toggle
   (def-x11-keysym keyboard-keysyms "XK_Home"                 #xFF50)
-  (def-x11-keysym keyboard-keysyms "XK_Left"                 #xFF51) ;; Move left, left arrow 
-  (def-x11-keysym keyboard-keysyms "XK_Up"                   #xFF52) ;; Move up, up arrow 
-  (def-x11-keysym keyboard-keysyms "XK_Right"                #xFF53) ;; Move right, right arrow 
-  (def-x11-keysym keyboard-keysyms "XK_Down"                 #xFF54) ;; Move down, down arrow 
-  (def-x11-keysym keyboard-keysyms "XK_Prior"                #xFF55) ;; Prior, previous 
-  (def-x11-keysym keyboard-keysyms "XK_Next"                 #xFF56) ;; Next 
-  (def-x11-keysym keyboard-keysyms "XK_End"                  #xFF57) ;; EOL 
-  (def-x11-keysym keyboard-keysyms "XK_Begin"                #xFF58) ;; BOL 
-  (def-x11-keysym keyboard-keysyms "XK_Select"               #xFF60) ;; Select, mark 
+  (def-x11-keysym keyboard-keysyms "XK_Left"                 #xFF51) ;; Move left, left arrow
+  (def-x11-keysym keyboard-keysyms "XK_Up"                   #xFF52) ;; Move up, up arrow
+  (def-x11-keysym keyboard-keysyms "XK_Right"                #xFF53) ;; Move right, right arrow
+  (def-x11-keysym keyboard-keysyms "XK_Down"                 #xFF54) ;; Move down, down arrow
+  (def-x11-keysym keyboard-keysyms "XK_Prior"                #xFF55) ;; Prior, previous
+  (def-x11-keysym keyboard-keysyms "XK_Next"                 #xFF56) ;; Next
+  (def-x11-keysym keyboard-keysyms "XK_End"                  #xFF57) ;; EOL
+  (def-x11-keysym keyboard-keysyms "XK_Begin"                #xFF58) ;; BOL
+  (def-x11-keysym keyboard-keysyms "XK_Select"               #xFF60) ;; Select, mark
   (def-x11-keysym keyboard-keysyms "XK_Print"                #xFF61)
-  (def-x11-keysym keyboard-keysyms "XK_Execute"              #xFF62) ;; Execute, run, do 
-  (def-x11-keysym keyboard-keysyms "XK_Insert"               #xFF63) ;; Insert, insert here 
-  (def-x11-keysym keyboard-keysyms "XK_Undo"                 #xFF65) ;; Undo, oops 
-  (def-x11-keysym keyboard-keysyms "XK_Redo"                 #xFF66) ;; redo, again 
+  (def-x11-keysym keyboard-keysyms "XK_Execute"              #xFF62) ;; Execute, run, do
+  (def-x11-keysym keyboard-keysyms "XK_Insert"               #xFF63) ;; Insert, insert here
+  (def-x11-keysym keyboard-keysyms "XK_Undo"                 #xFF65) ;; Undo, oops
+  (def-x11-keysym keyboard-keysyms "XK_Redo"                 #xFF66) ;; redo, again
   (def-x11-keysym keyboard-keysyms "XK_Menu"                 #xFF67)
-  (def-x11-keysym keyboard-keysyms "XK_Find"                 #xFF68) ;; Find, search 
-  (def-x11-keysym keyboard-keysyms "XK_Cancel"               #xFF69) ;; Cancel, stop, abort, exit 
-  (def-x11-keysym keyboard-keysyms "XK_Help"                 #xFF6A) ;; Help, ? 
+  (def-x11-keysym keyboard-keysyms "XK_Find"                 #xFF68) ;; Find, search
+  (def-x11-keysym keyboard-keysyms "XK_Cancel"               #xFF69) ;; Cancel, stop, abort, exit
+  (def-x11-keysym keyboard-keysyms "XK_Help"                 #xFF6A) ;; Help, ?
   (def-x11-keysym keyboard-keysyms "XK_Break"                #xFF6B)
-  (def-x11-keysym keyboard-keysyms "XK_Mode_switch"          #xFF7E) ;; Character set switch 
-  (def-x11-keysym keyboard-keysyms "XK_script_switch"        #xFF7E) ;; Alias for mode_switch 
+  (def-x11-keysym keyboard-keysyms "XK_Mode_switch"          #xFF7E) ;; Character set switch
+  (def-x11-keysym keyboard-keysyms "XK_script_switch"        #xFF7E) ;; Alias for mode_switch
   (def-x11-keysym keyboard-keysyms "XK_Num_Lock"             #xFF7F)
-  (def-x11-keysym keyboard-keysyms "XK_KP_Space"             #xFF80) ;; space 
+  (def-x11-keysym keyboard-keysyms "XK_KP_Space"             #xFF80) ;; space
   (def-x11-keysym keyboard-keysyms "XK_KP_Tab"               #xFF89)
-  (def-x11-keysym keyboard-keysyms "XK_KP_Enter"             #xFF8D) ;; enter 
-  (def-x11-keysym keyboard-keysyms "XK_KP_F1"                #xFF91) ;; PF1, KP_A, ... 
+  (def-x11-keysym keyboard-keysyms "XK_KP_Enter"             #xFF8D) ;; enter
+  (def-x11-keysym keyboard-keysyms "XK_KP_F1"                #xFF91) ;; PF1, KP_A, ...
   (def-x11-keysym keyboard-keysyms "XK_KP_F2"                #xFF92)
   (def-x11-keysym keyboard-keysyms "XK_KP_F3"                #xFF93)
   (def-x11-keysym keyboard-keysyms "XK_KP_F4"                #xFF94)
-  (def-x11-keysym keyboard-keysyms "XK_KP_Equal"             #xFFBD) ;; equals 
+  (def-x11-keysym keyboard-keysyms "XK_KP_Equal"             #xFFBD) ;; equals
   (def-x11-keysym keyboard-keysyms "XK_KP_Multiply"          #xFFAA)
   (def-x11-keysym keyboard-keysyms "XK_KP_Add"               #xFFAB)
-  (def-x11-keysym keyboard-keysyms "XK_KP_Separator"         #xFFAC) ;; separator, often comma 
+  (def-x11-keysym keyboard-keysyms "XK_KP_Separator"         #xFFAC) ;; separator, often comma
   (def-x11-keysym keyboard-keysyms "XK_KP_Subtract"          #xFFAD)
   (def-x11-keysym keyboard-keysyms "XK_KP_Decimal"           #xFFAE)
   (def-x11-keysym keyboard-keysyms "XK_KP_Divide"            #xFFAF)
@@ -228,21 +227,21 @@
   (def-x11-keysym keyboard-keysyms "XK_R14"                  #xFFDF)
   (def-x11-keysym keyboard-keysyms "XK_F35"                  #xFFE0)
   (def-x11-keysym keyboard-keysyms "XK_R15"                  #xFFE0)
-  (def-x11-keysym keyboard-keysyms "XK_Shift_L"              #xFFE1) ;; Left shift 
-  (def-x11-keysym keyboard-keysyms "XK_Shift_R"              #xFFE2) ;; Right shift 
-  (def-x11-keysym keyboard-keysyms "XK_Control_L"            #xFFE3) ;; Left control 
-  (def-x11-keysym keyboard-keysyms "XK_Control_R"            #xFFE4) ;; Right control 
-  (def-x11-keysym keyboard-keysyms "XK_Caps_Lock"            #xFFE5) ;; Caps lock 
-  (def-x11-keysym keyboard-keysyms "XK_Shift_Lock"           #xFFE6) ;; Shift lock 
-  (def-x11-keysym keyboard-keysyms "XK_Meta_L"               #xFFE7) ;; Left meta 
-  (def-x11-keysym keyboard-keysyms "XK_Meta_R"               #xFFE8) ;; Right meta 
-  (def-x11-keysym keyboard-keysyms "XK_Alt_L"                #xFFE9) ;; Left alt 
-  (def-x11-keysym keyboard-keysyms "XK_Alt_R"                #xFFEA) ;; Right alt 
-  (def-x11-keysym keyboard-keysyms "XK_Super_L"              #xFFEB) ;; Left super 
-  (def-x11-keysym keyboard-keysyms "XK_Super_R"              #xFFEC) ;; Right super 
-  (def-x11-keysym keyboard-keysyms "XK_Hyper_L"              #xFFED) ;; Left hyper 
-  (def-x11-keysym keyboard-keysyms "XK_Hyper_R"              #xFFEE) ;; Right hyper 
-) 
+  (def-x11-keysym keyboard-keysyms "XK_Shift_L"              #xFFE1) ;; Left shift
+  (def-x11-keysym keyboard-keysyms "XK_Shift_R"              #xFFE2) ;; Right shift
+  (def-x11-keysym keyboard-keysyms "XK_Control_L"            #xFFE3) ;; Left control
+  (def-x11-keysym keyboard-keysyms "XK_Control_R"            #xFFE4) ;; Right control
+  (def-x11-keysym keyboard-keysyms "XK_Caps_Lock"            #xFFE5) ;; Caps lock
+  (def-x11-keysym keyboard-keysyms "XK_Shift_Lock"           #xFFE6) ;; Shift lock
+  (def-x11-keysym keyboard-keysyms "XK_Meta_L"               #xFFE7) ;; Left meta
+  (def-x11-keysym keyboard-keysyms "XK_Meta_R"               #xFFE8) ;; Right meta
+  (def-x11-keysym keyboard-keysyms "XK_Alt_L"                #xFFE9) ;; Left alt
+  (def-x11-keysym keyboard-keysyms "XK_Alt_R"                #xFFEA) ;; Right alt
+  (def-x11-keysym keyboard-keysyms "XK_Super_L"              #xFFEB) ;; Left super
+  (def-x11-keysym keyboard-keysyms "XK_Super_R"              #xFFEC) ;; Right super
+  (def-x11-keysym keyboard-keysyms "XK_Hyper_L"              #xFFED) ;; Left hyper
+  (def-x11-keysym keyboard-keysyms "XK_Hyper_R"              #xFFEE) ;; Right hyper
+)
 
 
 (progn
@@ -254,7 +253,7 @@
   (def-x11-keysym latin-1-keysyms "XK_percent"             #x025)
   (def-x11-keysym latin-1-keysyms "XK_ampersand"           #x026)
   (def-x11-keysym latin-1-keysyms "XK_apostrophe"          #x027)
-  (def-x11-keysym latin-1-keysyms "XK_quoteright"          #x027)   ;; deprecated 
+  (def-x11-keysym latin-1-keysyms "XK_quoteright"          #x027)   ;; deprecated
   (def-x11-keysym latin-1-keysyms "XK_parenleft"           #x028)
   (def-x11-keysym latin-1-keysyms "XK_parenright"          #x029)
   (def-x11-keysym latin-1-keysyms "XK_asterisk"            #x02a)
@@ -312,7 +311,7 @@
   (def-x11-keysym latin-1-keysyms "XK_asciicircum"         #x05e)
   (def-x11-keysym latin-1-keysyms "XK_underscore"          #x05f)
   (def-x11-keysym latin-1-keysyms "XK_grave"               #x060)
-  (def-x11-keysym latin-1-keysyms "XK_quoteleft"           #x060)   ;; deprecated 
+  (def-x11-keysym latin-1-keysyms "XK_quoteleft"           #x060)   ;; deprecated
   (def-x11-keysym latin-1-keysyms "XK_a"                   #x061)
   (def-x11-keysym latin-1-keysyms "XK_b"                   #x062)
   (def-x11-keysym latin-1-keysyms "XK_c"                   #x063)
@@ -354,7 +353,7 @@
   (def-x11-keysym latin-1-keysyms "XK_diaeresis"           #x0a8)
   (def-x11-keysym latin-1-keysyms "XK_copyright"           #x0a9)
   (def-x11-keysym latin-1-keysyms "XK_ordfeminine"         #x0aa)
-  (def-x11-keysym latin-1-keysyms "XK_guillemotleft"       #x0ab)   ;; left angle quotation mark 
+  (def-x11-keysym latin-1-keysyms "XK_guillemotleft"       #x0ab)   ;; left angle quotation mark
   (def-x11-keysym latin-1-keysyms "XK_notsign"             #x0ac)
   (def-x11-keysym latin-1-keysyms "XK_hyphen"              #x0ad)
   (def-x11-keysym latin-1-keysyms "XK_registered"          #x0ae)
@@ -370,7 +369,7 @@
   (def-x11-keysym latin-1-keysyms "XK_cedilla"             #x0b8)
   (def-x11-keysym latin-1-keysyms "XK_onesuperior"         #x0b9)
   (def-x11-keysym latin-1-keysyms "XK_masculine"           #x0ba)
-  (def-x11-keysym latin-1-keysyms "XK_guillemotright"      #x0bb)   ;; right angle quotation mark 
+  (def-x11-keysym latin-1-keysyms "XK_guillemotright"      #x0bb)   ;; right angle quotation mark
   (def-x11-keysym latin-1-keysyms "XK_onequarter"          #x0bc)
   (def-x11-keysym latin-1-keysyms "XK_onehalf"             #x0bd)
   (def-x11-keysym latin-1-keysyms "XK_threequarters"       #x0be)
@@ -392,7 +391,7 @@
   (def-x11-keysym latin-1-keysyms "XK_Icircumflex"         #x0ce)
   (def-x11-keysym latin-1-keysyms "XK_Idiaeresis"          #x0cf)
   (def-x11-keysym latin-1-keysyms "XK_ETH"                 #x0d0)
-  (def-x11-keysym latin-1-keysyms "XK_Eth"                 #x0d0)   ;; deprecated 
+  (def-x11-keysym latin-1-keysyms "XK_Eth"                 #x0d0)   ;; deprecated
   (def-x11-keysym latin-1-keysyms "XK_Ntilde"              #x0d1)
   (def-x11-keysym latin-1-keysyms "XK_Ograve"              #x0d2)
   (def-x11-keysym latin-1-keysyms "XK_Oacute"              #x0d3)
@@ -407,7 +406,7 @@
   (def-x11-keysym latin-1-keysyms "XK_Udiaeresis"          #x0dc)
   (def-x11-keysym latin-1-keysyms "XK_Yacute"              #x0dd)
   (def-x11-keysym latin-1-keysyms "XK_THORN"               #x0de)
-  (def-x11-keysym latin-1-keysyms "XK_Thorn"               #x0de)   ;; deprecated 
+  (def-x11-keysym latin-1-keysyms "XK_Thorn"               #x0de)   ;; deprecated
   (def-x11-keysym latin-1-keysyms "XK_ssharp"              #x0df)
   (def-x11-keysym latin-1-keysyms "XK_agrave"              #x0e0)
   (def-x11-keysym latin-1-keysyms "XK_aacute"              #x0e1)
@@ -442,11 +441,11 @@
   (def-x11-keysym latin-1-keysyms "XK_thorn"               #x0fe)
   (def-x11-keysym latin-1-keysyms "XK_ydiaeresis"          #x0ff)
 
-) 
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym latin-2-keysyms "XK_Aogonek"             #x1a1)
   (def-x11-keysym latin-2-keysyms "XK_breve"               #x1a2)
   (def-x11-keysym latin-2-keysyms "XK_Lstroke"             #x1a3)
@@ -504,11 +503,11 @@
   (def-x11-keysym latin-2-keysyms "XK_uring"               #x1f9)
   (def-x11-keysym latin-2-keysyms "XK_tcedilla"            #x1fe)
   (def-x11-keysym latin-2-keysyms "XK_abovedot"            #x1ff)
-) 
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym latin-3-keysyms "XK_Hstroke"             #x2a1)
   (def-x11-keysym latin-3-keysyms "XK_Hcircumflex"         #x2a6)
   (def-x11-keysym latin-3-keysyms "XK_Iabovedot"           #x2a9)
@@ -531,13 +530,13 @@
   (def-x11-keysym latin-3-keysyms "XK_gcircumflex"         #x2f8)
   (def-x11-keysym latin-3-keysyms "XK_ubreve"              #x2fd)
   (def-x11-keysym latin-3-keysyms "XK_scircumflex"         #x2fe)
-) 
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym latin-4-keysyms "XK_kra"                 #x3a2)
-  (def-x11-keysym latin-4-keysyms "XK_kappa"               #x3a2)   ;; deprecated 
+  (def-x11-keysym latin-4-keysyms "XK_kappa"               #x3a2)   ;; deprecated
   (def-x11-keysym latin-4-keysyms "XK_Rcedilla"            #x3a3)
   (def-x11-keysym latin-4-keysyms "XK_Itilde"              #x3a5)
   (def-x11-keysym latin-4-keysyms "XK_Lcedilla"            #x3a6)
@@ -572,7 +571,7 @@
   (def-x11-keysym latin-4-keysyms "XK_uogonek"             #x3f9)
   (def-x11-keysym latin-4-keysyms "XK_utilde"              #x3fd)
   (def-x11-keysym latin-4-keysyms "XK_umacron"             #x3fe)
-) 
+)
 
 
 #+ignore
@@ -583,7 +582,7 @@
   (def-x11-keysym kana-keysyms "XK_kana_closingbracket"                         #x4a3)
   (def-x11-keysym kana-keysyms "XK_kana_comma"                                  #x4a4)
   (def-x11-keysym kana-keysyms "XK_kana_conjunctive"                            #x4a5)
-  (def-x11-keysym kana-keysyms "XK_kana_middledot"                              #x4a5)  ;; deprecated 
+  (def-x11-keysym kana-keysyms "XK_kana_middledot"                              #x4a5)  ;; deprecated
   (def-x11-keysym kana-keysyms "XK_kana_WO"                                     #x4a6)
   (def-x11-keysym kana-keysyms "XK_kana_a"                                      #x4a7)
   (def-x11-keysym kana-keysyms "XK_kana_i"                                      #x4a8)
@@ -594,7 +593,7 @@
   (def-x11-keysym kana-keysyms "XK_kana_yu"                                     #x4ad)
   (def-x11-keysym kana-keysyms "XK_kana_yo"                                     #x4ae)
   (def-x11-keysym kana-keysyms "XK_kana_tsu"                                    #x4af)
-  (def-x11-keysym kana-keysyms "XK_kana_tu"                                     #x4af)  ;; deprecated 
+  (def-x11-keysym kana-keysyms "XK_kana_tu"                                     #x4af)  ;; deprecated
   (def-x11-keysym kana-keysyms "XK_prolongedsound"                              #x4b0)
   (def-x11-keysym kana-keysyms "XK_kana_A"                                      #x4b1)
   (def-x11-keysym kana-keysyms "XK_kana_I"                                      #x4b2)
@@ -613,9 +612,9 @@
   (def-x11-keysym kana-keysyms "XK_kana_SO"                                     #x4bf)
   (def-x11-keysym kana-keysyms "XK_kana_TA"                                     #x4c0)
   (def-x11-keysym kana-keysyms "XK_kana_CHI"                                    #x4c1)
-  (def-x11-keysym kana-keysyms "XK_kana_TI"                                     #x4c1)  ;; deprecated 
+  (def-x11-keysym kana-keysyms "XK_kana_TI"                                     #x4c1)  ;; deprecated
   (def-x11-keysym kana-keysyms "XK_kana_TSU"                                    #x4c2)
-  (def-x11-keysym kana-keysyms "XK_kana_TU"                                     #x4c2)  ;; deprecated 
+  (def-x11-keysym kana-keysyms "XK_kana_TU"                                     #x4c2)  ;; deprecated
   (def-x11-keysym kana-keysyms "XK_kana_TE"                                     #x4c3)
   (def-x11-keysym kana-keysyms "XK_kana_TO"                                     #x4c4)
   (def-x11-keysym kana-keysyms "XK_kana_NA"                                     #x4c5)
@@ -626,7 +625,7 @@
   (def-x11-keysym kana-keysyms "XK_kana_HA"                                     #x4ca)
   (def-x11-keysym kana-keysyms "XK_kana_HI"                                     #x4cb)
   (def-x11-keysym kana-keysyms "XK_kana_FU"                                     #x4cc)
-  (def-x11-keysym kana-keysyms "XK_kana_HU"                                     #x4cc)  ;; deprecated 
+  (def-x11-keysym kana-keysyms "XK_kana_HU"                                     #x4cc)  ;; deprecated
   (def-x11-keysym kana-keysyms "XK_kana_HE"                                     #x4cd)
   (def-x11-keysym kana-keysyms "XK_kana_HO"                                     #x4ce)
   (def-x11-keysym kana-keysyms "XK_kana_MA"                                     #x4cf)
@@ -646,12 +645,12 @@
   (def-x11-keysym kana-keysyms "XK_kana_N"                                      #x4dd)
   (def-x11-keysym kana-keysyms "XK_voicedsound"                                 #x4de)
   (def-x11-keysym kana-keysyms "XK_semivoicedsound"                             #x4df)
-  (def-x11-keysym kana-keysyms "XK_kana_switch"          #xFF7E)  ;; Alias for mode_switch 
-) 
+  (def-x11-keysym kana-keysyms "XK_kana_switch"          #xFF7E)  ;; Alias for mode_switch
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym arabic-keysyms "XK_Arabic_comma"                                #x5ac)
   (def-x11-keysym arabic-keysyms "XK_Arabic_semicolon"                            #x5bb)
   (def-x11-keysym arabic-keysyms "XK_Arabic_question_mark"                        #x5bf)
@@ -689,7 +688,7 @@
   (def-x11-keysym arabic-keysyms "XK_Arabic_meem"                                 #x5e5)
   (def-x11-keysym arabic-keysyms "XK_Arabic_noon"                                 #x5e6)
   (def-x11-keysym arabic-keysyms "XK_Arabic_ha"                                   #x5e7)
-  (def-x11-keysym arabic-keysyms "XK_Arabic_heh"                                  #x5e7)  ;; deprecated 
+  (def-x11-keysym arabic-keysyms "XK_Arabic_heh"                                  #x5e7)  ;; deprecated
   (def-x11-keysym arabic-keysyms "XK_Arabic_waw"                                  #x5e8)
   (def-x11-keysym arabic-keysyms "XK_Arabic_alefmaksura"                          #x5e9)
   (def-x11-keysym arabic-keysyms "XK_Arabic_yeh"                                  #x5ea)
@@ -701,55 +700,55 @@
   (def-x11-keysym arabic-keysyms "XK_Arabic_kasra"                                #x5f0)
   (def-x11-keysym arabic-keysyms "XK_Arabic_shadda"                               #x5f1)
   (def-x11-keysym arabic-keysyms "XK_Arabic_sukun"                                #x5f2)
-  (def-x11-keysym arabic-keysyms "XK_Arabic_switch"        #xFF7E)  ;; Alias for mode_switch 
-) 
+  (def-x11-keysym arabic-keysyms "XK_Arabic_switch"        #xFF7E)  ;; Alias for mode_switch
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym cyrillic-keysyms "XK_Serbian_dje"                                 #x6a1)
   (def-x11-keysym cyrillic-keysyms "XK_Macedonia_gje"                               #x6a2)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_io"                                 #x6a3)
   (def-x11-keysym cyrillic-keysyms "XK_Ukrainian_ie"                                #x6a4)
-  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_je"                                 #x6a4)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_je"                                 #x6a4)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Macedonia_dse"                               #x6a5)
   (def-x11-keysym cyrillic-keysyms "XK_Ukrainian_i"                                 #x6a6)
-  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_i"                                  #x6a6)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_i"                                  #x6a6)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Ukrainian_yi"                                #x6a7)
-  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_yi"                                 #x6a7)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_yi"                                 #x6a7)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_je"                                 #x6a8)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_je"                                  #x6a8)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_je"                                  #x6a8)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_lje"                                #x6a9)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_lje"                                 #x6a9)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_lje"                                 #x6a9)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_nje"                                #x6aa)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_nje"                                 #x6aa)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_nje"                                 #x6aa)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Serbian_tshe"                                #x6ab)
   (def-x11-keysym cyrillic-keysyms "XK_Macedonia_kje"                               #x6ac)
   (def-x11-keysym cyrillic-keysyms "XK_Byelorussian_shortu"                         #x6ae)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_dzhe"                               #x6af)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_dze"                                 #x6af)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_dze"                                 #x6af)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_numerosign"                                  #x6b0)
   (def-x11-keysym cyrillic-keysyms "XK_Serbian_DJE"                                 #x6b1)
   (def-x11-keysym cyrillic-keysyms "XK_Macedonia_GJE"                               #x6b2)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_IO"                                 #x6b3)
   (def-x11-keysym cyrillic-keysyms "XK_Ukrainian_IE"                                #x6b4)
-  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_JE"                                 #x6b4)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_JE"                                 #x6b4)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Macedonia_DSE"                               #x6b5)
   (def-x11-keysym cyrillic-keysyms "XK_Ukrainian_I"                                 #x6b6)
-  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_I"                                  #x6b6)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_I"                                  #x6b6)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Ukrainian_YI"                                #x6b7)
-  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_YI"                                 #x6b7)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Ukranian_YI"                                 #x6b7)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_JE"                                 #x6b8)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_JE"                                  #x6b8)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_JE"                                  #x6b8)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_LJE"                                #x6b9)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_LJE"                                 #x6b9)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_LJE"                                 #x6b9)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_NJE"                                #x6ba)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_NJE"                                 #x6ba)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_NJE"                                 #x6ba)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Serbian_TSHE"                                #x6bb)
   (def-x11-keysym cyrillic-keysyms "XK_Macedonia_KJE"                               #x6bc)
   (def-x11-keysym cyrillic-keysyms "XK_Byelorussian_SHORTU"                         #x6be)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_DZHE"                               #x6bf)
-  (def-x11-keysym cyrillic-keysyms "XK_Serbian_DZE"                                 #x6bf)  ;; deprecated 
+  (def-x11-keysym cyrillic-keysyms "XK_Serbian_DZE"                                 #x6bf)  ;; deprecated
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_yu"                                 #x6c0)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_a"                                  #x6c1)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_be"                                 #x6c2)
@@ -814,11 +813,11 @@
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_SHCHA"                              #x6fd)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_CHE"                                #x6fe)
   (def-x11-keysym cyrillic-keysyms "XK_Cyrillic_HARDSIGN"                           #x6ff)
-) 
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym greek-keysyms "XK_Greek_ALPHAaccent"                           #x7a1)
   (def-x11-keysym greek-keysyms "XK_Greek_EPSILONaccent"                         #x7a2)
   (def-x11-keysym greek-keysyms "XK_Greek_ETAaccent"                             #x7a3)
@@ -892,12 +891,12 @@
   (def-x11-keysym greek-keysyms "XK_Greek_chi"                                   #x7f7)
   (def-x11-keysym greek-keysyms "XK_Greek_psi"                                   #x7f8)
   (def-x11-keysym greek-keysyms "XK_Greek_omega"                                 #x7f9)
-  (def-x11-keysym greek-keysyms "XK_Greek_switch"         #xFF7E)  ;; Alias for mode_switch 
-) 
+  (def-x11-keysym greek-keysyms "XK_Greek_switch"         #xFF7E)  ;; Alias for mode_switch
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym technical-keysyms "XK_leftradical"                                 #x8a1)
   (def-x11-keysym technical-keysyms "XK_topleftradical"                              #x8a2)
   (def-x11-keysym technical-keysyms "XK_horizconnector"                              #x8a3)
@@ -947,10 +946,10 @@
   (def-x11-keysym technical-keysyms "XK_uparrow"                                     #x8fc)
   (def-x11-keysym technical-keysyms "XK_rightarrow"                                  #x8fd)
   (def-x11-keysym technical-keysyms "XK_downarrow"                                   #x8fe)
-) 
+)
 
 
-#+ignore 
+#+ignore
 (progn
   (def-x11-keysym special-keysyms "XK_blank"                                       #x9df)
   (def-x11-keysym special-keysyms "XK_soliddiamond"                                #x9e0)
@@ -976,7 +975,7 @@
   (def-x11-keysym special-keysyms "XK_bott"                                        #x9f6)
   (def-x11-keysym special-keysyms "XK_topt"                                        #x9f7)
   (def-x11-keysym special-keysyms "XK_vertbar"                                     #x9f8)
-) 
+)
 
 
 
@@ -1065,11 +1064,11 @@
   (def-x11-keysym publishing-keysyms "XK_singlelowquotemark"                          #xafd)
   (def-x11-keysym publishing-keysyms "XK_doublelowquotemark"                          #xafe)
   (def-x11-keysym publishing-keysyms "XK_cursor"                                      #xaff)
-) 
+)
 
 
 #+ignore
-(progn 
+(progn
   (def-x11-keysym apl-keysyms "XK_leftcaret"                                   #xba3)
   (def-x11-keysym apl-keysyms "XK_rightcaret"                                  #xba6)
   (def-x11-keysym apl-keysyms "XK_downcaret"                                   #xba8)
@@ -1089,7 +1088,7 @@
   (def-x11-keysym apl-keysyms "XK_leftshoe"                                    #xbda)
   (def-x11-keysym apl-keysyms "XK_lefttack"                                    #xbdc)
   (def-x11-keysym apl-keysyms "XK_righttack"                                   #xbfc)
-) 
+)
 
 
 
@@ -1098,19 +1097,19 @@
   (def-x11-keysym hebrew-keysyms "XK_hebrew_doublelowline"                        #xcdf)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_aleph"                                #xce0)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_bet"                                  #xce1)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_beth"                                 #xce1)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_beth"                                 #xce1)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_gimel"                                #xce2)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_gimmel"                               #xce2)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_gimmel"                               #xce2)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_dalet"                                #xce3)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_daleth"                               #xce3)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_daleth"                               #xce3)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_he"                                   #xce4)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_waw"                                  #xce5)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_zain"                                 #xce6)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_zayin"                                #xce6)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_zayin"                                #xce6)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_chet"                                 #xce7)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_het"                                  #xce7)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_het"                                  #xce7)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_tet"                                  #xce8)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_teth"                                 #xce8)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_teth"                                 #xce8)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_yod"                                  #xce9)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_finalkaph"                            #xcea)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_kaph"                                 #xceb)
@@ -1120,20 +1119,20 @@
   (def-x11-keysym hebrew-keysyms "XK_hebrew_finalnun"                             #xcef)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_nun"                                  #xcf0)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_samech"                               #xcf1)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_samekh"                               #xcf1)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_samekh"                               #xcf1)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_ayin"                                 #xcf2)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_finalpe"                              #xcf3)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_pe"                                   #xcf4)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_finalzade"                            #xcf5)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_finalzadi"                            #xcf5)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_finalzadi"                            #xcf5)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_zade"                                 #xcf6)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_zadi"                                 #xcf6)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_zadi"                                 #xcf6)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_qoph"                                 #xcf7)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_kuf"                                  #xcf7)  ;; deprecated 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_kuf"                                  #xcf7)  ;; deprecated
   (def-x11-keysym hebrew-keysyms "XK_hebrew_resh"                                 #xcf8)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_shin"                                 #xcf9)
   (def-x11-keysym hebrew-keysyms "XK_hebrew_taw"                                  #xcfa)
-  (def-x11-keysym hebrew-keysyms "XK_hebrew_taf"                                  #xcfa)  ;; deprecated 
-  (def-x11-keysym hebrew-keysyms "XK_Hebrew_switch"        #xFF7E)  ;; Alias for mode_switch 
+  (def-x11-keysym hebrew-keysyms "XK_hebrew_taf"                                  #xcfa)  ;; deprecated
+  (def-x11-keysym hebrew-keysyms "XK_Hebrew_switch"        #xFF7E)  ;; Alias for mode_switch
 )
 

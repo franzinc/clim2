@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,16 +16,15 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: graphics.lisp,v 1.16 1993/10/25 16:16:28 cer Exp $
 
 (in-package :tk)
 
 (defun draw-point (drawable gcontext x y)
-  (x11:xdrawpoint 
+  (x11:xdrawpoint
    (object-display drawable)
    drawable
    gcontext
@@ -43,14 +42,14 @@
    y2))
 
 
-;(defun draw-ellipse (drawable gcontext center-x 
+;(defun draw-ellipse (drawable gcontext center-x
 ;		     center-y
-;		     radius-1-dx 
-;		     radius-1-dy 
+;		     radius-1-dx
+;		     radius-1-dy
 ;		     radius-2-dx
-;		     radius-2-dy 
-;		     start-angle 
-;		     end-angle 
+;		     radius-2-dy
+;		     start-angle
+;		     end-angle
 ;		     filled)
 ;  (multiple-value-bind (x-radius y-radius)
 ;      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
@@ -60,15 +59,15 @@
 ;	     (values (round (abs radius-1-dx))
 ;		     (round (abs radius-2-dy))))
 ;	    (t
-;	     (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+;	     (let ((s-1 (+ (* radius-1-dx radius-1-dx)
 ;			   (* radius-1-dy radius-1-dy)))
-;		   (s-2 (+ (* radius-2-dx radius-2-dx) 
+;		   (s-2 (+ (* radius-2-dx radius-2-dx)
 ;			   (* radius-2-dy radius-2-dy))))
 ;	       (if (= s-1 s-2)
 ;		   (let ((r (round (sqrt s-1))))
 ;		     (values r r))
 ;		 ;; Degrade to drawing a rectilinear ellipse
-;		 (values (round (sqrt s-1)) 
+;		 (values (round (sqrt s-1))
 ;			 (round (sqrt s-2)))))))
 ;    (setq start-angle (round (* start-angle (/ (* 360 64) (* 2 pi)))))
 ;    (setq end-angle (round (* end-angle (/ (* 360 64) (* 2 pi)))))
@@ -76,12 +75,12 @@
 ;    (if (> end-angle start-angle)
 ;	(setq end-angle (- end-angle start-angle))
 ;      (setq end-angle (- start-angle end-angle)))
-;    (draw-ellipse-1 drawable 
-;		    gcontext 
+;    (draw-ellipse-1 drawable
+;		    gcontext
 ;		    (- center-x x-radius)
 ;		    (- center-y y-radius)
 ;		    (* 2 x-radius)
-;		    (* 2 y-radius) 
+;		    (* 2 y-radius)
 ;		    start-angle end-angle filled)))
 
 
@@ -158,7 +157,7 @@
 					; direction
 					; something-else
 		   ))))
-		   
+
 #+ignore
 (defun text-width (font sequence &key (start 0) end translate)
   (unless end (setq end (length sequence)))
@@ -174,7 +173,7 @@
    (object-display drawable)
    drawable
    gc
-   x y 
+   x y
    #+ics (fat-string-to-string8 string)
    #-ics string
    start
@@ -187,13 +186,13 @@
    (object-display drawable)
    drawable
    gc
-   x y 
+   x y
    #+ics (fat-string-to-string16 string)
    #-ics string
    start
    end))
 
-(defun draw-image-string (drawable gc x y string 
+(defun draw-image-string (drawable gc x y string
 			  &optional (length (length string)))
   (x11::drawimagestring
    (object-display drawable)

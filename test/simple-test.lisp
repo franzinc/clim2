@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: simple-test.lisp,v 1.9 92/10/02 15:20:18 cer Exp $
 
@@ -67,7 +66,7 @@
 
 (defun outline-sheet (sheet)
   (with-bounding-rectangle* (a b c d) sheet
-    (draw-rectangle* sheet 
+    (draw-rectangle* sheet
 		     a b (1- c) (1- d)
 		     :filled nil
 		     :ink +flipping-ink+)))
@@ -95,8 +94,8 @@
 
 (defmethod handle-repaint ((sheet even-simpler) region)
   (declare (ignore region))
-  (multiple-value-call #'draw-rectangle* 
-		       sheet 
+  (multiple-value-call #'draw-rectangle*
+		       sheet
 		       (bounding-rectangle* sheet)
 		       :filled t
 		       :ink +red+))

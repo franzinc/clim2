@@ -1,5 +1,5 @@
 ;; -*- mode: common-lisp; package: silica -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -14,24 +14,23 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: clim.lisp,v 1.3 92/01/31 14:55:27 cer Exp $
 
 (in-package :silica)
 
 (defclass clim-sheet (sheet
-		      
+
 		      ;; mirrored-sheet-mixin
-		      
+
 		      sheet-multiple-child-mixin
 		      sheet-transformation-mixin
-			  
+
 		      standard-repainting-medium
 		      standard-sheet-input-mixin
-		        
+
 		      permanent-medium-sheet-output-mixin
 		      )
 	  ())
@@ -41,7 +40,7 @@
 	(*original-stream* nil)
 	(done-time (and timeout (+ timeout (get-internal-real-time))))
 	ws)
-    
+
     (loop
 
      (when (and input-wait-test (funcall input-wait-test original-stream))
@@ -49,20 +48,20 @@
 
      (when timeout
        (setq timeout (- done-time (get-internal-real-time))))
-      
+
      (let ((event (and (not (and timeout (minusp timeout)))
 		       (event-read-with-timeout stream timeout))))
        (cond ((null event)
 	      (return :timeout))
-	     
+
 	     ((typep event 'motion-event)
 	      (return :mouse-motion))
-	     
+
 	     ((typep event 'device-event)
 	      (unread-event stream event)
 	      (return :input-buffer))
-	     
-	     (t 
+
+	     (t
 	      (handle-event (event-sheet event) event)))))))
 
 
@@ -73,5 +72,5 @@
 ;; notify-user-1
 ;; (setf window-label)
 
-	
-      
+
+

@@ -1097,7 +1097,9 @@
 (define-presentation-method describe-presentation-type
 			    ((type sequence-enumerated) stream plural-count)
   (declare (ignore plural-count))		;it's too hard to handle
-  (cond ((let ((type (first element-types)))
+  (cond ((null element-types)
+	 (write-string "null sequence" stream))
+	((let ((type (first element-types)))
 	   (dolist (x (cdr element-types) t)
 	     (unless (equal x type)
 	       (return nil))))

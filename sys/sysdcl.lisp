@@ -13,7 +13,7 @@
 ;;;--- Currently they're in EXCL-VERIFICATION but that does not seem the best place.
 (pushnew :clim *features*)
 (pushnew :clim-2 *features*)
-(pushnew :clim-2.0 *features*)
+(pushnew :clim-2.1 *features*)
 (pushnew :silica *features*)
 
 #+Genera

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: clim-internals -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
 (in-package :clim-internals)
@@ -33,11 +32,11 @@
   (loop
     (let* ((*standard-output*
 	    (or (frame-standard-output frame) *standard-output*))
-	   (*standard-input* 
+	   (*standard-input*
 	    (or (frame-standard-input frame) *standard-output*))
-	   (*query-io* 
+	   (*query-io*
 	    (or (frame-query-io frame) *standard-input*))
-	   (*error-output* 
+	   (*error-output*
 	    (or (frame-error-output frame) *standard-output*))
 	   (*pointer-documentation-output*
 	    (frame-pointer-documentation-output frame))
@@ -49,9 +48,9 @@
 		    #'command-line-command-parser
 		  #'menu-command-parser)))
 	   (*command-unparser*
-	    (or command-unparser 
+	    (or command-unparser
 		#'command-line-command-unparser))
-	   (*partial-command-parser* 
+	   (*partial-command-parser*
 	    (or partial-command-parser
 		(if interactor
 		    #'command-line-read-remaining-arguments-for-partial-command

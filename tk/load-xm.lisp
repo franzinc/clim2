@@ -14,9 +14,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: load-xm.lisp,v 1.34 1995/06/21 21:24:17 georgej Exp $
 
@@ -38,25 +37,25 @@
   (defvar sys::*libxt-pathname* "Xt")
 
   (unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
-    (load "stub-motif.o"
+    (load "clim2:;stub-motif.o"
 	  :system-libraries (list sys::*libtk-pathname*
 				  sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t)
-    (load "stub-xt.o"
+    (load "clim2:;stub-xt.o"
 	  :system-libraries (list sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t))
 
   (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
-    (load "xmsupport.o"
+    (load "clim2:;xmsupport.o"
 	  :system-libraries (list sys::*libtk-pathname*
 				  sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t))
 
   (unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
-    (load "xtsupport.o"
+    (load "clim2:;xtsupport.o"
 	  :system-libraries (list sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t)))

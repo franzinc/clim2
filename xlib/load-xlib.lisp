@@ -14,9 +14,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: load-xlib.lisp,v 1.14 1993/11/23 19:59:12 cer Exp $
 
@@ -28,11 +27,11 @@
   (defvar sys::*libx11-pathname* "X11")
 
   (unless (ff:get-entry-point (ff:convert-to-lang "XAllocColor"))
-    (load "stub-x.o"
+    (load "clim2:;stub-x.o"
 	  :system-libraries (list sys::*libx11-pathname*)
 	  :print t))
 
   (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
-    (load "xlibsupport.o"
+    (load "clim2:;xlibsupport.o"
 	  :system-libraries (list sys::*libx11-pathname*)
 	  :print t)))

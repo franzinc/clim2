@@ -2,7 +2,7 @@
 
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -17,9 +17,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: chess.lisp,v 1.10 93/02/08 15:57:46 cer Exp $
 
@@ -59,7 +58,7 @@
 (define-presentation-method highlight-presentation ((type chess-square) record stream state)
   state
   (multiple-value-bind (xoff yoff)
-      (convert-from-relative-to-absolute-coordinates 
+      (convert-from-relative-to-absolute-coordinates
 	stream (output-record-parent record))
     (with-bounding-rectangle* (left top right bottom) record
       (draw-rectangle* stream
@@ -105,7 +104,7 @@
 		(apply #'aref board from)
 		(apply #'aref board from)
 		nil))))))
-      
+
 
 (defun decode-move (move)
   (assert (= (length move) 4))
@@ -113,7 +112,7 @@
     (decode-position (subseq move 0 2))
     (decode-position (subseq move 2))))
 
-  
+
 (defun encode-move (from to)
   (concatenate 'string
     (encode-position from)
@@ -121,15 +120,15 @@
 
 (defun encode-position (x)
   (destructuring-bind (row col) x
-    (coerce (list 
+    (coerce (list
 	      (cltl1::int-char (+ (char-int #\a) col))
 	      (digit-char (- 8 row)))
 	    'cltl1::string)))
 
 (defun decode-position (position)
-  (list (- 8 (digit-char-p (aref position 1))) ;; row 
+  (list (- 8 (digit-char-p (aref position 1))) ;; row
 	(- (char-int (aref position 0)) (char-int #\a)))) ;; column
-  
+
 (define-presentation-to-command-translator move-a-piece
     (chess-square com-move-piece chess-commands)
     (object)
@@ -150,13 +149,13 @@
 				 :cache-test #'equal)
 		(with-output-as-presentation (stream (list row column) 'chess-square)
 		  (draw-piece frame
-			      stream 
-			      (second x) 
+			      stream
+			      (second x)
 			      (car x)
 			      (oddp (+ row column))))))))))))
 
 (defmethod draw-piece (frame stream (which (eql nil)) color square)
-  (draw-rectangle* stream 0 0 80 80 
+  (draw-rectangle* stream 0 0 80 80
 		   :ink (if square +black+ +white+)))
 
 
@@ -164,19 +163,19 @@
   (let* ((key (list which color square))
 	 (ink (second (assoc key (slot-value frame 'bitmaps) :test #'equal))))
     (unless ink
-      (setq ink (second 
+      (setq ink (second
 		  (car
 		    (push (list key
 				(xm-silica::make-pattern-from-file
 				  (format nil
-				      "~/3rd/gnuchess/Xchess/~a.bitmap" 
+				      "~/3rd/gnuchess/Xchess/~a.bitmap"
 				    which)
 				  (list (if square +black+ +white+)
 					(ecase color
 					  (:white +red+)
 					  (:black +green+)))))
 			  (slot-value frame 'bitmaps))))))
-    (draw-rectangle* stream 0 0 80 80 
+    (draw-rectangle* stream 0 0 80 80
 		     :ink ink)))
 
 (defun make-chess-board-initial-state ()
@@ -193,8 +192,8 @@
 	   (define-others (color)
 	     (mapcar #'(lambda (x)
 			 (list color x))
-		     '(:rook :knight :bishop 
-			     :queen :king 
+		     '(:rook :knight :bishop
+			     :queen :king
 			     :bishop :knight :rook))))
     (append (define-pieces :black)
 	    (make-list 4 :initial-element (make-list 8))
@@ -203,9 +202,9 @@
 
 (defun create-chess-subprocess ()
   (multiple-value-bind (stream something pid)
-      (excl::run-shell-command 
-	"~/3rd/gnuchess/gnuchessr" 
-	:wait nil 
+      (excl::run-shell-command
+	"~/3rd/gnuchess/gnuchessr"
+	:wait nil
 	:error-output :output
 	:input :stream :output :stream)
     ;; skip "Chess" message
@@ -225,7 +224,7 @@
   (loop
     (let ((line (read-a-line stream)))
       (cond ((digit-char-p (aref line 0))
-	     ;; Move confirmation 
+	     ;; Move confirmation
 	     (return-from read-confirmation t))
 	    ((match-prefix line "Illegal move")
 	     (return nil))

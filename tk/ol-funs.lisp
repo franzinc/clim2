@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: ol-funs.lisp,v 1.10 93/05/13 16:30:42 colin Exp $
 
@@ -31,18 +30,18 @@
 (defforeign 'ol_toolkit_initialize
     :entry-point (ff:convert-to-lang "OlToolkitInitialize")
     :call-direct t
-    :arguments nil 
+    :arguments nil
     :arg-checking nil
     :return-type :void)
 
-(defforeign 'ol_set_warning_handler 
+(defforeign 'ol_set_warning_handler
     :entry-point (ff:convert-to-lang "OlSetWarningHandler")
     :call-direct t
     :arguments '(integer)
     :arg-checking nil
     :return-type :unsigned-integer)
 
-(defforeign 'ol_set_error_handler 
+(defforeign 'ol_set_error_handler
     :entry-point (ff:convert-to-lang "OlSetErrorHandler")
     :call-direct t
     :arguments '(integer)
@@ -62,7 +61,7 @@
     :arguments '(integer)
     :arg-checking nil
     :return-type :unsigned-integer)
-    
+
 (defforeign 'ol_add_callback
     :entry-point (ff:convert-to-lang "OlAddCallback")
     :call-direct t
@@ -111,14 +110,14 @@
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
-    
+
 (defforeign 'ol_menu_popdown
     :entry-point (ff:convert-to-lang "OlMenuPopdown")
     :call-direct t
     :arguments '(foreign-address fixnum)
     :arg-checking nil
     :return-type :void)
-    
+
 (defforeign 'ol_text_edit_clear_buffer
     :entry-point (ff:convert-to-lang "OlTextEditClearBuffer")
     :call-direct t
@@ -139,14 +138,14 @@
     :arguments '(foreign-address foreign-address fixnum)
     :arg-checking nil
     :return-type :fixnum)
-    
+
 (defforeign 'ol_text_edit_get_last_position
     :entry-point (ff:convert-to-lang "OlTextEditGetLastPosition")
     :call-direct t
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
     :return-type :fixnum)
-    
+
 (defforeign 'ol_register_help
     :entry-point (ff:convert-to-lang "OlRegisterHelp")
     :call-direct t
@@ -169,7 +168,7 @@
     :arg-checking nil
     :return-type :unsigned-integer)
 
-    
+
 (defforeign 'ol_list_item_pointer
     :entry-point (ff:convert-to-lang "ol_list_item_pointer")
     :call-direct t

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: clim-user -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: test-clim-tests.lisp,v 1.3 1993/10/25 16:16:08 cer Exp $
 
@@ -33,8 +32,8 @@
    )
    (exit-clim-tests))
 
-(clim-test:define-frame-test run-clim-tests-with-r-tree (clim-tests 
-							 :width 600 :height 600  
+(clim-test:define-frame-test run-clim-tests-with-r-tree (clim-tests
+							 :width 600 :height 600
 							 :history-class r-tree-output-history)
   (
    (:commands clim-tests-commands)
@@ -96,44 +95,44 @@
   :abort
 
   ;;--- phew. write some more
-   
-  (com-simple-redisplay)   
+
+  (com-simple-redisplay)
   (:presentation-click display-pane integer)
   (:presentation-click display-pane integer)
   (:presentation-click display-pane integer)
   (:presentation-click display-pane integer)
   :abort
-  
+
   (com-draw-some-pixmap)
   )
 
-(clim-test:define-frame-test more-simple-menu-test (clim-tests 
+(clim-test:define-frame-test more-simple-menu-test (clim-tests
 				    :width 600 :height 600)
   ((com-more-simple-menus))
   (exit-clim-tests))
 
-  
-(clim-test:define-frame-test more-clim-tests (clim-tests 
+
+(clim-test:define-frame-test more-clim-tests (clim-tests
 				    :width 600 :height 600)
   ((com-read-image-test)
-   
+
   (com-filled-output)
   (:presentation-click display-pane string)
-   
+
   ;; This would be nice but moving to the top right of the
   ;; presentation does not work when they are circular!
   ;; (com-ordering-test-1)
   ;; (:presentation-click display-pane integer)
-   
+
   (com-ordering-test-2a)
   (:presentation-click display-pane integer)
   (com-ordering-test-2b)
   (:presentation-click display-pane integer)
-   
+
   (com-text-formatting)
 
   (com-negative-extent)
-  
+
   (com-readonly-gadget-dialog)
   :abort
   (com-ozone-dialog)
@@ -214,19 +213,19 @@
   (exit-clim-tests)
   )
 
-(clim-test:define-frame-test test-drag-and-drop (clim-tests 
-					       :width 600 :height 600  
+(clim-test:define-frame-test test-drag-and-drop (clim-tests
+					       :width 600 :height 600
 					       :history-class r-tree-output-history
 					       )
   ((com-drag-and-drop-tests)
    (:presentation-click display-pane drag-source)
    (:presentation-click display-pane drop-target)
    (:presentation-click display-pane drag-source)
-   (:presentation-click display-pane drop-target)   
+   (:presentation-click display-pane drop-target)
    (:presentation-click display-pane drag-source)
-   (:presentation-click display-pane drop-target)   
+   (:presentation-click display-pane drop-target)
    (:presentation-click display-pane drag-source)
-   (:presentation-click display-pane drop-target)   
+   (:presentation-click display-pane drop-target)
    (:presentation-click display-pane drag-source)
    (:presentation-click display-pane drop-target)
    :abort)

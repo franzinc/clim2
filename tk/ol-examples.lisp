@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: ol-examples.lisp,v 1.7 92/05/07 13:10:55 cer Exp $
 
@@ -51,22 +50,22 @@
 			      :orientation :horizontal
 			      :height 100
 			      :parent control))
-  
+
   (setq scroll-bar (make-instance 'scroll-bar
 				  :orientation :horizontal
 				  :height 100
 				  :parent control))
-  
+
   (setq list-pane (make-instance 'list-pane
 				 :parent control
 				 ))
-  
+
   (setq ab-menu (make-instance 'abbrev-menu-button
 			       :parent control
 			       ))
-  
+
   (setq menu1 (tk::get-values ab-menu :menu-pane))
-  
+
   (setq b3 (make-instance 'oblong-button :parent menu1
 			  :label "Lisp"
 			  :font
@@ -77,18 +76,18 @@
 			  :label "Fortran"
 			  :font
 			  "-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1"))
-  
-  (setq stext (make-instance 'static-text 
+
+  (setq stext (make-instance 'static-text
 			     :string "heooo"
 			     :parent control))
-  
+
   (set-values ab-menu :preview-widget stext)
 
-  
+
   )
-  
-  
-				 
+
+
+
 
 
 (defun simple-ol-example-2 ()

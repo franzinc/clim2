@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: foreign.lisp,v 1.17 1994/12/05 00:00:56 colin Exp $
 
@@ -26,7 +25,7 @@
 
 ;;; We have to interface to various foreign functions in the toolkit
 
-;; 
+;;
 
 
 
@@ -42,7 +41,7 @@
 (defmethod initialize-instance :after ((c application-context) &key context)
   (let ((context (or context (xt_create_application_context))))
     (setf (foreign-pointer-address c) context)
-    (xt_app_set_error_handler 
+    (xt_app_set_error_handler
      context
      *error-handler-function-address*)
     (xt_app_set_warning_handler
@@ -97,7 +96,7 @@
   (register-address d))
 
 (defun display-database (display)
-  (make-instance 'resource-database 
+  (make-instance 'resource-database
 		 :foreign-address (xt_database display)))
 
 
@@ -107,4 +106,4 @@
     (xt_get_application_name_and_class display name class)
     (values (char*-to-string (aref name 0))
 	    (char*-to-string (aref class 0)))))
-    
+

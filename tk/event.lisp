@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Fri Aug 20 18:53:50 1993 by layer]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: event.lisp,v 1.24 1993/12/07 05:34:10 colin Exp $
 
@@ -59,7 +58,7 @@
 		      (application-context-displays context)))
 	 (reason nil))
     (declare (fixnum mask))
-    
+
     (flet ((wait-function (fd)
 	     (declare (ignore fd))
 	     (let ((*inside-event-wait-function* '#:wait-for-event))
@@ -68,7 +67,7 @@
 		     (and wait-function
 			  (funcall wait-function)
 			  (setq reason :wait)))))))
-      
+
       (let* ((interval (xt_app_interval_next_timer context))
 	     (new-timeout (if (< interval 0)
 			      timeout
@@ -79,7 +78,7 @@
 			      (multiple-value-bind (sec msec)
 				  (truncate interval 1000)
 				(cons sec msec))))))
-	(unless (mp:wait-for-input-available fds 
+	(unless (mp:wait-for-input-available fds
 					     :wait-function #'wait-function
 					     :timeout new-timeout)
 	  (setq mask (xt_app_pending context)))))
@@ -106,7 +105,7 @@
 	 (desired-sequence (aref arg 1))
 	 (event-type (x11:xevent-type event)))
     (declare (type (simple-array (unsigned-byte 32) (*)) arg))
-    
+
     (if (and (eql desired-display display)
 	     (eql desired-sequence (x11:xanyevent-serial event))
 	     (do* ((i 2 (1+ i))
@@ -136,7 +135,7 @@
 	 (resulting-event *event-matching-event*)
 	 (*sequence-matching-data* data))
     (declare (type (simple-array (unsigned-byte 32) (*)) data)
-	     (fixnum i)) 
+	     (fixnum i))
     (setf (aref data 0) (ff:foreign-pointer-address display))
     (setf (aref data 1) seq-no)
     (dolist (type types)

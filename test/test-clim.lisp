@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: clim-user -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: test-clim.lisp,v 1.14 1993/10/25 16:16:10 cer Exp $
 
@@ -27,24 +26,24 @@
 
 (clim-test:define-frame-test test-test-frame (test-frame :width 600 :height 600)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
 
 (clim-test:define-frame-test test-test-frame0 (test-frame0)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
 
 (clim-test:define-frame-test test-test-frame5 (test-frame5)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button))
    (com-switch)
@@ -65,16 +64,16 @@
 
 (clim-test:define-frame-test test-tf96 (tf96)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
 
 (clim-test:define-frame-test test-tf96-2 (tf96)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button))
    (com-frob-sizes)
@@ -85,32 +84,32 @@
 
 (clim-test:define-frame-test test-tf95 (tf95)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
 
 (clim-test:define-frame-test test-tf94 (tf94)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
 
 (clim-test:define-frame-test test-tf93 (tf93)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
 
 (clim-test:define-frame-test test-tf91 (tf91)
   ((com-clear)
-   (com-make-table) 
-   (com-make-table) 
+   (com-make-table)
+   (com-make-table)
    (com-square-it 5)
    (com-make-one (:push-button)))
   (com-quit))
@@ -192,7 +191,7 @@
   (mp::with-timeout (3) (select-file *application-frame*))
   (dolist (style '(:inform :error :question :warning))
     (mp:with-timeout (3)
-      (notify-user *application-frame* 
+      (notify-user *application-frame*
 		   "Just say no to sega games"
 		   :title (format nil "The style is ~A" style)
 		   :style style)))
@@ -291,7 +290,7 @@
 ;;; Disable/enable command stuff.
 
 (define-application-frame enable-disable-frame ()
-  
+
   ()
   (:panes
    (i :interactor))
@@ -315,7 +314,7 @@
     ((enabled 'boolean))
   (setf (command-enabled 'com-enable-disable-frame *application-frame*) enabled))
 
-(clim-test:define-frame-test test-enable-disable-command (enable-disable-frame 
+(clim-test:define-frame-test test-enable-disable-command (enable-disable-frame
 						:disabled-commands '(com-enable-disable-frame)
 						:width 400 :height 400)
   ((com-enable-disable-sensitive t)
@@ -330,7 +329,7 @@
   (clim-test:with-test-success-expected ('find-frame-manager-test)
     (let ((fm (find-frame-manager)))
       (with-frame-manager (fm)
-	(let ((*default-server-path* 
+	(let ((*default-server-path*
 	       `(,(if (excl::featurep :clim-motif)
 		      :motif :openlook)
 		    :display "mysparc10:0")))
@@ -394,19 +393,19 @@
 (defun create-multiple-ports ()
   (clim-test:with-test-success-expected ('create-multiple-ports)
     (let (port2)
-      (mp::with-timeout (30) 
+      (mp::with-timeout (30)
 	(clim-demo::start-demo :port (setq port2
 				       (find-port :server-path (list (car *default-server-path*) :application-name "climx")))))
-      (mp::with-timeout (30) 
+      (mp::with-timeout (30)
 	(clim-demo::start-demo))
-      (mp::with-timeout (30) 
+      (mp::with-timeout (30)
 	(clim-demo::start-demo :port port2)))))
 
 ;;
 
 (define-frame-test-command com-multi-colored-button ()
   ()
-  (let  ((gadget 
+  (let  ((gadget
 	  (with-output-as-gadget (t)
 	    (make-pane 'push-button :label "hello"))))
     (sleep 1)
@@ -436,18 +435,18 @@
 
 (defun accept-from-string-tests ()
   (clim-test:with-test-success-expected ('accept-from-string-tests)
-    
+
     (assert (eq nil (accept-from-string '(subset :a :b) "")))
     (assert (equal '(:a :b) (accept-from-string '(subset :a :b) "a,b")))
     (assert (eq :abc (accept-from-string 'keyword "abc")))
     (handler-case (accept-from-string '(member :a :b) "")
       (error (c) c)
       (:no-error (&rest ignore) ignore (error "member null string failed")))
-    
+
     (handler-case (accept-from-string '(member :a :b) "z")
       (error (c) c)
       (:no-error (&rest ignore) ignore (error "member bogus failed")))
-    
+
     (handler-case (accept-from-string '(subset :a :b) "a,c")
       (error (c) c)
       (:no-error (&rest ignore) ignore (error "subset bogus failed")))))

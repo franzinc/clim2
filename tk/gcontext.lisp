@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Thu May 11 02:24:34 1995 by duane]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: gcontext.lisp,v 1.25 1993/09/17 19:06:40 cer Exp $
 
@@ -26,7 +25,7 @@
 
 (eval-when (compile load eval)
   #+ignore
-  (defconstant *gcontext-components* 
+  (defconstant *gcontext-components*
       '((function :int)
 	(plane-mask :unsigned-long)
 	(foreground :unsigned-long)
@@ -67,20 +66,20 @@
 	(name c-type) x
       (declare (ignore c-type))
       `(,name :reader ,(intern (format nil "~A-~A" 'gcontext name)))))
-  
+
   #+ignore
   (defun gcontext-component-to-writer  (x)
     (destructuring-bind
 	(name c-type) x
       (declare (ignore c-type))
-      `(defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name))) 
+      `(defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
 	   (nv gc)
-	 (set-gcontext-component 
-	  gc 
+	 (set-gcontext-component
+	  gc
 	  ,(intern (symbol-name name) :keyword)
 	  nv)
 	 (setf (slot-value gc ',name) nv))))
-  
+
   (defmacro define-gc-writer (name encoder &rest args)
     `(progn
        (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
@@ -92,7 +91,7 @@
 			   :x11)
 		  gc-values)
 	     (,encoder gc nv ,@args))
-	 
+
 	   (x11:xchangegc
 	    (object-display gc)
 	    gc
@@ -100,7 +99,7 @@
 			(error "Cannot find ~S in gcontext components" name)))
 	    gc-values)
 	   nv))))
-  
+
   (defmacro define-gc-writer-function (name function encoder &rest args)
     `(progn
        (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
@@ -112,12 +111,12 @@
 
   (defmacro define-gc-reader (name decoder &rest args)
     `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
-       (,decoder 
+       (,decoder
 	gc
 	(,(intern (format nil "~A~A" '_xgc-values- name) :x11)
 	 gc)
 	,@args)))
-  
+
   (defmacro define-gc-accessor (name (encoder decoder) &rest args)
     `(progn
        (define-gc-reader ,name ,decoder ,@args)
@@ -133,11 +132,11 @@
 				       drawable
 				       function plane-mask foreground background
 				       line-width line-style
-				       cap-style join-style fill-style fill-rule 
+				       cap-style join-style fill-style fill-rule
 				       arc-mode tile stipple ts-x ts-y
-				       font subwindow-mode 
+				       font subwindow-mode
 				       graphics-exposures clip-x-origin clip-y-origin
-				       clip-mask clip-ordering 
+				       clip-mask clip-ordering
 				       dash-offset dashes)
 
   (unless foreign-address
@@ -148,9 +147,9 @@
 	    (foreign-pointer-address gcontext) foreign-address
 	    (slot-value gcontext 'display) display))
     (register-address gcontext foreign-address))
-    
+
     ;;; Set the ones that are specified
-    
+
   (when function (setf (gcontext-function gcontext) function))
   (when plane-mask (setf (gcontext-plane-mask gcontext) plane-mask))
   (when foreground (setf (gcontext-foreground gcontext) foreground))
@@ -178,7 +177,7 @@
 
 
 (defun free-gcontext (gc)
-  (x11:xfreegc 
+  (x11:xfreegc
    (object-display gc)
    gc)
   (unregister-address gc))
@@ -203,20 +202,20 @@
   (decode-pixel gc (x11::_xgc-values-background gc)))
 
 (defmethod (setf gcontext-foreground) (nv (gc gcontext))
-  (x11:xsetforeground 
+  (x11:xsetforeground
    (object-display gc)
    gc
    (encode-pixel gc nv)))
 
 (defmethod (setf gcontext-background) (nv (gc gcontext))
-  (x11:xsetbackground 
+  (x11:xsetbackground
    (object-display gc)
    gc
    (encode-pixel gc nv)))
 
 
 (define-gc-accessor line-width  (encode-card16 decode-card16))
-  
+
 (defmethod gcontext-fill-style ((gc gcontext))
   (decode-fill-style
    gc (x11::_xgc-values-fill-style gc)))
@@ -244,7 +243,7 @@
    (object-display gc)
    gc
    (encode-fill-style gc nv)))
-  
+
 
 (define-gc-reader fill-rule decode-enum '(:even-odd :winding))
 (define-gc-writer-function fill-rule x11:xsetfillrule encode-enum '(:even-odd :winding))
@@ -262,7 +261,7 @@
 (define-gc-accessor ts-x-origin (encode-int16 decode-int16))
 (define-gc-accessor ts-y-origin (encode-int16  decode-int16))
 
-   
+
 (define-gc-reader font decode-font)
 (define-gc-writer-function font x11:xsetfont encode-font)
 
@@ -297,7 +296,7 @@
 (define-gc-accessor dash-offset (encode-card16 decode-card16))
 (define-gc-accessor arc-mode (encode-enum decode-enum)  '(:chord :pie-slice))
 
-;;; 
+;;;
 
 
 ;;; Some encoding stuff
@@ -385,7 +384,7 @@
 		(equal cached-clip-mask nv))
       (call-next-method)
       (setf cached-clip-mask nv))))
-  
+
 (define-gc-accessor line-style  (encode-line-style decode-style))
 
 (defun encode-line-style (gc x)
@@ -426,7 +425,7 @@
        (dotimes (i n)
 	 (setf (aref v i) (the (unsigned-byte 8) (aref nv i))))))
     (values n v)))
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun encode-int16 (gc x)
   (declare (ignore gc))
@@ -500,7 +499,7 @@
 					     gc)
 					,x)))
 				 setfs))
-			 (push (ash 1 
+			 (push (ash 1
 				    (position (car o)
 					      *gcontext-bit-mask*
 					      :test #'string=))
@@ -516,7 +515,7 @@
 	 (deallocate-temp-gc ,tgc)))))
 
 (defun allocate-temp-gc (gc)
-  (make-instance 'gcontext 
+  (make-instance 'gcontext
 		 :drawable (display-root-window (object-display gc))))
 
 (defun deallocate-temp-gc (gc)

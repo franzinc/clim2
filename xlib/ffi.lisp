@@ -1,5 +1,5 @@
 ;; -*- mode: common-lisp; package: x11 -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -14,9 +14,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: ffi.lisp,v 1.15 1993/07/22 15:39:51 cer Exp $
 
@@ -100,7 +99,7 @@
 	  `(ff::def-c-type (,array-name :no-defuns ,@options)
 	     1 ,name)))))
 
-	  
+
 
 (defun trans-slot-type (type)
   (if (atom type)
@@ -143,7 +142,7 @@
 	    (:unsigned-32bit :integer)
 	    (:signed-32bit :integer)
 	    (t :unsigned-integer))))
-  
+
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
   `(progn
      (eval-when (eval load compile)
@@ -156,7 +155,7 @@
 	    ',name
 	    :arguments ',(mapcar #'trans-arg-type (mapcar #'second args))
 	    :call-direct t
-	    :callback t 
+	    :callback t
 	    :arg-checking nil
 	    :return-type ,(trans-return-type return-type)
 	    :entry-point ,c-name)))))

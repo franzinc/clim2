@@ -2,7 +2,7 @@
 
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -17,9 +17,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
 ;; $fiHeader: excl-presentations.lisp,v 1.15 93/01/21 14:57:51 cer Exp $
@@ -46,7 +45,7 @@
 (defmethod excl::stream-io-record-type ((stream output-recording-mixin))
   nil)
 
-(defclass standard-excl-presentation (standard-presentation) 
+(defclass standard-excl-presentation (standard-presentation)
     ()
   (:default-initargs :single-box nil
 		     :type 'expression))
@@ -63,7 +62,7 @@
 ;; Record initialized with :object, :type maybe
 
 (defmethod excl::set-io-record-pos1 ((stream output-recording-mixin) record)
-  (let ((current-output-position 
+  (let ((current-output-position
 	  (stream-output-history-position stream)))
     (multiple-value-bind (px py)
 	(point-position current-output-position)
@@ -83,11 +82,11 @@
 
 (defmethod excl::set-io-record-pos2 ((stream output-recording-mixin) record)
   (stream-close-text-output-record stream)
-  (let ((current-output-position 
-	  (stream-output-history-position stream))) 
+  (let ((current-output-position
+	  (stream-output-history-position stream)))
     (destructuring-bind (parent abs-x abs-y)
 	(pop (stream-excl-presentation-stack stream))
-      (unless parent 
+      (unless parent
 	(setq parent (stream-output-history stream)))
       (multiple-value-bind (end-x end-y)
 	  (stream-cursor-position stream)
@@ -116,4 +115,4 @@
 	      (#\b (window-stream-bold-font        stm))
 	      (#\i (window-stream-italic-font      stm))
 	      (#\j (window-stream-bold-italic-font stm)))))))
-     
+

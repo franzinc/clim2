@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: postscript-clim -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: read-afm.lisp,v 1.1 93/03/31 10:39:23 cer Exp $
 
@@ -40,7 +39,7 @@
     (with-open-file (*standard-input* file :direction :input)
       (let (font-name
 	    font-bbox
-	    character-metrics 
+	    character-metrics
 	    fixed-pitch)
 	(loop
 	  (case (read-keyname)
@@ -50,7 +49,7 @@
 	      (read-line))
 	    (:|IsFixedPitch|
 	      (peek-char t)
-	      (setq fixed-pitch 
+	      (setq fixed-pitch
 		(ecase (read-keyname)
 		  (:|true| t)
 		  (:|false| nil))))
@@ -61,12 +60,12 @@
 	      (setq font-bbox
 		(list (read) (read) (read) (read))))
 	    (:|StartCharMetrics|
-	      (loop 
+	      (loop
 		(read-line)
 		(let ((key (read-keyname))
 		      code wx name bounding-box)
 		  (when (eq key :|EndCharMetrics|) (return nil))
-		  (loop 
+		  (loop
 		    (peek-char t)
 		    (ecase key
 		      (:|L|
@@ -75,7 +74,7 @@
 		      (:|WX| (setq wx (read)))
 		      (:|N| (peek-char t)
 			(setq name (read-keyname)))
-		      (:|B| 
+		      (:|B|
 			(setq bounding-box (list (read) (read) (read) (read)))))
 		    (assert (eq (peek-char t) #\;))
 		    (read-char)
@@ -121,7 +120,7 @@
 	       files)))
 
 #+ignore
-(load-font-metrics-from-files 
+(load-font-metrics-from-files
  "Times-Roman"
  "Times-Italic"
  "Times-Bold"

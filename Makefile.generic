@@ -263,7 +263,7 @@ ucl.clim: stub-x.o $(STATIC-WNN-OBJS) stub-xt.o stub-motif.o \
 	/bin/mv dcl dcl.climsave ; $(SAVEEXP) ;\
 	make stubs=$(stubs) \
 		user_objects=' \
-		$(PWD)/stub-x.o $(STATIC-WNN-OBJS-WITH-PWD) $(PWD)/stub-xt.o
+		$(PWD)/stub-x.o $(STATIC-WNN-OBJS-WITH-PWD) $(PWD)/stub-xt.o\
 		$(PWD)/stub-motif.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
 		$(TKLIB) $(XTLIB) $(XLIB) $(WNNLIB) $(MOTIFXTRAS)' ucl ;\

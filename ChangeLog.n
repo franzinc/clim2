@@ -1,3 +1,27 @@
+*************************************************************
+4.3.devel.9 (beta preparation)
+
+Tue Nov  7 16:44:25 1995  George Jacob  (georgej@lava)
+
+* xlib/load-xlib.lisp: specify lp host clim2: for *.o files
+
+* utils/excl-verification.lisp: Change to CLIM 2.1.beta
+
+* tk/load-xm.lisp: specify logical-pathname host clim2: for *.o files
+
+* various files: Change FAR Supplement number in Copyright message
+
+* clim/standard-types.lisp: Modified cond() clause to fix reload-problem
+
+* Makefile.generic: Added backslash for line continuation
+
+* Makefile.cobjs: Added backslash for line continuation
+
+* tk-silica/last.lisp: Change patch directory name to update-clim2
+
+* sys/sysdcl.lisp: Change feature to 2.1
+
+* utils/excl-verification.lisp: update *clim-version* to 2.1.beta
 
 *************************************************************
 Fri Oct 20 11:03:26 PDT 1995	Colin Meldrum (colin@vapor)

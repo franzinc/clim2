@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLIM-UTILS; Base: 10.; Syntax: Common-Lisp -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -14,12 +14,11 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;;;
-;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
+;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
 ;; $fiHeader: protocols.lisp,v 1.3 92/05/22 19:27:00 cer Exp $
 
@@ -56,7 +55,7 @@
 (defmethod print-object ((operation operation) stream)
   (print-unreadable-object (operation stream)
     (format stream "Operation: ~a" (operation-name operation))))
-			 
+
 (defvar *protocols* nil)
 (defmacro find-protocol (name) `(getf *protocols* ,name))
 (defsetf find-protocol (name) (value) `(setf (getf *protocols* ,name) ,value))
@@ -64,7 +63,7 @@
 (defvar *roles* nil)
 (defmacro find-role (name) `(getf *roles* ,name))
 (defsetf find-role (name) (value) `(setf (getf *roles* ,name) ,value))
-  
+
 (defmacro defprotocol (name supers &rest options)
   (declare (ignore supers options))
   `(eval-when (compile eval load)
@@ -92,14 +91,14 @@
 (defmacro defoperation (name protocol arg-specs &key (defgenericp t))
   (let* ((pos (position-if #'(lambda (x) (member x '(&key &optional &rest)))
 			   arg-specs))
-	 (required-arg-specs (if pos (subseq arg-specs 0 pos) 
+	 (required-arg-specs (if pos (subseq arg-specs 0 pos)
 				 arg-specs))
-	 (required-args (mapcar #'(lambda (arg-spec) 
+	 (required-args (mapcar #'(lambda (arg-spec)
 				    (if (listp arg-spec)
 					(first arg-spec)
 					arg-spec))
 				required-arg-specs))
-	 (specs (mapcar #'(lambda (arg-spec) 
+	 (specs (mapcar #'(lambda (arg-spec)
 			    (if (listp arg-spec)
 				(second arg-spec)
 				t))
@@ -125,11 +124,11 @@
 				 :specs ',specs
 				 :extra-args ',extra-args)))
 	   ;; Just simple now.
-	   (push-unique operation (protocol-operations protocol) 
+	   (push-unique operation (protocol-operations protocol)
 			:key #'operation-name))))))
 
 ;;; Genera support for function spec (OPERATION PROTOCOL NAME):
-#+Genera (progn 
+#+Genera (progn
 (sys:define-function-spec-handler operation (op spec &rest args)
   (case op
     (sys:validate-function-spec (= (length spec) 3))
@@ -139,7 +138,7 @@
 
 (defun (:property defoperation zwei:definition-function-spec-parser) (start-bp)
   (let ((bp start-bp))
-    (block top-level 
+    (block top-level
       (flet ((read-next ()
 	       (let ((next-bp (zwei:forward-sexp bp)))
 		 (if next-bp
@@ -172,7 +171,7 @@
 	   (mapcar
 	     #'(lambda (operation)
 		 (with-slots (name required-args specs extra-args) operation
-		   (let* ((subst-extra-args 
+		   (let* ((subst-extra-args
 			    (subst role-player role-name extra-args))
 			  (role-pos (position role-name specs))
 			  (arg-specs (copy-list required-args))
@@ -213,20 +212,20 @@
 			 `((defmethod ,reader ((,role-player ,role-player))
 			     (let* ((*outer-self* (or *outer-self* ,role-player))
 				    (*original-stream* *outer-self*))
-			       (,macro-name ,player-var 
+			       (,macro-name ,player-var
 				(,reader ,player-var))))))
 		     ,@(when writer
 			 (let ((values-vars
-				 (with-collection 
+				 (with-collection
 				   (dotimes (i nvalues)
-				     (collect 
-				       (make-symbol 
+				     (collect
+				       (make-symbol
 					 (format nil "~A-~D" 'new-value i)))))))
 			   `((,(if (= nvalues 1) 'defmethod 'defmethod*)
 			      (setf ,writer) (,@values-vars (,role-player ,role-player))
 			      (let* ((*outer-self* (or *outer-self* ,role-player))
 				     (*original-stream* *outer-self*))
-				(,macro-name ,player-var 
+				(,macro-name ,player-var
 				 (setf (,writer ,player-var) (values ,@values-vars)))))))))))
 	     (role-slots (find-role role-name)))))))
 

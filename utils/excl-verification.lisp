@@ -16,11 +16,10 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.19 1995/06/21 21:24:34 georgej Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.20 1995/11/08 06:16:31 georgej Exp $
 
 (in-package :sys)
 
@@ -59,7 +58,7 @@ You do not have patches ~{~S ~}"
 	   dont-have)))
 
 (defvar *clim-version*
-    '("CLIM 2.1.alpha"
-      "$Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.19 1995/06/21 21:24:34 georgej Exp $"))
+    '("CLIM 2.1.beta"
+      "$Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.20 1995/11/08 06:16:31 georgej Exp $"))
 
 (si::rcsnote (first *clim-version*) (second *clim-version*))

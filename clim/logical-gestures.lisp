@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -14,9 +14,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: logical-gestures.lisp,v 1.3 92/02/24 13:08:04 cer Exp $
 
@@ -26,11 +25,11 @@
 "Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
 ;;; a logical-gesture-name is a symbol that is not eq to a defined keysym or a
-;;; defined shift. 
+;;; defined shift.
 
-;;; Needed:  Efficient mechanism for comparing a key-press-event, a character, 
+;;; Needed:  Efficient mechanism for comparing a key-press-event, a character,
 ;;; or a button-press-event with a gesture spec.
-;;; This mechanism will be used by presentation translator lookup, as well as by the 
+;;; This mechanism will be used by presentation translator lookup, as well as by the
 ;;; input editor.
 ;;;
 ;;; For presentation sensitivity, a way of finding out whether a particular set of shifts
@@ -59,13 +58,13 @@
 	  (with-collection
 	    (dolist (spec new-specs)
 	      (collect (parse-gesture-spec spec))))))
-    (setf (gethash logical-gesture-name *logical-gesture-name->gesture-spec-table*) 
+    (setf (gethash logical-gesture-name *logical-gesture-name->gesture-spec-table*)
 	  (delete-duplicates canonical-new-specs :test #'equal))))
 
 (defsetf logical-gesture-name-gesture-specs set-logical-gesture-name-gesture-specs)
 
 ;;; Normal activity for programmers, adding new gesture specs to an existing
-;;; logical gesture name, as in 
+;;; logical gesture name, as in
 ;;; (push '(:meta :middle) (logical-gesture-name-gesture-specs :edit-definition))
 ;;; (push '(:control :return) (logical-gesture-name-gesture-specs :make-new))
 ;;; (push ':make-new (logical-gesture-name-gesture-specs :edit-definition))
@@ -177,7 +176,7 @@
 
     ;; :meta
     (:edit-definition :left :meta)
-    
+
     )
   )
 

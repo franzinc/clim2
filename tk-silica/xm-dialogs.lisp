@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: clim-internals -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -16,9 +16,8 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 ;; $fiHeader: xm-dialogs.lisp,v 1.8 1993/07/27 01:55:17 colin Exp $
 
@@ -43,9 +42,9 @@
 			:initial-cursor-visibility nil)))))
      own-window
      exit-button-stream)))
-     
+
 ;;;---- The rest of what in here is dreaming right now
-;;;---- It would be nice to use more 
+;;;---- It would be nice to use more
 
 ;#+ignore
 ;(define-application-frame xm-silica::motif-accepting-values-frame (accept-values-own-window)
@@ -91,15 +90,15 @@
 ;				  :right-position ,(+ 2 (* 2 i)))
 ;			     (incf i)))
 ;			 labels)))
-;	     
+;
 ;	     vp))))))
 ;
 ;
 ;
 ;
-;(defmethod generate-panes :after ((framem standard-frame-manager) 
+;(defmethod generate-panes :after ((framem standard-frame-manager)
 ;				  (frame xm-silica::motif-accepting-values-frame))
-;  (setf (slot-value frame 'stream) 
+;  (setf (slot-value frame 'stream)
 ;    (make-instance 'accept-values-stream
 ;		   :stream (setf (slot-value frame 'own-window)
 ;			     (get-frame-pane frame 'control-area))))
@@ -130,7 +129,7 @@
 ;	   (initial-query nil)
 ;	   exit-button-record
 ;	   avv avv-record)
-;      (letf-globally (((stream-default-view stream) 
+;      (letf-globally (((stream-default-view stream)
 ;		       (frame-manager-dialog-view (frame-manager frame)))
 ;		      ((cursor-state (stream-text-cursor stream)) nil))
 ;	(labels ((run-continuation (stream avv-record)
@@ -146,7 +145,7 @@
 ;		 (run-avv ()
 ;		   (when (and initially-select-query-identifier
 ;			      (setq initial-query
-;				    (find-query avv-record 
+;				    (find-query avv-record
 ;						(car initially-select-query-identifier))))
 ;		     (if (cdr initially-select-query-identifier)
 ;			 (com-modify-avv-choice initial-query)
@@ -175,7 +174,7 @@
 ;
 ;;		     (when exit-button-record
 ;; 		       (redisplay exit-button-record exit-button-stream))
-;		     
+;
 ;		     (redisplay avv stream :check-overlapping check-overlapping)
 ;
 ;		     (when (ecase (frame-resizable frame)
@@ -187,11 +186,11 @@
 ;					(bounding-rectangle-size
 ;					  (stream-output-history own-window))
 ;				      (multiple-value-bind (vwidth vheight)
-;					  (bounding-rectangle-size 
+;					  (bounding-rectangle-size
 ;					    (or (pane-viewport own-window) own-window))
 ;					(or (> width vwidth) (> height vheight)))))))
 ;		       (size-panes-appropriately)))))
-;		 
+;
 ;	       (size-panes-appropriately ()
 ;		 (changing-space-requirements ()
 ;		     ;; We really want to specify the min/max sizes of
@@ -201,8 +200,8 @@
 ;;		       (size-frame-from-contents exit-button-stream
 ;;						 :size-setter
 ;;						 #'(lambda (pane w h)
-;;						     (change-space-requirements 
-;;						      pane 
+;;						     (change-space-requirements
+;;						      pane
 ;;						      :width w :min-width w :max-width w
 ;;						      :height h :min-height h :max-height h))))
 ;		   (when own-window
