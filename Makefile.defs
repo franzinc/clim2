@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.8 93/04/27 14:34:06 cer Exp $
+# $fiHeader: Makefile.defs,v 1.9 93/05/13 16:22:41 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -325,7 +325,6 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/xt-gadgets.fasl \
                    tk-silica/xm-gadgets.fasl \
                    tk-silica/xt-pixmaps.fasl \
-                   tk-silica/xt-cursor.fasl \
 		   tk-silica/gc-cursor.fasl \
                    tk-silica/last.fasl
 
@@ -340,7 +339,6 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/ol-frames.fasl \
                       tk-silica/xt-gadgets.fasl \
                       tk-silica/ol-gadgets.fasl \
-		      tk-silica/xt-cursor.fasl \
                       tk-silica/xt-pixmaps.fasl \
 		      tk-silica/gc-cursor.fasl \
 		      tk-silica/last.fasl
@@ -496,7 +494,6 @@ ALL_SRC =	   utils/excl-verification.lisp \
                    tk-silica/xm-frames.lisp \
                    tk-silica/xt-gadgets.lisp \
                    tk-silica/xm-gadgets.lisp \
-                   tk-silica/xt-cursor.lisp \
                    tk-silica/xt-pixmaps.lisp \
 	      tk/ol-defs.lisp \
               tk/ol-funs.lisp \
