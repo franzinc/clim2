@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.79
+
+2000-07-12  Kevin Layer  <layer@ultra>
+
+	* demo/sysdcl.lisp: fix for building demos
+
+*******************************************************************************
 2.2.1.78
 
 2000-05-11  Kevin Layer  <layer@ultra>
