@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.44 93/02/08 15:56:49 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.45 93/03/04 18:59:54 colin Exp $
 
 (in-package :clim-internals)
 
@@ -608,7 +608,13 @@
 	  (values (outlining () slider) slider))))))
 
 
-;;; Text editing gadgets
+;;; Text Field gadget
+
+;; The string case is straightforward
+(define-presentation-method decode-indirect-view
+			    ((type string) (view gadget-dialog-view)
+			     (framem standard-frame-manager) &key)
+  +text-field-view+)
 
 (define-presentation-method accept-present-default 
 			    ((type t) stream (view text-field-view)
@@ -692,37 +698,15 @@
 	 (setf (accept-values-query-error-p query) nil)
 	 (do-avv-command object stream query))))))
 
-;; The string case is straightforward
+
+
 (define-presentation-method decode-indirect-view
-			    ((type string) (view gadget-dialog-view)
+			    ((type sequence) (view gadget-dialog-view)
 			     (framem standard-frame-manager) &key)
   +text-field-view+)
 
-;;--- How does this differ from the default method for
-;;--- accept-present-default
-#+++ignore
-(define-presentation-method accept-present-default 
-			    ((type string) stream (view text-field-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p))
-  (move-cursor-to-view-position stream view)
-  (flet ((update-gadget (record gadget button)
- 	   (declare (ignore record gadget))
-	   (if active-p
-	       (activate-gadget button)
-	       (deactivate-gadget button))
- 	   (setf (gadget-value button) default)))
-    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((text-field (make-pane-from-view 'text-field view
-			  :label (and (stringp prompt) prompt)
-			  :value default
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			    (make-accept-values-value-changed-callback
-			      stream query-identifier)
-			  :active active-p)))
- 	(values text-field text-field)))))
+
+;;; Text Editor gadget
 
 (define-presentation-method accept-present-default 
 			    ((type string) stream (view text-editor-view)

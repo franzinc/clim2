@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.54 93/01/18 13:57:57 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.55 93/02/10 10:04:16 cer Exp $
 
 (in-package :clim-user)
 
@@ -1961,10 +1961,10 @@ Luke Luck licks the lakes Luke's duck likes."))
 		  (draw-point* stream 
 			       (/ square-dimension 4)
 			       (/ square-dimension 2)))
-		(when draw-/-diagonal
+		(when draw-\\-diagonal
 		  (draw-line* stream 0 square-dimension square-dimension 0
 			      :line-cap-shape :round))
-		(when draw-\\-diagonal
+		(when draw-/-diagonal
 		  (draw-line* stream 0 0 square-dimension square-dimension
 			      :line-cap-shape :round))))))))))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.39 93/03/04 19:01:52 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.40 93/03/19 09:46:54 cer Exp $
 
 
 (in-package :xm-silica)
@@ -301,9 +301,8 @@
   ;; submenus then it creates one with a menu of its own
   
   (let* ((mirror (call-next-method))
-	(text-style (menu-bar-text-style sheet))
-	(font-list (and text-style
-			(list :font (text-style-mapping port text-style))))
+	(text-style (pane-text-style sheet))
+	(font-list (list :font (text-style-mapping port text-style)))
 	(options font-list))
     (labels ((update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))

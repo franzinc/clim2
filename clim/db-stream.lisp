@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.46 93/03/18 14:36:24 colin Exp $
+;; $fiHeader: db-stream.lisp,v 1.47 93/03/19 09:43:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -389,8 +389,9 @@
 		      (:thickness 1 
 		       :name ,name
 		       ,@(and background-p `(:background ,background-var)))
-		    #+Allegro ,pane
-		    #-Allegro (spacing (:thickness 1) ,pane))))
+		    (spacing (:thickness 1
+			      ,@(and background-p `(:background ,background-var)))
+		      ,pane))))
     `(let ((,stream)
 	   ,@(and background-p `((,background-var ,background))))
        (values ,pane ,stream))))

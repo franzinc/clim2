@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.17 93/02/08 15:57:24 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.18 93/03/18 14:37:39 colin Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -66,7 +66,7 @@
 
 (defclass outlined-pane (border-pane) ()
   ;; Yes, the background for this pane is the default foreground color
-  (:default-initargs :background *default-pane-foreground*))
+  (:default-initargs :default-background *default-pane-foreground*))
 
 (defmacro outlining ((&rest options &key thickness &allow-other-keys)
 		     &body contents)
@@ -80,7 +80,7 @@
 
 
 (defclass spacing-pane (border-pane) ()
-  (:default-initargs :background *default-pane-background* :thickness 2))
+  (:default-initargs :thickness 2))
 
 (defmacro spacing ((&rest options &key thickness &allow-other-keys) &body contents)
   (declare (ignore thickness))

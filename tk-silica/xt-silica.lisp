@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.71 93/03/18 14:39:45 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.72 93/03/19 09:47:13 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1211,10 +1211,8 @@
 				       classes "Foreground"))
 	 (text-style (xt::get-resource db names "textStyle"
 				       classes "TextStyle")))
-    `(,@(and background `(:background 
-			  ,(find-named-color background palette)))
-      ,@(and foreground `(:foreground 
-			  ,(find-named-color foreground palette)))
+    `(,@(and background `(:background ,background))
+      ,@(and foreground `(:foreground ,foreground))
       ,@(and text-style
 	     `(:text-style
 	       ,(let ((spec (read-from-string text-style)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.49 93/03/18 14:58:25 colin Exp $
+;; $fiHeader: packages.lisp,v 1.50 93/03/19 09:47:26 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3482,7 +3482,6 @@
     port-canonical-gesture-specs
     port-canonicalize-gesture-spec
     port-deallocate-pixmap
-    port-default-text-style
     port-display
     port-draw-cursor
     port-event-loop
