@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.1 92/08/19 10:29:27 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.2 92/09/08 15:18:48 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -19,9 +19,12 @@
   ("cloe-port")
   ("cloe-mirror")
   ("cloe-medium")
+  ("cloe-pixmaps")
   ("cloe-frames")
   ("cloe-gadgets")
-  ("cloe-menus"))
+  ("cloe-menus")
+  ("cloe-activities")
+  ("cloe-streams"))
 
 #+Genera
 (clim-defsys:import-into-sct 'cloe-clim
