@@ -13,6 +13,14 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 <no version change>
 
+2000-10-03  Kevin Layer  <layer@ultra>
+
+	* move RELNOTES entries to RELNOTES.60, since I filed an rfe on
+	them
+
+*******************************************************************************
+<no version change>
+
 2000-09-26  Kevin Layer  <layer@ultra>
 
 	* Makefile: make `clean' clean more
