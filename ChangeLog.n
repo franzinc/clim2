@@ -11,6 +11,16 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.19
+
+2000-07-06  Kevin Layer  <layer@ultra>
+
+    new file:
+	* RELNOTES.60
+    changed file:
+	* RELNOTES: move to RELNOTES.60 (and filed rfe)
+
+*******************************************************************************
 2.2.2.18 -- join from cley3 branch
 next merge tag: cley3_merge1
 
