@@ -11,6 +11,19 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.23.2
+
+2000-08-16 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: changed XM-FONT-LIST-DEFAULT-TAG to be a
+	  native string which is what Motif is expecting.  I am not
+	  sure how this worked without this change.  In due course it
+	  would perhaps be better to change the definitions of the
+          XM_STRING_* functions to know that some of their arguments
+	  are strings.  The whole Motif compound string stuff probably needs 
+	  attention actually.
+
+*******************************************************************************
 2.2.2.23.1
 
 2000-08-15 tfb@cley.com (Tim Bradshaw)

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30.34.1.14.1 2000/08/11 00:03:55 cley Exp $
+;; $Id: xm-widgets.lisp,v 1.30.34.1.14.2 2000/08/15 02:47:47 cley Exp $
 
 (in-package :tk)
 
@@ -75,7 +75,11 @@
 
 ;;-- This is a problem cos we dont know the number of items
 
-(defconstant xm-font-list-default-tag "FONTLIST_DEFAULT_TAG_STRING")
+(defconstant xm-font-list-default-tag 
+    ;; this needs to be a native string.  It would probably be better
+    ;; if the definitions of the XM_STRING functions were changed to
+    ;; convert strings.
+    (excl:string-to-native "FONTLIST_DEFAULT_TAG_STRING"))
 
 ;; this needs to be made to deal with compound strings for ics.
 
