@@ -11,6 +11,24 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.48
+
+1999-03-29  Kevin Layer  <layer@ultra>
+
+    changed files:
+	* Makefile: for mklinux
+	* Makefile.freebsd: Add second PIC flag
+	* Makefile.wnn: Add crypt library for freebsd
+    deleted files:
+	* Makefile.linux86
+	* Makefile.sun4-ol
+	* Makefile.sun4-svr4-ol
+	* instclimol.lisp
+	* make-symbolic-links.sh
+	* makedist.sh
+	* readme.win32
+
+*******************************************************************************
 2.2.1.47
 
 1999-03-19    <layer@OMEGA>
