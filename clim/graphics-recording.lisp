@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.23 1993/07/27 01:39:42 colin Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.24 1993/09/07 21:45:57 colin Exp $
 
 (in-package :clim-internals)
 
@@ -199,18 +199,21 @@
 		       ,@body))))))))))
 
 (defmacro with-half-thickness ((lthickness rthickness) line-style &body body)
-  (let ((ls '#:line-style)
-	(thickness '#:thickness))
-    `(let* ((,ls ,line-style)
-	    (,thickness  (if ,ls (line-style-thickness ,ls) 0))
-	    (,lthickness (floor ,thickness 2))
-	    (,rthickness (- ,thickness ,lthickness)))
-       ,@body)))
+  (let ((ls '#:line-style))
+    `(let* ((,ls ,line-style))
+       (with-half-thickness-1 (,lthickness ,rthickness) (if ,ls (line-style-thickness ,ls) 0)
+	 ,@body))))
 
+(defmacro with-half-thickness-1 ((lthickness rthickness) thickness &body body)
+  (let ((thicky '#:thicky))
+    `(let* ((,thicky ,thickness)
+	    (,lthickness (floor ,thicky 2))
+	    (,rthickness (- ,thicky ,lthickness)))
+       ,@body)))
 
 (define-graphics-recording draw-point (ink line-style clipping-region)
   :bounding-rectangle 
-    (with-half-thickness (lthickness rthickness) line-style
+  (with-half-thickness (lthickness rthickness) line-style
       (values (- x lthickness)
 	      (- y lthickness)
 	      (+ x rthickness)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.69 1993/09/17 19:04:56 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.70 1993/09/22 21:21:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1577,7 +1577,7 @@
 						:resynchronize resynchronize)))
 		     (make-pane-from-view 
 		      'push-button
-		      view
+		      view ()
 		      :id record :client client
 		      :activate-callback #'(lambda (button)
 					     (when (accept-values-query-valid-p nil record) ;---can't be right

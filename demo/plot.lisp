@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: plot.lisp,v 1.29 1993/09/17 19:05:59 cer Exp $
+;; $fiHeader: plot.lisp,v 1.30 1993/09/22 21:21:17 cer Exp $
 
 (in-package :clim-demo)
 
@@ -790,9 +790,3 @@
 
 
 (define-demo "Plotting Demo" plot-demo)
-
-(define-plot-demo-command com-zoom-graph-point
-    ((point 'graph-point))
-  (describe point))
-
-

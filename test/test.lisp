@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.51 1993/08/12 16:04:35 cer Exp $
+;; $fiHeader: test.lisp,v 1.52 1993/09/07 21:46:57 colin Exp $
 
 (in-package :clim-user)
 
@@ -1186,3 +1186,30 @@
       (setf (gadget-value cb) n2)
       (assert (equal n2 (check-box-current-selection cb))))))
 
+
+(define-application-frame tf115 ()
+  ()
+  (:menu-bar nil)
+  (:command-table test-frame)
+  (:panes
+   (a :accept-values
+      :display-function '(accept-values-pane-displayer :displayer display-tf115)
+      :width :compute
+      :height :compute))
+  (:layouts
+   (default a)))
+
+(defun display-tf115 (frame stream &key &allow-other-keys)
+  (formatting-table (stream)
+    (dolist (view '(list-pane-view text-editor-view))
+      (formatting-row (stream)
+	(dolist (scroll-bars '(nil :both :vertical :horizontal))
+	  (formatting-cell (stream)
+	    (accept (ecase view
+		      (list-pane-view '(member a b c d e f))
+		      (text-editor-view 'string))
+		    :stream stream
+		    :prompt nil
+		    :query-identifier (cons view scroll-bars)
+		    :view (cons view (and scroll-bars `(:scroll-bars ,scroll-bars))))))))))
+	

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.35 1993/07/27 01:40:59 colin Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.36 1993/09/17 19:05:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1118,6 +1118,22 @@
       (output-record-set-position output-record x y))
     (when (typep output-record 'stream-output-history-mixin)
       (setf (slot-value output-record 'stream) stream))))
+
+
+;(defmethod (setf stream-output-history) ((history stream-output-history-mixin)
+;					 (stream output-recording-mixin))
+;  (let ((old (stream-output-history stream)))
+;    (when old (note-output-record-detached old)))
+;  (call-next-method)
+;  ;;--- Our OUTPUT-RECORDING-MIXIN expects extended output...
+;  (multiple-value-bind (x y) (stream-cursor-position stream)
+;    ;; I don't understand why the output record's initial position was set to
+;    ;; some untransformed "viewport" coordinate.  The cursor position is the
+;    ;; right place, no?
+;    (output-record-set-position history x y))
+;  ;;
+;  (setf (slot-value history 'stream) stream)
+;  history)
 
 (defmethod clear-output-history ((stream output-recording-mixin))
   (when (stream-output-history stream)

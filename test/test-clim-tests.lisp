@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim-tests.lisp,v 1.1 1993/08/12 16:04:23 cer Exp $
+;; $fiHeader: test-clim-tests.lisp,v 1.2 1993/09/17 19:06:22 cer Exp $
 
 
 (in-package :clim-user)
@@ -105,7 +105,12 @@
   :abort
   )
 
+(define-frame-test more-simple-menu-test (clim-tests 
+				    :width 600 :height 600)
+  ((com-more-simple-menus))
+  (exit-clim-tests))
 
+  
 (define-frame-test more-clim-tests (clim-tests 
 				    :width 600 :height 600)
   ((com-read-image-test)
@@ -126,7 +131,7 @@
   (com-text-formatting)
 
   (com-negative-extent)
-  (com-more-simple-menus)
+  
   (com-readonly-gadget-dialog)
   :abort
   (com-ozone-dialog)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.12 1993/08/12 16:04:25 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.13 1993/09/17 19:06:24 cer Exp $
 
 
 (in-package :clim-user)
@@ -451,3 +451,8 @@
     (handler-case (accept-from-string '(subset :a :b) "a,c")
       (error (c) c)
       (:no-error (&rest ignore) ignore (error "subset bogus failed")))))
+
+
+(define-frame-test test-avv-text-fields-and-list-panes-with-scroll-bars (tf115)
+  ()
+  (com-quit))

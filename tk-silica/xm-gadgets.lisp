@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.81 1993/09/07 21:47:09 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.82 1993/09/17 19:07:10 cer Exp $
 
 (in-package :xm-silica)
 
@@ -688,7 +688,7 @@
 		  (silica::scroller-pane-scroll-bar-policy p)))))
       (values 'tk::xm-text
 	      (append
-	       `(:scroll-horizontal ,(and (member scroll-mode '(t :both :horizonal :dynamic)) t))
+	       `(:scroll-horizontal ,(and (member scroll-mode '(t :both :horizontal :dynamic)) t))
 	       `(:scroll-vertical ,(and (member scroll-mode '(t :both :vertical :dynamic)) t))
 	       (and (not editable) '(:cursor-position-visible nil))
 	       (list :edit-mode :multi-line)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.22 1993/07/27 01:38:27 colin Exp $
+;; $fiHeader: command-processor.lisp,v 1.23 1993/09/17 19:05:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -852,12 +852,16 @@
 	      :gesture ,gesture
 	      :tester ,tester
 	      :documentation ,documentation
+	      ;; Old behavior
 	      ;; The pointer documentation defaults to the name of the command,
 	      ;; not the documentation.  This is a speed bum.
-	      :pointer-documentation ,(or pointer-documentation
-					  (if (stringp documentation)
-					      documentation
-					      (command-name-from-symbol command-name)))
+	      ;; New Behavior is to to the right thing. If only
+	      ;; documentation is specified then rely on the
+	      ;; appropriate defaulting down the line to ensure that
+	      ;; we dont get duplicate functions.
+	      ,@(and (or pointer-documentation (null documentation))
+		     `(:pointer-documentation ,(or pointer-documentation
+						   (command-name-from-symbol command-name))))
 	      :menu ,menu
 	      :priority ,priority
 	      :tester-definitive t

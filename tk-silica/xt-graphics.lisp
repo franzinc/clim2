@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.80 1993/09/17 19:07:19 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.81 1993/09/22 21:21:26 cer Exp $
 
 (in-package :tk-silica)
 
@@ -822,6 +822,11 @@
 	(< (the fixnum ,x) 32000) (> (the fixnum ,x) -32000)
 	(< (the fixnum ,y) 32000) (> (the fixnum ,y) -32000)))
 
+(defmacro single-float-valid-point-p (x y)
+  `(and (< (the single-float ,x) 32000s0) 
+	(> (the single-float ,x) -32000s0)
+	(< (the single-float ,y) 32000s0) 
+	(> (the single-float ,y) -32000s0)))
 ;;
 ;; Here we implement a simple version of the Cohen-Sutherland clipping
 ;; algorithm.  Specifically, we only try to clip the line so that it will
@@ -954,9 +959,61 @@
 	  then (return-from ,function-name)
 	  else (error "Coordinate(s) out of (signed-byte 16) range")))))
 
+
+(defmacro single-float-discard-illegal-coordinates (function-name &rest positions)
+  (assert (evenp (length positions)) (positions)
+    "There must be an even number of elements in ~S" positions)
+  (let ((forms nil))
+    (do ()
+	((null positions))
+      (let* ((x (pop positions))
+	     (y (pop positions)))
+	(push `(single-float-valid-point-p ,x ,y) forms)))
+    `(unless (and ,@forms)
+       (if* *discard-illegal-graphics*
+	  then (return-from ,function-name)
+	  else (error "Coordinate(s) out of (signed-byte 16) range")))))
 
  
+
+
+(defmacro with-single-floats (variable-bindings &body body)
+  (flet ((binding-var (x) (if (atom x) x (car x)))
+	 (binding-form (x) (if (atom x) x (second x))))
+    `(let ,(mapcar #'(lambda (x)
+		       `(,(binding-var x) (float ,(binding-form x) 0s0)))
+	    variable-bindings)
+       (declare (single-float ,@(mapcar #'binding-var variable-bindings)))
+       ,@body)))
+
+(defmacro with-fixnums (variable-bindings &body body)
+  (flet ((binding-var (x) (if (atom x) x (car x)))
+	 (binding-form (x) (if (atom x) x (second x))))
+    `(let ,(mapcar #'(lambda (x)
+		       `(,(binding-var x) (fix-coordinate ,(binding-form x))))
+	    variable-bindings)
+       (declare (fixnum ,@(mapcar #'binding-var variable-bindings)))
+       ,@body)))
+
+(defmacro with-mins-and-maxes (variables &body body)
+  `(let ,(mapcan #'(lambda (binding)
+		     (destructuring-bind (min-var max-var form1 form2) binding
+		       `((,min-var ,form1)
+			 (,max-var ,form2))))
+	  variables)
+     (declare (single-float ,@(mapcar #'first variables) ,@(mapcar #'second variables)))
+     #+ignore (print-variables min-x min-y max-x max-y)
+     ,@(mapcar #'(lambda (binding)
+		   (destructuring-bind (min-var max-var form1 form2) binding
+		     (declare (ignore form1 form2))
+		     `(when (> ,min-var ,max-var) 
+			(rotatef ,min-var ,max-var))))
+	       variables)
+     ,@body))
+
+
 (defmethod medium-draw-point* ((medium xt-medium) x y)
+  (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
@@ -964,10 +1021,10 @@
 	     (thickness (line-style-thickness line-style))
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
-	;;--rounding
-	(convert-to-device-coordinates transform x y)
-	(discard-illegal-coordinates medium-draw-point* x y)
+	(transform-positions transform x y)
 	(cond ((< thickness 1.5)
+	       (fix-coordinates x y)
+	       (discard-illegal-coordinates medium-draw-point* x y)
 	       (tk::draw-point
 		drawable
 		(adjust-ink (decode-ink ink medium)
@@ -975,19 +1032,24 @@
 			    x y)
 		x y))
 	      (t
-	       (setq thickness (round thickness))
-	       (tk::draw-ellipse
-		drawable
-		(adjust-ink (decode-ink ink medium)
-			    medium
-			    (the fixnum (- (the fixnum x) (the fixnum thickness)))
-			    (the fixnum (- (the fixnum y) (the fixnum thickness))))
-		x y 
-		0
-		thickness 
-		0
-		thickness 0 2pi
-		t)))))))
+	       ;;--rounding
+	       ;;--what is the most efficient way of doing this?
+	       (with-single-floats (x y)
+		 (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
+		   (declare (ignore rthickness))
+		   (with-fixnums ((min-x (- x lthickness))
+				  (min-y (- y lthickness))
+				  (size thickness))
+		     (discard-illegal-coordinates medium-draw-point* min-x min-y)
+		     (tk::draw-ellipse-1
+		      drawable
+		      (adjust-ink (decode-ink ink medium)
+				  medium
+				  min-x
+				  min-y)
+		      min-x min-y 
+		      size size 0 #.(* 360 64)
+		      t))))))))))
 
 (defmethod medium-draw-points* ((medium xt-medium) position-seq)
   (let ((drawable (medium-drawable medium)))
@@ -1000,9 +1062,9 @@
 	(let* ((len (length position-seq))
 	       (xpoints (/ len 2))
 	       (j 0)
-	       (minx (ash 1 15))
-	       (miny (ash 1 15)))
-	  (declare (fixnum j xpoints minx miny))
+	       (minx #.(ash 1 15))
+	       (miny #.(ash 1 15)))
+	  (declare (fixnum len j xpoints minx miny))
 	  (macrolet ((inner-guts ()
 		       `(if (listp position-seq)
 			    (loop
@@ -1035,35 +1097,36 @@
 		      j
 		      x11:coordmodeorigin)))
 		  (t
-		   (setq thickness (round thickness))
-		   (let ((points (tk::make-xarc-array :number xpoints)))
-		     (macrolet ((guts (x y)
-				  `(let ((x ,x)
-					 (y ,y))
-				     (convert-to-device-coordinates transform x y)
-				     (when (valid-point-p x y)
-				       (minf minx x)
-				       (minf miny y)
-				       (setf (tk::xarc-array-x points j) x
-					     (tk::xarc-array-y points j) y
-					     (tk::xarc-array-width points j) thickness
-					     (tk::xarc-array-height points j) thickness
-					     (tk::xarc-array-angle1 points j) 0
-					     (tk::xarc-array-angle2 points j) (* 360 64))
-				       (incf j)))))
-		       (inner-guts))
-		     (x11::xfillarcs
-		      (tk::object-display drawable)
-		      drawable
-		      (adjust-ink (decode-ink ink medium)
-				  medium
-				  ;;--rounding
-				  ;;-- This seems like the wrong values
-				  ;;-- need to subtract thickness
-				  minx
-				  miny)
-		      points
-		      j))))))))))
+		   (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
+                     (declare (ignore rthickness))
+		     (setq thickness (round thickness))
+		       (let ((points (tk::make-xarc-array :number xpoints)))
+			 (macrolet ((guts (x y)
+				      `(let ((x ,x)
+					     (y ,y))
+					 (transform-positions transform x y)
+					 (with-fixnums ((x (- x lthickness))
+							(y (- y lthickness)))
+					   (when (valid-point-p x y)
+					     (minf minx x)
+					     (minf miny y)
+					     (setf (tk::xarc-array-x points j) x
+						   (tk::xarc-array-y points j) y
+						   (tk::xarc-array-width points j) thickness
+						   (tk::xarc-array-height points j) thickness
+						   (tk::xarc-array-angle1 points j) 0
+						   (tk::xarc-array-angle2 points j) #.(* 360 64))
+					     (incf j))))))
+			   (inner-guts))
+			 (x11::xfillarcs
+			  (tk::object-display drawable)
+			  drawable
+			  (adjust-ink (decode-ink ink medium)
+				      medium
+				      minx
+				      miny)
+			  points
+			  j)))))))))))
 
 
 (defmethod medium-draw-line* ((medium xt-medium) x1 y1 x2 y2)
@@ -1137,7 +1200,35 @@
 	       points
 	       i))))))))
 
-(defmethod medium-draw-rectangle* ((medium xt-medium) x1 y1 x2 y2 filled)
+(defmacro with-clipped-fixnum-rectangle ((x1 y1 x2 y2) &body body)
+  `(with-single-floats ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
+     (unless (single-float-valid-point-p x1 y1)
+       (setq x1 (min (max -32000s0 x1) 32000s0))
+       (setq y1 (min (max -32000s0 y1) 32000s0)))
+     (unless (single-float-valid-point-p x2 y2)
+       (setq x2 (min (max -32000s0 x2) 32000s0))
+       (setq y2 (min (max -32000s0 y2) 32000s0)))
+     (with-mins-and-maxes ((min-x max-x x1 x2)
+			   (min-y max-y y1 y2))
+       (with-fixnums ((fmin-x min-x)
+		      (fmin-y min-y)
+		      (fwidth (- max-x min-x))
+		      (fheight (- max-y min-y)))
+	 ,@body))))
+
+#+debugging
+(defmacro print-variables (&rest variables)
+  `(format excl::*initial-terminal-io*
+	   ,(with-output-to-string (s)
+	     (dolist (var variables)
+	       (format s "~S = " var)
+	       (write-string "~S, " s))
+	     (write-string "~%" s))
+	   ,@variables))
+
+(defmethod medium-draw-rectangle* ((medium xt-medium) ox1 oy1 ox2 oy2 filled)
+  #+this-would-be-nice (declare (optimize (safety 0) (speed 3)))
+  #-this-would-be-nice (declare (optimize (safety 3) (speed 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
@@ -1145,28 +1236,21 @@
 	     (transform (sheet-device-transformation sheet)))
 	(assert (rectilinear-transformation-p transform))
 	;;--rounding
-	(convert-to-device-coordinates transform x1 y1 x2 y2)
+	(transform-positions transform ox1 oy1 ox2 oy2)
 	;; Clipping a rectangle is ridiculously easy.
-	(unless (valid-point-p x1 y1)
-	  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
-	  (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
-	(unless (valid-point-p x2 y2)
-	  (setq x2 (min (max -32000 (the fixnum x2)) 32000))
-	  (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
-	(let ((min-x (min (the fixnum x1) (the fixnum x2)))
-	      (min-y (min (the fixnum y1) (the fixnum y2))))
-	  (declare (fixnum min-x min-y))
+	(with-clipped-fixnum-rectangle (ox1 oy1 ox2 oy2)
 	  (tk::draw-rectangle
 	   drawable
 	   (adjust-ink (decode-ink ink medium)
 		       medium
-		       min-x min-y)
-	   min-x min-y
-	   (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
-	   (fast-abs (the fixnum (- (the fixnum y2) (the fixnum y1))))
+		       fmin-x fmin-y)
+	   fmin-x fmin-y
+	   fwidth
+	   fheight
 	   filled))))))
 
 (defmethod medium-draw-rectangles* ((medium xt-medium) rectangles filled) 
+  (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
@@ -1177,39 +1261,33 @@
 	     (rects (xt::make-xrectangle-array :number nrects))
 	     (overall-min-x #.(1- (ash 1 16)))
 	     (overall-min-y #.(1- (ash 1 16))))
+	(declare (fixnum len nrects overall-min-x overall-min-y))
 	(assert (zerop (mod len 4)) () "Must be a multiple of 4")
 	(assert (rectilinear-transformation-p transform))
 	(macrolet ((guts (x1 y1 x2 y2)
 		     `(let ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
-			;;--rounding
-			(convert-to-device-coordinates transform x1 y1 x2 y2)
-			;; Clipping a rectangle is ridiculously easy.
-			(unless (valid-point-p x1 y1)
-			  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
-			  (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
-			(unless (valid-point-p x2 y2)
-			  (setq x2 (min (max -32000 (the fixnum x2)) 32000))
-			  (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
-			(let ((min-x (min (the fixnum x1) (the fixnum x2)))
-			      (min-y (min (the fixnum y1) (the fixnum y2)))
-			      (max-x (max (the fixnum x1) (the fixnum x2)))
-			      (max-y (max (the fixnum y1) (the fixnum y2))))
-			  (declare (fixnum min-x min-y max-x max-y))
-			  (minf overall-min-x min-x)
-			  (minf overall-min-y min-y)
-			  (setf (tk::xrectangle-array-x rects i) min-x 
-				(tk::xrectangle-array-y rects i) min-y
-				(tk::xrectangle-array-width rects i) (- max-x min-x)
-				(tk::xrectangle-array-height rects i) (- max-y min-y))
+			(transform-positions transform x1 y1 x2 y2)
+			(with-clipped-fixnum-rectangle (x1 y1 x2 y2)
+			  (minf overall-min-x fmin-x)
+			  (minf overall-min-y fmin-y)
+			  (setf (tk::xrectangle-array-x rects i) fmin-x 
+				(tk::xrectangle-array-y rects i) fmin-y
+				(tk::xrectangle-array-width rects i) fwidth
+				(tk::xrectangle-array-height rects i) fheight)
 			  (incf i)))))
 	  (let ((i 0))
+	    (declare (fixnum i))
 	    (if (listp rectangles)
 		(loop
 		  (when (null rectangles) (return nil))
 		  (guts (pop rectangles) (pop rectangles) (pop rectangles) (pop rectangles)))
 	      (do ((j 0 (+ j 4)))
 		  ((= j len))
-		(guts (aref rectangles j) (aref rectangles (+ 1 j)) (aref rectangles (+ 2 j)) (aref rectangles (+ 3 j))))))
+		(declare (fixnum j))
+		(guts (aref rectangles j)
+		      (aref rectangles (+ 1 j))
+		      (aref rectangles (+ 2 j))
+		      (aref rectangles (+ 3 j))))))
 	  (tk::draw-rectangles
 	   drawable
 	   (adjust-ink (decode-ink ink medium)
@@ -1288,34 +1366,72 @@
 				 center-x center-y
 				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
 				 start-angle end-angle filled)
+  (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
-	(convert-to-device-coordinates transform center-x center-y)
-	(discard-illegal-coordinates medium-draw-ellipse* center-x center-y)
-	(convert-to-device-distances transform 
-	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+	(transform-positions transform center-x center-y)
+	(transform-distances transform radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
 	;;--- This is some magic that means that things get drawn
 	;;--- correctly.
-	(setq start-angle (- 2pi start-angle)
-	      end-angle (- 2pi end-angle))
-	(rotatef start-angle end-angle)
-	(when (< end-angle start-angle)
-	  (setq end-angle (+ end-angle 2pi)))
-	;;--rounding in draw-ellipse
-	(tk::draw-ellipse
-	  drawable
-	  (adjust-ink (decode-ink (medium-ink medium) medium)
-		      medium
-		      (- center-x 
-			 (abs (if (zerop radius-1-dx) radius-2-dx radius-1-dx)))
-		      (- center-y 
-			 (abs (if (zerop radius-1-dy) radius-2-dy radius-1-dy))))
-	  center-x center-y
-	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
-	  start-angle end-angle 
-	  filled)))))
+	(with-single-floats (center-x center-y radius-1-dx radius-1-dy
+				      radius-2-dx radius-2-dy
+				      start-angle end-angle)
+	  (setq start-angle (- 2pi start-angle)
+		end-angle (- 2pi end-angle))
+	  (rotatef start-angle end-angle)
+	  (when (< end-angle start-angle)
+	    (setq end-angle (+ end-angle 2pi)))
+	  ;;--rounding in draw-ellipse
+	  (with-single-floats ((x-radius 0)
+			       (y-radius 0))
+	  
+	    (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+		   (setq x-radius (abs radius-2-dx)
+			 y-radius (abs radius-1-dy)))
+		  ((and (= radius-2-dx 0) (= radius-1-dy 0))
+		   (setq x-radius (abs radius-1-dx)
+			 y-radius (abs radius-2-dy)))
+		  (t
+		   (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+				 (* radius-1-dy radius-1-dy)))
+			 (s-2 (+ (* radius-2-dx radius-2-dx) 
+				 (* radius-2-dy radius-2-dy))))
+		     (if (= s-1 s-2)
+			 (let ((r (sqrt s-1)))
+			   (setq x-radius r y-radius r))
+		       ;; Degrade to drawing a rectilinear ellipse
+		       (setq x-radius (sqrt s-1) 
+			     y-radius (sqrt s-2))))))
+	  
+	    (setq start-angle (* start-angle #.(float (/ (* 360 64) (* 2 pi)) 0s0)))
+	    (setq end-angle (* end-angle #.(float (/ (* 360 64) (* 2 pi)) 0s0)))
+
+	    ;;--rounding
+	    (if (> end-angle start-angle)
+		(setq end-angle (- end-angle start-angle))
+	      (setq end-angle (- start-angle end-angle)))
+	    
+	    (with-fixnums ((x-min (- center-x x-radius))
+			   (y-min (- center-y y-radius))
+			   (width (* 2 x-radius))
+			   (height (* 2 y-radius))
+			   end-angle
+			   start-angle)
+	      (discard-illegal-coordinates medium-draw-ellipse* x-min y-min)
+	      (tk::draw-ellipse-1 drawable 
+				  (adjust-ink (decode-ink (medium-ink medium) medium)
+					      medium
+					      x-min
+					      y-min)
+				  x-min
+				  y-min 
+				  width 
+				  height
+				  start-angle
+				  end-angle
+				  filled))))))))
 
 (defmethod medium-draw-text* ((medium xt-medium)
 			      string-or-char x y start end
@@ -1328,14 +1444,13 @@
 	     (transform (sheet-device-transformation sheet))
 	     (text-style (medium-merged-text-style medium))
 	     (font (text-style-mapping port text-style))
-	     (ascent (tk::font-ascent font)))
+	     (descent (tk::font-descent font))
+	     (ascent (tk::font-ascent font))
+	     (height (+ ascent descent)))
 	;;--rounding errors?
-	;;--Well we do some arithmetic in some cases
-	;;--so in theory it could go wrong.
-	(convert-to-device-coordinates transform x y)
-	(discard-illegal-coordinates medium-draw-text* x y)
+	(transform-positions transform x y)
 	(when towards-x
-	  (convert-to-device-coordinates transform towards-x towards-y))
+	  (transform-positions transform towards-x towards-y))
 	(when (typep string-or-char 'character)
 	  (setq string-or-char (string string-or-char)))
 	(ecase align-x
@@ -1353,18 +1468,20 @@
 	  (:left nil))
 	(ecase align-y
 	  (:bottom
-	   (let ((dy (text-style-descent text-style medium)))
+	   (let ((dy descent))
 	     (decf y dy)
 	     (when towards-y (decf towards-y dy))))
 	  (:center 
-	   (let ((dy (- (text-style-descent text-style medium)
-			(floor (text-style-height text-style medium) 2))))
+	   (let ((dy (- descent
+			(floor height 2))))
 	     (decf y dy)
 	     (when towards-y (decf towards-y dy))))
 	  (:baseline nil)
 	  (:top
 	   (when towards-y (incf towards-y ascent))
 	   (incf y ascent))) 
+	(fix-coordinates x y)
+	(discard-illegal-coordinates medium-draw-text* x y)
         (let ((gc (adjust-ink
 		   (decode-ink (medium-ink medium) medium)
 		   medium

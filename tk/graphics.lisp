@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.14 1993/07/27 01:52:59 colin Exp $
+;; $fiHeader: graphics.lisp,v 1.15 1993/09/17 19:06:42 cer Exp $
 
 (in-package :tk)
 
@@ -43,60 +43,62 @@
    y2))
 
 
-(defun draw-ellipse (drawable gcontext center-x 
-		     center-y
-		     radius-1-dx 
-		     radius-1-dy 
-		     radius-2-dx
-		     radius-2-dy 
-		     start-angle 
-		     end-angle 
-		     filled)
-  (multiple-value-bind (x-radius y-radius)
-      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-	     (values (round (abs radius-2-dx))
-		     (round (abs radius-1-dy))))
-	    ((and (= radius-2-dx 0) (= radius-1-dy 0))
-	     (values (round (abs radius-1-dx))
-		     (round (abs radius-2-dy))))
-	    (t
-	     (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
-			   (* radius-1-dy radius-1-dy)))
-		   (s-2 (+ (* radius-2-dx radius-2-dx) 
-			   (* radius-2-dy radius-2-dy))))
-	       (if (= s-1 s-2)
-		   (let ((r (round (sqrt s-1))))
-		     (values r r))
-		 ;; Degrade to drawing a rectilinear ellipse
-		 (values (round (sqrt s-1)) 
-			 (round (sqrt s-2)))))))
-    (setq start-angle (round (* start-angle (/ (* 360 64) (* 2 pi)))))
-    (setq end-angle (round (* end-angle (/ (* 360 64) (* 2 pi)))))
-    ;;--rounding
-    (if (> end-angle start-angle)
-	(setq end-angle (- end-angle start-angle))
-      (setq end-angle (- start-angle end-angle)))
-    (if filled
-	(x11:xfillarc
-	 (object-display drawable)
-	 drawable
-	 gcontext
-	 ;;--rounding
-	 (- center-x x-radius)
-	 (- center-y y-radius)
-	 (* 2 x-radius)
-	 (* 2 y-radius)
-	 start-angle end-angle)
-      (x11:xdrawarc
+;(defun draw-ellipse (drawable gcontext center-x 
+;		     center-y
+;		     radius-1-dx 
+;		     radius-1-dy 
+;		     radius-2-dx
+;		     radius-2-dy 
+;		     start-angle 
+;		     end-angle 
+;		     filled)
+;  (multiple-value-bind (x-radius y-radius)
+;      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+;	     (values (round (abs radius-2-dx))
+;		     (round (abs radius-1-dy))))
+;	    ((and (= radius-2-dx 0) (= radius-1-dy 0))
+;	     (values (round (abs radius-1-dx))
+;		     (round (abs radius-2-dy))))
+;	    (t
+;	     (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+;			   (* radius-1-dy radius-1-dy)))
+;		   (s-2 (+ (* radius-2-dx radius-2-dx) 
+;			   (* radius-2-dy radius-2-dy))))
+;	       (if (= s-1 s-2)
+;		   (let ((r (round (sqrt s-1))))
+;		     (values r r))
+;		 ;; Degrade to drawing a rectilinear ellipse
+;		 (values (round (sqrt s-1)) 
+;			 (round (sqrt s-2)))))))
+;    (setq start-angle (round (* start-angle (/ (* 360 64) (* 2 pi)))))
+;    (setq end-angle (round (* end-angle (/ (* 360 64) (* 2 pi)))))
+;    ;;--rounding
+;    (if (> end-angle start-angle)
+;	(setq end-angle (- end-angle start-angle))
+;      (setq end-angle (- start-angle end-angle)))
+;    (draw-ellipse-1 drawable 
+;		    gcontext 
+;		    (- center-x x-radius)
+;		    (- center-y y-radius)
+;		    (* 2 x-radius)
+;		    (* 2 y-radius) 
+;		    start-angle end-angle filled)))
+
+
+(defun draw-ellipse-1 (drawable gcontext x y width height start-angle end-angle filled)
+  (if filled
+      (x11:xfillarc
        (object-display drawable)
        drawable
        gcontext
-       ;;--rounding
-       (- center-x x-radius)
-       (- center-y y-radius)
-       (* 2 x-radius)
-       (* 2 y-radius)
-       start-angle end-angle))))
+       x y width height
+       start-angle end-angle)
+    (x11:xdrawarc
+     (object-display drawable)
+     drawable
+     gcontext
+     x y width height
+     start-angle end-angle)))
 
 
 (defun draw-rectangle (drawable gcontext x y width height &optional

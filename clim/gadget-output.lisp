@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.52 1993/07/27 01:39:32 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.53 1993/09/07 21:45:50 colin Exp $
 
 (in-package :clim-internals)
 
@@ -484,7 +484,7 @@
 	       (deactivate-gadget button))
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((button (make-pane-from-view 'toggle-button view
+      (let ((button (make-pane-from-view 'toggle-button view ()
 		      :label (and (stringp prompt) prompt)
 		      :value default
 		      :client stream :id query-identifier
@@ -537,7 +537,7 @@
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let ((slider 
 		;;--- What other initargs do we pass along from the view?
-		(make-pane-from-view 'slider view
+		(make-pane-from-view 'slider view ()
 		  :label (and (stringp prompt) prompt)
 		  :value (if default-supplied-p default min-value)
 		  :min-value min-value :max-value max-value
@@ -589,7 +589,7 @@
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let ((slider
 		;;--- What other initargs do we pass along from the view?
-		(make-pane-from-view 'slider view
+		(make-pane-from-view 'slider view ()
 		  :label (and (stringp prompt) prompt)
 		  :value (if default-supplied-p default min-value)
 		  :min-value min-value :max-value max-value
@@ -631,7 +631,7 @@
 		        (object (type ,type) stream (view ,view) 
 			 &key acceptably query-identifier prompt)
 		      (declare (ignore acceptably))
-		      (,function stream view t object t type prompt query-identifier nil)))
+		      (,function stream view t object t type prompt query-identifier :editable-p nil)))
 	       types)))
 
 ;;--- Should there be a method specialized on T???
@@ -647,12 +647,12 @@
 			     &key (prompt t) (active-p t))
   (declare (ignore present-p))
   (make-gadget-for-text-field-view 
-    stream view active-p default default-supplied-p type prompt query-identifier t)) 
+    stream view active-p default default-supplied-p type prompt query-identifier :editable-p t)) 
 
 (defun make-gadget-for-text-field-view (stream view active-p default
 					default-supplied-p type
 					prompt query-identifier
-					&optional (editable-p t))
+					&key (editable-p t))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget text-field)
  	   (declare (ignore record gadget))	     ;;-- This sucks
@@ -665,7 +665,7 @@
 	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 
-			  'text-field view
+			  'text-field view ()
 			  :label (and (stringp prompt) prompt)
 			  :value (if default-supplied-p
 				     (present-to-string default type)
@@ -724,7 +724,7 @@
 			     &key (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
   (make-gadget-for-text-editor
-    stream view active-p default t type prompt query-identifier t))
+    stream view active-p default t type prompt query-identifier :editable-p t))
 
 (define-present-methods-for-types 
     (make-gadget-for-text-editor text-editor-view)
@@ -733,8 +733,7 @@
 (defun make-gadget-for-text-editor (stream view active-p default
 				    default-supplied-p type
 				    prompt query-identifier
-				    &optional (editable-p t))
-
+				    &key (editable-p t))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
@@ -746,7 +745,7 @@
 		 default
 	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((text-field (make-pane-from-view 'text-editor view
+      (let ((text-field (make-pane-from-view 'text-editor view '(:scroll-bars)
 			  :label (and (stringp prompt) prompt)
 			  :value (if default-supplied-p
 				     default
@@ -765,7 +764,9 @@
 				    ,stream ,query-identifier))
 			    :active active-p
 			    :help-callback (make-gadget-help type))))
- 	(values (scrolling () text-field) text-field)))))
+ 	(values (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :both)) 
+		  text-field) 
+		text-field)))))
 
 
 ;;; List and option panes
@@ -803,7 +804,7 @@
 	   list-pane))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let* ((pane (if (eq pane-type 'option-pane)
-		       (make-pane-from-view pane-type view
+		       (make-pane-from-view pane-type view ()
 			 :items sequence
 			 :name-key name-key
 			 :value-key value-key
@@ -818,7 +819,7 @@
 			    stream query-identifier)
 			 :active active-p
 			 :help-callback (make-gadget-help type))
-		       (make-pane-from-view pane-type view
+		       (make-pane-from-view pane-type view '(:scroll-bars)
 			 :items sequence
 			 :name-key name-key
 			 :value-key value-key
@@ -832,7 +833,9 @@
 			     stream query-identifier)
 			 :active active-p
 			 :help-callback (make-gadget-help type)))))
-	(values (if (eq pane-type 'list-pane) (scrolling () pane) pane)
+	(values (if (eq pane-type 'list-pane) 
+		    (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :dynamic)) pane)
+		  pane)
 		pane)))))
 
 (define-presentation-method accept-present-default 

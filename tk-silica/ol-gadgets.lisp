@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.59 1993/08/12 16:05:03 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.60 1993/09/17 19:07:01 cer Exp $
 
 
 (in-package :xm-silica)
@@ -1443,6 +1443,17 @@
   (if (gadget-includes-scrollbars-p contents)
       'openlook-frame-pane
     'openlook-scrolling-window))
+
+(defmethod make-pane-arglist ((framem openlook-frame-manager) 
+			      (class (eql 'scroller-pane)) 
+			      &rest options &key contents)
+  (declare (ignore type))
+  (declare (non-dynamic-extent options))
+  ;; This is annoying. Because we are making a different class we
+  ;; have to discard :scroll-bars
+  (if (gadget-includes-scrollbars-p contents)
+      (remove-keywords options '(:scroll-bars))
+    options))
 
 (defmethod gadget-includes-scrollbars-p ((pane t))
   nil)

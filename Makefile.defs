@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.22 1993/09/22 18:26:12 layer Exp $
+# $fiHeader: Makefile.defs,v 1.23 1993/09/22 21:20:56 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -141,7 +141,12 @@ OL_PUBLIC_OBJS= stub-olit.o olsupport.o
 
 PUBLIC_OBJS= $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(OL_PUBLIC_OBJS)
 OL_LICENSED_OBJS = clim-olit.o clim-olit_d.o
-XM_LICENSED_OBJS = clim-motif_d.o clim-motif.o 
+
+# mostly not used.
+#CLIMMOTIF_D= clim-motif_d.o
+CLIMMOTIF_D=
+
+XM_LICENSED_OBJS = $(CLIMMOTIF_D) clim-motif.o 
 
 MOTIF_OBJS= $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
 OPENLOOK_OBJS= $(GENERIC_PUBLIC_OBJS) $(OL_PUBLIC_OBJS) $(OL_LICENSED_OBJS)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.56 1993/07/27 01:38:51 colin Exp $
+;; $fiHeader: db-stream.lisp,v 1.57 1993/08/12 16:02:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -177,95 +177,115 @@
        ,@body)))
 
 (defmethod compose-space ((pane clim-stream-pane) &key width height)
-  (let ((sr (call-next-method)))
-    (labels 
+  (compute-space-for-clim-stream-pane pane (call-next-method) width height))
+
+(defun compute-space-for-clim-stream-pane (pane sr width height)
+  (labels 
       ((process-compute-space-requirements ()
 	 (with-space-requirement (sr)
 	   (when (do-with-space-req-components or
-		     sr-component 
-		     (sr-width sr-min-width sr-max-width
-		      sr-height sr-min-height sr-max-height) 
+		   sr-component 
+		   (sr-width sr-min-width sr-max-width
+			     sr-height sr-min-height sr-max-height) 
 		   (eq sr-component :compute))
 	     (multiple-value-bind (width height)
 		 (let ((record
-			 (let ((history (stream-output-history pane)))
-			   (if (and history
-				    (> (output-record-count history :fastp t) 0))
-			       history
-			       (let ((*sizing-application-frame* t))
-				 (with-output-to-output-record (pane)
-				   (funcall 
-				     (if (slot-value pane 'incremental-redisplay-p)
-					 #'invoke-pane-redisplay-function 
-					 #'invoke-pane-display-function)
-				     (pane-frame pane) pane
-				     ;;--- Are all pane display functions prepared to
-				     ;;--- ignore these arguments?  I think not...
-				     :max-width width
-				     :max-height height)))))))
+			(let ((history (stream-output-history pane)))
+			  (if (and history
+				   (> (output-record-count history :fastp t) 0))
+			      history
+			    (let ((*sizing-application-frame* t))
+			      (with-output-to-output-record (pane)
+				(funcall 
+				 (if (slot-value pane 'incremental-redisplay-p)
+				     #'invoke-pane-redisplay-function 
+				   #'invoke-pane-display-function)
+				 (pane-frame pane) pane
+				 ;;--- Are all pane display functions prepared to
+				 ;;--- ignore these arguments?  I think not...
+				 :max-width width
+				 :max-height height)))))))
 		   (with-bounding-rectangle* (left top right bottom) record
 		     (values (- right (min 0 left))
 			     (- bottom (min 0 top)))))
 	       (when (zerop width) (setq width 100))
 	       (when (zerop height) (setq height 100))
+
+	       (flet ((process-computes (size preferred min max)
+			(values
+			 (if (eq preferred :compute) 
+			     (let ((size size))
+			       (when (numberp min) (maxf size min))
+			       (when (numberp max) (minf size max))
+			       size)
+			   preferred) 
+			 (if (eq min :compute) size min)
+			 (if (eq max :compute) size max))))
+		 (multiple-value-setq (sr-width sr-min-width sr-max-width)
+		   (process-computes width sr-width sr-min-width sr-max-width))
+		 (multiple-value-setq (sr-height sr-min-height sr-max-height)
+		   (process-computes height sr-height sr-min-height sr-max-height)))
+	       
+	       #+ignore
 	       (do-with-space-req-components progn
-		   sr-component (sr-width sr-min-width sr-max-width)
+		 sr-component (sr-width sr-min-width sr-max-width)
 		 (when (eq sr-component :compute)
 		   (setq sr-component width)))
+	       #+ignore
 	       (do-with-space-req-components progn
-		   sr-component (sr-height sr-min-height sr-max-height)
+		 sr-component (sr-height sr-min-height sr-max-height)
 		 (when (eq sr-component :compute)
 		   (setq sr-component height))))
 	     (setq sr (make-sr)))))
-       (process-unit-space-requirements ()
-	 (with-space-requirement (sr)
-	   (let ((changed nil))
-	     (do-with-space-req-components progn
-		 sr-component 
-		 (sr-width sr-min-width sr-max-width
-		  sr-height sr-min-height sr-max-height) 
-	       (when (unit-space-requirement-p sr-component)
-		 (setq sr-component (process-unit-space-requirement pane sr-component)
-		       changed t)))
-	     (when changed
-	       (setq sr (make-sr))))))
-       (process-relative-space-requirements ()
-	 (with-space-requirement (sr)
-	   (unless (and (numberp sr-width)
-			(numberp sr-height)
-			(do-with-space-req-components and
-			    sr-component 
-			    (sr-min-width sr-max-width
-			     sr-min-height sr-max-height) 
-			  (or (numberp sr-component)
-			      (relative-space-requirement-p sr-component))))
-	     (error "Illegal space requirement ~S" sr))
-	   (let ((changed nil))
-	     (when (relative-space-requirement-p sr-min-width)
-	       (setq sr-min-width (- sr-width (process-unit-space-requirement
+	  (process-unit-space-requirements ()
+	    (with-space-requirement (sr)
+	      (let ((changed nil))
+		(do-with-space-req-components progn
+		  sr-component 
+		  (sr-width sr-min-width sr-max-width
+			    sr-height sr-min-height sr-max-height) 
+		  (when (unit-space-requirement-p sr-component)
+		    (setq sr-component (process-unit-space-requirement pane sr-component)
+			  changed t)))
+		(when changed
+		  (setq sr (make-sr))))))
+	(process-relative-space-requirements ()
+	  (with-space-requirement (sr)
+	    (unless (and (numberp sr-width)
+			 (numberp sr-height)
+			 (do-with-space-req-components and
+			   sr-component 
+			   (sr-min-width sr-max-width
+					 sr-min-height sr-max-height) 
+			   (or (numberp sr-component)
+			       (relative-space-requirement-p sr-component))))
+	      (error "Illegal space requirement ~S" sr))
+	    (let ((changed nil))
+	      (when (relative-space-requirement-p sr-min-width)
+		(setq sr-min-width (- sr-width (process-unit-space-requirement
 						pane (car sr-min-width)))
-		     changed t))
-	     (when (relative-space-requirement-p sr-max-width)
-	       (setq sr-max-width (+ sr-width (process-unit-space-requirement
+		      changed t))
+	      (when (relative-space-requirement-p sr-max-width)
+		(setq sr-max-width (+ sr-width (process-unit-space-requirement
 						pane (car sr-max-width)))
-		     changed t))
-	     (when (relative-space-requirement-p sr-min-height)
-	       (setq sr-min-height (- sr-height (process-unit-space-requirement
+		      changed t))
+	      (when (relative-space-requirement-p sr-min-height)
+		(setq sr-min-height (- sr-height (process-unit-space-requirement
 						  pane (car sr-min-height)))
-		     changed t))
-	     (when (relative-space-requirement-p sr-max-height)
-	       (setq sr-max-height (+ sr-height (process-unit-space-requirement
+		      changed t))
+	      (when (relative-space-requirement-p sr-max-height)
+		(setq sr-max-height (+ sr-height (process-unit-space-requirement
 						  pane (car sr-max-height)))
-		     changed t))
-	     (when changed
-	       (setq sr (make-sr)))))))
-      (declare (dynamic-extent #'process-compute-space-requirements
-			       #'process-unit-space-requirements
-			       #'process-relative-space-requirements))
-      (process-compute-space-requirements)
-      (process-unit-space-requirements)
-      (process-relative-space-requirements)
-      sr)))
+		      changed t))
+	      (when changed
+		(setq sr (make-sr)))))))
+    (declare (dynamic-extent #'process-compute-space-requirements
+			     #'process-unit-space-requirements
+			     #'process-relative-space-requirements))
+    (process-unit-space-requirements)
+    (process-compute-space-requirements)
+    (process-relative-space-requirements)
+    sr))
 
 (defun relative-space-requirement-p (sr)
   (and (consp sr)

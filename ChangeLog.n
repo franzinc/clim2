@@ -1,3 +1,27 @@
+from cer: Mon Oct 25 09:13:49 PDT 1993
+
+Makefile.defs			Removed clim-motif_d.o from default build
+clim/accept-values.lisp		make-pane-from-view takes keywords to remove
+clim/command-processor.lisp	correct defaulting of translator :pointer-documentation
+clim/db-stream.lisp		Explicit max/min width/height overides :width/height :compute
+clim/gadget-output.lisp		make-pane-from-view takes keywords to remove
+				text-editor and list-pane views take :scroll-bars argument
+clim/graph-formatting.lisp	Implement :center-nodes t for tree layout
+clim/graphics-recording.lisp	Added with-half-thickness-1 for use in xt-graphics
+clim/menus.lisp			Removed bogus calling frame method
+				frame-manager-get-menu takes parent-frame argument
+clim/recording-protocol.lisp	Added COMMENTED OUT (setf stream-output-history) method
+clim/view-defs.lisp		make-pane-from-view takes keywords to remove
+climtoys/ibparts.lisp		Nothing serious
+demo/demo-driver.lisp		Added (*package* (find-package :clim-demo)) binding in demo-driver
+demo/plot.lisp			Removed bogus command
+misc/undefinedsymbols.xt	Added XtAppSetFallbackResources
+silica/db-scroll.lisp		Added x,y arguments to note-viewport-position-changed
+test/test-clim.lisp		Added test
+test/test-driver.lisp		If process does not terminate you now get an error.
+test/test-suite.lisp		Added centered node grapher test
+
+
 from cer: Wed Sep 22 14:19:31 PDT 1993
 
 Makefile.defs			-> devel.18

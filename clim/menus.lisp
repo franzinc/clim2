@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.44 1993/05/05 01:38:44 cer Exp $
+;; $fiHeader: menus.lisp,v 1.45 1993/05/25 20:40:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -37,13 +37,16 @@
 	   main)))))
   (:menu-bar nil))
 
-(defmethod frame-calling-frame ((frame menu-frame))
-  ;; This is funny
-  (and (boundp '*application-frame*)
-       *application-frame*))
+;(defmethod frame-calling-frame ((frame menu-frame))
+;  ;; This is funny
+;  ;; I suppose we are doing this because really the frame should have
+;  ;; the correct parent and there is no otherway of doing this
+;  (and (boundp '*application-frame*)
+;       *application-frame*))
 
 ;; Returns a stream that corresponds to the pane holding the menu
-(defmethod frame-manager-get-menu ((framem standard-frame-manager) &key scroll-bars label)
+(defmethod frame-manager-get-menu ((framem standard-frame-manager) &key scroll-bars label parent-frame)
+  (declare (ignore parent-frame))
   (let ((frame (make-application-frame 'menu-frame
 				       :label label
 				       :scroll-bars scroll-bars
@@ -57,7 +60,10 @@
 (defresource menu (associated-window root &key label (scroll-bars t))
 	     :constructor 
 	     (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
-	       (frame-manager-get-menu framem :scroll-bars scroll-bars :label label))
+	       (frame-manager-get-menu framem 
+				       :scroll-bars scroll-bars
+				       :label label
+				       :parent-frame (pane-frame root)))
 	     :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
 			   (eq (not label) (not (menu-frame-label (pane-frame menu))))
 			   (eq (frame-manager menu) (frame-manager root)))

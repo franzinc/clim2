@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.14 93/01/11 15:45:37 colin Exp $
+;; $fiHeader: foreign.lisp,v 1.15 1993/07/27 01:52:52 colin Exp $
 
 (in-package :tk)
 
@@ -52,6 +52,8 @@
 (defun create-application-context ()
   (make-instance 'application-context))
 
+(defparameter *large-connection-quantum* 20)
+
 (defun open-display (&key (context (create-application-context))
 			  (host nil)
 			  (application-name "clim")
@@ -61,14 +63,14 @@
 			  (argc 0)
 			  (argv 0))
   (let ((d (with-ref-par ((argc argc))
-	     (xt_open_display context
-			      (or host 0)
-			      application-name
-			      application-class
-			      options 
-			      num-options
-			      argc
-			      argv))))
+	     (let ((temp (mp:process-quantum mp:*current-process*)))
+	       (unwind-protect
+		   (progn (setf (mp:process-quantum mp:*current-process*) *large-connection-quantum*)
+			  (mp:process-allow-schedule)
+			  (xt_open_display context (or host 0) application-name application-class options
+					   num-options argc argv))
+		 (setf (mp:process-quantum mp:*current-process*) temp)
+		 (mp:process-allow-schedule))))))
     (if (zerop d)
 	(error "cannot open the display: ~A" host))
     ;; Used for debugging:

@@ -58,6 +58,7 @@
 (defmethod destroy-invocation ((inv activity-invocation))
   (destroy-activity (invocation-activity inv)))
 
+
 (defun initialize-invocation (inv frame &optional process)
   (labels ((do-it (frame)
 	     (unwind-protect
@@ -126,7 +127,7 @@
     (unless (mp::process-stack-group process) (error "Frame terminated abnormally"))
     (execute-one-command invocation exit-command)
     (unless (wait-for-death process)
-      (warn "Process did not terminate"))))
+      (error "Process did not terminate"))))
 
 (defun wait-for-death (process)
   (let (done)
@@ -270,10 +271,11 @@
 			(execute-commands-in-invocation 
 			 invocation command-continuation))
 		       (function (funcall command-continuation)))
-		 (terminate-invocation invocation exit-command)
-		 (mp::process-kill (invocation-process invocation))
-		 (unless (wait-for-death (invocation-process invocation))
-		   (warn "Process would not die when killed"))
+		 (unwind-protect
+		     (terminate-invocation invocation exit-command)
+		   (mp::process-kill (invocation-process invocation))
+		   (unless (wait-for-death (invocation-process invocation))
+		     (warn "Process would not die when killed")))
 		 (destroy-invocation invocation))))))
     (if error
 	(with-test-success-expected (test-name)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.26 1993/09/17 18:35:47 colin Exp $
+;; $fiHeader: demo-driver.lisp,v 1.27 1993/09/22 21:21:15 cer Exp $
 
 (in-package :clim-demo)
 
@@ -66,7 +66,8 @@
 (defun run-demo (demo &key (port (find-port)) force)
   (let* ((entry (assoc port (demo-frames demo)))
 	 (frame (cdr entry))
-	 (activity-p (subtypep (demo-class demo) 'activity)))
+	 (activity-p (subtypep (demo-class demo) 'activity))
+	 (*package* (find-package :clim-demo)))
     (when (or force (null frame))
       (setq frame (apply (if activity-p
 			     #'make-instance

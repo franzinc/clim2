@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.20 1993/07/29 20:52:02 layer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.21 1993/08/12 16:04:55 cer Exp $
 
 
 ;;
@@ -422,4 +422,11 @@
     :return-type :unsigned-integer)
 
 
+
+(ff:defforeign 'xt_app_set_fallback_resources
+    :call-direct t
+    :arguments '(foreign-address foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XtAppSetFallbackResources")
+    :return-type :void)
 

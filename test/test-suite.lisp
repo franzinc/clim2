@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.71 1993/09/17 00:21:17 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.72 1993/09/17 19:06:31 cer Exp $
 
 (in-package :clim-user)
 
@@ -1400,12 +1400,6 @@ people, shall not perish from the earth.
      (mapcar #'find-class '(clos:metaobject clos::dependee-mixin))
      #'(lambda (o s)
 	 (let ((text (format nil "~A" (clos::class-name o))))
-	   #+ignore
-	   (with-output-as-gadget (s)
-	     (make-pane 'push-button :label text
-			:activate-callback #'(lambda (gadget) (print
-							       text excl:*initial-terminal-io*))))
-	   #-ignore
 	   (multiple-value-bind (width height) (text-size s text)
 	     (with-new-output-record (s)
 	       (draw-rectangle* s 0 0 width height :filled t :ink color)
@@ -1413,6 +1407,29 @@ people, shall not perish from the earth.
      #'clos::class-direct-subclasses
      :stream stream
      :merge-duplicates t)))
+
+(define-test (simple-node-centered-graphs formatted-output) (stream)
+  "Two graphs, one with nodes centered"
+  (let ((color (make-gray-color 0.7)))
+    (with-text-size (stream :tiny)
+      (formatting-item-list (stream)
+	(dolist (center-nodes '(nil t))
+	  (formatting-cell (stream)
+	    (format-graph-from-roots 
+	     ;; dependee-mixin no longer exported -- smh 18may93
+	     (mapcar #'find-class '(number))
+	     #'(lambda (o s)
+		 (let ((text (format nil "~A" (clos::class-name o))))
+		   (multiple-value-bind (width height) (text-size s text)
+		     (with-new-output-record (s)
+		       (draw-rectangle* s 0 0 width height :filled t :ink color)
+		       (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
+	     #'clos::class-direct-subclasses
+	     :stream stream
+	     :center-nodes center-nodes
+	     :merge-duplicates nil)))))))
+
+
 
 (define-test (offset-graph formatted-output) (stream)
   "Draw a graph offset in the window.  After refreshing, it should look the same."

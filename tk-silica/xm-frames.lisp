@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.61 1993/07/27 01:55:21 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.62 1993/09/17 19:07:07 cer Exp $
 
 (in-package :xm-silica)
 
@@ -568,7 +568,13 @@
 	  (ok-button cancel-button help-button separator)
 	  (get-message-box-child dialog :ok :cancel :help :separator)
 	(tk::unmanage-child help-button)
-	(xt::unmanage-child cancel-button)
+	;; 
+	(if (find-restart 'abort nil)
+	    (tk::add-callback cancel-button :activate-callback #'(lambda (widget count process)
+								   (declare (ignore widget count))
+								   (mp:process-interrupt process 'abort))
+			      mp:*current-process*)
+	  (xt::unmanage-child cancel-button))
 	(tk::unmanage-child ok-button)
 	(tk::unmanage-child separator))
       (let ((slider
@@ -622,12 +628,14 @@
 
 (defmethod clim-internals::frame-manager-get-menu ((framem
 						    motif-frame-manager) &key scroll-bars
-						    label)
+									      label
+									      parent-frame)
   (let ((frame (make-application-frame 'motif-menu-frame
 				       :scroll-bars scroll-bars
 				       :label label
 				       :frame-manager framem
-				       :save-under t)))
+				       :save-under t
+				       :calling-frame parent-frame)))
     ;; This so that ports can do something interesting with popped-up
     ;; menu frames, such as implemented "click off menu to abort".
     (setf (getf (frame-properties frame) :menu-frame) t)

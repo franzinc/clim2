@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.32 1993/08/12 16:04:46 cer Exp $
+;; $fiHeader: widget.lisp,v 1.33 1993/09/17 19:06:47 cer Exp $
 
 (in-package :tk)
 
@@ -277,16 +277,30 @@
 ;; note that this is different from xt-initialize which calls
 ;; XtToolkitInitialize. This is closer to XtAppInitialize
 
+(defvar *fallback-resources* '("clim*dragInitiatorProtocolStyle: DRAG_NONE"
+			       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
+			       )
+  "A list of resource specification strings")
+
 (defun initialize-toolkit (&rest args)
-  (let* ((context (create-application-context))
-	 (display (apply #'make-instance 'display 
-			 :context context
-			 args))
-	 (app (apply #'app-create-shell 
-		     :display display
-		     :widget-class 'application-shell
-		     args)))
-    (values context display app)))
+  (let* ((context (create-application-context)))
+    (when *fallback-resources*
+      (xt_app_set_fallback_resources 
+       context
+       (let* ((n (length *fallback-resources*))
+	      (v (make-array (1+ n) :element-type '(unsigned-byte 32))))
+	 (dotimes (i n)
+	   (setf (aref v i) (ff:string-to-char* (nth i *fallback-resources*))))
+	 (setf (aref v n) 0)
+	 v)))
+    (let* ((display (apply #'make-instance 'display 
+			   :context context
+			   args))
+	   (app (apply #'app-create-shell 
+		       :display display
+		       :widget-class 'application-shell
+		       args)))
+      (values context display app))))
 
 
 (defun xt-name (w) (char*-to-string (xt_name w)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.31 1993/07/22 15:37:56 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.32 1993/09/17 19:05:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -364,6 +364,7 @@
 	   (orientation (getf properties :orientation))
 	   (generation-separation (getf properties :generation-separation))
 	   (within-generation-separation (getf properties :within-generation-separation))
+	   (center-nodes (getf properties :center-nodes))
 	   (start-x (coordinate 0))
 	   (start-y (coordinate 0)))
       (dolist (root-node root-nodes)
@@ -395,11 +396,15 @@
 		       (my-breadth
 			 (+ ,breadth-var
 			    (round (max 0 (- total-child-breadth node-breadth)) 2))))
-		  (setf (node-depth-start ,node-var) ,depth-var
+		  (setf (node-depth-start ,node-var) (if center-nodes 
+							 (+ ,depth-var
+							    (round (- ,tallest-sibling-var (node-depth ,node-var))
+								   2))
+						       ,depth-var)
 			(node-breadth-start ,node-var) my-breadth)
 		  ;; Returns the breadth of the graph as a result
 		  (max total-child-breadth (node-breadth ,node-var))))))
-	  (ecase orientation
+ 	  (ecase orientation
 	    ((:vertical :down)
 	     (macrolet ((node-breadth (node) `(bounding-rectangle-width ,node))
 			(node-depth (node) `(bounding-rectangle-height ,node))

@@ -41,3 +41,4 @@ XtUnmanageChildren
 XtWindow
 XtParseTranslationTable
 XtParseAcceleratorTable
+XtAppSetFallbackResources

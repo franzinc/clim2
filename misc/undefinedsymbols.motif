@@ -6,6 +6,9 @@ XmFontListInitFontContext
 XmFontListFreeFontContext
 XmFontListGetNextFont
 XmFontListCreate
+XmFontListEntryCreate
+XmFontListAppendEntry
+XmFontListEntryGetFont
 XmAddProtocolCallback
 XmInternAtom
 XmIsTraversable
