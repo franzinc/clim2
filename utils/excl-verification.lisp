@@ -59,7 +59,7 @@ You do not have patches ~{~S ~}"
 	   dont-have)))
 
 (defvar *clim-version* 
-    '("CLIM 2.0.beta2.0"
+    '("CLIM 2.0"
       "$fiHeader: excl-verification.lisp,v 1.16 93/04/28 17:19:31 layer Exp $"))
 
 (si::rcsnote (first *clim-version*) (second *clim-version*))

@@ -1,3 +1,11 @@
+Tue Jan 11 15:30:15 1994  George Jacob  (georgej@lava)
+
+* utils/excl-verification.lisp: Changed version to CLIM2.0
+
+* tk-silica/xt-silica.lisp: Commented out duplicate keysym definition
+
+* Makefile.cobjs: Changed the MAIN_OBJ rule to use stub files directly
+
 from colin: Mon Dec  6 21:46:54 PST 1993
 
 tk-silica/ol-silica.lisp	fixed typo
