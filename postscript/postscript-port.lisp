@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.9 92/10/28 11:33:29 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.10 92/11/06 19:03:34 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -810,7 +810,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	      ;; Now do the output to the printer, breaking up the output into
 	      ;; multiple pages if that was requested
 	      (with-output-recording-options (stream :record nil :draw t)
-		(frame-replay *application-frame* stream))
+		(stream-replay stream nil))
 	      (setq abort-p nil))
 	  (close stream :abort abort-p)
 	  (destroy-port port))))))

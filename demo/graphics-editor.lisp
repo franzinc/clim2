@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.14 92/10/29 16:55:29 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.15 92/11/06 19:02:54 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -507,7 +507,7 @@
   (let ((stream (get-frame-pane *application-frame* 'display)))
     (with-bounding-rectangle* (left top right bottom) object
       (multiple-value-bind (x y dx dy)
-	  (dragging-output (stream t t)
+	  (dragging-output (stream :repaint t :finish-on-release t)
 	    ;; Use a rectangle as feedback
 	    (draw-rectangle* stream left top right bottom
 			     :filled nil))
@@ -551,7 +551,7 @@
   (let ((stream (get-frame-pane *application-frame* 'display)))
     (multiple-value-bind (x y) (point-position handle)
       (multiple-value-bind (x y dx dy)
-	  (dragging-output (stream t t)
+	  (dragging-output (stream :repaint t :finish-on-release t)
 	    (draw-rectangle* stream (- x 2) (- y 2) (+ x 2) (+ y 2)
 			     :filled t))
 	(move-handle handle (- x dx) (- y dy))))))

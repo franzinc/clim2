@@ -20,12 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.19 92/11/06 19:03:29 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.20 92/11/09 10:55:32 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 (set-case-mode :case-insensitive-lower)
+
 
 (tenuring
    (let ((*load-source-file-info* t)
@@ -55,13 +56,11 @@
      ;;-- What would be good is to mark the files in the system as having
      ;;-- been loaded
 
-
      (load "postscript/sysdcl")
   
      (load "climps.fasl")
 
      (compile-file-if-needed "test/test-suite")
-
 
      (load "test/test-suite")
 
@@ -74,7 +73,6 @@
        (tenuring (clim-defsys::load-system 'clim-toys)))
      (ignore-errors (require :composer))
 
-   
      (ignore-errors
       (load (case sys
 	      (motif-clim "misc/clos-preloadxm.fasl")

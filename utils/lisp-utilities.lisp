@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.22 92/11/06 19:05:07 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.23 92/11/09 10:56:25 cer Exp $
 
 (in-package :clim-utils)
 
@@ -1223,16 +1223,9 @@
 (defun realp (x)
   (typep x 'real))
 
-;;--- Why do we need this. Whats wrong with member????
-
-#+(or Allegro Cloe-Runtime)
-(#+Allegro excl::without-package-locks #-Allegro progn
-(deftype eql (x) `(member ,x))
-)
-
 (defconstant *end-of-file-marker* :eof)
 (deftype end-of-file-marker () 
-  '(eql :eof))
+  '(member :eof))
 
 #+Cloe-Runtime
 (defmacro load-time-value (form &optional read-only-p)

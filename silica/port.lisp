@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.23 92/10/29 16:55:00 cer Exp $
+;; $fiHeader: port.lisp,v 1.24 92/11/06 19:03:56 cer Exp $
 
 (in-package :silica)
 
@@ -26,11 +26,12 @@
   (declare (dynamic-extent function))
   (mapc function (port-grafts port)))
 
-(defun find-port (&key (server-path *default-server-path*))
+(defun find-port (&rest initargs &key (server-path *default-server-path*) &allow-other-keys)
+  (declare (dynamic-extent initargs))
   (map-over-ports #'(lambda (port)
 		      (when (port-match port server-path) 
 			(return-from find-port port))))
-  (make-port :server-path server-path))
+  (apply #'make-port initargs))
 
 #+Genera
 (scl:add-initialization "Reset ports"

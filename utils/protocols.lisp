@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: protocols.lisp,v 1.4 92/07/01 15:45:43 cer Exp $
+;; $fiHeader: protocols.lisp,v 1.5 92/11/06 19:05:14 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -215,6 +215,11 @@
 			    (fintern "~A~A" class-name 'p))))
     `(progn
        (defclass ,class-name ,superclass-names ())
-       (defgeneric ,predicate-name (object))
-       (defmethod ,predicate-name ((object t)) nil)
-       (defmethod ,predicate-name ((object ,class-name)) t))))
+       (defgeneric ,predicate-name (object)
+	 #+Genera (declare (sys:function-parent ,class-name define-protocol-class)))
+       (defmethod ,predicate-name ((object t))
+	 #+Genera (declare (sys:function-parent ,class-name define-protocol-class))
+	 nil)
+       (defmethod ,predicate-name ((object ,class-name))
+	 #+Genera (declare (sys:function-parent ,class-name define-protocol-class))
+	 t))))

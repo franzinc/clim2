@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.57 92/11/13 14:47:27 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.58 92/11/18 15:55:40 colin Exp $
 
 (in-package :xm-silica)
 
@@ -638,7 +638,6 @@
 			  :button button
 			  :native-x (x11::xbuttonevent-x event)
 			  :native-y (x11::xbuttonevent-y event)
-			  ;;-- Filled in by distributor
 			  :x :?? :y :??
 			  :modifier-state (state->modifiers
 					     (x11::xbuttonevent-state event))))))

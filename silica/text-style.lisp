@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.14 92/10/02 15:18:36 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.15 92/11/06 19:04:02 cer Exp $
 
 (in-package :silica)
 
@@ -585,17 +585,17 @@
 	(multiple-value-bind (family face size) (text-style-components style)
 	  (declare (ignore size))
 	  ;; NB: loose size mapping requires an EQUAL hash table!
-	  (let* ((key (list family face))
-		 (fonts (gethash key mapping-table))
-		 (old (assoc style fonts)))
-	    (cond (old
-		   (setf (second old) mapping))
-		  (t
-		   (push (list style mapping) fonts)
-		   (setq fonts (sort fonts #'(lambda (e1 e2)
-					       (< (text-style-size (first e1))
-						  (text-style-size (first e2))))))
-		   (setf (gethash key mapping-table) fonts)))))
+	  (with-stack-list (key family face)
+	    (let* ((fonts (gethash key mapping-table))
+		   (old (assoc style fonts)))
+	      (cond (old
+		     (setf (second old) mapping))
+		    (t
+		     (push (list style mapping) fonts)
+		     (setq fonts (sort fonts #'(lambda (e1 e2)
+						 (< (text-style-size (first e1))
+						    (text-style-size (first e2))))))
+		     (setf (gethash (copy-list key) mapping-table) fonts))))))
 	(setf (gethash style mapping-table) mapping))))
 
 ;;; This is broken up into two methods so any :AROUND method will only
@@ -655,23 +655,25 @@
 (defun lookup-closest-font (style mapping-table &optional exact-size-required)
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (family face size) (text-style-components style)
-    (let ((tuples (gethash (list family face) mapping-table))
-	  last-tuple last-size)
-      (dolist (tuple tuples (if tuples (cadr (last tuples))))
-	(let ((font-size (text-style-size (car tuple))))
-	  (if exact-size-required
-	      (when (= size font-size)
-		(return (cdr tuple)))
-	      (when (<= size font-size)
-		;; Know which one to pick.
-		(cond ((null last-tuple)
-		       (return (cadr tuple)))
-		      ((< (abs (- size font-size)) (abs (- size last-size)))
-		       (return (cadr tuple)))
-		      (t
-		       (return (cadr last-tuple))))))
-	  (setq last-tuple tuple)
-	  (setq last-size font-size))))))
+    (with-stack-list (key family face)
+      (let ((tuples (gethash key mapping-table))
+	    (last-tuple nil)
+	    (last-size nil))
+	(dolist (tuple tuples (if tuples (cadr (last tuples))))
+	  (let ((font-size (text-style-size (car tuple))))
+	    (if exact-size-required
+		(when (= size font-size)
+		  (return (cdr tuple)))
+		(when (<= size font-size)
+		  ;; Know which one to pick.
+		  (cond ((null last-tuple)
+			 (return (cadr tuple)))
+			((< (abs (- size font-size)) (abs (- size last-size)))
+			 (return (cadr tuple)))
+			(t
+			 (return (cadr last-tuple))))))
+	    (setq last-tuple tuple)
+	    (setq last-size font-size)))))))
 
 
 ;; This method allows the device to convert logical sizes into point

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.27 92/11/05 17:15:24 cer Exp $
+;; $fiHeader: event.lisp,v 1.28 92/11/06 19:03:44 cer Exp $
 
 (in-package :silica)
 
@@ -92,7 +92,7 @@
 
 ;;; Immediate
 
-(defclass immediate-sheet-input-mixin () ())
+(defclass immediate-sheet-input-mixin (sheet-with-event-queue-mixin) ())
 
 (defmethod dispatch-event ((sheet immediate-sheet-input-mixin) event)
   (handle-event sheet event))
@@ -465,15 +465,14 @@
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-press-event))
   (let ((pointer (pointer-event-pointer event)))
     (setf (pointer-button-state pointer) 
-      (logior (pointer-button-state pointer) (pointer-event-button event)))))
+	  (logior (pointer-button-state pointer) (pointer-event-button event)))))
 
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-release-event))
   (let ((pointer (pointer-event-pointer event)))
     (setf (pointer-button-state pointer) 
-      (logandc2 (pointer-button-state pointer) (pointer-event-button event)))))
+	  (logandc2 (pointer-button-state pointer) (pointer-event-button event)))))
 
 ;;;
-
 
 (defmethod distribute-event ((port basic-port) event)
   (distribute-event-1 port event))
@@ -562,8 +561,8 @@
     (process-event-locally sheet (event-read sheet))))
 
 (defun port-event-wait (port waiter 
-			     &key (wait-reason #+Genera si:*whostate-awaiting-user-input*
-					       #-Genera "CLIM Input")
+			&key (wait-reason #+Genera si:*whostate-awaiting-user-input*
+					  #-Genera "CLIM Input")
 			     timeout)
   (cond (*multiprocessing-p*
 	 (process-wait-with-timeout wait-reason timeout waiter) 

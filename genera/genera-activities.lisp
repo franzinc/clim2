@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.8 92/09/24 09:39:48 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.9 92/10/28 11:32:37 cer Exp $
 
 (in-package :genera-clim)
 
@@ -77,12 +77,16 @@
 					  left top right bottom 
 					  (width +fill+ width-p) (height +fill+ height-p)
 				     &allow-other-keys)
-  (declare (ignore left top right bottom width height))
+  (declare (ignore width height))
   (with-keywords-removed (keys keys '(:pretty-name :select-key))
     `(define-genera-application-1
        ',frame-name ',pretty-name ',select-key
-       ,@(unless width-p `(:width +fill+))
-       ,@(unless height-p `(:height +fill+))
+       ,@(unless width-p
+	   (unless (and left right)
+	     `(:width +fill+)))
+       ,@(unless height-p
+	   (unless (and top bottom)
+	     `(:height +fill+)))
        ,@(copy-list keys))))
 
 (defun define-genera-application-1 (frame-name pretty-name select-key &rest frame-args)

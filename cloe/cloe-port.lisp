@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-port.lisp,v 1.2 92/10/28 11:32:31 cer Exp $
+;; $fiHeader: cloe-port.lisp,v 1.3 92/11/06 19:01:54 cer Exp $
 
 (in-package :cloe-clim)
 
@@ -228,13 +228,13 @@
 				  :pitch-and-family family :face face-name)))))))))))
 
 (defmethod text-style-mapping
-	   ((device cloe-port) (style pyrex::device-font)
+	   ((device cloe-port) (style silica::device-font)
 	    &optional (character-set *standard-character-set*) etc)
   (declare (ignore character-set))
-  (unless (eql device (pyrex::device-font-display-device style))
+  (unless (eql device (silica::device-font-display-device style))
     (error "An attempt was made to map device font ~S on device ~S, ~@
 	    but it is defined for device ~S"
-	   style device (pyrex::device-font-display-device style)))
+	   style device (silica::device-font-display-device style)))
   (with-slots (text-style->cloe-font-mapping font-cache-style font-cache-font) port
     (if (eq style font-cache-style)
 	font-cache-font
@@ -243,7 +243,7 @@
 	  (setf font-cache-font
 		(or (gethash style text-style->cloe-font-mapping)
 		    (setf (gethash style text-style->cloe-font-mapping)
-			  (let ((args (pyrex::device-font-name style)))
+			  (let ((args (silica::device-font-name style)))
 			    (apply #'make-windows-font
 				   (- (round (* (pop args) (slot-value device 'logpixelsy))
 					     72))
@@ -561,8 +561,8 @@
 	 (mirror (sheet-mirror sheet)))
     (unless (win::is-iconic mirror)
       (let ((native-region (mirror-region port sheet)))
-	(setf (slot-value event 'pyrex::native-region) native-region)
-	(setf (slot-value event 'pyrex::region)
+	(setf (slot-value event 'silica::native-region) native-region)
+	(setf (slot-value event 'silica::region)
 	      (untransform-region (sheet-native-transformation sheet) 
 				  native-region)))
       (call-next-method))))

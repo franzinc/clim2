@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.22 92/10/28 11:33:00 cer Exp $
+;; $fiHeader: listener.lisp,v 1.23 92/11/06 19:03:00 cer Exp $
 
 (in-package :clim-demo)
 
@@ -324,12 +324,13 @@
      :tester
        ((object context-type)
 	(if (and (eq (presentation-type-name context-type) 'sequence)
-		 (or (vectorp object)
-		     (listp object)))
+		 (or (listp object)
+		     (vectorp object)))
 	    (clim-utils:with-stack-list
-	        (type 'sequence (reasonable-presentation-type (elt object 0)))
-	      (presentation-subtypep type context-type))
-	    (presentation-subtypep (reasonable-presentation-type object) context-type)))
+	      (type 'sequence (reasonable-presentation-type (elt object 0)))
+	      (clim-internals::presentation-subtypep-1 type context-type))
+	    (clim-internals::presentation-subtypep-1
+	      (reasonable-presentation-type object) context-type)))
      :tester-definitive t
      :documentation ((object stream)
 		     (let ((*print-length* 3)

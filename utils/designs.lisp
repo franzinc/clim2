@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.11 92/11/06 19:05:00 cer Exp $
+;; $fiHeader: designs.lisp,v 1.12 92/11/18 15:56:01 colin Exp $
 
 (in-package :clim-utils)
 
@@ -308,11 +308,13 @@
 
 ;;; Palettes
 
+(eval-when (#-Allegro compile load eval)
 (define-condition palette-full (error)
   ((palette :initarg :palette :reader palette-full-palette))
   (:report (lambda (condition stream)
 	     (format stream "The palette ~S is full"
 	       (palette-full-palette condition)))))
+)	;eval-when
 
 (defmethod add-color-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.33 92/10/02 15:18:15 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.34 92/11/06 19:03:40 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -365,11 +365,9 @@
 ;;--- unit-increment, page-increment.
 (defclass scroll-bar-pane
 	  (scroll-bar
-	   ;;--- Add IMMEDIATE-SHEET-INPUT-MIXIN so that scroll bars
-	   ;;--- get handled immediately by the event process?
-	   wrapping-space-mixin
 	   sheet-permanently-enabled-mixin
-	   sheet-mute-input-mixin
+	   wrapping-space-mixin
+	   immediate-sheet-input-mixin
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
 	   shared-medium-sheet-output-mixin
@@ -641,7 +639,8 @@
 
 
 (defclass scroll-bar-target-pane 
-	  (space-requirement-mixin
+	  (immediate-sheet-input-mixin
+	   space-requirement-mixin
 	   sheet-single-child-mixin
 	   shared-medium-sheet-output-mixin
 	   foreground-background-and-text-style-mixin
@@ -711,7 +710,8 @@
     (draw-polygon* medium coord-cache :filled filled :ink ink)))
 
 (defclass scroll-bar-shaft-pane
-	  (space-requirement-mixin
+	  (immediate-sheet-input-mixin
+	   space-requirement-mixin
 	   sheet-single-child-mixin
 	   shared-medium-sheet-output-mixin
 	   foreground-background-and-text-style-mixin

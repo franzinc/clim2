@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.20 92/09/24 09:37:42 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.21 92/10/02 15:18:24 cer Exp $
 
 (in-package :silica)
 
@@ -428,6 +428,7 @@
 		 ,@args)) 
 	 (defmethod ,medium-graphics-function-name
 		    ((sheet basic-sheet) ,@spread-argument-names ,@keyword-argument-names)
+	   #+Genera (declare (sys:function-parent ,name define-graphics-generic))
 	   (with-sheet-medium (medium sheet)
 	     (,medium-graphics-function-name medium 
 					     ,@spread-argument-names
@@ -435,11 +436,13 @@
 	 (defmethod ,medium-graphics-function-name
 		    ((sheet permanent-medium-sheet-output-mixin)
 		     ,@spread-argument-names ,@keyword-argument-names)
+	   #+Genera (declare (sys:function-parent ,name define-graphics-generic))
 	   (,medium-graphics-function-name (sheet-medium sheet) 
 					   ,@spread-argument-names
 					   ,@keyword-argument-names))
 	 (defmethod ,medium-graphics-function-name :around
 		    ((medium basic-medium) ,@spread-argument-names ,@keyword-argument-names)
+	   #+Genera (declare (sys:function-parent ,name define-graphics-generic))
 	   ;; Want to tranform stuff, set up clipping region etc etc
 	   ,(or medium-method-body
 		`(progn

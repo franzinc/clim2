@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.16 92/11/06 19:03:02 cer Exp $
+;; $fiHeader: plot.lisp,v 1.17 92/11/09 10:55:06 cer Exp $
 
 (in-package :clim-demo)
 
@@ -798,7 +798,6 @@
 
 
 (defvar *plot-demos* nil)
-
 
 (defun do-plot-demo (&key (port (find-port)) (force nil))
   (let* ((framem (find-frame-manager :port port))

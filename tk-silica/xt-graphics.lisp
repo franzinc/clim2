@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.51 92/11/09 10:56:14 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.52 92/11/18 15:55:31 colin Exp $
 
 (in-package :tk-silica)
 
@@ -1590,5 +1590,4 @@ and on color servers, unless using white or black")
 
 (defmethod medium-finish-output ((medium xt-medium))
   (x11:xsync (port-display (port medium)) 0))
-
 

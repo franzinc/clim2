@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.38 92/11/09 10:56:05 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.39 92/11/09 19:55:57 cer Exp $
 
 (in-package :xm-silica)
 
@@ -278,8 +278,8 @@
 	  (when clipping-mask
 	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))
 
-(defmethod clim-internals::frame-manager-note-pretty-name-changed ((framem motif-frame-manager) 
-								   (frame standard-application-frame))
+(defmethod frame-manager-note-pretty-name-changed ((framem motif-frame-manager) 
+						   (frame standard-application-frame))
   (let ((shell (frame-shell frame)))
     (tk::set-values shell :title (frame-pretty-name frame))
     (when (typep shell 'tk::top-level-shell)
@@ -345,8 +345,9 @@
 				       :sensitive (clim-internals::menu-item-active item)
 				       :parent parent 
 				       :label-type :pixmap
+				       :label-pixmap pixmap
 				       :label-insensitive-pixmap pixmap
-				       :label-pixmap pixmap options)))
+				       options)))
 			  (xt::add-widget-cleanup-function
 			   button
 			   #'tk::destroy-pixmap pixmap)

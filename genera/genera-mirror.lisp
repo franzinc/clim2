@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.14 92/11/05 17:15:44 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.15 92/11/09 10:55:16 cer Exp $
 
 (in-package :genera-clim)
 
@@ -601,8 +601,10 @@
 				(not (eq old-mouse-y mouse-y))))
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
 			 (pointer (port-pointer port)))
-		     ;;----- There should be no need to do this
-		     ;;----- button up/down should have updated the state
+		     ;; There shouldn't really be any need to do this, since
+		     ;; pointer button up/down should have already done so.
+		     ;; Unfortunately, Genera is prone to button-up events,
+		     ;; so it's better to be safe than sorry.
 		     (if (zerop mouse-buttons)
 			 (setf (pointer-button-state pointer) 0)
 			 (setf (pointer-button-state pointer)
@@ -618,15 +620,15 @@
 			   :native-y native-y
 			   :modifier-state 
 			     (current-modifier-state
-				     (make-state-from-buttons mouse-buttons)
-				     (tv:sheet-mouse mouse-window))
+			       (make-state-from-buttons mouse-buttons)
+			       (tv:sheet-mouse mouse-window))
 			   :pointer pointer
 			   :sheet sheet)))))
 		 (when mouse-button-released
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
 			 (pointer (port-pointer port)))
-		     ;;-- This looks bogus
-		     ;;-- Are there not multiple buttons??
+		     ;; Genera doesn't keep track of more than one button at
+		     ;; a time, so set the state to zero
 		     (setf (pointer-button-state pointer) 0)
 		     (when sheet
 		       (distribute-event
@@ -641,8 +643,8 @@
 			       (ash mouse-button-released -1))
 			   :modifier-state
 			     (current-modifier-state
-				     (make-state-from-buttons mouse-buttons)
-				     (tv:sheet-mouse mouse-window))
+			       (make-state-from-buttons mouse-buttons)
+			       (tv:sheet-mouse mouse-window))
 			   :pointer pointer
 			   :sheet sheet)))))))))
 	  ;; Handle shift press and release events

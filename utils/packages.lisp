@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.37 92/11/06 19:05:10 cer Exp $
+;; $fiHeader: packages.lisp,v 1.38 92/11/18 15:56:08 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3382,6 +3382,7 @@
     frame-manager-display-pointer-documentation
     frame-manager-exit-box-labels
     frame-manager-matches-options-p
+    frame-manager-note-pretty-name-changed
     frame-shell
     frame-user-specified-position-p
     frame-user-specified-size-p

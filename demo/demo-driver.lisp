@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.17 92/11/05 17:15:49 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.18 92/11/06 19:02:51 cer Exp $
 
 (in-package :clim-demo)
 
@@ -53,8 +53,8 @@
 		   :cache-value *demos* :cache-test #'equal))))
       (catch 'exit-demo
 	(loop
-	  (let* ((demo-name (demo-menu-choose (sort (copy-list (map 'list #'car *demos*))
-						    #'string<)))
+	  (let* ((demo-name (demo-menu-choose 
+			      (sort (copy-list (map 'list #'car *demos*)) #'string<)))
 		 (demo-fcn (cdr (assoc demo-name *demos* :test #'string-equal))))
 	    (cond ((null demo-fcn))
 		  ((functionp demo-fcn)

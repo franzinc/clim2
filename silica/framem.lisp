@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.23 92/11/06 19:03:48 cer Exp $
+;; $fiHeader: framem.lisp,v 1.24 92/11/09 10:55:41 cer Exp $
 
 (in-package :silica)
 
@@ -134,10 +134,10 @@
 
 (defmethod disown-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem) (delete frame (frame-manager-frames framem))
+	(slot-value frame 'frame-manager) nil
 	(frame-shell frame) nil
 	(slot-value frame 'clim-internals::initialized-panes) nil
-	(frame-panes frame) nil
-	(slot-value frame 'frame-manager) nil))
+	(frame-panes frame) nil))
 
 (defmethod note-frame-enabled :after ((framem standard-frame-manager) frame)
   (update-frame-settings framem frame)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.40 92/10/04 14:16:30 cer Exp $
+;; $fiHeader: test.lisp,v 1.41 92/11/09 19:55:49 cer Exp $
 
 (in-package :clim-user)
 
@@ -150,25 +150,26 @@
       (accepting-values (stream :own-window own-window)
 	(setq a (accept 'boolean  
 			:stream stream
-			:default a :prompt "boolean"))
+			:default a :prompt "Boolean"))
 	(terpri stream)
 	(unless a
 	  (setq b (accept 'boolean  
 			  :stream stream
-			  :default b :prompt "another boolean"))
+			  :default b :prompt "Another boolean"))
 	  (terpri stream))
 	(when a
 	  (setq c (accept '(member :normal :point) :stream stream
-			  :prompt "Line style units" :default c))
+			  :prompt "Line style units" :default c
+			  :view '(radio-box-view :label "Line style units")))
 	  (terpri stream))
 	(setq d (accept '(integer 0 100) 
 			:stream stream
-			:prompt "integer" :default d))
+			:prompt "Integer" :default d))
 	(terpri stream)
 	(setq e (accept '(real 0 100)
 			:stream stream
-			:prompt "real" :default e
-			:view 'clim-internals::slider-view))
+			:prompt "Real" :default e
+			:view 'slider-view))
 	(terpri stream)
 	(accept-values-command-button (stream)
 	    "Press me"
@@ -511,11 +512,11 @@
 	    :value-changed-callback 'list-pane-changed-callback
 	    :items '("C" "Cobol" "Lisp" "Ada"))))
       (make-pane 'option-pane
-		 :items '("eenie" "meanie" "minie")
-		 :value "minie"
-		 :value-changed-callback 'option-pane-changed-callback
-		 :test 'string=
-		 :label "moo")
+	:items '("eenie" "meanie" "minie")
+	:value "minie"
+	:value-changed-callback 'option-pane-changed-callback
+	:test 'string=
+	:label "moo")
       (outlining ()
 	(outlining ()
 	  (scrolling ()
@@ -523,7 +524,8 @@
 	      :value "lucid are nice guys "
 	      :value-changed-callback 'text-field-changed
 	      :ncolumns 30
-	      :nlines 10)))))))
+	      :nlines 10))))
+      (make-clim-interactor-pane :scroll-bars :vertical))))
 
 (define-application-frame tf96 () ()
   (:command-table test-frame)
@@ -682,10 +684,10 @@
 	   
     (accepting-values (stream :own-window own-window :label "foo")
       ;; Test of the member stuff
-      (clim-internals::letf-globally (((stream-default-view stream)
-				       (if gadget-dialog-view 
-					   (stream-default-view stream)
-					   +textual-dialog-view+)))
+      (clim-utils:letf-globally (((stream-default-view stream)
+				  (if gadget-dialog-view 
+				      (stream-default-view stream)
+				      +textual-dialog-view+)))
 	(dotimes (i n)
 	  (if (eq (svref values i) :none)
 	      (setf (svref values i)
@@ -940,25 +942,25 @@
     (terpri stream)
     (setq r  (accept 'string :stream stream
 		     :prompt "foo"
-		     :view '(clim-internals::text-editor-view 
+		     :view '(text-editor-view 
 			     :ncolumns 30
 			     :nlines 5)
 		     :default r))
     (terpri stream)
     (setq u (accept '(member :xxx :yyy :zyy)
-		    :view clim-internals::+list-pane-view+
+		    :view +list-pane-view+
 		    :stream stream
 		    :prompt "baz"
 		    :default u))
     (terpri stream)
     (setq w (accept '(member :oval :rectangle)
-		    :view clim-internals::+option-pane-view+
+		    :view +option-pane-view+
 		    :stream stream
 		    :prompt "bazzy"
 		    :default w))
     (terpri stream)
     (setq v (accept '(subset :x :y :z)
-		    :view clim-internals::+list-pane-view+
+		    :view +list-pane-view+
 		    :stream stream
 		    :prompt "barf"
  		    :default v))))
