@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.20 93/04/07 09:07:01 cer Exp $
+;; $fiHeader: browser.lisp,v 1.21 93/04/16 09:45:10 cer Exp $
 
 (in-package :clim-browser)
 
@@ -147,7 +147,7 @@
   (updating-output (stream :unique-id node
 			   :cache-value (node-tick node))
     (with-text-style (stream *display-node-character-style*)
-      (call-next-method node stream))))
+	(call-next-method node stream))))
 
 (defmethod display-node ((node basic-call-node) stream)
   (with-output-as-presentation (stream node (presentation-type-of node))
@@ -847,7 +847,6 @@
 
 (defun draw-line-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
   (declare (dynamic-extent drawing-options))
-  (declare (ignore from-node to-node))
   (updating-output (stream
 		    :unique-id (list from-node to-node)
 		    :id-test #'equal
@@ -855,14 +854,17 @@
 		    :cache-test #'equal)
     (apply #'draw-line* stream x1 y1 x2 y2 drawing-options)))
 
-(defun draw-arrow-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
+(defun draw-arrow-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options
+		       &key path &allow-other-keys)
   (declare (dynamic-extent drawing-options))
-  (declare (ignore from-node to-node))
   (updating-output (stream
 		    :unique-id (list from-node to-node)
 		    :id-test #'equal
 		    :cache-value (list x1 y1 x2 y2)
 		    :cache-test #'equal)
+    (loop
+      (unless path (return nil))
+      (apply #'draw-line* stream x1 y1 (setq x1 (pop path)) (setq y1 (pop path)) drawing-options))
     (apply #'draw-arrow* stream x1 y1 x2 y2 drawing-options)))
 
 (define-graph-displayer :graphical (browser stream)

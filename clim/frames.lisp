@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.63 93/04/02 13:36:00 cer Exp $
+;; $fiHeader: frames.lisp,v 1.64 93/04/08 13:17:34 colin Exp $
 
 (in-package :clim-internals)
 
@@ -550,13 +550,20 @@
       (sheet-disown-child (frame-top-level-sheet frame) child))
     ;; Now we want to give it some new ones
     (generate-panes (frame-manager frame) frame)
-    (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
-    (multiple-value-call #'layout-frame
-      frame (bounding-rectangle-size (frame-top-level-sheet frame)))
-    ;;--- Don't throw, just recompute stream bindings in a principled way
+    (let ((sheets (frame-panes frame)))
+      (setf (sheet-enabled-p sheets) nil)
+      (sheet-adopt-child (frame-top-level-sheet frame) sheets)
+      (multiple-value-call #'layout-frame
+	frame (bounding-rectangle-size (frame-top-level-sheet frame)))
+      ;;--- Don't throw, just recompute stream bindings in a principled way
+      (setf (sheet-enabled-p sheets) t))
+    (note-frame-current-layout-changed (frame-manager frame) frame)
     (handler-case
         (throw 'layout-changed nil)
       (error () nil))))
+
+(defmethod note-frame-current-layout-changed ((frame-manager standard-frame-manager) (frame t))
+  nil)
 
 (defun adjust-layout-requirements (frame layout)
   (when (frame-panes frame)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-defs.lisp,v 1.4 92/06/23 08:19:13 cer Exp Locker: cer $
+;; $fiHeader: ol-defs.lisp,v 1.5 92/06/29 14:04:20 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -83,6 +83,15 @@
 	    (bbc-height xt-dimension)
 	    (bbc-real-width xt-dimension)
 	    (bbc-real-height xt-dimension)
-	    (force-hsb xt-dimension)
-	    (force-vsb xt-dimension)
+	    (force-hsb boolean)
+	    (force-vsb boolean)
 	    )
+
+
+(def-c-type (ol-scroll-bar-verify :no-defuns) :struct
+	    (new-location :int)
+	    (new-page :int)
+	    (ok boolean)
+	    (slider-min :int)
+	    (slider-max :int)
+	    (delta :int))

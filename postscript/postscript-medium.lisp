@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.13 93/02/08 15:57:17 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.14 93/03/31 10:39:18 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -315,72 +315,33 @@
 	  (incf towards-y y-adjust)))
       ;; do raster/ink stuff.
       (set-font-if-needed medium fcs)
-      (if towards-x
-	  (with-postscript-gsave medium 
-	    (ps-pos-op medium "m" x y)
-	    (format (slot-value medium 'printer-stream) " currentpoint translate ~D rotate "
-		    (- 360 (truncate (* (atan (- towards-y y) (- towards-x x)) (/ 360 (* pi 2))))))
-	    (carefully-output-ps-showstring (slot-value medium
-							'printer-stream) string start end))
-	(with-postscript-drawing-options (medium printer-stream
-						 :epilogue nil :newpath nil
-						 :ink ink)
-	  (ps-pos-op medium "m" x y)
+      
+      (ps-pos-op medium "m" x y)
+      (with-postscript-drawing-options (medium printer-stream
+					       :epilogue nil :newpath nil
+					       :ink ink)
+	(if towards-x
+	    (with-postscript-gsave medium 
+	      (format printer-stream " currentpoint translate ~D rotate "
+		      (- 360 (truncate (* (atan (- towards-y y) (- towards-x x)) (/ 360 (* pi 2))))))
+	      (carefully-output-ps-showstring printer-stream string start end))
 	  (carefully-output-ps-showstring printer-stream string start end)))
       (annotating-postscript (medium printer-stream)
 	(format printer-stream "      (medium-draw-string* ~S ~D ~D ~D ~D ~S ~S ...)"
 	  string x y start end align-x align-y)))))
 
-(defmethod medium-draw-character* ((medium postscript-medium)
-				   character x y align-x align-y
-				   towards-x towards-y transform-glyphs)
-  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
-	 (ink (medium-ink medium))
-	 (text-style (medium-merged-text-style medium)))
-    (convert-to-postscript-coordinates transform x y)
-    (when towards-x
-      (convert-to-postscript-coordinates transform towards-x towards-y))
-    (with-slots (printer-stream ch1buf) medium
-      (setf (aref ch1buf 0) character)
-      (let* ((fcs (get-font-compat-str (port medium) medium text-style))
-	     (height (psfck-clim-height fcs))
-	     (descent (psfck-clim-descent fcs))
-	     (ascent (- height descent)))
-	(let ((x-adjust 
-		(compute-text-x-adjustment align-x medium character text-style 0 1))
-	      (y-adjust 
-		(compute-text-y-adjustment align-y descent ascent height)))
-	(incf x x-adjust)
-	(incf y y-adjust)
-	(when towards-x
-	  (incf towards-x x-adjust)
-	  (incf towards-y y-adjust)))
-	;; do raster/ink stuff.
-	(set-font-if-needed medium fcs)
-	(if towards-x
-	    (with-postscript-gsave medium 
-	      (ps-pos-op medium "m" x y)
-	      (format (slot-value medium 'printer-stream) " currentpoint translate ~D rotate "
-		      (- 360 (truncate (* (atan (- towards-y y) (- towards-x x)) (/ 360 (* pi 2))))))
-	      (carefully-output-ps-showstring (slot-value medium 'printer-stream) ch1buf 0 1))
-	  (with-postscript-drawing-options (medium printer-stream
-						   :epilogue nil :newpath nil
-						   :ink ink)
-	    (ps-pos-op medium "m" x y)
-	    (carefully-output-ps-showstring printer-stream ch1buf 0 1)))
-	(annotating-postscript (medium printer-stream)
-	  (format printer-stream "      (medium-draw-character* ~C ~D ~D ~S ~S ...)"
-	    character x y align-x align-y))))))
-
 (defmethod medium-draw-text* ((medium postscript-medium)
 			      string-or-char x y start end
 			      align-x align-y
 			      towards-x towards-y transform-glyphs)
-  (if (characterp string-or-char)
-      (medium-draw-character* medium string-or-char x y 
-			      align-x align-y towards-x towards-y transform-glyphs)
-      (medium-draw-string* medium string-or-char x y start end 
-			   align-x align-y towards-x towards-y transform-glyphs)))
+  (with-slots (ch1buf) medium
+    (when (characterp string-or-char)
+      (setf (aref ch1buf 0) string-or-char
+	    string-or-char ch1buf
+	    start 0
+	    end 1))
+    (medium-draw-string* medium string-or-char x y start end 
+			 align-x align-y towards-x towards-y transform-glyphs)))
 
 (defmethod medium-text-bounding-box ((medium postscript-medium)
 				     string x y start end align-x

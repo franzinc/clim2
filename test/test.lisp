@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.46 93/03/31 10:39:54 cer Exp $
+;; $fiHeader: test.lisp,v 1.47 93/04/16 09:45:44 cer Exp $
 
 (in-package :clim-user)
 
@@ -1042,6 +1042,7 @@
    (:layouts
     (default (vertically () (scrolling () a) b z))))
 
+
 (define-test-frame-command (com-change-set-gadget-items :name t :menu t)
     (&key 
      (which 'boolean :default nil))
@@ -1053,6 +1054,18 @@
     (unless which 
       (setf (set-gadget-items a) '(p q r z)
 	    (set-gadget-items b) '(1 2 3 4)))))
+
+(define-test-frame-command (com-change-set-gadget-values :name t :menu t)
+    (&key 
+     (which 'boolean :default nil))
+  (let ((a (find-pane-named *application-frame* 'a))
+	(b (find-pane-named *application-frame* 'b)))
+    (when which
+      (setf (gadget-value a) 3
+	    (gadget-value b) 'q))
+    (unless which 
+      (setf (gadget-value a) 'z
+	    (gadget-value b) 2))))
 
 (define-application-frame tf110 ()
   ()

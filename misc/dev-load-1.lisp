@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.24 93/03/31 10:39:08 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.25 93/04/02 13:36:31 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -28,14 +28,16 @@
 (set-case-mode :case-insensitive-lower)
 
 (tenuring
-   (let ((*load-source-file-info* t)
-	 (*load-xref-info* nil))
+ (let ((*load-source-file-info* t)
+       (*record-source-file-info* t)
+       (*load-xref-info* nil))
      (let ((*enable-package-locked-errors* nil))
        (load "sys/defsystem"))
      (load "sys/sysdcl")))
 
 (defun load-it (sys)
   (let ((*load-source-file-info* t)
+	(*record-source-file-info* t)
 	(*load-xref-info* nil)
 	(excl:*global-gc-behavior* nil))
   
@@ -68,16 +70,18 @@
 
      (clim-defsys::load-system 'clim-demo)
 
+     (ignore-errors (tenuring (require :composer)))
+
      (when (probe-file "climtoys/sysdcl.lisp")
        (load "climtoys/sysdcl.lisp")
-       (tenuring (clim-defsys::load-system 'clim-toys)))
+       (tenuring 
+	(clim-defsys::compile-system 'clim-toys)
+	(clim-defsys::load-system 'clim-toys)))
 
      (dolist (file '("test/test-driver"
 		     "test/test-clim"
 		     "test/test-demos"))
        (load file))
-     
-     (ignore-errors (require :composer))
 
      (ignore-errors
       (load (case sys

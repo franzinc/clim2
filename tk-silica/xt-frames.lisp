@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.32 93/04/08 13:19:06 colin Exp $
+;; $fiHeader: xt-frames.lisp,v 1.33 93/04/16 09:46:04 cer Exp $
 
 
 (in-package :xm-silica)
@@ -270,8 +270,9 @@
 		 (pattern 
 		  (let ((sheet (frame-top-level-sheet frame)))
 		    (with-sheet-medium (medium sheet)
-		      (second 
-		       (decode-gadget-background medium sheet x))))))))
+		      (destructuring-bind (&key background-pixmap)
+			  (decode-gadget-background medium sheet x)
+			background-pixmap)))))))
 	(destructuring-bind
 	    (&key (name (frame-pretty-name frame)) pixmap clipping-mask) icon
 	  ;;-- Dialog shells do not have :icon-name resource

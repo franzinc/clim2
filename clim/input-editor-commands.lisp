@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.23 92/11/19 14:17:58 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.24 92/12/03 10:26:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -17,12 +17,32 @@
 ;; GESTURES is either a gesture name, or a list of gesture names.  FUNCTION
 ;; is the function that implements an input editor command.  This associates
 ;; the gesture(s) with the command.
+
+;;-- It seems that an input editor gesture can only be one that
+;;-- corresponds to a shift/control/meta/hyper character or one is a
+;;-- member if this list. This seems silly but what else can we do?
+;;--- What a kludge!  What should this really be?
+;;-- Either we dont try to enfore the restriction or we have a better
+;;-- way of telling. Perhaps we should try just to list the standard
+;;-- printing characters.
+
+(defvar *printable-keysyms*
+    '(:space :\! :\" :\# :\$ :\% :\& :\' :\( :\) :\* :\+ :\, :\- :\. :\/ :\0 :\1
+      :\2 :\3 :\4 :\5 :\6 :\7 :\8 :\9 :\: :\; :\< :\= :\> :\? :\@ :a :a :b
+      :b :c :c :d :d :e :e :f :f :g
+      :g :h :h :i :i :j :j :k :k :l
+      :l :m :m :n :n :o :o :p :p :q
+      :q :r :r :s :s :t :t :u :u :v
+      :v :w :w :x :x :y :y :z :z :\[
+      :\\ :\] :\^ :\_ :\` :\{ :\| :\}
+      :\~))
+
 (defun add-input-editor-command (gestures function)
   (flet ((add-aarray-entry (gesture thing aarray)
 	   (let ((old (find gesture aarray :key #'first)))
 	     (if old
 		 (setf (second old) thing)
-	         (vector-push-extend (list gesture thing) aarray))))
+	       (vector-push-extend (list gesture thing) aarray))))
 	 ;; Does the gesture correspond to some character with any bucky
 	 ;; bits on, or some other non-standard non-printing character?
 	 (bucky-char-p (gesture)
@@ -30,38 +50,36 @@
 	       (gesture-name-keysym-and-modifiers gesture)
 	     (when keysym
 	       (if (zerop modifier-state)
-		   ;;--- What a kludge!  What should this really be?
-		   (member keysym '(:rubout :clear-input :escape 
-				    :scroll :refresh :suspend :resume
-				    :page-up :page-down :clear :backspace))
-		   (logtest modifier-state
-			    (make-modifier-state :control :meta :super :hyper)))))))
+		   (not (member keysym *printable-keysyms*))
+		 (logtest modifier-state
+			  (make-modifier-state :control :meta :super :hyper)))))))
     (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
     (cond ((atom gestures)
-	   (assert (bucky-char-p gestures) (gestures)
-		   "~S does not correspond to non-printing gesture" gestures)
+	   (unless (bucky-char-p gestures)
+	     (warn "~S does not correspond to non-printing gesture. ~
+This may confused the input editor" gestures))
 	   (add-aarray-entry gestures function *input-editor-command-aarray*))
 	  (t
 	   (assert (> (length gestures) 1))
 	   (assert (bucky-char-p (first gestures)) (gestures)
-		   "~S does not correspond to non-printing gesture" gestures)
+	     "~S does not correspond to non-printing gesture" gestures)
 	   ;; We've got a command that wil be bound to a sequence of gestures,
 	   ;; so set up the prefix tables.
 	   (let ((aarray *input-editor-command-aarray*))
 	     (dorest (rest gestures)
-	       (let* ((prefix (first rest))
-		      (rest (rest rest)))
-		 (if (null rest)
-		     (add-aarray-entry prefix function aarray)
-		     (let ((subaarray (second (find prefix aarray :key #'first))))
-		       (when (null subaarray)
-			 (setq subaarray (make-array 30 :fill-pointer 0 :adjustable t))
-			 (add-aarray-entry prefix subaarray aarray))
-		       (setq aarray subaarray))))))))))
+		     (let* ((prefix (first rest))
+			    (rest (rest rest)))
+		       (if (null rest)
+			   (add-aarray-entry prefix function aarray)
+			 (let ((subaarray (second (find prefix aarray :key #'first))))
+			   (when (null subaarray)
+			     (setq subaarray (make-array 30 :fill-pointer 0 :adjustable t))
+			     (add-aarray-entry prefix subaarray aarray))
+			   (setq aarray subaarray))))))))))
 
 
-;; When T, the input editor should handle help and completion.  Otherwise,
-;; something like COMPLETE-INPUT will do it for us.
+      ;; When T, the input editor should handle help and completion.  Otherwise,
+      ;; something like COMPLETE-INPUT will do it for us.
 (defvar *ie-help-enabled* t)
 
 ;; These need to be on a per-implementation basis, naturally
@@ -94,8 +112,8 @@
 	 (let* ((keysym (keyboard-event-key-name gesture))
 		(modifier-state (event-modifier-state gesture))
 		(bucky-p
-		  (logtest modifier-state
-			   (make-modifier-state :control :meta :super :hyper))))
+		 (logtest modifier-state
+			  (make-modifier-state :control :meta :super :hyper))))
 	   (cond ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
 		       ;; If it's a numeric argument, return the digit
@@ -131,7 +149,7 @@
 (scl:defprop define-input-editor-command "CLIM Input Editor Command" si:definition-type-name)
 #+Genera
 (scl:defprop define-input-editor-command zwei:defselect-function-spec-finder
-	     zwei:definition-function-spec-finder)
+  zwei:definition-function-spec-finder)
 
 (defmethod stream-process-gesture ((istream input-editing-stream-mixin)
 				   gesture type)
@@ -149,10 +167,10 @@
 	   (let* ((gesture (destructuring-bind (keysym . modifier-state)
 			       (port-canonicalize-gesture-spec (port istream) gesture 0)
 			     (allocate-event 'key-press-event
-			       :sheet (encapsulating-stream-stream istream)
-			       :character gesture
-			       :key-name keysym
-			       :modifier-state modifier-state)))
+					     :sheet (encapsulating-stream-stream istream)
+					     :character gesture
+					     :key-name keysym
+					     :modifier-state modifier-state)))
 		  (command (lookup-input-editor-command gesture command-state)))
 	     (cond ((arrayp command)
 		    ;; Another prefix, update the state
@@ -1407,3 +1425,17 @@
   com-ie-show-context   :ie-show-context)
 
 )	;#+Genera
+
+#+Allegro
+(progn
+  (define-input-editor-gestures
+      (:left-arrow :left-arrow)
+      (:right-arrow :right-arrow)
+      (:up-arrow :up-arrow)
+      (:down-arrow :down-arrow))
+  
+  (assign-input-editor-key-bindings
+      com-ie-backward-character  :left-arrow
+    com-ie-forward-character :right-arrow
+    com-ie-scroll-backward    :up-arrow
+    com-ie-scroll-forward  :down-arrow))

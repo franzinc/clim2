@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.2 93/03/31 10:39:46 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.3 93/04/02 13:37:00 cer Exp $
 
 
 (in-package :clim-user)
@@ -91,19 +91,6 @@
 
   ;;--- phew. write some more
    
-  (com-drag-and-drop-tests)
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)   
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)   
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)   
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)
-  :abort
-
   (com-simple-redisplay)   
   (:presentation-click display-pane integer)
   (:presentation-click display-pane integer)
@@ -214,17 +201,17 @@
 					       :history-class r-tree-output-history
 					       )
   ((com-drag-and-drop-tests)
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)   
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)   
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)   
-  (:presentation-click display-pane drag-source)
-  (:presentation-click display-pane drop-target)
-  :abort)
+   (:presentation-click display-pane drag-source)
+   (:presentation-click display-pane drop-target)
+   (:presentation-click display-pane drag-source)
+   (:presentation-click display-pane drop-target)   
+   (:presentation-click display-pane drag-source)
+   (:presentation-click display-pane drop-target)   
+   (:presentation-click display-pane drag-source)
+   (:presentation-click display-pane drop-target)   
+   (:presentation-click display-pane drag-source)
+   (:presentation-click display-pane drop-target)
+   :abort)
   (exit-clim-tests)
   )
 
@@ -461,8 +448,11 @@
 
 (define-frame-test test-tf109 (tf109)
   ((com-change-set-gadget-items)
+   (com-change-set-gadget-values)
    (com-change-set-gadget-items :which t)
-   (com-change-set-gadget-items))
+   (com-change-set-gadget-values :which t)
+   (com-change-set-gadget-items)
+   (com-change-set-gadget-values))
   (com-quit))
 
 
@@ -505,17 +495,4 @@
    (com-enable-disable-sensitive nil)
    (:sleep 1))
   (com-enable-disable-quit))
-
-
-;;; This should be at the end:
-;;; make the training selective.
-
-(locally 
-  (declare (special si::*clos-preload-packages*))
- (setq si::*clos-preload-packages* 
-   (mapcar #'find-package '(:clim :clim-internals :silica :tk :xm-silica))))
-
-;; This stops warnings happening asynchronously and causing confusion.
-
-(setq excl:*global-gc-behavior* nil)
 

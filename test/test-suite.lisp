@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.60 93/04/08 13:18:17 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.61 93/04/16 09:45:40 cer Exp $
 
 (in-package :clim-user)
 
@@ -2034,6 +2034,29 @@ Luke Luck licks the lakes Luke's duck likes."))
 		      :default x))
       (terpri stream))))
 
+(define-test (slider-dialog menus-and-dialogs) (stream)
+  "Various sliders"
+  (let ((d 0.5)
+	(e 5))
+    (accepting-values (stream :own-window nil :label "sliders dialog")
+      (macrolet ((accepts (&rest accepts)
+		   `(progn
+		      ,@(mapcar #'(lambda (ac)
+				    (destructuring-bind 
+					(var type &key view (prompt (format nil "~A" var))) ac
+				      `(progn
+					 (setq ,var (accept ',type 
+							    :stream stream
+							    ,@(and view `(:view ,view))
+							    :default ,var
+							    :prompt ,prompt))
+					 (terpri stream))))
+				accepts))))
+	(accepts 
+	 (d (float 0 1) :view '(slider-view :show-value-p t :decimal-places 2))
+	 (e (integer 0 10) :view +slider-view+))
+	(terpri stream)))))
+
 (define-test (readonly-gadget-dialog menus-and-dialogs) (stream)
   "Create a bunch of readonly gadgets"
   (accepting-values (stream :own-window nil :label "Gadgets dialog"
@@ -2132,7 +2155,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(accepts (a (member :red :blue :green))
 		 (b (subset :red :blue :green))
 		 (c boolean)
-		 (d (float 0 1) :view '(slider-view  :width 100 :decimal-places 2))
+		 (d (float 0 1) :view '(slider-view :decimal-places 2))
 		 (e (integer 0 10) :view +slider-view+)
 		 (f (member :red :blue :green) :view +text-field-view+)
 		 (g (integer 0 10) :view +text-field-view+)

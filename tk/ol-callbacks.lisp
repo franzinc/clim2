@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.8 92/06/23 08:19:10 cer Exp $
+;; $fiHeader: ol-callbacks.lisp,v 1.9 92/07/01 15:44:35 cer Exp $
 
 (in-package :tk)
 
@@ -55,7 +55,7 @@
     (:resize (values nil nil))))
 
 (defmethod spread-callback-data (widget data (type (eql 'slider-moved)))
-  (values))
+  (values (ol-scroll-bar-verify-new-location data)))
 
 (defun add-ol-callback (widget name type function &rest args)
   (ol_add_callback widget name *callback-handler-address*

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.30 93/03/18 14:39:25 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.31 93/03/31 10:40:27 cer Exp $
 
 (in-package :xm-silica)
 
@@ -93,6 +93,12 @@
     (if (tk::gcontext-tile gc)
 	(list :background-pixmap (tk::gcontext-tile gc))
       (list :background (tk::gcontext-foreground gc)))))
+
+(defmethod decode-gadget-background (medium sheet (ink pattern))
+  (declare (ignore sheet))
+  (let ((gc (decode-ink ink medium)))
+    (list :background-pixmap (tk::gcontext-stipple gc))))
+
 
 (defmethod decode-gadget-foreground (medium sheet ink)
   (declare (ignore sheet))

@@ -484,7 +484,9 @@
 		    `(((run-benchmarks-to-dummy-file :file ,file) :timeout 1800))
 		    `(exit-clim-tests)
 		    errorp)
-    (unless filename (delete-file file))))
+    (unless filename 
+      (when (probe-file file)
+	(delete-file file)))))
 
 (defun fill-in-partial-command-1 (command-name command-table stream
 				  partial-command accept-function send-it)
@@ -578,3 +580,17 @@
 ;; some values and then exit from the frame
 ;; How can we wait for a frame to be created. Grab hold of it and then
 ;; run some commands on it.
+
+
+;;; This should be at the end:
+;;; make the training selective.
+
+(locally 
+  (declare (special si::*clos-preload-packages*))
+ (setq si::*clos-preload-packages* 
+   (mapcar #'find-package '(:clim :clim-utils :clim-internals :silica :tk :xm-silica))))
+
+;; This stops warnings happening asynchronously and causing confusion.
+
+(setq excl:*global-gc-behavior* nil)
+

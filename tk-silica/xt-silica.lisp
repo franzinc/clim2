@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.78 93/04/08 15:15:05 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.79 93/04/16 09:51:52 cer Exp $
 
 (in-package :xm-silica)
 
@@ -822,8 +822,6 @@
 				:timeout 0))
 	  (tk::process-one-event context mask reason))))))
 
-
-
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style 
 				     &optional our-font)
@@ -1038,10 +1036,10 @@
 (define-xt-keysym (keysym 255 #x61) :refresh)
 (define-xt-keysym (keysym 255 #x0b) :clear-input)
 
-(define-xt-keysym (keysym 255 #x51) :left)
-(define-xt-keysym (keysym 255 #x52) :up)
-(define-xt-keysym (keysym 255 #x53) :right)
-(define-xt-keysym (keysym 255 #x54) :down)
+(define-xt-keysym (keysym 255 #x51) :left-arrow)
+(define-xt-keysym (keysym 255 #x52) :up-arrow)
+(define-xt-keysym (keysym 255 #x53) :right-arrow)
+(define-xt-keysym (keysym 255 #x54) :down-arrow)
 
 
 ;;;

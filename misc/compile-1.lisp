@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.20 93/03/31 10:39:06 cer Exp $
+;; $fiHeader: compile-1.lisp,v 1.21 93/04/02 13:36:29 cer Exp $
 
 (in-package :user)
 
@@ -74,9 +74,7 @@
   (load "demo/sysdcl")
   (clim-defsys::compile-system 'clim-demo :propagate t)
   (clim-defsys::load-system 'clim-demo)
-  (when (probe-file "climtoys/sysdcl.lisp")
-    (load "climtoys/sysdcl.lisp")
-    (clim-defsys::compile-system 'clim-toys))
+  
   (dolist (file '("test/test-driver"
 		  "test/test-clim"
 		  "test/test-demos"))

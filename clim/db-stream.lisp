@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.47 93/03/19 09:43:21 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.48 93/03/25 15:39:31 colin Exp $
 
 (in-package :clim-internals)
 
@@ -668,7 +668,7 @@
 				text-margin default-text-margin
 				save-under input-buffer
 				(scroll-bars :vertical) borders label)
-  (declare (ignore label borders scroll-bars input-buffer))
+  (declare (ignore borders input-buffer))
   (when (or width height)
     (assert (and (null right) (null bottom))))
   (when (null left) (setq left 0))
@@ -680,9 +680,12 @@
 	(setq width (- right left)
 	      height (- bottom top))))
   (let* ((stream
-	  (let ((frame (make-application-frame 'menu-frame
-					       :save-under save-under)))
-	    (slot-value frame 'menu)))
+	  ;;-- This should call frame-manager-get-menu to get
+	  ;;-- the right kind of menu-frame
+	  (frame-manager-get-menu (find-frame-manager)
+					       ;;-- what about :save-under
+					       :label label
+					       :scroll-bars scroll-bars))
 	 (port (port stream)))
     (setf (medium-foreground stream) foreground
 	  (medium-background stream) background

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.28 93/04/07 09:06:37 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.29 93/04/16 09:44:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -273,9 +273,13 @@
 	(move-cursor-beyond-output-record stream graph-record))
       graph-record)))
 
-(defun draw-linear-arc (stream from-object to-object x1 y1 x2 y2 &rest drawing-options)
+(defun draw-linear-arc (stream from-object to-object x1 y1 x2 y2 &rest drawing-options
+			&key path &allow-other-keys)
   (declare (dynamic-extent drawing-options))
   (declare (ignore from-object to-object))
+  (loop
+      (unless path (return nil))
+      (apply #'draw-line* stream x1 y1 (setq x1 (pop path)) (setq y1 (pop path)) drawing-options))
   (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
 
 (defun-inline call-arc-drawer (stream arc-drawer parent-object child-object
@@ -528,6 +532,10 @@ circular graphs without accounting for this case.
 (defclass graph-node-filler-output-record   (standard-graph-node-output-record) ())
 (defclass graph-node-filler-output-record-1 (standard-graph-node-output-record) ())
 
+(defmethod filler-node-p ((node standard-graph-node-output-record)) nil)
+(defmethod filler-node-p ((node graph-node-filler-output-record)) t)
+(defmethod filler-node-p ((node graph-node-filler-output-record-1)) t)
+
 ;; These implement the `offpage' connectors for cyclic graphs.
 (defclass graph-node-connector-output-record
 	  (standard-graph-node-output-record)
@@ -703,6 +711,42 @@ circular graphs without accounting for this case.
       (dolist (root root-nodes)
 	(traverse root)))))
 
+;;
+
+;(defun filler-node-p (object)
+;  (and (consp object) (eq (car object) :filler)))
+
+;(defun filler-edge-p (from to)
+;  (or (filler-node-p from)
+;      (filler-node-p to)))
+;
+;(defun decode-filler-node (object)
+;  (labels ((decode-from (object)
+;	     (if (filler-object-p object)
+;		 (decode-from (second object))
+;	       object))
+;	   (decode-to (object)
+;	     (if (filler-object-p object)
+;		 (decode-to (third object))
+;	       object)))
+;    (values (decode-from object) (decode-to object))))
+;
+;(defun decode-filler-edge (from to)
+;  (labels ((decode-from (object)
+;	     (if (filler-object-p object)
+;		 (decode-from (second object))
+;	       object))
+;	   (decode-to (object)
+;	     (if (filler-object-p object)
+;		 (decode-to (third object))
+;	       object)))
+;    (values (filler-node-p from)
+;	    (decode-from from) 
+;	    (filler-node-p to)
+;	    (decode-to to))))
+
+;;
+
 (defstruct (generation-descriptor (:conc-name generation-) (:type list))
   generation				;generation number
   (breadth 0)				;sum of breadth of all nodes in this generation
@@ -776,6 +820,8 @@ circular graphs without accounting for this case.
 			     ((null c))
 			   (let ((node (car c)))
 			     (when (typep node 'graph-node-filler-output-record)
+			       ;;-- Perhaps all we really need to do is
+			       ;;-- change the size of it?
 			       (delete-output-record node graph)
 			       (let* ((depth (generation-depth
 					       (assoc (graph-node-generation node)
@@ -783,16 +829,25 @@ circular graphs without accounting for this case.
 				      (new (with-new-output-record
 					       (stream 'graph-node-filler-output-record-1 nil
 						       :parent graph)
-					     ;;-- Goddamn! This is not
-					     ;;-- drawing an arc its
-					     ;;-- drawing a node
-					     (call-arc-drawer stream arc-drawer
-							      (graph-node-object parent)
-							      (graph-node-object node)
-							      parent 0 0
-							      node depth 0
-							      arc-drawing-options)))
-				      (child (car (graph-node-children node))))
+					     nil))
+				      (child (car (graph-node-children
+						   node))))
+				 (multiple-value-call
+				     #'bounding-rectangle-set-size new
+				     (bounding-rectangle-size 
+				      ;;-- Goddamn! This is not
+				      ;;-- drawing an arc its
+				      ;;-- drawing a node
+				      (with-output-to-output-record (stream)
+					(call-arc-drawer stream arc-drawer
+							 (graph-node-object parent)
+							 (graph-node-object node)
+							 parent 0 0
+							 node depth 0
+							 (list*
+							  :draw-node t
+							  :allow-other-keys t
+							  arc-drawing-options)))))
 				 (setf (graph-node-generation new) (graph-node-generation node)
 				       (graph-node-children new) (graph-node-children node)
 				       (graph-node-parents new) (graph-node-parents node)
@@ -878,21 +933,56 @@ circular graphs without accounting for this case.
 		(with-output-recording-options (stream :draw nil :record t)
 		  (with-new-output-record (stream 'standard-sequence-output-record nil
 					   :parent graph)
-		    (labels ((draw-edge (parent ph child &optional ch)
-			       (declare (ignore ph ch))
-			       (when parent
+		    (flet ((draw-edge (parent ph child &optional ch)
+			     (declare (ignore ph ch))
+			     (when parent
+
+			       (when (filler-node-p parent)
+				 (return-from draw-edge))
+
+			       (let ((intermediate-children nil)
+				     (i-coords nil)
+				     children
+				     (current-child child))
+				 (when (filler-node-p child)
+				   (loop
+				     (setq children (graph-node-children current-child))
+				     (assert (= (length children) 1))
+				     (push current-child intermediate-children)
+				     (setq current-child (car children))
+				     (unless (filler-node-p current-child)
+				       (return))))
+				 
+				 (setq intermediate-children (nreverse intermediate-children))
+				 (dolist (child intermediate-children)
+				   (multiple-value-bind (parent-x parent-y)
+				       (funcall parent-attach child)
+				     (multiple-value-bind (child-x child-y)
+					 (funcall child-attach child)
+				       (translate-coordinates xoff yoff parent-x parent-y child-x child-y)
+				       (push child-x i-coords)
+				       (push child-y i-coords)
+				       (push parent-x i-coords)
+				       (push parent-y i-coords))))
+				   
+				 (setq child current-child) 
+				   
+				 (setq i-coords (nreverse i-coords))
+				 
 				 (multiple-value-bind (parent-x parent-y)
 				     (funcall parent-attach parent)
 				   (multiple-value-bind (child-x child-y)
 				       (funcall child-attach child)
 				     (translate-coordinates xoff yoff
-				       parent-x parent-y child-x child-y)
+							    parent-x parent-y child-x child-y)
 				     (call-arc-drawer stream arc-drawer
 						      (graph-node-object parent) 
 						      (graph-node-object child)
 						      parent parent-x parent-y
 						      child child-x child-y
-						      arc-drawing-options))))))
+						      (list* :path i-coords
+							     :allow-other-keys t
+							     arc-drawing-options))))))))
 		      (declare (dynamic-extent #'draw-edge)) 
 		      (traverse-graph root-nodes #'inferior-mapper
 				      hash-table #'identity
