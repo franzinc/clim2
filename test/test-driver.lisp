@@ -1,6 +1,7 @@
 (in-package :clim-user)
 
 (defvar *catch-errors-in-tests* t)
+(defvar *invocation* nil)
 
 (defclass basic-invocation ()
 	  ((process :initform nil :accessor invocation-process)
@@ -109,8 +110,8 @@
 (defun terminate-invocation (invocation exit-command)
   (with-slots (process) invocation
     (write-line "Terminating frame")
-    (execute-one-command invocation exit-command)
     (unless (mp::process-stack-group process) (error "Frame terminated abnormally"))
+    (execute-one-command invocation exit-command)
     (unless (wait-for-death process)
       (warn "Process did not terminate"))))
 
@@ -130,71 +131,103 @@
 	   (null commands)))
     (let ((command (car commands)))
       (flet ((do-it ()
-	       (execute-one-command invocation command)
-	       (wait-for-clim-input-state invocation)))
+	       (execute-one-command invocation command)))
 	(if *execute-one-command-hook*
 	    (funcall *execute-one-command-hook* invocation command #'do-it)
 	  (do-it))))))
 
+(defmacro define-test-step (name lambda-list &body body)
+  `(defun ,name ,lambda-list
+     (with-test-stepper-wrapper ()
+       ,@body)))
+
+(defmacro with-test-stepper-wrapper ((&key timeout) &body body)
+  `(let ((invocation *invocation*))
+     (multiple-value-prog1
+	 (progn ,@body)
+       (wait-for-clim-input-state invocation ,timeout))))
+
 (defvar *command-sequence-table* (make-hash-table))
+
+(defmacro with-invocation-sheet ((sheet) &body body)
+  `(let ((,sheet (with-slots (process avv-frame) invocation
+		  (frame-top-level-sheet (or avv-frame (invocation-frame invocation))))))
+     ,@body))
+
+(defmacro with-invocation-frame ((frame) &body body)
+  `(let ((,frame (with-slots (process avv-frame) invocation
+		  (or avv-frame (invocation-frame invocation)))))
+    ,@body))
+		    
+
+(define-test-step character-event (x)
+  (with-invocation-sheet (sheet)
+    (flet ((send-character (character)
+	     (let ((x (clim-internals::port-canonicalize-gesture-spec (port sheet) character)))
+	       (when x
+		 (distribute-event (port sheet)
+				   (make-instance 'key-press-event
+						  :sheet sheet
+						  :character character
+						  :key-name (car x)
+						  :modifier-state (cdr x)))))))
+      ;;--- make sure the event gets to the sheet
+      ;;--- since if the mouse is outside the event is discarded
+      (setf (port-keyboard-input-focus (port sheet)) sheet)
+      (etypecase x
+	(character (send-character x))
+	(string (map nil #'send-character x))
+	(keyword (distribute-event (port sheet)
+				   (multiple-value-bind (keysym modifiers)
+				       (clim-internals::gesture-name-keysym-and-modifiers x)
+				     (assert keysym () "Illegal gesture")
+				     (make-instance 'key-press-event
+						    :sheet sheet
+						    :character nil
+						    :key-name keysym 
+						    :modifier-state modifiers))))))))
+
+(defun execute-a-command (command)
+  (if (and (consp command) (consp (car command)))
+      (destructuring-bind (command &key timeout) command
+	(with-test-stepper-wrapper (:timeout timeout)
+	  (with-invocation-frame (frame)
+	    (execute-command-in-frame frame command))))
+    (with-test-stepper-wrapper ()
+      (with-invocation-frame (frame)
+	(execute-command-in-frame frame command)))))
 
 (defun execute-one-command (invocation command)
   (with-slots (process avv-frame) invocation
-    (let ((sheet (frame-top-level-sheet (or avv-frame (invocation-frame invocation)))))
-      (unless (characterp command)
-	(format t "Executing command ~S~%" command))
-      (etypecase command
-	(character
-	 (let ((x (clim-internals::port-canonicalize-gesture-spec (port sheet) command)))
-	   (when x
-	     (distribute-event (port sheet)
-			       (make-instance 'key-press-event
-					      :sheet sheet
-					      :character command
-					      :key-name (car x)
-					      :modifier-state (cdr x))))))
-	(string
-	 (dotimes (i (length command))
-	   (execute-one-command invocation (char command i))))
-	(keyword
-	 (distribute-event (port sheet)
-			   (multiple-value-bind (keysym modifiers)
-			       (clim-internals::gesture-name-keysym-and-modifiers command)
-			     (make-instance 'key-press-event
-					    :sheet sheet
-					    :character nil
-					    :key-name keysym 
-					    :modifier-state modifiers))))
-
-	(list
-	 (case (car command)
-	   (:sleep
-	    (sleep (cadr command)))
-	   (:presentation-click
-	    (apply #'click-on-presentation invocation (cdr command)))
-	   (:presentation-press
-	    (apply #'click-on-presentation invocation 
-		   (second command) (third command) :release nil (cdddr command)))
-	   (:click
-	    (apply #'click-on-window invocation (cdr command)))
-	   (:press
-	    (apply #'press-on-window invocation (cdr command)))
-	   (:release
-	    (apply #'release-on-window invocation (cdr command)))
-	   (:command
-	    (apply #'test-a-command invocation (cdr command)))
-	   (:commands
-	    (funcall (cadr command) invocation))
-	   (:edit-avv
-	    (destructuring-bind (pane prompt new-value)  (cdr command)
-	      (change-query-value invocation prompt new-value pane)))
-	   (t
-	    (if (and (consp command) (consp (car command)))
-		(destructuring-bind (command &key timeout) command
-		  (execute-command-in-frame (or avv-frame (invocation-frame invocation)) command)
-		  (when timeout
-		    (wait-for-clim-input-state invocation timeout)))
-	      (execute-command-in-frame (or avv-frame (invocation-frame invocation)) command)))))))))
+    (unless (characterp command)
+      (format t "Executing command ~S~%" command))
+    (etypecase command
+      ((or character string keyword)
+       (character-event command))
+      (list
+       (case (car command)
+	 (:sleep
+	  (sleep (cadr command)))
+	 (:presentation-click
+	  (apply #'click-on-presentation (cdr command)))
+	 (:presentation-press
+	  (apply #'click-on-presentation 
+		 (second command) (third command) :release nil (cdddr command)))
+	 (:click
+	  (apply #'click-on-window (cdr command)))
+	 (:press
+	  (apply #'press-on-window (cdr command)))
+	 (:release
+	  (apply #'release-on-window (cdr command)))
+	 (:command
+	  (apply #'test-a-command (cdr command)))
+	 (:commands
+	  (funcall (cadr command) invocation))
+	 (:edit-avv
+	  (destructuring-bind (pane prompt new-value)  (cdr command)
+	    (change-query-value prompt new-value pane)))
+	 (t
+	  (execute-a-command command)))))))
 
 (defmacro with-test-success-expected ((test-name) &body body)
   (let ((tname (gensym)))
@@ -207,20 +240,28 @@
 	   (note-test-succeeded ,tname))))))
 
 
-(defun exercise-frame (test-name class initargs commands exit-command 
+(defun exercise-frame (test-name 
+		       class 
+		       initargs 
+		       command-continuation 
+		       exit-command 
 		       &key (error *catch-errors-in-tests*)
 			    (invocation-class 'frame-invocation))
   (flet ((doit ()
 	   (let ((invocation (make-instance invocation-class :class class :initargs initargs)))
-	     (unwind-protect
-		 (if commands
-		     (execute-commands-in-invocation invocation commands)
-		   (sleep 5))
-	       (terminate-invocation invocation exit-command)
-	       (mp::process-kill (invocation-process invocation))
-	       (unless (wait-for-death (invocation-process invocation))
-		 (warn "Process would not die when killed"))
-	       (destroy-invocation invocation)))))
+	     (let ((*invocation* invocation))
+	       (unwind-protect
+		   (etypecase command-continuation
+		       (list
+			(execute-commands-in-invocation 
+			 invocation command-continuation))
+		       (function (funcall command-continuation))
+		       (null (sleep 5)))
+		 (terminate-invocation invocation exit-command)
+		 (mp::process-kill (invocation-process invocation))
+		 (unless (wait-for-death (invocation-process invocation))
+		   (warn "Process would not die when killed"))
+		 (destroy-invocation invocation))))))
     (if error
 	(with-test-success-expected (test-name)
 	  (doit))
@@ -323,14 +364,14 @@
 (setq *random-state* (make-random-state t))
 
 
-(defun click-on-presentation (invocation pane-name
-			      presentation-type 
-			      &key gesture 
-				   (release t)
-				   (modifier 0)
-				   (button +pointer-left-button+)
-				   (x-offset 0)
-				   (y-offset 0))
+(define-test-step click-on-presentation (pane-name
+					 presentation-type 
+					 &key gesture 
+					 (release t)
+					 (modifier 0)
+					 (button +pointer-left-button+)
+					 (x-offset 0)
+					 (y-offset 0))
   (with-slots (process) invocation
     (when gesture
       (multiple-value-setq (button modifier)
@@ -419,19 +460,17 @@
 						     :modifier-state modifier))))))))))))
 
 
-(defun click-on-window (invocation pane-name left top &rest args)
+(define-test-step click-on-window (pane-name left top &rest args)
   (apply #'button-event-on-window invocation pane-name left top
 	 :up t :down t args))
 
-(defun press-on-window (invocation pane-name left top &rest args)
+(define-test-step press-on-window (pane-name left top &rest args)
   (apply #'button-event-on-window invocation pane-name left top
 	 :up nil :down t args))
 
-(defun release-on-window (invocation pane-name left top &rest args)
+(define-test-step release-on-window (pane-name left top &rest args)
   (apply #'button-event-on-window invocation pane-name left top
 	 :up t :down nil args))
-	 
-
 
 (defun button-event-on-window (invocation pane-name left top 
 			       &key gesture (modifier 0) (button +pointer-left-button+)
@@ -483,7 +522,7 @@
   ;; 1. Send the characters or
   ;; 2. Click on a presentation
   (declare (ignore provide-default default stream))
-  (assert (click-on-presentation invocation pane-name
+  (assert (click-on-presentation pane-name
 				 presentation-type 
 				 :x-offset x-offset
 				 :y-offset y-offset)
@@ -494,10 +533,9 @@
   (when delim
     (execute-one-command invocation " ")))
 
-(defun test-a-command (invocation pane-name command &key colon-prefix 
+(define-test-step test-a-command (pane-name command &key colon-prefix 
 							 (x-offset 0)
 							 (y-offset 0))
-  (print (cons x-offset y-offset))
   (with-slots (process) invocation
     (let ((stream (get-invocation-pane invocation pane-name)))
       (flet ((accept-function (stream presentation-type &rest args)
@@ -529,14 +567,17 @@
   `(progn
      (pushnew ',name *frame-tests*)
      (defun ,name ()
-       (exercise-frame ',name ',class ',initargs ',commands
+       (exercise-frame ',name ',class ',initargs 
+		       ',commands
 		       ',exit-command))))
 
 (defmacro define-activity-test (name (class &rest initargs) commands exit-command)
   `(progn
      (pushnew ',name *frame-tests*)
      (defun ,name ()
-       (exercise-frame ',name ',class ',initargs ',commands ',exit-command
+       (exercise-frame ',name ',class ',initargs 
+		       ',commands
+		       ',exit-command
 		       :invocation-class 'activity-invocation))))
 
 (defmacro define-command-sequence (name &rest commands)
@@ -561,7 +602,7 @@
     (format t "Test ~D out of ~D~%" (1+ i) n)
     (test-it)))
 
-(defun benchmark-clim (filename)
+(defun benchmark-clim (&optional filename)
   (test-it (or filename
 	       (multiple-value-bind (second minute hour date month year)
 		   (get-decoded-time)
@@ -660,7 +701,7 @@
 		 (return-from find-avv-query query)))
 	   (slot-value (slot-value avv-stream 'clim-internals::avv-record) 'clim-internals::query-table)))
 
-(defun change-query-value (invocation prompt new-value &optional pane-name)
+(define-test-step change-query-value (prompt new-value &optional pane-name)
   (with-slots (process avv-frame) invocation
     (let ((query (find-avv-query (if pane-name
 				     (car (gethash (get-invocation-pane invocation pane-name)
@@ -670,6 +711,24 @@
 				 prompt)))
       (assert query () "Could not find the query")
       (execute-one-command invocation `(clim-internals::com-change-query ,query ,new-value)))))
+
+(defun invoke-accept-values-button (label pane)
+  (map-over-sheets #'(lambda (sheet)
+		       (when (and (typep sheet 'push-button)
+				  (equal label (gadget-label sheet)))
+			 (return-from invoke-accept-values-button
+			   (activate-push-button sheet))))
+		   (get-frame-pane
+		    (invocation-frame *invocation*)
+		    pane))
+  (error "Cannot find button ~A" label))
+
+(defun activate-push-button (sheet)
+  (distribute-event
+   (port sheet)
+   (silica::allocate-event 'silica:activate-gadget-event
+			   :gadget sheet))
+  (wait-for-clim-input-state *invocation*))
 
 ;; How to invoke command-buttons
 ;; It would be nice if we could change gadget values directly.

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.35 93/05/05 01:39:44 cer Exp $
+;; $fiHeader: event.lisp,v 1.36 1993/05/13 16:29:44 colin Exp $
 
 (in-package :silica)
 
@@ -662,6 +662,10 @@
 (defgeneric initialize-event (event &key &allow-other-keys))
 
 (defmacro define-event-resource (event-class nevents)
+  ;; Gosh, this macro is bad style, and violates the MOP.
+  ;; Piling warts upon warts, we have to force finalization at
+  ;; macroexpand time... - smh 18may93
+  (clos:finalize-inheritance (find-class event-class)) ;smh 18may93
   (let* ((slots #-CCL-2 (clos:class-slots (find-class event-class))
 		#+CCL-2 (ccl:class-slots (find-class event-class)))
 	 (slot-names #-CCL-2 (mapcar #'clos:slot-definition-name slots)
@@ -673,25 +677,25 @@
 	 ,@(mapcar #'(lambda (slot)
 		       (if (eq slot 'timestamp)
 			   `(setf (slot-value event ',slot) 
-				  (or ,slot (atomic-incf *event-timestamp*)))
-			   `(setf (slot-value event ',slot) ,slot)))
+			      (or ,slot (atomic-incf *event-timestamp*)))
+			 `(setf (slot-value event ',slot) ,slot)))
 		   slot-names))
        (let ((old (assoc ',event-class *resourced-events*)))
 	 (unless old
 	   (setq *resourced-events* 
-		 (append *resourced-events*
-			 (list (list ',event-class ',resource-name 
-				     ;; Allocates, misses, creates, deallocates
-				     #+meter-events ,@(list 0 0 0 0)))))))
+	     (append *resourced-events*
+		     (list (list ',event-class ',resource-name 
+				 ;; Allocates, misses, creates, deallocates
+				 #+meter-events ,@(list 0 0 0 0)))))))
        ;; When an event is in the event resource, we use the timestamp
        ;; to point to the next free event
        (let ((previous-event (make-instance ',event-class)))
 	 (setq ,resource-name previous-event)
 	 (repeat ,(1- nevents)
-	   (let ((event (make-instance ',event-class
-			  :timestamp nil)))
-	     (setf (slot-value previous-event 'timestamp) event)
-	     (setq previous-event event)))))))
+		 (let ((event (make-instance ',event-class
+					     :timestamp nil)))
+		   (setf (slot-value previous-event 'timestamp) event)
+		   (setq previous-event event)))))))
 
 (define-event-resource pointer-motion-event 20)
 (define-event-resource pointer-enter-event 20)

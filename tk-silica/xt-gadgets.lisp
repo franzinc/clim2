@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.32 93/04/23 09:18:50 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.33 1993/05/05 01:40:35 cer Exp $
 
 (in-package :xm-silica)
 
@@ -86,6 +86,16 @@
 	(setf (getf initargs :font-list)
 	  (text-style-mapping port text-style))))
     (values class initargs)))
+
+(defmethod silica::port-set-pane-foreground ((port xt-port) pane m ink)
+  (when (typep m 'xt::xt-root-class)
+    (with-sheet-medium (medium pane)
+      (apply #'tk::set-values m (decode-gadget-foreground medium pane ink)))))
+
+(defmethod silica::port-set-pane-background ((port xt-port) pane m ink)
+  (when (typep m 'xt::xt-root-class)
+    (with-sheet-medium (medium pane)
+      (apply #'tk::set-values m (decode-gadget-background medium pane ink)))))
 
 (defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))
@@ -271,3 +281,39 @@
        :height (and height (process-height-specification sheet height))
        :min-height (and min-height (process-height-specification sheet min-height))
        :max-height (and max-height (process-height-specification sheet max-height))))))
+
+(defvar *funny-accelerator-characters* 
+    '(
+      ((#\\ :\\) "backslash")
+      ((#\space :\ ) "space")
+      ((#\: :\: ) "colon")
+      ((#\, :\, ) "comma")
+      ))
+
+(defun get-accelerator-text (keystroke)
+  (let ((key (car keystroke)))
+    (let ((x (assoc key *funny-accelerator-characters* 
+		    :test #'member)))
+      (if x
+	  (values (format nil "<Key>~A"  (second x))
+		  (format nil "~A" key))
+	(values (format nil "<Key>~A" key)
+		(format nil "~A" key))))))
+
+(defmethod set-button-accelerator-from-keystroke ((menubar menu-bar) button keystroke)
+  (when keystroke 
+    (record-accelerator menubar keystroke)
+    (multiple-value-bind (accel accel-text)
+	(get-accelerator-text keystroke)
+      (dolist (modifier (cdr keystroke))
+        (setq accel-text
+          (concatenate 'string 
+            (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
+            accel-text))
+        (setq accel
+          (concatenate 'string 
+            (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
+            accel)))
+      (tk::set-values button 
+                      :accelerator accel
+                      :accelerator-text accel-text))))

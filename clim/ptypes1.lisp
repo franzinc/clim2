@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.21 92/12/03 10:27:39 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.22 92/12/14 15:02:14 cer Exp $
 
 (in-package :clim-internals)
 
@@ -389,6 +389,9 @@
 	((eq class clos::*the-class-t*)
 	 *class-prototype-for-t*)
 	(t
+	 ;; Finalization is necessary according to AMOP. -smh 18may93
+	 (unless (clos:class-finalized-p class)
+	   (clos:finalize-inheritance class))
 	 (class-prototype class))))
 
 (defun-inline find-class-precedence-list (class)
@@ -396,6 +399,9 @@
   ;; from consing the CPL over and over again in degenerate cases that
   ;; can come up with structure classes
   #+Symbolics (find-class-prototype class)
+  ;; Finalization is necessary according to AMOP. -smh 18may93
+  (unless (clos:class-finalized-p class)
+    (clos:finalize-inheritance class))
   (class-precedence-list class))
 
 ;;; Hide the long name when printing these
@@ -1305,15 +1311,18 @@
 
 #-CLIM-extends-CLOS
 (defun generate-presentation-type-inheritance-methods
-       (name class parameters-var options-var &optional environment)
+    (name class parameters-var options-var &optional environment)
+  ;; Finalization is necessary according to AMOP. -smh 18may93
+  (unless (clos:class-finalized-p class)
+    (clos:finalize-inheritance class))
   (let ((superclasses 
-	  #-Allegro (cdr (class-precedence-list class))
-	  #+Allegro ;; Work around bug in CLOS compilation environments...
-	  (multiple-value-bind (no-errorp result)
-	      (excl:errorset (cdr (class-precedence-list class)) nil)
-	    (if no-errorp
-		result
-		(return-from generate-presentation-type-inheritance-methods))))
+	 #-Allegro (cdr (class-precedence-list class))
+	 #+Allegro ;; Work around bug in CLOS compilation environments...
+	 (multiple-value-bind (no-errorp result)
+	     (excl:errorset (cdr (class-precedence-list class)) nil)
+	   (if no-errorp
+	       result
+	     (return-from generate-presentation-type-inheritance-methods))))
 	(to-type-name-var '#:to-type-name)
 	(from-type-name-var '#:from-type-name))
     #+Minima (setq superclasses (elide-nonessential-superclasses superclasses))
@@ -1323,28 +1332,28 @@
 					     parameters-var options-var t environment)
 		  `(,@(when (presentation-type-parameters superclass environment)
 			`((defmethod inherited-presentation-type-parameters-method
-				     ((,to-type-name-var
-				       (eql ',(class-presentation-type-name superclass)))
-				      (,from-type-name-var (eql ',name))
-				      ,parameters-var)
-			    ,parameters-var	;might not be used
+			      ((,to-type-name-var
+				(eql ',(class-presentation-type-name superclass)))
+			       (,from-type-name-var (eql ',name))
+			       ,parameters-var)
+			    ,parameters-var ;might not be used
 			    (let* ,bindings
 			      ,@(when bindings
 				  `((declare (dynamic-extent ,@(mapcar #'first bindings)))
 				    ,@(mapcar #'first bindings)))
 			      ,(second (assoc superclass alist))))))
-		    ,@(when (presentation-type-options superclass environment)
-			`((defmethod inherited-presentation-type-options-method
-				     ((,to-type-name-var
-				       (eql ',(class-presentation-type-name superclass)))
-				      (,from-type-name-var (eql ',name))
-				      ,options-var)
-			    ,options-var	;might not be used
-			    (let* ,bindings
-			      ,@(when bindings
-				  `((declare (dynamic-extent ,@(mapcar #'first bindings)))
-				    ,@(mapcar #'first bindings)))
-			      ,(third (assoc superclass alist)))))))))
+		      ,@(when (presentation-type-options superclass environment)
+			  `((defmethod inherited-presentation-type-options-method
+				((,to-type-name-var
+				  (eql ',(class-presentation-type-name superclass)))
+				 (,from-type-name-var (eql ',name))
+				 ,options-var)
+			      ,options-var ;might not be used
+			      (let* ,bindings
+				,@(when bindings
+				    `((declare (dynamic-extent ,@(mapcar #'first bindings)))
+				      ,@(mapcar #'first bindings)))
+				,(third (assoc superclass alist)))))))))
 	    superclasses)))
 
 #-CLIM-extends-CLOS

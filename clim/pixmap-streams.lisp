@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.16 93/04/02 13:36:03 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.17 1993/05/05 01:38:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -45,18 +45,26 @@
 
 #+Allegro
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
-					 &key width height)
-  (let* ((pixmap-medium (make-pixmap-medium (port stream) stream
-					    :width width :height height))
-	 (pixmap-stream (make-instance 'pixmap-stream 
-			  :default-text-margin width
-			  :port (port stream)
-			  :medium pixmap-medium
-			  :width width :height height)))
-    (setf (medium-foreground pixmap-medium) (medium-foreground stream)
-	  (medium-background pixmap-medium) (medium-background stream))
-    (funcall continuation pixmap-stream)
-    (slot-value pixmap-medium 'silica::pixmap)))
+									&key width height)
+  (let (record)
+    (unless (and width height)
+      (setq record (with-output-to-output-record (stream)
+		     (funcall continuation stream)))
+      (output-record-set-position record 0 0)
+      (multiple-value-setq (width height) (bounding-rectangle-size record)))
+    (let* ((pixmap-medium (make-pixmap-medium (port stream) stream
+					      :width width :height height))
+	   (pixmap-stream (make-instance 'pixmap-stream 
+					 :default-text-margin width
+					 :port (port stream)
+					 :medium pixmap-medium
+					 :width width :height height)))
+      (setf (medium-foreground pixmap-medium) (medium-foreground stream)
+	    (medium-background pixmap-medium) (medium-background stream))
+      (if record
+	  (replay record pixmap-stream)
+	(funcall continuation pixmap-stream))
+      (slot-value pixmap-medium 'silica::pixmap))))
 
 (defun pixmap-from-menu-item (associated-window menu-item printer presentation-type
 			      &optional text-style)

@@ -1,25 +1,27 @@
-# $fiHeader: Makefile.sun4,v 1.4 93/04/29 02:53:51 layer Exp $
+# $fiHeader: Makefile.sun4,v 1.5 1993/05/13 16:22:45 cer Exp $
 #
 #  Makefile.sun4 for CLIM 2.0
 #
 
 include Makefile.defs
 
-MOTIFLIB=/net/vapor/3rd/motif-1.2.1/usr/lib/libXm$(DEBUGLIB).a
-#MOTIFLIB_d=/net/vapor/3rd/motif-1.2.1/usr/lib/libXm_d.a
-MOTIFLIB_d=/net/vapor/3rd/motif-1.2.1/usr/lib/libXm.a
-XLIB= /net/vapor/3rd/motif-1.2.1/usr/lib/libX11$(DEBUGLIB).a 
-XTLIB=/net/vapor/3rd/motif-1.2.1/usr/lib/libXt$(DEBUGLIB).a
+MOTIFHOME=/net/vapor/3rd/motif-1.2.2
+MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
+#MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm_d.a
+MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm.a
+XLIB= $(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
+XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 
-XINCLUDES=-I/net/vapor/3rd/motif-1.2.1/usr/include
-XMINCLUDES=-I/net/vapor/3rd/motif-1.2.1/usr/include
+XINCLUDES=-I$(MOTIFHOME)/usr/include
+XMINCLUDES=-I$(MOTIFHOME)/usr/include
 OLINCLUDES=-I/usr/openwin/include
 
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 # Do we really need this. Why is it referenced?
-MOTIFXTRAOS=/net/vapor/3rd/motif-1.2.1/usr/lib/Motif/Sun/dlsym.o
+MOTIFXTRAOS=$(MOTIFHOME)/usr/lib/Motif/Sun/dlsym.o
 
-OLXLIB= /net/vapor/x11/olit-3.0/lib/libX11.a
-OLXTLIB=/net/vapor/x11/olit-3.0/lib/libXt.a
+OPENLOOKHOME=/net/vapor/x11/olit-3.0
+OLXLIB= $(OPENLOOKHOME)/lib/libX11.a
+OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
 
 include Makefile.generic

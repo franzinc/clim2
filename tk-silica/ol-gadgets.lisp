@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.50 1993/05/13 16:31:32 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.51 1993/05/25 20:42:31 cer Exp $
 
 
 (in-package :xm-silica)
@@ -1775,24 +1775,6 @@
 				:string (tk::get-values button :label))
 	      (tk::set-values button :default t))))))))
 
-(defmethod set-button-accelerator-from-keystroke ((menubar openlook-menu-bar) button keystroke)
-  (when keystroke 
-    (record-accelerator menubar keystroke)
-    (let ((accel (format nil "<~A>" (car keystroke)))
-	  (accel-text (format nil "~A" (car keystroke))))
-      (dolist (modifier (cdr keystroke))
-	(setq accel-text
-	  (concatenate 'string 
-	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
-	    accel-text))
-	(setq accel
-	  (concatenate 'string 
-	    (case modifier (:control "c") (:meta "a") (t ""))
-	    accel)))
-      (tk::set-values button 
-		      :accelerator accel
-		      :accelerator-text accel-text))))
-
 (defmethod discard-accelerator-event-p ((port openlook-port) (event t))
   (or (call-next-method)
       ;;-- There are a whole bunch of other keysyms that need to be ignored.
@@ -1838,9 +1820,13 @@
 		(case name
 		  (:exit (tk::add-callback button :select #'done t))
 		  (:abort (tk::add-callback button :select #'done nil))))))
-	  (tk::popup shell)
-	  (wait-for-callback-invocation (port framem) #'(lambda () done))
-	  (car done))))))
+	  (unwind-protect
+	      (progn
+		(tk::popup shell)
+		(wait-for-callback-invocation (port framem) #'(lambda () done))
+		(car done))
+	    (unless done
+	      (tk::popdown shell))))))))
 
 ;;--- We could export this to handle the default case.
 ;;--- It definitely needs work though. 
@@ -1873,6 +1859,9 @@
 	    (accept 'pathname :prompt "File"
 		    :stream stream))))))
 
+(defmethod silica::port-set-pane-text-style ((port openlook-port) pane m text-style)
+  (when (typep m 'xt::xt-root-class)
+    (tk::set-values m :font (text-style-mapping port text-style))))
 
 
 

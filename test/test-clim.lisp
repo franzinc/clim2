@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.6 1993/05/13 16:24:16 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.7 1993/05/25 20:42:04 cer Exp $
 
 
 (in-package :clim-user)
@@ -50,8 +50,7 @@
 		     ("Draw / diagonal" t)
 		     ("Color" :red)
 		     ("Color" :green)))
-	(apply 'change-query-value inv cmd)
-	(wait-for-clim-input-state inv)))
+	(apply 'change-query-value cmd)))
     (execute-one-command inv :abort)
     ))
 
@@ -59,6 +58,13 @@
     (com-draw-some-bezier-curves)
   (:commands do-avv-test)
   (com-input-editor-tests)
+  "(cons"
+  :ie-show-arglist
+  :ie-show-documentation
+  " *standard-input*"
+  :ie-show-value
+  :ie-show-documentation
+  :ie-clear-input
   "This is (sexp) and a string"
   :ie-backward-character
   :ie-backward-character
@@ -397,6 +403,11 @@
 		 :documentation "Find Makefiles"
 		 :text-style '(:fix :roman :huge))))
 
+(define-frame-test-command com-frame-test-display-progress-note
+    ()
+  (dotimes-noting-progress (i 10 "fred")
+    (sleep 1)))
+
 (define-frame-test-command com-frame-test-bye
     ()
   (with-text-size (t :huge)
@@ -437,6 +448,8 @@
    (com-frame-test-change-name)
    (:sleep 2)
    (com-frame-test-display-dialogs)
+   (:sleep 2)
+   (com-frame-test-display-progress-note)
    (:sleep 2)
    (com-frame-test-bury)
    (:sleep 3)
@@ -549,9 +562,19 @@
 
 (defun multiple-value-setf-test ()
   (with-test-success-expected ('multiple-value-setf-test)
-    (let ((x (make-bounding-rectangle 0 0 10 10)))
-      (setf (bounding-rectangle* x)
-	(values 12 12 13 14)))))
+    (eval '(let ((x (make-bounding-rectangle 0 0 10 10)))
+	    (setf (bounding-rectangle* x)
+	      (values 12 12 13 14))))))
+
+;;
+
+(push 'define-presentation-type-with-history-test *frame-tests*)
+
+(defun define-presentation-type-with-history-test ()
+  (with-test-success-expected ('define-presentation-type-with-history-test)
+    (eval `(define-presentation-type ,(gensym) nil :history t :inherit-from '((string))))))
+;;
+
 
 (push 'filling-output-on-plain-stream-test *frame-tests*)
 
@@ -560,7 +583,18 @@
     (filling-output (*standard-output* :fill-width '(20 :character))
       (write-string *gettysburg-address* *standard-output*))))
 
+(push 'create-multiple-ports *frame-tests*)
 
+(defun create-multiple-ports ()
+  (with-test-success-expected ('create-multiple-ports)
+    (let (port2)
+      (mp::with-timeout (30) 
+	(clim-demo::start-demo :port (setq port2
+				       (find-port :server-path (list (car *default-server-path*) :application-name "climx")))))
+      (mp::with-timeout (30) 
+	(clim-demo::start-demo))
+      (mp::with-timeout (30) 
+	(clim-demo::start-demo :port port2)))))
 
 (macrolet ((define-profile-clim-tests ()
 	       `(define-frame-test profile-clim-tests (clim-tests :width 600 :height 600)
@@ -570,8 +604,6 @@
 		  (exit-clim-tests))))
   (define-profile-clim-tests))
 
-(push 'run-profile-clim-tests *frame-tests*)
-
 (defun run-profile-clim-tests ()
   (let ((prof::*hidden-packages* nil)
 	(prof::*significance-threshold* 0.001)
@@ -580,3 +612,23 @@
       (do-frame-test-with-profiling 'profile-clim-tests  :type :time))
     (with-test-success-expected ('run-profile-clim-tests-space)
       (do-frame-test-with-profiling 'profile-clim-tests :type :space))))
+
+
+;;
+
+(define-frame-test-command com-multi-colored-button ()
+  ()
+  (let  ((gadget 
+	  (with-output-as-gadget (t)
+	    (make-pane 'push-button :label "hello"))))
+    (sleep 1)
+    (setf (pane-background gadget) +red+)
+    (sleep 1)
+    (setf (pane-foreground gadget) +green+)
+    (sleep 1)
+    (setf (pane-text-style gadget) '(:fix :roman 10))
+    (sleep 1)))
+
+(define-frame-test test-com-multi-colored-button (frame-test :width 400 :height 400)
+  ((com-multi-colored-button))
+  (com-frame-test-quit))

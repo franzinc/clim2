@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.18 93/04/02 13:36:40 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.19 1993/05/13 16:23:58 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -777,6 +777,7 @@ end } def
       ;;  (setf (sheet-mirror graft) (realize-mirror port graft)) ;;Is the mirror already realized?
       ;;(update-native-transformation port graft)
       )))
+
 
 
 (defmethod standardize-text-style ((port postscript-port) style &optional character-set)
@@ -821,8 +822,8 @@ end } def
 (defmethod normal-line-thickness ((port apple-laser-writer) thickness)
   (if (= thickness 1)
       0
-      (* 0.5f0 thickness (/ (slot-value port 'device-units-per-inch)
-			    (slot-value port 'x-resolution)))))
+      (* thickness (/ (slot-value port 'device-units-per-inch)
+		      (slot-value port 'x-resolution)))))
 
 (defmethod initialize-instance :after ((port apple-laser-writer) &key server-path)
   (declare (ignore server-path))
@@ -858,6 +859,11 @@ end } def
 
 (defmethod pane-viewport-region ((stream postscript-stream))
   +everywhere+)
+
+#+ignore
+(defmethod window-viewport ((stream postscript-stream))
+  (with-slots (page-width page-height) (port stream)
+    (make-bounding-rectangle 0 0 page-width page-height)))
 
 (defmethod window-inside-width ((stream postscript-stream))
   (let ((port (port stream)))

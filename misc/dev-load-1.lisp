@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.27 1993/05/05 01:39:30 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.28 1993/05/25 20:41:41 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -77,20 +77,20 @@
 	 (set (intern '#:*clm-binary-directory* :xtk)
 	      #P"/hyper/qa/4.2.beta2.0/solaris1/lib/"))))
 
-     (dolist (file '("test/test-driver"
-		     "test/test-clim"
-		     "test/test-demos"))
-       (load file))
+     (progn
+       (load "test/testdcl")
+       (tenuring 
+	(clim-defsys::load-system 'testing)))
 
      (when (probe-file "climtoys/sysdcl.lisp")
        (load "climtoys/sysdcl.lisp")
+       (clim-defsys::compile-system 'clim-toys)
        (tenuring 
-	(clim-defsys::compile-system 'clim-toys)
 	(clim-defsys::load-system 'clim-toys)))
 
-     (clim-defsys::fake-load-system (cons sys '(postscript-clim 
-				 clim-toys
-				 clim-demo)) :recurse t)
+     (clim-defsys::fake-load-system 
+      (cons sys '(postscript-clim clim-demo)) 
+      :recurse t)
      
 ;     (warn "Loading patch file")
 ;     (load "/net/vapor/usr/tech/cer/patches/clos-precache.fasl"

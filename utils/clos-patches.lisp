@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.6 92/08/18 17:24:04 cer Exp $
+;; $fiHeader: clos-patches.lisp,v 1.7 92/09/08 15:16:58 cer Exp $
 
 (in-package :clim-utils)
 
@@ -26,7 +26,8 @@
 
 #+Allegro
 (defun-inline compile-file-environment-p (environment)
-  excl::*compiler-environment*)
+  (or (eq environment 'compile-file)
+      excl::*compiler-environment*))
 
 #+Allegro
 (eval-when (compile)

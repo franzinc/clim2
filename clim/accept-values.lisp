@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.62 1993/05/13 16:22:58 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.63 1993/05/25 20:40:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -121,9 +121,10 @@
 		 (setq query-identifier 
 		   (apply #'prompt-for-accept
 			  (encapsulated-stream stream) type view accept-args)))
-	       (formatting-cell (stream :align-x :left)
-		 (setq query (find-or-add-query stream query-identifier type prompt
-						default default-supplied-p view active-p))))))
+	       (letf-globally (((slot-value stream 'align-prompts) nil))
+		 (formatting-cell (stream :align-x :left)
+		   (setq query (find-or-add-query stream query-identifier type prompt
+						  default default-supplied-p view active-p)))))))
 	  (t
 	   (setq query-identifier
 		 (apply #'prompt-for-accept
@@ -279,28 +280,45 @@
     ((help-window :initform nil)
      (scroll-bars :initform nil :initarg :scroll-bars)
      (align-prompts :initform nil :initarg :align-prompts))
-  (:pane 
-    (with-slots (stream own-window exit-button-stream scroll-bars align-prompts) *application-frame*
-      (vertically ()
-	(outlining ()
-	  (progn
-	    (setq stream (make-instance 'accept-values-stream
-			   :align-prompts align-prompts
-			   :stream (setq own-window 
-					 (make-pane 'clim-stream-pane
-					   :initial-cursor-visibility :off
-					   :end-of-page-action :allow))))
-	    (if scroll-bars
-		(scrolling (:scroll-bars scroll-bars) own-window)
-		own-window)))
-	(outlining ()
-	  (setf exit-button-stream
-		(make-pane 'clim-stream-pane
-		  :initial-cursor-visibility nil))))))
+    (:pane 
+     (let ((frame *application-frame*)
+	   panes)
+       (with-slots (stream own-window exit-button-stream scroll-bars align-prompts)  frame
+	 (multiple-value-setq (panes own-window exit-button-stream)
+			      (frame-manager-construct-avv-panes 
+			       frame (frame-manager frame)))
+	 (setq stream (make-instance 'accept-values-stream
+				     :align-prompts align-prompts
+				     :stream own-window))
+	 panes)))
   (:menu-bar nil)
   (:top-level (accept-values-top-level))
   (:command-table accept-values)
   (:command-definer nil))
+
+(defmethod frame-manager-construct-avv-panes ((frame accept-values-own-window)
+					      (framem standard-frame-manager))
+  (let (exit-button-stream own-window)
+    (values
+     (with-look-and-feel-realization (framem frame)
+       (with-slots (scroll-bars) frame
+	 (vertically ()
+	   (outlining ()
+	     (progn
+	       (setq own-window 
+		 (make-pane 'clim-stream-pane
+			    :initial-cursor-visibility :off
+			    :end-of-page-action :allow))
+	       (if scroll-bars
+		   (scrolling (:scroll-bars scroll-bars) own-window)
+		 own-window)))
+	   (outlining ()
+	     (setf exit-button-stream
+	       (make-pane 'clim-stream-pane
+			  :initial-cursor-visibility nil))))))
+     own-window
+     exit-button-stream)))
+      
 
 (defmethod frame-manager-accepting-values-frame-class ((framem standard-frame-manager))
   'accept-values-own-window)
@@ -498,12 +516,13 @@
 		   (changing-space-requirements (:layout t)
 		     ;; We really want to specify the min/max sizes of
 		     ;; the exit-button pane also
+		     (when exit-button-stream
 		     (size-frame-from-contents exit-button-stream
 		       :size-setter
 		         #'(lambda (pane w h)
 			     (change-space-requirements pane 
 			       :width w :min-width w :max-width w
-			       :height h :min-height h :max-height h)))
+			       :height h :min-height h :max-height h))))
 		     (when own-window
 		       (size-frame-from-contents own-window
 			 :width own-window-width
@@ -594,14 +613,16 @@
   nil)
 
 (defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
-					&key (align-prompts t))
+								      &key (align-prompts t))
   (declare (dynamic-extent continuation))
   (setq align-prompts (ecase align-prompts
 			((t :right) :right)
 			((:left) :left)
 			((nil) nil)))
   (letf-globally (((slot-value stream 'align-prompts) align-prompts)) 
-    (formatting-table (stream)
+    (if align-prompts
+	(formatting-table (stream)
+	  (funcall continuation stream))
       (funcall continuation stream))))
 
 (defmethod invoke-with-aligned-prompts ((stream t) continuation &key align-prompts)
@@ -1233,6 +1254,7 @@
 				     &key displayer
 					  resynchronize-every-pass
 					  (check-overlapping t) 
+					  view
 					  align-prompts
 					  max-height max-width)
   (declare (ignore max-height max-width))
@@ -1240,29 +1262,33 @@
 			((t :right) :right)
 			((:left) :left)
 			((nil) nil)))
-  (let* ((stream-and-record (and (not *frame-layout-changing-p*)
-				 (gethash pane (or (frame-pane-to-avv-stream-table frame)
-						   (setf (frame-pane-to-avv-stream-table frame) (make-hash-table))))))
+  (let* ((stream-and-record 
+	  (and (not *frame-layout-changing-p*)
+	       (gethash pane (or (frame-pane-to-avv-stream-table frame)
+				 (setf (frame-pane-to-avv-stream-table frame) (make-hash-table))))))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
     (cond ((and avv-stream
 		(output-record-stream avv-record))
 	   (with-deferred-gadget-updates
 	     (letf-globally (((stream-default-view avv-stream) 
-			      (frame-manager-dialog-view (frame-manager frame))))
+			      (or view
+				  (frame-manager-dialog-view (frame-manager frame)))))
 	       (redisplay avv-record avv-stream :check-overlapping check-overlapping)
 	       (when resynchronize-every-pass
 		 (redisplay avv-record avv-stream :check-overlapping check-overlapping)))))
 	  (t
-	   (accept-values-pane-displayer-1 frame pane displayer align-prompts )))))
+	   (accept-values-pane-displayer-1 frame pane displayer
+					   align-prompts view)))))
 
-(defun accept-values-pane-displayer-1 (frame pane displayer align-prompts)
+(defun accept-values-pane-displayer-1 (frame pane displayer align-prompts view)
   (let ((avv-stream (make-instance 'accept-values-stream 
 		      :stream pane :align-prompts align-prompts))
 	(avv-record nil))
     (setf (slot-value avv-stream 'avv-frame) frame)
-    (letf-globally (((stream-default-view pane) 
-		     (frame-manager-dialog-view (frame-manager frame))))
+    (letf-globally (((stream-default-view pane)
+		     (or view
+			 (frame-manager-dialog-view (frame-manager frame)))))
       (setq avv-record
 	    (updating-output (avv-stream)
 	      (with-new-output-record 
@@ -1375,6 +1401,7 @@
 
 
 ;;; Fancy gadget-based dialogs...
+
 
 (defmethod display-exit-boxes ((frame accept-values) stream (view gadget-dialog-view))
   (fresh-line stream)

@@ -20,41 +20,35 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.5 93/03/19 09:46:57 cer Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.6 1993/05/13 16:24:58 cer Exp $
 
 
 (in-package :clim-internals)
 
-(defmethod frame-manager-accepting-values-frame-class ((framem xm-silica::motif-frame-manager))
-  'motif-accept-values-own-window)
 
-(define-application-frame motif-accept-values-own-window (accept-values-own-window)
-			  ()
-  (:pane 
-   (with-slots (stream own-window exit-button-stream scroll-bars align-prompts) *application-frame*
-     (vertically ()
-	 (progn
-	   (setq stream
-	     (make-instance 'accept-values-stream
-			    :align-prompts align-prompts
-			    :stream (setf own-window 
-				      (make-pane 'clim-stream-pane
-						 
-						 :output-record
-						 (make-instance 'standard-sequence-output-history)
-						 :initial-cursor-visibility :off))))
-	   (if scroll-bars
-	       (scrolling (:scroll-bars scroll-bars) own-window)
-	     own-window))
-       (make-pane 'silica::separator :orientation :horizontal)
-       (setf exit-button-stream
-	 (make-pane 'clim-stream-pane
-		    :initial-cursor-visibility nil)))))
-  (:menu-bar nil)
-  (:top-level (accept-values-top-level))
-  (:command-table accept-values)
-  (:command-definer nil))
-
+(defmethod frame-manager-construct-avv-panes ((frame accept-values-own-window)
+					      (framem xm-silica::motif-frame-manager))
+  (let (exit-button-stream own-window)
+    (values
+     (with-look-and-feel-realization (framem frame)
+       (with-slots (scroll-bars) frame
+	 (vertically ()
+	   (progn
+	     (setf own-window 
+	       (make-pane 'clim-stream-pane
+			  :output-record
+			  (make-instance 'standard-sequence-output-history)
+			  :initial-cursor-visibility :off))
+	     (if scroll-bars
+		 (scrolling (:scroll-bars scroll-bars) own-window)
+	       own-window))
+	   (make-pane 'silica::separator :orientation :horizontal)
+	   (setf exit-button-stream
+	     (make-pane 'clim-stream-pane
+			:initial-cursor-visibility nil)))))
+     own-window
+     exit-button-stream)))
+     
 ;;;---- The rest of what in here is dreaming right now
 ;;;---- It would be nice to use more 
 

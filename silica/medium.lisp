@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.33 93/03/18 14:38:09 colin Exp $
+;; $fiHeader: medium.lisp,v 1.34 93/03/25 15:40:30 colin Exp $
 
 (in-package :silica)
 
@@ -142,6 +142,25 @@
 	    (pane-text-style sheet) (or (getf initargs :text-style) 
 					(getf resources :text-style)
 					(default-pane-text-style sheet))))))
+
+;;----- note-sheet-grafted :before ((sheet sheet-with-resources-mixin))
+;;----- calls the (setf pane-foo) methods
+;;----- Does that matter?
+
+(defmethod (setf pane-foreground) :after (ink (pane sheet-with-resources-mixin))
+  (let ((m (sheet-direct-mirror pane)))
+    (when m
+      (port-set-pane-foreground (port pane) pane m ink))))
+
+(defmethod (setf pane-background) :after (ink (pane sheet-with-resources-mixin))
+  (let ((m (sheet-direct-mirror pane)))
+    (when m
+      (port-set-pane-background (port pane) pane m ink))))
+
+(defmethod (setf pane-text-style) :after (text-style (pane sheet-with-resources-mixin))
+  (let ((m (sheet-direct-mirror pane)))
+    (when m
+      (port-set-pane-text-style (port pane) pane m text-style))))
 
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (sheet sheet-with-resources-mixin))

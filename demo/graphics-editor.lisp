@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.19 93/04/27 15:49:36 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.20 1993/05/25 20:41:33 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -589,7 +589,9 @@
 ;; OK, I added a menu button to clear the window.
 (define-command (com-clear :command-table
 			   graphics-editor-edit-commands 
-			   :menu ("Clear" :documentation "Clear all graphics"))
+			   :keystroke (#\\ :control)
+			   :menu ("Clear" 
+				  :documentation "Clear all graphics"))
     ()
   (with-slots (objects selected-object last-box) *application-frame*
     (setq objects nil
@@ -640,3 +642,4 @@
     (run-frame-top-level frame)))
 
 (define-demo "Graphics Editor" do-graphics-editor)
+

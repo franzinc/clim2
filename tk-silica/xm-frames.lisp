@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.56 93/04/27 14:36:09 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.57 1993/05/25 20:42:34 cer Exp $
 
 (in-package :xm-silica)
 
@@ -484,7 +484,7 @@
 	      (funcall continuation note))
 	  (tk::set-values *working-dialog* :message-string old-string)))
     (let ((dialog (make-instance 'xt::xm-working-dialog
-					   :dialog-style :primary-application-modal
+					   :dialog-style :modeless
 					   :managed nil
 					   :parent (let ((stream (slot-value note 'stream)))
 						     (if stream

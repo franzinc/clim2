@@ -20,14 +20,17 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.7 93/04/23 09:18:03 cer Exp $
+;; $fiHeader: train.lisp,v 1.8 1993/05/13 16:23:50 cer Exp $
 
 (defun train-clim (&key (train-times 2) 
 			(psview nil)
 			(frame-tests t)
 			(errorp t)
 			(hpglview nil)
-			(compile t))
+			(compile t)
+			(profilep t)
+			(benchmarkp t))
+  
   (setq *global-gc-behavior* nil)
   (load "test/test.lisp")
   (clim-user::with-test-reporting (:file (if (excl::featurep :clim-motif) 
@@ -53,6 +56,16 @@
 					   "coverage-reportol.lisp")
 		   :if-exists :supersede :direction :output)
     (generate-coverage-report))
+
+  ;; We have to do this here because profiling clears the call counts.
+  
+  (when (and (fboundp 'clim-user::run-profile-clim-tests)
+	     profilep)
+    (clim-user::run-profile-clim-tests))
+
+  (when benchmarkp 
+    (clim-user::benchmark-clim))
+  
   (compile-file "misc/clos-preload.cl" 
 		:output-file 
 		(if (excl::featurep :clim-motif) 

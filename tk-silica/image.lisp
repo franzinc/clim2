@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.9 92/12/16 16:50:37 cer Exp $
+;; $fiHeader: image.lisp,v 1.10 1993/05/13 16:24:49 cer Exp $
 
 
 (in-package :xm-silica)
@@ -201,11 +201,14 @@
 				 ;;--- 
 				 ("pixel" . :chars-per-pixel)
 				 ("left_pad" . :left-pad))))))
+	  ;; Get the name of the bitmaps
+	  ;; #define THENANME_some_attribute
 	  (when (null name)
 	    (setq name-end (position #\_ line :test #'char= :from-end t)
 		  name (read-keyword line 8 name-end))
 	    (unless (eq name :image)
 	      (setf (getf properties :name) name)))
+	  ;; Get the name of the attribute.
 	  (let* ((ind-start (1+ name-end))
 		 (ind-end (position #\Space line :test #'char=
 				    :start ind-start))

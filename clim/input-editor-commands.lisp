@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.25 93/04/23 09:17:32 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.26 1993/05/05 01:38:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1069,19 +1069,17 @@ This may confused the input editor" gestures))
   (multiple-value-bind (word-start word-end colon)
       (word-start-and-end input-buffer delimiters
 			  (stream-insertion-pointer stream))
+
     (when word-end
-      (with-temporary-substring
-	  (package-name input-buffer word-start (or colon word-start))
-	(when (and colon
-		   (< colon word-end)
-		   (char-equal (aref input-buffer (1+ colon)) #\:))
-	  (incf colon))
-	(with-temporary-substring
-	    (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
-	  (let* ((package (if colon (find-package package-name) *package*))
-		 (symbol (and package
-			      (find-symbol (string-upcase symbol-name) package))))
-	    (values symbol package word-start word-end)))))))
+      (let ((symbol 
+	     (read-from-string (coerce input-buffer 'string) nil nil 
+			       :start word-start
+			       :end word-end)))
+	(values
+	 symbol
+	 (symbol-package symbol)
+	 word-start
+	 word-end)))))
 
 (define-input-editor-command (com-ie-show-arglist :rescan nil)
 			     (stream input-buffer)

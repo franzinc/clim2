@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-widgets.lisp,v 1.3 92/07/27 19:29:14 cer Exp $
+;; $fiHeader: ol-widgets.lisp,v 1.4 1993/05/25 20:42:20 cer Exp $
 
 (in-package :xt)
 
@@ -91,3 +91,10 @@
 					  :type 'boolean
 					  :original-name 
 					  (string-to-char* "recomputeWidth")))
+
+(tk::add-resource-to-class (find-class 'vendor-shell)
+			   (make-instance 'resource
+					  :name :busy
+					  :type 'boolean
+					  :original-name 
+					  (string-to-char* "busy")))

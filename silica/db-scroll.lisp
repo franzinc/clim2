@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.44 1993/05/05 01:39:41 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.45 1993/05/25 20:41:53 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -91,6 +91,10 @@
 	  (viewport-contents-extent viewport)
 	(with-bounding-rectangle* (vleft vtop vright vbottom)
 	    (viewport-viewport-region viewport)
+	  (minf left vleft)
+	  (minf top vtop)
+	  (maxf right vright)
+	  (maxf bottom vbottom)
 	  (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
 		 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
 	    (when vertical-scroll-bar
@@ -217,13 +221,13 @@
 	  (setf (sheet-transformation sheet)
 		(make-translation-transformation (- x) (- y)))
 	  (bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
-	  ;; Must go after bounding-rectangle-set-position
-	  (update-scroll-bars viewport)
 	  (with-bounding-rectangle* (nleft ntop nright nbottom) 
 	      (pane-viewport-region sheet)
 	    ;; If we are scrolling programatically then this might
 	    ;; reveal more of the sheet than currently exists
 	    (update-region sheet nleft ntop nright nbottom)
+	    ;; Must go after bounding-rectangle-set-position
+	    (update-scroll-bars viewport)
 	    (cond
 	      ;; If some of the stuff that was previously on display is still on
 	      ;; display, BITBLT it into the proper place and redraw the rest.

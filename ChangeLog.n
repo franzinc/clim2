@@ -1,4 +1,61 @@
 --------------------------------------------------------------------------------
+from cer: Wed Jun  2 11:27:19 PDT 1993
+
+
+Makefile.defs		Train times is now just 1
+Makefile.sun4		Defined MOTIFHOME variable and made it point to 1.2.2
+			Defined OPENLOOKHOME
+clim/accept-values.lisp Turn off align prompts around call to
+				find-or-add-query so that nested
+				accepts do loose.
+				Added
+				frame-manager-construct-avv-panes gf
+				align  prompts in avv-buttons
+				:view argument to accept-values-pane-displayer-1
+clim/accept.lisp		
+clim/db-stream.lisp		Added (setf pane-needs-redisplay)
+				Fixed bug in make-clim-stream-pane-1
+clim/input-editor-commands.lisp		Fixed symbol-at-point
+clim/pixmap-streams.lisp		invoke-with-output-to-pixmap
+				now does a
+				with-output-to-output-record if width
+				and height not specified
+clim/ptypes1.lisp		smh class finalization changes
+climtoys/ib.lisp		Zillion changes
+climtoys/sysdc.lisp		Added new files 
+demo/graphics-editor.lisp	Added example keystroke 
+misc/climgccursor.c		Cursor now XC_watch
+misc/compile-1.lisp		Use test/testdcl, Compile clim-toys here
+misc/dev-load-1.lisp		load test/testdcl
+misc/train.lisp		Profile after coverage-report, run-benchmarks
+				to notes/times
+postscript/postscript-port.lisp		Fixed line-width
+silica/classes.lisp		Made miror-hash table equal
+silica/db-scroll.lisp		scrollbars display union of viewport
+				and contents
+silica/event.lisp		smh changes for finalization
+silica/layout.lisp		top-level-sheet text margin is now most-positive-fixnum
+silica/medium.lisp		(setf pane-foreground/background/text-style) methods
+test/test-clim.lisp		More tests
+test/test-driver.lisp		Centered around *invocation* and main
+				scripts can now be written in Lisp
+test/test-suite.lisp		dependee-mixin no longer exported
+tk/ol-widgets.lisp		added :busy resource
+tk-silica/image.lisp		
+tk-silica/ol-gadgets.lisp		Moved code to xt-gadgets.lisp
+				unwind-protect to ensure dialog popped down
+				Added port-set-pane-text-style
+tk-silica/xm-dialogs.lisp	Added frame-manager-construct-avv-panes method
+tk-silica/xm-frames.lisp	made progress note modeless
+tk-silica/xm-gadgets.lisp 	moved code to xt-gadgets
+				added port-set-pane-text-style
+tk-silica/xt-frames.lisp	Fixed typo
+tk-silica/xt-gadgets.lisp		Added port-set-pane-foreground/background
+				Handle special accelerator chars correctly
+utils/clos-patches.lisp		compiler-environment-p now handles (eq environment 'compile-file)
+
+
+--------------------------------------------------------------------------------
 from jdi: Mon Jul 27 19:28:33 PDT 1992
 
 NOTES

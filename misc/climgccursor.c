@@ -1,6 +1,7 @@
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <signal.h>
+#include <X11/cursorfont.h>
 
 
 static Widget gc_widget = (Widget)NULL;
@@ -54,7 +55,7 @@ Cursor cursor;
 clim_starting_gc()
 {
     if (old_gc_before) (*old_gc_before)();
-    set_the_cursor(find_font_cursor(149));
+    set_the_cursor(find_font_cursor(XC_watch));
 }
 
 clim_stopping_gc()

@@ -1,6 +1,7 @@
+
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.32 93/03/25 15:40:19 colin Exp $
+;; $fiHeader: classes.lisp,v 1.33 1993/05/13 16:29:38 colin Exp $
 
 (in-package :silica)
 
@@ -24,7 +25,7 @@
      (frame-managers :initform nil :accessor port-frame-managers)
      (modifier-state :initform (make-modifier-state)
 		     :accessor port-modifier-state)
-     (mirror->sheet-table :initform (make-hash-table) 
+     (mirror->sheet-table :initform (make-hash-table :test #'equal) 
 			  :reader port-mirror->sheet-table)
      (focus :initform nil :accessor port-keyboard-input-focus)
      (focus-selection :initform :click-to-select :initarg :focus-selection

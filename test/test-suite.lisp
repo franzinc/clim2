@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.63 1993/05/13 16:24:24 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.65 1993/05/25 20:42:10 cer Exp $
 
 (in-package :clim-user)
 
@@ -1281,7 +1281,8 @@ people, shall not perish from the earth.
   "Draw a graph showing part of the CLOS class hierarchy"
   (let ((color (make-gray-color 0.7)))
     (format-graph-from-roots 
-     (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
+     ;; dependee-mixin no longer exported -- smh 18may93
+     (mapcar #'find-class '(clos:metaobject clos::dependee-mixin))
      #'(lambda (o s)
 	 (let ((text (format nil "~A" (clos::class-name o))))
 	   #+ignore
@@ -2366,7 +2367,7 @@ Luke Luck licks the lakes Luke's duck likes."))
     (when pathname
       (let ((*package* (or (find-package :common-lisp-user)
 			   (error "Package COMMON-LISP-USER not found"))))
-	(with-open-file (s pathname :direction :output)
+	(with-open-file (s pathname :if-exists :supersede :direction :output)
 	  (format s ";Speed of ~A ~A" (lisp-implementation-type) (lisp-implementation-version))
 	  (format s "~%;on ~A ~A.~%" (machine-type) (machine-instance))
 	  (when comment (format s ";~A~%" comment))

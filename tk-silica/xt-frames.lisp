@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.34 93/04/23 09:18:48 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.35 1993/05/25 20:42:42 cer Exp $
 
 
 (in-package :xm-silica)
@@ -73,7 +73,7 @@
 (defun command-button-callback (button dunno frame command-table item)
   (declare (ignore dunno button))
   (execute-command-in-frame
-   frame (substitute clim-internals::*application-frame-marker* frame
+   frame (substitute frame clim-internals::*application-frame-marker*
 		     (command-menu-item-value item))
    :presentation-type `(command :command-table ,command-table)))
 

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.9 93/05/13 16:22:41 cer Exp $
+# $fiHeader: Makefile.defs,v 1.10 1993/05/13 17:31:32 colin Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -18,7 +18,7 @@ MV	= /usr/fi/mv-nfs
 
 # Training
 
-TRAIN_TIMES=2
+TRAIN_TIMES=1
 # view, file, print
 PSVIEW=:file
 HPGLVIEW=:file

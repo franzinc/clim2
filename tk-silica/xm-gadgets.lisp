@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.74 1993/05/13 16:25:00 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.76 1993/05/25 20:42:37 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1728,26 +1728,6 @@
       (member (keyboard-event-key-name event) '(:f10 :tab))))
 
 
-(defmethod set-button-accelerator-from-keystroke ((menubar motif-menu-bar) button keystroke)
-  (when keystroke 
-    (record-accelerator menubar keystroke)
-    (let ((accel (format nil "<Key>~A" (car keystroke)))
-          (accel-text (format nil "~A" (car keystroke))))
-      (dolist (modifier (cdr keystroke))
-        (setq accel-text
-          (concatenate 'string 
-            (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
-            accel-text))
-        (setq accel
-          (concatenate 'string 
-            (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
-            accel)))
-      (tk::set-values button 
-                      :accelerator accel
-                      :accelerator-text accel-text))))
-
-
-
 ;; Support for help
 
 (defmethod add-sheet-callbacks :after 
@@ -1791,3 +1771,6 @@
     (describe-presentation-type presentation-type stream)))
 
 
+(defmethod silica::port-set-pane-text-style ((port motif-port) pane m text-style)
+  (when (typep m 'xt::xt-root-class)
+    (tk::set-values m :font-list (text-style-mapping port text-style))))

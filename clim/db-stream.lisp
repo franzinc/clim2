@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.52 1993/05/13 16:28:41 colin Exp $
+;; $fiHeader: db-stream.lisp,v 1.53 1993/05/25 20:40:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -127,7 +127,11 @@
        :initarg :display-time :initform :command-loop		
        :type (member nil :command-loop :no-clear t))))
 
-;;--- Need a way to set PANE-NEEDS-REDISPLAY, right?
+
+(defmethod (setf pane-needs-redisplay) (value (pane clim-stream-pane))
+  (with-slots (display-time) pane
+    (setf display-time value)))
+
 (defmethod pane-needs-redisplay ((pane clim-stream-pane))
   (declare (values needs-redisplay clear))
   (with-slots (display-time) pane
@@ -144,6 +148,9 @@
 
 (defmethod pane-needs-redisplay ((pane basic-pane)) 
   (values nil nil))
+
+(defmethod (setf pane-needs-redisplay) (value (pane basic-pane)) 
+  value)
 
 ;;--- Although the unit options are mostly applicable here I guess
 ;;--- other classes might want to use it also.
@@ -362,50 +369,52 @@
     (setq options (remove-keywords options '(:type :scroll-bars :borders
 					     :label :background
 					     :label-alignment :display-after-commands)))
-    (when dac-p
-      (setf (getf options :display-time)
-	(cond ((eq display-after-commands t) :command-loop)
-	      ((eq display-after-commands :no-clear) :no-clear)
-	      (t nil))))
+    (let ((background-options (and background-p `(:background ,background))))
+      (when dac-p
+	(setf (getf options :display-time)
+	  (cond ((eq display-after-commands t) :command-loop)
+		((eq display-after-commands :no-clear) :no-clear)
+		(t nil))))
     
-    (let* ((stream (apply #'make-pane type options))
-	   (pane stream))
+      (let* ((stream (apply #'make-pane type (append background-options options)))
+	     (pane stream))
 
-      (when scroll-bars
-	(setq pane (apply #'make-pane 'scroller-pane
-			  :contents pane
-			  :name name
-			  (and background-p `(:background ,background)))))
+	(when scroll-bars
+	  (setq pane (apply #'make-pane 'scroller-pane
+			    ::scroll-bars scroll-bars
+			    :contents pane
+			    :name name
+			    background-options)))
 
-      (when label
-	(let ((label (if (stringp label)
+	(when label
+	  (let ((label (if (stringp label)
+			   (apply #'make-pane 'label-pane 
+				  :label label
+				  :max-width +fill+
+				  background-options)
 			 (apply #'make-pane 'label-pane 
-				:label label
-				:max-width +fill+
-				(and background-p `(:background ,background)))
-		       (apply #'make-pane 'label-pane 
-			      :label (first label)
-			      :max-width +fill+ 
-			      (append (rest label)
-				      (and background-p `(:background ,background)))))))
-	  (setq pane (apply #'make-pane 'vbox-pane
-			    :contents 	  
-			    (ecase label-alignment
-			      (:bottom (list pane label))
-			      (:top (list label pane)))
-			    (and background-p `(:background ,background))))))
-      (when borders 
-	(setq pane
-	  (apply #'make-pane 'outlined-pane
-		 :name name
-		 :thickness 1
-		 :contents (apply #'make-pane 'spacing-pane
-				  :name name
-				  :thickness 1
-				  :contents pane
-				  (and background-p `(:background ,background)))
-		 (and background-p `(:background ,background)))))
-      (values pane stream))))
+				:label (first label)
+				:max-width +fill+ 
+				(append (rest label)
+					background-options)))))
+	    (setq pane (apply #'make-pane 'vbox-pane
+			      :contents 	  
+			      (ecase label-alignment
+				(:bottom (list pane label))
+				(:top (list label pane)))
+			      background-options))))
+	(when borders 
+	  (setq pane
+	    (apply #'make-pane 'outlined-pane
+		   :name name
+		   :thickness 1
+		   :contents (apply #'make-pane 'spacing-pane
+				    :name name
+				    :thickness 1
+				    :contents pane
+				    background-options)
+		   background-options)))
+	(values pane stream)))))
 
 (defmacro make-clim-interactor-pane (&rest options)
   `(make-clim-stream-pane :type 'interactor-pane ,@options))
