@@ -1,4 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: (CLIM-BROWSER :use (CLIM-LISP CLIM)); Base: 10; Lowercase: Yes -*-
+;; $fiHeader$
 
 (eval-when (compile load eval)
   (defpackage :clim-browser

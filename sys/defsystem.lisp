@@ -1,29 +1,9 @@
-;;; -*-Mode: LISP; Package: CL-USER; Base: 10; Syntax: ANSI-Common-lisp; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*-Mode: Lisp; Syntax: ANSI-Common-lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
 ;;;
 ;;; DEFSYSTEM Utility
 ;;;
 ;;; Copyright (c) 1986 Regents of the University of California
-;;; Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; 
 ;;; Permission to use, copy, modify, and distribute this software and its
 ;;; documentation for any purpose and without fee is hereby granted,
@@ -38,10 +18,10 @@
 ;;; 
 ;;; $Author: cer $
 ;;; $Source: /repo/cvs.copy/clim2/sys/defsystem.lisp,v $
-;;; $Revision: 1.1 $
-;;; $Date: 1992/01/31 13:57:43 $
+;;; $Revision: 1.2 $
+;;; $Date: 1992/02/08 14:59:27 $
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Hacked by smL to convert it to lisp from C.
 ;;; No, seriously folks.  Lots of changes here.  Added support for multiple
 ;;;  source file-types.  Cleaned up a *lot* of code.
@@ -50,19 +30,19 @@
 ;;; Added support for different modules applicable only in certain features.
 ;;; -smL 17-April-89
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Added support for sysdcl files.
 ;;; -smL
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Cleaned up a lot of syntax.  Made some fields of the defsystem macro be eval'ed.
 ;;; -smL
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Added "temporary" hack *load-all-before-compile*.
 ;;; -smL
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Incorporated changes from Bill York @ ILA to deal with Genera.
 ;;; Added the :default-binary-pathname option to defsystem and :binary-pathname
 ;;;  to each module.
@@ -75,12 +55,12 @@
 ;;; Fixed the spelling of "propagate".
 ;;; -smL
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Fixed a bug that caused many too many calls to file-write-date during a
 ;;;  load-system.
 ;;; -smL
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Incorporated changes from Bill York <york@ila-west.dialnet.symbolics.com>
 ;;;  to make string --> pathname coersion cleaner under Genera.
 ;;; Also made some trivial changes to the messages printed out when *tracep*
@@ -95,7 +75,7 @@
 ;;; load-system and compile-system now return the system name.
 ;;; -smL
 ;;;
-;;; $Revision: 1.1 $
+;;; $Revision: 1.2 $
 ;;; Fixed bug with pretty-pathname-component.  Added message when compiling a
 ;;;  file in Genera, since it doesn't print one by default.  Fixed a small bug
 ;;;  with handling of *features*.  Fixed a bug with *tracep*.
@@ -111,22 +91,25 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.12 91/08/05 14:36:19 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.6 91/03/26 12:59:59 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
 ;; Yes, I know it's not yet an ANSI spec.  That's why this is called
 ;; ANSI-90, corresponding to what we think the spec will be, in late 1990.
 
-#+(or ccl-2 excl Minima)	;Have to assume this won't blow up anybody's lisp
+#+Allegro
+(eval-when (compile load eval)
+  (when (and (find-package 'defsys)
+	     (not (find-package 'excl-defsystem)))
+    (let ((excl::*enable-package-locked-errors* nil))
+      (rename-package 'defsys 'excl-defsystem))))
+ 
+
+
+#+(or CCL-2 Allegro Minima)	;Have to assume this won't blow up anybody's lisp
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :ansi-90 *features*))
-
-#+excl
-(eval-when (compile load eval)
-	   (when (and (find-package 'defsys)
-		      (not (find-package 'excl-defsystem)))
-	     (rename-package 'defsys 'excl-defsystem)))
 
 #+Genera
 (eval-when (compile load eval)
@@ -135,26 +118,43 @@
     (when (>= major 437)
       (pushnew :ansi-90 *features*))))
 
-#+ansi-90
-(defpackage :defsystem
-  (:use :common-lisp)
-  (:nicknames :defsys))
+#+ANSI-90
+(defpackage "DEFSYSTEM"
+  (:use "COMMON-LISP")
+  (:nicknames "DEFSYS")
+  (:export
+    *current-system*
+    *defsystem-version*
+    *language-descriptions*
+    *load-all-before-compile*
+    *sysdcl-pathname-defaults*
+    compile-system 
+    defsystem
+    load-system
+    load-system-def
+    set-system-source-file
+    show-system
+    system-source-file 
+    undefsystem
+    with-compiler-options
+    with-delayed-compiler-warnings))
 
-#+ansi-90
+#+ANSI-90
 (in-package :defsystem)
 
 #+(or Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package :defsystem
-		 :use '(:lisp)
-		 :nicknames '(:defsys))
+(lisp:in-package "DEFSYSTEM"
+		 :use '("LISP")
+		 :nicknames '("DEFSYS"))
 
-#-(or ansi-90 Genera-Release-8-0 Genera-Release-8-1)
-(in-package #-(or lispworks ansi-90) :defsystem 
-            #+lispworks :pdefsys
-            #+ansi-90 :defsystem
-            #-ansi-90 :use #-ansi-90 '(:lisp)
-            #-ansi-90 :nicknames #-ansi-90 '(:defsys))
+#-(or ANSI-90 Genera-Release-8-0 Genera-Release-8-1)
+(lisp:in-package #-(or lispworks ANSI-90) "DEFSYSTEM" 
+            #+lispworks "PDEFSYS"
+            #+ANSI-90 "DEFSYSTEM"
+            #-ANSI-90 :use #-ANSI-90 '("LISP")
+            #-ANSI-90 :nicknames #-ANSI-90 '("DEFSYS"))
 
+#-ANSI-90
 (export '(system-source-file set-system-source-file load-system-def
 	  load-system *current-system* compile-system show-system 
 	  *language-descriptions* undefsystem *defsystem-version* defsystem
@@ -162,37 +162,41 @@
 	  ;; Hack
 	  *load-all-before-compile*
 	  with-compiler-options with-delayed-compiler-warnings)
-	:defsystem)
+	"DEFSYSTEM")
 
 ;;; *** A temporary workaround, easier than fixing all references to
 ;;; *** LISP:<foo>.  --RWK 20.Nov.90
-#+ansi-90
+#+ANSI-90
 (eval-when (eval compile load)
   (flet ((fix-package (pack-name add-name)
 	   (setq add-name (string add-name))
 	   (let ((pack (find-package pack-name)))
+	     (assert (not (null pack)) ()
+		     "Attempting to add the name ~S to package ~S, which doesn't exist")
 	     (when (null (find-package add-name))
 	       (rename-package pack (package-name pack)
 			       (list* add-name (package-nicknames pack)))))))
-    (fix-package :common-lisp :lisp)
-    (fix-package :common-lisp :cl) ;; ??
-    (fix-package :common-lisp-user :user)
-    (fix-package :common-lisp-user :cl-user)) ;; ??
-  (when (null (find-package :system))
-    (defpackage :system)))
+    (fix-package "COMMON-LISP" "LISP")
+    (fix-package "COMMON-LISP" "CL") ;; ??
+    (fix-package "COMMON-LISP-USER" "USER")
+    (fix-package "COMMON-LISP-USER" "CL-USER")) ;; ??
+  (when (null (find-package "SYSTEM"))
+    (defpackage system)))
 
 
 ;;;
 ;;; Pathname stuff
 ;;;
 
+#-Minima
 (eval-when (eval load compile)
-  (shadow (list (intern '#:make-pathname :lisp)
-		(intern '#:pathname-directory :lisp))))
+  (shadow (list (intern '#:make-pathname "LISP")
+		(intern '#:pathname-directory "LISP"))))
 
+#-Minima
 (eval-when (eval load compile)
-  (export (list (intern '#:make-pathname :defsystem)
-                (intern '#:pathname-directory :defsystem))))
+  (export (list (intern '#:make-pathname "DEFSYSTEM")
+                (intern '#:pathname-directory "DEFSYSTEM"))))
 
 ;;
 ;; The implementations of PATHNAME-DIRECTORY and MAKE-PATHNAME use two
@@ -206,9 +210,11 @@
 ;; by the Lisp as a kosher pathname-directory.
 ;;
 
+#-Minima
 (defun pathname-directory (pathname)
   (externalize-directory (lisp:pathname-directory pathname)))
 
+#-Minima
 (defun make-pathname (&rest options
 			    &key host device directory name type version defaults)
   (declare (ignore host device name type version))
@@ -225,7 +231,7 @@
                     (append start tail))
 		 )
 	       directory)))
-    (apply 'lisp:make-pathname
+    (apply #'lisp:make-pathname
 	   :directory (internalize-directory (merge-directories directory defaults))
 	   options)))
 
@@ -297,11 +303,11 @@
 
 
 ;;
-;; Genera and CLOE
+;; Genera and Cloe
 ;; I'm reasonably sure these are correct, based on the "Current practice"
 ;; section of the proposal and some playing around with Genera.
 ;;
-#+(and Symbolics (not Minima))
+#+(or Genera Cloe)
 (progn
 
 (defun externalize-directory (directory)
@@ -329,8 +335,8 @@
 ;;
 ;; Other Unix implementations that just use strings to represent directories?
 ;;
-#+(or (and lucid unix)
-      (and excl unix))
+#+(or (and Lucid Unix)
+      (and Allegro Unix))
 (progn
 
 (defun externalize-directory (directory)
@@ -431,7 +437,7 @@
 
 ;; Macintosh Allegro CL
 ;;
-#+(and ccl (not ansi-90))
+#+(and ccl (not ANSI-90))
 (progn ; slh
   
   (defun externalize-directory (directory)
@@ -443,7 +449,18 @@
      (reduce #'string-append directory :start 1)))
   )
 
-#+(and ansi-90 (not Symbolics) (not excl) (not Minima))
+#+(and cmu (not ANSI-90))
+(progn
+  
+  (defun externalize-directory (directory)
+    (cons :absolute (coerce directory 'list)))
+  
+  (defun internalize-directory (directory)
+    (assert (eq (car directory) :absolute))
+    (coerce (cdr directory) 'vector))
+  )
+
+#+(and ANSI-90 (not Genera) (not Cloe) (not Minima) (not Allegro))
 (progn ; rwk
   
   (defun externalize-directory (directory)
@@ -471,11 +488,11 @@
 ;; entire body is completed.
 ;;
 (defmacro with-delayed-compiler-warnings (&body body)
-  #+lucid `(lcl:with-deferred-warnings ,@body)
-  #+(and genera (not ansi-90)) `(compiler:compiler-warnings-context-bind ,@body)
+  #+Lucid `(lcl:with-deferred-warnings ,@body)
+  #+(and genera (not ANSI-90)) `(compiler:compiler-warnings-context-bind ,@body)
   #+TI `(compiler:compiler-warnings-context-bind ,@body)
-  #+(and ansi-90 (not excl)) `(with-compilation-unit () ,@body) ;; Allegro 4.0 nonconformant
-  #-(or lucid genera TI (and ansi-90 (not excl))) `(progn ,@body))
+  #+(and ANSI-90 (not Allegro)) `(with-compilation-unit () ,@body) ;; Allegro 4.0 nonconformant
+  #-(or Lucid genera TI (and ANSI-90 (not Allegro))) `(progn ,@body))
 
 ;; Genera deals with pathname components that are all uppercase much prettier
 ;; then lowercase.
@@ -500,11 +517,12 @@
 ;; Return the pathname of the file that is currently being loaded, if any.
 ;;
 (defun current-source-file ()
-  #+lucid lcl:*source-pathname*
-  #+excl excl:*source-pathname*
+  #+Lucid lcl:*source-pathname*
+  #+Allegro excl:*source-pathname*
   #+xerox (pathname *standard-input*)
   #+Genera sys:fdefine-file-pathname
-  #-(or lucid excl xerox Genera) nil)
+  #+Minima *load-pathname*
+  #-(or Lucid Allegro xerox Genera Minima) nil)
 
 (defvar *current-system* nil
   "Name of the system currently being loaded or compiled")
@@ -540,47 +558,50 @@
 ;; LISP
 ;;
 
-(defconstant lisp-file-types
+(defparameter lisp-file-types
   ;; Thanks to PCL for providing all this info
   #+(and Genera imach)                `("lisp" 		"ibin")
   #+(and Genera (not imach))          `("lisp" 		"bin")
-  #+CLOE-Runtime		      `("l"		"fas")
+  #+Cloe-Runtime		      `("l"		"fas")
+  #+Minima			      `("lisp"		"mebin")
   #+(and dec common vax (not ultrix)) `("LSP"		"FAS")
   #+(and dec common vax ultrix)       `("lsp"		"fas")
   #+KCL                               `("lsp"		"o")
   #+xerox                             `(("lisp" "cl" "")"dfasl")
-  #+(and lucid MC68000)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
-  #+(and lucid VMS)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
-  #+(and lucid SPARC)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
-  #+excl			      `(("lisp" "cl")	"fasl")
+  #+(and Lucid MC68000)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
+  #+(and Lucid VMS)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
+  #+(and Lucid SPARC)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
+  #+Allegro			      `(("lisp" "cl")	"fasl")
   #+ibcl                              `(("lisp" "lsp")  "o")
   #+lispworks                         `("lisp"		,ccl::*binary-file-type*)
   #+system::cmu                       `("slisp"		"sfasl")
+  #+cmu				      `("lisp"		"sparcf")
   #+prime                             `("lisp"		"pbin")
   #+hp                                `("l"		"b")
   #+TI                                `("lisp"		"xfasl")
   #+ccl                               `("lisp"          "fasl"))
 
 (defun compile-lisp-file (pathname binary-pathname optimizations)
-  #+(or Genera CLOE-Runtime lispworks ccl-2)
+  #+(or Genera Cloe-Runtime lispworks CCL-2)
   (format t "~&; Compiling ~A~%" pathname)
-  #+ccl-2
+  #+CCL-2
   (ccl:set-mini-buffer ccl:*top-listener* "~A: Compiling ~A." 
                        *current-system*
                        (namestring pathname))
-  (if optimizations
-    (eval `(locally (declare (optimize ,@optimizations))
-                    (compile-file ',pathname :output-file binary-pathname)))
-    (compile-file pathname :output-file binary-pathname)))
+  (let (#+Minima (*compile-verbose* t))
+    (if optimizations
+	(eval `(locally (declare (optimize ,@optimizations))
+			(compile-file ',pathname :output-file binary-pathname)))
+	(compile-file pathname :output-file binary-pathname))))
      
 
 (defun load-lisp-file (pathname)
-  #+CLOE-Runtime (format t "~&; Loading ~A~%" pathname)
-  #+ccl-2 (ccl:set-mini-buffer ccl:*top-listener* "~A: Loading ~A."
+  #+Cloe-Runtime (format t "~&; Loading ~A~%" pathname)
+  #+CCL-2 (ccl:set-mini-buffer ccl:*top-listener* "~A: Loading ~A."
                                *current-system*
                                (namestring pathname))
-  (load pathname 
-	#+Genera :set-default-pathname #+Genera nil))
+  (let (#+Minima (*load-verbose* t))
+    (load pathname)))
 
 (pushnew `(:lisp ,@lisp-file-types compile-lisp-file load-lisp-file)
 	 *language-descriptions* :test #'equal)
@@ -602,7 +623,7 @@
     (if (= status 0)
 	t
 	(error "Error compiling file ~a; status = ~s" pathname status)))
-  #+(and excl unix)
+  #+(and Allegro Unix)
   (let* ((command (format nil "cc~{ ~A~} -c -o ~a ~a"
 			  compiler-flags
 			  binary-pathname
@@ -612,7 +633,7 @@
     (if (= status 0)
 	t
 	(error "Error compiling file ~a; status = ~s" pathname status)))
-  #+(and lucid unix)
+  #+(and Lucid unix)
   (let* ((cc-args `(,@compiler-flags "-c" "-o"
 				     ,(namestring binary-pathname)
 				     ,(namestring pathname)))
@@ -622,7 +643,7 @@
     (if (= status 0)
 	t
 	(error "Error compiling file ~a; status = ~s" pathname status)))
-  #-(or ibcl (and excl unix) (and lucid unix))
+  #-(or ibcl (and Allegro unix) (and Lucid unix))
   (error "Don't know how to compile C code"))
 
 (defun load-c-file (binary-pathname)
@@ -636,17 +657,17 @@
     (unless (probe-file tmp-o-file)
       (unless (probe-file tmp-lsp-file)
 	(with-open-file (s tmp-lsp-file :direction :output)
-	  (print '(in-package :user) s)))
+	  (print '(in-package "USER") s)))
       (compile-file tmp-lsp-file :output-file tmp-o-file))
     (system:faslink tmp-o-file (format nil "~a" binary-pathname)))
-  #+(and excl unix)
+  #+(and Allegro unix)
   (load binary-pathname)
-  #+(and lucid unix)
+  #+(and Lucid unix)
   (progn
     (lcl:load-foreign-files (list binary-pathname))
     (lcl:load-foreign-files nil)
     )
-  #-(or ibcl (and excl unix) (or lucid unix))
+  #-(or ibcl (and Allegro unix) (or Lucid unix))
   (error "Don't know how to load C code"))
 
 (pushnew '(:c "c" "o" compile-c-file load-c-file)
@@ -668,16 +689,16 @@
   (patch-file-pattern nil)	        ;Not used by DEFSYSTEM; just for Makefile facility
   ;; Internal slots
   (loaded-p nil)			;Has (a version of) the system been loaded?
-  (declared-defining-file)		;Declared location of the file that
+  (declared-defining-file nil)		;Declared location of the file that
 					; contains the system definition.  This
 					; is different from the defining-file
 					; slot that follows, since that slot
 					; holds the actual pathname of the file
 					; that really did define the system, and
 					; this holds a higher truth.
-  (defining-file)			;What file contains the system definition?
+  (defining-file nil)			;What file contains the system definition?
   (definition-loaded-p nil)		;Has the system definition been loaded?
-  (defining-file-write-date)		;What is the write-date of the file that
+  (defining-file-write-date nil)	;What is the write-date of the file that
 					; contained the current system definition
   (module-list nil :type list))		;List of modules that make up the system
 
@@ -706,7 +727,7 @@
   (load-after-list nil :type list)	;Expanded version of the load-after slot
   (load-date 0)
   (loaded-p nil)
-  (loaded-from-file))
+  (loaded-from-file nil))
 
 (defun print-module  (module stream level)
   (declare (ignore level))
@@ -776,10 +797,10 @@
 
 (defun directory-exists-p (pathname)
   pathname
-  #+ccl-2 (ccl::directory-exists-p pathname))
+  #+CCL-2 (ccl::directory-exists-p pathname))
 
 (defun create-directory (pathname)
-  #+ccl-2 (let* ((path (translate-logical-pathname pathname))
+  #+CCL-2 (let* ((path (translate-logical-pathname pathname))
                  (dir (pathname-directory path))
                  (dirname (first (last dir)))
                  (ndir (butlast dir))
@@ -793,14 +814,14 @@
          (src-pathname (module-pathname module))
          (types (language-binary-types (find-language (module-language module))))
          (system (module-system module))
-         (sys-default (system-default-pathname system))
-         (sys-default (if sys-default
-                        (merge-pathnames sys-default)
-                        *default-pathname-defaults*))
+         (sys-default-1 (system-default-pathname system))
+         (sys-default (if sys-default-1
+			  (merge-pathnames sys-default-1)
+			  *default-pathname-defaults*))
          (sys-bin-default (system-default-binary-pathname system))
          (defaults (if sys-bin-default
-                     (merge-pathnames sys-bin-default sys-default)
-                     sys-default))
+		       (merge-pathnames sys-bin-default sys-default)
+		       sys-default))
          (result (cond ((and (null pathname) (null src-pathname))
                         (add-pathname-type (lisp:make-pathname :name (string (module-name module))
                                                                :defaults defaults)
@@ -818,8 +839,10 @@
           (format t "~&Creating directory ~S~:[~*~; (~A)~]"
                   dir-path
 		  ;; --- Allegro 4.0 nonconformant
-		  #+(and ansi-90 (not excl) (not symbolics)) (typep result 'logical-pathname)
-		  #-(and ansi-90 (not excl) (not symbolics)) nil
+		  #+(and ANSI-90 (not Allegro) (not Genera) (not Cloe))
+		  (typep result 'logical-pathname)
+		  #-(and ANSI-90 (not Allegro) (not Genera) (not Cloe))
+		  nil
                   (translate-logical-pathname dir-path))
           (create-directory result))))
     result))
@@ -937,7 +960,7 @@ named NAME."
 	 (progn
 	   (when old-system
 	     (unintern-system old-system))
-	   (load file #+Genera :set-default-pathname #+Genera nil)
+	   (load file)
 	   (setq ok t))
       (unless ok
 	(when old-system
@@ -1120,7 +1143,7 @@ pathname fields are evaluated."
   (proclaim '(special *loaded-systems* *loaded-modules* *compiled-systems*
 	      *compiled-modules* *tracep*)))
 
-#-(and ansi-90 (not excl) (not symbolics))
+#-(and ANSI-90 (not Allegro) (not Cloe))
 (defun translate-logical-pathname (path) path)
 
 ;; Evaluate the BODY with the reader context and default pathname set up as
@@ -1133,7 +1156,7 @@ pathname fields are evaluated."
 	    (*package* (find-package (or (module-package ,mod)
 					 (system-default-package (module-system ,mod))
 					 (package-name *package*))))
-	    #-excl
+	    #-Allegro
 	    (*default-pathname-defaults*
              ;; Some systems may not like a logical pathname as a default.
              ;; Specifically, Macintosh CL 2.0a3.
@@ -1177,7 +1200,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
     (let* ((name (system-name system))
 	   (*loaded-modules* nil)
 	   (*current-system* name))
-      #+ccl-2 (ccl:set-mini-buffer ccl:*top-listener* "Loading system ~A."
+      #+CCL-2 (ccl:set-mini-buffer ccl:*top-listener* "Loading system ~A."
                                    *current-system*)
       (if *tracep*
 	  (format t "~&;;; -- Would load system ~a" name)
@@ -1280,7 +1303,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	(let ((*compiled-modules* nil)
 	      (*loaded-modules* nil)
 	      (*current-system* name))
-          #+ccl-2 (ccl:set-mini-buffer ccl:*top-listener* "Compiling system ~A."
+          #+CCL-2 (ccl:set-mini-buffer ccl:*top-listener* "Compiling system ~A."
                                        *current-system*)
 	  (dolist (module (system-module-list system))
 	    (compile-module module reload recompile #'pre-compile-fn)))
@@ -1443,23 +1466,23 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
   (describe-system (or (lookup-system name)
 		       (error "No system description named ~a loaded." name))))
 
-#+Genera
+#+(or Genera Minima-Developer)
 (export '(import-into-sct))
 
-#+Genera
+#+(or Genera Minima-Developer)
 (defun import-into-sct (system &key (sct-name system) (subsystem nil)
 				    (default-pathname nil) (default-destination-pathname nil)
 				    (pretty-name nil))
-  (setf sct-name (sct:canonicalize-system-name sct-name))
+  (setf sct-name (zl:::sct:canonicalize-system-name sct-name))
   (setf system (lookup-system system))
   (when (null default-pathname)
     (setf default-pathname (system-default-pathname system)))
   (when (null default-destination-pathname)
     (setf default-destination-pathname (system-default-binary-pathname system)))
-  (when (sys:record-source-file-name sct-name 'sct:defsystem)
-    (sct:define-system-internal
+  (when #+Minima t #-Minima (sys:record-source-file-name sct-name 'zl:::sct:defsystem)
+    (zl:::sct:define-system-internal
       sct-name
-      (if subsystem 'sct:subsystem 'sct:system)
+      (if subsystem 'zl:::sct:subsystem 'zl:::sct:system)
       `(:default-pathname ,default-pathname
 	,@(when default-destination-pathname
 	    `(:default-destination-pathname ,default-destination-pathname))
@@ -1476,7 +1499,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 		      (:type ,(ecase (module-language module)
 				(:lisp
 				  (if (module-applicable-p module)
-				      :lisp
+				      #+Minima :minima-lisp #-Minima :lisp
 				      :lisp-example))))
 		      ,@(unless (eq (module-language module) :lisp)
 			  `((:type ,(module-language module))))
@@ -1490,16 +1513,16 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	      (system-module-list system)))))
 
 (defun get-compiler-speed-and-safety ()
-  #+excl (values comp::.speed. comp::.safety.)
+  #+Allegro (values comp::.speed. comp::.safety.)
   #+Genera (values (lt:optimize-state 'speed) (lt:optimize-state 'safety))
   #+Lucid (values (cdr (assoc 'speed lucid::*compiler-optimizations*))
 		  (cdr (assoc 'safety lucid::*compiler-optimizations*)))
   ;; Allegro 4.0 doesn't comply with this.  Maybe 4.1
-  #+(and ansi-90 (not excl) (not Genera))
+  #+CCL-2
   (let ((opts (declaration-information 'optimize)))
     (values (second (assoc 'speed opts))
 	    (second (assoc 'safety opts))))
-  #-(or excl Genera Lucid ansi-90) (values nil nil))
+  #-(or Allegro Genera Lucid CCL-2) (values nil nil))
 
 (defmacro with-compiler-options ((&key speed safety) &body body)
   `(multiple-value-bind (old-speed old-safety) (get-compiler-speed-and-safety)

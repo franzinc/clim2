@@ -18,6 +18,8 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
 
 ;;; This distribution script is for the distribution tape for the
 ;;; release copy of CLIM 25.  It assumes that the system in which
