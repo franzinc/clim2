@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.11 92/07/01 15:46:39 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.12 92/07/08 16:30:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -12,17 +12,17 @@
 
 (define-protocol-class input-editing-stream ())
 
-(defgeneric input-position (stream)
+(defgeneric stream-scan-pointer (stream)
   #+Genera (:selector :read-location))
 
-(defgeneric rescanning-p (stream)
+(defgeneric stream-rescanning-p (stream)
   #+Genera (:selector :rescanning-p))
 
 ;;; Fake methods to keep things like COMPLETE-INPUT from blowing up on
 ;;; non-input-editing streams like string streams.
-(defmethod input-position ((stream t)) 0)
+(defmethod stream-scan-pointer ((stream t)) 0)
 
-(defmethod rescanning-p ((object t)) nil)
+(defmethod stream-rescanning-p ((object t)) nil)
 
 (defmethod replace-input ((stream t) new-input &key (start 0) end rescan buffer-start)
   (declare (ignore new-input start end buffer-start rescan))
@@ -35,17 +35,16 @@
       ;; that is, it points past the last thing in the buffer.
      ((input-buffer :initform (make-array 100 :fill-pointer 0 :adjustable t)
 		    :accessor input-editor-buffer)
-      ;; SCAN-POINTER (or INPUT-POSITION) is the point at which
-      ;; parsing takes place.
-      (scan-pointer :initform 0 :accessor input-position)
-      ;; INSERTION-POINTER is where the input-editing cursor is,
-      ;; that is, input-editing commands and insertions take place
-      ;; at INSERTION-POINTER.
-      (insertion-pointer :initform 0 :accessor insertion-pointer)
-      ;; RESCANNING-P is now part of the input editing stream protocol.
-      ;; If T, it means that the input editor is "rescanning," that is, re-processing
+      ;; STREAM-SCAN-POINTER  is the point at which parsing takes place.
+      (scan-pointer :initform 0 :accessor stream-scan-pointer)
+      ;; STREAM-INSERTION-POINTER is where the input-editing cursor is,
+      ;; that is, input editing commands and insertions take place
+      ;; at the insertion pointer.
+      (insertion-pointer :initform 0 :accessor stream-insertion-pointer)
+      ;; STREAM-RESCANNING-P is now part of the input editing stream protocol.
+      ;; If T, it means that the input editor is "rescanning", that is, re-processing
       ;; input that was already typed in response to some editing command.
-      (rescanning-p :accessor rescanning-p :initform nil)
+      (rescanning-p :accessor stream-rescanning-p :initform nil)
       (rescan-queued :initform nil)
       ;; A buffer for an activation gesture to process.  Conceptually,
       ;; the activation gesture lives at the end of the input buffer.
@@ -94,7 +93,7 @@
 
 #+Genera
 (defmethod compatible-set-input-position ((stream input-editing-stream-mixin) position)
-  (setf (input-position stream) position))
+  (setf (stream-scan-pointer stream) position))
 
 (defstruct noise-string
   display-string
@@ -215,7 +214,7 @@
   (declare (dynamic-extent args))
   (with-slots (input-buffer scan-pointer insertion-pointer
 	       previous-history previous-insertion-pointer) istream
-    (unless (rescanning-p istream)
+    (unless (stream-rescanning-p istream)
       ;; If we're not rescanning, reset these so that m-Y will not work
       ;; until the user types c-Y or c-m-Y.
       (setq previous-history nil
@@ -306,7 +305,7 @@
 
 (defmethod reset-scan-pointer ((istream input-editing-stream-mixin) &optional (sp 0))
   (with-slots (scan-pointer rescanning-p) istream
-    (setf rescanning-p T)
+    (setf rescanning-p t)
     (setf scan-pointer sp))
   (values))
 
@@ -493,14 +492,13 @@
 			   (t (vector-push-extend new-thing input-buffer)
 			      (incf scan-pointer)
 			      (incf insertion-pointer)
-			      (when (ordinary-char-p new-thing)
-				(write-char new-thing istream))))))
+			      (write-char new-thing istream)))))
 		 (when new-thing
 		   (setq numeric-argument nil
 			 previous-history nil)
 		   (cond ((activation-gesture-p new-thing)
 			  ;; If we got an activation gesture, we must first finish
-			  ;; scanning the input line, moving the insertion-pointer
+			  ;; scanning the input line, moving the insertion pointer
 			  ;; to the end and finishing rescanning.  Only then can we
 			  ;; return the activation gesture.
 			  (cond ((= insertion-pointer (fill-pointer input-buffer))
@@ -599,10 +597,10 @@
   (if end
       (shift-buffer-portion input-buffer end start)
       (setf (fill-pointer input-buffer) start))
-  ;; The insertion-pointer started out at either start or end, they're the same now
-  (setf (insertion-pointer stream) start)
+  ;; The insertion pointer started out at either start or end, they're the same now
+  (setf (stream-insertion-pointer stream) start)
   ;; Make sure the scan pointer doesn't point past the insertion pointer
-  (minf (input-position stream) (insertion-pointer stream))
+  (minf (stream-scan-pointer stream) (stream-insertion-pointer stream))
   (redraw-input-buffer stream)
   ;; This can be called in a loop, so reflect the kill operation now
   (setf (slot-value stream 'last-command-type) 'kill))
@@ -626,10 +624,10 @@
 	(stream-read-gesture stream)))))
 
 ;; Replace from buffer-start below scan-pointer with new-input[start..end]
-;; Returns the new insertion-pointer as its value.
+;; Returns the new insertion pointer as its value.
 (defmethod replace-input ((istream input-editing-stream-mixin) new-input
 			  &key (start 0) end rescan
-			       (buffer-start (input-position istream)))
+			       (buffer-start (stream-scan-pointer istream)))
   (declare (type fixnum start buffer-start))
   (let ((rescan-p nil))
     (with-slots (input-buffer scan-pointer insertion-pointer) istream
@@ -665,27 +663,27 @@
 		(setf (fill-pointer input-buffer) new-length))
 	      (replace input-buffer new-input :start1 buffer-start
 					      :start2 start :end2 the-end)
-	      ;; keep the insertion-pointer at the same relative place in the text
+	      ;; Keep the insertion pointer at the same relative place in the text
 	      (when (>= insertion-pointer buffer-start)
 		(if (> insertion-pointer scan-pointer)
 		    (incf insertion-pointer
 			  (the fixnum (- nchars (- scan-pointer buffer-start))))
 		    (setf insertion-pointer
 			  (the fixnum (+ buffer-start nchars)))))
-	      ;; advance over stuff we insert, but don't back up to it
+	      ;; Advance over stuff we insert, but don't back up to it
 	      (setq scan-pointer (the fixnum (+ buffer-start nchars)))
 	      (redraw-input-buffer istream (the fixnum (+ buffer-start m)))
 	      (setq rescan-p t)))))
-      ;; this is so that we'll leave the context of ACCEPT *this* time, rather than
-      ;; next time, preserving our activation-p-ness.
+      ;; This is so that we'll leave the context of ACCEPT *this* time, rather
+      ;; than next time, preserving our activation-p-ness.
       (when (and rescan-p rescan)
 	(queue-rescan istream))
       insertion-pointer)))
 
 ;;--- What does it mean when VIEW is not a textual view?
-;; Returns the new insertion-pointer as its value.
+;; Returns the new insertion pointer as its value.
 (defmethod presentation-replace-input ((istream input-editing-stream-mixin) object type view
-				       &key (buffer-start (input-position istream))
+				       &key (buffer-start (stream-scan-pointer istream))
 					    rescan query-identifier for-context-type)
   (setq for-context-type (or for-context-type type))
   (let ((input-string
@@ -815,7 +813,7 @@
 				format-string &rest format-args)
   (declare (dynamic-extent format-args))
   (with-slots (input-buffer scan-pointer insertion-pointer) istream
-    (unless (rescanning-p istream)
+    (unless (stream-rescanning-p istream)
       (let ((noise-string 
 	      (make-noise-string
 		:display-string (apply #'format nil format-string format-args))))
@@ -952,7 +950,7 @@
 (defmethod stream-compatible-replace-input-since
 	   ((stream input-editing-stream-mixin) location string
 	    &optional (begin 0) (end nil) (rescan-mode :ignore))
-  (when (rescanning-p stream)
+  (when (stream-rescanning-p stream)
     (case rescan-mode
       ((:ignore) (return-from stream-compatible-replace-input-since nil))
       ((:error) (error "Replace-input while rescanning"))))

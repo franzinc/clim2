@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.6 92/07/01 15:47:11 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.7 92/07/20 16:00:42 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -43,3 +43,34 @@
 (defvar +iconic-view+ (make-instance 'iconic-view))
 )	;#+CLIM-1-compatibility
 
+
+(defclass actual-gadget-view (gadget-dialog-view)
+	  ((initargs :initform nil :reader view-initargs)))
+
+(defmethod initialize-instance :after ((view actual-gadget-view) &rest initargs)
+  (setf (slot-value view 'initargs) initargs))
+
+(eval-when (compile eval)
+  (defmacro define-gadget-view (name)
+    (let ((class-name (fintern "~A-~A" name 'view))
+	  (variable-name (fintern "+~A-~A+" name 'view)))
+      `(progn
+	 (defclass ,class-name (
+				;;--- We would get very good checking
+				;;-- but the problem you have is that of
+				;;-- default-initargs
+				;;--- The order of important is user
+				;;--- specified, those that accept wants to
+				;;-- use and finally the default initargs
+				;;-- but the user+default-initargs get all
+				;;-- mixed up
+				;; ,name 
+				actual-gadget-view) 
+		   ())
+	 (defvar ,variable-name (make-instance ',class-name))
+	 ',name))))
+
+(define-gadget-view slider)
+(define-gadget-view radio-box)
+(define-gadget-view check-box)
+(define-gadget-view toggle-button)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.38 92/07/20 16:01:53 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.39 92/07/24 10:54:53 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -410,6 +410,7 @@
   (values 'tk::xm-my-drawing-area nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (defclass motif-top-level-sheet (top-level-sheet) ())
 

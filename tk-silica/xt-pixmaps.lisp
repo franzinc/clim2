@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.7 92/07/08 16:32:01 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.8 92/07/20 16:02:00 cer Exp $
 
 
 (in-package :xm-silica)
@@ -151,7 +151,7 @@
 #+ignore
 (defmethod medium-copy-area 
 	   ((from-medium xt-medium) from-x from-y width height
-	    (pixmap xt-pixmap) to-x to-y)
+	    (pixmap tk::pixmap) to-x to-y)
   (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y)
     (convert-to-device-distances transform width height)
@@ -163,7 +163,7 @@
 
 #+ignore
 (defmethod medium-copy-area 
-	   ((pixmap xt-pixmap) from-x from-y width height
+	   ((pixmap tk::pixmap) from-x from-y width height
 	    (to-medium xt-medium) to-x to-y)
   (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates transform to-x to-y)

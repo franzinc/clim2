@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.11 92/07/01 15:46:25 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.12 92/07/08 16:30:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,13 +19,72 @@
 (defparameter *default-generation-separation* (coordinate 20))
 (defparameter *default-within-generation-separation* (coordinate 10))
 
+
+;;; Graph node tables
 
-;; Some graph layout algorithms will want this...
-;;--- What if TEST isn't EQ, EQL, EQUAL, or EQUALP?  Use an alist... 
-(defresource graph-node-hash-table (&key test)
-  :constructor (make-hash-table :test test)
-  :deinitializer (clrhash graph-node-hash-table))
+;; Like hash tables, only a bit more general.  It's reasonable for someone
+;; to want to use a "custom" duplicate test that is not supported by X3J13
+;; hash tables, for example, =.
+(defclass graph-node-table ()
+    ((test :initarg :test)
+     (table :initarg :table)))
 
+(defun make-graph-node-table (&key test size)
+  (when (null test) (setq test 'eql))
+  (when (null size) (setq size 10))
+  (let ((table
+	  (and (or (member test '(eq eql equal
+				  #-Genera equalp
+				  #+Genera string-equal #+Genera string=
+				  #+Genera char-equal #+Genera char=))
+		   (eq test (load-time-value #'eq))
+		   (eq test (load-time-value #'eql))
+		   (eq test (load-time-value #'equal))
+		   #-Genera (eq test (load-time-value #'equalp)))
+	       (make-hash-table :test test :size size))))
+    (make-instance 'graph-node-table
+      :test test :table table)))
+
+(defmethod clear-node-table ((node-table graph-node-table))
+  (with-slots (table) node-table
+    (if (listp table)
+	(setq table nil)
+	(clrhash table))))
+
+(defmethod get-node-table (key (node-table graph-node-table) &optional default)
+  (with-slots (table test) node-table
+    (if (listp table)
+	(let ((entry (assoc key table :test test)))
+	  (if entry
+	      (values (cdr entry) t)
+	      (values default nil)))
+	(gethash key table default))))
+
+(defmethod (setf get-node-table) (value key (node-table graph-node-table) &optional default)
+  (declare (ignore default))
+  (with-slots (table test) node-table
+    (if (listp table)
+	(let ((entry (assoc key table :test test)))
+	  (if entry
+	      (setf (cdr entry) value)
+	      (push (cons key value) table)))
+	(setf (gethash key table) value))
+    value))
+
+(defmethod map-node-table (function (node-table graph-node-table))
+  (declare (dynamic-extent function))
+  (with-slots (table) node-table
+    (if (listp table)
+	(dolist (entry table)
+	  (funcall function (car entry) (cdr entry)))
+	(maphash function table))))
+
+(defresource graph-node-table (&key (test 'eql))
+  :constructor (make-graph-node-table :test test)
+  :deinitializer (clear-node-table graph-node-table))
+
+
+;;; The grapher
 
 (define-protocol-class graph-output-record (output-record))
 
@@ -131,7 +190,7 @@
 	  duplicate-test #'eql))
   (assert (not (null (assoc graph-type *graph-type-record-type-alist*))) ()
 	  "The graph type ~S is not a known graph type" graph-type)
-  (using-resource (hash-table graph-node-hash-table :test duplicate-test)
+  (using-resource (hash-table graph-node-table :test duplicate-test)
     (let* ((record-type (second (assoc graph-type *graph-type-record-type-alist*)))
 	   (graph-record 
 	     (with-output-recording-options (stream :draw nil :record t)
@@ -203,11 +262,9 @@
   (declare (ignore stream))
   (with-slots (root-nodes orientation center-nodes
 	       generation-separation within-generation-separation) graph
-    (when root-nodes
-      (let ((start-x (coordinate 0))
-	    (start-y (coordinate 0))
-	    ;;--- This needs to handle multiple root nodes
-	    (root-node (first root-nodes)))
+    (let ((start-x (coordinate 0))
+	  (start-y (coordinate 0)))
+      (dolist (root-node root-nodes)
 	(macrolet
 	  ((layout-body (driver-function-name 
 			 node-var depth-var breadth-var tallest-sibling-var
@@ -238,6 +295,7 @@
 			    (round (max 0 (- total-child-breadth node-breadth)) 2))))
 		  (setf (node-depth-start ,node-var) ,depth-var
 			(node-breadth-start ,node-var) my-breadth)
+		  ;; Returns the breadth of the graph as a result
 		  (max total-child-breadth (node-breadth ,node-var))))))
 	  (ecase orientation
 	    ((:vertical :down)
@@ -251,7 +309,9 @@
 				       generation-separation
 				       within-generation-separation)))
 		 ;; Yes, this really is "start-y" followed by "start-x"
-		 (layout-graph root-node start-y start-x (node-depth root-node)))))
+		 (incf start-x
+		       (layout-graph root-node start-y start-x
+				     (node-depth root-node))))))
 	    ((:horizontal :right)
 	     (macrolet ((node-breadth (node) `(bounding-rectangle-height ,node))
 			(node-depth (node) `(bounding-rectangle-width ,node))
@@ -262,52 +322,52 @@
 				       start-x start-y tallest-sibling
 				       generation-separation
 				       within-generation-separation)))
-		 (layout-graph root-node start-x start-y (node-depth root-node)))))))))))
+		 (incf start-y
+		       (layout-graph root-node start-x start-y
+				     (node-depth root-node))))))))))))
 
 (defmethod layout-graph-edges ((graph tree-graph-output-record) 
 			       stream arc-drawer arc-drawing-options)
   (with-slots (orientation root-nodes) graph
-    (when root-nodes
-      ;;--- This needs to handle multiple root nodes 
-      (let ((root-node (first root-nodes)))
-	(flet ((parent-attachment-position (node)
-		 (with-bounding-rectangle* (left top right bottom) node
-		   (case orientation
-		     ((:horizontal :right)
-		      (values (1+ right) (+ top (floor (- bottom top) 2))))
-		     ((:vertical :down)
-		      (values (+ left (floor (- right left) 2)) (1+ bottom))))))
-	       (child-attachment-position (node)
-		 (with-bounding-rectangle* (left top right bottom) node
-		   (case orientation
-		     ((:horizontal :right)
-		      (values (1- left) (+ top (floor (- bottom top) 2))))
-		     ((:vertical :down)
-		      (values (+ left (floor (- right left) 2)) (1- top)))))))
-	  (declare (dynamic-extent #'parent-attachment-position #'child-attachment-position))
-	  (multiple-value-bind (xoff yoff)
-	      (convert-from-relative-to-absolute-coordinates
-		stream (output-record-parent graph))
-	    (with-identity-transformation (stream)
-	      (with-output-recording-options (stream :draw nil :record t)
-		(with-new-output-record (stream 'standard-sequence-output-record nil
-					 :parent graph)
-		  (labels ((draw-edges (parent)
-			     (dolist (child (graph-node-children parent))
-			       (when (graph-node-children child)
-				 (draw-edges child))
-			       (multiple-value-bind (parent-x parent-y)
-				   (parent-attachment-position parent)
-				 (multiple-value-bind (child-x child-y)
-				     (child-attachment-position child)
-				   (translate-coordinates xoff yoff
-				     parent-x parent-y child-x child-y)
-				   ;;--- This really needs to pass the objects, too
-				   (apply arc-drawer stream
-					  parent-x parent-y child-x child-y
-					  arc-drawing-options))))))
-		    (declare (dynamic-extent #'draw-edges))
-		    (draw-edges root-node)))))))))))
+    (dolist (root-node root-nodes)
+      (flet ((parent-attachment-position (node)
+	       (with-bounding-rectangle* (left top right bottom) node
+		 (case orientation
+		   ((:horizontal :right)
+		    (values (1+ right) (+ top (floor (- bottom top) 2))))
+		   ((:vertical :down)
+		    (values (+ left (floor (- right left) 2)) (1+ bottom))))))
+	     (child-attachment-position (node)
+	       (with-bounding-rectangle* (left top right bottom) node
+		 (case orientation
+		   ((:horizontal :right)
+		    (values (1- left) (+ top (floor (- bottom top) 2))))
+		   ((:vertical :down)
+		    (values (+ left (floor (- right left) 2)) (1- top)))))))
+	(declare (dynamic-extent #'parent-attachment-position #'child-attachment-position))
+	(multiple-value-bind (xoff yoff)
+	    (convert-from-relative-to-absolute-coordinates
+	      stream (output-record-parent graph))
+	  (with-identity-transformation (stream)
+	    (with-output-recording-options (stream :draw nil :record t)
+	      (with-new-output-record (stream 'standard-sequence-output-record nil
+				       :parent graph)
+		(labels ((draw-edges (parent)
+			   (dolist (child (graph-node-children parent))
+			     (when (graph-node-children child)
+			       (draw-edges child))
+			     (multiple-value-bind (parent-x parent-y)
+				 (parent-attachment-position parent)
+			       (multiple-value-bind (child-x child-y)
+				   (child-attachment-position child)
+				 (translate-coordinates xoff yoff
+				   parent-x parent-y child-x child-y)
+				 ;;--- This really needs to pass the objects, too
+				 (apply arc-drawer stream
+					parent-x parent-y child-x child-y
+					arc-drawing-options))))))
+		  (declare (dynamic-extent #'draw-edges))
+		  (draw-edges root-node))))))))))
 
 
 ;;; Directed graphs, both acyclic and cyclic
@@ -362,12 +422,13 @@
 		      cutoff-depth)
       (setf (slot-value graph 'n-generations) n-generations))
     (let ((root-nodes nil))
-      (maphash #'(lambda (key node)
-		   (declare (ignore key))
-		   (when (and (graph-node-output-record-p node)
-			      (null (graph-node-parents node)))
-		     (push node root-nodes)))
-	       hash-table)
+      (flet ((find-roots (key node)
+	       (declare (ignore key))
+	       (when (and (graph-node-output-record-p node)
+			  (null (graph-node-parents node)))
+		 (push node root-nodes))))
+	(declare (dynamic-extent #'find-roots))
+	(map-node-table #'find-roots hash-table))
       (setf (graph-root-nodes graph) (nreverse root-nodes))))
   graph)
 
@@ -547,18 +608,18 @@
 		       new-node-function old-node-function &optional max-depth)
   (declare (dynamic-extent inferior-mapper key new-node-function old-node-function))
   (check-type max-depth (or null integer))
-  (clrhash hash-table)
+  (clear-node-table hash-table)
   (labels
     ((traverse (parent-object parent-hashval object max-depth)
        (let ((object-hashval
 	       (funcall new-node-function parent-object parent-hashval object)))
-	 (setf (gethash (funcall key object) hash-table) object-hashval)
+	 (setf (get-node-table (funcall key object) hash-table) object-hashval)
 	 (when max-depth (decf max-depth))
 	 (unless (eq max-depth 0)
 	   (flet ((traverse1 (child-object)
 		    (let ((child-key (funcall key child-object)))
 		      (multiple-value-bind (child-hashval found)
-			  (gethash child-key hash-table)
+			  (get-node-table child-key hash-table)
 			(if found
 			    (funcall old-node-function 
 				     object object-hashval child-object child-hashval)

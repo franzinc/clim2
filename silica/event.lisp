@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.17 92/07/08 16:29:05 cer Exp $
+;; $fiHeader: event.lisp,v 1.18 92/07/20 15:59:15 cer Exp $
 
 (in-package :silica)
 
@@ -243,6 +243,7 @@
 ;;--- This code does not deal with cases (2) and (3) correctly.
 ;;--- It will fail to generate enter/exit events for cases
 (defun generate-crossing-events (port sheet x y modifiers button pointer)
+  (declare (ignore button))
   (macrolet ((generate-enter-event (sheet)
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
@@ -250,7 +251,6 @@
 		    (allocate-event 'pointer-enter-event
 		      :sheet sheet
 		      :x x :y y
-		      :button button
 		      :modifier-state modifiers
 		      :pointer pointer))))
 	     (generate-exit-event (sheet)
@@ -260,7 +260,6 @@
 		    (allocate-event 'pointer-exit-event
 		      :sheet sheet
 		      :x x :y y
-		      :button button
 		      :modifier-state modifiers
 		      :pointer pointer)))))
     (let ((v (port-trace-thing port)))
@@ -325,13 +324,20 @@
 	    (sheet-device-transformation sheet) x y)
 	(dispatch-event
 	  sheet
-	  (allocate-event event-type
-	    :sheet sheet
-	    :native-x x :native-y y
-	    :x tx :y ty
-	    :modifier-state modifiers
-	    :button button
-	    :pointer pointer))))))
+	  (if button
+	      (allocate-event event-type
+		:sheet sheet
+		:native-x x :native-y y
+		:x tx :y ty
+		:modifier-state modifiers
+		:button button
+		:pointer pointer)
+	      (allocate-event event-type
+		:sheet sheet
+		:native-x x :native-y y
+		:x tx :y ty
+		:modifier-state modifiers
+		:pointer pointer)))))))
 
 
 ;;; Event distribution
@@ -360,18 +366,17 @@
     event))
 
 (defmethod distribute-event-1 ((port basic-port) (event pointer-event))
-  (distribute-pointer-event
-    port
-    (event-sheet event)
-    (typecase event
-      ((or pointer-exit-event pointer-enter-event)
-       'pointer-motion-event)
-      (t (class-name (class-of event))))
-    (pointer-event-native-x event)
-    (pointer-event-native-y event)
-    (event-modifier-state event)
-    (pointer-event-button event)
-    (pointer-event-pointer event))
+  (multiple-value-bind (class button)
+      (typecase event
+	(pointer-button-event
+	  (values (class-name (class-of event)) (pointer-event-button event)))
+	(t
+	  (values 'pointer-motion-event nil)))
+    (distribute-pointer-event
+      port (event-sheet event) class
+      (pointer-event-native-x event) (pointer-event-native-y event)
+      (event-modifier-state event) button
+      (pointer-event-pointer event)))
   (deallocate-event event))
 	    
 

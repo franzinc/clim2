@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.10 92/07/08 16:29:55 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.11 92/07/20 16:00:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -106,7 +106,7 @@
 	;; Must REPLACE-INPUT after UNREAD-GESTURE so the delimiter is unread
 	;; into the input editor's buffer, not the underlying stream's buffer.
 	(when (input-editing-stream-p stream)
-	  (unless (rescanning-p stream)
+	  (unless (stream-rescanning-p stream)
 	    (replace-input stream (string (first *command-argument-delimiters*)))))))
     delimiter))
 
@@ -526,7 +526,7 @@
 (define-presentation-method accept ((type command) stream (view textual-view) &key)
   (setq command-table (find-command-table command-table))
   (let ((start-position (and (input-editing-stream-p stream)
-			     (input-position stream)))
+			     (stream-scan-pointer stream)))
 	;; this also requires some thought, but I suspect that
 	;; we can just kludge it this way in this presentation type,
 	;; because we can't think of any other presentation types
@@ -600,7 +600,7 @@
   (declare (dynamic-extent args))
   (let ((p-t `(command :command-table ,command-table))
 	(start-position (and (input-editing-stream-p stream)
-			     (input-position stream)))
+			     (stream-scan-pointer stream)))
 	(replace-input-p nil))
     (multiple-value-bind (object type)
 	(with-input-context (p-t) (command command-presentation-type nil options)
@@ -624,7 +624,7 @@
 		(setq command (funcall *partial-command-parser*
 				       command command-table stream start-position)))
 	      (when replace-input-p
-		(unless (rescanning-p stream)
+		(unless (stream-rescanning-p stream)
 		  (replace-input stream (string (first *command-dispatchers*))
 				 :buffer-start start-position)
 		  (incf start-position)))

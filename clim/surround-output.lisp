@@ -1,15 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.4 92/02/24 13:08:34 cer Exp $
+;; $fiHeader: surround-output.lisp,v 1.5 92/04/15 11:47:23 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-;;; --- To do:
-;;; --- 1) Ensure that the replay method always gets called at the right time.
-;;; --- 2) Use the size of the border to determine the size of the output record.
 (defvar *border-shape-drawer-alist* nil)
 
 (eval-when (eval compile load)
@@ -49,14 +46,18 @@
     (draw-rectangle* stream
 		     (- left offset) (- top offset)
 		     (+ right offset) (+ bottom offset)
-		     :filled nil)))
+		     :filled nil))
+  ;; Y offset for text cursor is 3
+  3)
 
 (define-border-type :oval (stream left top right bottom)
   (let ((offset 2))
     (draw-oval* stream
 		(floor (+ left right) 2) (floor (+ top bottom) 2)
 		(+ (floor (+ (- right left) offset) 2) 2) (floor (+ (- bottom top) offset) 2)
-		:filled nil)))
+		:filled nil))
+  ;; Y offset for text cursor is 3
+  3)
 
 (defvar +drop-shadow-line-style+ (make-line-style :thickness 3 :joint-shape :miter))
 (define-border-type :drop-shadow (stream left top right bottom)
@@ -68,12 +69,16 @@
     (draw-line* stream x1 y1 x2 y1)
     (draw-line* stream x1 y1 x1 y2)
     (draw-polygon* stream (list x2 y1 x2 y2 x1 y2)
-		   :closed nil :filled nil :line-style +drop-shadow-line-style+)))
+		   :closed nil :filled nil :line-style +drop-shadow-line-style+))
+  ;; Y offset for text cursor is 4
+  4)
 
 (define-border-type :underline (stream record left top right)
   (let ((baseline (find-text-baseline record stream)))
     (incf top baseline)
-    (draw-line* stream left top right top)))
+    (draw-line* stream left top right top))
+  ;; Y offset for text cursor is 0
+  0)
 
 
 ;; SURROUNDING-OUTPUT-WITH-BORDER macro in FORMATTED-OUTPUT-DEFS
@@ -84,7 +89,8 @@
 	     (with-new-output-record (stream 'border-output-record nil
 				      :shape shape)
 	       (setq body (with-new-output-record (stream)
-			    (funcall continuation stream)))))))
+			    (funcall continuation stream))))))
+	 offset)
     (with-bounding-rectangle* (left top right bottom) body
       (multiple-value-bind (xoff yoff)
 	  (convert-from-relative-to-absolute-coordinates
@@ -93,15 +99,18 @@
       (with-output-recording-options (stream :draw nil :record t)
 	(with-new-output-record (stream 'standard-sequence-output-record nil
 				 :parent border-record)
-	  (if (funcallable-p shape)
-	      (funcall shape stream body left top right bottom)
-	    (let ((function (second (assoc shape *border-shape-drawer-alist*))))
-	      (if (null function)
-		  (error "The shape ~S is not a defined border shape" shape)
-		  (funcall function stream body left top right bottom)))))))
+	  (setq offset
+		(if (funcallable-p shape)
+		    (funcall shape stream body left top right bottom)
+		    (let ((function (second (assoc shape *border-shape-drawer-alist*))))
+		      (if (null function)
+			  (error "The shape ~S is not a defined border shape" shape)
+			  (funcall function stream body left top right bottom))))))))
     (replay border-record stream)
     (when move-cursor
-      (move-cursor-beyond-output-record stream border-record))
+      (move-cursor-beyond-output-record stream border-record
+					;; Compatibility: filter out bogus offsets
+					(if (realp offset) offset 0)))
     border-record))
 
 (defmethod map-over-table-elements-helper (function (record border-output-record) type)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.18 92/07/01 15:47:16 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.19 92/07/08 16:31:13 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -90,9 +90,12 @@
 
 (setq clim-defsys:*load-all-before-compile* t)
 
-#+(or Allegro Lucid)
-(defun frob-pathname (subdir &optional (dir #+Allegro excl::*source-pathname*
-					    #+Lucid lcl::*source-pathname*))
+#-Genera
+(defun frob-pathname (subdir
+		      &optional (dir #+Allegro excl::*source-pathname*
+				     #+Lucid lcl::*source-pathname*
+				     #-(or Allegro Lucid) (or *compile-file-pathname*
+							      *load-pathname*)))
   (namestring
     (make-pathname
       :directory (append (butlast (pathname-directory dir)) (list subdir)))))
@@ -101,23 +104,16 @@
 (defun frob-pathname (subdir &optional (dir sys:fdefine-file-pathname))
   (namestring
     (make-pathname
-      :defaults sys:fdefine-file-pathname
-      :directory (append (butlast (pathname-directory dir)) (list subdir)))))
+      :defaults dir
+      :directory (append (butlast (pathname-directory dir)) 
+			 (mapcar #'string-upcase (list subdir))))))
 
 
 (clim-defsys:defsystem clim-utils
     (:default-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
-		       #+Minima "SYS:CLIM;REL-2;UTILS;"
-		       #+Cloe-Runtime "\\clim\\rel-2\\utils\\"
-		       #+(or Allegro Lucid) (frob-pathname "utils")
-		       #+CMU "/home/hornig/clim/rel-2/utils/"
-		       #+CCL-2 "ccl;clim-2.0:utils:"
+		       #-Genera (frob-pathname "utils")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
-			      #+Minima "SYS:CLIM;REL-2;UTILS;"
-			      #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			      #+(or Allegro Lucid) (frob-pathname "utils")
-			      #+CMU "/home/hornig/clim/rel-2/cmu/"
-			      #+CCL-2 "ccl;clim-2.0:fasls:")
+			      #-Genera (frob-pathname "utils"))
   ;; These files establish a uniform Lisp environment
   ("excl-verification" :features Allegro)
   ("lucid-before" :features lucid)
@@ -162,19 +158,11 @@
 
 (clim-defsys:defsystem clim-silica
     (:default-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
-      		       #+Minima "SYS:CLIM;REL-2;SILICA;"
-		       #+Cloe-Runtime "\\clim\\rel-2\\silica\\"
-		       #+(or Allegro Lucid) (frob-pathname "silica")
-		       #+CMU "/home/hornig/clim/rel-2/silica/"
-		       #+CCL-2 "ccl;clim-2.0:silica:"
-      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
-      			       #+Minima "SYS:CLIM;REL-2;SILICA;"
-			       #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			       #+(or Allegro Lucid) (frob-pathname "silica")
-			       #+CMU "/home/hornig/clim/rel-2/cmu/"
-			       #+CCL-2 "ccl;clim-2.0:fasls:"
-      :needed-systems (clim-utils)
-      :load-before-compile (clim-utils))
+		       #-Genera (frob-pathname "silica")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
+			      #-Genera (frob-pathname "silica")
+     :needed-systems (clim-utils)
+     :load-before-compile (clim-utils))
   ;; "Silica"
   ("macros")
   ("classes")
@@ -205,17 +193,9 @@
 
 (clim-defsys:defsystem clim-standalone
     (:default-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
-		       #+Minima "SYS:CLIM;REL-2;CLIM;"
-		       #+Cloe-Runtime "\\clim\\rel-2\\clim\\rel-2\\"
-		       #+(or Allegro Lucid) (frob-pathname "clim")
-		       #+CMU "/home/hornig/clim/rel-2/clim/"
-		       #+CCL-2 "ccl;clim-2.0:clim:"
+		       #-Genera (frob-pathname "clim")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
-			      #+Minima "SYS:CLIM;REL-2;CLIM;"
-			      #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			      #+(or Allegro Lucid) (frob-pathname "clim")
-			      #+CMU "/home/hornig/clim/rel-2/cmu/"
-			      #+CCL-2 "ccl;clim-2.0:fasls:"
+			      #-Genera (frob-pathname "clim")
      :needed-systems (clim-utils clim-silica)
      :load-before-compile (clim-utils clim-silica))
 
@@ -337,8 +317,10 @@
 
 #+Genera
 (clim-defsys:defsystem genera-clim
-    (:default-pathname "SYS:CLIM;REL-2;GENERA;"
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
+		       #-Genera (frob-pathname "genera")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
+			      #-Genera (frob-pathname "genera")
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
@@ -353,17 +335,9 @@
 #+(and CLX use-CLX)
 (clim-defsys:defsystem clx-clim
     (:default-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
-		       #+Minima "SYS:CLIM;REL-2;CLX;"
-		       #+Cloe-Runtime "\\clim\\rel-2\\clx\\"
-		       #+(or Allegro Lucid) (frob-pathname "clx")
-		       #+CMU "/home/hornig/clim/rel-2/clx/"
-		       #+CCL-2 "ccl;clim-2.0:clx:"
+		       #-Genera (frob-pathname "clx")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
-			      #+Minima "SYS:CLIM;REL-2;CLX;"
-			      #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			      #+(or Allegro Lucid) (frob-pathname "clx")
-			      #+CMU "/home/hornig/clim/rel-2/cmu/"
-			      #+CCL-2 "ccl;clim-2.0:fasls:"
+			      #-Genera (frob-pathname "clx")
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
@@ -385,8 +359,10 @@
 
 #+Allegro
 (clim-defsys:defsystem xlib
-    (:default-pathname (frob-pathname "xlib")
-     :default-binary-pathname (frob-pathname "xlib")
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;XLIB;"
+		       #-Genera (frob-pathname "xlib")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;XLIB;"
+			      #-Genera (frob-pathname "xlib")
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkg")
@@ -401,8 +377,10 @@
 
 #+Allegro
 (clim-defsys:defsystem xt-tk
-    (:default-pathname (frob-pathname "tk")
-     :default-binary-pathname (frob-pathname "tk")
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+		       #-Genera (frob-pathname "tk")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+			      #-Genera (frob-pathname "tk")
      :needed-systems (xlib)
      :load-before-compile (xlib))
   ;; General stuff
@@ -429,8 +407,10 @@
 
 #+Allegro
 (clim-defsys:defsystem xm-tk
-    (:default-pathname (frob-pathname "tk")
-     :default-binary-pathname (frob-pathname "tk")
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+		       #-Genera (frob-pathname "tk")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+			      #-Genera (frob-pathname "tk")
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; Motif specific stuff
@@ -450,8 +430,10 @@
 
 #+Allegro
 (clim-defsys:defsystem ol-tk
-    (:default-pathname (frob-pathname "tk")
-     :default-binary-pathname (frob-pathname "tk")
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+		       #-Genera (frob-pathname "tk")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+			      #-Genera (frob-pathname "tk")
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
@@ -467,8 +449,10 @@
 
 #+Allegro
 (clim-defsys:defsystem motif-clim
-    (:default-pathname (frob-pathname "tk-silica")
-     :default-binary-pathname (frob-pathname "tk-silica")
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
+		       #-Genera (frob-pathname "tk-silica")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
+			      #-Genera (frob-pathname "tk-silica")
      :needed-systems (clim-standalone xm-tk)
      :load-before-compile (clim-standalone xm-tk))
   ("pkg")
@@ -487,8 +471,10 @@
 
 #+Allegro
 (clim-defsys:defsystem openlook-clim
-    (:default-pathname (frob-pathname "tk-silica")
-     :default-binary-pathname (frob-pathname "tk-silica")
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
+		       #-Genera (frob-pathname "tk-silica")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
+			      #-Genera (frob-pathname "tk-silica")
      :needed-systems (clim-standalone ol-tk)
      :load-before-compile (clim-standalone ol-tk))
   ("pkg")
@@ -506,8 +492,10 @@
 
 #+CCL-2
 (clim-defsys:defsystem ccl-clim
-    (:default-pathname "SYS:CLIM;REL-2;CCL;"
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
+		       #-Genera (frob-pathname "ccl")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
+			      #-Genera (frob-pathname "ccl")
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
@@ -522,17 +510,9 @@
 #+Cloe-Runtime
 (clim-defsys:defsystem cloe-clim
     (:default-pathname #+Genera "SYS:CLIM;REL-2;CLOE;"
-		       #+Minima "SYS:CLIM;REL-2;CLOE;"
-		       #+Cloe-Runtime "\\clim\\rel-2\\cloe\\"
-		       #+(or Allegro Lucid) (frob-pathname "cloe")
-		       #+CMU "/home/hornig/clim/rel-2/cloe/"
-		       #+CCL-2 "ccl;clim-2.0:cloe:"
+		       #-Genera (frob-pathname "cloe")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLOE;"
-			      #+Minima "SYS:CLIM;REL-2;CLOE;"
-			      #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			      #+(or Allegro Lucid) (frob-pathname "cloe")
-			      #+CMU "/home/hornig/clim/rel-2/cmu/"
-			      #+CCL-2 "ccl;clim-2.0:fasls:"
+			      #-Genera (frob-pathname "cloe")
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
@@ -548,17 +528,9 @@
 
 (clim-defsys:defsystem postscript-clim
     (:default-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
-		       #+Minima "SYS:CLIM;REL-2;POSTSCRIPT;"
-		       #+Cloe-Runtime "\\clim\\rel-2\\postscript\\"
-		       #+(or Allegro Lucid) (frob-pathname "postscript")
-		       #+CMU "/home/hornig/clim/rel-2/postscript/"
-		       #+CCL-2 "ccl;clim-2.0:postscript:"
+		       #-Genera (frob-pathname "postscript")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
-			      #+Minima "SYS:CLIM;REL-2;POSTSCRIPT;"
-			      #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			      #+(or Allegro Lucid) (frob-pathname "postscript")
-			      #+CMU "/home/hornig/clim/rel-2/cmu/"
-			      #+CCL-2 "ccl;clim-2.0:fasls:"
+			      #-Genera (frob-pathname "postscript")
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
@@ -595,7 +567,7 @@
 
 (sct:defsystem clim
     (:pretty-name "CLIM"
-     :default-pathname "SYS:CLIM;REL-2;CLIM;"
+     :default-pathname "SYS:CLIM;REL-2;"
      :journal-directory "SYS:CLIM;REL-2;PATCH;"
      :default-module-type :system
      :patches-reviewed "Bug-CLIM-Doc"
@@ -610,16 +582,15 @@
 	   "postscript-clim"))
 
 #+++ignore
+(progn
 (clim-defsys:import-into-sct 'motif-clim :subsystem t
 			     :pretty-name "Motif CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
-#+++ignore
 (clim-defsys:import-into-sct 'openlook-clim :subsystem t
 			     :pretty-name "OpenLook CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
-#+++ignore
 (sct:defsystem clim-tags-table
     (:pretty-name "CLIM Tags Table"
      :default-pathname "SYS:CLIM;REL-2;CLIM;"
@@ -630,8 +601,9 @@
   (:serial "clim"
 	   "motif-clim"
 	   "openlook-clim"))
-
 )
+
+)	;#+Genera
 
 #+Minima-Developer (progn
 
@@ -653,7 +625,7 @@
 
 (zl:::sct:defsystem minima-clim
     (:pretty-name "Minima CLIM"
-     :default-pathname "SYS:CLIM;REL-2;CLIM;"
+     :default-pathname "SYS:CLIM;REL-2;"
      :journal-directory "SYS:CLIM;REL-2;PATCH;"
      :maintain-journals nil
      :default-module-type :system
@@ -666,7 +638,7 @@
 	   "minima-clim-standalone"
 	   "minima-clx-clim"))
 
-)
+)	;#+Minima-Developer
 
 
 #||

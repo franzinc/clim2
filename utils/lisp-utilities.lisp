@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.12 92/06/16 19:10:59 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.13 92/07/01 15:45:34 cer Exp $
 
 (in-package :clim-utils)
 
@@ -577,7 +577,7 @@
      ,@body))
 
 #-Genera	;in case anybody wants to implement this...
-(defun make-stack-array (size &rest options)
+(defun-inline make-stack-array (size &rest options)
   (declare (dynamic-extent options))
   (apply #'make-array size options))
 

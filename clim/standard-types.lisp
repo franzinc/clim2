@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.8 92/05/07 13:12:58 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.9 92/07/01 15:46:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -404,7 +404,7 @@
 				 :name (pathname-name default)
 				 :type default-type
 				 :version default-version)))
-  (let ((buffer-start (input-position stream)))
+  (let ((buffer-start (stream-scan-pointer stream)))
     (multiple-value-bind (pathname success string)
 	(complete-input stream #'(lambda (string action)
 				   (pathname-complete string action default))
@@ -417,7 +417,7 @@
 	  (setq pathname (parse-namestring string nil default)))
 	(when merge-default
 	  (setq pathname (merge-pathnames pathname default default-version))))
-      (unless (rescanning-p stream)
+      (unless (stream-rescanning-p stream)
 	(presentation-replace-input stream pathname type view
 				    :buffer-start buffer-start))
       (values pathname type))))
@@ -540,7 +540,9 @@
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (values
-    (completing-from-suggestions (stream :partial-completers partial-completers)
+    (completing-from-suggestions 
+	(stream :partial-completers partial-completers
+		:help-displays-possibilities (<= (length sequence) 10))
       (flet ((suggest-item (item)
 	       (suggest (funcall name-key item) (funcall value-key item))))
 	(declare (dynamic-extent #'suggest-item))
@@ -700,7 +702,8 @@
 		    (stream :partial-completers partial-completers
 			    :possibility-printer
 			      #'(lambda (object type stream)
-				  (present (list (second object)) type :stream stream)))
+				  (present (list (second object)) type :stream stream))
+			    :help-displays-possibilities (<= (length sequence) 10))
 		  (flet ((suggest-item (item)
 			   (suggest (funcall name-key item)
 				    (funcall value-key item))))
@@ -737,7 +740,7 @@
 		  )
 		 ((eql char delimiter-character)
 		  (when (and echo-space (not (eql delimiter-character #\space)))
-		    (if (rescanning-p stream)
+		    (if (stream-rescanning-p stream)
 			(let ((space (read-gesture :stream stream)))
 			  (unless (whitespace-char-p space)
 			    ;; It wasn't a space so put it back
@@ -1167,7 +1170,7 @@
 (define-presentation-method accept ((type or) stream view
 				    &key (default nil default-supplied-p)
 					 (default-type type))
-  (let* ((location (input-position stream))
+  (let* ((location (stream-scan-pointer stream))
 	 last-error
 	 ;; Since we need to bind a handler for PARSE-ERROR, we cannot call
 	 ;; ACCEPT down below, since it binds a handler for PARSE-ERROR, too.
@@ -1192,7 +1195,7 @@
 				 (values default default-type)))
 			     ;; That parser didn't work, try another on the same input
 			     (setq last-error error)
-			     (setf (input-position stream) location)
+			     (setf (stream-scan-pointer stream) location)
 			     (return-from fail))))
 	  (multiple-value-bind (object object-type)
 	      (if (and default-supplied-p
@@ -1440,7 +1443,7 @@
 		 (t
 		  (when (activation-gesture-p char)
 		    ;; I guess it wasn't really an activation gesture...
-		    (unless (rescanning-p stream)
+		    (unless (stream-rescanning-p stream)
 		      (replace-input stream (string char))))
 		  (vector-push-extend char input-buffer)
 		  (cond ((and desired-delimiter 

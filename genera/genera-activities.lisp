@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.4 92/04/15 11:47:49 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.5 92/07/08 16:31:29 cer Exp $
 
 (in-package :genera-clim)
 
@@ -25,8 +25,9 @@
 		 (frame (and sheet (pane-frame sheet))))
 	    (and frame (eq (frame-name frame) frame-name)))))
     #'(lambda (&rest initargs &key superior &allow-other-keys)
-	;;--- Need to find the port for the screen named by SUPERIOR
-        (let* ((port (find-port))
+	(let* ((port (if (eq superior tv:main-screen)
+			 (find-port)
+			 (find-port :server-path `(:genera :screen ,superior))))
 	       (frame (dolist (frame *deactivated-clim-activities*
 			       ;; Didn't find one, so make a new one
 			       (with-keywords-removed (initargs initargs '(:superior))
@@ -36,25 +37,26 @@
 					(append initargs frame-args))))
 			(when (eq (frame-name frame) frame-name)
 			  (let ((sheet (frame-top-level-sheet frame)))
-			    (when (eq (window-parent sheet) root)
+			    (when (eq (port sheet) port)
 			      (setq *deactivated-clim-activities*
 				    (delete frame *deactivated-clim-activities*))
 			      (when (zerop (tv:sheet-dead 
 					     (medium-drawable (sheet-medium sheet))))
 				(return frame)))))))
 	       (sheet (frame-top-level-sheet frame))
-	       (window (medium-drawable sheet)))
+	       (window (medium-drawable (sheet-medium sheet))))
 	  (stream-clear-input sheet)		;might have an Abort left in it
 	  (scl:process-run-function (frame-pretty-name frame)
 	    #'(lambda (frame window)
 		(setf (tv:io-buffer-last-output-process (scl:send window :io-buffer))
 		      scl:*current-process*)
-		(unwind-protect (run-frame-top-level frame)
+		(unwind-protect 
+		    (run-frame-top-level frame)
 		  (when (zerop (tv:sheet-dead window))
 		    (push frame *deactivated-clim-activities*))))
 	    frame window)
 	  window))
-    :select t
+    :select :unless-created
     :force-create force-create
     :beep-if-only-one-selected beep-if-only-one-selected))
 
@@ -76,15 +78,15 @@
   (declare (ignore left top right bottom width height))
   (with-keywords-removed (keys keys '(:pretty-name :select-key))
     `(define-genera-application-1
-       ',frame-name ',pretty-name ',select-key ',(copy-list keys))))
+       ',frame-name ',pretty-name ',select-key ,@(copy-list keys))))
 
-(defun define-genera-application-1 (frame-name pretty-name select-key &optional frame-args)
+(defun define-genera-application-1 (frame-name pretty-name select-key &rest frame-args)
   (when (null pretty-name)
     (setq pretty-name (clim-internals::command-name-from-symbol frame-name)))
   (when (cli::define-activity 'clim-activity
 			      :name pretty-name
 			      :description pretty-name
 			      :frame-name frame-name
-			      :frame-args frame-args)
+			      :frame-args (copy-list frame-args))
     (when select-key
       (sys:set-select-key-activity select-key pretty-name))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.10 92/05/22 19:28:19 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.11 92/07/01 15:46:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -77,7 +77,12 @@
     (declare (type coordinate xoff yoff))
     (with-bounding-rectangle* (left top right bottom) record
       (draw-rectangle-internal stream xoff yoff
-			       left top right bottom
+			       ;; Offset the left/top, but not the right/bottom
+			       ;; because of the rules CLIM uses for rasterizing
+			       ;; unfilled rectangles.  Bounding rectangles for
+			       ;; graphical objects will already be a bit big
+			       ;; on the lower right anyway.
+			       (1- left) (1- top) right bottom
 			       +flipping-ink+ +highlighting-line-style+))))
 
 (defmethod highlight-output-record-1 :around ((record standard-presentation) stream state)

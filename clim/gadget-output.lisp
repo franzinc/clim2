@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.21 92/07/20 16:00:18 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.22 92/07/24 10:54:26 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -31,10 +31,12 @@
     (output-record-mixin output-record-element-mixin output-record)
     ((gadget :initform nil :accessor output-record-gadget)
      (cache-value :initarg :cache-value :initform nil) 
-     ;;-- This is just to enable the cache-test to be passed along
-     ;;without signalling an error. Yuck!
-     (cache-test :initarg :cache-test :initform nil)
      (optional-values :initform nil)))
+
+(defmethod initialize-instance :after ((record gadget-output-record) &key cache-test)
+  ;;-- This is just to enable the cache-test to be passed along
+  ;;without signalling an error. Yuck!
+  cache-test)
 
 (defmethod match-output-records ((record gadget-output-record) 
 				 &key (cache-value nil cache-value-p) (cache-test #'equal))
@@ -273,8 +275,18 @@
 ;;; Completion gadget
 
 ;;--- Gadget currently does not include prompt
+
+(define-presentation-method decode-indirect-view
+    ((view gadget-dialog-view) (framem standard-frame-manager) (type completion))
+  ;;-- We can be clever and return different views depending on the
+  ;;-- number of items etc
+  +radio-box-view+)
+
+(defmacro make-pane-from-view (class view &rest initargs)
+  `(apply #'make-pane ,class (append (view-initargs ,view) (list ,@initargs))))
+
 (define-presentation-method accept-present-default 
-    ((type completion) stream (view gadget-dialog-view)
+    ((type completion) stream (view radio-box-view)
 		       default default-supplied-p present-p query-identifier
 		       &key (prompt t))
   (declare (ignore present-p))
@@ -308,18 +320,23 @@
 			  (setq current-selection button))
 			button))
 		  sequence))
-	       (rb (make-pane 'radio-box 
-			      :label (and (stringp prompt) prompt)
-			      :choices buttons
-			      :selection current-selection
-			      :client stream :id query-identifier
-			      :value-changed-callback
-			      (make-accept-values-value-changed-callback
-			       stream query-identifier))))
+	       (rb (make-pane-from-view
+		    'radio-box view
+		    :label (and (stringp prompt) prompt)
+		    :choices buttons
+		    :selection current-selection
+		    :client stream :id query-identifier
+		    :value-changed-callback
+		    (make-accept-values-value-changed-callback
+		     stream query-identifier))))
 	  (values (outlining () rb) rb))))))
 
 
 ;;; Subset completion gadget
+
+(define-presentation-method decode-indirect-view
+    ((view gadget-dialog-view) (framem standard-frame-manager) (type subset-completion))
+  +check-box-view+)
 
 (define-presentation-method accept-present-default 
     ((type subset-completion) stream (view gadget-dialog-view)
@@ -354,24 +371,28 @@
 				       :id value)))
 		      button))
 		sequence))
-	     (cb (make-pane 'check-box 
-			    :label (and (stringp prompt) prompt)
-			    :choices buttons
-			    :client stream :id query-identifier
-			    :value-changed-callback
-			    (make-accept-values-value-changed-callback
-			     stream query-identifier))))
+	     (cb (make-pane-from-view 'check-box view
+		  :label (and (stringp prompt) prompt)
+		  :choices buttons
+		  :client stream :id query-identifier
+		  :value-changed-callback
+		  (make-accept-values-value-changed-callback
+		   stream query-identifier))))
 	(values (outlining () cb) cb)))))
 
 
 ;;; Boolean gadget
 
+(define-presentation-method decode-indirect-view
+    ((view gadget-dialog-view) (framem standard-frame-manager) (type boolean))
+  +toggle-button-view+)
+
 (define-presentation-method gadget-includes-prompt-p 
-			    ((type boolean) (stream t) (view gadget-view))
+			    ((type boolean) (stream t) (view toggle-button-view))
   t)
 
 (define-presentation-method accept-present-default 
-    ((type boolean) stream (view gadget-dialog-view)
+    ((type boolean) stream (view toggle-button-view)
 		    default default-supplied-p present-p query-identifier
 		    &key (prompt t))
   (declare (ignore default-supplied-p present-p))
@@ -379,19 +400,20 @@
 	   (declare (ignore gadget record))
 	   (setf (gadget-value toggle) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((toggle (make-pane 'toggle-button
-			       :label (and (stringp prompt) prompt)
-			       :value default
-			       :client stream :id query-identifier
-			       :value-changed-callback
-			       (make-accept-values-value-changed-callback
-				stream query-identifier))))
+      (let ((toggle (make-pane-from-view
+		     'toggle-button view
+		     :label (and (stringp prompt) prompt)
+		     :value default
+		     :client stream :id query-identifier
+		     :value-changed-callback
+		     (make-accept-values-value-changed-callback
+		      stream query-identifier))))
 	(values (outlining () toggle) toggle)))))
 
 
 ;;; Numeric gadgets
 
-(defclass slider-view (slider gadget-view) ())
+
 
 (define-presentation-method gadget-includes-prompt-p
 			    ((type real) (stream t) (view slider-view))
@@ -402,46 +424,56 @@
 		 default default-supplied-p present-p query-identifier
 		 &key (prompt t))
   (declare (ignore present-p))
-  (flet ((update-gadget (record gadget slider)
-	   (declare (ignore record gadget))
-	   (setf (gadget-value slider)
-	     (if default-supplied-p default (if (eq low '*) 0 low)))))
-    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((slider 
-	     ;;--- What other initargs do we pass along from the view?
-	     (make-pane 'slider
-			:label (and (stringp prompt) prompt)
-			:value (if default-supplied-p default (if (eq low '*) 0 low))
-			:min-value (if (eq low '*) 0 low) :max-value (if (eq high '*) 100 high)
-			:orientation (gadget-orientation view)
-			:decimal-places 1
-			:client stream :id query-identifier
-			:value-changed-callback
-			(make-accept-values-value-changed-callback
-			 stream query-identifier))))
-	(values (outlining () slider) slider)))))
+  (let ((min-value (if (eq low '*) 0 low))
+	(max-value (if (eq high '*) 100 high)))
+    (flet ((update-gadget (record gadget slider)
+	     (declare (ignore record gadget))
+	     (setf (gadget-value slider)
+	       (if default-supplied-p default min-value))))
+      (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+	(let ((slider 
+	       (make-pane-from-view 'slider view
+			  :label (and (stringp prompt) prompt)
+			  :value (if default-supplied-p default min-value)
+			  :min-value min-value :max-value max-value
+			  :orientation (gadget-orientation view)
+			  :decimal-places (slider-decimal-places view)
+			  :show-value-p (gadget-show-value-p view)
+			  :client stream :id query-identifier
+			  :value-changed-callback
+			  (make-accept-values-value-changed-callback
+			   stream query-identifier))))
+	  (values (outlining ()
+			     ;;--- What other initargs do we pass along from the view?
+			     slider) slider))))))
 
 (define-presentation-method accept-present-default 
     ((type integer) stream (view slider-view)
 		    default default-supplied-p present-p query-identifier
 		    &key (prompt t))
   (declare (ignore present-p))
-  (flet ((update-gadget (record gadget slider)
-	   (declare (ignore record gadget))
-	   (setf (gadget-value slider)
-	     (if default-supplied-p default (if (eq low '*) 0 low)))))
-    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (outlining ()
-		 ;;--- What other initargs do we pass along from the view?
-		 (make-pane 'slider
-			    :label (and (stringp prompt) prompt)
-			    :value (if default-supplied-p default (if (eq low '*) 0 low))
-			    :min-value (if (eq low '*) 0 low) :max-value (if (eq high '*) 100 high)
-			    :orientation (gadget-orientation view)
-			    :client stream :id query-identifier
-			    :value-changed-callback
-			    (make-accept-values-value-changed-callback
-			     stream query-identifier))))))
+  (let ((min-value (if (eq low '*) 0 low))
+	(max-value (if (eq high '*) 100 high)))
+    (flet ((update-gadget (record gadget slider)
+	     (declare (ignore record gadget))
+	     (setf (gadget-value slider)
+	       (if default-supplied-p default min-value))))
+      (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+	(let ((slider
+	       (make-pane-from-view 'slider
+			  :label (and (stringp prompt) prompt)
+			  :value (if default-supplied-p default min-value)
+			  :min-value min-value :max-value max-value
+			  :orientation (gadget-orientation view)
+			  :number-of-quanta (- high low) :decimal-places 0
+			  :show-value-p (gadget-show-value-p view)
+			  :client stream :id query-identifier
+			  :value-changed-callback
+			  (make-accept-values-value-changed-callback
+			   stream query-identifier))))
+	  (values (outlining ()
+			     ;;--- What other initargs do we pass along from the view?
+			     slider) slider))))))
 
 
 ;;--- These should be defined in the standard DEFOPERATION way...

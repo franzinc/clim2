@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.8 92/07/08 16:30:52 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.9 92/07/20 16:00:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,8 +19,10 @@
 ;; We can be a bit smarter than the usual method, in that if the width
 ;; and height are not supplied, we can deduce them.  Also, this will
 ;; support text output, formatted output, etc.
-
-#+ignore
+;;--- Note that, since this calls the continuation on the original stream
+;;--- instead of the pixmap stream, things like WINDOW-CLEAR will affect
+;;--- the wrong stream
+#-Allegro	;--- SWM is willing to live with this, but not CER
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
 					 &key width height)
   (let ((record

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.18 92/07/20 16:00:27 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.19 92/07/24 10:54:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -75,12 +75,7 @@
 
 (defmethod stream-primary-pointer ((stream input-protocol-mixin))
   (let ((port (port stream)))
-    (when port
-      (or (port-pointer port)
-	  (setf (port-pointer port) 
-		(make-instance 'standard-pointer 
-		  :graft (window-root stream)
-		  :port port))))))
+    (and port (port-pointer port))))
 
 (defmethod initialize-instance :after ((stream input-protocol-mixin)
 				       &key (initial-cursor-visibility t))
@@ -196,14 +191,11 @@
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-motion-event))
-  (let ((port (port stream))
-	(pointer (stream-primary-pointer stream)))
+  (let ((pointer (stream-primary-pointer stream)))
     (pointer-set-position pointer
       (pointer-event-x event) (pointer-event-y event) t)
     (pointer-set-native-position pointer 
       (pointer-event-native-x event) (pointer-event-native-y event) t)
-    (setf (port-modifier-state port) (event-modifier-state event))
-    (setf (pointer-buttons pointer) (pointer-event-button event))
     (setf (pointer-sheet pointer) stream)
     (setf (pointer-motion-pending stream pointer) t)))
 
@@ -655,6 +647,8 @@
   (unless pointer
     (setf pointer (stream-primary-pointer stream)))
   (setf (pointer-position-changed pointer) t)
+  ;;--- This is kinda dumb
+  (setf (pointer-sheet pointer) stream)
   (pointer-set-position pointer x y))
 
 (defgeneric* (setf stream-pointer-position) (x y stream))

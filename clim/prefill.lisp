@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.5 92/07/08 16:30:53 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.6 92/07/20 16:00:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -3325,14 +3325,6 @@
     (standard-input-editing-stream))
   (input-editor-buffer
     (standard-input-editing-stream))
-  (input-position
-    (standard-input-editing-stream))
-  ((setf input-position)
-    (t standard-input-editing-stream))
-  (insertion-pointer
-    (standard-input-editing-stream))
-  ((setf insertion-pointer)
-    (t standard-input-editing-stream))
   (invalidate-cached-regions)
   (invalidate-cached-transformations)
   (invoke-formatting-cell
@@ -3434,8 +3426,6 @@
     (standard-input-editing-stream t))
   (rescan-if-necessary
     (standard-input-editing-stream))
-  (rescanning-p
-    (standard-input-editing-stream))
   (reset-cursor-position
     (standard-input-editing-stream))
   (reset-scan-pointer
@@ -3536,6 +3526,10 @@
   ((setf stream-highlighted-presentation))
   (stream-input-buffer)
   (stream-input-wait)
+  (stream-insertion-pointer
+    (standard-input-editing-stream))
+  ((setf stream-insertion-pointer)
+    (t standard-input-editing-stream))
   (stream-line-height
     (accept-values-stream))
   (stream-next-tab-column)
@@ -3565,10 +3559,16 @@
   ((setf stream-redisplaying-p)
     (t accept-values-stream))
   (stream-replay)
+  (stream-rescanning-p
+    (standard-input-editing-stream))
   (stream-restore-input-focus)
   (stream-scan-character-for-writing)
   (stream-scan-string-for-writing
     (accept-values-stream t t t t t t t))
+  (stream-scan-pointer
+    (standard-input-editing-stream))
+  ((setf stream-scan-pointer)
+    (t standard-input-editing-stream))
   (stream-set-cursor-position
     (accept-values-stream t t))
   (stream-set-cursor-position-internal)
@@ -3636,10 +3636,6 @@
   (input-buffer-input-position->cursor-position)
   (input-editing-stream-p)
   (input-editor-buffer)
-  (input-position)
-  ((setf input-position))
-  (insertion-pointer)
-  ((setf insertion-pointer))
   (invoke-formatting-cell)
   (invoke-with-drawing-options)
   (invoke-with-input-editor-typeout)
@@ -3667,7 +3663,6 @@
   (remove-activation-gesture)
   (replace-input)
   (rescan-if-necessary)
-  (rescanning-p)
   (reset-cursor-position)
   (reset-scan-pointer)
   #+Genera (clos-internals::send-if-handles)
@@ -3691,6 +3686,8 @@
   (stream-ensure-cursor-visible)
   (stream-force-output)
   (stream-fresh-line)
+  (stream-insertion-pointer)
+  ((setf stream-insertion-pointer))
   (stream-line-height)
   (stream-output-glyph-buffer)
   (stream-output-history)
@@ -3702,6 +3699,9 @@
   ((setf stream-recording-p))
   (stream-redisplaying-p)
   ((setf stream-redisplaying-p))
+  (stream-rescanning-p)
+  (stream-scan-pointer)
+  ((setf stream-scan-pointer))
   (stream-scan-string-for-writing)
   (stream-set-cursor-position)
   (stream-string-width)

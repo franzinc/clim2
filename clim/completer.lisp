@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.7 92/05/07 13:12:04 cer Exp $
+;; $fiHeader: completer.lisp,v 1.8 92/07/08 16:29:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -56,7 +56,7 @@
        ;; They will get treated as activation gestures, thus ensuring that 
        ;; STUFF-SO-FAR will be accurate when we display the possibilities.
        (let ((*ie-help-enabled* nil)
-	     (location (input-position stream))
+	     (location (stream-scan-pointer stream))
 	     token ch
 	     unread return extend
 	     completion-mode completion-type
@@ -80,7 +80,7 @@
 	      (t (beep stream)))
 	   (extend-vector stuff-so-far token)
 	   (cond ((null ch)
-		  (error "Null ch?"))
+		  (error "Null character?"))
 		 ((keyboard-event-p ch)
 		  (cond ((member ch *help-gestures* 
 				 :test #'keyboard-event-matches-gesture-name-p)
@@ -182,13 +182,13 @@
 		 (unread-gesture ch :stream stream))
 	       ;; Must replace-input after unread-gesture so the delimiter is unread
 	       ;; into the input editor's buffer, not the underlying stream's buffer
-	       (unless (rescanning-p stream)
+	       (unless (stream-rescanning-p stream)
 		 (replace-input stream stuff-so-far :buffer-start location))
 	       (return-from complete-input
 		 (values answer-object t (evacuate-temporary-string stuff-so-far)))))
 
 	   ;; Not returning yet, but update the input editor's buffer anyway
-	   (unless (rescanning-p stream)
+	   (unless (stream-rescanning-p stream)
 	     (replace-input stream stuff-so-far :buffer-start location)))))))))))
 
 (defun display-completion-possibilities (stream function stuff-so-far

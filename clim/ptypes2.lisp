@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.7 92/05/07 13:12:54 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.8 92/05/22 19:28:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -234,9 +234,16 @@
 	      (return-from presentation-typep t))))
 	;; Call the method, either to check the parameters after determining
 	;; that object is a member of the correct class, or to do it all.
-	;; No default method should be defined, since what the default method
-	;; could do (call typep) has already been done above.
 	(funcall-presentation-generic-function presentation-typep object type)))))
+
+;; The "real" default method is inlined above in PRESENTATION-TYPEP.  What
+;; it does is to call TYPEP on anything that is a class or built-in type.
+;; If that did not get executed, then this type must be a user-defined type
+;; that does not correspond to a class.  Let him know.
+(define-default-presentation-method presentation-typep (object type)
+  (declare (ignore object))
+  (error "You must supply a ~S method for the presentation type ~S"
+	 'presentation-typep (presentation-type-name type)))
 
 
 ;;; SUBTYPEP

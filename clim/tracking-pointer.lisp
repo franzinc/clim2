@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.9 92/07/01 15:47:08 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.10 92/07/08 16:31:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -246,9 +246,9 @@
 
 ;;; Miscellaneous utilities
 
-(defun pointer-place-rubber-band-line* (stream
-					&optional (pointer (stream-primary-pointer stream))
-					&key multiple-window)
+(defun pointer-place-rubber-band-line* (&key (stream *standard-input*)
+					     (pointer (stream-primary-pointer stream))
+					     multiple-window)
   (let (start-x start-y end-x end-y)
     (tracking-pointer (stream :pointer pointer :multiple-window multiple-window)
       (:pointer-motion (window x y)
@@ -276,28 +276,8 @@
 
 (defun pointer-input-rectangle* (&key left top right bottom
 				      (stream *standard-input*)
-				      (pointer (stream-primary-pointer stream)))
-  (stream-pointer-input-rectangle* 
-    stream pointer
-    :left left :top top
-    :right right :bottom bottom))
-
-(defun pointer-input-rectangle (&key rectangle
-				     (stream *standard-input*)
-				     (pointer (stream-primary-pointer stream)))
-  (let (left top right bottom)
-    (when rectangle
-      (multiple-value-setq (left top right bottom)
-	(bounding-rectangle* rectangle)))
-    (multiple-value-call #'make-bounding-rectangle
-      (pointer-input-rectangle* :left left :top top
-				:right right :bottom bottom
-				:stream stream
-				:pointer pointer))))
-
-(defun portable-pointer-input-rectangle* (stream
-					  &optional (pointer (stream-primary-pointer stream))
-					  &key multiple-window)
+				      (pointer (stream-primary-pointer stream))
+				      multiple-window)
   (let (left top right bottom
 	(rectangle-drawn nil))
     (with-output-recording-options (stream :draw t :record nil)
@@ -323,8 +303,20 @@
 		      (draw-rectangle* stream left top right bottom
 				       :filled nil :ink +flipping-ink+)
 		      (setq rectangle-drawn nil))
-		      (return-from portable-pointer-input-rectangle*
-			(values left top
-				(pointer-event-x event) (pointer-event-y event)))))
-	   (beep stream)))))))
+		    (return-from pointer-input-rectangle*
+		      (values left top
+			      (pointer-event-x event) (pointer-event-y event)))))
+	     (beep stream)))))))
 
+(Defun pointer-input-rectangle (&key rectangle
+				     (stream *standard-input*)
+				     (pointer (stream-primary-pointer stream)))
+  (let (left top right bottom)
+    (when rectangle
+      (multiple-value-setq (left top right bottom)
+	(bounding-rectangle* rectangle)))
+    (multiple-value-call #'make-bounding-rectangle
+      (pointer-input-rectangle* :left left :top top
+				:right right :bottom bottom
+				:stream stream
+				:pointer pointer))))

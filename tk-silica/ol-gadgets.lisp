@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.20 92/07/20 16:01:49 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.21 92/07/24 10:54:50 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -282,7 +282,12 @@
 		    (declare (ignore keystroke))
 		    (let ((type (command-menu-item-type item)))
 		      (case type
-			(:divider)
+			(:divider
+			 (unless top
+			   (make-instance 'xt::static-text
+					  :parent parent
+					  :managed nil
+					  :string " ")))
 			(:function
 			 ;;--- Do this sometime
 			 )

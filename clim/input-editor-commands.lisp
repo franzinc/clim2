@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.12 92/07/20 16:00:25 cer Exp Locker: cer $
+;; $fiHeader: input-editor-commands.lisp,v 1.13 92/07/24 10:54:29 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -28,11 +28,13 @@
 	 (bucky-char-p (gesture)
 	   (multiple-value-bind (keysym modifier-state)
 	       (gesture-name-keysym-and-modifiers gesture)
-	     (if (zerop modifier-state)
-		 ;;--- What should this really be?
-		 (member keysym '(:rubout :clear-input :scroll :refresh))
-		 (logtest modifier-state
-			  #.(logior +control-key+ +meta-key+ +super-key+ +hyper-key+))))))
+	     (when keysym
+	       (if (zerop modifier-state)
+		   ;;--- What a kludge!  What should this really be?
+		   (member keysym '(:rubout :clear-input :escape
+				    :scroll :refresh :suspend :resume))
+		   (logtest modifier-state
+			    (make-modifier-state :control :meta :super :hyper)))))))
     (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
     (cond ((atom gestures)
 	   (assert (bucky-char-p gestures) (gestures)
@@ -61,17 +63,6 @@
 ;; something like COMPLETE-INPUT will do it for us.
 (defvar *ie-help-enabled* t)
 
-
-(define-gesture-name :complete :keyboard (:complete))
-;;;--- Do we need this anymore?
-(add-gesture-name ':complete ':keyboard '(:tab) :unique nil)
-;;
-(define-gesture-name :help     :keyboard (:help))
-;;--- Both of these because of a bug in KEYBOARD-EVENT-MATCHES-GESTURE-NAME-P
-;;--- that causes control-? not to match sometimes
-(define-gesture-name :possibilities :keyboard (:? :control))
-(add-gesture-name ':possibilities ':keyboard '(:? :control :shift) :unique nil)
-
 ;; These need to be on a per-implementation basis, naturally
 ;;--- If you change these, change *MAGIC-COMPLETION-GESTURES* too
 (defvar *completion-gestures* '(:complete))
@@ -98,7 +89,7 @@
 		(modifier-state (event-modifier-state gesture))
 		(bucky-p
 		  (logtest modifier-state
-			   #.(logior +control-key+ +meta-key+ +super-key+ +hyper-key+))))
+			   (make-modifier-state :control :meta :super :hyper))))
 	   (cond ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
 		       ;; If a numeric argument, return the digit
@@ -140,13 +131,38 @@
 				   gesture type)
   (values gesture type))
 
-;; No input editing commands are standard characters...
+;; No input editing commands are standard characters, unless we have just
+;; read a prefix character
 (defmethod stream-process-gesture ((istream input-editing-stream-mixin)
 				   (gesture character) type)
-  (with-slots (last-command-type command-state) istream
-    (setq last-command-type 'character
-	  command-state *input-editor-command-aarray*))
-  (values gesture type))
+  (with-slots (numeric-argument last-command-type command-state) istream
+    (cond ((eq command-state *input-editor-command-aarray*)
+	   (setq last-command-type 'character)
+	   (values gesture type))
+	  (t
+	   (let* ((gesture (destructuring-bind (keysym . modifier-state)
+			       (port-canonicalize-gesture-spec (port istream) gesture 0)
+			     (allocate-event 'key-press-event
+			       :sheet (encapsulating-stream-stream istream)
+			       :character gesture
+			       :key-name keysym
+			       :modifier-state modifier-state)))
+		  (command (lookup-input-editor-command gesture command-state)))
+	     (cond ((arrayp command)
+		    ;; Another prefix, update the state
+		    (setq command-state command))
+		   (command
+		    (let ((argument (or numeric-argument 1)))
+		      (setq numeric-argument nil
+			    command-state *input-editor-command-aarray*)
+		      (funcall command
+			       istream (slot-value istream 'input-buffer) gesture argument)))
+		   (t
+		    (beep istream)
+		    (setq numeric-argument nil
+			  command-state *input-editor-command-aarray*)))
+	     (deallocate-event gesture)
+	     nil)))))
 
 (defmethod stream-process-gesture ((istream input-editing-stream-mixin) 
 				   (gesture key-press-event) type)
@@ -194,7 +210,7 @@
     (let ((position (compute-input-buffer-input-position
 		      istream (pointer-event-x gesture) (pointer-event-y gesture))))
       (when position
-	(setf (insertion-pointer istream) position)
+	(setf (stream-insertion-pointer istream) position)
 	(return-from stream-process-gesture (values nil nil)))))
   (values gesture type))
       
@@ -261,7 +277,8 @@
 (defun complete-symbol-name (stream input-buffer &aux (colon-string ":"))
   (declare (values string ambiguous word-start))
   (multiple-value-bind (word-start word-end colon)
-      (word-start-and-end input-buffer '(#\space #\( #\) #\") (insertion-pointer stream))
+      (word-start-and-end input-buffer '(#\space #\( #\) #\") 
+			  (stream-insertion-pointer stream))
     (when word-end
       (with-temporary-substring 
 	  (package-name input-buffer word-start (or colon word-start))
@@ -351,7 +368,11 @@
     (setq start-position
 	  (forward-or-backward buffer start-position reverse-p #'word-character-p))
     (when start-position
-      (forward-or-backward buffer start-position reverse-p #'word-break-character-p))))
+      (let ((position
+	      (forward-or-backward buffer start-position reverse-p 
+				   #'word-break-character-p)))
+	(and position
+	     (min position (fill-pointer buffer)))))))
 
 
 ;;; The basic input editing commands...
@@ -372,72 +393,72 @@
 (define-input-editor-command (com-ie-forward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
   (repeat (abs numeric-argument)
-    (let ((p (forward-or-backward input-buffer (insertion-pointer stream)
+    (let ((p (forward-or-backward input-buffer (stream-insertion-pointer stream)
 				  (minusp numeric-argument) #'true)))
       (if p
-	  (setf (insertion-pointer stream) p)
+	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-forward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
   (repeat (abs numeric-argument)
-    (let ((p (move-over-word input-buffer (insertion-pointer stream) 
+    (let ((p (move-over-word input-buffer (stream-insertion-pointer stream) 
 			     (minusp numeric-argument))))
       (if p
-	  (setf (insertion-pointer stream) p)
+	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-backward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
   (repeat (abs numeric-argument)
-    (let ((p (forward-or-backward input-buffer (insertion-pointer stream)
+    (let ((p (forward-or-backward input-buffer (stream-insertion-pointer stream)
 				  (plusp numeric-argument) #'true)))
       (if p
-	  (setf (insertion-pointer stream) p)
+	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-backward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
   (repeat (abs numeric-argument)
-    (let ((p (move-over-word input-buffer (insertion-pointer stream)
+    (let ((p (move-over-word input-buffer (stream-insertion-pointer stream)
 			     (plusp numeric-argument))))
       (if p
-	  (setf (insertion-pointer stream) p)
+	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-beginning-of-buffer :rescan nil :type nil)
 			     (stream)
-  (setf (insertion-pointer stream) 0))
+  (setf (stream-insertion-pointer stream) 0))
 
 (define-input-editor-command (com-ie-end-of-buffer :rescan nil)
 			     (stream input-buffer)
-  (setf (insertion-pointer stream) (fill-pointer input-buffer)))
+  (setf (stream-insertion-pointer stream) (fill-pointer input-buffer)))
 
 (define-input-editor-command (com-ie-beginning-of-line :rescan nil)
 			     (stream input-buffer)
-  (setf (insertion-pointer stream)
-	(ie-line-start input-buffer (insertion-pointer stream))))
+  (setf (stream-insertion-pointer stream)
+	(ie-line-start input-buffer (stream-insertion-pointer stream))))
 
 (define-input-editor-command (com-ie-end-of-line :rescan nil)
 			     (stream input-buffer)
-  (setf (insertion-pointer stream)
-	(ie-line-end input-buffer (insertion-pointer stream))))
+  (setf (stream-insertion-pointer stream)
+	(ie-line-end input-buffer (stream-insertion-pointer stream))))
 
 ;; Positions to the nearest column in the next line
 (define-input-editor-command (com-ie-next-line :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (unless (= (insertion-pointer stream) (fill-pointer input-buffer))
+  (unless (= (stream-insertion-pointer stream) (fill-pointer input-buffer))
     (ie-next-previous stream input-buffer numeric-argument)))
 
 (define-input-editor-command (com-ie-previous-line :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (unless (zerop (insertion-pointer stream))
+  (unless (zerop (stream-insertion-pointer stream))
     (ie-next-previous stream input-buffer (- numeric-argument))))
 
 ;;; +ve = next, -ve = previous
 (defun ie-next-previous (stream input-buffer numeric-argument)
   (unless (zerop numeric-argument)
-    (let* ((pointer (insertion-pointer stream))
+    (let* ((pointer (stream-insertion-pointer stream))
 	   (this-line (ie-line-start input-buffer pointer))
 	   (target-line this-line))
       (if (plusp numeric-argument)
@@ -446,7 +467,7 @@
 	      (setq next-line-1 (position #\Newline input-buffer :start target-line))
 	      (unless next-line-1 (return))
 	      (setq target-line (1+ next-line-1)))
-	    (setf (insertion-pointer stream)
+	    (setf (stream-insertion-pointer stream)
 		  (let ((position-in-line (- pointer this-line)))
 		    (min (+ target-line position-in-line)
 			 (ie-line-end input-buffer target-line)))))
@@ -456,7 +477,7 @@
 					    :end target-line :from-end t))
 	      (unless prev-line-end (return))
 	      (setq target-line prev-line-end))
-	    (setf (insertion-pointer stream)
+	    (setf (stream-insertion-pointer stream)
 		  (let ((position-in-line (- pointer this-line)))
 		    (min (+ (ie-line-start input-buffer target-line)
 			    position-in-line)
@@ -472,7 +493,7 @@
 
 ;;; +ve = delete, -ve = rubout
 (defun ie-rub-del (stream input-buffer numeric-argument)
-  (let* ((p1 (insertion-pointer stream))
+  (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
     (repeat (abs numeric-argument)
@@ -501,7 +522,7 @@
 
 ;;; +ve = delete, -ve = rubout
 (defun ie-rub-del-word (stream input-buffer numeric-argument)
-  (let* ((p1 (insertion-pointer stream))
+  (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
     (repeat (abs numeric-argument)
@@ -521,7 +542,7 @@
 (define-input-editor-command (com-ie-kill-line :type kill)
 			     (stream input-buffer numeric-argument)
   (let* ((reverse-p (minusp numeric-argument))
-	 (point (insertion-pointer stream))
+	 (point (stream-insertion-pointer stream))
 	 (other-point (if reverse-p
 			  (ie-line-start input-buffer point)
 			  (ie-line-end input-buffer point))))
@@ -533,7 +554,7 @@
 
 (define-input-editor-command (com-ie-make-room)
 			     (stream input-buffer)
-  (let ((point (insertion-pointer stream))
+  (let ((point (stream-insertion-pointer stream))
 	(end (fill-pointer input-buffer)))
     (cond ((= point end)
 	   (incf (fill-pointer input-buffer)))
@@ -545,7 +566,7 @@
 
 (define-input-editor-command (com-ie-transpose-characters)
 			     (stream input-buffer)
-  (let* ((start-position (min (1+ (insertion-pointer stream))
+  (let* ((start-position (min (1+ (stream-insertion-pointer stream))
 			      (fill-pointer input-buffer)))
 	 (this-position (forward-or-backward input-buffer start-position t #'true))
 	 (prev-position (forward-or-backward input-buffer this-position t #'true)))
@@ -615,7 +636,8 @@
 (define-input-editor-command (com-ie-show-arglist :rescan nil)
 			     (stream input-buffer)
   (multiple-value-bind (word-start word-end colon)
-      (word-start-and-end input-buffer '(#\( ) (insertion-pointer stream))
+      (word-start-and-end input-buffer '(#\( ) 
+			  (stream-insertion-pointer stream))
     (block doit
       (when word-end
 	(with-temporary-substring
@@ -646,7 +668,8 @@
 (define-input-editor-command (com-ie-show-value :rescan nil)
 			     (stream input-buffer)
   (multiple-value-bind (word-start word-end colon)
-      (word-start-and-end input-buffer '(#\space #\( #\) #\") (insertion-pointer stream))
+      (word-start-and-end input-buffer '(#\space #\( #\) #\") 
+			  (stream-insertion-pointer stream))
     (block doit
       (when word-end
 	(with-temporary-substring
@@ -799,3 +822,57 @@
   com-ie-refresh	       :ie-refresh
   com-ie-scroll-forward	       :ie-scroll-forward
   com-ie-scroll-backward       :ie-scroll-backward)
+
+#+(or Allegro Lucid)
+(define-input-editor-gestures
+  (:ie-escape-1 :escape)
+  (:ie-escape-2 :\X :control))
+
+#+(or Allegro Lucid)
+(assign-input-editor-key-bindings
+  com-ie-forward-word	       (:ie-escape-1 :\F)
+  com-ie-backward-word	       (:ie-escape-1 :\B)
+  com-ie-beginning-of-buffer   (:ie-escape-1 :\<)
+  com-ie-end-of-buffer	       (:ie-escape-1 :\>)
+  com-ie-delete-word	       (:ie-escape-1 :\D)
+  com-ie-rubout-word	       (:ie-escape-1 :rubout)
+  com-ie-history-yank	       (:ie-escape-1 (:\Y :control))
+  com-ie-yank-next	       (:ie-escape-1 :\Y)
+  com-ie-scroll-backward       (:ie-escape-1 :\V)
+  com-ie-show-arglist	       (:ie-escape-2 (:\A :control))
+  com-ie-show-value	       (:ie-escape-2 (:\V :control)))
+
+
+;;; Some Genera-specific stuff
+
+#+Genera (progn
+
+(defmacro with-debug-io-selected ((stream) &body body)
+  (let ((window '#:window))
+    `(let ((,window (sheet-mirror (frame-top-level-sheet (pane-frame ,stream)))))
+       (when ,window
+	 (scl:send *debug-io* :select))
+       (unwind-protect
+	   (progn ,@body)
+	 (when ,window
+	   (scl:send ,window :select))))))
+
+(define-input-editor-command (com-ie-break :rescan nil)
+			     (stream)
+  (with-debug-io-selected (stream)
+    (zl:break (format nil "Break for ~A" (frame-pretty-name (pane-frame stream))))))
+
+(define-input-editor-command (com-ie-debugger-break :rescan nil)
+			     (stream)
+  (with-debug-io-selected (stream)
+    (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))
+
+(define-input-editor-gestures
+  (:ie-break	      :suspend)
+  (:ie-debugger-break :suspend  :meta))
+
+(assign-input-editor-key-bindings
+  com-ie-break		:ie-break
+  com-ie-debugger-break :ie-debugger-break)
+
+)	;#+Genera

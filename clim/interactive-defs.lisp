@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.10 92/06/16 15:01:50 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.11 92/07/01 15:46:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -8,16 +8,9 @@
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 ;; For communication through parsers to lower levels.
-;; Later, clever use of macrolet can replace this.
 (defvar *input-wait-test* nil)
 (defvar *input-wait-handler* nil)
 (defvar *pointer-button-press-handler* nil)
-
-
-(define-gesture-name :abort :keyboard 
-  #+Genera (:abort)
-  #+Cloe-Runtime (:escape)
-  #-(or Genera Cloe-Runtime) (:\Z :control))
 
 (defparameter *abort-gestures* '(:abort))
 
@@ -26,15 +19,6 @@
 
 ;;--- Kludge for processing asynchronous presentation events...
 (defvar *input-buffer-empty* t)
-
-(define-gesture-name :newline :keyboard (:newline))
-(define-gesture-name :return  :keyboard (:return))
-(define-gesture-name :end     :keyboard (:end))
-
-;;--- Kludge until gesture matching working properly.
-;;--- That is, the standard characters should match their own keysyms,
-;;--- such as :A and #\A, :NEWLINE and #\Newline, and so on.
-(define-gesture-name :newline :keyboard (#\Newline))
 
 ;; Activation gestures terminate the entire input line.  They are usually
 ;; non-printing characters such as #\Newline or #\End.
@@ -54,7 +38,9 @@
      ,@body))
 
 (defun activation-gesture-p (gesture)
-  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))	;--- kludge
+  ;;--- Checking for :EOF is a bit of a kludge, since it depends on knowing
+  ;;--- that that's what CLIM uses internally for end-of-file
+  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))
        (dolist (set *activation-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 
@@ -92,7 +78,9 @@
      ,@body))
 
 (defun delimiter-gesture-p (gesture)
-  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))	;---kludge
+  ;;--- Checking for :EOF is a bit of a kludge, since it depends on knowing
+  ;;--- that that's what CLIM uses internally for end-of-file
+  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))
        (dolist (set *delimiter-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 

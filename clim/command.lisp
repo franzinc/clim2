@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.10 92/07/01 15:46:11 cer Exp $
+;; $fiHeader: command.lisp,v 1.11 92/07/20 16:00:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -107,7 +107,7 @@
 	((nil)
 	 nil))))
 
-(defun make-command-table (name &key inherit-from menu (errorp t))
+(defun make-command-table (name &key inherit-from menu inherit-menu (errorp t))
   (check-type name symbol)
   (check-type inherit-from list)
   (let ((command-table (find-command-table name :errorp nil)))
@@ -124,12 +124,24 @@
     (setq command-table (make-instance 'standard-command-table
 			  :name name
 			  :inherit-from inherit-from))
-    (process-command-table-menu command-table menu)
+    (process-command-table-menu command-table menu inherit-menu)
     (setf (gethash name *all-command-tables*) command-table)
     command-table))
 
-(defun process-command-table-menu (command-table menu)
+(defun process-command-table-menu (command-table menu inherit-menu)
   (check-type menu list)
+  (check-type inherit-menu boolean)
+  (when inherit-menu
+    (dolist (comtab (command-table-inherit-from command-table))
+      (let* ((comtab (find-command-table comtab :errorp nil))
+	     (menu (and comtab (slot-value comtab 'menu))))
+	(when menu
+	  (dovector (element menu)
+	    (destructuring-bind (string keystroke (type value &rest options)) element
+	      (apply #'add-menu-item-to-command-table 
+		     command-table string type value
+		     :keystroke keystroke :errorp nil
+		     options)))))))
   (dolist (item menu)
     (let* ((string (pop item))
 	   (type (pop item))
@@ -144,10 +156,13 @@
 ;; Things like the Mouse-Right (menu) translator live here.
 (defvar *global-command-table* (make-command-table 'global-command-table :inherit-from nil))
 
-(defmacro define-command-table (name &key inherit-from menu)
+(defmacro define-command-table (name &key inherit-from (menu nil menu-p) inherit-menu)
   #+Genera (declare (zwei:indentation 1 1))
   (setf (compile-time-property name 'command-table-name) t)
-  `(define-command-table-1 ',name :inherit-from ',inherit-from :menu ',menu))
+  `(define-command-table-1 ',name 
+			   :inherit-from ',inherit-from 
+			   ,@(and menu-p `(:menu ',menu))
+			   :inherit-menu ,inherit-menu))
 
 (defun remove-command-table (name)
   ;; This could hack inheritance, too...
@@ -158,7 +173,7 @@
   (scl:defprop define-command-table "CLIM Command Table" si:definition-type-name)
   (scl:defprop define-command-table remove-command-table zwei:kill-definition))
 
-(defun define-command-table-1 (name &key inherit-from menu)
+(defun define-command-table-1 (name &key inherit-from (menu nil menu-p) inherit-menu)
   (check-type name symbol)
   (check-type inherit-from list)
   (when (null inherit-from)
@@ -166,16 +181,17 @@
   (let ((old-command-table (find-command-table name :errorp nil)))
     (cond (old-command-table
 	   (setf (command-table-inherit-from old-command-table) inherit-from)
-	   (when menu
+	   (when menu-p
 	     ;; Only discard the old menu if a new one was explicitly
 	     ;; supplied.  This keeps us from throwing away menu items
 	     ;; that the user asked for via :MENU to DEFINE-COMMAND.
-	     (setf (slot-value old-command-table 'menu) nil)
-	     (process-command-table-menu old-command-table menu))
+	     (setf (slot-value old-command-table 'menu) nil))
+	   (process-command-table-menu old-command-table menu inherit-menu)
 	   (setf (slot-value old-command-table 'keystrokes) nil)
 	   old-command-table)
 	  (t
-	   (make-command-table name :inherit-from inherit-from :menu menu)))))
+	   (make-command-table name :inherit-from inherit-from 
+				    :menu menu :inherit-menu inherit-menu)))))
 
 ;; CLIM's general "user" command table
 (define-command-table user-command-table :inherit-from (global-command-table))
@@ -516,7 +532,7 @@
 	   :format-args (list menu-name command-table))))
 
 (defparameter *command-table-menu-text-style*
-	      (parse-text-style '(:sans-serif :roman :large)))
+	      (parse-text-style '(:sans-serif :roman :normal)))
 (defparameter *command-table-menu-gray* (make-gray-color 1/2))
 
 (define-presentation-type command-menu-element ())
@@ -994,9 +1010,9 @@
 	      (ecase keyword
 		,@clauses)))
        (process-keyword-args 
-	 stream ,(if conditional-keywords
-		     `(append ,@conditional-keywords ',constant-keywords)
-		     `',constant-keywords)
+	 parsing-stream ,(if conditional-keywords
+			     `(append ,@conditional-keywords ',constant-keywords)
+			     `',constant-keywords)
 	 #'read-keyword-value delimiter-parser arg-parser
 	 ',keyword-documentation))))
 
@@ -1017,7 +1033,7 @@
 	(warn "The option ~S in the argument description for ~S is unrecognized."
 	      keyword arg-name)))
     `(assign-argument-value ,arg-name
-			    (funcall arg-parser stream
+			    (funcall arg-parser parsing-stream
 				     ,(second argument)
 				     :query-identifier ',arg-name
 				     ,@(unless prompt-p
@@ -1039,11 +1055,11 @@
 	    (return))
 	  (push (generate-parse-and-assign-clause argument env)
 		required-clauses)
-	  (push `(funcall delimiter-parser stream ',(rest arguments-to-go))
+	  (push `(funcall delimiter-parser parsing-stream ',(rest arguments-to-go))
 		required-clauses)))
       (if (or required-clauses keyword-clauses)
-	  (values `(defun ,parser-name (arg-parser delimiter-parser stream)
-		     arg-parser delimiter-parser stream
+	  (values `(defun ,parser-name (arg-parser delimiter-parser parsing-stream)
+		     arg-parser delimiter-parser parsing-stream
 		     (macrolet ((assign-argument-value (arg-name to-what)
 				  ;; we use this PROG1 to avoid useless
 				  ;; "unused variable" warnings under Genera 7.4

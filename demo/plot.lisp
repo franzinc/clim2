@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.3 92/07/20 16:01:36 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.4 92/07/24 10:54:45 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -410,8 +410,7 @@
 							     (1970 8 15 16)
 							     (1980 14 18 15.5)
 							     (1990 19 21 15.2)
-							     (2000 24 22
-								   15.4))))
+							     (2000 24 22 15.4))))
 						  (let ((n (make-array
 							    (array-dimensions x))))
 						    (destructuring-bind (rows columns) (array-dimensions x)
@@ -568,7 +567,7 @@
 	    (accept 'number
 		    :default (aref (slot-value frame 'plot-data) i j))))))
 
-(define-plot-demo-command (com-quit :menu t  :name t) () 
+(define-plot-demo-command (com-quit :menu t :name t) () 
   (frame-exit *application-frame*))
 
 (defmethod display-graph ((frame plot-demo) stream &key &allow-other-keys)
@@ -642,8 +641,8 @@
 		  (max (+ (aref plot-data i j) (- (random 10) 5)) 0))))
 	(redisplay-frame-pane frame (get-frame-pane frame 'graph-window))
 	(silica:medium-force-output (sheet-medium (get-frame-pane frame 'graph-window)))))))
-
 	
+
 (defvar *plot-demos* nil)
 
 (defun do-plot-demo (&key (port (find-port)) (force nil))

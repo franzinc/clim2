@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.15 92/07/08 16:29:11 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.16 92/07/20 15:59:19 cer Exp $
 
 (in-package :silica)
 
@@ -293,7 +293,8 @@
 	(declare (type vector positions))
 	(do ((i 0 (+ i 2)))
 	    ((>= i length))
-	  (funcall function (aref positions i) (aref positions (1+ i)))))))
+	  (funcall function (aref positions i) (aref positions (1+ i))))))
+  nil)
 
 (defun map-endpoint-sequence (function positions)
   (declare (dynamic-extent function))
@@ -311,7 +312,8 @@
 	(do ((i 0 (+ i 4)))
 	    ((>= i length))
 	  (funcall function (aref positions i) (aref positions (1+ i))
-			    (aref positions (+ i 2)) (aref positions (+ i 3)))))))
+			    (aref positions (+ i 2)) (aref positions (+ i 3))))))
+  nil)
 
 ;; Transforms all of the positions in the sequence.  This returns the
 ;; original sequence if the transformation is the identity and COPY-P
@@ -752,3 +754,11 @@
   :optional-positions-to-transform (towards-x towards-y)
   :keywords-to-spread ((towards-point point towards-x towards-y))
   :drawing-options :text)
+
+
+;; Some mediums can do better than this...
+;; Note that the coordinates are unaffected by the medium transformation!
+(defmethod medium-clear-area ((medium basic-medium) left top right bottom)
+  (letf-globally (((medium-ink medium) +background-ink+)
+		  ((medium-transformation medium) +identity-transformation+))
+    (medium-draw-rectangle* medium left top right bottom t)))

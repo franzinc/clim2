@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.10 92/07/08 16:29:03 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.11 92/07/20 15:59:12 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -335,21 +335,19 @@
       (with-bounding-rectangle* (left top right bottom) region
 	(ecase (gadget-orientation pane)
 	  (:vertical
-	    ;; erase region
-	    (draw-rectangle* medium 
-			     left (+ top label-height)
-			     right (+ top margin label-height visible-value-height y-offset)
-			     :ink +background-ink+)
+	    (medium-clear-area 
+	      medium
+	      left (+ top label-height)
+	      right (+ top margin label-height visible-value-height y-offset))
 	    (draw-text* medium (format nil "~A" value)
 			(floor (+ left right) 2) (+ top label-height visible-value-height)
 			:text-style text-style
 			:align-x ':center :align-y ':bottom))
 	  (:horizontal
-	    ;; erase region
-	    (draw-rectangle* medium 
-			     (+ left margin label-width) top
-			     (+ left margin label-width visible-value-width x-offset) bottom
-			     :ink +background-ink+)
+	    (medium-clear-area
+	      medium 
+	      (+ left margin label-width) top
+	      (+ left margin label-width visible-value-width x-offset) bottom)
 	    (draw-text* medium (format nil "~A" value)
 			(+ left margin label-width) (+ top (floor (- bottom top) 2))
 			:text-style text-style

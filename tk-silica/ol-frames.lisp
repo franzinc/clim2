@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.6 92/07/01 15:47:58 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.7 92/07/20 16:01:47 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -120,12 +120,12 @@
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)
 			      (:separator
-			       #+dunno
-			       (make-instance 'tk::xm-separator
+			       (make-instance 'xt::static-text
+					      :parent menu
 					      :managed nil
-					      :parent menu))
+					      :string " "))
 			      (:label
-				  (make-instance 'xt::static-text
+			       (make-instance 'xt::static-text
 						 :parent menu
 						 :managed nil
 						 :string (string

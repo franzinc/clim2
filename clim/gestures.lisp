@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.8 92/07/08 16:30:19 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.9 92/07/20 16:00:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -362,11 +362,16 @@
 	       (bucket (aref *keysym-and-modifier-key->gesture* index))
 	       (entry (assoc key-name bucket)))
 	  (cond (entry
-		 (setf (aref *keysym-and-modifier-key->gesture* index)
-		       (nsubstitute (append entry (list name)) entry bucket)))
+		 (unless (member name (cdr entry))
+		   (setf (aref *keysym-and-modifier-key->gesture* index)
+			 (delete nil
+				 (nsubstitute (append entry (list name)) entry bucket)))))
 		(t
 		 (setq entry (list key-name name))
-		 (push entry (aref *keysym-and-modifier-key->gesture* index))))
+		 (setf (aref *keysym-and-modifier-key->gesture* index)
+		       (delete nil
+			       (append (aref *keysym-and-modifier-key->gesture* index)
+				       (list entry))))))
 	  bucket)))
     (:pointer-button
       (multiple-value-bind (button modifiers)
@@ -399,14 +404,117 @@
 			       (name)
   (delete-gesture-name name))
 
-(defmacro define-gesture-name (name type gesture-spec)
+(defmacro define-gesture-name (name type gesture-spec &key (unique t))
   (setf (compile-time-property name 'gesture-name) t)
-  `(add-gesture-name ',name ',type ',gesture-spec :unique t))
+  `(add-gesture-name ',name ',type ',gesture-spec :unique ',unique))
 
-;; Define the default set of logical pointer gestures.
+
+;;; Canonical pointer gestures
+
 (define-gesture-name :select   :pointer-button (:left))
 (define-gesture-name :describe :pointer-button (:middle))
 (define-gesture-name :menu     :pointer-button (:right))
 (define-gesture-name :delete   :pointer-button (:middle :shift))
 (define-gesture-name :edit     :pointer-button (:left :meta))
 
+
+;;; Canonical keyboard gestures
+
+(define-gesture-name :return    :keyboard (:return))
+(define-gesture-name :newline   :keyboard (:newline))
+(define-gesture-name :tab       :keyboard (:tab))
+(define-gesture-name :rubout    :keyboard (:rubout))
+(define-gesture-name :backspace :keyboard (:backspace))
+(define-gesture-name :page      :keyboard (:page))
+(define-gesture-name :line      :keyboard (:line))
+(define-gesture-name :escape    :keyboard (:escape))
+
+(define-gesture-name :end         :keyboard (:end))
+(define-gesture-name :abort       :keyboard #+Genera (:abort)
+					    #+Cloe-Runtime (:escape)
+					    #-(or Genera Cloe-Runtime) (:\Z :control))
+(define-gesture-name :help        :keyboard (:help))
+(define-gesture-name :complete    :keyboard (:complete))
+(define-gesture-name :scroll      :keyboard (:scroll))
+(define-gesture-name :refresh     :keyboard (:refresh))
+(define-gesture-name :clear-input :keyboard (:clear-input))
+
+;;--- Both of these because of a bug in KEYBOARD-EVENT-MATCHES-GESTURE-NAME-P
+;;--- that causes control-? not to match sometimes
+(define-gesture-name :possibilities :keyboard (:? :control))
+(define-gesture-name :possibilities :keyboard (:? :control :shift) :unique nil)
+
+#+Genera (define-gesture-name :suspend :keyboard (:suspend))
+#+Genera (define-gesture-name :resume  :keyboard (:resume))
+
+;; As a convenience, all of the keysyms corresponding to ordinary characters
+;; have themselves as gesture names
+(define-gesture-name :space :keyboard :space)
+(define-gesture-name :\! :keyboard :\!)
+(define-gesture-name :\" :keyboard :\")
+(define-gesture-name :\# :keyboard :\#)
+(define-gesture-name :\$ :keyboard :\$)
+(define-gesture-name :\% :keyboard :\%)
+(define-gesture-name :\& :keyboard :\&)
+(define-gesture-name :\' :keyboard :\')
+(define-gesture-name :\( :keyboard :\()
+(define-gesture-name :\) :keyboard :\))
+(define-gesture-name :\* :keyboard :\*)
+(define-gesture-name :\+ :keyboard :\+)
+(define-gesture-name :\, :keyboard :\,)
+(define-gesture-name :\- :keyboard :\-)
+(define-gesture-name :\. :keyboard :\.)
+(define-gesture-name :\/ :keyboard :\/)
+(define-gesture-name :\0 :keyboard :\0)
+(define-gesture-name :\1 :keyboard :\1)
+(define-gesture-name :\2 :keyboard :\2)
+(define-gesture-name :\3 :keyboard :\3)
+(define-gesture-name :\4 :keyboard :\4)
+(define-gesture-name :\5 :keyboard :\5)
+(define-gesture-name :\6 :keyboard :\6)
+(define-gesture-name :\7 :keyboard :\7)
+(define-gesture-name :\8 :keyboard :\8)
+(define-gesture-name :\9 :keyboard :\9)
+(define-gesture-name :\: :keyboard :\:)
+(define-gesture-name :\; :keyboard :\;)
+(define-gesture-name :\< :keyboard :\<)
+(define-gesture-name :\= :keyboard :\=)
+(define-gesture-name :\> :keyboard :\>)
+(define-gesture-name :\? :keyboard :\?)
+(define-gesture-name :\@ :keyboard :\@)
+(define-gesture-name :\A :keyboard :\A)
+(define-gesture-name :\B :keyboard :\B)
+(define-gesture-name :\C :keyboard :\C)
+(define-gesture-name :\D :keyboard :\D)
+(define-gesture-name :\E :keyboard :\E)
+(define-gesture-name :\F :keyboard :\F)
+(define-gesture-name :\G :keyboard :\G)
+(define-gesture-name :\H :keyboard :\H)
+(define-gesture-name :\I :keyboard :\I)
+(define-gesture-name :\J :keyboard :\J)
+(define-gesture-name :\K :keyboard :\K)
+(define-gesture-name :\L :keyboard :\L)
+(define-gesture-name :\M :keyboard :\M)
+(define-gesture-name :\N :keyboard :\N)
+(define-gesture-name :\O :keyboard :\O)
+(define-gesture-name :\P :keyboard :\P)
+(define-gesture-name :\Q :keyboard :\Q)
+(define-gesture-name :\R :keyboard :\R)
+(define-gesture-name :\S :keyboard :\S)
+(define-gesture-name :\T :keyboard :\T)
+(define-gesture-name :\U :keyboard :\U)
+(define-gesture-name :\V :keyboard :\V)
+(define-gesture-name :\W :keyboard :\W)
+(define-gesture-name :\X :keyboard :\X)
+(define-gesture-name :\Y :keyboard :\Y)
+(define-gesture-name :\Z :keyboard :\Z)
+(define-gesture-name :\[ :keyboard :\[)
+(define-gesture-name :\\ :keyboard :\\)
+(define-gesture-name :\] :keyboard :\])
+(define-gesture-name :\^ :keyboard :\^)
+(define-gesture-name :\_ :keyboard :\_)
+(define-gesture-name :\` :keyboard :\`)
+(define-gesture-name :\{ :keyboard :\{)
+(define-gesture-name :\| :keyboard :\|)
+(define-gesture-name :\} :keyboard :\})
+(define-gesture-name :\~ :keyboard :\~)

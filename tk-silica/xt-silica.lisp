@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.36 92/07/20 16:02:02 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.37 92/07/24 10:55:08 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -406,7 +406,8 @@
 		(let ((button (x-button->silica-button 
 				(x11::xbuttonevent-button event)))
 		      (pointer (port-pointer port)))
-		  (setf (pointer-buttons pointer) (or button 0))
+		  (setf (pointer-button-state pointer) 
+			(logior (pointer-button-state pointer) (or button 0)))
 		  (allocate-event 'pointer-button-press-event
 		    :sheet sheet
 		    :pointer pointer
@@ -422,7 +423,8 @@
 		(let ((button (x-button->silica-button 
 				(x11::xbuttonevent-button event)))
 		      (pointer (port-pointer port)))
-		  (setf (pointer-buttons pointer) 0)
+		  (setf (pointer-button-state pointer) 
+			(logandc2 (pointer-button-state pointer) (or button 0)))
 		  (allocate-event 'pointer-button-release-event
 		    :pointer pointer
 		    :sheet sheet
@@ -454,7 +456,6 @@
 		(allocate-event 'pointer-motion-event
 		  :native-x native-x
 		  :native-y native-y
-		  :button (x-button->silica-button button)
 		  :modifier-state 
 		    (setf (port-modifier-state port)
 			  (state->modifiers (x11::xkeyevent-state event)))
@@ -536,7 +537,8 @@
 	(let ((button (x-button->silica-button 
 			(x11::xbuttonevent-button event)))
 	      (pointer (port-pointer port)))
-	  (setf (pointer-buttons pointer) (or button 0))
+	  (setf (pointer-button-state pointer) 
+		(logior (pointer-button-state pointer) (or button 0)))
 	  (distribute-event
 	    port
 	    (allocate-event 'pointer-button-press-event
@@ -553,7 +555,8 @@
 	(let ((button (x-button->silica-button 
 			(x11::xbuttonevent-button event)))
 	      (pointer (port-pointer port)))
-	  (setf (pointer-buttons pointer) 0)
+	  (setf (pointer-button-state pointer) 
+		(logandc2 (pointer-button-state pointer) (or button 0)))
 	  (distribute-event
 	    port
 	    (allocate-event 'pointer-button-release-event
@@ -945,6 +948,7 @@
 (define-xt-keysym (keysym 255 008) :backspace)
 (define-xt-keysym (keysym 009 227) :page)
 (define-xt-keysym (keysym 255 010) :linefeed)
+(define-xt-keysym (keysym 255 027) :escape)
 
 ;; Other useful characters
 (define-xt-keysym (keysym 255 087) :end)
@@ -958,33 +962,33 @@
 ;; Finally, the shifts
 ;; snarfed from translate.cl
 
-(defconstant left-shift-keysym  (keysym 255 225))
-(defconstant right-shift-keysym (keysym 255 226))
+(defconstant left-shift-keysym    (keysym 255 225))
+(defconstant right-shift-keysym   (keysym 255 226))
 (defconstant left-control-keysym  (keysym 255 227))
 (defconstant right-control-keysym (keysym 255 228))
-(defconstant caps-lock-keysym  (keysym 255 229))
-(defconstant shift-lock-keysym (keysym 255 230))
-(defconstant left-meta-keysym  (keysym 255 231))
-(defconstant right-meta-keysym (keysym 255 232))
-(defconstant left-alt-keysym  (keysym 255 233))
-(defconstant right-alt-keysym (keysym 255 234))
-(defconstant left-super-keysym  (keysym 255 235))
-(defconstant right-super-keysym (keysym 255 236))
-(defconstant left-hyper-keysym  (keysym 255 237))
-(defconstant right-hyper-keysym (keysym 255 238))
+(defconstant caps-lock-keysym	  (keysym 255 229))
+(defconstant shift-lock-keysym	  (keysym 255 230))
+(defconstant left-meta-keysym	  (keysym 255 231))
+(defconstant right-meta-keysym	  (keysym 255 232))
+(defconstant left-alt-keysym	  (keysym 255 233))
+(defconstant right-alt-keysym	  (keysym 255 234))
+(defconstant left-super-keysym	  (keysym 255 235))
+(defconstant right-super-keysym	  (keysym 255 236))
+(defconstant left-hyper-keysym	  (keysym 255 237))
+(defconstant right-hyper-keysym	  (keysym 255 238))
 
-(define-xt-keysym left-shift-keysym  :left-shift)
-(define-xt-keysym right-shift-keysym :right-shift)
+(define-xt-keysym left-shift-keysym    :left-shift)
+(define-xt-keysym right-shift-keysym   :right-shift)
 (define-xt-keysym left-control-keysym  :left-control)
 (define-xt-keysym right-control-keysym :right-control)
-(define-xt-keysym caps-lock-keysym  :caps-lock)
-(define-xt-keysym shift-lock-keysym :shift-lock)
-(define-xt-keysym left-meta-keysym  :left-meta)
-(define-xt-keysym right-meta-keysym :right-meta)
-(define-xt-keysym left-super-keysym  :left-super)
-(define-xt-keysym right-super-keysym :right-super)
-(define-xt-keysym left-hyper-keysym  :left-hyper)
-(define-xt-keysym right-hyper-keysym :right-hyper)
+(define-xt-keysym caps-lock-keysym     :caps-lock)
+(define-xt-keysym shift-lock-keysym    :shift-lock)
+(define-xt-keysym left-meta-keysym     :left-meta)
+(define-xt-keysym right-meta-keysym    :right-meta)
+(define-xt-keysym left-super-keysym    :left-super)
+(define-xt-keysym right-super-keysym   :right-super)
+(define-xt-keysym left-hyper-keysym    :left-hyper)
+(define-xt-keysym right-hyper-keysym   :right-hyper)
 
 (defun lookup-character-and-keysym (sheet mirror event)
   (declare (ignore sheet mirror))
@@ -1210,6 +1214,7 @@ the geometry of the children. Instead the parent has control. "))
 		    (eq (port-display port) display)))
 	   silica::*ports*))
 
+
 (defmethod port-canonicalize-gesture-spec ((port xt-port) gesture-spec &optional modifier-state)
   (multiple-value-bind (keysym shifts)
       (if modifier-state
@@ -1227,9 +1232,8 @@ the geometry of the children. Instead the parent has control. "))
 
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
-  ;;-- pointer-sheet is not the right thing.
-  #+ignore
-  (let ((m (sheet-mirror (pointer-sheet pointer))))
+  (let* ((sheet (pointer-sheet pointer))
+	 (m (and (port sheet) (sheet-mirror sheet))))
     (when m
       (x11:xwarppointer
        (port-display port)
@@ -1242,5 +1246,4 @@ the geometry of the children. Instead the parent has control. "))
        (fix-coordinate x)
        (fix-coordinate y)))))
 
-  
 

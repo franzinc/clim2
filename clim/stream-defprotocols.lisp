@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.8 92/05/22 19:28:29 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.9 92/07/01 15:47:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -91,7 +91,8 @@
 (define-stream-protocol basic-extended-input-protocol
   stream-input-buffer
   stream-pointers
-  stream-primary-pointer)
+  stream-primary-pointer
+  stream-text-cursor)
 
 (defoperation stream-read-gesture basic-extended-input-protocol
   ((stream basic-extended-input-protocol)
@@ -377,8 +378,6 @@
 
 (define-stream-protocol window-mixin)
 
-;;--- What about WINDOW-VISIBILITY, and the other "inside edges" generics?
-
 (defoperation window-clear window-mixin
   ((window window-mixin)))
 
@@ -389,6 +388,12 @@
   ((window window-mixin)))
 
 (defoperation window-expose window-mixin
+  ((window window-mixin)))
+
+(defoperation window-visibility window-mixin
+  ((window window-mixin)))
+
+(defoperation window-viewport window-mixin
   ((window window-mixin)))
 
 (defoperation window-viewport-position window-mixin

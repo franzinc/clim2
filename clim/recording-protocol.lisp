@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.16 92/07/08 16:30:58 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.17 92/07/20 16:00:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -711,17 +711,17 @@
   (declare (ignore stream region x-offset y-offset))
   nil)
 
-(defun move-cursor-beyond-output-record (stream record)
-  (multiple-value-bind (x-offset y-offset)
+(defun move-cursor-beyond-output-record (stream record &optional (y-offset 0))
+  (multiple-value-bind (xoff yoff)
       (convert-from-relative-to-absolute-coordinates
 	stream (output-record-parent record))
-    (declare (type coordinate x-offset y-offset))
+    (declare (type coordinate xoff yoff))
     (with-bounding-rectangle* (left top right bottom) record
       (declare (ignore left top))
       (with-end-of-page-action (stream :allow)
 	(stream-set-cursor-position
 	  stream
-	  (+ right x-offset) (- (+ bottom y-offset) (stream-line-height stream)))))))
+	  (+ right xoff) (- (+ bottom yoff) (stream-line-height stream) y-offset))))))
 
 
 (defmethod recompute-extent-for-changed-child ((record output-record-mixin) child
@@ -1265,8 +1265,7 @@
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
 	(with-bounding-rectangle* (left top right bottom) clear
-	  (draw-rectangle* medium left top right bottom
-			   :ink +background-ink+)))
+	  (medium-clear-area medium left top right bottom)))
       (stream-replay stream region))))
 
 

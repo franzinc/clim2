@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.10 92/07/08 16:29:46 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.11 92/07/20 15:59:52 cer Exp $
 
 (in-package :clx-clim)
 
@@ -58,7 +58,8 @@
 	(setf window (xlib:screen-root screen))
 	(setf width-pixels (xlib:screen-width screen))
 	(setf height-pixels (xlib:screen-height screen))
-	(setf color-p (> (xlib:screen-root-depth screen) 1)) ; quick and dirty.
+	;;--- Are 2-bit grayscale monitors handled specially?
+	(setf color-p (> (xlib:screen-root-depth screen) 2))
 	(setf stipple-gc (xlib:create-gcontext
 			   :drawable window
 			   :foreground (xlib:screen-black-pixel screen)
@@ -477,6 +478,7 @@
 (define-clx-keysym (xlib::keysym 255 008) :backspace)
 (define-clx-keysym (xlib::keysym 009 227) :page)
 (define-clx-keysym (xlib::keysym 255 010) :linefeed)
+(define-clx-keysym (xlib::keysym 255 027) :escape)
 
 ;; Other useful characters
 (define-clx-keysym (xlib::keysym 255 087) :end)
@@ -488,18 +490,18 @@
 (define-clx-keysym (xlib::keysym 255 011) :clear-input)
 
 ;; Finally, the shifts
-(define-clx-keysym xlib::left-shift-keysym :left-shift)
-(define-clx-keysym xlib::right-shift-keysym :right-shift)
-(define-clx-keysym xlib::left-control-keysym :left-control)
+(define-clx-keysym xlib::left-shift-keysym    :left-shift)
+(define-clx-keysym xlib::right-shift-keysym   :right-shift)
+(define-clx-keysym xlib::left-control-keysym  :left-control)
 (define-clx-keysym xlib::right-control-keysym :right-control)
-(define-clx-keysym xlib::caps-lock-keysym :caps-lock)
-(define-clx-keysym xlib::shift-lock-keysym :shift-lock)
-(define-clx-keysym xlib::left-meta-keysym :left-meta)
-(define-clx-keysym xlib::right-meta-keysym :right-meta)
-(define-clx-keysym xlib::left-super-keysym :left-super)
-(define-clx-keysym xlib::right-super-keysym :right-super)
-(define-clx-keysym xlib::left-hyper-keysym :left-hyper)
-(define-clx-keysym xlib::right-hyper-keysym :right-hyper)
+(define-clx-keysym xlib::caps-lock-keysym     :caps-lock)
+(define-clx-keysym xlib::shift-lock-keysym    :shift-lock)
+(define-clx-keysym xlib::left-meta-keysym     :left-meta)
+(define-clx-keysym xlib::right-meta-keysym    :right-meta)
+(define-clx-keysym xlib::left-super-keysym    :left-super)
+(define-clx-keysym xlib::right-super-keysym   :right-super)
+(define-clx-keysym xlib::left-hyper-keysym    :left-hyper)
+(define-clx-keysym xlib::right-hyper-keysym   :right-hyper)
 
 
 (defvar *clx-cursor-type-alist*

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.9 92/07/08 16:31:10 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.10 92/07/20 16:00:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -48,7 +48,7 @@
   (let ((port (port window))
 	(pointer (stream-primary-pointer window)))
     (values (port-modifier-state port)
-	    (or (pointer-buttons pointer) 0))))
+	    (pointer-button-state pointer))))
 
 
 ;;; Creation functions

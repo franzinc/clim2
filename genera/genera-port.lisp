@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.8 92/07/08 16:31:37 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.9 92/07/20 16:01:07 cer Exp $
 
 (in-package :genera-clim)
 
@@ -465,6 +465,7 @@
 (define-genera-keysym #\Backspace :backspace)
 (define-genera-keysym #\Page	  :page)
 (define-genera-keysym #\Line	  :linefeed)
+(define-genera-keysym #\Escape	  :escape)
 
 ;; Other useful characters
 (define-genera-keysym #\End   :end)
@@ -474,6 +475,8 @@
 (define-genera-keysym #\Scroll   :scroll)
 (define-genera-keysym #\Refresh  :refresh)
 (define-genera-keysym #\Clear-Input :clear-input)
+(define-genera-keysym #\Suspend :suspend)
+(define-genera-keysym #\Resume	:resume)
 
 
 (defmethod genera-mouse-char-for-cursor ((cursor t))

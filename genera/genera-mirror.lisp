@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.7 92/07/08 16:31:35 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.8 92/07/20 16:01:03 cer Exp $
 
 (in-package :genera-clim)
 
@@ -13,7 +13,6 @@
 
 
 (defvar *clim-window-count* 0)
-(defvar *temporary-genera-mirror-desired* nil)
 
 (defmethod realize-mirror ((port genera-port) sheet)
   (with-slots (screen height-pixels) port
@@ -22,19 +21,18 @@
       (fix-coordinates left top right bottom)
       (let* ((genera-parent (sheet-mirror sheet))
 	     (name (format nil "CLIM window ~D" (incf *clim-window-count*)))
+	     (save-under (getf (frame-properties (pane-frame sheet)) :save-under))
 	     (mirror
 	       (tv:make-window
-		 (if *temporary-genera-mirror-desired*
-		     'temporary-genera-window
-		     'genera-window)
+		 (if save-under 'temporary-genera-window 'genera-window)
 		 ;; probably the screen
 		 :superior genera-parent
 		 :name name
 		 :sheet sheet
 		 :save-bits :delayed
 		 :deexposed-typeout-action :permit
-		 ;;--- :blinker-p t
-		 :label nil  ;;name
+		 ;;--- :blinker-p t	;we should use Genera blinkers
+		 :label nil		;labels are handled by toolkit
 		 ;; Want inside/outside coord system to match if possible
 		 :borders nil
 		 :x left :y top
@@ -55,11 +53,6 @@
 	(setf (sheet-native-transformation sheet) +identity-transformation+)
 	mirror))))
 
-(defmethod realize-mirror :around ((port genera-port) (sheet top-level-sheet))
-  (let ((*temporary-genera-mirror-desired* 
-	  (getf (frame-properties (pane-frame sheet)) :save-under)))
-    (call-next-method)))
-
 (defmethod destroy-mirror ((port genera-port) sheet)
   (let ((window (sheet-direct-mirror sheet)))
     (when window
@@ -73,7 +66,6 @@
   (let ((mirror (sheet-mirror sheet)))
     (scl:send mirror :deactivate)))
 
-;;--- Is this the same as WINDOW-STACK-ON-TOP?
 (defmethod raise-mirror ((port genera-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (unless (scl:send window :exposed-p)
@@ -90,7 +82,6 @@
       (unless (eq screen (tv:sheet-screen (tv:mouse-sheet mouse)))
 	(tv:mouse-set-sheet screen)))))
 
-;;--- Is this the same as WINDOW-STACK-ON-BOTTOM?
 (defmethod bury-mirror ((port genera-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (scl:send window :bury)))
@@ -104,7 +95,8 @@
 	    ;;--- Bogus numbers
 	    silica::mm-width     360.0
 	    silica::mm-height	 280.0
-	    silica::pixels-per-point 1)
+	    ;; (/ sage::*microns-per-point* sage::*microns-per-screen-pixel*)
+	    silica::pixels-per-point 1.38)
       (setf (sheet-region graft)
 	    (ecase silica::units
 	      ((:device :pixel)
@@ -121,25 +113,28 @@
 	(scl:send mirror :size)
       (multiple-value-bind (xoff yoff)
 	  (tv:sheet-calculate-offsets mirror (tv:sheet-screen mirror))
-	(values xoff
-		yoff
-		(+ xoff width)
-		(+ yoff height))))))
+	(values (coordinate xoff) (coordinate yoff)
+		(coordinate (+ xoff width)) (coordinate (+ yoff height)))))))
 
+;; Returns left,top,right,bottom
 (defmethod mirror-region* ((port genera-port) sheet)
   (let ((mirror (sheet-mirror sheet)))
     (when mirror
       (genera-mirror-native-edges* port sheet mirror))))
 
+;; Returns x,y,width,height
 (defmethod mirror-inside-region* ((port genera-port) sheet)
-  (scl:send (sheet-mirror sheet) :inside-edges))
+  (multiple-value-bind (x y width height)
+      (scl:send (sheet-mirror sheet) :inside-edges)
+    (values (coordinate x) (coordinate y)
+	    (coordinate width) (coordinate height))))
 
 ;;--- Shouldn't this be the same as MIRROR-REGION*?
 (defmethod mirror-native-edges* ((port genera-port) sheet)
   (let ((mirror (sheet-direct-mirror sheet)))
     (genera-mirror-native-edges* port sheet mirror)))
 
-;;--- Shouldn't this be the same as MIRROR-INSIDE-REGION*?
+;; Returns 0,0,width,height
 (defmethod mirror-inside-edges* ((port genera-port) sheet)
   (multiple-value-bind (left top right bottom)
       (mirror-native-edges* port sheet)
@@ -310,8 +305,8 @@
 	(setf (aref cache i) nil)))
     (let ((foreground (genera-decode-color (medium-foreground medium) medium nil))
 	  (background (genera-decode-color (medium-background medium) medium nil)))
-      (funcall scl:self :set-char-aluf foreground)
-      (funcall scl:self :set-erase-aluf background))))
+      (scl:send scl:self :set-char-aluf foreground)
+      (scl:send scl:self :set-erase-aluf background))))
 
 (scl:defmethod (:refresh genera-window :after) (&optional (type ':complete-redisplay))
   (declare (ignore type))
@@ -321,10 +316,10 @@
 	(handle-repaint sheet medium (sheet-region sheet))))))
 
 (scl:defmethod (tv:refresh-rectangle genera-window) (left top right bottom)
-  #+++ignore (setf (slot-value sheet 'highlighted-presentation) nil)
-  (frame-replay *application-frame*
-		sheet (or (pane-viewport-region sheet)
-			  (sheet-region sheet))))
+  (when (typep sheet 'clim-stream-sheet)
+    (setf (clim-internals::stream-highlighted-presentation sheet) nil))
+  ;;--- This is surely the wrong rectangle
+  (repaint-sheet sheet (make-bounding-rectangle left top right bottom)))
 
 ;;; Called on position changes as well as size?
 (scl:defmethod (:change-of-size-or-margins genera-window :after) (&rest options)
@@ -523,10 +518,6 @@
 	  *mouse-x* -1
 	  *mouse-y* -1)))			;--- ???
 
-#+++ignore
-(scl:defmethod (:who-line-documentation-string genera-window) ()
-  (port-pointer-documentation-string (port sheet)))
-
 (scl:compile-flavor-methods genera-window temporary-genera-window)
 
 
@@ -607,6 +598,11 @@
 				(not (eq old-mouse-y mouse-y))))
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
 			 (pointer (port-pointer port)))
+		     (if (zerop mouse-buttons)
+			 (setf (pointer-button-state pointer) 0)
+			 (setf (pointer-button-state pointer)
+			       (genera-button-number->event-button
+				 (ash mouse-buttons -1))))
 		     (when sheet
 		       (distribute-event
 			 port			;(EQ PORT (PORT-SHEET)) ==> T
@@ -615,14 +611,6 @@
 			   :y mouse-y
 			   :native-x native-x
 			   :native-y native-y
-			   :button
-			     (cond ((zerop mouse-buttons)
-				    (setf (pointer-buttons pointer) 0)
-				    nil)
-				   (t
-				    (setf (pointer-buttons pointer)
-					  (genera-button-number->event-button
-					    (ash mouse-buttons -1)))))
 			   :modifier-state 
 			     (setf (port-modifier-state port)
 				   (current-modifier-state
@@ -633,7 +621,7 @@
 		 (when mouse-button-released
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
 			 (pointer (port-pointer port)))
-		     (setf (pointer-buttons pointer) 0)
+		     (setf (pointer-button-state pointer) 0)
 		     (when sheet
 		       (distribute-event
 			 port
@@ -737,7 +725,7 @@
 			      (tv:char-mouse-bits (second thing))))
 			  (pointer (port-pointer port)))
 		     (setf (port-modifier-state port) modifiers
-			   (pointer-buttons pointer) button)
+			   (pointer-button-state pointer) button)
 		     (when sheet
 		       (multiple-value-bind (left top)
 			   (if *mouse-window*

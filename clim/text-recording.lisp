@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.7 92/07/01 15:47:06 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.8 92/07/20 16:00:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -61,6 +61,22 @@
 	    (safe-slot-value object 'right)
 	    (safe-slot-value object 'top)
 	    (safe-slot-value object 'bottom))))
+
+(defmethod highlight-output-record-1 ((record standard-text-output-record) stream state)
+  ;; State is :HIGHLIGHT or :UNHIGHLIGHT
+  (declare (ignore state))
+  (multiple-value-bind (xoff yoff)
+      (convert-from-relative-to-absolute-coordinates stream (output-record-parent record))
+    (declare (type coordinate xoff yoff))
+    (with-bounding-rectangle* (left top right bottom) record
+      (draw-rectangle-internal stream xoff yoff
+			       ;; Offset the top and bottom so that the boxes
+			       ;; for multi-line text output "cancel" each
+			       ;; other out.  Depends on using XOR, of course.
+			       ;;--- This obviously works best when the stream's
+			       ;;--- vertical spacing is two...
+			       left (1- top) right (1+ bottom)
+			       +flipping-ink+ +highlighting-line-style+))))
 
 (defmethod output-record-unique-id ((text standard-text-output-record))
   (slot-value text 'string))

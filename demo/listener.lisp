@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.14 92/07/06 18:52:07 cer Exp $
+;; $fiHeader: listener.lisp,v 1.15 92/07/20 16:01:25 cer Exp $
 
 (in-package :clim-demo)
 
@@ -46,6 +46,36 @@
 (defvar *lisp-listener-frame*)
 (defvar *lisp-listener-io*)
 
+(defvar *prompt-arrow-1* 
+	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0)
+			  (0 0 0 0 0 1 0 0 0 0 0 0)
+			  (0 0 0 0 0 1 1 0 0 0 0 0)
+			  (0 1 1 1 1 1 1 1 0 0 0 0)
+			  (0 1 1 1 1 1 1 1 1 0 0 0)
+			  (0 0 0 0 0 0 0 1 1 1 0 0)
+			  (0 0 0 0 0 0 0 0 1 1 1 0)
+			  (0 0 0 0 0 0 0 1 1 1 0 0)
+			  (0 1 1 1 1 1 1 1 1 0 0 0)
+			  (0 1 1 1 1 1 1 1 0 0 0 0)
+			  (0 0 0 0 0 1 1 0 0 0 0 0)
+			  (0 0 0 0 0 1 0 0 0 0 0 0))
+		      (list +background-ink+ +foreground-ink+)))
+
+(defvar *prompt-arrow-2* 
+	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+			  (0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0)
+			  (0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0)
+			  (0 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0)
+			  (0 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0)
+			  (0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0)
+			  (0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 0)
+			  (0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0)
+			  (0 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0)
+			  (0 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0)
+			  (0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0)
+			  (0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0))
+		      (list +background-ink+ +foreground-ink+)))
+
 (defun lisp-listener-top-level (frame)
   "Run a simple Lisp listener using the window provided."
   (enable-frame frame)
@@ -79,13 +109,18 @@
 				   #-Genera (error)
 				   "Restart CLIM lisp listener")
 	    (lisp-listener-command-reader
-	      frame command-table presentation-type
+	      frame *standard-input* command-table presentation-type
 	      :keystrokes keystrokes
 	      :listener-depth *listener-depth*
-	      :prompt (concatenate 'string 
-		        (make-string (1+ *listener-depth*) :initial-element #\=) "> "))))))))
+	      :prompt (case *listener-depth*
+			(0 *prompt-arrow-1*)
+			(1 *prompt-arrow-2*)
+			(otherwise 
+			  (concatenate 'string 
+			    (make-string (1+ *listener-depth*) :initial-element #\=)
+			    "> "))))))))))
 
-(defun lisp-listener-command-reader (frame command-table presentation-type 
+(defun lisp-listener-command-reader (frame stream command-table presentation-type 
 				     &key keystrokes listener-depth (prompt "=> "))
   (catch-abort-gestures ("Return to ~A command level ~D"
 			 (frame-pretty-name frame) listener-depth)
@@ -94,9 +129,14 @@
     (let* ((abort-gestures *abort-gestures*)
 	   (*abort-gestures* nil))
       ;;--- What test does this need?
-      (when (member (stream-read-gesture *standard-input* :timeout 0 :peek-p t) abort-gestures)
-	(stream-read-gesture *standard-input* :timeout 0)))
-    (fresh-line *standard-input*)
+      (when (member (stream-read-gesture stream :timeout 0 :peek-p t) abort-gestures)
+	(stream-read-gesture stream :timeout 0)))
+    (fresh-line stream)
+    (if (stringp prompt)
+	(write-string prompt stream)
+	(multiple-value-bind (x y) (stream-cursor-position stream)
+	  (draw-pattern* stream prompt x y)
+	  (stream-increment-cursor-position stream (pattern-width prompt) nil)))
     (multiple-value-bind (command-or-form type numeric-arg)
 	(block keystroke
 	  (handler-bind ((accelerator-gesture
@@ -104,7 +144,7 @@
 			       ;; The COMMAND-OR-FORM type is peeking for the
 			       ;; first character, looking for a ":", so we
 			       ;; have to manually discard the accelerator
-			       (stream-read-gesture *standard-input* :timeout 0)
+			       (stream-read-gesture stream :timeout 0)
 			       (return-from keystroke
 				 (values
 				   (accelerator-gesture-event c)
@@ -112,8 +152,8 @@
 				   (accelerator-gesture-numeric-argument c))))))
 	    (let ((*accelerator-gestures* keystrokes))
 	      (accept presentation-type
-		      :stream *standard-input*
-		      :prompt prompt :prompt-mode :raw
+		      :stream stream
+		      :prompt nil :prompt-mode :raw
 		      :additional-activation-gestures '(#+Genera #\End)))))
       (when (eq type :keystroke)
 	(let ((command (lookup-keystroke-command-item command-or-form command-table 
@@ -121,7 +161,7 @@
 	  (unless (clim-internals::keyboard-event-p command)
 	    (when (partial-command-p command)
 	      (setq command (funcall *partial-command-parser*
-				     command command-table *standard-input* nil
+				     command command-table stream nil
 				     :for-accelerator t)))
 	    (setq command-or-form command
 		  type 'command))))
@@ -129,14 +169,16 @@
 	     (beep))
 	    ((eq (presentation-type-name type) 'command)
 	     (terpri)
-	     (let ((*debugger-hook* #'listener-debugger-hook))
+	     (let ((*debugger-hook* 
+		     (and (zerop listener-depth) #'listener-debugger-hook)))
 	       (apply (command-name command-or-form)
 		      (command-arguments command-or-form)))
 	     (terpri))
 	    (t
 	     (terpri)
 	     (let ((values (multiple-value-list
-			     (let ((*debugger-hook* #'listener-debugger-hook))
+			     (let ((*debugger-hook* 
+				     (and (zerop listener-depth) #'listener-debugger-hook)))
 			       (eval command-or-form)))))
 	       (fresh-line)
 	       (dolist (value values)
@@ -155,7 +197,7 @@
 (defun listener-debugger-hook (condition hook)
   (declare (ignore hook))
   (let* ((*application-frame* *lisp-listener-frame*)
-	 (*debug-io* (frame-query-io *application-frame*))
+	 #+Minima (*debug-io* (frame-query-io *application-frame*))
 	 (*error-output* (frame-query-io *application-frame*))
 	 (*debugger-condition* condition)
 	 (*debugger-restarts* (compute-restarts)))
@@ -274,7 +316,8 @@
     nil))
 
 (define-lisp-listener-command (com-edit-function :name t)
-    ((function 'expression :prompt "function name"))
+    ((function 'expression 
+	       :provide-default t :prompt "function name"))
   (ed function))
 
 (define-presentation-to-command-translator edit-function
@@ -311,7 +354,8 @@
 				 :version :newest)))
 
 (define-lisp-listener-command (com-show-directory :name t)
-    ((directory '((pathname) :default-type :wild) :prompt "file"))
+    ((directory '((pathname) :default-type :wild)
+		:provide-default t :prompt "file"))
   (show-directory directory))
 
 (defun show-directory (directory-pathname)
@@ -361,7 +405,9 @@
 		(write-string author stream)))))))))
 
 (define-lisp-listener-command (com-show-file :name t)
-    ((pathname 'pathname :gesture :select :prompt "file"))
+    ((pathname 'pathname 
+	       :provide-default t :prompt "file"
+	       :gesture :select))
   (show-file pathname *standard-output*))
 
 ;;; I can't believe CL doesn't have this
@@ -382,7 +428,9 @@
 		(vector-push-extend ch line-buffer)))))))))
 
 (define-lisp-listener-command (com-edit-file :name t)
-    ((pathname 'pathname :gesture :edit :prompt "file"))
+    ((pathname 'pathname
+	       :provide-default t :prompt "file"
+	       :gesture :edit))
   (ed pathname))
 
 (define-lisp-listener-command (com-delete-file :name t)
@@ -397,12 +445,14 @@
 
 #+Genera
 (define-lisp-listener-command (com-expunge-directory :name t)
-    ((directory 'pathname :prompt "directory"))
+    ((directory 'pathname 
+		:provide-default t :prompt "directory"))
   (fs:expunge-directory directory))
 
 ;;--- We can do better than this
 (define-lisp-listener-command (com-copy-file :name t)
-    ((from-file 'pathname :prompt "from file")
+    ((from-file 'pathname 
+		:provide-default t :prompt "from file")
      (to-file 'pathname :default from-file :prompt "to file"))
   (write-string "Would copy ")
   (present from-file 'pathname)
@@ -411,7 +461,8 @@
   (write-string "."))
 
 (define-lisp-listener-command (com-compile-file :name t)
-    ((pathname 'pathname :prompt "file"))
+    ((pathname 'pathname 
+	       :provide-default t :prompt "file"))
   (compile-file pathname))
 
 (define-presentation-to-command-translator compile-file
@@ -421,7 +472,8 @@
   (list object))
 
 (define-lisp-listener-command (com-load-file :name t)
-    ((pathname 'pathname :prompt "file"))
+    ((pathname 'pathname 
+	       :provide-default t :prompt "file"))
   (load pathname))
 
 (define-presentation-to-command-translator load-file
@@ -464,8 +516,12 @@
 
 #-Minima
 (define-lisp-listener-command (com-hardcopy-file :name t)
-    ((file 'pathname :gesture :describe)
-     (printer 'printer :gesture :select)
+    ((file 'pathname 
+	   :provide-default t :prompt "file"
+	   :gesture :describe)
+     (printer 'printer 
+	      :prompt "printer"
+	      :gesture :select)
      &key
      (orientation '(member normal sideways) :default 'normal
       :documentation "Orientation of the printed result")
@@ -536,4 +592,7 @@
 (define-demo "Lisp Listener" do-lisp-listener)
 
 #+Genera
-(define-genera-application lisp-listener :pretty-name "CLIM Lisp Listener" :select-key #\ˆ)
+(define-genera-application lisp-listener
+			   :pretty-name "CLIM Lisp Listener"
+			   :select-key #\ˆ 
+			   :width +fill+ :height +fill+)

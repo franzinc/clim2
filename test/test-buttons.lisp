@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
+;; $fiHeader: test-buttons.lisp,v 1.3 92/07/20 16:09:34 cer Exp $
 
 (in-package :clim-user)
 

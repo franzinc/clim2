@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.10 92/07/08 16:29:53 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.11 92/07/20 16:00:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -228,17 +228,19 @@
 	   (stream-restore-input-focus ,stream ,old-input-focus))))))
 
 
-(defmacro completing-from-suggestions ((stream &rest options) &body body)
-  (declare (arglist (stream &key partial-completers allow-any-input possibility-printer)
-		    &body body))
-  (declare (values object success string nmatches))
+(defmacro completing-from-suggestions 
+	  ((stream &rest options
+	    &key partial-completers allow-any-input
+		 possibility-printer (help-displays-possibilities t)) 
+	   &body body)
+  (declare (values object success string nmatches)
+	   (ignore allow-any-input possibility-printer help-displays-possibilities))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (let ((string '#:string)
 	(action '#:action))
     `(flet ((completing-from-suggestions-body (,string ,action)
 	      (suggestion-completer (,string :action ,action
-				     ,@(remove-keywords options '(:allow-any-input
-							       :possibility-printer)))
+					     :partial-completers ,partial-completers)
 		,@body)))
        (declare (dynamic-extent #'completing-from-suggestions-body))
        (complete-input ,stream #'completing-from-suggestions-body ,@options))))

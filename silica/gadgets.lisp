@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.28 92/07/20 15:59:18 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.29 92/07/24 10:53:50 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -335,7 +335,9 @@
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
 	(if (panep choice)
-	    #-allegro nil #+allegro (sheet-adopt-child rb choice)
+	    ;;--- Why do we have to resort to this?
+	    #-Allegro nil
+	    #+Allegro (sheet-adopt-child rb choice)
 	    ;; Sometimes the user calls MAKE-PANE within a call to
 	    ;; WITH-RADIO-BOX, so don't mess up
 	    (make-pane 'toggle-button 
@@ -377,7 +379,9 @@
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
 	(if (panep choice)
-	    #-allegro nil #+allegro (sheet-adopt-child cb choice)
+	    ;;--- Why do we have to resort to this?
+	    #-Allegro nil
+	    #+Allegro (sheet-adopt-child cb choice)
 	    ;; Sometimes the user calls MAKE-PANE within a call to
 	    ;; WITH-RADIO-BOX, so don't mess up
 	    (make-pane 'toggle-button 

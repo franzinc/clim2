@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.15 92/07/01 15:46:44 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.16 92/07/08 16:30:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,12 +29,14 @@
 	  (basic-extended-output-protocol)
      ((cursor-x :type coordinate :initform (coordinate 0))
       (cursor-y :type coordinate :initform (coordinate 0))
-      (foreground :initform nil
-		  :accessor medium-foreground
-		  :initarg :foreground)
-      (background :initform nil
-		  :accessor medium-background
-		  :initarg :background)
+      ;; We use the next three to initialize the medium
+      (foreground :initform nil :initarg :foreground
+		  :accessor medium-foreground)
+      (background :initform nil :initarg :background
+		  :accessor medium-background)
+      (default-text-style :initform nil
+			  :initarg :default-text-style :initarg :text-style
+			  :accessor medium-default-text-style)
       (baseline :accessor stream-baseline
 		:type coordinate :initform (coordinate 0))
       (current-line-height :accessor stream-current-line-height
@@ -82,13 +84,13 @@
 (defmethod (setf medium-foreground) :after (new-value (stream output-protocol-mixin))
   (let ((medium (sheet-medium stream)))
     ;; Watch out for uninitialized MEDIUM slot.
-    (when (and medium (typep medium 'medium))
+    (when (mediump medium)
       (setf (medium-foreground medium) new-value))))
 
 (defmethod (setf medium-background) :after (new-value (stream output-protocol-mixin))
   (let ((medium (sheet-medium stream)))
     ;; Watch out for uninitialized MEDIUM slot.
-    (when (and medium (typep medium 'medium))
+    (when (mediump medium)
       (setf (medium-background medium) new-value))))
 
 ;;--- Need to write some macros to define these trampolines
@@ -107,15 +109,21 @@
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (stream output-protocol-mixin))
   (declare (ignore port))
-  ;;--- What about text style stuff, too?
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
-  (with-slots (silica::foreground silica::background) medium
+  (with-slots (silica::foreground silica::background
+	       silica::text-style silica::default-text-style 
+	       silica::merged-text-style-valid) medium
     (setf silica::foreground (or (medium-foreground stream)
 				 (setf (slot-value stream 'foreground) +black+))
  	  silica::background (or (medium-background stream)
- 				 (setf (slot-value stream 'background) +white+)))))
+ 				 (setf (slot-value stream 'background) +white+))
+	  silica::default-text-style (or (medium-default-text-style stream)
+					 (setf (slot-value stream 'default-text-style)
+					       *default-text-style*))
+	  silica::text-style silica::default-text-style
+	  silica::merged-text-style-valid nil)))
 
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)
@@ -310,6 +318,10 @@
 
 (defmethod stream-finish-output ((stream output-protocol-mixin))
   (medium-finish-output (sheet-medium stream)))
+
+(defmethod stream-terpri ((output-stream output-protocol-mixin))
+  (stream-write-char output-stream #\newline)
+  nil)
 
 (defmethod stream-fresh-line ((output-stream output-protocol-mixin))
   (unless (zerop (slot-value output-stream 'cursor-x))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.8 92/07/08 16:30:32 cer Exp Locker: cer $
+;; $fiHeader: histories.lisp,v 1.9 92/07/24 10:54:27 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -265,7 +265,8 @@
 	   ((history basic-history) (istream input-editing-stream-mixin) element
 	    &key replace-previous)
   (declare (ignore element))
-  (with-slots (insertion-pointer previous-insertion-pointer scan-pointer input-buffer) istream
+  (with-slots (insertion-pointer previous-insertion-pointer
+	       scan-pointer input-buffer) istream
     ;; If we are m-Y'ing, remove the previously yanked quantity from the buffer.
     ;; PREVIOUS-INSERTION-POINTER is guaranteed to be valid when REPLACE-PREVIOUS
     ;; is T, because of how the input editor calls c-Y/c-m-Y and m-Y.
@@ -463,7 +464,7 @@
 			      (presentation-history-element-object element)
 			      (presentation-history-element-type element)
 			      (stream-default-view istream)
-			      :buffer-start (slot-value istream 'insertion-pointer)
+			      :buffer-start (stream-insertion-pointer istream)
 			      :for-context-type *presentation-type-for-yanking*))
 
 (defun reset-all-presentation-histories ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.1 92/02/24 13:08:01 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.2 92/07/08 16:32:09 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -106,6 +106,7 @@
   (let* ((transform +identity-transformation+)
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
+    (convert-to-postscript-coordinates transform x y)
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
 				      :ink ink :line-style line-style)
@@ -115,12 +116,25 @@
       (format printer-stream "        (medium-draw-point* ~D ~D ...)"
 	x y))))
 
+(defmethod medium-draw-points* ((medium postscript-medium) position-seq)
+  (let* ((transform +identity-transformation+)
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium)))
+    (with-postscript-drawing-options (medium printer-stream
+				      :epilogue :stroke
+				      :ink ink :line-style line-style)
+      (map-position-sequence
+	#'(lambda (x y)
+	    (convert-to-postscript-coordinates transform x y)
+	    (ps-pos-op medium "m" x y)
+	    (ps-rel-pos-op medium "rlineto" 0 0))
+	position-seq))))
+
 (defmethod medium-draw-line* ((medium postscript-medium) x1 y1 x2 y2)
   (let* ((transform +identity-transformation+)
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
-    (convert-to-postscript-coordinates transform
-      x1 y1 x2 y2)
+    (convert-to-postscript-coordinates transform x1 y1 x2 y2)
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
 				      :ink ink :line-style line-style)
@@ -129,6 +143,20 @@
     (annotating-postscript (medium printer-stream)
       (format printer-stream "        (medium-draw-line* ~D ~D ~D ~D ...)"
 	x1 y1 x2 y2))))
+
+(defmethod medium-draw-lines* ((medium postscript-medium) position-seq)
+  (let* ((transform +identity-transformation+)
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium)))
+    (with-postscript-drawing-options (medium printer-stream
+				      :epilogue :stroke
+				      :ink ink :line-style line-style)
+      (map-endpoint-sequence
+	#'(lambda (x1 y1 x2 y2)
+	    (convert-to-postscript-coordinates transform x1 y1 x2 y2)
+	    (ps-pos-op medium "m" x1 y1)
+	    (ps-pos-op medium "lineto" x2 y2))
+	position-seq))))
 
 (defmethod medium-draw-rectangle* ((medium postscript-medium)
 				   left top right bottom filled)
@@ -149,40 +177,58 @@
       (format printer-stream "        (medium-draw-rectangle* ~D ~D ~D ~D ...)"
 	left top right bottom))))
 
+(defmethod medium-draw-rectangles* ((medium postscript-medium) position-seq filled)
+  (let* ((transform +identity-transformation+)
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium)))
+    (with-postscript-drawing-options (medium printer-stream
+				      :epilogue :default
+				      :ink ink :line-style line-style)
+      (map-endpoint-sequence
+	#'(lambda (left top right bottom)
+	    (convert-to-postscript-coordinates transform
+	      left top right bottom)
+	    (ps-pos-op medium "m" left top)
+	    (ps-pos-op medium "lineto" right top)
+	    (ps-pos-op medium "lineto" right bottom)
+	    (ps-pos-op medium "lineto" left bottom)
+	    (format printer-stream " closepath "))
+	position-seq))))
+
 (defmethod medium-draw-polygon* ((medium postscript-medium) position-seq closed filled)
   (let* ((transform +identity-transformation+)
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum)
-	 (length (length position-seq))
-	 (points (make-array length :initial-contents position-seq)))
-    (declare (type simple-vector points))
-    (do ((i 0 (+ i 2)))
-	((>= i length))
-      (let ((x (svref points i))
-	    (y (svref points (1+ i))))
-	(convert-to-postscript-coordinates transform x y)
-	(setf (svref points i) x)
-	(setf (svref points (1+ i)) y)
-	(if (< x minx) (setq minx x))
-	(if (< y miny) (setq miny y))))
-    (with-postscript-drawing-options (medium printer-stream
-				      :epilogue :default
-				      :ink ink :line-style line-style)
-      (let ((start-x (svref points 0))
-	    (start-y (svref points 1)))
-	(ps-pos-op medium "m" start-x start-y)
-	(do* ((i 2 (+ i 2))
-	      (ex (svref points i) (svref points i))
-	      (ey (svref points (1+ i)) (svref points (1+ i))))
-	     ((>= i length)
-	      (when closed
-		(format printer-stream " closepath ")))
-	  (ps-pos-op medium "lineto" ex ey))))
-    (annotating-postscript (medium printer-stream)
-      (format printer-stream "        (medium-draw-polygon* ~A ...)"
-        position-seq))))
+	 (length (length position-seq)))
+    (with-stack-array (points length :initial-contents position-seq)
+      (declare (type simple-vector points))
+      (do ((i 0 (+ i 2)))
+	  ((>= i length))
+	(let ((x (svref points i))
+	      (y (svref points (1+ i))))
+	  (convert-to-postscript-coordinates transform x y)
+	  (setf (svref points i) x)
+	  (setf (svref points (1+ i)) y)
+	  (if (< x minx) (setq minx x))
+	  (if (< y miny) (setq miny y))))
+      (with-postscript-drawing-options (medium printer-stream
+					:epilogue :default
+					:ink ink :line-style line-style)
+	(let ((start-x (svref points 0))
+	      (start-y (svref points 1)))
+	  (ps-pos-op medium "m" start-x start-y)
+	  (do* ((i 2 (+ i 2))
+		(ex (svref points i) (svref points i))
+		(ey (svref points (1+ i)) (svref points (1+ i))))
+	       ((>= i length)
+		(when closed
+		  (format printer-stream " closepath ")))
+	    (ps-pos-op medium "lineto" ex ey))))
+      (annotating-postscript (medium printer-stream)
+	(format printer-stream "        (medium-draw-polygon* ~A ...)"
+	  position-seq)))))
 
 (defmethod medium-draw-ellipse* ((medium postscript-medium)
 				 center-x center-y 

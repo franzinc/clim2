@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.22 92/07/20 15:59:39 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.23 92/07/24 10:54:04 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1994,6 +1994,7 @@
     medium-draw-rectangles*
     medium-draw-string*
     medium-draw-text*
+    pixmap-depth
     pixmap-height
     pixmap-width
     with-output-to-pixmap
@@ -2028,6 +2029,8 @@
     make-pattern
     make-rectangular-tile
     make-stencil
+    pattern-height
+    pattern-width
     
     ;; Extended output
     beep
@@ -2245,7 +2248,7 @@
     make-modifier-state
     modifier-state-matches-gesture-name-p
     pointer
-    pointer-buttons
+    pointer-button-state
     pointer-cursor
     pointer-native-position
     pointer-position
@@ -3342,8 +3345,6 @@
     make-flipping-ink
     make-gray-color-for-contrasting-ink
     pattern
-    pattern-height
-    pattern-width
     rectangular-tile
     rgb-color
     stencil
@@ -3458,6 +3459,7 @@
     map-position-sequence
     medium-+y-upward-p
     medium-beep
+    medium-clear-area
     medium-finish-output
     medium-force-output
     medium-merged-text-style-valid
@@ -3480,6 +3482,7 @@
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
     pixmap-sheet
+    pixmap-stream
     port-allocate-pixmap
     port-canonical-gesture-specs
     port-canonicalize-gesture-spec

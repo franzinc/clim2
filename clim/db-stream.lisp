@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.24 92/07/20 16:00:10 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.25 92/07/24 10:54:19 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -29,7 +29,7 @@
     :medium t 
     ;; Make sure that CLIM streams have fresh translation transformation
     ;; so that we can modify it during scrolling
-    :transformation (clim-utils::make-translation-transformation-1 0.0f0 0.0f0)))
+    :transformation (clim-utils::make-translation-transformation-1 0f0 0f0)))
 
 ;;--- Do we still need this?
 (defmethod pane-stream ((pane clim-stream-sheet))
@@ -93,7 +93,7 @@
   ;; Make sure that CLIM streams have fresh translation transformation
   ;; so that we can modify it during scrolling
   (setf (sheet-transformation pane)
-	(clim-utils::make-translation-transformation-1 0.0f0 0.0f0)))
+	(clim-utils::make-translation-transformation-1 0f0 0f0)))
 
 (defmethod pane-needs-redisplay ((pane clim-stream-pane))
   (with-slots (display-time) pane
@@ -245,16 +245,15 @@
   (ecase (graft-origin (graft pane))
     (:nw)
     (:sw
-     (let ((xform (sheet-transformation pane)))
-       (setq xform (make-scaling-transformation 1 -1))
-       ;; --- stream-panes ALWAYS have to have a parent to manage the
-       ;; viewport clipping, etc.
-       (setq xform (compose-transformations
-		     xform
-		     (make-translation-transformation
-		       0 (1- (bounding-rectangle-height
-			       (sheet-parent pane))))))
-       (setf (sheet-transformation pane) xform)))))
+      (let ((xform (sheet-transformation pane)))
+	(setq xform (make-scaling-transformation 1 -1))
+	;; --- stream-panes ALWAYS have to have a parent to manage the
+	;; viewport clipping, etc.
+	(setq xform (compose-transformations
+		      xform
+		      (make-translation-transformation
+			0 (1- (bounding-rectangle-height (sheet-parent pane))))))
+	(setf (sheet-transformation pane) xform)))))
 
 (defmethod pane-stream ((pane clim-stream-pane))
   (unless (port pane) 
@@ -369,9 +368,8 @@
 
 (defmethod window-erase-viewport ((stream window-stream))
   (let ((medium (sheet-medium stream)))
-    (multiple-value-call #'draw-rectangle*
-      medium (bounding-rectangle* (or (pane-viewport stream) stream))
-      :ink +background-ink+)))
+    (multiple-value-call #'medium-clear-area
+      medium (bounding-rectangle* (or (pane-viewport stream) stream)))))
 
 (defmethod window-expose ((stream clim-stream-sheet))
   (setf (window-visibility stream) t))
@@ -423,8 +421,24 @@
       (return nil))))
 
 (defun beep (&optional (stream *standard-output*))
-  (when (typep stream '(or standard-encapsulating-stream sheet))
-    (medium-beep (sheet-medium stream))))
+  (typecase stream
+    (sheet
+     (medium-beep (sheet-medium stream)))
+    (encapsulating-stream
+     (beep (encapsulating-stream-stream stream)))))
+
+;; If you close window in a frame, just exit from the frame.
+;; Otherwise, destroy directly mirrored sheets, or just disable the sheet.
+;;--- This functionality is dubious
+(defmethod close ((sheet clim-stream-sheet) &key abort)
+  (declare (ignore abort))
+  (let ((frame (pane-frame sheet)))
+    (if frame
+        (frame-exit frame)
+      (if (sheet-direct-mirror sheet)
+	  (destroy-mirror (port sheet) sheet)
+	(setf (sheet-enabled-p sheet) nil)))))
+
 
 ;; This is called by SCROLL-EXTENT.  It shifts a region of the "host screen"
 ;; that's visible to some other visible location.  It does NOT do any cleaning

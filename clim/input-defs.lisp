@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.10 92/07/08 16:30:34 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.11 92/07/20 16:00:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -24,7 +24,7 @@
 			:type coordinate :initform (coordinate 0))
      (native-y-position :accessor pointer-native-y-position
 			:type coordinate :initform (coordinate 0))
-     (button-state :accessor pointer-buttons
+     (button-state :accessor pointer-button-state
 		   :type fixnum :initform 0)
      (position-changed :accessor pointer-position-changed)
      (cursor-pattern :accessor pointer-cursor-pattern)

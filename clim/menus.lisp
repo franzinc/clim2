@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.27 92/07/08 16:30:42 cer Exp $
+;; $fiHeader: menus.lisp,v 1.28 92/07/20 16:00:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -28,6 +28,9 @@
   (let ((frame (make-application-frame 'menu-frame
 				       :parent port
 				       :save-under t)))
+    ;; This so that ports can do something interesting with popped-up
+    ;; menu frames, such as implemented "click off menu to abort".
+    (setf (getf (frame-properties frame) :menu-frame) t)
     (values (slot-value frame 'menu) frame)))
 
 (defresource menu (associated-window root)
@@ -38,8 +41,9 @@
   ;; Horrible kludge in the case where no associated window is passed in.
   :matcher (eq (port menu) (port root)))
 
-(defmethod initialize-menu ((port basic-port) window associated-window)
-  (declare (ignore window associated-window))
+(defmethod initialize-menu ((port basic-port) menu associated-window)
+  (declare (ignore menu associated-window))
+  ;;--- Should this flush the menu's event queue?
   )
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.32 92/07/20 16:00:16 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.33 92/07/24 10:54:21 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -381,7 +381,10 @@
 ;;--- :scroll-bars nil
 (define-pane-type :title (&rest options)
   (declare (non-dynamic-extent options))
-  `(make-pane 'title-pane ,@options))
+  `(make-pane 'title-pane 
+	      :end-of-page-action :allow 
+	      :end-of-line-action :allow 
+	      ,@options))
 
 ;;--- :text-style *command-table-menu-text-style*
 ;;--- :incremental-redisplay t
@@ -391,7 +394,10 @@
 ;;--- :scroll-bars nil
 (define-pane-type :command-menu (&rest options)
   (declare (non-dynamic-extent options))
-  `(make-pane 'command-menu-pane ,@options))
+  `(make-pane 'command-menu-pane
+	      :end-of-page-action :allow 
+	      :end-of-line-action :allow 
+	      ,@options))
 
 ;;--- :scroll-bars :vertical
 (define-pane-type :interactor (&rest options)
@@ -403,7 +409,7 @@
   (declare (non-dynamic-extent options))
   `(make-clim-application-pane ,@options))
 
-;;--- :display-after-commands:no-clear
+;;--- :display-after-commands :no-clear
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))
   `(make-clim-stream-pane :type 'accept-values-pane
@@ -418,7 +424,10 @@
 ;;--- :scroll-bars nil
 (define-pane-type :pointer-documentation (&rest options)
   (declare (non-dynamic-extent options))
-  `(make-pane 'pointer-documentation-pane ,@options))
+  `(make-pane 'pointer-documentation-pane
+	      :end-of-page-action :allow
+	      :end-of-line-action :allow
+	      ,@options))
 
 (define-pane-type scroll-bar (&rest options)
   (declare (non-dynamic-extent options))
@@ -485,15 +494,18 @@
 	(*application-frame* frame))
     (when panes
       (clear-space-requirement-caches-in-tree panes)
-      (unless (and width height)
-	(let ((sr (compose-space panes)))
-	  (setq width  (space-requirement-width sr)
-		height (space-requirement-height sr))
-	  ;;--- This looks dubious  --SWM
-	  (multiple-value-bind (gw gh)
-	      (bounding-rectangle-size (graft frame))
-	    (minf width (* 0.9 gw))
- 	    (minf height (* 0.9 gh)))))
+      (multiple-value-bind (graft-width graft-height) 
+	  (bounding-rectangle-size (graft frame))
+	(cond ((and width height)
+	       (minf width graft-width) 
+	       (minf height graft-height))
+	      (t
+	       (let ((sr (compose-space panes)))
+		 (setq width  (space-requirement-width sr)
+		       height (space-requirement-height sr))
+		 ;;--- This formula looks dubious  --SWM
+		 (minf width (* 0.9 graft-width))
+		 (minf height (* 0.9 graft-height))))))
       ;;--- Don't bother with this if the size didn't change?
       (let ((top-sheet (or (frame-top-level-sheet frame) panes)))
 	(if (and (sheet-enabled-p top-sheet)
@@ -1025,10 +1037,10 @@
   (setf (command-enabled command-name frame) nil))
 )	;#+CLIM-1-compatibility
 
-;;;-- There is the compiler bug with eval-when (compile load eval)
-;;;-- defmethod with a call-next-method. See to incorporate this patch
 
-(eval-when (#-allegro compile load eval)
+;;--- There is the compiler bug with (eval-when (compile load eval) ...)
+;;--- DEFMETHOD with a CALL-NEXT-METHOD.  See to incorporate this patch.
+(eval-when (#-Allegro compile load eval)
 (define-condition synchronous-command-event ()
   ((command :initarg :command :reader synchronous-command-event-command))
   (:report (lambda (condition stream)

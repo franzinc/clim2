@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.11 92/07/08 16:28:54 cer Exp $
+;; $fiHeader: classes.lisp,v 1.12 92/07/20 15:59:02 cer Exp $
 
 (in-package :silica)
 
@@ -46,7 +46,7 @@
 		  :reader port-trace-thing)
      (medium-cache :initform nil :accessor port-medium-cache)
      (color-cache :initform (make-hash-table) :reader port-color-cache)
-     (pointer :initform nil :accessor port-pointer)
+     (pointer :initform nil)
      (cursor :initform nil :accessor port-cursor)
      (mapping-table :initform (make-hash-table :test #'equal))
      (undefined-text-style :initform *undefined-text-style*
@@ -154,19 +154,21 @@
    (native-x :reader pointer-event-native-x :initarg :native-x)
    (native-y :reader pointer-event-native-y :initarg :native-y)
    (pointer :reader pointer-event-pointer 
-	    :initarg :pointer :initform nil)
-   (button :reader pointer-event-button
-	   :initarg :button :initform nil)))
+	    :initarg :pointer :initform nil)))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (pointer-event-shift-mask event-modifier-state)
 			       (pointer-event)
   (event-modifier-state pointer-event))
 
-(define-event-class pointer-button-event (pointer-event) ())
+(define-event-class pointer-button-event (pointer-event)
+  ((button :reader pointer-event-button
+	   :initarg :button :initform nil)))
+
 (define-event-class pointer-button-press-event (pointer-button-event) ())
 (define-event-class pointer-button-release-event (pointer-button-event) ())
-(define-event-class pointer-click-event (pointer-event) ())
+
+(define-event-class pointer-click-event (pointer-button-event) ())
 (define-event-class pointer-click-hold-event (pointer-click-event) ())
 (define-event-class pointer-double-click-event (pointer-click-event) ())
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.7 92/07/08 16:31:32 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.8 92/07/20 16:01:00 cer Exp $
 
 (in-package :genera-clim)
 
@@ -46,12 +46,14 @@
 (defmethod (setf medium-foreground) :after (ink (medium genera-medium))
   (let ((window (medium-drawable medium)))
     (scl:send window :set-char-aluf (genera-decode-color ink medium nil))
-    (scl:send window :refresh)))
+    (when (medium-drawing-possible medium)
+      (scl:send window :refresh))))
 
 (defmethod (setf medium-background) :after (ink (medium genera-medium))
   (let ((window (medium-drawable medium)))
     (scl:send window :set-erase-aluf (genera-decode-color ink medium nil))
-    (scl:send window :refresh)))
+    (when (medium-drawing-possible medium)
+      (scl:send window :refresh))))
 
 
 ;;; Translation between CLIM and Genera graphics model
@@ -212,28 +214,28 @@
   (let ((window (medium-drawable medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (let ((luminosity (gray-color-luminosity ink))
-	  (invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
+	  (invert-p (not (scl:send (tv:sheet-screen window) :bow-mode))))
       (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
 	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
 	    ((not color-p)
 	     (genera-decode-luminosity
 	       (if invert-p (- 1.0 luminosity) luminosity) stipple-p))
 	    (t
-	     (funcall (tv:sheet-screen window) :compute-rgb-alu boole-1
-		      luminosity luminosity luminosity (not invert-p)))))))
+	     (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
+		       luminosity luminosity luminosity (not invert-p)))))))
 
 (defmethod genera-decode-color ((ink color) medium &optional (stipple-p t))
   (let ((window (medium-drawable medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (multiple-value-bind (r g b)
 	(color-rgb ink)
-      (let ((invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
+      (let ((invert-p (not (scl:send (tv:sheet-screen window) :bow-mode))))
 	(if (not color-p)
 	    (let ((luminosity (color-luminosity r g b)))
 	      (genera-decode-luminosity
 		(if invert-p (- 1.0 luminosity) luminosity) stipple-p))
-	  (funcall (tv:sheet-screen window) :compute-rgb-alu boole-1
-		   r g b (not invert-p)))))))
+	  (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
+		    r g b (not invert-p)))))))
 
 (defmethod genera-decode-color ((ink flipping-ink) medium &optional (stipple-p t))
   (declare (ignore stipple-p))
@@ -250,9 +252,9 @@
 		  (and (eq ink1 +white+) (eq ink2 +black+)))
 	      (values boole-xor)
 	    (values
-	      (funcall (tv:sheet-screen window) :exchange-two-colors-aluf
-		       (genera-decode-color (follow-indirect-ink design1 medium) medium)
-		       (genera-decode-color (follow-indirect-ink design2 medium) medium)))))))))
+	      (scl:send (tv:sheet-screen window) :exchange-two-colors-aluf
+			(genera-decode-color (follow-indirect-ink design1 medium) medium)
+			(genera-decode-color (follow-indirect-ink design2 medium) medium)))))))))
 
 (defmethod genera-decode-color ((ink standard-opacity) medium &optional (stipple-p t))
   (declare (ignore medium stipple-p))
@@ -338,7 +340,7 @@
     ;; More efficient than (GENERA-DECODE-COLOR (MAKE-GRAY-COLOR-FOR-CONTRASTING-INK INK))
     (let ((luminosity (with-slots (clim-utils::which-one clim-utils::how-many) ink
 			(/ clim-utils::which-one clim-utils::how-many)))
-	  (invert-p (not (funcall (tv:sheet-screen (medium-drawable medium)) :bow-mode))))
+	  (invert-p (not (scl:send (tv:sheet-screen (medium-drawable medium)) :bow-mode))))
       (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
 	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
 	    (t
@@ -527,7 +529,7 @@
       (invoke-with-appropriate-drawing-state medium ink line-style
 	#'(lambda (window alu)
 	    (declare (sys:downward-function))
-	    (funcall window :draw-point x y alu))
+	    (scl:send window :draw-point x y alu))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
 	    (funcall (flavor:generic graphics:draw-point) window x y))))))
@@ -544,7 +546,7 @@
 	    (map-position-sequence
 	      #'(lambda (x y)
 		  (convert-to-device-coordinates transform x y)
-		  (funcall window :draw-point x y alu))
+		  (scl:send window :draw-point x y alu))
 	      position-seq))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
@@ -566,7 +568,7 @@
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
-	      (funcall window :draw-line x1 y1 x2 y2 alu t)))
+	      (scl:send window :draw-line x1 y1 x2 y2 alu t)))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
@@ -583,11 +585,21 @@
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
-	      (map-endpoint-sequence
-		#'(lambda (x1 y1 x2 y2)
-		    (convert-to-device-coordinates transform x1 y1 x2 y2)
-		    (funcall window :draw-line x1 y1 x2 y2 alu t))
-		position-seq)))
+	      (let ((length (length position-seq)))
+		(with-stack-array (points length :initial-contents position-seq)
+		  (declare (type simple-vector points))
+		  (do ((i 0 (+ i 4)))
+		      ((>= i length))
+		    (let ((x1 (svref points i))
+			  (y1 (svref points (+ i 1)))
+			  (x2 (svref points (+ i 2)))
+			  (y2 (svref points (+ i 3))))
+		      (convert-to-device-coordinates transform x1 y1 x2 y2)
+		      (setf (svref points i) x1)
+		      (setf (svref points (+ i 1)) y1)
+		      (setf (svref points (+ i 2)) x2)
+		      (setf (svref points (+ i 3)) y2)))
+		  (scl:send window :draw-multiple-lines points alu t)))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
@@ -619,13 +631,13 @@
 		    (let ((width (- right left))
 			  (height (- bottom top)))
 		      (with-drawing-model-adjustments (window nil)
-			(funcall window :draw-rectangle width height left top alu)))
+			(scl:send window :draw-rectangle width height left top alu)))
 		    (scl:stack-let ((lines (vector right top left top
 						   left top left bottom
 						   left bottom right bottom
 						   right bottom right top)))
 		      (with-drawing-model-adjustments (window nil)
-			(funcall window :draw-multiple-lines lines alu nil)))))
+			(scl:send window :draw-multiple-lines lines alu nil)))))
 	    #'(lambda (window)
 		(declare (sys:downward-function))
 		(with-drawing-model-adjustments (window nil)
@@ -640,28 +652,44 @@
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
       (invoke-with-appropriate-drawing-state medium ink line-style
-        #'(lambda (window alu)
+	#'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
-	      (map-endpoint-sequence
-		#'(lambda (left top right bottom)
-		    (convert-to-device-coordinates transform left top right bottom)
-		    (if filled
-			(let ((width (abs (- right left)))
-			      (height (abs (- bottom top))))
-			  (funcall window :draw-rectangle width height left top alu))
+	      (if filled
+		  (let ((length (length position-seq)))
+		    (with-stack-array (points length :initial-contents position-seq)
+		      (declare (type simple-vector points))
+		      (do ((i 0 (+ i 4)))
+			  ((>= i length))
+			(let ((left (svref points i))
+			      (top  (svref points (+ i 1)))
+			      (right  (svref points (+ i 2)))
+			      (bottom (svref points (+ i 3))))
+			  (convert-to-device-coordinates transform left top right bottom)
+			  (when (< right left) (rotatef right left))
+			  (when (< bottom top) (rotatef bottom top))
+			  (setf (svref points i) left)
+			  (setf (svref points (+ i 1)) top)
+			  (setf (svref points (+ i 2)) right)
+			  (setf (svref points (+ i 3)) bottom)))
+		      (scl:send window :draw-multiple-rectangles points alu)))
+		  (map-endpoint-sequence
+		    #'(lambda (left top right bottom)
+			(convert-to-device-coordinates transform left top right bottom)
 			(scl:stack-let ((lines (vector right top left top
 						       left top left bottom
 						       left bottom right bottom
 						       right bottom right top)))
-			  (funcall window :draw-multiple-lines lines alu nil))))
-		position-seq)))
+			  (scl:send window :draw-multiple-lines lines alu nil)))
+		    position-seq))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
 	    (with-drawing-model-adjustments (window nil)
 	      (map-endpoint-sequence
 		#'(lambda (left top right bottom)
 		    (convert-to-device-coordinates transform left top right bottom)
+		    (when (< right left) (rotatef right left))
+		    (when (< bottom top) (rotatef bottom top))
 		    (funcall (flavor:generic graphics:draw-rectangle)
 			     window left top right bottom
 			     :filled filled))
@@ -725,7 +753,7 @@
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3)
 		       (with-drawing-model-adjustments (window nil)
-			 (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu))))
+			 (scl:send window :draw-triangle x1 y1 x2 y2 x3 y3 alu))))
 		  (8 (multiple-value-bind (x1 y1 x2 y2 x3 y3 x4 y4)
 			 (if (listp position-seq)
 			     (let ((p position-seq))
@@ -742,8 +770,8 @@
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3 x4 y4)
 		       (with-drawing-model-adjustments (window nil)
-			 (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu)
-			 (funcall window :draw-triangle x3 y3 x4 y4 x1 y1 alu))))
+			 (scl:send window :draw-triangle x1 y1 x2 y2 x3 y3 alu)
+			 (scl:send window :draw-triangle x3 y3 x4 y4 x1 y1 alu))))
 		  (otherwise
 		    (with-stack-array (points npoints)
 		      (let ((i 0))
@@ -756,7 +784,7 @@
 		      (with-drawing-model-adjustments (window nil)
 			(graphics::triangulate-polygon
 			  #'(lambda (x1 y1 x2 y2 x3 y3)
-			      (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu))
+			      (scl:send window :draw-triangle x1 y1 x2 y2 x3 y3 alu))
 			  points)))))
 		(with-stack-array (lines (* (+ npoints (if closed 0 -2)) 2))
 		  (let* ((i 0)
@@ -783,7 +811,7 @@
 			  (setf (aref lines (shiftf i (1+ i))) initial-y))
 			(return))))
 		  (with-drawing-model-adjustments (window nil)
-		    (funcall window :draw-multiple-lines lines alu nil)))))
+		    (scl:send window :draw-multiple-lines lines alu nil)))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
 	    (with-stack-array (points npoints)
@@ -831,8 +859,8 @@
 		  (declare (sys:downward-function))
 		  (with-drawing-model-adjustments (window nil)
 		    (if filled
-			(funcall window :draw-filled-in-circle center-x center-y x-radius alu)
-			(funcall window :draw-circle center-x center-y x-radius alu))))
+			(scl:send window :draw-filled-in-circle center-x center-y x-radius alu)
+			(scl:send window :draw-circle center-x center-y x-radius alu))))
 	      #'(lambda (window)
 		  (declare (sys:downward-function))
 		  (with-drawing-model-adjustments (window nil)
@@ -899,7 +927,7 @@
 					    start end (tv:sheet-width window)))))
 	      #'(lambda (window)
 		  (declare (sys:downward-function))
-		  (sys:stack-let ((substring (make-string (- end start))))
+		  (with-stack-array (substring (- end start) :element-type 'character)
 		    (replace substring string :start2 start :end2 end)
 		    (funcall (flavor:generic graphics:draw-string) window
 			     substring x y :character-style style))))))))))
@@ -937,7 +965,7 @@
 		(let ((x (+ x (tv:sheet-left-margin-size window)))
 		      (y (+ y (tv:sheet-top-margin-size window))))
 		  (tv:sheet-draw-glyph (char-code character) font x y alu window)))
-	      (funcall window :draw-glyph (char-code character) font x y alu))
+	      (scl:send window :draw-glyph (char-code character) font x y alu))
 	  #'(lambda (window)
 	      (declare (sys:downward-function))
 	      (funcall (flavor:generic graphics:draw-glyph) window
@@ -952,6 +980,28 @@
 			      align-x align-y towards-x towards-y transform-glyphs)
       (medium-draw-string* medium string-or-char x y start end 
 			   align-x align-y towards-x towards-y transform-glyphs)))
+
+
+(defmethod medium-clear-area ((medium genera-medium) left top right bottom)
+  (when (medium-drawing-possible medium)
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet)))
+      (convert-to-device-coordinates transform left top right bottom)
+      (when (< right left) (rotatef right left))
+      (when (< bottom top) (rotatef bottom top))
+      (invoke-with-appropriate-drawing-state medium +background-ink+ nil
+	#'(lambda (window alu)
+	    (declare (sys:downward-function))
+	    (let ((width (- right left))
+		  (height (- bottom top)))
+	      (with-drawing-model-adjustments (window nil)
+		(scl:send window :draw-rectangle width height left top alu))))
+	#'(lambda (window)
+	    (declare (sys:downward-function))
+	    (with-drawing-model-adjustments (window nil)
+	      (funcall (flavor:generic graphics:draw-rectangle) 
+		       window left top right bottom
+		       :filled t)))))))
 
 
 (defmethod text-style-width ((text-style standard-text-style) (medium genera-medium))

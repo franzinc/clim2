@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.11 92/07/20 15:59:07 cer Exp Locker: cer $
+;; $fiHeader: db-button.lisp,v 1.12 92/07/24 10:53:45 cer Exp Locker: cer $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -39,8 +39,9 @@ toggle button base. This way they can share the draw code.
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
-      (cond ((and (pointer-event-button event)
-		  (not (zerop (pointer-event-button event))))
+      (cond ((let ((pointer (pointer-event-pointer event)))
+	       (and (pointer-button-state pointer)
+		    (not (zerop (pointer-button-state pointer)))))
 	     (setf armed :active)
 	     (with-sheet-medium (medium pane)
 	       (highlight-button pane medium)))
@@ -50,10 +51,9 @@ toggle button base. This way they can share the draw code.
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-exit-event))
   (with-slots (armed) pane
     (when armed
-      (when (eq armed :active)
+      (when (prog1 (eq armed :active) (setf armed nil))
 	(with-sheet-medium (medium pane)
 	  (highlight-button pane medium)))
-      (setf armed nil)
       (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
 
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-button-press-event))
@@ -274,8 +274,8 @@ toggle button base. This way they can share the draw code.
 
 (defmethod highlight-button ((pane push-button-pane) medium)
   (draw-button-pattern pane medium)
-    ;; Do this for the benefit of X displays
-    (medium-force-output medium))
+  ;; Do this for the benefit of X displays
+  (medium-force-output medium))
 
 (defmethod handle-event ((pane push-button-pane) (event pointer-button-press-event))
   (with-slots (armed) pane
@@ -294,8 +294,8 @@ toggle button base. This way they can share the draw code.
 (defmethod draw-button-pattern ((pane push-button-pane) medium
 				&key (draw-external-label-p nil))
   (with-slots (normal-pattern depressed-pattern armed external-label
-			      text-style label depth internal-label-offset
-			      xmargin ymargin) pane
+	       text-style label depth internal-label-offset
+	       xmargin ymargin) pane
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane) right
       (let* ((pattern (if (eq armed :active) depressed-pattern normal-pattern))
 	     (pattern-width (pattern-width pattern))

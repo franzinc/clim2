@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;;; $fiHeader: browser.lisp,v 1.7 92/07/06 18:51:59 cer Exp $
+;; $fiHeader: browser.lisp,v 1.8 92/07/20 16:01:13 cer Exp $
 
 (in-package :clim-browser)
 
@@ -686,7 +686,7 @@
 		   collect (eval form))))
 	  ;;--- What do we do for INSTANCEP?
 	  (#+genera (si:instancep object)
-	   #+excl (typep object 'standard-object)
+	   #+allegro (typep object 'standard-object)
 	   #+genera (setq object (si:follow-structure-forwarding object))
 	   ;;--- How to arrange for the slot names to be printed?
 	   ;; This works for Genera Flavors because they are embedded in CLOS
@@ -706,8 +706,8 @@
   (let ((object (node-object node)))
     (or (consp object)
         ;;--- What do we do for INSTANCEP?
-	#+genera(si:instancep object)
-	#+excl (typep object 'standard-object)
+	#+genera (si:instancep object)
+	#+allegro (typep object 'standard-object)
 	(and (arrayp object)
 	     (not (stringp object))))))
 

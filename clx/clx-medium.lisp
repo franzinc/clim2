@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.7 92/07/01 15:45:56 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.8 92/07/08 16:29:41 cer Exp $
 
 (in-package :clx-clim)
 
@@ -8,6 +8,7 @@
 
 
 (defclass clx-medium (basic-medium)
+  ;;--- What happened to white-pixel and black pixel, from CLIM 1.0?
   ((drawable :initform nil :reader medium-drawable)
    (foreground-gcontext :initform nil)
    (foreground-pixel :initform nil)
@@ -320,7 +321,6 @@
 				(setf (xlib:gcontext-tile gc) pixmap))))))))
 	    (setf (gethash ink ink-table) gc))))))
 
-
 (defmethod clx-decode-ink ((ink contrasting-ink) medium)
   (clx-decode-ink (make-color-for-contrasting-ink ink) medium))
 
@@ -522,37 +522,42 @@
 	  (let ((thickness (round thickness)))
 	    (xlib:draw-arc drawable gc x y thickness thickness 0 2pi t))))))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-points* ((medium clx-medium) position-seq)
   (let* ((sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium)))
-    ;;well ick, I think we need to loop over the coords.
+	 (drawable (medium-drawable medium))
+	 (length (length position-seq)))
     (let ((thickness (line-style-thickness line-style))
 	  (gc (clx-decode-ink ink medium)))
       (if (< thickness 2)
-	  (let ((points (copy-seq position-seq)))
-	    (loop for index below (length position-seq) by 2
-		  as x = (elt position-seq index) as y = (elt position-seq (1+ index))
-		  do (convert-to-device-coordinates transform x y)
-		     (setf (elt points index) x)
-		     (setf (elt points (1+ index)) y))
+	  (with-stack-array (points length :initial-contents position-seq)
+	    (declare (type simple-vector points))
+	    (do ((i 0 (+ i 2)))
+		((>= i length))
+	      (let ((x (svref points i))
+		    (y (svref points (1+ i))))
+		(convert-to-device-coordinates transform x y)
+		(setf (elt points i) x)
+		(setf (elt points (1+ i)) y)))
 	    (xlib:draw-points drawable gc points))
 	  (let ((thickness (round thickness))
-		(arcs (make-array (* 3 (length position-seq)))))
-	    (loop for index below (length position-seq) by 2 as aindex from 0 by 6
-		  as x = (elt position-seq index) as y = (elt position-seq (1+ index))
-		  do (convert-to-device-coordinates transform x y)
-		     (setf (aref arcs aindex) x)
-		     (setf (aref arcs (+ aindex 1)) y)
-		     (setf (aref arcs (+ aindex 2)) thickness)
-		     (setf (aref arcs (+ aindex 3)) thickness)
-		     (setf (aref arcs (+ aindex 4)) 0)
-		     (setf (aref arcs (+ aindex 5)) 2pi))
-	    (xlib:draw-arcs drawable gc arcs t))))))
-
+		(j -1))
+	    (with-stack-array (arcs (* 3 length))
+	      (declare (type simple-vector arcs))
+	      (do ((i 0 (+ i 2)))
+		  ((>= i length))
+		(let ((x (elt position-seq i))
+		      (y (elt position-seq (1+ i))))
+		  (convert-to-device-coordinates transform x y)
+		  (setf (svref arcs (incf j)) x)
+		  (setf (svref arcs (incf j)) y)
+		  (setf (svref arcs (incf j)) thickness)
+		  (setf (svref arcs (incf j)) thickness)
+		  (setf (svref arcs (incf j)) 0)
+		  (setf (svref arcs (incf j)) 2pi)))
+	      (xlib:draw-arcs drawable gc arcs t)))))))
 
 (defmethod medium-draw-line* ((medium clx-medium) x1 y1 x2 y2)
   (let* ((sheet (medium-sheet medium))
@@ -560,34 +565,42 @@
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
 	 (drawable (medium-drawable medium)))
-    (convert-to-device-coordinates transform
-      x1 y1 x2 y2)
+    (convert-to-device-coordinates transform x1 y1 x2 y2)
     (xlib:draw-line drawable
 		    (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
 				    (min x1 x2) (min y1 y2))
 		    x1 y1 x2 y2)))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-lines* ((medium clx-medium) position-seq)
   (let* ((sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
 	 (drawable (medium-drawable medium))
-	 (points (copy-seq position-seq)) ;should use resource
-	 minx miny)
-    (loop for index below (length position-seq) by 2
-	  as x = (elt position-seq index) as y = (elt position-seq (1+ index))
-	  do (convert-to-device-coordinates transform x y)
-	     (setf (elt points index) x)
-	     (setf (elt points (1+ index)) y)
-	  minimize x into tempminx
-	  minimize y into tempminy
-	  finally (setq minx tempminx miny tempminy)) ;ick
-    (xlib:draw-lines drawable
-		     (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
-				     minx miny)
-		    points)))
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum)
+	 (length (length position-seq)))
+    ;; These really are fixnums, since we're fixing coordinates below
+    (declare (type fixnum minx miny))
+    (with-stack-array (points length :initial-contents position-seq)
+      (declare (type simple-vector points))
+      (do ((i 0 (+ i 4)))
+	  ((>= i length))
+	(let ((x1 (svref points i))
+	      (y1 (svref points (+ i 1)))
+	      (x2 (svref points (+ i 2)))
+	      (y2 (svref points (+ i 3))))
+	  (convert-to-device-coordinates transform x1 y1 x2 y2)
+	  (setf (svref points i) x1)
+	  (setf (svref points (+ i 1)) y1)
+	  (setf (svref points (+ i 2)) x2)
+	  (setf (svref points (+ i 3)) y2)
+	  (minf minx x1 x2)
+	  (minf miny y1 y2)))
+      (xlib:draw-segments drawable 
+			  (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
+					  minx miny)
+			  points))))
 
 (defmethod medium-draw-rectangle* ((medium clx-medium)
 				   left top right bottom filled)
@@ -603,17 +616,40 @@
     (xlib:draw-rectangle drawable 
 			 (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
 					 left top)
-			 left top (- right left) (- bottom top) filled))
-  )
+			 left top (- right left) (- bottom top) filled)))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-rectangles* ((medium clx-medium) position-seq filled)
   (let* ((sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium)))
-    ))
+	 (drawable (medium-drawable medium))
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum)
+	 (length (length position-seq)))
+    ;; These really are fixnums, since we're fixing coordinates below
+    (declare (type fixnum minx miny))
+    (with-stack-array (points length :initial-contents position-seq)
+      (declare (type simple-vector points))
+      (do ((i 0 (+ i 4)))
+	  ((>= i length))
+	(let ((left (svref points i))
+	      (top  (svref points (+ i 1)))
+	      (right  (svref points (+ i 2)))
+	      (bottom (svref points (+ i 3))))
+	  (convert-to-device-coordinates transform left top right bottom)
+	  (when (< right left) (rotatef right left))
+	  (when (< bottom top) (rotatef bottom top))
+	  (setf (svref points i) left)
+	  (setf (svref points (+ i 1)) top)
+	  (setf (svref points (+ i 2)) (- right left))
+	  (setf (svref points (+ i 3)) (- bottom top))
+	  (minf minx left right)
+	  (minf miny top bottom)))
+      (xlib:draw-rectangles drawable 
+			    (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
+					    minx miny)
+			    points filled))))
 
 (defmethod medium-draw-polygon* ((medium clx-medium) position-seq closed filled)
   (let* ((sheet (medium-sheet medium))
@@ -623,28 +659,28 @@
 	 (drawable (medium-drawable medium))
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum)
-	 (length (length position-seq))
-	 (points (make-array (if (and closed line-style) (+ length 2) length))))
+	 (length (length position-seq)))
     ;; These really are fixnums, since we're fixing coordinates below
-    (declare (type fixnum minx miny)
-	     (type simple-vector points))
-    (replace points position-seq)    ; set up the initial contents
-    (do ((i 0 (+ i 2)))
-	((>= i length))
-      (let ((x (svref points i))
-	    (y (svref points (1+ i))))
-	(convert-to-device-coordinates transform x y)
-	(setf (svref points i) x)
-	(setf (svref points (1+ i)) y)
-	(if (< x minx) (setq minx x))
-	(if (< y miny) (setq miny y))))
-    (when (and closed line-style)		;kludge
-      (setf (svref points length) (svref points 0))
-      (setf (svref points (+ length 1)) (svref points 1)))
-    (xlib:draw-lines drawable 
-		     (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
-				     minx miny)
-		     points :fill-p filled)))
+    (declare (type fixnum minx miny))
+    (with-stack-array (points (if (and closed line-style) (+ length 2) length))
+      (declare (type simple-vector points))
+      (replace points position-seq)		;set up the initial contents
+      (do ((i 0 (+ i 2)))
+	  ((>= i length))
+	(let ((x (svref points i))
+	      (y (svref points (1+ i))))
+	  (convert-to-device-coordinates transform x y)
+	  (setf (svref points i) x)
+	  (setf (svref points (1+ i)) y)
+	  (minf minx x)
+	  (minf miny y)))
+      (when (and closed line-style)		;kludge
+	(setf (svref points length) (svref points 0))
+	(setf (svref points (+ length 1)) (svref points 1)))
+      (xlib:draw-lines drawable 
+		       (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
+				       minx miny)
+		       points :fill-p filled))))
 
 (defmethod medium-draw-ellipse* ((medium clx-medium)
 				 center-x center-y
@@ -774,6 +810,19 @@
       (medium-draw-string* medium string-or-char x y start end align-x align-y
 			   towards-x towards-y transform-glyphs)))
 
+(defmethod medium-clear-area ((medium clx-medium) left top right bottom)
+  (with-slots (drawable background-pixel background-gcontext) medium
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet)))
+      (convert-to-device-coordinates transform left top right bottom)
+      (when (< right left) (rotatef right left))
+      (when (< bottom top) (rotatef bottom top))
+      (if (integerp background-pixel)
+	  (xlib:clear-area drawable
+			   :x left :y top :width (- right left) :height (- bottom top))
+	  (xlib:draw-rectangle drawable background-gcontext 
+			       left top (- right left) (- bottom top) t)))))
+
 
 (defmethod text-style-width ((text-style standard-text-style) (medium clx-medium))
   (let ((font (text-style-mapping (port medium) text-style)))
@@ -809,6 +858,8 @@
   (xlib:display-finish-output (port-display (port medium))))
 
 (defmethod medium-beep ((medium clx-medium))
-  (xlib:bell (port-display (port medium))))
+  (let ((display (port-display (port medium))))
+    (xlib:bell display)
+    (xlib:display-force-output display)))
 
 

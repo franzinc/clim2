@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.15 92/07/08 16:29:21 cer Exp $
+;; $fiHeader: port.lisp,v 1.16 92/07/20 15:59:28 cer Exp $
 
 (in-package :silica)
 
@@ -28,8 +28,7 @@
 
 (defvar *default-server-path* #+Allegro '(:motif)
 			      #+Lucid '(:clx)
-			      #+Genera `(:genera :host ,net:*local-host*
-						 :screen ,tv:main-screen)
+			      #+Genera `(:genera)
 			      #-(or Allegro Lucid Genera) nil)
 
 (defvar *ports* nil)
@@ -51,7 +50,8 @@
 #+Genera
 (scl:add-initialization "Reset ports"
   '(progn
-     (setq *ports* nil))
+     (dolist (port *ports*)
+       (destroy-port port)))
   '(before-cold))
 
 (defun port-match (port server-path)
@@ -71,6 +71,17 @@
   (call-next-method)
   (setq *ports* (append *ports* (list port)))
   (restart-port port))
+
+
+(defmethod port-pointer ((port basic-port))
+  (with-slots (pointer grafts) port
+    (or pointer
+	(setq pointer (make-instance 'standard-pointer 
+			:graft (find-graft :port port)
+			:port port)))))
+
+(defmethod (setf port-pointer) (pointer (port basic-port))
+  (setf (slot-value port 'pointer) pointer))
 
 
 (defgeneric port (x))
@@ -104,6 +115,14 @@
 
 
 (defgeneric destroy-port (port))
+
+(defmethod destroy-port (port)
+  (let ((framem (port-frame-manager port)))
+    (when framem
+      (dolist (frame (frame-manager-frames framem))
+	(disown-frame framem frame))))
+  (setq *ports* (delete port *ports*)))
+
 
 (defgeneric add-watcher (port watcher))
 (defgeneric remove-watcher (port watcher))

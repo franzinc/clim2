@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.8 92/07/01 15:46:08 cer Exp Locker: cer $
+;; $fiHeader: accept.lisp,v 1.9 92/07/24 10:54:17 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -198,7 +198,7 @@
 				    :initial-contents (and insert-default
 							   default-supplied-p
 							   (list default default-type)))
-	  (let ((start-position (input-position stream)))
+	  (let ((start-position (stream-scan-pointer stream)))
 	    (with-input-context (type)
 				(object presentation-type nil options)
 	      (with-activation-gestures ((or activation-gestures
@@ -298,7 +298,7 @@
 ;;; If the input from stream, starting at location, is a request to use the default
 ;;; then insert the default and return true
 (defun check-for-default (stream location default default-type view)
-  (setf (input-position stream) location)
+  (setf (stream-scan-pointer stream) location)
   (loop
     (let ((char (read-gesture :stream stream)))
       (when (or (not (characterp char))
@@ -308,13 +308,13 @@
 	;; printing character, then put it back and check to see if
 	;; we should insert the default.
 	(unread-gesture char :stream stream)
-	(setf (input-position stream) location)
+	(setf (stream-scan-pointer stream) location)
 	(when (or (null char)
 		  (activation-gesture-p char)
 		  (delimiter-gesture-p char))
 	  ;; Insert the default if we got a character that will terminate
 	  ;; the current call to ACCEPT
-	  (unless (rescanning-p stream)
+	  (unless (stream-rescanning-p stream)
 	    (presentation-replace-input stream default default-type view
 					:buffer-start location))
 	  (return-from check-for-default t))
@@ -358,7 +358,7 @@
 					    (when (or (not (characterp char))
 						      (delimiter-gesture-p char)
 						      (not (whitespace-char-p char)))
-					      (unless (eq char :eof)
+					      (unless (eql char :eof)
 						(unread-char char stream))
 					      (when (or (eq char :eof)
 							(activation-gesture-p char)

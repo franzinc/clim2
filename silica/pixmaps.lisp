@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-(in-package :silica)
+;; $fiHeader: pixmaps.lisp,v 1.3 92/07/20 16:09:25 cer Exp $
 
-;;; $fiHeader$
+(in-package :silica)
 
 "Copyright (c) 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
@@ -56,9 +56,10 @@
 	(port sheet) port
 	(sheet-transformation sheet) +identity-transformation+
 	(sheet-region sheet) (make-bounding-rectangle 0 0 width height)
-	;;--- What about text style?
 	(medium-foreground sheet) (or (medium-foreground medium) +black+)
-	(medium-background sheet) (or (medium-background medium) +white+)))
+	(medium-background sheet) (or (medium-background medium) +white+)
+	(medium-default-text-style sheet) (or (medium-default-text-style medium)
+					      *default-text-style*)))
 
 (defmethod realize-mirror ((port basic-port) (sheet pixmap-sheet))
   nil)
@@ -92,7 +93,7 @@
 					 &key width height)
   (let* ((pixmap-medium (make-pixmap-medium (port sheet) sheet
 					    :width width :height height))
-	 (pixmap-sheet (make-instance 'clim-internals::pixmap-stream 
+	 (pixmap-sheet (make-instance 'pixmap-sheet 
 			 :port (port sheet)
 			 :medium pixmap-medium
 			 :width width :height height)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.25 92/07/08 16:29:00 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.26 92/07/20 15:59:10 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -181,8 +181,12 @@
 		    (min 1.0s0 (max 0.0s0
 				    (if (<= contents-range viewport-range)
 					0.0
-				      (/ (float (- vmin min) 0.0s0) 
-					 (- contents-range viewport-range))))))))
+					(/ (float (- vmin min) 0.0s0) 
+					   ;;--- Uh-oh, the home-grown scroll bars
+					   ;;--- seem to have a different contract
+					   ;;--- from Motif/OpenLook.  Fix them!
+					   #+Allegro (- contents-range viewport-range)
+					   #-Allegro contents-range)))))))
 	(declare (type single-float pos size))
 	(unless (and current-size
 		     current-value
@@ -287,9 +291,8 @@
 		 (with-sheet-medium (medium sheet)
 		   (dolist (region rectangles)
 		     (with-medium-clipping-region (medium region)
-		       (multiple-value-call #'draw-rectangle*
-					    medium (bounding-rectangle* region)
-					    :ink +background-ink+ :filled t)
+		       (multiple-value-call #'medium-clear-area
+					    medium (bounding-rectangle* region))
 		       (when (output-recording-stream-p sheet)
 			 (replay (stream-output-history sheet) sheet region)))))))
 	      ;; Otherwise, just redraw the whole visible viewport
@@ -300,9 +303,8 @@
 		 ;;--- We should make the sheet-region bigger at this point.
 		 ;;--- Perhaps we do a union of the sheet-region and the viewport.
 		 (with-sheet-medium (medium sheet)
-		   (multiple-value-call #'draw-rectangle* 
-					medium (bounding-rectangle* region)
-					:ink +background-ink+ :filled t))
+		   (multiple-value-call #'medium-clear-area
+					medium (bounding-rectangle* region)))
 		 (replay (stream-output-history sheet) sheet region)))))
 	  (when (and (/= left x) (/= top y))
 	    (note-viewport-position-changed (pane-frame sheet) sheet)))))))
@@ -795,11 +797,14 @@
 	 (orientation (gadget-orientation scroll-bar)))
     (case (pointer-event-button event)
       (#.+pointer-left-button+
-       (scroll-line-to-top-callback scroll-bar client id orientation x y))
+       (scroll-line-to-top-callback
+	 scroll-bar client id orientation x y))
       (#.+pointer-right-button+
-       (scroll-line-to-bottom-callback scroll-bar client id orientation x y))
+       (scroll-line-to-bottom-callback
+	 scroll-bar client id orientation x (- (bounding-rectangle-height scroll-bar) y)))
       (#.+pointer-middle-button+
-       (scroll-elevator-callback scroll-bar client id orientation x y)))))
+       (scroll-elevator-callback
+	 scroll-bar client id orientation x y)))))
 
 (defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
   ;;--- Change the mouse cursor and set the mouse string

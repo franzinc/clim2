@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.7 92/07/08 16:29:43 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.8 92/07/20 15:59:50 cer Exp $
 
 (in-package :clx-clim)
 
@@ -12,30 +12,50 @@
 #-Genera (defmethod sheet-shell (sheet) sheet)
 
 
+;; In the raw CLX port, we only create top-level windows.  All the other
+;; "windows" in a CLIM frame are managed by CLIM itself.
 (defmethod realize-mirror ((port clx-port) sheet)
   (with-slots (display screen) port
     (multiple-value-bind (left top right bottom)
 	(sheet-native-region* sheet)
       (fix-coordinates left top right bottom)
       (let* ((clx-parent (sheet-mirror sheet))
+	     (save-under (getf (frame-properties (pane-frame sheet)) :save-under))
 	     (mirror
 	       (xlib:create-window 
 		 :parent clx-parent
 		 :x left :y top
 		 :width (- right left) :height (- bottom top)
 		 :background (xlib:screen-white-pixel screen)
+		 :bit-gravity :north-west
+		 :save-under (if save-under :on nil)
 		 :event-mask 
-		 #.(xlib:make-event-mask 
-		     :button-press :button-release
-		     :key-press :key-release 
-		     :pointer-motion :pointer-motion-hint
-		     :enter-window :leave-window 
-		     :structure-notify
-		     :exposure
-		     ;; Needed for popup menus
-		     :owner-grab-button
-		     ))))
+		   #.(xlib:make-event-mask 
+		       :button-press :button-release
+		       :key-press :key-release 
+		       :pointer-motion :pointer-motion-hint
+		       :enter-window :leave-window 
+		       :structure-notify
+		       :exposure
+		       ;; Needed for popup menus
+		       :owner-grab-button))))
 	(setf (sheet-native-transformation sheet) +identity-transformation+)
+	(xlib:set-wm-properties mirror
+	  :input :on
+	  :initial-state :normal
+	  ;; pre-X11R5 doesn't hack the next two
+	  :program-specified-position-p t
+	  :program-specified-size-p t
+	  ;; pre-X11R5 uses "user" instead of "program"
+	  :user-specified-size-p t 
+	  :user-specified-position-p t
+	  ;; Some X11R3 servers want the next four
+	  :x left :y top
+	  :width (- right left) :height (- bottom top)
+	  ;; Sigh, keep us out of the debugger
+	  :allow-other-keys t)
+	(setf (xlib:wm-protocols mirror) '(:wm_delete_window))
+	(setf (xlib:wm-client-machine mirror) (short-site-name))
 	mirror))))
 
 (defmethod destroy-mirror ((port clx-port) sheet)
@@ -52,17 +72,18 @@
 
 (defmethod disable-mirror ((port clx-port) sheet)
   (let ((mirror (sheet-mirror sheet)))
-    (with-slots (display) port
-      (xlib:unmap-window mirror)
-      (xlib:display-force-output (port-display port)))))
+    (with-slots (display screen) port
+      ;; WITHDRAW-WINDOW isn't in X11R3, so use UNMAP-WINDOW instead
+      (if (fboundp 'xlib::withdraw-window)
+	  (xlib::withdraw-window mirror screen)
+	  (xlib:unmap-window mirror))
+      (xlib:display-force-output display))))
 
-;;--- Is this the same as WINDOW-STACK-ON-TOP?
 (defmethod raise-mirror ((port clx-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (setf (xlib:window-priority window) :above)
     (xlib:display-force-output (port-display port))))
 
-;;--- Is this the same as WINDOW-STACK-ON-BOTTOM?
 (defmethod bury-mirror ((port clx-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (setf (xlib:window-priority window) :below)
@@ -75,10 +96,16 @@
 	  (window (slot-value port 'window)))
       (setf silica::pixel-width  (xlib:screen-width screen)
 	    silica::pixel-height (xlib:screen-height screen)
-	    ;;--- Bogus numbers
-	    silica::mm-width     360.0
-	    silica::mm-height	 280.0
-	    silica::pixels-per-point 1)
+	    silica::mm-width     (xlib:screen-width-in-millimeters screen)
+	    silica::mm-height	 (xlib:screen-height-in-millimeters screen))
+      (let* ((ppp
+	       ;; Geometric mean in case the pixels aren't square.  Sigh.
+	       (* (sqrt (* (/ silica::pixel-width silica::mm-width)
+			   (/ silica::pixel-height silica::mm-height)))
+		  (/ 25.4s0 72)))
+	     (rounded-ppp (round ppp)))
+	(setf silica::pixels-per-point 
+	      (if (< (abs (- ppp rounded-ppp)) .1s0) rounded-ppp ppp)))
       (setf (sheet-region graft)
 	    (ecase silica::units
 	      ((:device :pixel)
@@ -98,18 +125,6 @@
 	      (+ x (xlib:drawable-width mirror))
 	      (+ y (xlib:drawable-height mirror))))))
 
-#+ignore	;--- nobody seems to use this
-(defmethod clx-mirror-native-edges* ((port clx-port) sheet &optional mirror)
-  (let ((mirror (or mirror (sheet-mirror sheet))))
-    (multiple-value-bind (width height)
-	(scl:send mirror :size)
-      (multiple-value-bind (xoff yoff)
-	  (tv:sheet-calculate-offsets mirror (tv:sheet-screen mirror))
-	(values xoff
-		yoff
-		(+ xoff width)
-		(+ yoff height))))))
-
 ;;--- Is this really the same as MIRROR-INSIDE-EDGES*?
 (defmethod mirror-inside-region* ((port clx-port) sheet)
   (mirror-inside-edges* port sheet))
@@ -128,29 +143,29 @@
 		     parent))
 	 (x (xlib::drawable-x mirror))
 	 (y (xlib::drawable-y mirror))
-	 (w (xlib::drawable-width mirror))
-	 (h (xlib::drawable-height mirror)))
+	 (width (xlib::drawable-width mirror))
+	 (height (xlib::drawable-height mirror)))
     ;; Can deal with reparenting window managers
     (when (not (eq parent-mirror x-parent))
       (multiple-value-setq (x y)
 	(xlib:translate-coordinates
 	  x-parent x y parent-mirror)))
     (values x y
-	    (+ x w) (+ y h))))
+	    (+ x width) (+ y height))))
  
 (defmethod set-sheet-mirror-edges* ((port clx-port) sheet 
 				    left top right bottom)
   (let* ((mirror (sheet-mirror sheet))
 	 (display (port-display port))
-	 (w (fix-coordinate (- right left)))
-	 (h (fix-coordinate (- bottom top)))
+	 (width (fix-coordinate (- right left)))
+	 (height (fix-coordinate (- bottom top)))
 	 (x (fix-coordinate left))
 	 (y (fix-coordinate top)))
     (xlib:with-display (display)
       (setf (xlib:drawable-x mirror) x
 	    (xlib:drawable-y mirror) y
-	    (xlib:drawable-width mirror) w
-	    (xlib:drawable-height mirror) h))
+	    (xlib:drawable-width mirror) width
+	    (xlib:drawable-height mirror) height))
     (xlib:display-force-output (port-display port))))
 
 
@@ -183,6 +198,7 @@
 	     (let ((sheet (mirror->sheet port event-window))
 		   (modifier-state (state-mask->modifier-state state display))
 		   (pointer (port-pointer port)))
+	       ;;--- This should probably set the native position of the pointer
 	       (setf (port-modifier-state port) modifier-state)
 	       (when sheet
 		 (distribute-event
@@ -192,7 +208,6 @@
 		     :y root-y
 		     :native-x x
 		     :native-y y
-		     :button nil
 		     :modifier-state modifier-state
 		     :pointer pointer
 		     :sheet sheet))))
@@ -206,8 +221,11 @@
 		   (modifier-state (state-mask->modifier-state state display))
 		   (button (x-button-code->event-button code))
 		   (pointer (port-pointer port)))
-	       (setf (port-modifier-state port) modifier-state
-		     (pointer-buttons pointer) (if (eq event-key :button-press) button 0))
+	       (setf (port-modifier-state port) modifier-state)
+	       (setf (pointer-button-state pointer)
+		     (if (eq event-key :button-press)
+			 (logior (pointer-button-state pointer) button)
+			 (logandc2 (pointer-button-state pointer) button)))
 	       (when sheet
 		 (distribute-event
 		   port 
@@ -276,6 +294,8 @@
 	       (queue-repaint
 		 sheet
 		 (allocate-event 'window-repaint-event
+		   ;;--- Should this be (MIRROR-REGION PORT SHEET), as
+		   ;;--- it is in the :CONFIGURE-NOTIFY case?
 		   :native-region (sheet-native-region sheet)
 		   :region (make-bounding-rectangle x y (+ x width) (+ y height))
 		   :sheet sheet)))
@@ -292,6 +312,14 @@
 	       ;;--- Used to pass :PORT-TRIGGER T, better check it out
 	       (setf (sheet-enabled-p sheet) nil))
 	     t))
+	  (:mapping-notify (event-window request start count)
+	   (xlib:mapping-notify display request start count)
+	   (when (eql request :modifier)
+	     (fill-keycode->modifier-state display)
+	     (fill-clim-modifier-key-index->x-state display))
+	   t)
+	  (:reparent-notify () 
+	   t)
 	  (:configure-notify (event-window x y width height)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet
@@ -306,7 +334,7 @@
 	     t))
 	  (:destroy-notify ()
 	   t)
-	  ((:reparent-notify :no-exposure ) () 
+	  (:no-exposure ()
 	   t)
 	  (:client-message (type data event-window)
 	   (case type

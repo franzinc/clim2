@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.12 92/07/06 18:52:14 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.13 92/07/20 16:01:41 cer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -8,22 +8,9 @@
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 (clim-defsys:defsystem clim-demo
-  (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
-		     #+Minima "SYS:CLIM;REL-2;DEMO;"
-		     #+Cloe-Runtime "\\clim\\rel-2\\demo\\"
-		     #+allegro (frob-pathname "demo")
-		     #+Lucid (frob-pathname "demo")
-		     #+CMU "/home/hornig/clim/rel-2/demo/"
-		     #+CCL-2 "ccl;clim-2.0:demo:"
-   :default-binary-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
-			    #+Minima "SYS:CLIM;REL-2;DEMO;"
-			    #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			    #+allegro (frob-pathname "demo")
-			    #+Lucid (frob-pathname "demo")
-			    #+CMU "/home/hornig/clim/rel-2/cmu/"
-			    #+CCL-2 "ccl;clim-2.0:fasls:"
-   ;;--- :needed-systems (clim-standalone)
-   )
+  (:default-pathname (frob-pathname "demo")
+   :default-binary-pathname (frob-pathname "demo")
+   #+ignore :needed-systems #+ignore (clim-standalone))
 
   ("packages")
   ("demo-driver"     :load-before-compile ("packages"))
@@ -48,15 +35,15 @@
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 
 			     :pretty-name "CLIM Demo"
-			     :default-pathname "SYS:CLIM;REL-2;DEMO;"
-			     :default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
+			     :default-pathname (frob-pathname "demo")
+			     :default-destination-pathname (frob-pathname "demo"))
 
 #+Minima
 (clim-defsys:import-into-sct 'clim-demo :subsystem t
 			     :sct-name :minima-clim-demo-standalone
 			     :pretty-name "Minima CLIM Demo Standalone"
-			     :default-pathname "SYS:CLIM;REL-2;DEMO;"
-			     :default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
+			     :default-pathname (frob-pathname "demo")
+			     :default-destination-pathname (frob-pathname "demo"))
 
 #+Minima
 (zl:::sct:defsystem minima-clim-demo
