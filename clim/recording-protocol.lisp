@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/recording-protocol.lisp,v 1.41.24.1 1998/05/04 21:01:47 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/recording-protocol.lisp,v 1.41.24.2 1998/05/18 23:56:26 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1031,7 +1031,7 @@
 #+(or aclpc acl86win32)
 (defmethod delete-output-record :after
            (child (record output-record-mixin) &optional (errorp t))
-  #-(or aclpc acl86win32) (declare (ignore errorp))
+  (declare (ignore errorp))
   (with-bounding-rectangle* (left top right bottom) child
     (recompute-extent-for-changed-child record child left top right bottom))
   ;;in case other things are still pointing to it.
@@ -1039,7 +1039,7 @@
 
 #+(or aclpc acl86win32)
 (defmethod delete-output-record :around (child (record output-record-mixin) &optional errorp)
-  #-(or aclpc acl86win32) (declare (ignore errorp))
+  (declare (ignore errorp))
   (let ((stream (output-record-stream child)))
     (multiple-value-prog1
         (call-next-method)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/basic-translators.lisp,v 1.21.24.1 1998/05/04 21:01:17 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/basic-translators.lisp,v 1.21.24.2 1998/05/18 23:56:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -43,9 +43,11 @@
                (presentation-subtypep-1 type-name context-name)
                (presentation-typep object context-type))))))))
 
-;; Only the PRESENTATION-MENU translator lives in this
-(unless (find-command-table 'presentation-menu-command-table :errorp nil)
-  (make-command-table 'presentation-menu-command-table :inherit-from nil))
+(eval-when (compile eval load)
+  ;; Only the PRESENTATION-MENU translator lives in this
+  (unless (find-command-table 'presentation-menu-command-table :errorp nil)
+    (make-command-table 'presentation-menu-command-table :inherit-from nil))
+  )
 
 ;; If you change this, be sure to change the SETQ below
 (define-presentation-action presentation-menu

@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.9 1998/03/02 23:17:03 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.9.16.1 1998/05/18 23:56:11 layer Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -25,10 +25,5 @@ AR = ar clq
 IMPORTS = stub-x.o stub-xt.o stub-motif.o ../src/lisp.exp
 
 stubs = c2stubs
-
-SAVEEXP = /bin/mv ucl.exp ucl.exp.climsave
-RESTEXP = /bin/mv ucl.exp.climsave ucl.exp
-SAVEEXPI = /bin/mv ucli.exp ucli.exp.climsave
-RESTEXPI = /bin/mv ucli.exp.climsave ucli.exp
 
 include Makefile.generic

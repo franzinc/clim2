@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/gadget-output.lisp,v 1.62.24.1 1998/05/04 21:01:28 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/gadget-output.lisp,v 1.62.24.2 1998/05/18 23:56:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -112,7 +112,7 @@
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record gadget-output-record) stream
                                         &optional region x-offset y-offset)
-  (declare (ignore stream #-(or aclpc acl86win32) x-offset #-(or aclpc acl86win32) y-offset))
+  (declare (ignore stream x-offset y-offset))
   (let ((gadget (output-record-gadget record)))
     (when (port gadget)
       (repaint-sheet gadget region))))
@@ -170,9 +170,10 @@
             
 #---ignore
 (defmethod invoke-with-output-as-gadget (stream continuation &rest args 
-                                         &key cache-test cache-value update-gadget)
-  (declare (dynamic-extent args))
-  #-(or aclpc acl86win32) (declare (ignore cache-test cache-value))
+                                         &key cache-test cache-value
+					      update-gadget)
+  (declare (dynamic-extent args)
+	   (ignore cache-test cache-value))
   (with-keywords-removed (args args '(:update-gadget))
     (let* ((frame (pane-frame stream))
            (framem (frame-manager frame)))
@@ -498,33 +499,35 @@
   t)
 
 (define-presentation-method accept-present-default 
-                            ((type boolean) stream (view toggle-button-view)
-                             default default-supplied-p present-p query-identifier
-                             &key (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p #-(or aclpc acl86win32) prompt))
+    ((type boolean) stream (view toggle-button-view)
+		    default default-supplied-p present-p query-identifier
+		    &key (prompt t) (active-p t))
+  (declare (ignore default-supplied-p present-p
+		   #-(or aclpc acl86win32) prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
-            (declare (ignore record gadget))
-           ;;--- This sucks
+	   (declare (ignore record gadget))
+	   ;;--- This sucks
            (if active-p
                (activate-gadget button)
              (deactivate-gadget button))
-            (setf (gadget-value button) default)))
+	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((borders
              (getf (view-gadget-initargs view) :borders t))
             (button (make-pane-from-view
                      'toggle-button view
                      '(:borders)
-                     #+(or aclpc acl86win32) :label #+(or aclpc acl86win32) (and (stringp prompt) prompt)
-                  :value default
+                     #+(or aclpc acl86win32) :label
+		     #+(or aclpc acl86win32) (and (stringp prompt) prompt)
+		     :value default
                      :client stream :id query-identifier
                      :value-changed-callback
                      (make-accept-values-value-changed-callback
                       stream query-identifier)
                      :active active-p
                      :help-callback (make-gadget-help type))))
-         (values (if borders
+	(values (if borders
                     (outlining () button)
                   button)
                 button)))))
@@ -549,7 +552,7 @@
 (define-presentation-method present
                             (object (type real) stream (view slider-view)
                              &key acceptably query-identifier prompt)
-  #-(or aclpc acl86win32) (declare (ignore acceptably))
+  (declare (ignore acceptably))
   (make-real-gadget-for-slider-view stream view t object
                                     type prompt query-identifier
                                     low high t nil))
@@ -578,7 +581,8 @@
                (make-pane-from-view
                 'slider view
                 '(:borders)
-                #+(or aclpc acl86win32) :label #+(or aclpc acl86win32) (and (stringp prompt) prompt)
+                #+(or aclpc acl86win32) :label
+		#+(or aclpc acl86win32) (and (stringp prompt) prompt)
                 :value (if default-supplied-p default min-value)
                 :min-value min-value :max-value max-value
                 :orientation (gadget-orientation view)
@@ -609,7 +613,7 @@
 (define-presentation-method present
                             (object (type integer) stream (view slider-view) 
                              &key acceptably query-identifier prompt)
-  #-(or aclpc acl86win32) (declare (ignore acceptably))
+  (declare (ignore acceptably))
   (make-integer-gadget-for-slider-view stream view t object
                                        type prompt query-identifier
                                        low high t nil))
@@ -638,7 +642,8 @@
                (make-pane-from-view
                 'slider view
                 '(:borders)
-                #+(or aclpc acl86win32) :label #+(or aclpc acl86win32) (and (stringp prompt) prompt)
+                #+(or aclpc acl86win32) :label
+		#+(or aclpc acl86win32) (and (stringp prompt) prompt)
                 :value (if default-supplied-p default min-value)
                 :min-value min-value :max-value max-value
                 :orientation (gadget-orientation view)
@@ -681,7 +686,7 @@
                    `(define-presentation-method present 
                         (object (type ,type) stream (view ,view) 
                          &key acceptably query-identifier prompt)
-                      #-(or aclpc acl86win32) (declare (ignore acceptably))
+                      (declare (ignore acceptably))
                       (,function stream view t object t type prompt query-identifier :editable-p nil)))
                types)))
 
@@ -718,7 +723,8 @@
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 
                           'text-field view ()
-                          #+(or aclpc acl86win32) :label #+(or aclpc acl86win32) (and (stringp prompt) prompt)
+                          #+(or aclpc acl86win32) :label
+			  #+(or aclpc acl86win32) (and (stringp prompt) prompt)
                           :value (if default-supplied-p
                                      (present-to-string default type)
                                    "")
@@ -855,7 +861,7 @@
                             ((type completion) stream (view list-pane-view)
                              default default-supplied-p present-p query-identifier
                              &key (prompt t) (active-p t))
-  (declare (ignore present-p default-supplied-p #-(or aclpc acl86win32) prompt))
+  (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'list-pane
                                    stream view sequence
                                    name-key value-key test
@@ -866,7 +872,7 @@
                             ((type subset-completion) stream (view list-pane-view)
                              default default-supplied-p present-p query-identifier
                              &key (prompt t) (active-p t))
-  (declare (ignore present-p default-supplied-p #-(or aclpc acl86win32) prompt))
+  (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'list-pane 
                                    stream view sequence
                                    name-key value-key test
@@ -925,7 +931,7 @@
                             ((type completion) stream (view option-pane-view)
                              default default-supplied-p present-p query-identifier
                              &key (prompt t) (active-p t))
-  (declare (ignore present-p default-supplied-p #-(or aclpc acl86win32) prompt))
+  (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'option-pane
                                    stream view sequence name-key value-key
                                    test default query-identifier type 

@@ -12,6 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Open a combo box control.
 
+(declaim (special *hinst*))
+
 (defun hcombo-open (parent id left top width height 
 		    &key (mode :exclusive)
 			 (items nil)
@@ -160,7 +162,7 @@
 
 (defun scrollbar-open (parent left top width height orientation)
   (let* ((hwnd
-	  (win::createWindowEx 
+	  (win:CreateWindowEx 
 	   0				; style
 	   "SCROLLBAR"			; classname
 	   (nstringify "")		; windowname
@@ -203,7 +205,7 @@
   (declare (ignore nobutton id))
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
-	  (win::createWindowEx 0
+	  (win:CreateWindowEx 0
 			       "BUTTON"	; classname
 			       (nstringify nlabel) ; windowname
 			       (logior buttonstyle
@@ -232,6 +234,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Open an edit control
 
+(declaim (special std-ctrl-proc-address clim-ctrl-proc-address))
+
 (defun hedit-open (parent id left top width height 
 		   &key (editstyle 0)
 		        (value nil)
@@ -239,7 +243,7 @@
 			(scroll-mode nil))
   (declare (ignore id))
   (let* ((hwnd
-	  (win::createWindowEx 
+	  (win:CreateWindowEx 
 	   win:WS_EX_CLIENTEDGE
 	   "EDIT"			; classname
 	   (nstringify label)		; windowname
@@ -272,11 +276,11 @@
 	     (silica::xlat-newline-return value)))
 	;; Override the default window proc.
 	(progn				;+++
-	  (setf acl-clim::std-ctrl-proc-address
+	  (setf std-ctrl-proc-address
 	    (win:GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
 	  (win:SETWINDOWLONG hwnd
 			     WINDOWS::GWL_WNDPROC
-			     acl-clim::clim-ctrl-proc-address))
+			     clim-ctrl-proc-address))
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
 		      left top width height
 		      #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))))

@@ -93,14 +93,16 @@
 		))
 
 (defparameter *char->keysym*
-	      (let ((array (make-array 256 :initial-element nil)))
-		(dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
-		  (setf (svref array (char-code char))
-			(intern (string-upcase (char-name char)) "KEYWORD")))
-		(loop for code from (char-code #\!) to (char-code #\~)
-		      do (setf (svref array code)
-			       (intern (string (char-upcase (code-char code))) "KEYWORD")))
-		array))
+    (let ((array (make-array 256 :initial-element nil)))
+      (dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
+	(setf (svref array (char-code char))
+	  (intern (string-upcase (char-name char))
+		  (find-package :keyword))))
+      (loop for code from (char-code #\!) to (char-code #\~)
+	  do (setf (svref array code)
+	       (intern (string (char-upcase (code-char code)))
+		       (find-package :keyword))))
+      array))
 
 (defparameter *keysym-alist*
 	      `((#\Return . :return)

@@ -1,11 +1,9 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.16 1997/10/20 23:10:57 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.16.24.1 1998/05/18 23:56:11 layer Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
 
 include Makefile.defs
-
-CLIM_HOME=$(CL_HOME)
 
 Makefile=Makefile.sun4-svr4
 

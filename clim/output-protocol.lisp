@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/output-protocol.lisp,v 1.46.24.1 1998/05/04 21:01:41 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/output-protocol.lisp,v 1.46.24.2 1998/05/18 23:56:25 layer Exp $
 
 (in-package :clim-internals)
 
@@ -280,7 +280,9 @@
       stream 0 (+ cursor-y (stream-line-height stream) vertical-space))))
 
 #+(or aclpc acl86win32)
-(defmethod window-clear (stream)nil)
+(defmethod window-clear (stream)
+  (declare (ignore stream))
+  nil)
 
 (defmethod window-clear :before ((stream output-protocol-mixin))
   (with-slots (baseline current-line-height) stream

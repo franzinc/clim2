@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88.10.1 1998/05/04 21:01:27 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88.10.2 1998/05/18 23:56:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1164,6 +1164,9 @@
   (read-command (frame-command-table frame) :stream stream))
 
 
+#+(or aclpc acl86win32)
+(defvar *frame*)
+
 ;;; This is the wrong modularity... Bury calls in commands for acl case later.
 ;;;-- pr Aug97
 (defmacro with-menu-disabled (frame &body body)
@@ -1271,11 +1274,11 @@
 (defmethod handle-event (sheet (event presentation-event))
   (process-command-event sheet event))
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'activity-frame))
-      (defclass activity-frame () ())))
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'activity-frame))
+;;;      (defclass activity-frame () ())))
 
 (defun process-command-event (sheet event)
   ;;--- This code is as bad as I feel.

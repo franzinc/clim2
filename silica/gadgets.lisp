@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.65 1998/03/21 01:55:05 smh Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.65.10.1 1998/05/18 23:56:34 layer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -614,11 +614,11 @@
 	:width width :min-width 0 :max-width max-width
 	:height height :min-height 0 :max-height max-height))))
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in clim\db-strea
-   (unless (ignore-errors (find-class 'clim-stream-pane))
-      (defclass clim-stream-pane () ())))
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in clim\db-strea
+;;;   (unless (ignore-errors (find-class 'clim-stream-pane))
+;;;      (defclass clim-stream-pane () ())))
 
 (defmethod allocate-space ((viewport viewport) width height)
   ;; Make sure the child is at least as big as the viewport

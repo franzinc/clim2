@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/framem.lisp,v 1.34.24.1 1998/05/04 21:02:24 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/framem.lisp,v 1.34.24.2 1998/05/18 23:56:33 layer Exp $
 
 (in-package :silica)
 
@@ -143,11 +143,19 @@
 
 #+(or aclpc acl86win32)
 (progn
- (defmethod note-frame-enabled (framem frame) nil)
- (defmethod note-frame-disabled (framem frame) nil)
- (defmethod note-frame-iconified (framem frame) nil)
- (defmethod note-frame-deiconified (framem frame) nil)
-)
+  (defmethod note-frame-enabled (framem frame)
+    (declare (ignore framem frame))
+    nil)
+  (defmethod note-frame-disabled (framem frame)
+    (declare (ignore framem frame))
+    nil)
+  (defmethod note-frame-iconified (framem frame)
+    (declare (ignore framem frame))
+    nil)
+  (defmethod note-frame-deiconified (framem frame)
+    (declare (ignore framem frame))
+    nil)
+  )
 
 #+(or aclpc acl86win32) ;; pr Aug97 added acl86win32
 (defvar *in-layout-frame* nil)

@@ -108,6 +108,9 @@
 
 ;;;
 
+(defvar *original-bitmap* nil)
+(defvar *extra-objects* nil)
+
 (defun release-objects (window dc)
   (when *created-pen*
     (win::selectObject dc *black-pen*)
@@ -140,8 +143,6 @@
   (win::releaseDc window dc))
 
 (defvar *note-created* ())
-
-(defvar *extra-objects* nil)
 
 (defun note-created (kind obj)
   (declare (ignore kind))
@@ -204,8 +205,6 @@
 	 (release-objects ,window ,dc))       
        )))
 
-
-(defvar *original-bitmap* nil)
 
 (defmacro with-compatible-dc ((dc cdc) &rest body)
   `(let ((,cdc nil))

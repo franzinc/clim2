@@ -53,18 +53,18 @@
 	(update-mirror-transformation port graft))))))
 
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'CLIM-SILICA::HBUTTON-PANE))
-      (defclass CLIM-SILICA::HBUTTON-PANE () ()))
-   (unless (ignore-errors (find-class 'CLIM-SILICA::HPBUTTON-PANE))
-      (defclass CLIM-SILICA::HPBUTTON-PANE () ()))
-   (unless (ignore-errors (find-class 'CLIM-SILICA::mswin-text-edit))
-      (defclass CLIM-SILICA::mswin-text-edit () ()))
-   (unless (ignore-errors (find-class 'CLIM-SILICA::mswin-combo-box-pane))
-      (defclass CLIM-SILICA::mswin-combo-box-pane () ()))
-   )
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'CLIM-SILICA::HBUTTON-PANE))
+;;;      (defclass CLIM-SILICA::HBUTTON-PANE () ()))
+;;;   (unless (ignore-errors (find-class 'CLIM-SILICA::HPBUTTON-PANE))
+;;;      (defclass CLIM-SILICA::HPBUTTON-PANE () ()))
+;;;   (unless (ignore-errors (find-class 'CLIM-SILICA::mswin-text-edit))
+;;;      (defclass CLIM-SILICA::mswin-text-edit () ()))
+;;;   (unless (ignore-errors (find-class 'CLIM-SILICA::mswin-combo-box-pane))
+;;;      (defclass CLIM-SILICA::mswin-combo-box-pane () ()))
+;;;   )
 
 (defmethod modal-frame-p ((frame t)) nil)
 (defmethod modal-frame-p ((frame clim-internals::accept-values-own-window))
@@ -484,6 +484,8 @@
 
 (defvar *setting-sheet-mirror-edges* nil)
 
+(declaim (special *use-native-menubar*))
+
 ;;; specialized
 ;;; aclpc\acl-mirr
 (defmethod set-sheet-mirror-edges* ((port acl-port)
@@ -579,6 +581,7 @@
   (declare (ignore background))
   nil)
 
+(declaim (special *clim-icon-pattern*))
 
 (defmethod repaint-sheet :around ((sheet top-level-sheet) region)
   (declare (ignore region))

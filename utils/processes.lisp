@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/processes.lisp,v 1.20.24.1 1998/05/04 21:03:04 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/processes.lisp,v 1.20.24.2 1998/05/18 23:56:41 layer Exp $
 
 (in-package :clim-utils)
 
@@ -13,7 +13,7 @@
 
 #+allegro
 (eval-when (compile load eval)
-  (require :mdproc)
+;;;  (require :mdproc)
   (require :process))
 
 (defvar *multiprocessing-p* 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-text.lisp,v 1.9.24.1 1998/05/04 21:01:22 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-text.lisp,v 1.9.24.2 1998/05/18 23:56:21 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -62,23 +62,23 @@
   (:default-initargs :draw-p t :record-p nil
                      :pointer-cursor :prompt))
 
-#+(or aclpc acl86win32)
 (defmethod handle-repaint :around ((pane text-editor-mixin) region)
-  #-aclpc (declare (ignore region))
+  (declare (ignore region))
   (call-next-method)
   (stream-set-cursor-position pane 0 0)
   (write-string (gadget-value pane) pane))
 
-#+(or aclpc acl86win32)
-(defmethod handle-repaint :around ((pane text-editor-mixin) region)
-  #-(or aclpc acl86win32) (declare (ignore region))
-  (call-next-method)
-  (stream-set-cursor-position pane 0 0)
-  (let ((object (gadget-value pane))) 
-    (if (equal object "")
-      (with-standard-io-syntax
-        (write object :stream pane :escape t))
-      (write-string (gadget-value pane) pane))))
+;;;; Defer to above version per Jeff Morrill.
+;;;;
+;;;(defmethod handle-repaint :around ((pane text-editor-mixin) region)
+;;;  (declare (ignore region))
+;;;  (call-next-method)
+;;;  (stream-set-cursor-position pane 0 0)
+;;;  (let ((object (gadget-value pane))) 
+;;;    (if (equal object "")
+;;;      (with-standard-io-syntax
+;;;        (write object :stream pane :escape t))
+;;;      (write-string (gadget-value pane) pane))))
 
 ;;--- Grotesque kludge to subvert RECEIVE-GESTURE mechanism
 #-(or aclpc acl86win32)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.3.2.3 1998/05/15 22:13:41 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.3.2.4 1998/05/18 23:56:40 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -2999,7 +2999,7 @@
 
 #+(or aclpc acl86win32)
 (eval-when (compile load eval)
- (intern "NON-DYNAMIC-EXTENT" (find-package "CLIM-UTILS")))
+ (intern '#:non-dynamic-extent (find-package :clim-utils)))
 
 (defpackage clim-silica
    (:nicknames silica pyrex)
@@ -3294,18 +3294,12 @@
 			   clim-internals
 			   clim-lisp)))
 
-#+acl86win32
-(eval-when (compile load eval)
-(let ((excl::*enable-package-locked-errors* nil))
-  (defun system::rcsnote (&rest args) (warn "RCSNOTE call with ~a" args) nil)))
-
-
 (in-package :clim)
 
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 14.3)
+(cl:defvar *clim-build-version* 14.4)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

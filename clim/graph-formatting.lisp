@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/graph-formatting.lisp,v 1.34.24.1 1998/05/04 21:01:30 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/graph-formatting.lisp,v 1.34.24.2 1998/05/18 23:56:23 layer Exp $
 
 (in-package :clim-internals)
 
@@ -124,7 +124,7 @@
 ;; Take, but ignore, :DUPLICATE-KEY and :DUPLICATE-TEST
 (defmethod initialize-instance :after ((node standard-graph-node-output-record)
                                        &key duplicate-key duplicate-test &allow-other-keys)
-  #-aclpc (declare (ignore duplicate-key duplicate-test))
+  (declare (ignore duplicate-key duplicate-test))
   nil)
 
 (define-output-record-constructor standard-graph-node-output-record

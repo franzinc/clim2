@@ -101,11 +101,11 @@
 	  (ct::null-handle win::hinst)
 	  (ct::ccallocate (char *) :initial-value win:IDI_APPLICATION))))
 
-;; This is disgusting.  Object-oriented programs shouldn't do this. JPM.
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'silica::hlist-pane))
-      (defclass silica::hlist-pane () ())))
+;;;;; This is disgusting.  Object-oriented programs shouldn't do this. JPM.
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'silica::hlist-pane))
+;;;      (defclass silica::hlist-pane () ())))
 
 ;;; Gather up the argument information and invoke the window procedure.
 ;;; +++ at some point merge this in with the cg mechanism for lisp
@@ -461,6 +461,8 @@
 			   :sheet sheet)))))
     (clear-winproc-result *win-result*)
     *win-result*))
+
+(declaim (special *setting-sheet-mirror-edges*))
 
 ;; Process WM_MOVE
 (defun message-move (window msg wparam lparam)

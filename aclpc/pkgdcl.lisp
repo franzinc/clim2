@@ -1,4 +1,6 @@
-(in-package :user)
+;;; -*- Mode: Lisp; Package: CL-USER -*-
+
+(in-package :common-lisp-user)
 
 ;; Invite everybody to the party.
 (eval-when (compile load eval)

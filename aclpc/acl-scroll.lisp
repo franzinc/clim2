@@ -110,7 +110,7 @@
 		(scroll-to-position pane orientation amount)))))
 
 (defmethod scroll-bar-value-changed-callback
-  (sheet (client scroller-pane) id value size)
+    (sheet (client scroller-pane) id value size)
   (with-slots (viewport contents) client
     (let* ((extent (viewport-contents-extent viewport))
            (region (viewport-viewport-region viewport)))

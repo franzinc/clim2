@@ -11,6 +11,70 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.14.4 (on acl50pnc branch)
+
+1998-05-18    <layer@HOBART>
+
+Jeff, please look at the jm>> flagged changes.  Thanks.
+
+    The big picture:
+	* reduce compile time warnings
+	* Franz uses gnu make and Makefile (and Makefile.windows),
+	  PNC uses nmake and Makefile.win32
+    The changes:
+	* Makefile: include ../makefile.defs
+	* Makefile.windows: new file
+	* Makefile.generic: more windows friendly
+	* Makefile.win32: don't mess with c:\.clinit.cl
+	* Makefile.* (rest of them): remove old stuff
+	* buildclim.cl: fixes for windows
+    >> all .lisp files have changes to lessen the compile time warnings
+	* aclpc/acl-class.lisp: remove mm defclass hack
+	* aclpc/acl-dc.lisp: warnings
+	* aclpc/acl-mirror.lisp: remove mm defclass hack
+	* aclpc/acl-port.lisp: use multi-case friendly constructs
+	* aclpc/acl-prel.lisp: use multi-case friendly constructs
+	* aclpc/acl-scroll.lisp: reformatting
+	* aclpc/acl-widget.lisp: move (method draw-picture-button
+	(hbutton-pane) t t t) method after definition of hbutton-pane
+	class
+	* clim/accept-values.lisp: warnings
+	* clim/basic-translators.lisp: warnings
+	* clim/db-menu.lisp: remove mm defclass hack;
+jm>>	On Windows, don't use
+jm>>	(method handle-event (pull-down-menu pointer-exit-event))
+jm>>	from this file, use the one defined elsewhere; 
+jm>>	On Windows, don't use `choose-from-pull-down-menu' defined in this
+jm>>	file; 
+	* clim/db-text.lisp: remove 2nd definition of
+	(method handle-repaint :around (text-editor-mixin t)) per Jeff Morrill
+	* clim/frames.lisp: remove mm defclass hack
+	* clim/gadget-output.lisp: warnings
+	* clim/graph-formatting.lisp: warnings
+	* clim/input-editor-commands.lisp: warnings
+	* clim/input-protocol.lisp: warnings; remove mm defclass hack
+	* clim/interactive-protocol.lisp: remove mm defclass hack
+	* clim/output-protocol.lisp: warnings
+	* clim/ptypes1.lisp: remove mm defclass hack
+	* clim/recording-protocol.lisp: warnings
+	* postscript/postscript-medium.lisp: warnings
+	* postscript/sysdcl.lisp: remove redundant load of clim-standalone
+	* silica/db-button.lisp: warnings
+	* silica/db-scroll.lisp: remove mm defclass hack; warnings
+	* silica/framem.lisp: warnings
+	* silica/gadgets.lisp: remove mm defclass hack
+	* silica/mirror.lisp: don't use "defun-inline mirror->sheet" on
+	Windows (use definition from elsewhere)
+	* silica/scroll-pane.lisp: warnings
+	* sys/compile.lisp: force case insensitive lower compile when in
+	case sensitive lisp; many other changes to reduce number of
+	compile time warnings and build fasl files on Windows
+	* utils/base-designs.lisp: formatting
+	* utils/designs.lisp: warnings
+	* utils/packages.lisp: multi-case friendly
+	* utils/processes.lisp: mdproc is outta here
+
+*******************************************************************************
 2.2.1.14.3 (on acl50pnc branch)
 
 From PNC on 5/15/98

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/designs.lisp,v 1.23.24.1 1998/05/04 21:02:57 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/designs.lisp,v 1.23.24.2 1998/05/18 23:56:40 layer Exp $
 
 (in-package :clim-utils)
 
@@ -710,6 +710,7 @@
   (declare (values array width height))
   (multiple-value-bind (pattern width height)
       (decode-rectangular-tile rectangular-tile)
+    (declare (ignore width height))
     ; (format *terminal-io* "~%Pat: ~S, type: ~S" pattern (typep pattern 'pattern))
     (when (typep pattern 'pattern)
       (multiple-value-bind (array designs)

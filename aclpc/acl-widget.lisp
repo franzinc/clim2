@@ -470,27 +470,9 @@
       (win::bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
 		   (acl-clim::bop->winop op)))))
 
-(defmethod draw-picture-button ((pane hbutton-pane) state hdc rect)
-  (multiple-value-bind (bwidth bheight)
-      (bounding-rectangle-size pane)
-    (let* ((pixmap (slot-value pane 'pixmap))
-	   (op (slot-value pane 'raster-op))
-	   (width (pixmap-width pixmap))
-	   (height (pixmap-height pixmap))
-	   (x (floor (- bwidth width) 2))
-	   (y (floor (- bheight height) 2))
-	   (selected (logtest state win::ods_selected)))
-      (when selected
-	(incf x)
-	(incf y))
-      (win::DrawEdge hdc
-		     rect 
-		     (if selected
-			 win::BDR_SUNKEN
-		       win::BDR_RAISED)
-		     (+ win::BF_RECT win::BF_MIDDLE))
-      (win::bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-		   (acl-clim::bop->winop op)))))
+;; (method draw-picture-button (hbutton-pane t t t)) moved below defclass
+;; for hbutton-pane
+
 
 ;; deallocate and pixmap associated with a picture button when it's
 ;; destroyed - this is the only note-sheet-degrafted method in the
@@ -561,6 +543,28 @@
 		     ;; in acl-medi.lisp (cim 10/12/96)
 		     :text-style nil
 		     ))
+
+(defmethod draw-picture-button ((pane hbutton-pane) state hdc rect)
+  (multiple-value-bind (bwidth bheight)
+      (bounding-rectangle-size pane)
+    (let* ((pixmap (slot-value pane 'pixmap))
+	   (op (slot-value pane 'raster-op))
+	   (width (pixmap-width pixmap))
+	   (height (pixmap-height pixmap))
+	   (x (floor (- bwidth width) 2))
+	   (y (floor (- bheight height) 2))
+	   (selected (logtest state win::ods_selected)))
+      (when selected
+	(incf x)
+	(incf y))
+      (win::DrawEdge hdc
+		     rect 
+		     (if selected
+			 win::BDR_SUNKEN
+		       win::BDR_RAISED)
+		     (+ win::BF_RECT win::BF_MIDDLE))
+      (win::bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+		   (acl-clim::bop->winop op)))))
 
 (defmethod compose-space ((pane hbutton-pane) &key width height)
   (declare (ignore width height))
@@ -1146,6 +1150,8 @@
 	     (not (eq (pointer-boundary-event-kind event) :inferior)))
     (throw 'exit-pull-down-menu (values))
     ))
+
+(defvar *subsidiary-pull-down-menu* nil)
 
 ;;; +++ needs work for integration: *generic-gadgets*
 ;;; clim\db-menu
