@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.64
+
+1999-06-21  Kevin Layer  <layer@ultra>
+
+	* clim/input-protocol.lisp: bug8147: remove bogus dynamic-extent
+	for unix
+
+*******************************************************************************
 2.2.1.63
 
 1999-06-18  Kevin Layer  <layer@ultra>
