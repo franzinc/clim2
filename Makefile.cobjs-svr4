@@ -1,24 +1,28 @@
 # $fiHeader: Makefile.cobjs-svr4,v 1.1 93/04/16 09:26:11 layer Exp $
 
 climol.so:	xlibsupport.o xtsupport.o olsupport.o
-	@echo LD_LIBRARY_PATH is $$LD_LIBRARY_PATH
-	ld -G -o climol.so xlibsupport.o xtsupport.o olsupport.o \
-		-L/usr/openwin/lib -lXol -lXt -lX11
+	(eval `$(setup_LLP) openlook`; \
+	 echo LD_LIBRARY_PATH is $$LD_LIBRARY_PATH; \
+	 ld -G -o climol.so xlibsupport.o xtsupport.o olsupport.o \
+		-lXol -lXt -lX11)
 
 climxm.so:	xlibsupport.o xtsupport.o MyDrawingA.o
-	@echo LD_LIBRARY_PATH is $$LD_LIBRARY_PATH
-	ld -G -o climxm.so xlibsupport.o xtsupport.o MyDrawingA.o \
-		-lXm -lXt -lX11 -lgen
+	(eval `$(setup_LLP) motif`; \
+	 echo LD_LIBRARY_PATH is $$LD_LIBRARY_PATH; \
+	 ld -G -o climxm.so xlibsupport.o xtsupport.o MyDrawingA.o \
+		-lXm -lXt -lX11 -lgen)
 
 xlibsupport.o	: xlib/xlibsupport.c 
-	$(CC) -c -K pic $(CFLAGS) $(XINCLUDES) -o xlibsupport.o xlib/xlibsupport.c
+	$(CC) -c -K pic $(CFLAGS) $(XINCLUDES) -o xlibsupport.o \
+		xlib/xlibsupport.c
 
 xtsupport.o: misc/xtsupport.c
-	$(CC) -c -K pic $(CFLAGS) $(XINCLUDES) $(XTSUPPORTINCLUDES) -o xtsupport.o \
-		misc/xtsupport.c
+	$(CC) -c -K pic $(CFLAGS) $(XINCLUDES) $(XTSUPPORTINCLUDES)\
+		-o xtsupport.o misc/xtsupport.c
 
 MyDrawingA.o: misc/MyDrawingA.c misc/climgccursor.c
-	$(CC) -c -K pic $(CFLAGS) $(XMINCLUDES)  -o MyDrawingA.o misc/MyDrawingA.c
+	$(CC) -c -K pic $(CFLAGS) $(XMINCLUDES) -o MyDrawingA.o \
+		misc/MyDrawingA.c
 
 olsupport.o: misc/olsupport.c misc/climgccursor.c
 	$(CC) -c -K pic $(CFLAGS) $(OLINCLUDES) -o olsupport.o misc/olsupport.c

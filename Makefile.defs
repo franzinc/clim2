@@ -17,6 +17,11 @@ TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /tmp
 MV	= /usr/fi/mv-nfs
 
+# If you try and execute this as the -f argument to `make', then you forgot
+# to put a `Makefile' variable definition in your machine specific
+# Makefile (ie, Makefile.sun4).
+Makefile = Makefile.bogus
+
 # Training
 
 TRAIN_TIMES=1
@@ -517,7 +522,7 @@ make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
 	RECORD_XREF_INFO=${RECORD_XREF_INFO} CL=${CL} \
 	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} DUMP-CLIM=${DUMP-CLIM} \
-	COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP}
+	COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP} -f ${Makefile}
 
 CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl
 

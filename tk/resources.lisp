@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Fri Apr 16 09:24:22 1993 by layer]-
+;;				-[Thu Jul  8 15:33:25 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -711,3 +711,27 @@
    (etypecase value
      (string value)
      (null ""))))
+
+;; solaris 2.2 stuff
+
+(defmethod convert-resource-out ((parent  t) (type (eql 'ol-str)) value)
+  (string-to-char* value))
+
+(defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)
+  (unless (zerop value)
+    (char*-to-string value)))
+
+
+(defmethod convert-resource-out ((parent t) (type (eql 'ol-font)) value)
+  (etypecase value
+    (string
+     (make-instance 'font
+		    :display (widget-display parent)
+		    :name value))
+    (font value)))
+
+
+(defmethod convert-resource-in ((parent t) (typep (eql 'ol-font)) value)
+  (make-instance 'font
+		 :display (widget-display parent)
+		 :foreign-address value))

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Fri May 21 08:43:00 1993 by layer]-
+;;				-[Tue Jul  6 22:42:47 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -28,7 +28,7 @@
   (let ((ep #+hpprism (ff:get-extern-data-address x)
 	    #-hpprism (ff:get-entry-point
 		       x
-		       #+svr4 :note-shared-library-references #+svr4  nil)))
+		       #+svr4 :note-shared-library-references #+svr4 nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
 

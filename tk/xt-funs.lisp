@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xt -*-
 ;;
-;;				-[]-
+;;				-[Thu Jul  8 11:51:27 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -409,14 +409,14 @@
 
 (ff:defforeign 'xt_parse_translation_table
     :call-direct t
-    :arguments '(string)
+    :arguments '(simple-string)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XtParseTranslationTable")
     :return-type :unsigned-integer)
 
 (ff:defforeign 'xt_parse_accelerator_table
     :call-direct t
-    :arguments '(string)
+    :arguments '(simple-string)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XtParseAcceleratorTable")
     :return-type :unsigned-integer)

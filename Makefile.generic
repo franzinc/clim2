@@ -210,12 +210,11 @@ echo-train:
 
 # Misc
 
-
 cleanobjs: 
-	rm -f $(CLIMOBJS) stub-motif.o stub-olit.o
+	rm -f $(CLIMOBJS) *.o
 
 clean:
-	find $(DIRS) -name '*.fasl' -print | xargs rm -f
+	find . -name '*.fasl' -print | xargs rm -f
 	rm -f $(CLIMFASLS) $(CLIMOBJS) *.o \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c slim slim-small
 	rm -f *.z *.Z *.gz *.ilt
@@ -258,10 +257,11 @@ makeclimfasls	: $(CLIM_FASLS_TO_MAKE)
 makeclimxmfasls	: compile-xm cat-xm
 makeclimolfasls	: compile-ol cat-ol
 
-
-install_clim	:
-	cp $(CLIMFASLS) $(DEST)
+install_obj:
 	cp $(INSTALLED_CLIMOBJS) $(DEST)
+	
+install_clim: install_obj
+	cp $(CLIMFASLS) $(DEST)
 
 # Link in the libraries & distribution object files with standard names
 #
@@ -276,8 +276,8 @@ link-motif-libraries:	link-objects
 
 echo_src_files:
 	@ls $(SRC_FILES) | cat
-	
-makeclimobjs	: $(CLIMOBJS)
+
+makeclimobjs: $(CLIMOBJS)
 
 ################## Lower level Makefile stuff
 

@@ -1,3 +1,31 @@
+Thu Jul 29 13:44:54 1993  Kevin Layer  (layer at sole)
+
+* Makefile.cobjs-svr4: make sure LD_LIBRARY_PATH is setup properly
+
+* Makefile.dec3100: set `Makefile' variable
+* Makefile.defs: ditto
+* Makefile.hp700: ditto
+* Makefile.sun4.motif-1.1.4: ditto
+* Makefile.svr4: ditto
+
+* Makefile.generic: fix clean; add install_obj used by make-dist
+
+* misc/train.lisp: don't (setq *global-gc-behavior* nil)
+* test/test-driver.lisp: ditto
+
+* tk/load-ol.lisp:
+* tk/load-xm.lisp:
+* tk/make-classes.lisp:
+* xlib/load-xlib.lisp:
+  :note-shared-library-references nil on get-entry-point
+
+* tk/resources.lisp: solaris 2.2 hacking from cer
+
+* tk/xt-funs.lisp: fix argument types (string -> simple-string) so
+call-direct is done
+
+-------------------------------------------------------------------------------
+
 from colin: Tue Jul 27 15:26:56 PDT 1993
 
 test/test-suite.lisp

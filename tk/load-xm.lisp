@@ -1,9 +1,7 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Tue Jul  6 15:06:38 1993 by colin]-
-;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-1993 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -28,7 +26,8 @@
 (require :climg)
 
 #+svr4
-(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
+			    :note-shared-library-references nil)
   (load "climxm.so"))
 
 #-svr4

@@ -1,9 +1,7 @@
 ;; -*- mode: common-lisp; package: x11 -*-
 ;;
-;;				-[Tue Jul  6 17:18:09 1993 by colin]-
-;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-1993 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -51,7 +49,8 @@
 
 (defvar sys::*libx11-pathname* "-lX11")
 
-(unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
+(unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString")
+			    :note-shared-library-references nil)
   (load "xlibsupport.o"
 	:system-libraries (list sys::*libx11-pathname*) :print t))
 
@@ -59,4 +58,3 @@
  "stub-x.o"
  (x11::symbols-from-file "misc/undefinedsymbols")
  (list sys::*libx11-pathname*))
-

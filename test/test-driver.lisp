@@ -798,5 +798,6 @@
 
 ;; This stops warnings happening asynchronously and causing confusion.
 
-(setq excl:*global-gc-behavior* nil)
-
+;;The warnings go to the initial terminal io, anyway.  With the following
+;;uncommented, the full tests can't complete in 100mb of swap space.
+;;(setq excl:*global-gc-behavior* nil)

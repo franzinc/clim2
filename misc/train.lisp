@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[]-
+;;				-[Tue Jul 20 08:58:43 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -31,7 +31,7 @@
 			(profilep t)
 			(benchmarkp t))
   
-  (setq *global-gc-behavior* nil)
+  ;;(setq *global-gc-behavior* nil)
   (load "test/test.lisp")
   (clim-user::with-test-reporting (:file (if (excl::featurep :clim-motif) 
 					     "test-suite-reportxm.lisp"

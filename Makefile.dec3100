@@ -5,6 +5,8 @@
 
 include Makefile.defs
 
+Makefile=Makefile.dec3100
+
 MOTIFLIB=/usr/lib/DXM/lib/Xm/libXm.a
 MOTIFLIB_d=/usr/lib/DXM/lib/Xm/libXm.a
 XTLIB=/usr/lib/DXM/lib/Xt/libXt.a

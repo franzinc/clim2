@@ -5,6 +5,8 @@
 
 include Makefile.defs
 
+Makefile=Makefile.sun4
+
 MOTIFHOME=/net/vapor/3rd/motif-1.2.2
 MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
 #MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm_d.a
@@ -14,7 +16,6 @@ XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include
-OLINCLUDES=-I/usr/openwin/include
 
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 # Do we really need this. Why is it referenced?
@@ -23,5 +24,7 @@ MOTIFXTRAOS=$(MOTIFHOME)/usr/lib/Motif/Sun/dlsym.o
 OPENLOOKHOME=/net/vapor/x11/olit-3.0
 OLXLIB= $(OPENLOOKHOME)/lib/libX11.a
 OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
+# don't use OPENLOOKHOME because there are no include files there
+OLINCLUDES=-I/usr/openwin/include
 
 include Makefile.generic
