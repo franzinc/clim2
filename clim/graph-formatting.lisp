@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.16 92/10/02 15:19:32 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.17 92/10/28 11:31:42 cer Exp $
 
 (In-package :clim-internals)
 
@@ -31,13 +31,14 @@
 
 (defun make-graph-node-table (&key (test 'eql) (size 50))
   (let ((table
-	  (and (or (member test '(eq eql equal equalp
+	  (and (or (member test '(eq eql equal 
+				  #-Cloe-Runtime equalp
 				  #+Genera string-equal #+Genera string=
 				  #+Genera char-equal #+Genera char=))
 		   (eq test (load-time-value #'eq))
 		   (eq test (load-time-value #'eql))
 		   (eq test (load-time-value #'equal))
-		   (eq test (load-time-value #'equalp)))
+		   #-Cloe-Runtime (eq test (load-time-value #'equalp)))
 	       (make-hash-table :test test :size size))))
     (make-instance 'graph-node-table
       :test test :table table)))
@@ -227,6 +228,38 @@
   (declare (ignore from-node to-node))
   (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
 
+(defun-inline call-arc-drawer (stream arc-drawer from-node to-node
+			       parent parent-x parent-y child child-x child-y
+			       arc-drawing-options)
+  (declare (dynamic-extent arc-drawer))
+  (if (or (stream-redisplaying-p stream)
+	  (stream-current-redisplay-record stream))
+      (call-arc-drawer-1 stream arc-drawer from-node to-node
+			 parent parent-x parent-y child child-x child-y
+			 arc-drawing-options)
+      (apply arc-drawer stream from-node to-node
+	     parent-x parent-y child-x child-y
+	     arc-drawing-options)))
+
+;; Split out to avoid consing a closure environment
+(defun call-arc-drawer-1 (stream arc-drawer from-node to-node
+			  parent parent-x parent-y child child-x child-y
+			  arc-drawing-options)
+  (declare (dynamic-extent arc-drawer))
+  #---ignore	;--- this is the wrong thing...
+  (apply arc-drawer stream from-node to-node
+	 parent-x parent-y child-x child-y
+	 arc-drawing-options)
+  #+++ignore	;--- ...but the right thing doesn't work either
+  (updating-output (stream :unique-id (list parent child)
+			   :id-test #'equal
+			   :cache-value (list parent-x parent-y
+					      child-x child-y)
+			   :cache-test #'equal)
+    (apply arc-drawer stream from-node to-node
+	   parent-x parent-y child-x child-y
+	   arc-drawing-options)))
+
 
 ;;; Tree graphs
 
@@ -364,10 +397,12 @@
 				   (child-attachment-position child)
 				 (translate-coordinates xoff yoff
 				   parent-x parent-y child-x child-y)
-				 (apply arc-drawer stream
-					nil nil	;--- should be from-node and to-node
-					parent-x parent-y child-x child-y
-					arc-drawing-options))))))
+				 (call-arc-drawer stream arc-drawer
+						  ;;--- Should be from- and to-node
+						  nil nil
+						  parent parent-x parent-y
+						  child child-x child-y
+						  arc-drawing-options))))))
 		  (declare (dynamic-extent #'draw-edges))
 		  (draw-edges root-node))))))))))
 
@@ -598,10 +633,12 @@
 				     (funcall child-attach child)
 				   (translate-coordinates xoff yoff
 				     parent-x parent-y child-x child-y)
-				   (apply arc-drawer stream 
-					  nil nil	;--- should be from-node and to-node
-					  parent-x parent-y child-x child-y
-					  arc-drawing-options))))))
+				   (call-arc-drawer stream arc-drawer
+						    ;;--- Should be from- and to-node
+						    nil nil
+						    parent parent-x parent-y
+						    child child-x child-y
+						    arc-drawing-options))))))
 		    (declare (dynamic-extent #'draw-edge)) 
 		    (traverse-graph root-nodes #'inferior-mapper
 				    hash-table #'identity

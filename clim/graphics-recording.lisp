@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.13 92/08/19 10:24:02 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.14 92/09/08 15:17:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -47,12 +47,14 @@
 	     (remove 'filled (append medium-components function-args)))
 	   (slot-descs 
 	     (mapcar #'(lambda (x)
-			 (list x :initarg (intern (symbol-name x) *keyword-package*)))
-			 slots)))
+			 (let ((keyword (intern (symbol-name x) *keyword-package*)))
+			   (if (eq keyword :ink)
+			       `(,x :initarg ,keyword :accessor displayed-output-record-ink)
+			       `(,x :initarg ,keyword))))
+		     slots)))
       `(progn
 	 (defclass ,class ,superclasses ,slot-descs)
-	 (define-constructor-using-prototype-instance
-	   ,constructor ,class ,slots
+	 (define-constructor-using-prototype-instance ,constructor ,class ,slots
 	   ,@(mapcar #'(lambda (arg) 
 			 `(,arg ,(intern (symbol-name arg) *keyword-package*) ,arg)) 
 		     slots))

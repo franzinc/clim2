@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.8 92/10/02 15:19:52 cer Exp $
+;; $fiHeader: present.lisp,v 1.9 92/10/28 11:31:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -91,12 +91,12 @@
 ;; to special-case them all for string streams.  Result is a string
 ;; representation of the output.  STREAM must be an actual window; the
 ;; formatting of the string will match the dimensions of the window.
-(defmacro with-presentations-to-string ((stream &optional string
-					 &rest options
-					 &key (element-type ''character)
-					      (end-of-line-action ':allow)
-					      (end-of-page-action ':allow))
-					&body body)
+(defmacro with-presentations-to-string 
+	  ((stream &optional string
+		   &rest options
+		   &key (element-type #+ANSI-90 ''character #-ANSI-90 ''string-char)
+			(end-of-line-action ':allow) (end-of-page-action ':allow))
+	   &body body)
   (declare (ignore element-type end-of-line-action end-of-page-action))
   (default-output-stream stream with-presentations-to-string)
   `(flet ((with-presentations-to-string-body (,stream) ,@body))
@@ -104,10 +104,10 @@
      (invoke-with-presentations-to-string 
        ,stream #'with-presentations-to-string-body ,string ,@options)))
 
-(defun invoke-with-presentations-to-string (stream continuation string
-					   &key (element-type 'character) 
-						(end-of-line-action ':allow)
-						(end-of-page-action ':allow))
+(defun invoke-with-presentations-to-string 
+       (stream continuation string
+	&key (element-type #+ANSI-90 'character #-ANSI-90 'string-char) 
+	     (end-of-line-action ':allow) (end-of-page-action ':allow))
   (let ((record
 	  (with-end-of-line-action (stream end-of-line-action)
 	    (with-end-of-page-action (stream end-of-page-action)

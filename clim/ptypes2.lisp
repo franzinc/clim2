@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.15 92/10/28 11:32:03 cer Exp Locker: cer $
+;; $fiHeader: ptypes2.lisp,v 1.16 92/11/05 17:15:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -488,9 +488,10 @@
   view)
 
 (defun decode-indirect-view (type view frame-manager &rest args &key query-identifier)
+  (declare (dynamic-extent args))
   (declare (ignore query-identifier))
   (apply-presentation-generic-function decode-indirect-view
-     type view frame-manager args))
+    type view frame-manager args))
 
 
 ;;;; Refined position test and highlighting

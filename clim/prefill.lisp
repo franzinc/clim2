@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.11 92/10/02 15:19:48 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.12 92/10/28 11:31:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -3158,8 +3158,6 @@
     (application-pane))
   (window-expose
     (clim-stream-pane))
-  ((setf window-label)
-    (t clim-stream-pane))
   (window-modifier-state
     (command-menu-pane)
     (interactor-pane)
@@ -3615,7 +3613,6 @@
   (window-clear)
   (window-erase-viewport)
   (window-expose)
-  ((setf window-label))
   (window-modifier-state)
   (window-refresh)
   (window-set-inside-size)

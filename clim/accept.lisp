@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.15 92/10/28 08:19:24 cer Exp Locker: cer $
+;; $fiHeader: accept.lisp,v 1.16 92/10/28 11:31:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -57,7 +57,7 @@
       ;; If the user wants a default, but provided none, go get it from the history
       (let ((history (if (typep history 'basic-history)
 			 history
-		       (presentation-type-history history))))
+		         (presentation-type-history history))))
 	(when history
 	  (let ((element (yank-from-history history)))
 	    (when element
@@ -80,20 +80,27 @@
     (null)
     (symbol (setq view (make-instance view)))
     (cons   (setq view (apply #'make-instance view))))
-  (setq view (decode-indirect-view type view (frame-manager stream) :query-identifier query-identifier))
+  (setq view (decode-indirect-view type view (frame-manager stream)
+				   :query-identifier query-identifier))
 
-  ;; Call methods to do the work
+  ;; Call STREAM-ACCEPT to do the work.  It would be nice if we could
+  ;; call PROMPT-FOR-ACCEPT to generate the real query-id here, but we
+  ;; can't because we want to be able to decide exactly how it is called
+  ;; on a case-by-case basis.  For example, within ACCEPTING-VALUES...
   (with-keywords-removed (accept-args accept-args '(:stream :view))
-    (let ((query-identifier
-	   (apply #'prompt-for-accept
-		  (or *original-stream* stream) type view accept-args)))
-      (apply #'stream-accept (or *original-stream* stream) type
-	     :view view :query-identifier query-identifier
-	     accept-args))))
+    (apply #'stream-accept (encapsulated-stream stream) type
+			   :view view :query-identifier query-identifier
+			   accept-args)))
 
-(defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args)
+(defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args
+			  &key view &allow-other-keys)
   (declare (dynamic-extent accept-args))
-  (apply #'accept-1 (or *original-stream* stream) type accept-args))
+  (let ((query-identifier
+	  (apply #'prompt-for-accept
+		 (encapsulated-stream stream) type view accept-args)))
+    (apply #'accept-1 (encapsulated-stream stream) type
+		      :query-identifier query-identifier
+		      accept-args)))
 
 (defmethod prompt-for-accept ((stream input-protocol-mixin) type (view view)
 			      &rest accept-args
@@ -373,9 +380,15 @@
     (check-type gesture character)
     (stream-unread-char stream gesture)))
 
-(defmethod stream-accept ((stream t) type &rest accept-args)
+(defmethod stream-accept ((stream t) type &rest accept-args
+			  &key view &allow-other-keys)
   (declare (dynamic-extent accept-args))
-  (apply #'accept-1 (or *original-stream* stream) type accept-args))
+  (let ((query-identifier
+	  (apply #'prompt-for-accept
+		 (encapsulated-stream stream) type view accept-args)))
+    (apply #'accept-1 (encapsulated-stream stream) type
+		      :query-identifier query-identifier
+		      accept-args)))
 
 (defmethod prompt-for-accept ((stream t) type (view view) 
 			      &key query-identifier &allow-other-keys)

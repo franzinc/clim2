@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-text.lisp,v 1.3 92/10/02 15:19:21 cer Exp $
+;; $fiHeader: db-text.lisp,v 1.4 92/10/28 11:31:32 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -20,7 +20,7 @@
 	  (height (process-spacing-arg stream height 'pop-up-text-editor :height)))
       (window-set-inside-size stream width height))
     (setf (stream-text-margin stream) (bounding-rectangle-width (window-viewport stream)))
-    (window-expose stream)
+    (setf (window-visibility stream) t)
     ;; Now edit the text
     (unwind-protect
 	(do-text-editing stream 

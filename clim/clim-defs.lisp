@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.14 92/09/08 15:17:27 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.15 92/09/24 09:38:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -91,10 +91,10 @@
 	   `(,constructor ,@initargs))
 	  (t `(construct-output-record-1 ,type ,@initargs)))))
 
-(defmacro define-output-record-constructor (record-type arglist &rest initialization-arguments)
+(defmacro define-output-record-constructor (record-type arglist &body initargs)
   (let ((constructor-name (fintern "~A-~A" record-type 'constructor)))
     `(progn
-       (define-constructor ,constructor-name ,record-type ,arglist ,@initialization-arguments)
+       (define-constructor ,constructor-name ,record-type ,arglist ,@initargs)
        (setf (gethash ',record-type *output-record-constructor-cache*)
 	     ',constructor-name))))
 )	;eval-when
@@ -272,12 +272,13 @@
 
 ;;; From MENUS.LISP
 ;;; For now, MENU-CHOOSE requires that you pass in a parent.
-(defmacro with-menu ((menu &optional (associated-window nil aw-p)) &body body)
+(defmacro with-menu ((menu &optional (associated-window nil aw-p) &key label) &body body)
   (let ((window '#:associated-window))
     `(let ((,window ,(if aw-p
 			 associated-window
 			 `(frame-top-level-sheet *application-frame*))))	;once-only
-       (using-resource (,menu menu (window-top-level-window ,window) (window-root ,window))
+       (using-resource (,menu menu (window-top-level-window ,window) (window-root ,window)
+			:label ,label)
 	 (letf-globally (((stream-default-view ,menu) +textual-menu-view+))
 	   ,@body)))))
 
@@ -285,10 +286,10 @@
 (defmacro accepting-values ((&optional stream &rest args) &body body)
   (declare (arglist (&optional stream
 		     &key frame-class command-table own-window 
-			  exit-boxes resize-frame
+			  exit-boxes resize-frame align-prompts
 			  initially-select-query-identifier modify-initial-query
 			  resynchronize-every-pass (check-overlapping t)
-			  label x-position y-position width height)
+			  label x-position y-position width height (scroll-bars nil))
 		    &body body))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-input-stream stream accepting-values)

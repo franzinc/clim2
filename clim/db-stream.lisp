@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.33 92/10/02 15:19:19 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.34 92/10/28 11:31:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -339,8 +339,9 @@
 		       `(make-pane 'label-pane 
 			  :label ,label
 			  :max-width +fill+)
-		       `(apply #'make-pane 'label-pane 
-			       :max-width +fill+ ,label))))
+		       `(make-pane 'label-pane 
+			  :label ,(first label)
+			  :max-width +fill+ ,@(rest label)))))
 	(ecase label-alignment
 	  (:bottom
 	    (setq pane `(vertically () ,pane ,label)))
@@ -359,6 +360,9 @@
 
 
 ;;; "Window protocol"
+
+(defun-inline window-stream-p (x)
+  (typep x 'clim-stream-sheet))
 
 (defmethod window-clear ((stream clim-stream-sheet))
   (let ((medium (sheet-medium stream)))
@@ -434,6 +438,33 @@
 (defmethod* (setf window-viewport-position) (x y (stream clim-stream-sheet))
   (window-set-viewport-position stream x y))
 
+(defmethod window-inside-edges ((stream clim-stream-sheet))
+  (bounding-rectangle* (sheet-region (or (pane-viewport stream) stream))))
+
+(defun window-inside-left (stream)
+  (multiple-value-bind (left top right bottom)
+      (window-inside-edges stream)
+    (declare (ignore top right bottom))
+    left))
+
+(defun window-inside-top (stream)
+  (multiple-value-bind (left top right bottom)
+      (window-inside-edges stream)
+    (declare (ignore left right bottom))
+    top))
+
+(defun window-inside-right (stream)
+  (multiple-value-bind (left top right bottom)
+      (window-inside-edges stream)
+    (declare (ignore left top bottom))
+    right))
+
+(defun window-inside-bottom (stream)
+  (multiple-value-bind (left top right bottom)
+      (window-inside-edges stream)
+    (declare (ignore left top right))
+    bottom))
+
 (defmethod window-inside-size ((stream clim-stream-sheet))
   (bounding-rectangle-size (window-viewport stream)))
 
@@ -446,14 +477,27 @@
 (defmethod window-inside-height ((stream clim-stream-sheet))
   (bounding-rectangle-width (window-viewport stream)))
 
+(defmethod window-margins ((stream clim-stream-sheet))
+  (values (coordinate 0) (coordinate 0)
+	  (coordinate 0) (coordinate 0)))
+
 (defun-inline window-parent (window)
   (sheet-parent window))
+
+(defun-inline window-children (window)
+  (sheet-children window))
 
 (defun window-root (window)
   (graft window))
 
 (defun-inline window-top-level-window (window)
   (sheet-top-level-sheet window))
+
+(defmethod window-stack-on-bottom ((stream clim-stream-sheet))
+  (bury-sheet (window-top-level-window stream)))
+
+(defmethod window-stack-on-top ((stream clim-stream-sheet))
+  (raise-sheet (window-top-level-window stream)))
 
 (defun beep (&optional (stream *standard-output*))
   (typecase stream

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.16 92/09/30 18:03:38 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.17 92/10/28 11:31:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -310,9 +310,12 @@
 						:end last-supplied :from-end t)))
 	 (command-type `(command :command-table ,command-table))
 	 (for-context-type (least-specific-matching-context-type command-type)))
-    (cond ((or unsupplied-before-that for-accelerator)
+    (cond ((or unsupplied-before-that for-accelerator
+	       (null (command-line-name-for-command 
+		       (command-name partial-command) command-table :errorp nil)))
 	   ;; If the unsupplied argument is not the last argument in the
 	   ;; command line, we go through the ACCEPTING-VALUES command parser.
+	   ;; Ditto, if there is no command-line name for the command.
 	   (let ((command
 		   (with-input-editor-typeout (stream)
 		     (accept-values-command-parser

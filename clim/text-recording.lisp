@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.13 92/09/24 09:39:28 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.14 92/10/02 15:20:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -32,7 +32,7 @@
     ((string :initarg :string
 	     :reader text-displayed-output-record-string)
      (wrapped-p :initform nil :initarg :wrapped-p)
-     (ink :initarg :ink)
+     (ink :initarg :ink :accessor displayed-output-record-ink)
      (clipping-region :initarg :clipping-region)))
 
 (defclass styled-text-output-record
@@ -42,16 +42,15 @@
      (current-text-style :initform nil :initarg :current-style)
      (baseline :initform (coordinate 0) :initarg :baseline)))
 
-(define-constructor make-standard-text-output-record
-		    standard-text-output-record (string ink clipping-region)
-		    :ink ink :string string :clipping-region clipping-region)
+(define-constructor make-standard-text-output-record standard-text-output-record
+		    (string ink clipping-region)
+  :ink ink :string string :clipping-region clipping-region)
 
-(define-constructor make-styled-text-output-record
-		    styled-text-output-record (string ink clipping-region)
-		    :ink ink :string string :clipping-region clipping-region)
+(define-constructor make-styled-text-output-record styled-text-output-record
+		    (string ink clipping-region)
+  :ink ink :string string :clipping-region clipping-region)
 
-(define-constructor make-styled-text-output-record-1
-		    styled-text-output-record 
+(define-constructor make-styled-text-output-record-1 styled-text-output-record 
 		    (string ink clipping-region wrapped-p style baseline)
   :ink ink :string string :clipping-region clipping-region :wrapped-p wrapped-p
   :initial-style style :current-style style :baseline baseline)
@@ -116,8 +115,12 @@
 			  :align-y :top)
 	      (setf cursor-x new-cursor-x start next-char-index)
 	      (when write-char
-		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
+		(cond ((eql write-char #\Tab)
 		       (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
+		      ((diacritic-char-p write-char)
+		       (draw-text* medium write-char
+				   new-cursor-x (+ cursor-y (- baseline new-baseline))
+				   :align-y :top))
 		      (t 
 		       (multiple-value-bind (new-cursor-x new-cursor-y)
 			   (stream-draw-lozenged-character
@@ -171,8 +174,12 @@
 			  :text-style text-style)
 	      (setf cursor-x new-cursor-x start next-char-index)
 	      (when write-char
-		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
+		(cond ((eql write-char #\Tab)
 		       (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
+		      ((diacritic-char-p write-char)
+		       (draw-text* medium write-char
+				   new-cursor-x (+ cursor-y (- baseline new-baseline))
+				   :align-y :top))
 		      (t 
 		       (multiple-value-bind (new-cursor-x new-cursor-y)
 			   (stream-draw-lozenged-character
@@ -396,7 +403,7 @@
 		   (not (typep record 'styled-text-output-record)))
 	  (setq record (stylize-text-output-record record default-style stream)))
 	(return-from get-text-output-record record)))
-    (let* ((string (make-array 16 :element-type 'character
+    (let* ((string (make-array 16 :element-type #+ANSI-90 'character #-ANSI-90 'string-char
 				  :fill-pointer 0 :adjustable t))
 	   (record (if (not (eq style default-style))
 		       (make-styled-text-output-record 

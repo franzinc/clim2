@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.17 92/10/28 08:19:31 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.18 92/10/28 11:31:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -338,32 +338,36 @@
 #+CCL-2
 (defvar *presentation-class-type-table* (make-hash-table))
 
-;;; Find the class corresponding to the presentation type named name
+;;; Find the class corresponding to the presentation type named NAME
 (defun find-presentation-type-class (name &optional (errorp t) environment)
   #+Genera (declare (inline compile-file-environment-p))
   #+Allegro (setq environment (compile-file-environment-p environment))
-  (typecase name
-    (symbol
-      (let ((compile-file-environment-p (compile-file-environment-p environment)))
-	(or (and (eq name (first *presentation-type-being-defined*))
-		 (second *presentation-type-being-defined*))
-	    (if compile-file-environment-p
-		(compile-time-property name 'presentation-type-class)
-		(gethash name *presentation-type-class-table*))
-	    (let ((class (find-class name nil environment)))
-	      (and (acceptable-presentation-type-class class)
-		   class))
-	    (when compile-file-environment-p
-	      ;; compile-file environment inherits from the run-time environment
-	      (or (gethash name *presentation-type-class-table*)
-		  (let ((class (find-class name nil nil)))
-		    (and (acceptable-presentation-type-class class)
-			 class))))
-	    (and errorp (error "~S is not the name of a presentation type" name)))))
-    ((satisfies acceptable-presentation-type-class)
-     name)
-    (otherwise		;a type error should complain even if errorp is nil
-     (error "~S is not the name of a presentation type" name))))
+  (macrolet ((not-found (name)
+	       `(if (gethash name *presentation-type-abbreviation-table*)
+		    (error "~S is a presentation type abbreviation, not the name of a presentation type" ,name)
+		    (error "~S is not the name of a presentation type" ,name))))
+    (typecase name
+      (symbol
+	(let ((compile-file-environment-p (compile-file-environment-p environment)))
+	  (or (and (eq name (first *presentation-type-being-defined*))
+		   (second *presentation-type-being-defined*))
+	      (if compile-file-environment-p
+		  (compile-time-property name 'presentation-type-class)
+		  (gethash name *presentation-type-class-table*))
+	      (let ((class (find-class name nil environment)))
+		(and (acceptable-presentation-type-class class)
+		     class))
+	      (when compile-file-environment-p
+		;; compile-file environment inherits from the run-time environment
+		(or (gethash name *presentation-type-class-table*)
+		    (let ((class (find-class name nil nil)))
+		      (and (acceptable-presentation-type-class class)
+			   class))))
+	      (and errorp (not-found name)))))
+      ((satisfies acceptable-presentation-type-class)
+       name)
+      (otherwise	;a type error should complain even if errorp is nil
+	(not-found name)))))
 
 ;;; Return the presentation type name corresponding to a class
 ;;; This is essentially the inverse of find-presentation-type-class
@@ -1632,7 +1636,7 @@
 
 (define-presentation-generic-function decode-indirect-view-method
                                       decode-indirect-view
-  (type-key parameters options type view frame-manager &key))
+  (type-key parameters options type view frame-manager &key &allow-other-keys))
 
 (define-presentation-generic-function presentation-refined-position-test-method
 				      presentation-refined-position-test

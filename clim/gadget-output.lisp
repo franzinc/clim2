@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.34 92/10/28 11:31:38 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.35 92/10/29 15:02:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -240,6 +240,13 @@
 (defmethod note-output-record-detached :after ((record gadget-output-record))
   (update-output-record-gadget-state record nil))
 
+(defun move-cursor-to-view-position (stream view)
+  (let* ((initargs (view-gadget-initargs view))
+	 (x (getf initargs :x))
+	 (y (getf initargs :y)))
+    (when (and x y)
+      (stream-set-cursor-position stream x y))))
+
 
 (defvar *with-deferred-gadget-updates* nil)
 
@@ -271,7 +278,8 @@
 ;;; Completion gadget
 
 (define-presentation-method decode-indirect-view
-    ((type completion) (view gadget-dialog-view) (framem standard-frame-manager) &key)
+			    ((type completion) (view gadget-dialog-view)
+			     (framem standard-frame-manager) &key)
   ;;--- We can be clever and return different views depending on the
   ;;--- number of items, etc.
   +radio-box-view+)
@@ -352,8 +360,8 @@
 ;;; Subset completion gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type subset-completion) (view
-						       gadget-dialog-view) (framem standard-frame-manager) &key)
+			    ((type subset-completion) (view gadget-dialog-view)
+			     (framem standard-frame-manager) &key)
   +check-box-view+)
 
 (define-presentation-method gadget-includes-prompt-p 
@@ -436,7 +444,7 @@
 
 (define-presentation-method decode-indirect-view
 			    ((type boolean) (view gadget-dialog-view)
-					    (framem standard-frame-manager) &key)
+			     (framem standard-frame-manager) &key)
   +toggle-button-view+)
 
 (define-presentation-method gadget-includes-prompt-p 
@@ -496,13 +504,6 @@
 		    (make-accept-values-value-changed-callback
 		      stream query-identifier))))
 	  (values (outlining () slider) slider))))))
-
-
-(defun move-cursor-to-view-position (stream view)
-  (let* ((initargs (view-gadget-initargs view))
-	 (x (getf initargs :x))
-	 (y (getf initargs :y)))
-    (when (and x y) (stream-set-cursor-position stream x y))))
 
 (define-presentation-method accept-present-default 
 			    ((type integer) stream (view slider-view)
@@ -572,7 +573,8 @@
 
 ;; The string case is straightforward
 (define-presentation-method decode-indirect-view
-			    ((type string) (view gadget-dialog-view) (framem standard-frame-manager) &key)
+			    ((type string) (view gadget-dialog-view)
+			     (framem standard-frame-manager) &key)
   +text-field-view+)
 
 (define-presentation-method accept-present-default 
@@ -640,8 +642,7 @@
 
 (defun make-list/option-pane-for-ptype (pane-type stream view sequence 
 					name-key value-key test
-					default query-identifier type
-					printer mode)
+					default query-identifier type printer mode)
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget list-pane)
 	   (declare (ignore gadget record))

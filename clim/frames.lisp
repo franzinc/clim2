@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.47 92/10/12 17:54:23 cer Exp $
+;; $fiHeader: frames.lisp,v 1.48 92/10/28 11:31:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -67,9 +67,6 @@
 (defmethod graft ((frame standard-application-frame))
   (graft (frame-manager frame)))
 
-(defmethod frame-palette ((frame standard-application-frame))
-  (frame-manager-palette (frame-manager frame)))
-
 ;;--- These should really be somewhere else
 (defmethod frame-manager ((stream standard-encapsulating-stream))
   (frame-manager (encapsulating-stream-stream stream)))
@@ -100,6 +97,16 @@
 	    (sheet (frame-manager (pane-frame parent))))))
     (when frame-manager
       (adopt-frame frame-manager frame))))
+
+(defmethod find-named-color (name (frame standard-application-frame) &key (errorp t))
+  (find-named-color name (frame-palette frame) :errorp errorp))
+
+(defmethod frame-palette ((frame standard-application-frame))
+  (let ((framem (frame-manager frame)))
+    (if framem
+	(frame-manager-palette framem)
+	(and (port frame)
+	     (port-default-palette (port frame))))))
 
 ;; Default method does nothing
 (defmethod generate-panes ((framem standard-frame-manager)
@@ -704,11 +711,20 @@
   nil)
 
 
+(define-condition frame-exit (condition)
+  ((frame :initarg :frame :reader frame-exit-frame))
+  (:report (lambda (condition stream)
+	     (format stream "Exit from frame ~A" (frame-exit-frame condition)))))
+
 (defgeneric run-frame-top-level (frame &key &allow-other-keys))
 
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
-  (with-simple-restart (frame-exit "Exit ~A" (frame-pretty-name frame))
+  (handler-bind ((frame-exit
+		   #'(lambda (condition)
+		       (let ((exit-frame (frame-exit-frame condition)))
+			 (when (eq frame exit-frame)
+			   (return-from run-frame-top-level nil))))))
     (unwind-protect
 	(let (;; Reset the state of the input editor and the presentation
 	      ;; type system, etc., in case there is an entry into another
@@ -759,6 +775,8 @@
       ;; top-level function to enable the frame.  For example, if we
       ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
       ;; wrong frame.  Sigh.
+      (queue-flush (frame-command-queue frame))
+      (queue-flush (sheet-event-queue (frame-top-level-sheet frame)))
       (disable-frame frame))))
 
 (defmethod run-frame-top-level ((frame standard-application-frame) &rest args)
@@ -854,7 +872,7 @@
 
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
-  (invoke-restart 'frame-exit))
+  (signal 'frame-exit :frame frame))
 
 
 ;;; Sizing and moving of frames

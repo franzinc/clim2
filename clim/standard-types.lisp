@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.16 92/10/02 15:20:01 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.17 92/10/28 11:32:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -562,14 +562,22 @@
  	   stream :acceptably acceptably))
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
-  (values
-    (completing-from-suggestions 
-	(stream :partial-completers partial-completers
-		:help-displays-possibilities (<= (length sequence) 10))
-      (flet ((suggest-item (item)
-	       (suggest (funcall name-key item) (funcall value-key item))))
-	(declare (dynamic-extent #'suggest-item))
-	(map nil #'suggest-item sequence)))))
+  (flet ((possibility-printer (possibility type stream)
+	   (declare (ignore type))
+	   (funcall printer 
+		    (funcall name-key (find (second possibility) sequence 
+					    :key value-key :test test))
+		    stream)))
+    (declare (dynamic-extent #'possibility-printer))
+    (values
+      (completing-from-suggestions 
+	  (stream :partial-completers partial-completers
+		  :possibility-printer #'possibility-printer
+		  :help-displays-possibilities (<= (length sequence) 10))
+	(flet ((suggest-item (item)
+		 (suggest (funcall name-key item) (funcall value-key item))))
+	  (declare (dynamic-extent #'suggest-item))
+	  (map nil #'suggest-item sequence))))))
 
 (define-presentation-method accept-present-default ((type completion) stream
 						    (view dialog-view-mixin)
@@ -736,33 +744,38 @@
 	  (if (eql separator #\space)
 	      " "
 	      (make-array 2 :initial-contents (list separator #\space)))))
-    (loop
-      (let ((element
-	      (with-delimiter-gestures (separators)
-		(completing-from-suggestions
-		    (stream :partial-completers partial-completers
-			    :possibility-printer
-			      #'(lambda (object type stream)
-				  (present (list (second object)) type :stream stream))
-			    :help-displays-possibilities (<= (length sequence) 10))
-		  (flet ((suggest-item (item)
-			   (suggest (funcall name-key item)
-				    (funcall value-key item))))
-		    (declare (dynamic-extent #'suggest-item))
-		    (map nil #'suggest-item sequence))))))
-	(push element list))
+    (flet ((possibility-printer (possibility type stream)
+	     (declare (ignore type))
+	     (funcall printer 
+		      (funcall name-key (find (second possibility) sequence 
+					      :key value-key :test test))
+		      stream)))
+      (declare (dynamic-extent #'possibility-printer))
       (loop
-	(multiple-value-bind (more-to-come object)
-	    (accept-comma stream element-type view
-			  :delimiter-character separator
-			  :echo-space echo-space :echo-string-before-blip echo-string)
-	  (ecase more-to-come
-	    ((nil)
-	     (return-from accept
-	       (nreverse list)))
-	    ((t) (return))	;return to outer loop, call completing-from-suggestions again
-	    ((:accepted)
-	     (push object list))))))))
+	(let ((element
+		(with-delimiter-gestures (separators)
+		  (completing-from-suggestions
+		      (stream :partial-completers partial-completers
+			      :possibility-printer #'possibility-printer
+			      :help-displays-possibilities (<= (length sequence) 10))
+		    (flet ((suggest-item (item)
+			     (suggest (funcall name-key item)
+				      (funcall value-key item))))
+		      (declare (dynamic-extent #'suggest-item))
+		      (map nil #'suggest-item sequence))))))
+	  (push element list))
+	(loop
+	  (multiple-value-bind (more-to-come object)
+	      (accept-comma stream element-type view
+			    :delimiter-character separator
+			    :echo-space echo-space :echo-string-before-blip echo-string)
+	    (ecase more-to-come
+	      ((nil)
+	       (return-from accept
+		 (nreverse list)))
+	      ((t) (return))	;return to outer loop, call completing-from-suggestions again
+	      ((:accepted)
+	       (push object list)))))))))
 
 ;;; A handy routine for accepting comma-separated lists in textual views.
 ;;; If the next character is a comma, absorbs it and any following space and returns T.
@@ -1496,7 +1509,8 @@
 		  (return))
 		 ((and (delimiter-gesture-p char) (not desired-delimiter))
 		  (beep stream))
-		 ((not (ordinary-char-p char))
+		 ((not (or (ordinary-char-p char)
+			   (diacritic-char-p char)))
 		  (beep stream))
 		 ((and (zerop (fill-pointer input-buffer))	;ignore leading space
 		       (whitespace-char-p char)))

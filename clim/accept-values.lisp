@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.39 92/10/28 08:19:20 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.40 92/10/28 11:31:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -98,13 +98,31 @@
     (call-next-method))
   query-identifier)
 
-(defmethod stream-accept ((stream accept-values-stream) ptype
-			  &key query-identifier (prompt t) (default nil default-supplied-p)
+(defmethod stream-accept ((stream accept-values-stream) type
+			  &rest accept-args
+			  &key (prompt t) (default nil default-supplied-p)
 			       (view (stream-default-view stream)) (active-p t)
 			  &allow-other-keys)
+  (declare (dynamic-extent accept-args))
   ;;--- When ACTIVE-P is NIL, this should do some sort of "graying out"
-  (let ((query (find-or-add-query stream query-identifier ptype prompt
-				  default default-supplied-p view active-p)))
+  (let ((align-prompts (slot-value (slot-value stream 'avv-frame) 'align-prompts))
+	query-identifier query)
+    (cond (align-prompts
+	   ;; The user has asked to line up the labels, so oblige him
+	   (formatting-row (stream)
+	     (formatting-cell (stream :align-x align-prompts)
+	       (setq query-identifier 
+		     (apply #'prompt-for-accept
+			    (encapsulated-stream stream) type view accept-args)))
+	     (formatting-cell (stream :align-x :left)
+	       (setq query (find-or-add-query stream query-identifier type prompt
+					      default default-supplied-p view active-p)))))
+	  (t
+	   (setq query-identifier
+		 (apply #'prompt-for-accept
+			(encapsulated-stream stream) type view accept-args))
+	   (setq query (find-or-add-query stream query-identifier type prompt
+					  default default-supplied-p view active-p))))
     (values (accept-values-query-value query)
 	    (accept-values-query-type query)
 	    ;; Set this to NIL so that it appears that nothing has
@@ -188,41 +206,29 @@
        :initform nil :initarg :initially-select-query-identifier)
      (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
      (check-overlapping :initform t :initarg :check-overlapping)
-     (own-window :initform nil :initarg :own-window))
+     (align-prompts :initform nil :initarg :align-prompts)
+     (own-window :initform nil :initarg :own-window)
+     (own-window-properties :initform nil :initarg :own-window-properties))
   (:top-level (accept-values-top-level))
   (:command-definer t))
 
-;; Ignore extra initargs...
-(defmethod initialize-instance :after ((frame accept-values) 
-				       &key own-window
-					    x-position y-position width height
-					    right-margin bottom-margin)
-  (declare (ignore own-window
-		   x-position y-position width height
-		   right-margin bottom-margin)))
-
 ;;--- These frames should be resourced
 (define-application-frame accept-values-own-window (accept-values)
-    ((own-window :initarg :own-window)
-     (own-window-x-position :initform nil :initarg :x-position)
-     (own-window-y-position :initform nil :initarg :y-position)
-     (own-window-width :initform nil :initarg :width)
-     (own-window-height :initform nil :initarg :height)
-     (own-window-right-margin :initform nil :initarg :right-margin)
-     (own-window-bottom-margin :initform nil :initarg :bottom-margin)
-     (help-window :initform nil))
+    ((help-window :initform nil)
+     (scroll-bars :initform nil :initarg :scroll-bars))
   (:pane 
-    (with-slots (stream own-window exit-button-stream) *application-frame*
+    (with-slots (stream own-window exit-button-stream scroll-bars) *application-frame*
       (vertically ()
 	(outlining ()
-	  (scrolling (:scroll-bars :dynamic)
-	    (progn
-	      (setq stream
-		    (make-instance 'accept-values-stream
-		      :stream (setf own-window 
-				    (make-pane 'clim-stream-pane
-				      :initial-cursor-visibility :off))))
-	      own-window)))
+	  (progn
+	    (setq stream (make-instance 'accept-values-stream
+			   :stream (setq own-window 
+					 (make-pane 'clim-stream-pane
+					   :initial-cursor-visibility :off
+					   :end-of-page-action :allow))))
+	    (if scroll-bars
+		(scrolling (:scroll-bars scroll-bars) own-window)
+		own-window)))
 	(outlining ()
 	  (setf exit-button-stream
 		(make-pane 'clim-stream-pane
@@ -252,17 +258,22 @@
 				      (exit-boxes 
 					(frame-manager-default-exit-boxes
 					  (frame-manager stream)))
- 				      (resize-frame nil)
+ 				      (resize-frame nil) (scroll-bars nil)
 				      (initially-select-query-identifier nil)
-				      (modify-initial-query nil)
+				      (modify-initial-query nil) align-prompts
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)
    (incf *accept-values-tick*)
+   (setq align-prompts (ecase align-prompts
+			 ((t :right) :right)
+			 ((:left) :left)
+			 ((nil) nil)))
    (let ((frame-manager (frame-manager stream))
 	 (*current-accept-values-tick* *accept-values-tick*)
 	 (the-own-window nil)
 	 (right-margin 10)
 	 (bottom-margin 10))
+     ;; Create the AVV, run it, and return its values
      (if own-window
 	 (let ((frame (make-application-frame 
 			(or frame-class 
@@ -274,59 +285,70 @@
 			:continuation continuation
 			:exit-boxes exit-boxes
 			:own-window the-own-window
-			:width width :height height
-			:x-position x-position
-			:y-position y-position
-			:right-margin right-margin
-			:bottom-margin bottom-margin
+			:own-window-properties (list x-position y-position
+						     width height
+						     right-margin bottom-margin)
 			:initially-select-query-identifier 
 			  (and initially-select-query-identifier
 			       (cons initially-select-query-identifier modify-initial-query))
 			:resynchronize-every-pass resynchronize-every-pass
 			:check-overlapping check-overlapping
-			:resize-frame resize-frame)))
+			:align-prompts align-prompts
+			:resize-frame resize-frame
+			:scroll-bars scroll-bars)))
 	   (when command-table
 	     (setf (frame-command-table frame) command-table))
-	   (let ((*avv-calling-frame* *application-frame*))
-	     (run-frame-top-level frame)))
-       (using-resource (avv-stream accept-values-stream (or the-own-window stream))
-	 ;;--- This should resource the AVV application frame, too
-	 (let ((frame (make-application-frame (or frame-class 'accept-values)
-			:calling-frame *application-frame*
-			:stream avv-stream
-			:continuation continuation
-			:exit-boxes exit-boxes
-			:initially-select-query-identifier 
-			  (and initially-select-query-identifier
-			       (cons initially-select-query-identifier modify-initial-query))
-			:resynchronize-every-pass resynchronize-every-pass
-			:check-overlapping check-overlapping
-			;; This frame won't necessarily be adopted, so make
-			;; sure that we share the sheet with the parent frame
-			;; in the case of "inlined" dialogs
-			:top-level-sheet (frame-top-level-sheet *application-frame*))))
-	   (when command-table
-	     (setf (frame-command-table frame) command-table))
-	   ;; Run the AVV and return its values
-	   (let ((*avv-calling-frame* *application-frame*))
-	     (run-frame-top-level frame)))))))
+	   (unwind-protect
+	       (let ((*avv-calling-frame* *application-frame*))
+		 (run-frame-top-level frame))
+	     ;; Flush it so the GC can get rid of it
+	     (disown-frame (frame-manager frame) frame)))
+	 (using-resource (avv-stream accept-values-stream (or the-own-window stream))
+	   (let ((frame (make-application-frame (or frame-class 'accept-values)
+			  :calling-frame *application-frame*
+			  :stream avv-stream
+			  :continuation continuation
+			  :exit-boxes exit-boxes
+			  :initially-select-query-identifier 
+			    (and initially-select-query-identifier
+				 (cons initially-select-query-identifier modify-initial-query))
+			  :resynchronize-every-pass resynchronize-every-pass
+			  :check-overlapping check-overlapping
+			  :align-prompts align-prompts
+			  ;; This frame won't necessarily be adopted, so make
+			  ;; sure that we share the sheet with the parent frame
+			  ;; in the case of "inlined" dialogs
+			  :top-level-sheet (frame-top-level-sheet *application-frame*))))
+	     (when command-table
+	       (setf (frame-command-table frame) command-table))
+	     (unwind-protect
+		 (let ((*avv-calling-frame* *application-frame*))
+		   (run-frame-top-level frame))
+	       ;; Since this frame isn't really adopted, we don't really want
+	       ;; to disown it since that will end up disowning the calling
+	       ;; frame.  Flush it from the frame manager manually.  Barf.
+	       (let ((framem (frame-manager frame)))
+		 (setf (frame-manager-frames framem)
+		         (delete frame (frame-manager-frames framem))
+		       (slot-value frame 'frame-manager) nil))))))))
 
 (defmethod accept-values-top-level ((frame accept-values) &rest args)
   (declare (ignore args))
-  ;; this might want to use table-formatting or equivalent
-  ;; to make sure that the rows line up properly.
-  ;; This requires formatting-table and friends to return their bodies' values properly.
   (with-slots (stream continuation resynchronize-every-pass check-overlapping
-	       selected-item initially-select-query-identifier
-	       own-window own-window-x-position own-window-y-position
-	       own-window-width own-window-height
-	       own-window-right-margin own-window-bottom-margin
-	       exit-button-stream) frame
+	       align-prompts selected-item initially-select-query-identifier
+	       own-window own-window-properties exit-button-stream) frame
     (let* ((original-view (stream-default-view stream))
 	   (return-values nil)
 	   (initial-query nil)
 	   exit-button-record
-	   avv avv-record)
+	   avv avv-record
+	   (properties own-window-properties)
+	   (own-window-x-position (pop properties))
+	   (own-window-y-position (pop properties))
+	   (own-window-width  (pop properties))
+	   (own-window-height (pop properties))
+	   (own-window-right-margin  (pop properties))
+	   (own-window-bottom-margin (pop properties)))
       (letf-globally (((stream-default-view stream) 
 		       (frame-manager-dialog-view (frame-manager frame)))
 		      ((cursor-state (stream-text-cursor stream)) nil))
@@ -334,9 +356,19 @@
 		   (setf (slot-value stream 'avv-record) avv-record)
 		   (setf (slot-value stream 'avv-frame) frame)
 		   (with-output-recording-options (stream :draw nil :record t)
-		     (setq return-values (multiple-value-list
-					   (let ((*application-frame* *avv-calling-frame*))
-					     (funcall continuation stream))))
+		     (let ((*application-frame* *avv-calling-frame*))
+		       (if align-prompts
+			   ;; Use of FORMATTING-TABLE here implies that
+			   ;; no output should be done by the user code
+			   ;; outside of calls to FORMATTING-ROW and
+			   ;; FORMATTING-CELL.  Too bad.
+			   (formatting-table (stream)
+			     (setq return-values
+				   (multiple-value-list
+				     (funcall continuation stream))))
+			   (setq return-values
+				 (multiple-value-list
+				   (funcall continuation stream)))))
 		     (unless own-window
 		       (display-exit-boxes frame stream
 					   (stream-default-view stream)))))
@@ -404,7 +436,12 @@
 			 :bottom-margin own-window-bottom-margin)))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv
 				   #'size-panes-appropriately))
-	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
+	  (handler-bind ((frame-exit
+			   #'(lambda (condition)
+			       (let ((exit-frame (frame-exit-frame condition)))
+				 (when (eq frame exit-frame)
+				   (return-from accept-values-top-level
+				     (values-list return-values)))))))
 	    (setq avv
 		  (updating-output (stream)
 		    (setq avv-record
@@ -432,7 +469,7 @@
 				 y own-window-y-position))
 			 (position-sheet-carefully
 			   (frame-top-level-sheet (pane-frame own-window)) x y))
-		       (window-expose own-window)
+		       (setf (window-visibility own-window) t)
 		       (with-input-focus (own-window)
 			 (when exit-button-record
 			   (replay exit-button-record exit-button-stream))
@@ -446,11 +483,10 @@
 		       (stream-ensure-cursor-visible stream)
 		       (replay avv stream)
 		       (run-avv)))
-	      (unless own-window (deactivate-all-gadgets avv-record))
 	      (unless own-window
+		(deactivate-all-gadgets avv-record)
 		(move-cursor-beyond-output-record 
-		  (encapsulating-stream-stream stream) avv))))
-	  (values-list return-values))))))
+		  (encapsulating-stream-stream stream) avv)))))))))
 
 (defmethod frame-manager-display-input-editor-error
 	   ((framem standard-frame-manager) (frame accept-values) stream error)
@@ -489,7 +525,7 @@
       (multiple-value-bind (x y) (bounding-rectangle-position own-window)
 	(position-sheet-carefully 
 	  (frame-top-level-sheet (pane-frame help-window)) x y))
-      (window-expose help-window)
+      (setf (window-visibility help-window) t)
       (clear-input help-window)
       (unwind-protect
 	  (with-input-focus (help-window)
@@ -515,9 +551,17 @@
   (setf (slot-value (slot-value stream 'avv-record) 'resynchronize) t))
 
 (defmethod accept-values-resize-window ((stream accept-values-stream))
-  (with-slots (own-window own-window-right-margin own-window-bottom-margin)
+  (with-slots (own-window own-window-properties)
 	      (slot-value stream 'avv-frame)
     (when own-window
+    (let* ((own-window-x-position (pop own-window-properties))
+	   (own-window-y-position (pop own-window-properties))
+	   (own-window-width  (pop own-window-properties))
+	   (own-window-height (pop own-window-properties))
+	   (own-window-right-margin  (pop own-window-properties))
+	   (own-window-bottom-margin (pop own-window-properties)))
+      (declare (ignore own-window-x-position own-window-y-position 
+		       own-window-width own-window-height))
       (multiple-value-bind (new-width new-height)
 	  (bounding-rectangle-size (slot-value stream 'avv-record))
 	(multiple-value-bind (width height)
@@ -525,8 +569,8 @@
 	  (when (or (> new-width width)
 		    (> new-height height))
 	    (size-frame-from-contents own-window
-	      :right-margin own-window-right-margin
-	      :bottom-margin own-window-bottom-margin)))))))
+				      :right-margin own-window-right-margin
+				      :bottom-margin own-window-bottom-margin))))))))
 
 
 (define-presentation-type accept-values-exit-box ())
@@ -738,7 +782,7 @@
 
 (define-accept-values-command (com-exit-avv :keystroke :end)
     ()
-  (invoke-restart 'frame-exit))
+  (frame-exit *application-frame*))
 
 (define-accept-values-command (com-abort-avv :keystroke :abort)
     ()

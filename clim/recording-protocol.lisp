@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.24 92/10/28 11:32:05 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.25 92/10/28 13:17:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -546,6 +546,11 @@
 	  (if new-output-record
 	      (copy-display-state new-output-record nil)
 	      (setq new-output-record
+		    ;; Note that we set the x- and y-positions to 0.  We
+		    ;; do this because setting the cursor position to (x,y)
+		    ;; has the appropriate effect, and setting the other
+		    ;; positions can cause the record to be mis-positioned
+		    ;; if we don't actually do any output into it.
 		    (if constructor
 			(apply constructor
 			       :x-position 0 :y-position 0 initargs)
@@ -553,7 +558,7 @@
 			       :x-position 0 :y-position 0 initargs))))
 	  (output-record-set-start-cursor-position new-output-record x y)
 	  (with-output-record-1 continuation 
-	    stream new-output-record cursor-x cursor-y)
+				stream new-output-record cursor-x cursor-y)
 	  (when (stream-redisplaying-p stream)
 	    (recompute-contents-ok new-output-record))
 	  ;; We set the parent after doing everything else so that calls
@@ -574,7 +579,7 @@
 
 (defun with-output-record-1 (continuation stream record abs-x abs-y)
   ;; Close the text record before and after
-  (stream-close-text-output-record (or *original-stream* stream))
+  (stream-close-text-output-record (encapsulated-stream stream))
   (let ((current-output-position
 	  (stream-output-history-position stream)))
     (letf-globally (((point-x current-output-position) abs-x)
@@ -585,8 +590,8 @@
 	  (stream-cursor-position stream)
 	(declare (type coordinate end-x end-y))
 	(output-record-set-end-cursor-position
-	 record (- end-x abs-x) (- end-y abs-y)))
-      (stream-close-text-output-record (or *original-stream* stream)))))
+	  record (- end-x abs-x) (- end-y abs-y)))
+      (stream-close-text-output-record (encapsulated-stream stream)))))
 
 (defun invoke-with-room-for-graphics (stream continuation record-type move-cursor 
 				      &key height (first-quadrant t))
@@ -656,6 +661,14 @@
 					&optional region x-offset y-offset)
   (declare (ignore stream region x-offset y-offset))
   nil)
+
+(defun change-output-record-ink (record ink)
+  (labels ((change-ink (record)
+	     (if (output-record-p record)
+		 (map-over-output-records #'change-ink record)
+		 (setf (displayed-output-record-ink record) ink))))
+    (declare (dynamic-extent #'change-ink))
+    (change-ink record)))
 
 (defun move-cursor-beyond-output-record (stream record &optional (y-offset 0))
   (multiple-value-bind (xoff yoff)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.16 92/09/24 09:39:06 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.17 92/10/02 15:19:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -166,7 +166,8 @@
 		       ((delimiter-gesture-p gesture)
 			;; ditto?
 			(return-token gesture))
-		       ((ordinary-char-p gesture)
+		       ((or (ordinary-char-p gesture)
+			    (diacritic-char-p gesture))
 			(vector-push-extend gesture string)
 			;;--- haven't updated WRITE-CHAR yet
 			#+++ignore (write-char gesture stream))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.3 92/10/02 15:19:17 cer Exp Locker: cer $
+;; $fiHeader: activities.lisp,v 1.4 92/10/29 15:02:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -32,7 +32,11 @@
   (type-of activity))
 
 (defmethod run-frame-top-level :around ((activity activity) &key)
-  (with-simple-restart (activity-exit "Exit activity ~A" (frame-pretty-name activity))
+  (handler-bind ((frame-exit
+		   #'(lambda (condition)
+		       (let ((exit-frame (frame-exit-frame condition)))
+			 (when (eq activity exit-frame)
+			   (return-from run-frame-top-level nil))))))
     (loop
       (with-simple-restart (nil "~A top level" (frame-pretty-name activity))
 	(loop
@@ -54,8 +58,8 @@
 	  (default-frame-top-level activity))
       (setq top-level-process nil))))
 
-(defmethod activity-exit ((activity activity))
-  (invoke-restart 'activity-exit))
+(defmethod frame-exit ((activity activity))
+  (signal 'frame-exit :frame activity))
 
 (defvar *activity* nil)
 
@@ -95,7 +99,7 @@
 	      (setf (activity-active-frame activity)
 		    (first (frame-manager-frames activity))))
 	    (unless (activity-active-frame activity)
-	      (activity-exit activity))
+	      (frame-exit activity))
 	    (let* ((frame (activity-active-frame activity))
 		   (*application-frame* frame)
 		   (top-level (frame-top-level frame)))
@@ -108,6 +112,7 @@
 			(if (atom top-level)
 			    (funcall top-level frame)
 			    (apply (first top-level) frame (rest top-level))))
+		      ;;--- Well, what *are* we supposed to do here?
 		      (break "do something")))
 		(setf (slot-value frame 'top-level-process) nil)))))))))
 
@@ -125,7 +130,7 @@
     ((activity :initform nil :accessor frame-activity :initarg :activity)))
 
 (defmethod initialize-instance :after ((frame activity-frame) &key activity)
-  (assert activity () "An activity frame requires an activity"))
+  (assert activity () "The activity frame ~S requires an activity" frame))
 
 ;; Starts an application frame and registers it in the activity
 (defmethod start-application-frame ((activity activity) frame-name &rest frame-options)
@@ -150,7 +155,7 @@
   (when (eq frame (activity-active-frame activity))
     (if (frame-manager-frames activity)
 	(setf (activity-active-frame activity) nil)
-	(activity-exit activity)))
+	(frame-exit activity)))
   (throw 'window-resynchronize :window-resynchronize))
 
 ;; Starts the initial application, when the activity is started up.

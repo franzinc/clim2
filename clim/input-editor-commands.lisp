@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.20 92/10/28 11:31:43 cer Exp Locker: cer $
+;; $fiHeader: input-editor-commands.lisp,v 1.21 92/10/29 15:02:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -31,19 +31,19 @@
 	     (when keysym
 	       (if (zerop modifier-state)
 		   ;;--- What a kludge!  What should this really be?
-		   (member keysym '(:rubout :clear-input :escape
-				    :scroll :refresh :suspend :resume))
+		   (member keysym '(:rubout :clear-input :escape :scroll :refresh :suspend
+					    :resume :page-up :page-down :clear :backspace))
 		   (logtest modifier-state
 			    (make-modifier-state :control :meta :super :hyper)))))))
     (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
     (cond ((atom gestures)
 	   (assert (bucky-char-p gestures) (gestures)
-		   "~S does not correspond to a gesture" gestures)
+		   "~S does not correspond to non-printing gesture" gestures)
 	   (add-aarray-entry gestures function *input-editor-command-aarray*))
 	  (t
 	   (assert (> (length gestures) 1))
 	   (assert (bucky-char-p (first gestures)) (gestures)
-		   "~S does not correspond to a gesture" gestures)
+		   "~S does not correspond to non-printing gesture" gestures)
 	   ;; We've got a command that wil be bound to a sequence of gestures,
 	   ;; so set up the prefix tables.
 	   (let ((aarray *input-editor-command-aarray*))
@@ -1231,6 +1231,17 @@
   (:ie-show-arglist	    :a   :meta :shift)
   (:ie-show-value	    :v   :meta :shift)
   (:ie-show-documentation   :d   :meta :shift))
+
+#+Cloe-Runtime
+(define-input-editor-gestures
+  (:ie-rubout-character     :backspace)
+  (:ie-rubout-word	    :backspace :meta)
+  (:ie-rubout-sexp	    :backspace :control :meta)
+  (:ie-clear-input	    :clear)
+  (:ie-scroll-forward	    :page-down)
+  (:ie-scroll-backward	    :page-up)
+  (:ie-scroll-left	    :page-up :super)
+  (:ie-scroll-right	    :page-down :super))
 
 
 (defmacro assign-input-editor-key-bindings (&body functions-and-gestures)

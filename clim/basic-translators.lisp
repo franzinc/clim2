@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.8 92/08/19 10:23:53 cer Exp Locker: cer $
+;; $fiHeader: basic-translators.lisp,v 1.9 92/10/01 08:51:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -180,8 +180,7 @@
 			   (formatting-cell (stream)
 			     (print-possibility possibility stream)))))))
 	    (declare (dynamic-extent #'print-possibility #'menu-choose-body))
-	    (with-menu (menu window)
-	      (setf (window-label menu) "Menu of completions")
+	    (with-menu (menu window :label "Menu of completions")
 	      (with-end-of-line-action (menu :allow)
 		(let ((object
 			(menu-choose-from-drawer menu type #'menu-choose-body)))

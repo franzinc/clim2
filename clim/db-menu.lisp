@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-menu.lisp,v 1.2 92/09/08 15:17:38 cer Exp $
+;; $fiHeader: db-menu.lisp,v 1.3 92/09/24 09:38:38 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -274,8 +274,7 @@
 
 ;;; Menu bars
 
-(defclass menu-bar-pane 
-	  (menu-bar)
+(defclass menu-bar-pane (menu-bar)
     ())
 
 ;;--- What about when the command menu tick changes?

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.33 92/10/28 11:31:49 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.34 92/10/28 13:17:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -9,14 +9,22 @@
 
 (defvar *abort-menus-when-buried* t)
 
+(defparameter *default-menu-text-style* (make-text-style :fix :roman :normal))
+(defparameter *default-menu-label-text-style* (make-text-style :fix :italic :normal))
+
 (define-application-frame menu-frame ()
-    (menu)
+    (menu label)
   (:pane
-    (with-slots (menu) *application-frame*
+    (with-slots (menu label) *application-frame*
       (outlining ()
-	(scrolling ()
-	  (setq menu (make-pane 'clim-stream-pane
-		       :initial-cursor-visibility nil))))))
+	(vertically ()
+	  (setq label (make-pane 'label-pane 
+			:label ""
+			:text-style *default-menu-label-text-style*))
+	  (scrolling ()
+	    (setq menu (make-pane 'clim-stream-pane
+			 :initial-cursor-visibility nil)))))))
+
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -33,18 +41,23 @@
     (setf (getf (frame-properties frame) :menu-frame) t)
     (values (slot-value frame 'menu) frame)))
 
-(defresource menu (associated-window root)
+(defresource menu (associated-window root &key label)
   :constructor (let* ((port (if (null root) (find-port) (port root))))
 		 (get-menu :port port))
   :deinitializer (window-clear menu)
-  :initializer (initialize-menu (port menu) menu associated-window)
+  :initializer (initialize-menu (port menu) menu :label label)
   ;; Horrible kludge in the case where no associated window is passed in.
   :matcher (eq (port menu) (port root)))
 
-(defmethod initialize-menu ((port basic-port) menu associated-window)
-  (declare (ignore menu associated-window))
+(defmethod initialize-menu ((port basic-port) menu &key label)
   ;;--- Should this flush the menu's event queue?
-  )
+  (let ((text-style (if (listp label) 
+			(getf (rest label) :text-style *default-menu-label-text-style*)
+			*default-menu-label-text-style*))
+	(label (if (listp label) (first label) label))
+	(label-pane (slot-value (pane-frame menu) 'label)))
+    (setf (gadget-label label-pane) (or label "")
+	  (pane-text-style label-pane) (parse-text-style text-style))))
 
 
 ;; items := (item*)
@@ -67,8 +80,8 @@
 	  ((atom (setq rest (cdr menu-item))) default)
 	  (t (getf rest indicator default)))))
 
-(defun menu-item-style (menu-item)
-  (menu-item-getf menu-item :style))
+(defun menu-item-text-style (menu-item)
+  (menu-item-getf menu-item :text-style))
 
 (defun menu-item-documentation (menu-item)
   (menu-item-getf menu-item :documentation))
@@ -132,13 +145,13 @@
 (defun draw-standard-menu (menu presentation-type items default-item
 			   &key (item-printer #'print-menu-item)
 				max-width max-height n-rows n-columns
-				x-spacing y-spacing 
+				x-spacing y-spacing (row-wise nil)
 				(cell-align-x ':left) (cell-align-y ':top)
 			   &aux default-presentation)
   (formatting-item-list (menu :max-width max-width :max-height max-height
 			      :n-rows n-rows :n-columns n-columns
 			      :x-spacing x-spacing :y-spacing y-spacing
-			      :move-cursor nil)
+			      :row-wise row-wise :move-cursor nil)
     (flet ((format-item (item)
 	     (let ((type (menu-item-type item)))
 	       (flet ((print-item ()
@@ -177,7 +190,7 @@
 (defun print-menu-item (menu-item &optional (stream *standard-output*))
   (let ((display (menu-item-display menu-item))
 	(string nil)
-	(style (menu-item-style menu-item)))
+	(style (menu-item-text-style menu-item)))
     (cond ((stringp display)
 	   (setq string display))
 	  ;; This is a [horrible] kludge to get around the fact
@@ -198,13 +211,13 @@
      ;; In case we need to "compile" the menu on the fly
      (items :initarg :items)
      (default-item :initarg :default-item)
-     (default-style :initarg :default-style)
+     (text-style :initarg :text-style)
      (printer :initarg :printer)
      (presentation-type :initarg :presentation-type)
      (drawer-args :initarg :drawer-args)))
 
 (defgeneric menu-choose (items &rest keys
-			 &key associated-window default-item default-style
+			 &key associated-window text-style default-item
 			      label printer presentation-type
 			      cache unique-id id-test cache-value cache-test
 			      max-width max-height n-rows n-columns
@@ -215,21 +228,21 @@
 ;; Are these reasonable defaults for UNIQUE-ID, CACHE-VALUE, ID-TEST, and CACHE-TEST?
 (defmethod menu-choose ((items t) &rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
-			     default-item default-style
+			     text-style default-item
 			     label printer presentation-type
 			     (cache nil) (unique-id items) (id-test #'equal)
 			     (cache-value items) (cache-test #'equal)
 			     max-width max-height n-rows n-columns
-			     x-spacing y-spacing 
+			     x-spacing y-spacing (row-wise nil)
 			     (cell-align-x ':left) (cell-align-y ':top)
 			     pointer-documentation)
   (declare (values value chosen-item gesture))
   (declare (ignore associated-window
-		   default-item default-style
+		   text-style default-item
 		   label printer presentation-type
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
-		   x-spacing y-spacing cell-align-x cell-align-y
+		   x-spacing y-spacing row-wise cell-align-x cell-align-y
 		   pointer-documentation))
   (declare (dynamic-extent keys))
   (unless (zerop (length items))
@@ -241,12 +254,12 @@
 	   ((framem standard-frame-manager) items &rest keys
 	    &key (associated-window
 		   (frame-top-level-sheet *application-frame*))
-		 default-item default-style
+		 text-style default-item
 		 label printer presentation-type
 		 (cache nil) (unique-id items) (id-test #'equal)
 		 (cache-value items) (cache-test #'equal)
 		 max-width max-height n-rows n-columns
-		 x-spacing y-spacing 
+		 x-spacing y-spacing (row-wise nil)
 		 (cell-align-x ':left) (cell-align-y ':top)
 		 pointer-documentation)
   (declare (values value chosen-item gesture))
@@ -260,10 +273,9 @@
 	  ;; Lucid production compiler tries to use an undefined internal
 	  ;; variable if this LET isn't done.
 	  #+Lucid (items items))
-      (with-menu (menu associated-window)
-	(setf (window-label menu) label)
+      (with-menu (menu associated-window :label label)
 	(reset-frame (pane-frame menu) :title label)
-	(with-text-style (menu default-style)
+	(with-text-style (menu text-style)
 	  (with-end-of-line-action (menu :allow)
 	    (loop
 	      (multiple-value-bind (item gesture)
@@ -273,6 +285,7 @@
 					       :max-width max-width :max-height max-height
 					       :n-rows n-rows :n-columns n-columns
 					       :x-spacing x-spacing :y-spacing y-spacing 
+					       :row-wise row-wise
 					       :cell-align-x cell-align-x
 					       :cell-align-y cell-align-y)))
 		    (declare (dynamic-extent #'menu-choose-body))
@@ -383,7 +396,7 @@
 	(with-menu-as-popup (menu)
 	  (position-sheet-near-pointer
 	    (frame-top-level-sheet (pane-frame menu)) x-position y-position)
-	  (window-expose menu)
+	  (setf (window-visibility menu) t)
  	  ;;--- If we have windows with backing store then we dont get
  	  ;;--- exposure event and so nothing appears
  	  #+Allegro (replay (stream-output-history menu) menu)
@@ -398,16 +411,12 @@
 	    (with-input-context (presentation-type :override T)
 				(object type gesture)
 		 (labels ((input-wait-test (menu)
-			    ;; Wake up if the menu becomes buried, or
-			    ;; if highlighting is needed
-			    ;; this screws up in Allegro because
-			    ;; querying the server in the wait
-			    ;; function screws event handling.
+			    ;; Wake up if the menu becomes buried, or if highlighting
+			    ;; is needed.
+			    ;;--- This screws up in Allegro because querying the server
+			    ;;--- in the wait function screws event handling.
 			    (or #-Allegro 
 				(and *abort-menus-when-buried*
-				     #+Cloe-Runtime
-				     (not (stream-has-input-focus menu))
-				     #-Cloe-Runtime
 				     (not (window-visibility menu)))
 				(pointer-motion-pending menu)))
 			  (input-wait-handler (menu)
@@ -437,14 +446,14 @@
 (defun hierarchical-menu-choose (items
 				 &key (associated-window
 					(frame-top-level-sheet *application-frame*))
-				      default-item default-style
+				      text-style default-item
 				      label printer presentation-type
 				      x-position y-position
 				      (cache nil)
 				      (unique-id items) (id-test #'equal)
 				      (cache-value items) (cache-test #'equal)
 				      max-width max-height n-rows n-columns
-				      x-spacing y-spacing 
+				      x-spacing y-spacing (row-wise nil)
 				      (cell-align-x ':left) (cell-align-y ':top))
   (declare (values value chosen-item gesture))
   (flet ((present-item (item stream)
@@ -453,9 +462,8 @@
     (let ((item-printer (cond (presentation-type #'present-item)
 			      (printer printer)
 			      (t #'print-menu-item))))
-      (with-menu (menu associated-window)
-	(setf (window-label menu) label)
-	(with-text-style (menu default-style)
+      (with-menu (menu associated-window :label label)
+	(with-text-style (menu text-style)
 	  (multiple-value-bind (item gesture)
 	      (flet ((menu-choose-body (stream presentation-type)
 		       (draw-standard-menu stream presentation-type items default-item
@@ -463,6 +471,7 @@
 					   :max-width max-width :max-height max-height
 					   :n-rows n-rows :n-columns n-columns
 					   :x-spacing x-spacing :y-spacing y-spacing 
+					   :row-wise row-wise
 					   :cell-align-x cell-align-x
 					   :cell-align-y cell-align-y)))
 		(declare (dynamic-extent #'menu-choose-body))
@@ -480,7 +489,7 @@
 		     (hierarchical-menu-choose
 		       (menu-item-items item)
 		       :associated-window associated-window
-		       :default-style default-style
+		       :text-style text-style
 		       :x-position mr :y-position mt
 		       :cache cache
 		       :unique-id unique-id :id-test id-test
@@ -497,29 +506,29 @@
 
 (defmacro define-static-menu (name root-window items
 			      &rest keys
-			      &key default-item default-style
+			      &key text-style default-item
 				   printer presentation-type
 				   max-width max-height n-rows n-columns
-				   x-spacing y-spacing 
+				   x-spacing y-spacing (row-wise nil)
 				   (cell-align-x ':left) (cell-align-y ':top))
   (declare (ignore max-width max-height n-rows n-columns
-		   x-spacing y-spacing cell-align-x cell-align-y))
+		   x-spacing y-spacing row-wise cell-align-x cell-align-y))
   (with-keywords-removed (drawer-keys keys
-			  '(:default-item :default-style :printer :presentation-type))
+			  '(:text-style :default-item :printer :presentation-type))
     `(defvar ,name (define-static-menu-1 ',name ,root-window ',items
 					 :default-item ',default-item
-					 :default-style ',default-style
+					 :text-style ',text-style
 					 :presentation-type ',presentation-type
 					 :printer ',printer
 					 :drawer-args ,(copy-list drawer-keys)))))
 
 (defun define-static-menu-1 (name root-window items
-			     &key default-item default-style
+			     &key text-style default-item
 				  printer presentation-type
 				  drawer-args)
   (let ((menu-contents nil)
 	(default-presentation nil))
-    (when (typep root-window 'window-mixin)
+    (when (windowp root-window)
       ;; Build the static menu if we can
       (flet ((present-item (item stream)
 	       (present item presentation-type :stream stream)))
@@ -528,7 +537,7 @@
 				  (printer printer)
 				  (t #'print-menu-item))))
 	  (with-menu (menu root-window)
-	    (with-text-style (menu default-style)
+	    (with-text-style (menu text-style)
 	      (with-end-of-line-action (menu :allow)
 		(with-output-recording-options (menu :draw nil :record t)
 		  (setq menu-contents
@@ -546,7 +555,7 @@
       ;; Save this in case we have to rebuild the menu
       :items items
       :default-item default-item
-      :default-style default-style
+      :text-style text-style
       :printer printer
       :presentation-type presentation-type
       :drawer-args drawer-args)))
@@ -555,7 +564,7 @@
 (defmethod menu-choose ((static-menu static-menu)
 			&rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
-			     label default-style pointer-documentation
+			     label text-style pointer-documentation
 			&allow-other-keys)
   (declare (values value chosen-item gesture))
   (declare (dynamic-extent keys))
@@ -566,20 +575,19 @@
 		(null menu-contents))
 	;; If the root for the static menu is not the current root or the static
 	;; menu has never been filled in, then we have to recompute its contents.
-	(with-slots (default-item default-style printer presentation-type drawer-args)
+	(with-slots (default-item text-style printer presentation-type drawer-args)
 		    static-menu
 	  (let ((new-menu (define-static-menu-1 name this-root items
 						:default-item default-item
-						:default-style default-style
+						:text-style text-style
 						:printer printer 
 						:presentation-type presentation-type
 						:drawer-args drawer-args)))
 	    (setq menu-contents (slot-value new-menu 'menu-contents)
 		  default-presentation (slot-value new-menu 'default-presentation)
 		  root-window this-root)))))
-    (with-menu (menu associated-window)
-      (setf (window-label menu) label)
-      (with-text-style (menu default-style)
+    (with-menu (menu associated-window :label label)
+      (with-text-style (menu text-style)
 	(multiple-value-bind (item gesture)
 	    (menu-choose-from-drawer 
 	      menu 'menu-item #'false		;the drawer never gets called

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.13 92/10/02 15:20:04 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.14 92/10/28 11:32:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -110,7 +110,7 @@
 (defmethod map-over-table-elements-helper
 	   (function (record output-record-mixin) type)
   (declare (dynamic-extent function))
-  ;; recurse into this guy
+  ;; Recurse into this guy
   (map-over-table-elements function record type))
 
 (defmethod map-over-table-elements-helper
@@ -159,12 +159,12 @@
 (defmethod tree-recompute-extent-1 ((record output-record-element-mixin))
   (bounding-rectangle* record))
 
-;;; Cells have been positioned manually, probably.
-;;; Also, this should probably be an :around method so that we can 
-;;; drag the circle inside a cell and have the cell get updated automatically.
-;;; Some extra bit will be needed.
-;;; Until we do this, only table formatting really works (and arbitrary dragging
-;;; of things above cells.
+;; Cells have been positioned manually, probably.
+;; Also, this should probably be an :around method so that we can 
+;; drag the circle inside a cell and have the cell get updated automatically.
+;; Some extra bit will be needed.
+;; Until we do this, only table formatting really works (and arbitrary dragging
+;; of things above cells.
 (defmethod tree-recompute-extent-1 ((record standard-cell-output-record))
   (bounding-rectangle* record))
 
@@ -222,7 +222,7 @@
 )
 
 (defun compute-row-table-p (table)
-  ;; find the first thing.
+  ;; Find the first thing
   (flet ((find-row-or-column (row-or-column)
 	   (return-from compute-row-table-p
 	     (values (row-output-record-p row-or-column)))))
@@ -234,7 +234,7 @@
     (cond ((not (eq row-table-p ':unknown))
 	   row-table-p)
 	  (t
-	   (setf row-table-p (compute-row-table-p table))))))
+	   (setq row-table-p (compute-row-table-p table))))))
 
 ;; How can we make compute-output-size work without saving both an ink-rectangle
 ;; and a whitespace rectangle for each output record?
@@ -264,7 +264,7 @@
 	       (assert (cell-output-record-p cell))
 	       (incf cells)))
       (declare (dynamic-extent #'count-rows #'count-cells))
-      ;; calculate nrows & ncells (= ncells per row)
+      ;; Calculate nrows & ncells (= ncells per row)
       (funcall table-mapper #'count-rows table))
     ;; If there are no rows, COUNT-ROWS won't get invoked and NCELLS
     ;; will be NIL.  If all the rows and columns are empty, NCELLS will
@@ -332,7 +332,7 @@
 		     (let ((this-row-height (row-max-height row-count))
 			   (this-column-width (column-max-width column-count)))
 		       (declare (type coordinate this-row-height this-column-width))
-		       ;; all numbers are in (output-record-parent table) coordinates
+		       ;; All numbers are in (output-record-parent table) coordinates
 		       (if row-table-p (setq column-count -1) (setq row-count -1))
 		       (setq total-width x-pos
 			     total-height y-pos)
@@ -382,7 +382,7 @@
 	      (funcall table-mapper #'row-mapper table)))))))
   (tree-recompute-extent table))
 
-;;; Table has already been laid out.
+;; Table has already been laid out.
 (defmethod adjust-multiple-columns ((table standard-table-output-record) stream
 				    &optional n-columns x-spacing)
   (let ((row-count 0))
@@ -537,7 +537,7 @@
   ;; of a slow MAKE-INSTANCE.  If this body was just expanded inline in
   ;; FORMATTING-CELL, it would just work to slip the IF and simply call
   ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
-  (let ((stream (or *original-stream* stream)))
+  (let ((stream (encapsulated-stream stream)))
     (multiple-value-bind (x y) (stream-cursor-position stream)
       (prog1
 	(if (eq record-type 'standard-cell-output-record)
@@ -572,26 +572,27 @@
       (max-width :initarg :max-width)
       (max-height :initarg :max-height)
       (stream-width :initarg :stream-width)
-      (stream-height :initarg :stream-height))
+      (stream-height :initarg :stream-height)
+      (row-wise :initarg :row-wise))
   (:default-initargs :size 25 :n-columns nil :n-rows nil
 		     :max-width nil :max-height nil
-		     :stream-width nil :stream-height nil))
+		     :stream-width nil :stream-height nil
+		     :row-wise t))
 
 (define-output-record-constructor standard-item-list-output-record
 				  (&key x-position y-position x-spacing y-spacing
 					initial-spacing n-columns n-rows
 					max-width max-height stream-width stream-height
-					(size 25))
+					(row-wise t) (size 25))
   :x-position x-position :y-position y-position
   :x-spacing x-spacing :y-spacing y-spacing :initial-spacing initial-spacing
   :n-columns n-columns :n-rows n-rows :max-width max-width :max-height max-height
-  :stream-width stream-width :stream-height stream-height :size size)
+  :stream-width stream-width :stream-height stream-height :row-wise row-wise :size size)
 
 (defmethod children-never-overlap-p ((record standard-item-list-output-record)) t)
 
-;;; map-over-TABLE-cells??
-#+Genera (zwei:defindentation (map-over-menu-cells 1 1))
-(defmethod map-over-menu-cells ((menu standard-item-list-output-record) function)
+#+Genera (zwei:defindentation (map-over-item-list-cells 1 1))
+(defmethod map-over-item-list-cells ((menu standard-item-list-output-record) function)
   (declare (dynamic-extent function))
   (map-over-table-elements function menu 'cell))
 
@@ -610,8 +611,9 @@
 	(x-spacing (slot-value menu 'x-spacing))
 	(y-spacing (slot-value menu 'y-spacing))
 	(initial-spacing (slot-value menu 'initial-spacing))
-	(max-width (slot-value menu 'max-width))	;don't make menu
-	(max-height (slot-value menu 'max-height))	;exceed these bounds
+	(max-width (slot-value menu 'max-width))	;don't make the menu
+	(max-height (slot-value menu 'max-height))	; exceed these bounds
+	(row-wise (slot-value menu 'row-wise))
 	(constrain t)
 	(preferred-geometry 'column)		;vertical menu
 	(golden-ratio 1.6))
@@ -624,29 +626,27 @@
 	       (maxf max-cell-height height)
 	       (incf ncells))))
       (declare (dynamic-extent #'count-cells))
-      (map-over-menu-cells menu #'count-cells))
+      (map-over-item-list-cells menu #'count-cells))
     ;;--- Perhaps we should check that NCELLS is not zero?
     ;;--- PREFERRED-GEOMETRY isn't used yet
     ;; What's the preferred orientation of the menu?
     (unless (or nrows ncolumns)
-      ;; anything explicit overrides
-      (when constrain				;orientation like window orientation.
+      ;; Anything explicit overrides
+      (when constrain				;orientation like window orientation
 	(let ((swidth (slot-value menu 'stream-width))
 	      (sheight (slot-value menu 'stream-height)))
 	  (when (and swidth sheight)
 	    (when (> (/ swidth sheight) golden-ratio)
-	      ;; when the stream is wider than it is high by more than the golden
+	      ;; When the stream is wider than it is high by more than the golden
 	      ;; ratio, make the preferred ordering 'row
 	      (setq preferred-geometry 'row))))))
-    ;; compute geometry
+    ;; Compute geometry
     (cond (ncolumns
-	   (setq nrows (max 1 (ceiling (/ ncells ncolumns))))
-	   ;;
-	   )
+	   (setq nrows (max 1 (ceiling (/ ncells ncolumns)))))
 	  (nrows
 	   (setq ncolumns (max 1 (ceiling (/ ncells nrows)))))
 	  (max-height
-	   ;; could compute this better
+	   ;; Could compute this better
 	   (setq nrows 
 		 (max 1
 		      (let ((acc-height (coordinate 0))
@@ -668,7 +668,7 @@
 					     (when (> acc-width max-width)
 					       (return-from try-one-row nil))))
 				      (declare (dynamic-extent #'sum-width))
-				      (map-over-menu-cells menu #'sum-width))
+				      (map-over-item-list-cells menu #'sum-width))
 				    (max ncells 1)))
 				;; Won't fit in one row, use a more conservative computation
 				;; that uses max-cell-width instead of the actual widths
@@ -682,8 +682,8 @@
 					   (incf count))))))
 	     (setq nrows (max 1 (ceiling (/ ncells ncolumns))))))
 	  (t
-	   ;; try to make this a golden-ratio menu
-	   ;; deduce golden ratio from other parameters
+	   ;; Try to make this a golden-ratio menu
+	   ;; Deduce golden ratio from other parameters
 	   (setq ncolumns (max 1 (floor (sqrt (/ (* ncells
 						    max-cell-width
 						    max-cell-height)
@@ -712,9 +712,9 @@
 		     (incf column-count)
 		     (when (= column-count ncolumns)
 		       (incf row-count)
-		       (setf column-count 0))))
+		       (setq column-count 0))))
 	      (declare (dynamic-extent #'size-cells))
-	      (map-over-menu-cells menu #'size-cells))
+	      (map-over-item-list-cells menu #'size-cells))
 	    ;; Now default the x-spacing to a spacing that spreads the
 	    ;; columns evenly over the entire width of the menu
 	    (unless x-spacing
@@ -770,21 +770,32 @@
 			       cell
 			       (+ x-offset left-margin accumulated-width x-alignment-adjust)
 			       (+ y-offset top-margin accumulated-height y-alignment-adjust))))
-			 (incf accumulated-width (column-width column-count))
-			 (incf accumulated-width x-spacing)
-			 (incf column-count)
-			 (when (= column-count ncolumns)
-			   (setf accumulated-width 
-				 (if (or (stream-redisplaying-p stream) 
-					 (not initial-spacing))
-				     (coordinate 0)
-				     (coordinate x-spacing)))
-			   (incf accumulated-height (row-height row-count))
-			   (incf accumulated-height y-spacing)
-			   (setf column-count 0)
-			   (incf row-count))))
+			 (cond (row-wise
+				(incf accumulated-width (column-width column-count))
+				(incf accumulated-width x-spacing)
+				(incf column-count)
+				(when (= column-count ncolumns)
+				  (setq accumulated-width 
+					(if (or (stream-redisplaying-p stream) 
+						(not initial-spacing))
+					    (coordinate 0)
+					    (coordinate x-spacing)))
+				  (incf accumulated-height (row-height row-count))
+				  (incf accumulated-height y-spacing)
+				  (setq column-count 0)
+				  (incf row-count)))
+			       (t
+				(incf accumulated-height (row-height row-count))
+				(incf accumulated-height y-spacing)
+				(incf row-count)
+				(when (= row-count nrows)
+				  (setq accumulated-height 0)
+				  (incf accumulated-width (column-width column-count))
+				  (incf accumulated-width x-spacing)
+				  (setq row-count 0)
+				  (incf column-count))))))
 		  (declare (dynamic-extent #'adjust-cells))
-		  (map-over-menu-cells menu #'adjust-cells)))))))))
+		  (map-over-item-list-cells menu #'adjust-cells)))))))))
   (tree-recompute-extent menu))
 
 ;; FORMATTING-ITEM-LIST macro in FORMATTED-OUTPUT-DEFS
@@ -792,7 +803,7 @@
 				    &key x-spacing y-spacing initial-spacing
 					 n-columns n-rows 
 					 max-width max-height stream-width stream-height
-					 (move-cursor T) 
+					 (row-wise t) (move-cursor t) 
 					 (record-type 'standard-item-list-output-record))
   (let ((menu 
 	  (with-output-recording-options (stream :draw nil :record t)
@@ -812,7 +823,8 @@
 								    'formatting-item-list
 								    ':y-spacing)
 					       (stream-vertical-spacing stream))
-					 :initial-spacing initial-spacing)
+					 :initial-spacing initial-spacing
+					 :row-wise row-wise)
 		  (funcall continuation stream)))))))
     (adjust-table-cells menu stream)
     (replay menu stream)
@@ -821,7 +833,7 @@
     menu))
 
 (defun format-items (items &key (stream *standard-output*) printer presentation-type
-				x-spacing y-spacing initial-spacing
+				x-spacing y-spacing initial-spacing (row-wise t)
 				n-rows n-columns max-width max-height
 				(record-type 'standard-item-list-output-record)
 				(cell-align-x ':left) (cell-align-y ':top))
@@ -833,7 +845,8 @@
 				:n-rows n-rows :n-columns n-columns
 				:max-width max-width :max-height max-height
 				:x-spacing x-spacing :y-spacing y-spacing
-				:initial-spacing initial-spacing)
+				:initial-spacing initial-spacing
+				:row-wise row-wise)
     (flet ((format-item (item)
 	     (formatting-cell (stream :align-x cell-align-x :align-y cell-align-y)
 	       (cond (printer

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.19 92/10/02 15:19:42 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.20 92/10/28 11:31:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -221,24 +221,29 @@
 		   (write-string (noise-string-display-string noise-string) istream))
 		 (noise-string-unique-id noise-string)))))))
 
-(defmethod stream-accept ((istream input-editing-stream-mixin)
-			  type &rest args &key query-identifier &allow-other-keys)
-  (declare (dynamic-extent args))
+(defmethod stream-accept ((istream input-editing-stream-mixin) type &rest accept-args
+			  &key view &allow-other-keys)
+  (declare (dynamic-extent accept-args))
   (with-slots (input-buffer scan-pointer insertion-pointer
 	       previous-history previous-insertion-pointer) istream
-    (unless (stream-rescanning-p istream)
-      ;; If we're not rescanning, reset these so that m-Y will not work
-      ;; until the user types c-Y or c-m-Y.
-      (setq previous-history nil
-	    previous-insertion-pointer nil))
-    (let ((next-char (and (< scan-pointer insertion-pointer)
-			  (aref input-buffer scan-pointer))))
-      (cond ((and (typep next-char 'accept-result)
-		  (eql (noise-string-unique-id next-char) query-identifier))
-	     (incf scan-pointer)
-	     (values (accept-result-presentation-object next-char)
-		     (accept-result-presentation-type next-char)))
-	    (t (apply #'accept-1 (or *original-stream* istream) type args))))))
+    (let ((query-identifier
+	    (apply #'prompt-for-accept
+		   (encapsulated-stream istream) type view accept-args)))
+      (unless (stream-rescanning-p istream)
+	;; If we're not rescanning, reset these so that m-Y will not work
+	;; until the user types c-Y or c-m-Y.
+	(setq previous-history nil
+	      previous-insertion-pointer nil))
+      (let ((next-char (and (< scan-pointer insertion-pointer)
+			    (aref input-buffer scan-pointer))))
+	(cond ((and (typep next-char 'accept-result)
+		    (eql (noise-string-unique-id next-char) query-identifier))
+	       (incf scan-pointer)
+	       (values (accept-result-presentation-object next-char)
+		       (accept-result-presentation-type next-char)))
+	      (t (apply #'accept-1 (encapsulated-stream istream) type 
+				   :query-identifier query-identifier
+				   accept-args)))))))
 
 (defmethod input-buffer-input-position->cursor-position ((istream input-editing-stream-mixin)
 							 &optional position)
@@ -487,7 +492,8 @@
 		   (stream-process-gesture istream thing type)
 		 (when (and (characterp new-thing)
 			    ;; Don't put things in the buffer that we can't echo later
-			    (ordinary-char-p new-thing)
+			    (or (ordinary-char-p new-thing)
+				(diacritic-char-p new-thing))
 			    (not (activation-gesture-p new-thing)))
 		   ;; If we are inserting multiple copies of this character
 		   ;; we'll need to do a rescan in order to keep user-level
@@ -534,7 +540,8 @@
 				(t (setf insertion-pointer (fill-pointer input-buffer))
 				   (setf activation-gesture new-thing))))
 			 ((or (not (characterp new-thing))
-			      (ordinary-char-p new-thing))
+			      (ordinary-char-p new-thing)
+			      (diacritic-char-p new-thing))
 			  ;; There might be some queued up rescans from destructive
 			  ;; input editing commands, so take care of them now
 			  (rescan-if-necessary istream t)

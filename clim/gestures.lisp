@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.15 92/10/02 15:19:30 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.16 92/10/28 11:31:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -17,12 +17,14 @@
 
 (eval-when (compile load eval)
 
+;; Button indices are 0, 1, or 2
 (defun-inline button-index (name)
   #+Genera (declare lt:(side-effects simple reducible))
   (position name *pointer-buttons*))
 (defun-inline button-index-name (index)
   (aref *pointer-buttons* index))
 
+;; Modifier key indices are 0, 1, 2, 3, or 4
 (defun-inline modifier-key-index (name)
   #+Genera (declare lt:(side-effects simple reducible))
   (position name *modifier-keys*))
@@ -87,7 +89,8 @@
   (do-button-and-modifier-state (button modifier-state bucket)
     (when (member gesture-name bucket)
       (return-from gesture-name-button-and-modifiers
-	(values button modifier-state))))
+	(values (ash 1 (+ (1- (integer-length +pointer-left-button+)) button))
+		modifier-state))))
   nil)
 
 (defun gesture-name-keysym-and-modifiers (gesture-name)
@@ -297,7 +300,8 @@
 				 (#\Escape . :escape)))))
       (cond (entry
 	     (setq keysym (cdr entry)))
-	    ((standard-char-p keysym) 
+	    ((and (characterp keysym)
+		  (standard-char-p keysym)) 
 	     (setq keysym (svref #(:space :\! :\" :\# :\$ :\% :\& :\'
 				   :\( :\) :\* :\+ :\, :\- :\. :\/
 				   :\0 :\1 :\2 :\3 :\4 :\5 :\6 :\7 :\8 :\9

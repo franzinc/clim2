@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.25 92/10/02 15:19:46 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.26 92/10/28 11:31:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -238,11 +238,6 @@
 ;;--- We put these methods on T so that string streams work.
 ;;--- It would be nice to put them on something a bit more specific,
 ;;--- but OUTPUT-PROTOCOL-MIXIN is too specific.  Sigh.
-
-;;; For "normal" output streams, there are no margins.
-(defmethod window-margins ((stream t))
-  (values (coordinate 0) (coordinate 0)
-	  (coordinate 0) (coordinate 0)))
 
 ;;; "Normal" output streams are never recording.
 (defmethod stream-recording-p ((stream t)) nil)
@@ -667,6 +662,7 @@
 		  ((eql write-char #\Tab)
 		   (setf cursor-x (stream-next-tab-column stream cursor-x style))
 		   (maxf largest-x cursor-x))
+		  ((diacritic-char-p write-char))
 		  (t
 		   (multiple-value-bind (new-cursor-x new-cursor-y new-baseline new-height)
 		       (stream-draw-lozenged-character 
@@ -755,14 +751,14 @@
 	  (wrap-p (unless brief-p (eq (stream-end-of-line-action stream) ':wrap))))
       (if brief-p
 	  (values cursor-x cursor-y baseline line-height)
-	(values cursor-x cursor-y baseline line-height
-		(medium-merged-text-style stream)
-		(cond ((and wrap-p
-			    (stream-text-margin stream)))
-		      (t +largest-coordinate+))
-		(stream-recording-p stream)
-		(stream-drawing-p stream)
-		(stream-output-glyph-buffer stream))))))
+	  (values cursor-x cursor-y baseline line-height
+		  (medium-merged-text-style stream)
+		  (cond ((and wrap-p
+			      (stream-text-margin stream)))
+			(t +largest-coordinate+))
+		  (stream-recording-p stream)
+		  (stream-drawing-p stream)
+		  (stream-output-glyph-buffer stream))))))
 
 (defmethod encode-stream-after-writing ((stream output-protocol-mixin) cursor-x cursor-y
 					baseline line-height)
@@ -817,7 +813,9 @@
 	      (declare (type coordinate origin-y bb-y))
 	     (when fixed-width-font-p
 	       (let* ((room-left (- ,max-x ,cursor-x *character-wrap-indicator-width*))
-		      (spaces-left (floor room-left escapement-x))
+		      (spaces-left (if (zerop escapement-x) 
+				       room-left	;diacritic chars have no width
+				       (floor room-left escapement-x)))
 		      (chars-left (- ,end ,start))
 		      (glyphs-left
 			(if max-glyph (- max-glyph next-glyph) most-positive-fixnum))
@@ -830,7 +828,7 @@
 		   (dotimes (i chars-to-do)
 		     (let* ((char (aref ,string (the fixnum (+ ,start i)))))
 		       ;; Stop when we get to an unusual character (e.g. Newline)
-		       (unless (or (graphic-char-p char) (diacritic-char-p char))
+		       (unless (graphic-char-p char)	;excludes diacritics
 			 (return-from scan-for-newlines-etc))
 		       ;; When a glyph-buffer was supplied, store the glyph index into it
 		       (when max-glyph
@@ -1045,7 +1043,7 @@
 ;;; Input Editor support.  This does STREAM-SCAN-STRING-FOR-WRITING and
 ;;; other stuff, and calls the continuation so the Input Editor can know
 ;;; where its strings are on the screen.
-(defmethod do-text-screen-real-estate ((stream output-protocol-mixin) continuation
+(Defmethod do-text-screen-real-estate ((stream output-protocol-mixin) continuation
 				       string start end
 				       cursor-x cursor-y height baseline style max-x)
   ;; Continuation is a function which takes L T R B Baseline
@@ -1097,5 +1095,7 @@
 				       new-cursor-x (+ cursor-y height vsp) baseline)
 		 (setf cursor-x new-cursor-x)
 		 (incf start)))
+	      ((diacritic-char-p write-char)
+	       (incf start))
 	      (t (error "~S found char ~A, and doesn't know what to do."	; ??
 			'do-text-screen-real-estate write-char)))))))

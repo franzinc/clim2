@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.8 92/08/18 17:25:45 cer Exp $
+;; $fiHeader: translators.lisp,v 1.9 92/09/24 09:39:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -50,6 +50,11 @@
 
 (defun-inline presentation-translator-p (object)
   (typep object 'presentation-translator))
+
+(defclass presentation-action (presentation-translator) ())
+
+(defun-inline presentation-action-p (object)
+  (typep object 'presentation-action))
 
 (defmethod presentation-translator-command-name ((translator presentation-translator))
   nil)
@@ -120,7 +125,8 @@
 	    :pointer-documentation ,pointer-documentation
 	    :menu ,menu
 	    :priority ,priority
-	    :tester-definitive t)
+	    :tester-definitive t
+	    :translator-class presentation-action)
 	   ,arglist
 	 ,@body))))
 
@@ -166,7 +172,7 @@
     (check-type documentation (or string symbol list))
     (check-type pointer-documentation (or string symbol list))
     (check-type menu symbol)
-    (check-type priority (or null integer))
+    (check-type priority (or null (integer 0)))
     (check-type translator-class (or null symbol))
     (let ((defining-forms nil)
 	  (translator-functions nil))
@@ -567,14 +573,15 @@
 	     (when (eq documentation-type :from-body)
 	       ;; In general, it is not safe to run the body of a translator to get
 	       ;; its documentation, but sometimes that's the only way.  Command
-	       ;; menus are one such example.  (Beware of side-effects from actions.)
-	       (catch 'no-translation		;catch simple action errors
-		 (multiple-value-bind (translated-object translated-type)
-		     (call-presentation-translator translator presentation context-type
-						   frame event window x y)
-		   (present translated-object (or translated-type context-type)
-			    :stream stream :view +pointer-documentation-view+)
-		   (return-from document-presentation-translator (values)))))
+	       ;; menus are one such example.
+	       (unless (presentation-action-p translator)
+		 (catch 'no-translation		;just in case...
+		   (multiple-value-bind (translated-object translated-type)
+		       (call-presentation-translator translator presentation context-type
+						     frame event window x y)
+		     (present translated-object (or translated-type context-type)
+			      :stream stream :view +pointer-documentation-view+)
+		     (return-from document-presentation-translator (values))))))
 	     ;; If we didn't get asked to run the body for the purpose of command
 	     ;; menus, then we might be able to take a different kind of short
 	     ;; cut for to-command translators.

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: formatted-output-defs.lisp,v 1.5 92/09/24 09:38:45 cer Exp $
+;; $fiHeader: formatted-output-defs.lisp,v 1.6 92/10/02 15:19:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -57,11 +57,11 @@
 				      n-columns n-rows
 				      max-width max-height
 				      stream-width stream-height
-				      (move-cursor T))
+				      (row-wise t) (move-cursor t))
 				&body body)
   (declare (ignore x-spacing y-spacing initial-spacing
 		   record-type n-columns n-rows max-width max-height
-		   stream-width stream-height move-cursor))
+		   stream-width stream-height row-wise move-cursor))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-item-list)
   `(flet ((formatting-item-list-body (,stream) ,@body))

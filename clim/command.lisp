@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.16 92/09/08 15:17:31 cer Exp $
+;; $fiHeader: command.lisp,v 1.17 92/09/24 09:38:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -575,7 +575,7 @@
 					n-rows n-columns
 					x-spacing y-spacing 
 					(cell-align-x ':left) (cell-align-y ':top)
-					(initial-spacing t) move-cursor)
+					(initial-spacing t) (row-wise nil) move-cursor)
   (unless (or max-width max-height)
     (multiple-value-bind (width height)
 	(bounding-rectangle-size (sheet-region stream))
@@ -589,7 +589,7 @@
 				      :n-rows n-rows :n-columns n-columns
 				      :x-spacing x-spacing :y-spacing y-spacing
 				      :initial-spacing initial-spacing
-				      :move-cursor move-cursor)
+				      :row-wise row-wise :move-cursor move-cursor)
 	  (dovector (element menu)
 	    (cond ((eq (command-menu-item-type (third element)) :divider)
 		   (typecase (first element)
@@ -623,15 +623,14 @@
 (defun menu-execute-command-from-command-table
        (command-table
 	&key (associated-window (frame-top-level-sheet *application-frame*))
-	     (default-style *command-table-menu-text-style*) label
+	     (text-style *command-table-menu-text-style*) label
 	     cache (unique-id command-table) (id-test #'eql) cache-value (cache-test #'eql))
   (setq command-table (find-command-table command-table))
   (unless cache-value
     (setq cache-value (slot-value command-table 'menu-tick)))
   (let ((menu-items (slot-value command-table 'menu)))
-    (with-menu (menu associated-window)
-      (setf (window-label menu) label)
-      (with-text-style (menu default-style)
+    (with-menu (menu associated-window :label label)
+      (with-text-style (menu text-style)
 	(flet ((menu-choose-body (stream type)
 		 (declare (ignore type))
 		 (menu-choose-command-drawer stream menu-items nil)))
@@ -647,15 +646,14 @@
 (defun menu-choose-command-from-command-table
        (command-table
 	&key (associated-window (frame-top-level-sheet *application-frame*))
-	     (default-style *command-table-menu-text-style*) label
+	     (text-style *command-table-menu-text-style*) label
 	     cache (unique-id command-table) (id-test #'eql) cache-value (cache-test #'eql))
   (setq command-table (find-command-table command-table))
   (unless cache-value
     (setq cache-value (slot-value command-table 'menu-tick)))
   (let ((menu-items (slot-value command-table 'menu)))
-    (with-menu (menu associated-window)
-      (setf (window-label menu) label)
-      (with-text-style (menu default-style)
+    (with-menu (menu associated-window :label label)
+      (with-text-style (menu text-style)
 	(flet ((menu-choose-body (stream type)
 		 (menu-choose-command-drawer stream menu-items type)))
 	  (declare (dynamic-extent #'menu-choose-body))
