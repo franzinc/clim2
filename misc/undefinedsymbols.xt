@@ -1,0 +1,5 @@
+_XtGetConstraintResourceList
+_XtGetResourceList
+_XtGetValues
+_XtSetValues
+_XtSetSensitive
