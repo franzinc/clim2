@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Tue Jun  2 14:04:49 1998 by layer]-
+;;				-[Mon Jul 06 10:55:05 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,11 +19,14 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.1.4.2 1998/07/06 17:41:37 layer Exp $
+;; $Id: last.lisp,v 1.1.4.3 1998/07/06 19:35:00 layer Exp $
 
 (in-package :system)
 
+#-(version>= 5 0 pre-final 6)
 (load-patches "patch" "sys:;update-clim;*.fasl")
+#+(version>= 5 0 pre-final 6)
+(load-patches)
 
 (provide
  #+mswindows :climxm

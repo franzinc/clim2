@@ -11,6 +11,14 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.24
+
+Mon Jul 06 12:36:16 1998    <layer@HOBART>
+
+	* utils/last.lisp: conditionalize load-patches call based on
+	version of lisp
+
+*******************************************************************************
 2.2.1.23
 
 Mon July 1  1998  
