@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.12 93/03/04 19:00:14 colin Exp $
+;; $fiHeader: text-formatting.lisp,v 1.13 1993/07/27 01:41:30 colin Exp $
 
 (in-package :clim-internals)
 
@@ -243,8 +243,8 @@
 				      :indentation indentation)
 	       (with-new-output-record (stream)
 		 (funcall continuation stream))))))
-    (multiple-value-bind (x y) (output-record-position indenting-record)
-      (output-record-set-position indenting-record (+ x indentation) y))
+    (multiple-value-bind (x y) (output-record-start-cursor-position indenting-record)
+      (output-record-set-start-cursor-position indenting-record (+ x indentation) y))
     (tree-recompute-extent indenting-record)
     (replay indenting-record stream)
     (when move-cursor

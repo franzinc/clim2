@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.48 1993/08/12 16:04:48 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.49 1993/09/17 19:06:49 cer Exp $
 
 (in-package :tk)
 
@@ -747,3 +747,45 @@
     (1 :gray-scale)
     (3 :pseudo-color)
     (5 :direct-color)))
+
+;;; limited cut buffer support
+
+(defun store-cut-buffer (display string)
+  ;; clear any existing selection
+  (x11:xsetselectionowner
+   display
+   x11:xa-primary
+   x11:none
+   x11:currenttime)
+  (x11:xchangeproperty
+   display
+   (x11:xdefaultrootwindow display)
+   x11:xa-cut-buffer0
+   x11:xa-string
+   8
+   x11:propmodereplace
+   string
+   (length string)))
+
+(defun get-cut-buffer (display)
+  (let ((string (make-string 1024)))
+    (with-ref-par
+	((actual-type 0)
+	 (actual-format 0)
+	 (nitems 0)
+	 (bytes-after 0)
+	 (prop 0))
+      (x11:xgetwindowproperty 
+       display
+       (x11:xdefaultrootwindow display)
+       x11:xa-cut-buffer0
+       0
+       256
+       0
+       x11:anypropertytype
+       actual-type
+       actual-format
+       nitems
+       bytes-after
+       prop)
+      (char*-to-string (aref prop 0)))))

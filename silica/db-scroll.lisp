@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.48 1993/08/12 16:04:10 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.49 1993/10/25 16:16:05 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -258,7 +258,7 @@
 			    region)
 		  (repaint-sheet sheet region)))))
 	  (let ((frame (pane-frame sheet)))
-	    (when (and (/= left x) (/= top y) frame)
+	    (when frame
 	      (note-viewport-position-changed frame sheet x y))))))))
 
 (defmethod note-viewport-position-changed (frame pane x y)

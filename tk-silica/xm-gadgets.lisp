@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.82 1993/09/17 19:07:10 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.83 1993/10/25 16:16:42 cer Exp $
 
 (in-package :xm-silica)
 
@@ -492,31 +492,30 @@
                                                      (parent t)
                                                      (sheet top-level-sheet))
 
-  (cond 
-   ;;--- hack alert
-   ;; Seems that we need to use a bulletin board so that everything
-   ;; comes up in the right place.
-   ((popup-frame-p sheet)
-    (values 'tk::xm-bulletin-board
-	    (list :margin-width 0 :margin-height 0
-		  ;; We specify NIL for accelerators otherwise the
-		  ;; bulletin board messes with the event handling of
-		  ;; its drawing area children
-		  :accelerators nil
-		  ;; Prevents buttons from deactivating dialog
-		  :dialog-style :primary-application-modal
-		  :auto-unmanage nil
-		  :resize-policy :none
-		  :name (if (pane-frame sheet)
-			    (string (frame-name (pane-frame sheet)))
-			    "a CLIM pop-up"))))
-   (t
-    (values 'tk::xm-my-drawing-area 
-            (list :resize-policy :none
-                  :name (if (pane-frame sheet)
-                            (string (frame-name (pane-frame sheet)))
-                            "a CLIM sheet")
-                  :margin-width 0 :margin-height 0)))))
+  (let* ((frame (pane-frame sheet))
+	 (name (and frame
+		    (frame-name frame))))
+    (cond 
+     ;;--- hack alert
+     ;; Seems that we need to use a bulletin board so that everything
+     ;; comes up in the right place.
+     ((popup-frame-p sheet)
+      (values 'tk::xm-bulletin-board
+	      (list :margin-width 0 :margin-height 0
+		    ;; We specify NIL for accelerators otherwise the
+		    ;; bulletin board messes with the event handling of
+		    ;; its drawing area children
+		    :accelerators nil
+		    ;; Prevents buttons from deactivating dialog
+		    :dialog-style :primary-application-modal
+		    :auto-unmanage nil
+		    :resize-policy :none
+		    :name name)))
+     (t
+      (values 'tk::xm-my-drawing-area 
+	      (list :resize-policy :none
+		    :name name
+		    :margin-width 0 :margin-height 0))))))
 
 ;;;;;;;;;;;;;;;;
 
@@ -1251,7 +1250,7 @@
 				       '(:exit
 					 :abort
 					 :help))
-                                      (name title))
+                                      (name :notify-user))
   (let ((dialog (apply #'make-instance (ecase style
 					 (:inform 'tk::xm-information-dialog)
 					 (:error 'tk::xm-error-dialog)
@@ -1394,7 +1393,7 @@
 				  directory-list-label
 				  file-list-label
 				  (exit-boxes '(:exit :abort :help))
-				  (name title)
+				  (name :select-file)
 				  directory
 				  pattern
 				  text-style)

@@ -1,3 +1,60 @@
+from colin: Mon Oct 25 20:19:08 PDT 1993
+
+Makefile.defs
+- added -backtrace-on-error to training
+
+clim/command.lisp
+- fixed bad delete in remove-presentation-translator-from-command-table 
+- fixed pointer-documentation bug in write-command-argument-translators
+
+clim/coordinate-sorted-set.lisp
+- added a recompute-extent-for-changed-child :after method to reposition
+  output record in vector when it moves
+
+clim/recording-protocol.lisp
+- added convert-from-child-to-parent-coordinates
+- fixed recompute-extent-for-changed-child
+- fixed a bunch of functions doing incorrect translations before
+  calling recompute-extent-for-changed-child
+
+clim/table-formatting.lisp
+- changed tree-recompute-extent-1 (output-record-mixin)
+
+clim/text-formatting.lisp
+- fixed invoke-indenting-output when cursor-x-pos non 0
+
+clim/text-recording.lisp
+- fixed call to recompute-extent-for-changed-child
+
+demo/demo-driver.lisp
+- added :background arg to run-demo
+- fixed up *package* for background processes
+
+demo/graphics-editor.lisp
+- added :initial-cursor-visibility nil
+
+demo/db-scroll.lisp
+- fixed scroll-extent so that it calls note-viewport-position-changed when
+  pane scrolls 
+
+tk/convenience.lisp tk/make-classes.lisp tk/make-widget.lisp
+tk/ol-init.lisp tk/ol-widgets.lisp tk/widget.lisp, tk/xm-widgets.lisp,
+tk-silica/xm-gadgets.lisp tk-silica/xt-gadgets.lisp tk-silica/xm-frames.lisp 
+- various changes to handle :name correctly - ie translate lisp name to tk
+  name sensibly
+
+tk-silica/xt-gadgets.lisp
+- added method mirror-region* (xt-port xt-top-level-sheet)
+
+
+tk-silica/ol-gadgets.lisp, tk-silica/xm-frames.lisp
+- :divider type for command-menu-items now handles :value of :line
+
+tk/xlib.lisp
+- added support for X cut-buffer
+
+-------------------------------------------------------------------------------
+
 from cer: Mon Oct 25 09:13:49 PDT 1993
 
 Makefile.defs			Removed clim-motif_d.o from default build

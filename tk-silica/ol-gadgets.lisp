@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.60 1993/09/17 19:07:01 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.61 1993/10/25 16:16:36 cer Exp $
 
 
 (in-package :xm-silica)
@@ -404,7 +404,7 @@
 			     (apply #'make-instance 'xt::static-text
 					    :parent parent
 					    :string (ecase (command-menu-item-value item)
-						      ((nil :divider) " ")
+						      ((nil :line) " ")
 						      (:label menu))
 					    (compute-options item))))
 			  (:function

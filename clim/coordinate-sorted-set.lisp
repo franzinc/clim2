@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.7 92/12/03 10:26:12 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.8 1993/07/27 01:38:37 colin Exp $
 
 (in-package :clim-internals)
 
@@ -62,6 +62,52 @@
     ;; Release pointers to objects
     (fill coordinate-sorted-set nil :start 0 :end fill-pointer)
     (setf fill-pointer 0)))
+
+(defmethod recompute-extent-for-changed-child :after
+	   ((record standard-tree-output-record) child
+	    old-left old-top old-right old-bottom)
+  (declare (ignore old-left old-top old-right old-bottom))
+  (with-slots (coordinate-sorted-set fill-pointer tallest-box-height) record
+    (maxf tallest-box-height (bounding-rectangle-height child))
+    (with-bounding-rectangle* (left top right bottom) child
+      (declare (ignore left top))
+      (let ((fp fill-pointer)
+	    (vector coordinate-sorted-set))
+	(declare (type simple-vector vector) (type fixnum fp))
+	(unless (eql fp 1)
+	  (let ((old-index
+		 (or (coordinate-sorted-set-position
+		      child vector fp)
+		     ;; If we couldn't find it with the binary search, try
+		     ;; again the hard way.  If these things were more
+		     ;; disciplined with respect to managing overlapping
+		     ;; records, we wouldn't have to resort to this.
+		     (position child vector))))
+	    (declare (type fixnum old-index))
+	    (when old-index
+	      (let ((new-index (coordinate-sorted-set-index-for-position
+				vector right bottom 0 fp)))
+		(declare (type fixnum new-index))
+		(unless (eql old-index new-index)
+		  ;; Effectively child is removed from position
+		  ;; old-index and then added at new-index. However
+		  ;; the following code does both of these in one
+		  ;; operation. The removal operation would cause all
+		  ;; indices to the right to be offset by one - so
+		  ;; when new-index is greater than old-index we must
+		  ;; decrement it in order to get the right place (cim)
+		  (when (> new-index old-index)
+		    (decf new-index))
+		  (let ((d (signum (- new-index old-index))))
+		    (declare (type fixnum d))
+		    (do* ((i old-index j)
+			  (j (+ i d) (+ i d)))
+			((eql i new-index))
+		      (declare (type fixnum i j)
+			       (optimize (speed 3) (safety 0)))
+		      (setf (svref vector i) (svref vector j))))
+		  (setf (svref vector new-index) child))))))))))
+
 
 (defmethod add-output-record (child (record standard-tree-output-record))
   (with-slots (coordinate-sorted-set fill-pointer tallest-box-height) record

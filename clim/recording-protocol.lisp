@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.36 1993/09/17 19:05:23 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.37 1993/10/25 16:15:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -297,8 +297,8 @@
 (defun offset-region-contains-position-p (region xoff yoff x y)
   (declare (type coordinate xoff yoff x y))
    (with-bounding-rectangle* (left top right bottom) region
-     (ltrb-contains-position-p (+ left xoff) (+ top yoff) (+ right xoff) (+ bottom yoff)
-			       x y)))
+     (ltrb-contains-position-p left top right bottom
+			       (- x xoff) (- y yoff))))
 
 ;;; This maps over all of the children of the record
 #+Genera (zwei:defindentation (map-over-output-records 1 1))
@@ -503,6 +503,13 @@
 	     (declare (type coordinate our-x our-y))
 	     (values (+ our-x x) (+ our-y y)))))))
 
+;; CONVERT-FROM-CHILD-TO-PARENT-COORDINATE returns an x,y offset pair
+;; that can be ADDED to any coordinates relative to RECORD in
+;; order to get coordinates relative to the parent of RECORD
+
+(defun-inline convert-from-child-to-parent-coordinates (record)
+  (output-record-position record))
+  
 
 ;;; Rest of stuff started in clim-defs...
 (defun construct-output-record-1 (type &rest initargs)
@@ -723,22 +730,21 @@
 (defmethod recompute-extent-for-changed-child ((record output-record-mixin) child
 					       old-left old-top old-right old-bottom)
   (declare (type coordinate old-top old-right old-bottom))
-  ;; old edges are passed in parent's coordinate system because
-  ;; their reference point may have changed.
   ;; (assert (child-completely-contained-within-extent-of record child))
-  (with-slots (parent) record
-    (with-bounding-rectangle* (left top right bottom) record
-      ;; We must recompute the extent if the child is not completely contained
-      ;; or if it used to "define" one of the old edges.
-      ;; A picture would help, but we're not going to draw it here. (:-)
-      (multiple-value-bind (xoff yoff)
-	  (convert-from-descendant-to-ancestor-coordinates record parent)
-	(when (or (not (region-contains-offset-region-p record child xoff yoff))
-		  (= old-left left)
-		  (= old-top top)
-		  (= old-right right)
-		  (= old-bottom bottom))
-	  (recompute-extent record))))))
+  (with-bounding-rectangle* (left top right bottom) record
+    ;; We must recompute the extent if the child is not completely contained
+    ;; or if it used to "define" one of the old edges.
+    ;; A picture would help, but we're not going to draw it here. (:-)
+    (multiple-value-bind (xoff yoff)
+	(convert-from-child-to-parent-coordinates record)
+      (translate-coordinates xoff yoff
+			     old-left old-top old-right old-bottom)
+      (when (or (not (region-contains-offset-region-p record child xoff yoff))
+		(= old-left left)
+		(= old-top top)
+		(= old-right right)
+		(= old-bottom bottom))
+	(recompute-extent record)))))
 
 (defmethod recompute-extent ((record output-record-mixin))
   (with-slots (parent) record
@@ -765,7 +771,7 @@
 	  (declare (dynamic-extent #'recompute-extent-of-child))
 	  (map-over-output-records #'recompute-extent-of-child record))
 	(multiple-value-bind (xoff yoff)
-	    (convert-from-descendant-to-ancestor-coordinates record parent)
+	    (convert-from-child-to-parent-coordinates record)
 	  (declare (type coordinate xoff yoff))
 	  (if once
 	      (progn (assert (ltrb-well-formed-p min-x min-y max-x max-y))
@@ -776,10 +782,7 @@
 	      ;; No children
 	      (bounding-rectangle-set-edges record
 					    (coordinate 0) (coordinate 0)
-					    (coordinate 0) (coordinate 0)))
-	  ;; Pass these coordinates in parent's coordinate system (I think)
-	  (translate-coordinates xoff yoff
-	    old-left old-top old-right old-bottom))
+					    (coordinate 0) (coordinate 0))))
 	(when parent
 	  (recompute-extent-for-changed-child
 	    parent record old-left old-top old-right old-bottom))))))
@@ -793,11 +796,9 @@
 	    (old-bottom bottom))
 	(with-bounding-rectangle* (eleft etop eright ebottom) child
 	  (multiple-value-bind (xoff yoff)
-	      (convert-from-descendant-to-ancestor-coordinates record parent)
+	      (convert-from-child-to-parent-coordinates record)
 	    (translate-coordinates xoff yoff
-	      eleft etop eright ebottom
-	      ;; pass these coordinates in parent's coordinate system.
-	      old-left old-top old-right old-bottom))
+	      eleft etop eright ebottom))
 	  (cond ((= (output-record-count record :fastp t) 1)
 		 (bounding-rectangle-set-edges record eleft etop eright ebottom))
 		(t (bounding-rectangle-set-edges record
@@ -811,12 +812,6 @@
 (defmethod tree-recompute-extent ((record output-record-element-mixin))
   (with-bounding-rectangle* (old-left old-top old-right old-bottom) record
     (let ((parent (output-record-parent record)))
-      (multiple-value-bind (xoff yoff)
-	  (convert-from-descendant-to-ancestor-coordinates record parent)
-	(declare (type coordinate xoff yoff))
-	;; we must pass the old coordinates in the parent's coordinate system
-	;; because tree-recompute-extent-1 may adjust the reference point.
-	(translate-coordinates xoff yoff old-left old-top old-right old-bottom))
       (tree-recompute-extent-1 record)
       (when parent
 	(recompute-extent-for-changed-child
@@ -850,12 +845,9 @@
 	   (child (record output-record-mixin) &optional (errorp t))
   (declare (ignore errorp))
   (with-bounding-rectangle* (left top right bottom) child
-    (multiple-value-bind (xoff yoff)
-	(convert-from-descendant-to-ancestor-coordinates child record)
-      (declare (type coordinate xoff yoff))
-      (translate-coordinates xoff yoff left top right bottom)
-      (recompute-extent-for-changed-child record child left top right bottom)))
-  (setf (output-record-parent child) nil))	;in case other things are still pointing to it.
+    (recompute-extent-for-changed-child record child left top right bottom))
+  ;;in case other things are still pointing to it.
+  (setf (output-record-parent child) nil))
 
 (defmethod delete-output-record :around (child (record output-record-mixin) &optional errorp)
   (declare (ignore errorp))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.62 1993/09/17 19:07:07 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.63 1993/10/25 16:16:39 cer Exp $
 
 (in-package :xm-silica)
 
@@ -227,7 +227,7 @@
 				     :label-string menu
 				     :parent parent
 				     options))
-			     ((nil :divider)
+			     ((nil :line)
 			      (apply #'make-instance 'tk::xm-separator
 				     :parent parent
 				     options))))
@@ -559,10 +559,10 @@
 					   (if stream
 					       (frame-shell (pane-frame stream))
 					     (frame-shell *application-frame*)))
-				 :name "Working"
 				 :dialog-title "Progress Note"
+				 :name :progress-note
 				 :resize-policy :grow
-				 :message-string 
+				 :message-string
 				 (format nil "~A" (progress-note-name note)))))
       (multiple-value-bind
 	  (ok-button cancel-button help-button separator)

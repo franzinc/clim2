@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.34 1993/05/13 16:24:36 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.36 1993/07/29 20:51:56 layer Exp $
 
 (in-package :tk)
 
@@ -269,7 +269,14 @@
 	 package)
       string)))
 
-
+(defun tkify-lisp-name (name &key class)
+  (if (stringp name)
+      name
+    (let ((tk-name (remove #\- (string-capitalize (string name)))))
+      (if class
+	  tk-name
+	(string-downcase tk-name :start 0 :end 1)))))
+	  
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
     (error "Xt: ~a" (char*-to-string message))))

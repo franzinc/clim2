@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.23 1993/09/22 21:20:56 cer Exp $
+# $fiHeader: Makefile.defs,v 1.24 1993/10/25 16:15:06 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -47,7 +47,7 @@ TRAIN_TEXT = \
 	$(ECHO) "\
 	$(TRAIN_LISP) \
 	(exit 0) \
-" | $(CLIM) $(CLOPTS) -batch \
+" | $(CLIM) $(CLOPTS) -batch -backtrace-on-error \
 	; echo CLIM trained!!!!	
 
 REPORT_FILE=dunno

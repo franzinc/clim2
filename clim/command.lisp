@@ -1,6 +1,6 @@
 s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.24 93/04/27 15:49:24 cer Exp $
+;; $fiHeader: command.lisp,v 1.25 1993/06/04 16:06:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -870,12 +870,14 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 							  &key (errorp t))
   (setq command-table (find-command-table command-table))
   (with-slots (translators) command-table
-    (let ((translator
+    (let* ((translator
 	    (if (symbolp translator-name)
-		(find-presentation-translator translator-name command-table :errorp nil)
-		translator-name)))
-      (cond ((find translator translators)
-	     (setq translators (delete translator translators))
+		(find-presentation-translator translator-name command-table
+					      :errorp nil)
+	      translator-name))
+	   (place (position translator translators)))
+      (cond (place
+	     (setf (aref translators place) (vector-pop translators))
 	     (incf *translators-cache-tick*))
 	    (t
 	     (when errorp
@@ -1137,8 +1139,8 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 		       (push `(define-presentation-to-command-translator ,translator-name
 				  (,arg-type ,command-name ,command-table
 				   :gesture ,gesture
-				   :pointer-documentation ,pointer-documentation
-				   ,@translator-options)
+				   ,@translator-options
+				   :pointer-documentation ,pointer-documentation)
 				  (object)
 				,(if found-key
 				     `(list ,@(unsupplied n-required)

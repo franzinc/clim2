@@ -20,31 +20,27 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.lisp,v 1.8 1993/07/27 01:53:14 colin Exp $
+;; $fiHeader: make-widget.lisp,v 1.9 1993/09/17 19:06:44 cer Exp $
 
 (in-package :tk)
 
-(defgeneric make-widget (widget &key)
+(defgeneric make-widget (widget name parent &key)
   ;;; returns the handle of a widget
   )
 
-(defmethod make-widget ((w core) &rest args &key parent (managed t) (name "") &allow-other-keys)
+(defmethod make-widget ((w core) name parent &rest args &key (managed t)
+			&allow-other-keys)
   (remf args :managed)
-  (remf args :name)
-  (remf args :parent)
   (let ((class (class-of w)))
     (if managed
 	(apply #'create-managed-widget name class parent args)
       (apply #'create-widget name class parent args))))
 
-(defmethod make-widget ((w shell) &rest args &key parent (name "") &allow-other-keys)
+(defmethod make-widget ((w shell) name parent &rest args)
   (declare (ignore args parent name))
   (error "shells not made this way"))
 
-
-(defmethod make-widget ((w top-level-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf args :parent)
-  (remf args :name)
+(defmethod make-widget ((w top-level-shell) name parent &rest args)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.21 1993/06/02 18:41:24 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.22 1993/09/17 00:20:35 colin Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -273,7 +273,8 @@
 	     :incremental-redisplay t
 	     :display-after-commands t
 	     :display-function 'display-objects
-	     :scroll-bars :both)
+	     :scroll-bars :both
+	     :initial-cursor-visibility nil)
     (horizontal-options :accept-values
 			:min-height :compute :height :compute :max-height :compute
 			:display-function

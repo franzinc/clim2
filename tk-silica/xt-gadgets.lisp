@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.37 1993/07/30 23:58:39 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.38 1993/09/07 21:47:17 colin Exp $
 
 (in-package :xm-silica)
 
@@ -51,7 +51,7 @@
 	      (progn
 		(when (and name 
 			   (not (getf initargs :name)))
-		  (setf (getf initargs :name) (string name)))
+		  (setf (getf initargs :name) name))
 		initargs)))))
 
 ;; Background/foreground/text-style mixin
@@ -155,6 +155,21 @@
 	(multiple-value-bind (x y) (tk::get-values (tk::widget-parent m) :x :y)
 	  (make-translation-transformation  x y))
       +identity-transformation+)))
+
+;;; this needs to return region in co-ordinate system of parent.
+;;; However CLIM's idea of parent is the graft, while Xt's is the
+;;; shell. So we have to use the x and y from the shell to make things
+;;; consistent (cim)
+
+(defmethod mirror-region* ((port xt-port) (sheet xt-top-level-sheet))
+  (let ((mirror (sheet-mirror sheet)))
+    (when mirror
+      (multiple-value-bind (x y)
+	  (get-values (tk::widget-parent mirror) :x :y)
+	(multiple-value-bind (width height)
+	    (get-values mirror :width :height)
+	  (values (coordinate x) (coordinate y) 
+		  (coordinate (+ x width)) (coordinate (+ y height))))))))
 
 (defmethod top-level-sheet-accelerator-gestures ((sheet top-level-sheet)) nil)
 

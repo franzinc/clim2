@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.18 92/12/16 16:47:02 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.19 1993/07/27 01:41:23 colin Exp $
 
 (in-package :clim-internals)
 
@@ -176,8 +176,7 @@
 	(max-y (coordinate 0)))
     (declare (type coordinate min-x min-y max-x max-y))
     (multiple-value-bind (x-offset y-offset)
-	(convert-from-descendant-to-ancestor-coordinates
-	  record (output-record-parent record))
+	(convert-from-child-to-parent-coordinates record)
       (declare (type coordinate x-offset y-offset))
       (flet ((recompute-extent-of-child (child)
 	       (multiple-value-bind (left top right bottom)
@@ -196,11 +195,6 @@
 			      once  t))))))
 	(declare (dynamic-extent #'recompute-extent-of-child))
 	(map-over-output-records #'recompute-extent-of-child record))
-      (when (null min-x)
-	(setq min-x (coordinate 0)
-	      min-y (coordinate 0)
-	      max-x (coordinate 0)
-	      max-y (coordinate 0)))
       #+++ignore (assert (ltrb-well-formed-p min-x min-y max-x max-y))
       (translate-coordinates x-offset y-offset min-x min-y max-x max-y)
       (bounding-rectangle-set-edges record min-x min-y max-x max-y)

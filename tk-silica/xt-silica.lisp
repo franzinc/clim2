@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.88 1993/09/07 21:47:28 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.90 1993/09/22 18:26:47 layer Exp $
 
 (in-package :xm-silica)
 
@@ -652,7 +652,7 @@
 	    (find-shell-class-and-initargs port sheet)
 	  (let ((frame (pane-frame sheet)))
 	    (when frame
-	      (setf (getf initargs :name) (string (frame-name frame))
+	      (setf (getf initargs :name) (frame-name frame)
 		    (getf initargs :title) (frame-pretty-name
 					    frame)))
 	    (let ((shell (apply #'make-instance class 
@@ -1221,11 +1221,9 @@
     ((port xt-port) (parent t) (sheet mirrored-sheet-mixin))
   (multiple-value-bind (class initargs)
       (find-widget-class-and-initargs-for-sheet port parent sheet)
-    (let ((class-name 
-	   (tk::widget-class-name (tk::class-handle (find-class class)))))
-      (values (or (getf initargs :name)
-		  (string-downcase class-name :start 0 :end 1))
-	      class-name))))
+    (values (tk::tkify-lisp-name (or (getf initargs :name)
+				     class))
+	    (tk::tkify-lisp-name class :class t))))
 
 (defmethod find-widget-name-and-class
     ((port xt-port) (parent t) (sheet basic-sheet))
@@ -1239,7 +1237,7 @@
 (defmethod get-sheet-resources ((port xt-port) sheet)
   (let ((parent-widget (sheet-mirror (sheet-parent sheet))))
     (multiple-value-bind (names classes)
-	(xt::widget-resource-name-and-class parent-widget)
+	(tk::widget-resource-name-and-class parent-widget)
       (multiple-value-bind (name class)
 	  (find-widget-name-and-class port parent-widget sheet)
 	(when name

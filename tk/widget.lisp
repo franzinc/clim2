@@ -20,16 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.33 1993/09/17 19:06:47 cer Exp $
+;; $fiHeader: widget.lisp,v 1.34 1993/10/25 16:16:29 cer Exp $
 
 (in-package :tk)
 
 (defun app-create-shell (&rest args
-			       &key (application-name "clim")
-			       (application-class "Clim")
-			       (widget-class (error "Class not specified"))
-			       (display (error "Display not specified"))
-			       &allow-other-keys)
+			 &key (application-name "clim")
+			      (application-class "Clim")
+			      (widget-class (error "Class not specified"))
+			      (display (error "Display not specified"))
+			 &allow-other-keys)
   (let* ((class (find-class widget-class))
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class nil args)))
@@ -156,7 +156,7 @@
 (defmethod initialize-instance :after ((w xt-root-class) 
 				       &rest args 
 				       &key foreign-address 
-				       parent display
+					    name parent display
 				       &allow-other-keys)
   (when (or display parent)
     (setf (slot-value w 'display)
@@ -167,13 +167,12 @@
      w
      (progn
        (remf args :foreign-address)
-       (unless (getf args :name)
-	 (setf (getf args :name)
-	   (string-downcase 
-	    (tk::widget-class-name (tk::class-handle (class-of w)))
-	    :start 0 :end 1)))
+       (remf args :name)
+       (remf args :parent)
+       (unless name
+	 (setq name (class-name (class-of w))))
        (setf (foreign-pointer-address w)
-	 (apply #'make-widget w args))))))
+	 (apply #'make-widget w (tkify-lisp-name name) parent args))))))
 
 
 

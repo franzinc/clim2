@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.27 1993/09/22 21:21:15 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.28 1993/10/25 16:15:54 cer Exp $
 
 (in-package :clim-demo)
 
@@ -18,8 +18,7 @@
   (let ((do-name (clim-utils:fintern "~A-~A" 'do class)))
     `(let ((demo (make-instance 'demo 
 		   :name ,name :class ',class :initargs ',initargs)))
-       (clim-utils:push-unique demo
-	 *demos* :test #'string-equal :key #'demo-name)
+       (clim-utils:push-unique demo *demos* :key #'demo-class)
        (defun ,do-name (&rest args)
 	 (apply #'run-demo demo args)))))
 
@@ -51,50 +50,44 @@
 
 (define-demo-driver-command (com-run-demo)
     ((demo 'demo :gesture :select))
-  (mp:process-run-function (demo-name demo) 
-			   #'run-demo demo
-			   :port (port *application-frame*)))
+  (run-demo demo :port (port *application-frame*)))
 
 (define-gesture-name :shift-select :pointer-button (:left :shift))
 
 (define-demo-driver-command (com-force-demo)
     ((demo 'demo :gesture :shift-select))
-  (mp:process-run-function (demo-name demo) 
-			   #'run-demo demo
-			   :port (port *application-frame*) :force t))
+  (run-demo demo :port (port *application-frame*) :force t))
 
-(defun run-demo (demo &key (port (find-port)) force)
-  (let* ((entry (assoc port (demo-frames demo)))
-	 (frame (cdr entry))
-	 (activity-p (subtypep (demo-class demo) 'activity))
-	 (*package* (find-package :clim-demo)))
-    (when (or force (null frame))
-      (setq frame (apply (if activity-p
-			     #'make-instance
-			   #'make-application-frame)
-			 (demo-class demo)
-			 :frame-manager (find-frame-manager :port port)
-			 (demo-initargs demo))))
-    (if entry
-	(setf (cdr entry) frame)
-      (push (cons port frame) (demo-frames demo)))
-    (if (slot-value frame 'clim-internals::top-level-process)
-	(unless activity-p
-	  (note-frame-deiconified (frame-manager frame) frame)
-	  (raise-frame frame))
-      (run-frame-top-level frame))))
-
+(defun run-demo (demo &key (port (find-port)) force (background t))
+  (flet ((do-it ()
+	   (let* ((entry (assoc port (demo-frames demo)))
+		  (frame (cdr entry))
+		  (activity-p (subtypep (demo-class demo) 'activity)))
+	     (when (or force (null frame))
+	       (setq frame (apply (if activity-p
+				      #'make-instance
+				    #'make-application-frame)
+				  (demo-class demo)
+				  :frame-manager (find-frame-manager :port port)
+				  (demo-initargs demo))))
+	     (if entry
+		 (setf (cdr entry) frame)
+	       (push (cons port frame) (demo-frames demo)))
+	     (if (slot-value frame 'clim-internals::top-level-process)
+		 (unless activity-p
+		   (note-frame-deiconified (frame-manager frame) frame)
+		   (raise-frame frame))
+	       (run-frame-top-level frame)))))
+    (if background 
+	(mp:process-run-function 
+	 `(:name ,(demo-name demo)
+	   :initial-bindings ((*package* . ',*package*)))
+	 #'do-it)
+      (do-it))))
+	
 (let ((demo (make-instance 'demo
 	      :name "Demo Driver" :class 'demo-driver
 	      :initargs '(:left 0 :top 0))))
   (defun start-demo (&rest args)
     (apply #'run-demo demo args)))
 
-
-#+Genera
-(cp:define-command (si:com-demonstrate-clim
-		     :name "Demonstrate CLIM"
-		     :command-table "Demonstration"
-		     :provide-output-destination-keyword nil)
-    ()
-  (start-demo))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.17 93/05/05 01:39:01 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.18 1993/07/27 01:41:38 colin Exp $
 
 (in-package :clim-internals)
 
@@ -212,13 +212,9 @@
   (let ((parent (output-record-parent record)))
     (if (not (null parent))
 	(with-bounding-rectangle* (old-left old-top old-right old-bottom) record
-	  (multiple-value-bind (xoff yoff)
-	      (convert-from-descendant-to-ancestor-coordinates record parent)
-	    (declare (type coordinate xoff yoff))
-	    (translate-coordinates xoff yoff old-left old-top old-right old-bottom)
-	    (call-next-method)
-	    (recompute-extent-for-changed-child parent record
-						old-left old-top old-right old-bottom)))
+	  (call-next-method)
+	  (recompute-extent-for-changed-child parent record
+					      old-left old-top old-right old-bottom))
 	(call-next-method))))
 
 (defmethod add-string-output-to-text-record ((record standard-text-output-record)

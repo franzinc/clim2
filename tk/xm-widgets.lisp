@@ -20,34 +20,26 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.15 1993/07/27 01:54:10 colin Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.16 1993/08/12 16:04:54 cer Exp $
 
 (in-package :tk)
 
-(defmethod make-widget ((w xm-gadget) 
-			&rest args &key parent (managed t) (name "") &allow-other-keys)
+(defmethod make-widget ((w xm-gadget) name parent &rest args &key (managed t)
+			&allow-other-keys)
   (remf args :managed)
-  (remf args :name)
-  (remf args :parent)
   (let ((class (class-of w)))
     (if managed
 	(apply #'create-managed-widget name class parent args)
       (apply #'create-widget name class parent args))))
 
-(defmethod make-widget ((w xm-dialog-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf args :parent)
-  (remf args :name)
+(defmethod make-widget ((w xm-dialog-shell) name parent &rest args)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 #+ignore
-(defmethod make-widget ((w override-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf args :parent)
-  (remf args :name)
+(defmethod make-widget ((w override-shell) name parent &rest args)
   (apply #'create-popup-shell name (class-of w) parent args))
 
-(defmethod make-widget ((w xm-menu-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf args :parent)
-  (remf args :name)
+(defmethod make-widget ((w xm-menu-shell) name parent &rest args)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
