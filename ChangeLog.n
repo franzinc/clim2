@@ -11,6 +11,22 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.15
+
+2001-04-24  Kevin Layer  <layer@crikey>
+
+	* buildclim.cl: bug10113: use build-lisp-image
+
+    from PNC, integration of Motif 2.1 patch:
+	* tk/resources.lisp
+	* tk/xm-font-list.lisp
+	* tk/xm-funs.lisp
+	* tk/xm-widgets.lisp
+	* tk-silica/xm-gadgets.lisp
+	* Makefile.linux
+	* Makefile.linuxppc
+
+*******************************************************************************
 2.2.2.21.14
 merge from cley7 branch
 next merge tag: cley7_to_acl6_merge1

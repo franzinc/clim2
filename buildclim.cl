@@ -1,9 +1,9 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.5.34.1 2000/09/05 19:06:37 layer Exp $
+;; $Id: buildclim.cl,v 1.5.34.2 2001/04/24 19:53:20 layer Exp $
 
-(excl:generate-application
- #+ics "clim" #-ics "clim8"
- "./"
+(excl:build-lisp-image
+ #+ics "sys:clim.dxl" #-ics "sys:clim8.dxl"
+ :lisp-files
  '(
    #-mswindows :climxm
    #+mswindows :climnt
@@ -17,13 +17,10 @@
 ;;;   :climdemo
    )
  :autoload-warning nil
- :image-only t
  :runtime nil
- :purify t
  :debug-on-error t
- :internal-debug "buildclim.out"
- :shlib-warning nil
- :libfasl-warning nil
+ :internal-debug (namestring
+		  (translate-logical-pathname "sys:buildclim.out"))
  :discard-local-name-info t
  :discard-source-file-info t
  :discard-xref-info t)
@@ -31,7 +28,7 @@
 (sys:copy-file
  (excl::curpgmname)
 
- #+(and mswindows ics) "clim.exe"
- #+(and mswindows (not ics)) "clim8.exe"
- #+(and (not mswindows) ics) "clim"
- #+(and (not mswindows) (not ics)) "clim8")
+ #+(and mswindows ics) "sys:clim.exe"
+ #+(and mswindows (not ics)) "sys:clim8.exe"
+ #+(and (not mswindows) ics) "sys:clim"
+ #+(and (not mswindows) (not ics)) "sys:clim8")

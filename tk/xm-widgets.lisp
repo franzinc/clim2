@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30.34.2 2000/09/05 19:06:44 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.30.34.3 2001/04/24 19:53:21 layer Exp $
 
 (in-package :tk)
 
@@ -80,17 +80,29 @@
     ;; to any of the XmString functions.
     "FONTLIST_DEFAULT_TAG_STRING")
 
+;;; Specialized function to destroy xm-strings, to support Motif2.1.
+(defun destroy-generated-xm-string (string-pointer)
+  (xm_string_free string-pointer)
+  nil)
+
+(defun destroy-generated-string (string-pointer)
+  (clim-utils::system-free string-pointer)
+  nil)
+
 ;; this needs to be made to deal with compound strings for ics.
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
-  (and (not (zerop value))
-       (with-ref-par ((string 0 *))
-	 ;;--- I think we need to read the book about
-	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
-	 ;;-- segment strings
-	 (excl:with-native-string (tag xm-font-list-default-tag)
-	   (xm_string_get_l_to_r value tag &string))
-	 (values (excl:native-to-string string)))))
+  (when (not (zerop value))
+    (multiple-value-prog1
+	(with-ref-par ((string 0 *))
+	  ;;--- I think we need to read the book about
+	  ;;--- xm_string_get_l_to_r and make sure it works with multiple
+	  ;;-- segment strings
+	  (xm_string_get_l_to_r value xm-font-list-default-tag &string)
+	  (char*-to-string string)) 
+      (tk::add-widget-cleanup-function parent
+				       #'destroy-generated-xm-string
+				       value))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
@@ -124,6 +136,7 @@
     ;;(declare (ignore s))
     (funcall f nil start end))))
 
+
 (excl:ics-target-case
  (:+ics
 
@@ -135,16 +148,21 @@
     (let ((result nil))
       (flet ((extract-element (codeset start end)
 	       (let* ((substring (subseq value start end))
-		      (element (note-malloced-object
-				(xm_string_create_l_to_r
-				 (ecase codeset
-				   ((0 2) (lisp-string-to-string8 substring))
-				   ((1 3) (lisp-string-to-string16 substring)))
-				 (svref *font-list-tags* codeset)))))
-		 (setq result (note-malloced-object
-			       (if result
-				   (xm_string_concat result element)
-				 (xm_string_copy element)))))))
+		      (element (xm_string_create_l_to_r
+				(ecase codeset
+				  ((0 2) (lisp-string-to-string8 substring))
+				  ((1 3) (lisp-string-to-string16 substring)))
+				(svref *font-list-tags* codeset))))
+		 (tk::add-widget-cleanup-function parent
+						  #'destroy-generated-xm-string
+						  element)
+		 (let ((temp (if result
+				 (xm_string_concat result element)
+			       (xm_string_copy element))))
+		   (tk::add-widget-cleanup-function parent
+						    #'destroy-generated-xm-string
+						    temp)
+		   (setq result temp)))))
 	(declare (dynamic-extent #'extract))
 	(partition-compound-string value #'extract-element)
 	(or result
@@ -152,14 +170,28 @@
 	    (setq *empty-compound-string*
 	      (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
 				       (clim-utils:string-to-foreign 
-					xm-font-list-default-tag))))))))
+					xm-font-list-default-tag))))))
+    ))
 
  (:-ics
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
-    (note-malloced-object
-     (xm_string_create_l_to_r
-      (note-malloced-object (clim-utils:string-to-foreign value))
-      (note-malloced-object (clim-utils:string-to-foreign "")))))))
+    (let ((s1 (clim-utils:string-to-foreign value))
+	  (s2 (clim-utils:string-to-foreign "")))
+      (tk::add-widget-cleanup-function parent
+				       #'destroy-generated-string
+				       s1)
+      (tk::add-widget-cleanup-function parent
+				       #'destroy-generated-string
+				       s2)
+      (let ((temp (xm_string_create_l_to_r
+		   s1
+		   s2)))
+	(tk::add-widget-cleanup-function parent
+					 #'destroy-generated-xm-string
+					 temp) 
+	temp))
+    ))
+ )
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
