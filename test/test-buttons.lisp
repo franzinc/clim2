@@ -1,5 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
+;;; $fiHeader$
+
 (in-package :clim-user)
 
 (defparameter *silly-button*

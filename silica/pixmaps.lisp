@@ -2,6 +2,8 @@
 
 (in-package :silica)
 
+;;; $fiHeader$
+
 "Copyright (c) 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
