@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.13 92/07/27 19:28:56 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.14 92/08/18 17:53:35 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -33,10 +33,17 @@
  "clim-olit"
  (x11::symbols-from-file "misc/undefinedsymbols.olit")
  (list sys::*libxt-pathname* sys::*libx11-pathname*))
+
 (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
   (load "olsupport.o"
 	:system-libraries (list sys::*libxt-pathname*
 				sys::*libx11-pathname*)
 	:print t))
+
+(unless (ff:get-entry-point (ff:convert-to-lang "_XtAppIntervalNextTimer"))
+    (load "xtsupport.o"
+	  :system-libraries (list sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t))
 
 (pushnew :clim-openlook *features*)

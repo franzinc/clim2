@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.8 92/07/08 16:28:51 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.9 92/08/18 17:53:53 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -237,6 +237,16 @@
     :return-type :void
     :entry-point "_XtAppProcessEvent")
 
+
+(defforeign 'xt_app_interval_next_timer
+    :arguments '(ff:foreign-address)
+    :call-direct t
+    ;; Maybe callback can be safely set to nil...
+    :callback t
+    :arg-checking nil
+    :return-type :unsigned-integer
+    :entry-point "_XtAppIntervalNextTimer")
+
 (defforeign 'xt_add_event_handler
     :entry-point "_XtAddEventHandler"
     :call-direct t
@@ -279,4 +289,5 @@
     :arg-checking nil
     :return-type :void)
     
+
 

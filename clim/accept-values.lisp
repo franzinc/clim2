@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.27 92/07/24 10:54:15 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.28 92/08/18 17:24:35 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -436,6 +436,7 @@
 		       (stream-ensure-cursor-visible stream)
 		       (replay avv stream)
 		       (run-avv)))
+	      (deactivate-all-gadgets avv-record)
 	      (unless own-window
 		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
 	  (values-list return-values))))))
@@ -612,6 +613,11 @@
 	  (setf value new-value
 		changed-p t))))))
 
+;;--- This should be somewhere else.
+
+(defmethod stream-text-cursor ((stream standard-encapsulating-stream))
+  (stream-text-cursor (slot-value stream 'stream)))
+
 (defun map-over-accept-values-queries (avv-record continuation)
   (declare (dynamic-extent continuation))
   (labels ((map-queries (record)
@@ -688,6 +694,21 @@
     (when (presentation-typep nil presentation-type)
       (setf value nil
 	    changed-p t))))
+
+(defmethod deactivate-all-gadgets (record)
+  (declare (ignore record))
+  nil)
+
+(defmethod deactivate-all-gadgets ((record output-record-mixin))
+  (map-over-output-records #'deactivate-all-gadgets record))
+
+(defmethod deactivate-all-gadgets :after ((record gadget-output-record))
+  (map-over-sheets
+   #'(lambda (sheet)
+       (when (typep sheet 'gadget)
+	 (deactivate-gadget sheet)))
+   (output-record-gadget record)))
+			       
 
 (define-accept-values-command (com-exit-avv :keystroke :end)
     ()

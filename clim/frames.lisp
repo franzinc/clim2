@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.36 92/08/18 17:24:53 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.37 92/08/18 17:54:10 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -586,7 +586,7 @@
 
   (let ((geometry (getf options :geometry)))
     (when (eq user-specified-position-p :unspecified)
-      (if (or (and (getf  :left)
+      (if (or (and (getf geometry :left)
 		   (getf geometry :top))
 	      (and left top))
 	  (setf user-specified-position-p t)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.28 92/07/08 16:31:18 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.29 92/07/20 16:00:52 cer Exp $
 
 (in-package :clim-user)
 

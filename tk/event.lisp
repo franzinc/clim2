@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.9 92/04/21 20:27:28 cer Exp $
+;; $fiHeader: event.lisp,v 1.10 92/05/22 19:26:17 cer Exp $
 
 (in-package :tk)
 
@@ -34,6 +34,17 @@
 (defconstant *xt-im-timer*		2)
 (defconstant *xt-im-alternate-input*	4)
 (defconstant *xt-im-all* (logior *xt-im-xevent*  *xt-im-timer*  *xt-im-alternate-input*))
+
+
+
+;;; In wait-for-event, pending input is checked for before the process
+;;; waits. This is necessary as if there are any timer events that
+;;; have "occurred" but have not yet been processed then
+;;; xt_app_interval_next_timer will return 0 which would otherwise
+;;; result in an indefinite block hence losing the timer event.
+;;; If mp:wait-for-input-available returns nil - indicating time out -
+;;; then mask is set by a further call to xt_app_pending. (cim)
+
 
 (defun wait-for-event (context &key timeout wait-function)
   (let ((mask 0)
@@ -49,8 +60,20 @@
 		 (and wait-function
 		      (funcall wait-function)
 		      (setq reason :wait)))))
-      (mp:wait-for-input-available fds :wait-function #'wait-function
-				   :timeout timeout))
+      (let* ((interval (xt_app_interval_next_timer context))
+	     (new-timeout (if (plusp interval)
+			      (if (and timeout
+				       (< (* timeout 1000) interval))
+				  timeout
+				(multiple-value-bind (sec msec)
+				    (truncate interval 1000)
+				  (cons sec msec)))
+			    timeout)))
+	(unless (plusp (setq mask (xt_app_pending context)))
+	  (unless
+	      (mp:wait-for-input-available fds :wait-function #'wait-function
+					   :timeout new-timeout)
+	    (setq mask (xt_app_pending context))))))
     (values mask reason)))
 
 (defun process-one-event (context mask reason)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.41 92/08/18 17:26:35 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.42 92/08/18 17:54:29 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -637,7 +637,7 @@
 			   sheet-permanently-enabled-mixin
 			   radio-box
 			   ask-widget-for-size-mixin
-			   pane)
+			   xt-pane)
     ())
 
 (defmethod sheet-adopt-child :after ((gadget motif-radio-box) child)
@@ -656,7 +656,7 @@
 			   sheet-permanently-enabled-mixin
 			   check-box
 			   ask-widget-for-size-mixin
-			   pane)
+			   xt-pane)
     ())
 
 (defmethod sheet-adopt-child :after ((gadget motif-check-box) child)

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.41 92/08/18 17:26:27 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.42 92/08/18 17:54:17 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -63,7 +63,7 @@ SRC_FILES = */*.lisp *.lisp Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit \
 	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt \
 	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c \
-	    misc/clos-preload.cl
+	    misc/clos-preload.cl misc/xtsupport.c
 
 DEST=/dev/null
 
@@ -95,11 +95,11 @@ OL_UNDEFS=misc/undefinedsymbols.olit
 
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl
 CLIMOBJS= clim-motif.o clim-olit.o stub-xt.o stub-x.o xlibsupport.o MyDrawingA.o \
-	  olsupport.o
+	  olsupport.o xtsupport.o
 
 # These are linked into the distribution
 FCLIMOBJS= `pwd`/clim-motif.o `pwd`/clim-olit.o `pwd`/stub-xt.o `pwd`/stub-x.o \
-	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o
+	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
 
 # These are built into xm-dcl and ol-dcl.
 COMPOSEROBJS= /scm/4.1/sparc/src/code/excldep.o /scm/4.1/sparc/src/code/socket.o \
@@ -632,13 +632,13 @@ makeclimobjs	: $(CLIMOBJS)
 ################## Lower level Makefile stuff
 
 
-ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o $(MALLOCOBJS)
+ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o xtsupport.o  $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(OLXLIBS)' dcl
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(OLXLIBS)' dcl
 
-xm-dcl	: stub-x.o stub-xt.o clim-motif.o xlibsupport.o MyDrawingA.o $(MALLOCOBJS)
+xm-dcl	: stub-x.o stub-xt.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(COMPOSEROBJS) $(MALLOCOBJS) $(XTLIB) $(XLIB)' dcl	
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(XTLIB) $(XLIB)' dcl	
 
 dcl	: 
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
@@ -664,6 +664,10 @@ stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
 
 xlibsupport.o	: xlib/xlibsupport.c
 	$(CC) -c $(CFLAGS) -o xlibsupport.o xlib/xlibsupport.c
+
+
+xtsupport.o: misc/xtsupport.c
+	$(CC) -c $(CFLAGS) -o xtsupport.o misc/xtsupport.c
 
 MyDrawingA.o: misc/MyDrawingA.c
 	$(CC) -c $(CFLAGS) -o MyDrawingA.o misc/MyDrawingA.c

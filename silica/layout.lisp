@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.22 92/07/27 19:29:26 cer Exp $
+;; $fiHeader: layout.lisp,v 1.23 92/08/18 17:23:46 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -349,6 +349,7 @@
 	   wrapping-space-mixin
 	   sheet-multiple-child-mixin
 	   mirrored-sheet-mixin
+	   permanent-medium-sheet-output-mixin
 	   pane)
     ((user-specified-size-p :initform :unspecified :initarg :user-specified-size-p)
      (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.12 92/07/27 11:02:15 cer Exp $
+;; $fiHeader: command.lisp,v 1.13 92/08/18 17:24:45 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1101,17 +1101,17 @@
 	       (setq found-key t)))
 	    (t
 	     (incf count)
-	     (let* ((no-gesture '#:no-gesture)
+	     (let* ((unsupplied '#:unsupplied)
 		    (arg-name (first argument))
-		    (gesture (getf (cddr argument) :gesture no-gesture)))
-	       (unless (eq gesture no-gesture)
+		    (gesture (getf (cddr argument) :gesture unsupplied)))
+	       (unless (eq gesture unsupplied)
 		 (let ((arg-type (cadr argument))
 		       (translator-options nil))
 		   (when (consp gesture)
 		     (dolist (indicator '(:tester :menu :priority :echo
 					  :documentation :pointer-documentation))
-		       (let ((option (getf (rest gesture) indicator)))
-			 (when option
+		       (let ((option (getf (rest gesture) indicator unsupplied)))
+			 (unless (eq option unsupplied)
 			   (setq translator-options
 				 (append translator-options `(,indicator ,option))))))
 		     (setq gesture (first gesture)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.4 92/07/27 11:01:44 cer Exp $
+;; $fiHeader: pixmaps.lisp,v 1.5 92/08/18 17:23:52 cer Exp Locker: cer $
 
 (in-package :silica)
 

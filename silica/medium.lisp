@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.19 92/07/20 15:59:24 cer Exp $
+;; $fiHeader: medium.lisp,v 1.20 92/08/18 17:23:49 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -10,8 +10,17 @@
 (defgeneric medium-drawable (medium))
 
 (defmethod engraft-medium ((medium basic-medium) port sheet)
+  (declare (ignore port sheet))
+  nil)
+
+;;;--- Doing it this way means that when any :before methods run the
+;;;--- medium and the sheet are correctly associated
+
+
+(defmethod engraft-medium :around ((medium basic-medium) port sheet)
   (declare (ignore port))
   (setf (medium-sheet medium) sheet)
+  (call-next-method)
   nil)
 
 (defmethod degraft-medium ((medium basic-medium) port sheet)

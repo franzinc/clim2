@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.17 92/07/27 19:28:57 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.18 92/08/18 17:53:36 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -40,5 +40,11 @@
 	:system-libraries (list sys::*libxt-pathname*
 				sys::*libx11-pathname*)
 	:print t))
+
+(unless (ff:get-entry-point (ff:convert-to-lang "_XtAppIntervalNextTimer"))
+    (load "xtsupport.o"
+	  :system-libraries (list sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t))
 
 (pushnew :clim-motif *features*)

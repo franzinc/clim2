@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.2 92/07/20 16:01:21 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.3 92/08/18 17:26:19 cer Exp Locker: cer $
 
 (in-package :clim-graphics-editor)
 
@@ -56,7 +56,7 @@
 
 (defclass basic-object (standard-bounding-rectangle) 
     ((style :accessor object-style	;all objects have a line style
-	    :initform (make-line-style :thickness 1 :dashes nil) :initarg :style)
+	    :initarg :style)
      (redisplay-tick :initform 0)))	;redisplay when this changes
 
 ;; Ticking the object causes it to be redisplayed
@@ -130,11 +130,13 @@
 (defclass box (object-with-handles-mixin basic-object)
     ((label :initarg :label :reader box-label)
      (arrow-in :initform nil :accessor box-arrow-in)
-     (arrow-out :initform nil :accessor box-arrow-out)))
+     (arrow-out :initform nil :accessor box-arrow-out)
+     (shape :initarg :shape :accessor box-shape)
+     ))
 
-(defun make-box (left top right bottom label style)
+(defun make-box (left top right bottom label style shape)
   (make-instance 'box :left left :top top :right right :bottom bottom
-		      :label label :style style))
+		      :label label :style style :shape shape))
 
 (defmethod compute-object-handles ((object box))
   (with-bounding-rectangle* (left top right bottom) object
@@ -147,11 +149,19 @@
   (with-bounding-rectangle* (left top right bottom) object
     ;; Present the object as a BOX so that commands in the application
     ;; can be written using that presentation type.
-    (with-output-as-presentation (stream object 'box :single-box t)
-      (draw-rectangle* stream left top right bottom
-		       :filled nil :line-style (object-style object))
-      (draw-text* stream (box-label object) (+ left (floor (- right left) 2)) (+ top 2)
-		  :align-x :center :align-y :top))))
+    (with-output-as-presentation (stream object 'box :single-box t) 
+      (if (eq (box-shape object) :oval)
+	  (draw-oval* stream 
+		      (/ (+ left right) 2)
+		      (/ (+ top bottom) 2)
+		      (/ (abs (- right left)) 2)
+		      (/ (abs (- bottom top)) 2)
+		      :filled nil :line-style (object-style object))
+	(draw-rectangle* stream left top right bottom
+			 :filled nil :line-style (object-style object)))
+      (draw-text* stream 
+		  (box-label object) (+ left (floor (- right left) 2))
+		  (+ top 2) :align-x :center :align-y :top))))
 
 (defmethod move-object :after ((object box) x y)
   (declare (ignore x y))
@@ -214,7 +224,8 @@
     ((objects :initform nil)
      (counter :initform 0)
      (last-box :initform nil)
-     (style :initform (make-line-style :thickness 1 :dashes nil)))
+     (style :initform (make-line-style :thickness 1 :dashes nil))
+     (shape :initform :rectangle))
   (:command-definer define-graphics-editor-command)
   (:command-table (graphics-editor :inherit-from (accept-values-pane)))
   (:pointer-documentation t)
@@ -232,8 +243,8 @@
   (:layouts
     (default 
       (vertically () 
-	(:fill display)
-	(1/5 options)))))
+	(1/5 options)
+	(:fill display)))))
 
 (define-presentation-type line-thickness ()
   :inherit-from `(integer 1 4))
@@ -266,29 +277,42 @@
       'clim-internals::accept-values-one-of #'presenter)))
 
 (defmethod accept-graphics-editor-options ((frame graphics-editor) stream)
-  (with-slots (style) frame
+  (with-slots (style shape) frame
     (flet ((accept (type default prompt query-id)
-	     (fresh-line stream)
-	     (accept type
-		     :stream stream :default default
-		     :query-identifier query-id :prompt prompt)))
+	     (let (object ignore changed)
+	       (formatting-cell (stream :align-x :center :min-width 200)
+		 (multiple-value-setq (object ignore changed)
+		   (accept type
+			   :stream stream :default default
+			   :query-identifier query-id :prompt
+			   prompt)))
+	       (values object changed))))
       (declare (dynamic-extent #'accept))
       (terpri stream)
-      (let ((thickness (line-style-thickness style))
-	    (dashes (line-style-dashes style)))
-	(multiple-value-bind (thickness ignore thickness-changed)
-	    (accept 'line-thickness thickness "Thickness" 'thickness)
-	  (declare (ignore ignore))
-	  (multiple-value-bind (dashes ignore dashes-changed)
-	      (accept 'boolean dashes "Dashed" 'dashes)
-	    (declare (ignore ignore))
-	    (when (or thickness-changed dashes-changed)
-	      (setq style (make-line-style :thickness thickness :dashes dashes))
-	      (when (frame-selected-object frame)
-		(setf (object-style (frame-selected-object frame))
-		      (slot-value frame 'style))
-		(tick-object (frame-selected-object frame))
-		(redisplay-frame-pane frame 'display)))))))))
+      (terpri stream)
+      (formatting-table (stream)
+	(formatting-row (stream)
+	  (let ((thickness (line-style-thickness style))
+		(dashes (line-style-dashes style)))
+	    (multiple-value-bind (thickness thickness-changed)
+		(accept 'line-thickness thickness "Thickness" 'thickness)
+	      (declare (ignore ignore))
+	      (multiple-value-bind (dashes dashes-changed)
+		  (accept 'boolean dashes "Dashed" 'dashes)
+		(declare (ignore ignore))
+		(multiple-value-bind (new-shape shape-changed)
+		    (accept '(member :oval :rectangle) shape "Shape" 'shape)
+		  (when (or thickness-changed dashes-changed shape-changed)
+		    (setq style (make-line-style :thickness thickness
+						 :dashes dashes))
+		    (setq shape new-shape)
+		    (when (frame-selected-object frame)
+		      (setf (object-style (frame-selected-object frame))
+			(slot-value frame 'style))
+		      (setf (box-shape (frame-selected-object frame))
+			(slot-value frame 'shape))
+		      (tick-object (frame-selected-object frame))
+		      (redisplay-frame-pane frame 'display))))))))))))
 
 (defmethod display-objects ((frame graphics-editor) stream)
   (dolist (object (slot-value frame 'objects))
@@ -305,7 +329,9 @@
 	(box nil)
 	(label (format nil "Box ~D" (slot-value *application-frame* 'counter)))
 	(last-box (slot-value *application-frame* 'last-box))
-	(style (slot-value *application-frame* 'style)))
+	(style (slot-value *application-frame* 'style))
+	(shape (slot-value *application-frame* 'shape))
+	(flipping-ink +flipping-ink+))
     ;;--- Zdrava supplies primitives to input basic objects such as
     ;;--- points, lines, rectangles and polygons, circles and ellipses,
     ;;--- and so forth.  Using Zdrava, the following code would be a
@@ -316,19 +342,22 @@
 	  (:pointer-motion (window x y)
 	   (when rectangle-drawn
 	     (draw-rectangle* stream left top right bottom
-			      :filled nil :ink +flipping-ink+)
+			      :filled nil 
+			      :ink flipping-ink)
 	     (setq rectangle-drawn nil))
 	   (when (eql window stream)
 	     (setq right x 
 		   bottom y)
 	     (draw-rectangle* stream left top right bottom
-			      :filled nil :ink +flipping-ink+)
+			      :filled nil 
+			      :ink flipping-ink)
 	     (setq rectangle-drawn t)))
 	  (:pointer-button-release (event)
 	   (when (eql (event-sheet event) stream)
 	     (when rectangle-drawn
 	       (draw-rectangle* stream left top right bottom
-				:filled nil :ink +flipping-ink+)
+				:filled nil 
+				:ink flipping-ink)
 	       (setq rectangle-drawn nil))
 	     ;; If the mouse didn't move very far, don't bother
 	     ;; creating a box.  Just deselect the current object.
@@ -340,7 +369,7 @@
 		   (setq right (+ left width 8)))
 		 (when (< (- bottom top) height)
 		   (setq bottom (+ top height 4))))
-	       (setq box (make-box left top right bottom label style))
+	       (setq box (make-box left top right bottom label style shape))
 	       (return-from track-pointer)))
 	   (beep stream)
 	   (return-from com-create-box)))))
@@ -358,14 +387,15 @@
 (define-presentation-to-command-translator create-box
     (blank-area com-create-box graphics-editor
      :gesture :select :menu nil)
-    (x y)
+  (x y)
   (list x y))
 
 ;; Select an object by clicking "select" (Mouse-Left) on it.
 (define-graphics-editor-command com-select-object
     ((object 'basic-object :gesture :select))
   (select-object *application-frame* object)
-  (setf (slot-value *application-frame* 'style) (object-style object)))
+  (setf (slot-value *application-frame* 'style) (object-style object)
+	(slot-value *application-frame* 'shape) (box-shape object)))
 
 ;; Deselect an object by clicking the Deselect menu button, or by
 ;; clicking over blank area without moving the mouse.
@@ -455,7 +485,7 @@
 	     (when (or force (null frame))
 	       (setq frame (make-application-frame 'graphics-editor
 						   :frame-manager framem
-						   :left 100 :top 100
+						   :left 100 :top 100 
 						   :width 700 :height 500)))
 	     (if entry 
 		 (setf (cdr entry) frame)
@@ -464,3 +494,4 @@
     (run-frame-top-level frame)))
 
 (define-demo "Graphics Editor" do-graphics-editor)
+

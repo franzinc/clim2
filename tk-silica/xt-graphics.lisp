@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.33 92/08/18 17:26:40 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.34 92/08/18 17:54:32 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -56,6 +56,7 @@
    (drawable :initform nil)
    (color-p)
    (ink-table :initform (make-hash-table :test #'equal))
+   (indirect-inks :initform nil)
    (clip-mask :initform nil)		; A cache.
    (tile-gcontext :initform nil)	; The following don't belong here.
    (white-pixel :initform 0)
@@ -178,7 +179,8 @@
 
 (defun recompute-gcs (medium)
   (with-slots 
-      (foreground-gcontext background-gcontext flipping-gcontext)
+      (foreground-gcontext background-gcontext flipping-gcontext
+			   ink-table indirect-inks)
       medium
     (when (and foreground-gcontext background-gcontext flipping-gcontext)
       (let ((foreground-pixel
@@ -190,19 +192,25 @@
 	      (tk::gcontext-foreground background-gcontext) background-pixel
 	      (tk::gcontext-background background-gcontext) background-pixel
 	      (tk::gcontext-foreground flipping-gcontext)
-	      (logxor foreground-pixel background-pixel))))))
+	      (logxor foreground-pixel background-pixel))
+	(dolist (ink indirect-inks)
+	  (remhash ink ink-table))
+	(setf indirect-inks nil)))))
+
+
+
       
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
-  ;;--- Call handle-repaint
-  )
+  ;;--- Some things are missing handle-repaint methods...
+  #+ignore (handle-repaint (medium-sheet medium) medium +everywhere+))
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
-  ;;--- Call handle-repaint
-  )
+  ;;--- Some things are missing handle-repaint methods...
+  #+ignore (handle-repaint (medium-sheet medium) medium +everywhere+))
 
 (defmethod (setf medium-ink) :after (ink (medium xt-medium))
   (declare (ignore ink))
@@ -277,6 +285,29 @@
 	      (when (< luminosity l)
 		(return-from decode-luminosity stipple)))))))
 
+
+;;; (indirect-ink-p ink) returns t if ink is an indirect ink or
+;;; derived from an indirect ink
+
+;;; not sure if these should be here 
+
+(defgeneric indirect-ink-p (ink))
+
+(defmethod indirect-ink-p (ink)
+  nil)
+
+(defmethod indirect-ink-p ((ink (eql +foreground-ink+)))
+  t)
+
+(defmethod indirect-ink-p ((ink (eql +background-ink+)))
+  t)
+
+(defmethod indirect-ink-p ((ink flipping-ink))
+  (multiple-value-bind (ink1 ink2)
+      (clim-utils:decode-flipping-ink ink)
+    (or (indirect-ink-p ink1)
+	(indirect-ink-p ink2))))
+    
 (defgeneric decode-ink (ink medium))
 
 (defmethod decode-ink ((ink (eql +everywhere+)) medium)
@@ -291,7 +322,32 @@
 (defmethod decode-ink ((ink (eql +flipping-ink+)) stream)
   (slot-value stream 'flipping-gcontext))
 
-(defmethod decode-ink ((ink color) medium)
+
+(defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
+  (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
+			 color-p indirect-inks)
+      medium
+    (or (gethash ink ink-table)
+	(let* ((drawable (or drawable
+			     (tk::display-root-window (port-display (port sheet)))))
+	       (new-gc (make-instance 'fast-gcontext 
+				      :drawable drawable
+				      :function boole-xor)))
+	  (multiple-value-bind (color1 color2)
+	      (clim-utils:decode-flipping-ink ink)
+	    (cond (color-p
+		   (setf (tk::gcontext-foreground new-gc)
+		     (logxor (decode-color medium color1)
+			     (decode-color medium color2))))
+		  (t
+		   ;; in a monochrome context there is only one
+		   ;; flipping ink availiable ie white <-> black
+		   (slot-value medium 'flipping-gcontext)))
+	    (when (indirect-ink-p ink)
+	      (push ink indirect-inks))
+	    (setf (gethash ink ink-table) new-gc))))))
+		 
+(defmethod decode-ink ((ink color) (medium xt-medium))
   (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
 			 color-p)
       medium
@@ -375,26 +431,26 @@ and on color servers, unless using white or black")
       (decode-color stream +background-ink+)))
 
 (defmethod decode-color ((medium xt-medium) (ink color))
-  (with-slots (color-p white-pixel black-pixel) medium
-    (or (gethash ink (port-color-cache (port medium)))
-	(setf (gethash ink (port-color-cache (port medium)))
-	  (cond (color-p
-		 (multiple-value-bind (red green blue)
-		     (color-rgb ink)
-		   (tk::allocate-color
-		    (tk::default-colormap (port-display (port
-							 (medium-sheet medium))))
-		    (let ((x #.(1- (ash 1 16))))
-		      (make-instance 'tk::color
-				    :red (truncate (* x red))
-				    :green (truncate (* x green))
-				    :blue (truncate (* x blue)))))))
-		(t
-		 (multiple-value-bind (r g b) (color-rgb ink)
-		   (let ((luminosity (color-luminosity r g b)))
-		     (if (> luminosity .5)
-			 white-pixel
-			 black-pixel)))))))))
+  (let ((port (port medium)))
+    (with-slots (color-p white-pixel black-pixel) medium
+      (or (gethash ink (port-color-cache port))
+	  (setf (gethash ink (port-color-cache port))
+	    (cond (color-p
+		   (multiple-value-bind (red green blue)
+		       (color-rgb ink)
+		     (tk::allocate-color
+		      (tk::default-colormap (port-display port))
+		      (let ((x #.(1- (ash 1 16))))
+			(make-instance 'tk::color
+				       :red (truncate (* x red))
+				       :green (truncate (* x green))
+				       :blue (truncate (* x blue)))))))
+		  (t
+		   (multiple-value-bind (r g b) (color-rgb ink)
+		     (let ((luminosity (color-luminosity r g b)))
+		       (if (> luminosity .5)
+			   white-pixel
+			 black-pixel))))))))))
 
 (defvar *default-dashes* '(4 4))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.11 92/07/01 15:48:10 cer Exp Locker: cer $
+;; $fiHeader: xt-cursor.lisp,v 1.12 92/07/24 10:54:59 cer Exp $
 
 (in-package :xm-silica)
 
