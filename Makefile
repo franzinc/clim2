@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile,v 1.91 2002/07/09 20:57:14 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile,v 1.92 2002/08/14 17:49:28 layer Exp $
 
 # If ../makefile.top doesn't exist, then you must specify HOST=xxx on the
 # `make' command line.
@@ -45,7 +45,11 @@ HOST = sgi4d-svr4
 endif
 
 ifeq ($(OS_NAME),aix)
+ifeq ($(SIXTYFOURBIT),yes)
+HOST = power64
+else
 HOST = rs6000
+endif
 endif
 
 ifeq ($(OS_NAME),osf1)
