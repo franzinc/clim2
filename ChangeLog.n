@@ -11,10 +11,12 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
-change missing from last sources from jeff:
+2.2.1.43
+
+1999-01-28  Jeff Morrill  <jmorrill@pointnclick.com> 
 
 * aclpc/acl-mirror: Try to prevent infinite recursion setting edges of
-   top-level sheet
+  top-level sheet
 
 *******************************************************************************
 2.2.1.42

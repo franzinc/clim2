@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.8 1998/12/17 00:18:58 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.9 1999/01/29 05:06:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -529,6 +529,12 @@
   ;; Set the "inside" size of a top-level sheet.
   ;; Top-level sheet has to account for sizes of window decorations.
   (fix-coordinates left top right bottom)
+  (multiple-value-bind (wleft wtop wright wbottom) (mirror-region* port
+sheet)
+    (when (and (= left wleft) (= top wtop)
+	       (= right wright) (= bottom wbottom))
+      ;; We seem to get infinite recursion if we don't check for this.
+      (return-from set-sheet-mirror-edges* t)))
   (multiple-value-bind (dl dt dw dh) (get-nonclient-deltas sheet)
     ;;mm: map the client coordinates to frame coordinates
     (let* ((winleft   (+ left dl))

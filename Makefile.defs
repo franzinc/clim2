@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.6 1999/01/11 19:52:48 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.7 1999/01/29 05:06:40 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -182,6 +182,7 @@ XM-FASLS= \
 	tk/xm-classes.fasl tk/xm-callbacks.fasl tk/xm-init.fasl \
 	tk/xm-widgets.fasl tk/xm-font-list.fasl tk/xm-protocols.fasl \
 	tk/convenience.fasl tk/make-widget.fasl \
+	tk/xm-defs.fasl \
 	tk-silica/pkg.fasl tk-silica/xt-silica.fasl \
 	tk-silica/xt-stipples.fasl tk-silica/xm-silica.fasl \
 	tk-silica/xt-graphics.fasl tk-silica/image.fasl \
@@ -224,7 +225,7 @@ DEBUG-FASLS = \
 	xlib/x11-keysyms.fasl tk/xt-defs.fasl tk/xt-funs.fasl \
 	xlib/last.fasl
 
-XM-DEBUG-FASLS = tk/xm-defs.fasl tk/xm-funs.fasl 
+XM-DEBUG-FASLS = tk/xm-funs.fasl 
 OL-DEBUG-FASLS = tk/ol-defs.fasl tk/ol-funs.fasl
 
 WNN-DEBUG-FASLS = wnn/jl-defs.fasl wnn/jl-funs.fasl
