@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.20 92/05/13 17:10:59 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.21 92/05/22 19:28:48 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -30,7 +30,7 @@ What about environment issue?
 (defmacro repeat (n &body body)
   (let ((i '#:i))
     `(dotimes (,i ,n)
-       #-(or Minima Genera Allegro) (declare (ignore i))
+       #-(or Minima Genera allegro) (declare (ignore i))
        ,@body)))
 
 (defmacro with-display-pane ((stream) &body body)
@@ -79,8 +79,8 @@ What about environment issue?
 
 ;; Try to get millimeters
 (defun window-mm-transformation (window)
-  (with-bounding-rectangle* (wl wt wr wb) #-Silica (window-viewport window)
-					  #+Silica (sheet-region window)
+  (with-bounding-rectangle* (wl wt wr wb) #-silica (window-viewport window)
+					  #+silica (sheet-region window)
     (make-transformation 3.4 0 0 -3.4 (floor (- wr wl) 2) (floor (- wb wt) 2))))
 
 (defmacro with-mm-transformation ((window -x -y +x +y) &body body)
@@ -89,8 +89,8 @@ What about environment issue?
        (with-bounding-rectangle* (,-x ,-y ,+x ,+y)
 				 (untransform-region 
 				   transform
-				   #-Silica (window-viewport ,window)
-				   #+Silica (bounding-rectangle (sheet-region ,window)))
+				   #-silica (window-viewport ,window)
+				   #+silica (bounding-rectangle (sheet-region ,window)))
 	 ,@body))))
 
 (defun draw-grid (stream)
@@ -1547,7 +1547,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (apply #'draw-compass-point stream ptype point))))
     #+ignore (declare (dynamic-extent #'draw-compass-point #'draw-compass))
     (with-menu (menu stream)
-      #-Silica (setf (window-label menu) "Compass point")
+      #-silica (setf (window-label menu) "Compass point")
       (format stream "~S" (menu-choose-from-drawer menu 'menu-item #'draw-compass)))))
 
 
@@ -2517,8 +2517,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"
   (without-clim-input
-    (if #+Allegro (typep (port stream) 'xm-silica::xt-port)
-	#-Allegro nil
+    (if #+allegro (typep (port stream) 'xm-silica::xt-port)
+	#-allegro nil
 	(sleep 1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
@@ -2535,8 +2535,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (cached-menu-choose :iterations 10) (stream)
   "Pop up a cached menu of colors"
   (without-clim-input
-    (if #+Allegro (typep (port stream) 'xm-silica::xt-port)
-	#-Allegro nil
+    (if #+allegro (typep (port stream) 'xm-silica::xt-port)
+	#-allegro nil
 	(sleep 1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
@@ -2641,7 +2641,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 			    :line-cap-shape :round)))))))))
 
 
-#-Silica
+#-silica
 (define-application-frame clim-tests ()
     ()
   (:command-table (clim-tests
@@ -2674,7 +2674,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (caption-pane 1/10)
 	       (display-pane :rest))))))
 
-#+Silica
+#+silica
 (define-application-frame clim-tests ()
     ()
   (:command-table (clim-tests
@@ -2716,16 +2716,16 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-command (exit-clim-tests :command-table clim-tests)
     ()
-  #+(and Genera (not Silica))
+  #+(and Genera (not silica))
   (setf (window-visibility (frame-top-level-window *application-frame*)) nil)
   (frame-exit *application-frame*))
 
 (defvar *test-suite-frame* nil)
 
-#-Silica
+#-silica
 (defvar *test-root* nil)
 
-#-Silica
+#-silica
 (defun do-test-suite (&optional (root *test-root*))
   (unless root
     (lisp:format t "~&No current value for *TEST-ROOT*.  Use what value? ")
@@ -2745,7 +2745,7 @@ Luke Luck licks the lakes Luke's duck likes."))
         (push (cons root test) *test-suite-frame*))
     (run-frame-top-level test)))
 
-#+Silica
+#+silica
 (defun do-test-suite ()
   (let* ((width 600)
 	 (height 420)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: aaai-demo-driver.lisp,v 1.6 92/05/22 19:29:00 cer Exp $
+;; $fiHeader: aaai-demo-driver.lisp,v 1.7 92/06/02 13:31:04 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -18,7 +18,7 @@
 
 (define-presentation-type demo-menu-item ())
 
-#-Silica
+#-silica
 (defun size-demo-frame (root desired-left desired-top desired-width desired-height)
   (declare (values left top right bottom))
   (multiple-value-bind (left top right bottom)
@@ -33,7 +33,7 @@
 	      desired-top (max top (- desired-bottom desired-height))))
       (values desired-left desired-top desired-right desired-bottom))))
 
-#+Silica
+#+silica
 (defun size-demo-frame (root desired-left desired-top desired-width desired-height)
   (values desired-left desired-top  
 	  (+ desired-left desired-width) (+ desired-top desired-height)))
@@ -68,8 +68,8 @@
 
 (defparameter *color-stream-p* t)
 (defun color-stream-p (stream)
-  #-Genera *color-stream-p*		;--- kludge
-  #+Genera (if (and stream
+  #-genera *color-stream-p*		;--- kludge
+  #+genera (if (and stream
 		    (eql (port-type (port stream)) ':genera))
 	       (slot-value stream 'clim-internals::color-p)
 	       *color-stream-p*))

@@ -19,19 +19,20 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.27 92/05/22 19:28:51 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.28 92/06/02 13:31:01 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
 ;;; Simple little frame
 
+
+
 (define-application-frame test-frame () ()
   (:pane 
     (vertically ()
-      (scrolling ()
-	(make-pane 'interactor-pane
-	  :foreground +green+
-	  :background +red+))
+      (clim-internals::make-clim-interactor-pane
+	 :foreground +green+
+	 :background +red+)
       (make-pane 'push-button
         :label "press me"
 	:background +black+
@@ -514,7 +515,7 @@
     (b :application :width '(50 :mm))
     (c :application :height '(10 :line))
     (d :application :height '(5 :line))
-    (e :application :height '( 50 :mm)))
+    (e :interactor :height '( 50 :mm)))
   (:layouts
     (:default 
       (vertically ()
@@ -543,7 +544,7 @@
     (b :application :width '(50 :mm))
     (c :application :height '(10 :line))
     (d :application :height '(5 :line))
-    (e :application :height '( 50 :mm)))
+    (e :interactor :height '( 50 :mm)))
   (:layouts
     (:default 
       (vertically ()
@@ -557,7 +558,7 @@
     (b :application)
     (c :application :height '(10 :line))
     (d :application)
-    (e :application :height '( 50 :mm)))
+    (e :interactor :height '( 50 :mm)))
   (:layouts
     (:default 
       (vertically ()
@@ -571,7 +572,7 @@
     (b :application)
     (c :application)
     (d :application)
-    (e :application))
+    (e :interactor))
   (:layouts
     (:default 
       (vertically ()
@@ -585,7 +586,7 @@
     (b :application)
     (c :application)
     (d :application)
-    (e :application))
+    (e :interactor))
   (:layouts
     (:default
       (vertically ()

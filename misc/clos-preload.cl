@@ -20,17 +20,19 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
-
+;; $fiHeader: clos-preload.cl,v 1.1 92/03/24 19:45:46 cer Exp Locker: cer $
 
 (in-package :clos)
+
+(eval-when (compile)
+  (unless (boundp 'si::*clos-preload-packages*)
+    (setq si::*clos-preload-packages* nil)))
 
 (preload-forms)
 
 ;; premake constructors
-(preload-constructors)
+(preload-constructors #.si::*clos-preload-packages*)
 
 ;; fill generic function caches
-(precache-generic-functions)
-
+(precache-generic-functions #.si::*clos-preload-packages*)
 

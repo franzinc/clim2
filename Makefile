@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.31 92/05/26 14:33:21 cer Exp $
+# $fiHeader: Makefile,v 1.32 92/06/02 13:31:18 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -7,10 +7,15 @@ DUMP-CL	= $(CL)
 CLOPTS	= -qq
 
 # Training
+
+TRAIN_TIMES=2
+
 TRAIN_LISP= (load \"tk-silica/test-clim.lisp\") \
-		(clim-user::train-clim-2) \
-		(compile-file "misc/clos-preload.cl") \
-		(exit 0) 
+	(load \"test/test.lisp\") \
+	(clim-user::train-clim-2  $(TRAIN_TIMES)) \
+	(clim-user::do-frame-tests) \
+	(compile-file \"misc/clos-preload.cl\") \
+	(exit 0) 
 
 TRAIN_TEXT = \
 	$(ECHO) "\

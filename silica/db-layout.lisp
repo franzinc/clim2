@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.17 92/05/12 18:24:24 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.18 92/05/22 19:26:45 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -93,6 +93,9 @@
       (change-space-requirements
        pane :width width :min-width min-width :max-width max-width 
        :height height :min-height min-height :max-height max-height)))
+
+(defmethod change-space-requirements-to-default ((pane layout-mixin))
+  nil)
 
 (defvar *inside-changing-space-requirements* nil)
 
@@ -204,6 +207,10 @@
 (defclass space-requirement-mixin (layout-mixin)
     ((initial-space-requirement :reader pane-initial-space-requirements)
      (space-requirement :reader pane-space-requirement)))
+
+(defmethod change-space-requirements-to-default ((pane space-requirement-mixin))
+  (when (pane-initial-space-requirements pane)
+    (change-space-requirements-to pane (pane-initial-space-requirements pane))))
 
 (defmethod initialize-instance :after ((pane space-requirement-mixin) 
 				       &rest args

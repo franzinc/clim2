@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.8 92/05/22 19:29:07 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.9 92/06/02 13:31:07 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -49,21 +49,21 @@
 
 ;;; Basic data structures - points and positions
 
-#-Allegro
+#-allegro
 (defclass fp-point ()
     ((latitude :initarg :latitude
 	       :accessor point-latitude)
      (longitude :initarg :longitude
 		:accessor point-longitude)))
 
-#-Allegro
+#-allegro
 (defclass ground-position (fp-point)
     ((altitude :initarg :altitude
 	       :accessor position-altitude)
      (deviation :initarg :deviation
 		:accessor position-deviation)))
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass fp-point ()
       ((latitude :initarg :latitude
@@ -101,14 +101,14 @@
     (declare (ignore dist))
     azim))
 
-#-Allegro
+#-allegro
 (defclass named-position (ground-position)
     ((name :initarg :name
 	   :accessor position-name)
      (longname :initarg :longname
 	       :accessor position-longname)))
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass named-position (ground-position)
       ((name :initarg :name
@@ -234,10 +234,10 @@
 
 ;;; Concrete position objects
 
-#-Allegro
+#-allegro
 (defclass airport (named-position) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass airport (named-position) ()))
 
@@ -251,13 +251,13 @@
 	(draw-line* stream x (- y 2) x (+ y 2) :ink +background-ink+ :line-thickness 2)
 	(draw-label label stream (+ x 5) y)))))
 
-#-Allegro
+#-allegro
 (defclass waypoint (named-position) ())
 
-#-Allegro
+#-allegro
 (defclass VOR (named-position) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass waypoint (named-position) ())
   (defclass VOR (named-position) ()))
@@ -298,10 +298,10 @@
 	(apply #'draw-line* stream x1 y1 x2 y2 color-args))
       (setq x1 x2 y1 y2 x2 x3 y2 y3))))
 
-#-Allegro
+#-allegro
 (defclass NDB (named-position) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass NDB (named-position) ()))
 
@@ -309,10 +309,10 @@
   (with-slots (name longname) NDB
     (format stream "NDB ~A ~A" name longname)))
 
-#-Allegro
+#-allegro
 (defclass named-intersection (named-position) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass named-intersection (named-position) ()))
 
@@ -326,10 +326,10 @@
 		 color-args))
 	(draw-label label stream (+ x 5) y)))))
 
-#-Allegro
+#-allegro
 (defclass visual-checkpoint (named-position) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass visual-checkpoint (named-position) ()))
 
@@ -382,22 +382,22 @@
 
 ;;; Route objects
 
-#-Allegro
+#-allegro
 (defclass basic-route-segment ()
     ((at :initarg :at
 	 :accessor route-segment-at)))
 
-#-Allegro
+#-allegro
 (defclass route-segment (basic-route-segment)
     ((altitude :initarg :altitude :accessor route-segment-altitude)
      (wind-info :initarg :wind-info :accessor route-segment-wind-info)))
 
-#-Allegro
+#-allegro
 (defclass basic-route ()
     ((name :initarg :name :accessor route-name)
      (legs :initarg :legs :accessor route-legs)))
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass basic-route-segment ()
       ((at :initarg :at
@@ -437,10 +437,10 @@
 	      (apply #'draw-line* stream xfrom yfrom xto yto drawing-args))))
 	(setq start-lat next-lat start-lon next-lon)))))
 
-#-Allegro
+#-allegro
 (defclass route (basic-route) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass route (basic-route) ()))
 
@@ -467,15 +467,15 @@
 
 ;;; Victor Airways
 
-#-Allegro
+#-allegro
 (defclass victor-airway-segment (basic-route-segment)
     ((properties :accessor victor-airway-segment-properties)
      (next-leg :accessor victor-airway-segment-next-leg)))
 
-#-Allegro
+#-allegro
 (defclass victor-airway (basic-route) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass victor-airway-segment (basic-route-segment)
       ((properties :accessor victor-airway-segment-properties)
@@ -556,7 +556,7 @@
 
 ;;; Aircraft description
 
-#-Allegro
+#-allegro
 (defclass aircraft ()
     ((identification :initarg :identification	; Aircraft tail number
 		     :accessor aircraft-identification)
@@ -577,7 +577,7 @@
      (hobs-or-tach :initarg :hobs-or-tach
 		   :accessor aircraft-hobs-or-tach)))
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass aircraft ()
       ((identification :initarg :identification	; Aircraft tail number
@@ -656,7 +656,7 @@
 
 ;;; Flight plans
 
-#-Allegro
+#-allegro
 (defclass flight-plan ()
     ((type :initarg :type
 	   :accessor flight-plan-type)
@@ -690,7 +690,7 @@
 	    :accessor flight-plan-souls)
      (color :initarg :color
 	    :accessor flight-plan-color)))
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass flight-plan ()
       ((type :initarg :type :accessor flight-plan-type)

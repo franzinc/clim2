@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.7 92/05/07 13:13:34 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.8 92/05/22 19:29:03 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -178,10 +178,10 @@
 	      (t (error "Connection ~S is not among the connections of its component ~S"
 			connection component)))))))
 
-#-Allegro
+#-allegro
 (defclass input (connection) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass input (connection) ()))
 
@@ -199,10 +199,10 @@
     (when other-connections
       (connection-value (first other-connections)))))
 
-#-Allegro
+#-allegro
 (defclass output (connection) ())
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass output (connection) ()))
 
@@ -217,14 +217,14 @@
 ;;;****************************************************************
 
 
-#-Allegro
+#-allegro
 (defclass component
 	  (basic-thing)
      ((inputs :initform nil)
       (outputs :initform nil))
   (:default-initargs :size *component-size*))
 
-#+Allegro
+#+allegro
 (eval-when (compile load eval)
   (defclass component
 	    (basic-thing)
@@ -679,7 +679,7 @@
 		 (with-output-as-presentation (menu icon presentation-type)
 		   (formatting-row (menu)
 		     (formatting-cell (menu)
-		       (progn ;; (with-user-coordinates (menu)
+		       (progn ;; (with-user-coordinates (menu) ..)
 			 (draw-self icon menu)
 			 (multiple-value-bind (x y)
 			     (stream-cursor-position menu)

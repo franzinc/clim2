@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.23 92/05/22 19:29:37 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.24 92/05/26 14:33:31 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -267,9 +267,9 @@
 			 color-p)
       medium
     (or (gethash ink ink-table)
-	(let ((drawable (or drawable
-			    (tk::display-root-window (port-display (port sheet)))))
-	      (new-gc (make-instance 'fast-gcontext :drawable drawable)))
+	(let* ((drawable (or drawable
+			     (tk::display-root-window (port-display (port sheet)))))
+	       (new-gc (make-instance 'fast-gcontext :drawable drawable)))
 	  (cond (color-p
 		 (setf (tk::gcontext-foreground new-gc)
 		   (decode-color medium ink)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.10 92/04/30 09:09:46 cer Exp $
+;; $fiHeader: listener.lisp,v 1.11 92/05/22 19:29:06 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -33,7 +33,7 @@
 
 (defvar *listener-depth* -1)
 
-#+Allegro
+#+allegro
 (progn
   ;; The stack-group object corresponding to the stack we are debugging.
   (defvar *tpl-current-stack-group* nil)
@@ -57,7 +57,7 @@
       (terpri window)
       (let* ((*standard-input* window)
 	     (*standard-output* window)
-	     #+(or Allegro Minima) (*error-output* window)
+	     #+(or allegro Minima) (*error-output* window)
 	     (*query-io* window)
 	     #+Minima (*debug-io* window)
 	     (*package* *package*)
@@ -66,13 +66,13 @@
 	     (/// nil) (// nil) (/ nil)
 	     (+++ nil) (++ nil) (+ nil)
 	     (- nil)
-	     #+Allegro (*tpl-current-stack-group* sys::*current-stack-group*)
-	     #+Allegro (*top-top-frame-pointer*
+	     #+allegro (*tpl-current-stack-group* sys::*current-stack-group*)
+	     #+allegro (*top-top-frame-pointer*
 			 (debug::newest-frame si::*current-stack-group* :visible-only-p nil))
-	     #+Allegro (*top-frame-pointer*
+	     #+allegro (*top-frame-pointer*
 			 (or (db::find-interesting-frame *top-top-frame-pointer*)
 			     *top-top-frame-pointer*))
-	     #+Allegro (*current-frame-pointer* *top-frame-pointer*))
+	     #+allegro (*current-frame-pointer* *top-frame-pointer*))
 	(with-command-table-keystrokes (keystrokes command-table)
 	  (condition-restart-loop (#+Genera (sys:error sys:abort)
 				   #-Genera (error)

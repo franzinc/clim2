@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.17 92/05/13 17:10:22 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.18 92/05/22 19:26:24 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -224,7 +224,11 @@
 			     (nreverse (cons (subseq string old-n)
 					     frags)))))))))
     (if package
-	(intern string package)
+	(intern 
+	 (ecase excl:*current-case-mode*
+	   ((:case-sensitive-lower :case-insensitive-lower) string)
+	   ((:case-sensitive-upper :case-insensitive-upper) (string-upcase string)))
+	 package)
       string)))
 
 (defun collect-resource-types (c)

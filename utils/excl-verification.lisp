@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-verification.lisp,v 1.9 92/04/10 14:26:41 cer Exp Locker: cer $
+;; $fiHeader: excl-verification.lisp,v 1.10 92/05/22 19:27:11 cer Exp Locker: cer $
 
 (in-package :sys)
 
@@ -32,6 +32,7 @@
   (pushnew :clim-2 *features*)
   (pushnew :clim-2.0 *features*)
   (pushnew :silica *features*)
+  (pushnew :ansi-90 *features*)
   )
 
 #-Silica
@@ -59,4 +60,4 @@ You do not have patches ~{~S ~}"
 
 (si::rcsnote
  "CLIM 2.0.alpha.0"
- "$fiHeader: excl-verification.lisp,v 1.9 92/04/10 14:26:41 cer Exp Locker: cer $")
+ "$fiHeader: excl-verification.lisp,v 1.10 92/05/22 19:27:11 cer Exp Locker: cer $")

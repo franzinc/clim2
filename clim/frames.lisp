@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.22 92/05/22 19:27:52 cer Exp $
+;; $fiHeader: frames.lisp,v 1.23 92/06/02 13:30:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -183,7 +183,7 @@
 	   (defclass ,name ,superclasses ,slots
 	     ,@options
 	     (:default-initargs
-		:layout ',layout
+		:layout ',layouts
 	       :menu-bar ',menu-bar
 	       :pointer-documentation ',pointer-documentation
 	       ,@(and command-table `(:command-table ',(car command-table)))
@@ -357,45 +357,59 @@
      ,@body))
 
 (define-pane-type :title (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'title-pane ,@options))
 
 (define-pane-type :interactor (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-clim-interactor-pane ,@options))
 
 (define-pane-type :application (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-clim-application-pane ,@options))
 
 (define-pane-type :pointer-documentation (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'pointer-documentation-pane ,@options))
 
 (define-pane-type :command-menu (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'command-menu-pane ,@options))
 
 (define-pane-type scroll-bar (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'scroll-bar ,@options))
 
 (define-pane-type slider (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'slider ,@options))
 
 (define-pane-type push-button (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'push-button ,@options))
 
 (define-pane-type label-pane (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'label-pane ,@options))
 
 (define-pane-type text-field (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'text-field ,@options))
 
 (define-pane-type text-editor (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'text-editor ,@options))
 
 (define-pane-type toggle-button (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'toggle-button ,@options))
 
 (define-pane-type radio-box (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'radio-box ,@options))
 
 (define-pane-type menu-bar (&rest options)
+  #-Allegro (declare (dynamic-extent options))
   `(make-pane 'menu-bar ,@options))
 
 ;;; 
@@ -451,7 +465,7 @@
 	   (cddr (assoc layout (frame-layouts frame)))))
       (changing-space-requirements (:layout nil)
 	   (flet ((adjust-layout (sheet)
-		    (change-pane-requirements-to-default sheet)
+		    (silica::change-space-requirements-to-default sheet)
 		    (let ((x (and (panep sheet)
 				  (assoc (pane-name sheet) layout-space-requirements))))
 		      (when x (apply #'change-space-requirements sheet (cdr x))))))
