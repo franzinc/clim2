@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.8 1993/05/13 16:23:50 cer Exp $
+;; $fiHeader: train.lisp,v 1.10 1993/07/29 20:51:36 layer Exp $
 
 (defun train-clim (&key (train-times 2) 
 			(psview nil)
@@ -55,7 +55,7 @@
 					     "coverage-reportxm.lisp"
 					   "coverage-reportol.lisp")
 		   :if-exists :supersede :direction :output)
-    (generate-coverage-report))
+    (generate-coverage-report :files (known-clim2-files)))
 
   ;; We have to do this here because profiling clears the call counts.
   

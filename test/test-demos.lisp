@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.3 1993/06/21 20:51:25 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.4 1993/07/22 15:39:09 cer Exp $
 
 (define-frame-test test-puzzle-demo (clim-demo::puzzle)
   (
@@ -226,3 +226,10 @@
 	  (:no-error (&rest ignore)
 	    (declare (ignore ignore))
 	    (note-test-succeeded fn)))))))
+
+;;-- I dont know whether this is the best place for this?
+
+#+some-where-else
+(locally (declare (special si::*clos-preload-packages*))
+  (push (find-package :clim-demo) si::*clos-preload-packages*)
+  (push (find-package :clim-user) si::*clos-preload-packages*))

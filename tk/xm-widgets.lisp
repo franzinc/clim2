@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.14 1993/07/22 15:39:22 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.15 1993/07/27 01:54:10 colin Exp $
 
 (in-package :tk)
 
@@ -109,6 +109,8 @@
 	    r))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
+  (incf *string-counter* (length value))
+  ;;-- allocate-no-free
   (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)

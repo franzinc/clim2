@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.36 1993/06/02 18:42:34 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.37 1993/07/27 01:55:36 colin Exp $
 
 
 (in-package :xm-silica)
@@ -97,20 +97,20 @@
 ;;; Menu code
 
 (defmethod frame-manager-menu-choose
-	   ((framem xt-frame-manager) items &rest keys
-	    &key printer 
-		 presentation-type 
-		 (associated-window (frame-top-level-sheet *application-frame*))
-		 text-style label
-		 cache
-		 (unique-id items)
-		 (id-test 'equal)
-		 (cache-value items)
-		 (cache-test #'equal)
-		 (gesture :select)
-		 row-wise
-		 n-columns
-		 n-rows)
+    ((framem xt-frame-manager) items &rest keys
+     &key printer 
+	  presentation-type 
+	  (associated-window (frame-top-level-sheet *application-frame*))
+	  text-style label
+	  cache
+	  (unique-id items)
+	  (id-test 'equal)
+	  (cache-value items)
+	  (cache-test #'equal)
+	  (gesture :select)
+	  row-wise
+	  n-columns
+	  n-rows)
   (declare (ignore keys))      
   (declare (values value chosen-item gesture))
   (let ((port (port framem))
@@ -158,31 +158,33 @@
       (declare (ignore ignore win1 win2 x y))
       (tk::set-values menu :x root-x :y root-y)
 
-      (unwind-protect
-	  (progn
-	    (loop
-	      (when (funcall closure) (return nil))
+      (catch 'menu-choose
+	(unwind-protect
+	    (progn
+	      (loop
+		(when (funcall closure) (return nil))
 
 
-	      (framem-enable-menu framem menu)
-	      ;; Now we have to wait
-	      (port-force-output port)
-	      (wait-for-callback-invocation
-	       port
-	       #'(lambda () 
-		   ;;-- This is to deal
-		   ;;-- with the race
-		   ;;-- condition where
-		   ;;-- the menu go down
-		   ;;-- to quick
-		   (or (funcall closure)
-		       (not (framem-menu-active-p framem menu)))) 
-	       "Returned value"))
-	    (framem-popdown-menu framem menu))
-	(unless cache
-	  (framem-destroy-menu framem menu)))
-      (port-force-output port)
-      (values-list (nth-value 1 (funcall closure))))))
+		(framem-enable-menu framem menu)
+		;; Now we have to wait
+		(port-force-output port)
+		(with-toolkit-dialog-component (menu-choose items)
+		  (wait-for-callback-invocation
+		   port
+		   #'(lambda () 
+		       ;;-- This is to deal
+		       ;;-- with the race
+		       ;;-- condition where
+		       ;;-- the menu go down
+		       ;;-- to quick
+		       (or (funcall closure)
+			   (not (framem-menu-active-p framem menu)))) 
+		   "Returned value")))
+	      (framem-popdown-menu framem menu))
+	  (unless cache
+	    (framem-destroy-menu framem menu)))
+	(port-force-output port)
+	(values-list (nth-value 1 (funcall closure)))))))
 
 (defmethod frame-manager-allows-menu-caching ((framem xt-frame-manager))
   t)

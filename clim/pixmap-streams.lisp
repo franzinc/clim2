@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.19 1993/07/27 01:40:22 colin Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.20 1993/07/30 23:57:59 colin Exp $
 
 (in-package :clim-internals)
 
@@ -61,9 +61,8 @@
 					 :width width :height height)))
       (setf (medium-foreground pixmap-medium) (medium-foreground stream)
 	    (medium-background pixmap-medium) (medium-background stream)
-	    (medium-default-text-style pixmap-medium)
-	    (medium-default-text-style stream)
-	    (medium-text-style pixmap-medium) (medium-text-style stream))
+	    (medium-default-text-style pixmap-medium) (pane-text-style stream)
+	    (medium-text-style pixmap-medium) (pane-text-style stream))
       (if record
 	  (replay record pixmap-stream)
 	(funcall continuation pixmap-stream))

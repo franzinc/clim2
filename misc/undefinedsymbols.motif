@@ -15,3 +15,4 @@ XmMessageBoxGetChild
 XmFileSelectionDoSearch
 XmOptionLabelGadget
 XmOptionButtonGadget
+XmTextFieldGetSelection

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.57 1993/07/27 22:29:50 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.58 1993/07/30 23:58:36 colin Exp $
 
 
 (in-package :xm-silica)
@@ -565,6 +565,21 @@
 (defclass openlook-text-field (text-field xt-leaf-pane)
 	  ())
 
+(defmethod initialize-mirror :after ((port openlook-port)
+				     (parent t)
+				     (parent-widget t)
+				     (sheet openlook-text-field)
+				     (widget t))
+  (unless (gadget-editable-p sheet)
+    (let ((te (tk-silica::openlook-text-field-edit-widget sheet widget)))
+      (tk::set-values te :edit-type :text-read))))
+
+(defmethod (setf gadget-editable-p) :after (nv (tf openlook-text-field))
+  (let ((m (sheet-direct-mirror tf)))
+    (when m (tk::set-values
+	     (tk-silica::openlook-text-field-edit-widget tf m)
+	     :edit-type (if nv :text-edit :text-read)))))
+
 ;;-- Extreme hack alert
 
 (defmethod compose-space ((tf openlook-text-field) &key width height)
@@ -587,10 +602,8 @@
 		   (editable gadget-editable-p)
 		   (foreground pane-foreground)) sheet
     (multiple-value-bind (class initargs)
-	(if editable
-	    (values 'tk::text-field
+	(values 'tk::text-field
 		    `(:chars-visible ,(max (length value) 10)))
-	  (values 'tk::static-text nil))
       (values class
 	      (append 
 	       (and foreground
@@ -625,12 +638,17 @@
 
 
 (defmethod gadget-value ((gadget openlook-text-field))
-  (if (sheet-direct-mirror gadget)
-      (if (gadget-editable-p gadget)
-	  (text-editor-text (openlook-text-field-edit-widget gadget))
-	(tk::get-values (sheet-direct-mirror gadget) :string))
-    (call-next-method)))
+  (let ((m (sheet-direct-mirror gadget)))
+    (if m
+	(if (gadget-editable-p gadget)
+	    (text-editor-text (openlook-text-field-edit-widget gadget))
+	  (tk::get-values m :string))
+      (call-next-method))))
 
+
+(defmethod gadget-current-selection ((tf openlook-text-field))
+  (and (sheet-direct-mirror tf)
+       (text-editor-selection (openlook-text-field-edit-widget tf))))
 
 (defmethod (setf gadget-value) :after 
 	   (nv (gadget openlook-text-field) &key invoke-callback)
@@ -645,31 +663,6 @@
 ;;--- the user hits return we invoke the callback. I guess we need to
 ;;-- look at whats been inserted.
 
-
-;;; Value stuff
-;;; I suspect that this is worthless
-
-(defclass openlook-value-pane () ())
-
-(defmethod add-sheet-callbacks :after ((port openlook-port) 
-				       (sheet openlook-value-pane) (widget t))
-  #+igore
-  (tk::add-callback widget
-		    :value-changed-callback
-		    'queue-value-changed-event
-		    sheet))
-
-(defmethod gadget-value ((gadget openlook-value-pane))
-  (if (sheet-direct-mirror gadget)
-      (tk::get-values (sheet-mirror gadget) :value)
-    (call-next-method)))
-
-(defmethod (setf gadget-value) :after 
-	   (nv (gadget openlook-value-pane) &key invoke-callback)
-  (declare (ignore invoke-callback))
-  (when (sheet-direct-mirror gadget)
-    (with-no-value-changed-callbacks
-	(tk::set-values (sheet-mirror gadget) :value nv))))
 
 ;;;
 
@@ -1250,10 +1243,32 @@
   (tk::with-ref-par ((end 0)
 		     (string 0))
     (assert (not (zerop (tk::ol_text_edit_get_last_position widget end))))
-    (assert (not (zerop (tk::ol_text_edit_read_substring 
-			 widget string 0 (aref end 0)))))
-    (subseq (ff::char*-to-string (aref string 0)) 0 (aref end 0))))
+    (let ((end (aref end 0)))
+      (assert (not (zerop (tk::ol_text_edit_read_substring 
+			   widget string 0 end))))
+      (let ((string (aref string 0)))
+	(prog1
+	    (subseq (ff::char*-to-string string) 0 end)
+	  (xt::xt_free string))))))
 
+
+(defmethod  text-editor-selection ((widget openlook-text-editor))
+  (text-editor-selection (sheet-direct-mirror widget)))
+
+(defmethod text-editor-selection ((widget tk::text-edit))
+  (multiple-value-bind (start end)
+      (tk::get-values widget :select-start :select-end)
+    (and (> end start)
+	 (tk::with-ref-par ((string 0))
+	   (assert (not (zerop (tk::ol_text_edit_read_substring 
+				widget string start end))))
+	   (let ((string (aref string 0)))
+	     (prog1
+		 (ff::char*-to-string string)
+	       (xt::xt_free string)))))))
+
+(defmethod gadget-current-selection ((tf openlook-text-editor))
+  (and (sheet-direct-mirror tf) (text-editor-selection tf)))
 
 (defmethod (setf text-editor-text) (nv (te openlook-text-editor))
   (let ((widget (sheet-direct-mirror te)))
@@ -1291,6 +1306,10 @@
 							 sheet
 							 foreground)))))
 	       initargs)))))
+
+(defmethod (setf gadget-editable-p) :after (nv (tf openlook-text-editor))
+  (let ((m (sheet-direct-mirror tf)))
+    (when m (tk::set-values m :edit-type (if nv :text-edit :text-read)))))
 
 (defmethod process-width-specification ((sheet openlook-text-editor) width)
   (when (numberp width) (return-from process-width-specification width))

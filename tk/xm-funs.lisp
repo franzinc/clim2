@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.11 1993/07/22 15:39:21 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.12 1993/07/27 01:54:04 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -217,3 +217,24 @@
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :fixnum)
+
+(ff:defforeign 'xm_text_field_get_selection
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XmTextFieldGetSelection")
+    :return-type :integer)
+
+(ff:defforeign 'xm_text_get_selection
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XmTextGetSelection")
+    :return-type :integer)
+
+(ff:defforeign 'xm_get_display
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XmGetXmDisplay")
+    :return-type :integer)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-callbacks.lisp,v 1.3 92/06/29 14:04:25 cer Exp $
+;; $fiHeader: xm-callbacks.lisp,v 1.4 1993/07/27 01:53:51 colin Exp $
 
 
 (in-package :tk)
@@ -49,3 +49,12 @@
 	(setf (xm-string-table r i)
 	  (convert-resource-out parent 'xm-string (car v))))
     0))
+
+(defmethod convert-pixmap-out (parent value)
+  (etypecase value
+    (string
+     (let* ((display (widget-display parent))
+	    (screen (x11:xdefaultscreenofdisplay display))
+	    (white (x11::xwhitepixel display 0))
+	    (black (x11::xblackpixel display 0)))
+       (xm_get_pixmap screen value white black)))))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.78 1993/07/22 15:39:38 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.79 1993/07/27 01:55:28 colin Exp $
 
 (in-package :xm-silica)
 
@@ -565,6 +565,13 @@
 	     `(:editable ,editable)
              (and value `(:value ,value))))))
 
+(defmethod gadget-current-selection ((tf motif-text-field))
+  (let ((m (sheet-direct-mirror tf)))
+    (and m 
+	 (let  ((x (tk::xm_text_field_get_selection m)))
+	   (and (not (zerop x))
+		(ff:char*-to-string x))))))
+	 
 
 
 ;;; New definitions to support specifying width and height in terms of
@@ -689,6 +696,13 @@
 	       (and nlines (list :rows nlines))
 	       (and value `(:value ,value))
 	       (and word-wrap `(:word-wrap t)))))))
+
+(defmethod gadget-current-selection ((tf motif-text-editor))
+  (let ((m (sheet-direct-mirror tf)))
+    (and m 
+	 (let  ((x (tk::xm_text_get_selection m)))
+	   (and (not (zerop x))
+		(ff:char*-to-string x))))))
 
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
@@ -1227,15 +1241,15 @@
                                       (style :inform)
                                       (frame nil frame-p)
                                       (associated-window
-                                        (if frame-p
-                                            (frame-top-level-sheet frame)
-                                            (graft framem)))
+				       (if frame-p
+					   (frame-top-level-sheet frame)
+					 (graft framem)))
                                       (title "Notify user")
                                       documentation
                                       (exit-boxes
-                                        '(:exit
-                                           :abort
-                                           :help))
+				       '(:exit
+					 :abort
+					 :help))
                                       (name title))
   (let ((dialog (apply #'make-instance (ecase style
 					 (:inform 'tk::xm-information-dialog)
@@ -1265,19 +1279,21 @@
 
         
 	(process-exit-boxes framem 
-			   associated-window
-			   documentation exit-boxes ok-button cancel-button
-			   help-button)
+			    associated-window
+			    documentation exit-boxes ok-button cancel-button
+			    help-button)
         
-        (unwind-protect
-            (progn
-              (tk::manage-child dialog)
-              (wait-for-callback-invocation
-               (port framem)
-               #'(lambda () (or result (not (tk::is-managed-p dialog))))
-               "Waiting for dialog"))
-          (tk::destroy-widget dialog))
-        (car result)))))
+        (catch 'notify-user
+	  (unwind-protect
+	      (progn
+		(tk::manage-child dialog)
+		(with-toolkit-dialog-component (notify-user (list message-string :style))
+		  (wait-for-callback-invocation
+		   (port framem)
+		   #'(lambda () (or result (not (tk::is-managed-p dialog))))
+		   "Waiting for dialog")))
+	    (tk::destroy-widget dialog))
+	  (car result))))))
 
 (defun process-exit-boxes (framem 
 			   associated-window

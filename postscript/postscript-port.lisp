@@ -1,6 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.20 1993/06/02 18:41:40 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.21 1993/06/21 20:51:00 cer Exp $
+
+(provide :climps)
 
 (in-package :postscript-clim)
 
@@ -320,7 +322,7 @@
       printer-stream)
     (write-char #\space printer-stream)
     (ps-optimal-flonize
-      (- (* (slot-value port 'page-height)
+      (- (* (+ (slot-value port 'page-height) (slot-value port 'page-indent))
 	    (slot-value port 'device-units-per-inch)) y)
       printer-stream)
     (dolist (arg args)
@@ -547,7 +549,7 @@ end } def
       (:landscape
         (format printer-stream
             "/format-rotation -90 def ~%/format-y-translation ~D def~%" 
-          (float (* (slot-value port 'page-height)
+          (float (* (+ (slot-value port 'page-height) (slot-value port 'page-indent))
 		    (slot-value port 'device-units-per-inch))))))
     (format printer-stream "/format-scale ~D def~%" (float (or scale-factor 1)))
     (format printer-stream
@@ -815,7 +817,7 @@ end } def
      (y-resolution :initform 300)
      (page-indent :initform  0.5)	;in inches
      (page-width  :initform  7.5)
-     (page-height :initform 10.5)))
+     (page-height :initform 10)))
 
 (defmethod normal-line-thickness ((port postscript-port) thickness)
   thickness)
@@ -833,19 +835,21 @@ end } def
 
 
 (defclass postscript-stream
-	  (sheet-permanently-enabled-mixin
-	   permanent-medium-sheet-output-mixin
-	   sheet-transformation-mixin
-	   clim-internals::graphics-output-recording
-	   clim-internals::output-recording-mixin
-	   clim-internals::output-protocol-mixin
-	   basic-sheet)
-	  ((multi-page :initform nil :initarg :multi-page)
-	   ;; Need this for hacking "scrolling" of multi-page output
-	   (device-transformation :accessor sheet-device-transformation
-				  :initform +identity-transformation+)
-	   (generating-postscript :initform t :accessor stream-generating-postscript))
-  (:default-initargs :default-text-margin 1000))
+    (sheet-permanently-enabled-mixin
+     permanent-medium-sheet-output-mixin
+     sheet-transformation-mixin
+     clim-internals::graphics-output-recording
+     clim-internals::output-recording-mixin
+     clim-internals::output-protocol-mixin
+     basic-sheet)
+  ((multi-page :initform nil :initarg :multi-page)
+   ;; Need this for hacking "scrolling" of multi-page output
+   (device-transformation :accessor sheet-device-transformation
+			  :initform +identity-transformation+)
+   (generating-postscript :initform t :accessor stream-generating-postscript))
+  (:default-initargs 
+      :default-text-margin 1000
+    :output-record (make-instance 'standard-sequence-output-history)))
 
 (defmethod close ((stream postscript-stream) &key abort)
   (unless abort
@@ -905,6 +909,7 @@ end } def
 		  (not multi-page))
 	      (replay output-record stream (or region +everywhere+))
 	      (with-bounding-rectangle* (left top right bottom) output-record
+		(break "~S" output-record)
 		(let* ((page-width
 			 (floor (* (slot-value port 'page-width)
 				   (slot-value port 'device-units-per-inch))
@@ -928,7 +933,10 @@ end } def
 					  x y (+ x page-width) (+ y page-height))))
 			    (setf (sheet-device-transformation stream)
 				  (make-translation-transformation
-				    (- viewport-x) (- viewport-y)))
+				   (- viewport-x) (- viewport-y)))
+			    (let ((*annotate-postscript* t))
+			      (annotating-postscript (medium printer-stream)
+						     (format printer-stream  "%%%%%----- Multi-page ~D,~D" viewport-x viewport-y)))
 			    (replay output-record stream region))
 			  (incf viewport-x page-width))
 			(setf viewport-x 0)

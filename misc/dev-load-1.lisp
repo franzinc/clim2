@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.30 1993/07/22 15:38:40 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.31 1993/07/27 01:47:51 colin Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -54,22 +54,15 @@
 	(load "clim-debug.fasl")
 	(load "clim-debugol.fasl")))
 
-     ;;-- What would be good is to mark the files in the system as having
-     ;;-- been loaded
+     (tenuring
+      (load "climps.fasl")
+      (load "climhpgl.fasl")
+      (load "climdemo.fasl"))
+
 
      (load "postscript/sysdcl")
-  
-     (load "climps.fasl")
-     (load "climhpgl.fasl")
-
-     (compile-file-if-needed "test/test-suite")
-
-     (load "test/test-suite")
-
      (load "demo/sysdcl")
-
-     (clim-defsys::load-system 'clim-demo)
-
+     
      (ignore-errors 
        (tenuring 
 	(require :composer)))
@@ -89,10 +82,6 @@
       (cons sys '(postscript-clim clim-demo)) 
       :recurse t)
      
-;     (warn "Loading patch file")
-;     (load "/net/vapor/usr/tech/cer/patches/clos-precache.fasl"
-;	   :if-does-not-exist nil)
-
      (ignore-errors
       (load (case sys
 	      (motif-clim "misc/clos-preloadxm.fasl")

@@ -16,7 +16,9 @@
 
 
 (defmethod get-invocation-pane ((inv frame-invocation) name)
-  (get-frame-pane (invocation-frame inv) name))
+  (if (panep name)
+      name
+    (get-frame-pane (invocation-frame inv) name)))
 
 (defclass activity-invocation (basic-invocation)
   ((activity :initform nil :accessor invocation-activity)))
@@ -37,10 +39,13 @@
 (defun invocation-active-p (invocation)
   (not (eq (invocation-state invocation) :dead)))
 
-(defmethod initialize-instance :after ((inv frame-invocation) &key class initargs)
-  (let ((frame (apply #'make-application-frame class initargs)))
+(defmethod initialize-instance :after ((inv frame-invocation) &key class initargs frame)
+  (let ((process nil))
+    (if frame 
+      (setq process (clim-internals::frame-top-level-process frame))
+      (setq frame (apply #'make-application-frame class initargs)))
     (setf (invocation-frame inv) frame)
-    (initialize-invocation inv frame)))
+    (initialize-invocation inv frame process)))
 
 (defmethod initialize-instance :after ((inv activity-invocation) &key class initargs)
   (let ((activity (apply #'make-instance class initargs)))
@@ -53,7 +58,7 @@
 (defmethod destroy-invocation ((inv activity-invocation))
   (destroy-activity (invocation-activity inv)))
 
-(defun initialize-invocation (inv frame)
+(defun initialize-invocation (inv frame &optional process)
   (labels ((do-it (frame)
 	     (unwind-protect
 		 (loop
@@ -72,12 +77,13 @@
 		   (error (condition)
 		     (handler-invocation-debugger-hook inv condition)))
 	       (do-it frame))))
-    (let* ((process (mp:process-run-function
+    (unless process
+      (setq process (mp:process-run-function
 		     (format nil "~A Test process for" frame)
 		     #'run-frame-top-level-almost 
 		     frame)))
-      (setf (invocation-process inv) process)
-      (wait-for-clim-input-state inv))))
+    (setf (invocation-process inv) process)
+    (wait-for-clim-input-state inv)))
 
 
 (defun handler-invocation-debugger-hook (invocation condition)
@@ -85,27 +91,32 @@
   (format excl:*initial-terminal-io* "The following error occurred: ~A~%" condition))
 
 (defvar *default-input-state-timeout* 300)
+
 (defun wait-for-clim-input-state (invocation &optional (timeout *default-input-state-timeout*))
   (let ((process (invocation-process invocation)))
     (let ((port (port (invocation-frame invocation))))
       (when port (xm-silica::port-finish-output port)))
     (mp:process-allow-schedule)
-    (if timeout
-	(let ((done nil))
-	  (mp:process-wait-with-timeout 
-	   "Waiting for process to sleep"
-	   timeout
-	   #'(lambda () 
-	       (setq done
-		 (or (not (mp::process-stack-group process))
-		     (string-equal (mp::process-whostate process) "CLIM Input")))))
-	  (unless done
-	    (error "Timed out after ~D seconds" timeout)))
-      (mp:process-wait 
-       "Waiting for process to sleep"
-       #'(lambda () 
-	   (or (not (mp::process-stack-group process))
-	       (string-equal (mp::process-whostate process) "CLIM Input")))))))
+    (flet ((input-state-p (process)
+	     (or (not (mp::process-stack-group process))
+		 (member  (mp::process-whostate process) 
+			  '("Returned value" 
+			    "Waiting for dialog"
+			    "CLIM Input")
+			  :test #'string-equal))))
+      (if timeout
+	  (let ((done nil))
+	    (mp:process-wait-with-timeout 
+	     "Waiting for process to sleep"
+	     timeout
+	     #'(lambda () 
+		 (setq done (input-state-p process))))
+	    (unless done
+	      (error "Timed out after ~D seconds" timeout)))
+	(mp:process-wait 
+	 "Waiting for process to sleep"
+	 #'(lambda () 
+	     (input-state-p process)))))))
 
 (defvar *death-timeout* 30)
 
@@ -388,14 +399,20 @@
 (setq *random-state* (make-random-state t))
 
 
+(defun warp-the-pointer (sheet x y)
+  (multiple-value-setq (x y) (transform-position (sheet-device-transformation sheet) x y))
+  (tk-silica::port-set-pointer-position-1 (port sheet) sheet x y))
+
 (define-test-step click-on-presentation (pane-name
 					 presentation-type 
 					 &key gesture 
+					 (press t)
 					 (release t)
 					 (modifier 0)
 					 (button +pointer-left-button+)
 					 (x-offset 0)
-					 (y-offset 0))
+					 (y-offset 0)
+					 (test #'identity))
   (with-slots (process) invocation
     (when gesture
       (multiple-value-setq (button modifier)
@@ -406,11 +423,11 @@
 	  (expanded-presentation-type
 	   (expand-presentation-type-abbreviation presentation-type)))
       (flet ((doit (record left top right bottom)
-	       (when (presentation-subtypep 
-		      (presentation-type record)
-		      expanded-presentation-type)
-		 (stream-set-pointer-position pane (+ left x-offset)
-					      (+ top y-offset))
+	       (when (and (presentation-subtypep 
+			   (presentation-type record)
+			   expanded-presentation-type)
+			  (funcall test record))
+		 (warp-the-pointer pane (+ left x-offset) (+ top y-offset))
 		 ;; At this point it would be nice to specify that a
 		 ;; modifier key was pressed.
 		 (wait-for-clim-input-state invocation)
@@ -422,6 +439,7 @@
 	;;-- generates an exit event which unhighlights the presentation
 	;;-- so we loose
 	(dotimes (i 2)
+	  (wait-for-clim-input-state invocation)
 	  (walk-over-presentations #'doit (stream-output-history pane))
 	  (when presentations (return nil))
 	  (sleep 1)))
@@ -430,38 +448,38 @@
       (assert presentations ()
 	"Did not find presentations to click on!")
       (when presentations
-	(prog1 t
-	  (let* ((len (length presentations))
-		 (i (random len)))
-	    (destructuring-bind
-		(record left top right bottom) (nth i presentations)
-	      (declare (ignore record right bottom))
-	      #+ignore
-	      (format excl:*initial-terminal-io*
-		      "selecting ~d of ~d = ~s @ ~d,~d~%"
-		      i len record left top)
-	      ;;-- Exit event problem
-	      (dotimes (i 2)
-		(stream-set-pointer-position pane (+ left x-offset)
-					     (+ top y-offset))
-		(wait-for-clim-input-state invocation)
-		(when (clim-internals::stream-highlighted-presentation pane) 
-		  (return))
-		(stream-set-pointer-position pane (+ left 1 x-offset) (+ top 1 y-offset))
-		(sleep 1))
-	      (assert (clim-internals::stream-highlighted-presentation pane))
-	      ;;-- this is bypassing the distribution mechanism
-	      ;;-- Perhaps we should have a send-event that interfaces to
-	      ;;-- the Xlib code. But can we send fill in all the detail
-	      ;;-- fields of the event
-	      ;;-- In order to get the modifiers to work I think we need
-	      ;;-- to send Keypress/release events
-	      (multiple-value-bind
-		  (x y) (untransform-position
-			 (sheet-device-transformation pane) (+ left
-							       x-offset) (+ top y-offset))
-		(let ((ma (sheet-mirrored-ancestor pane))
-		      (port (port pane)))
+	(let* ((len (length presentations))
+	       (i (random len)))
+	  (destructuring-bind
+	      (record left top right bottom) (nth i presentations)
+	    (declare (ignore right bottom))
+	    #+ignore
+	    (format excl:*initial-terminal-io*
+		    "selecting ~d of ~d = ~s @ ~d,~d~%"
+		    i len record left top)
+	    ;;-- Exit event problem
+	    (dotimes (i 2)
+	      (warp-the-pointer pane (+ left x-offset)
+				(+ top y-offset))
+	      (wait-for-clim-input-state invocation)
+	      (when (clim-internals::stream-highlighted-presentation pane) 
+		(return))
+	      (warp-the-pointer pane (+ left 1 x-offset) (+ top 1 y-offset))
+	      (sleep 1))
+	    (assert (clim-internals::stream-highlighted-presentation pane))
+	    ;;-- this is bypassing the distribution mechanism
+	    ;;-- Perhaps we should have a send-event that interfaces to
+	    ;;-- the Xlib code. But can we send fill in all the detail
+	    ;;-- fields of the event
+	    ;;-- In order to get the modifiers to work I think we need
+	    ;;-- to send Keypress/release events
+	    (multiple-value-bind
+		(x y) (untransform-position
+		       (sheet-device-transformation pane) (+ left
+							     x-offset) (+ top y-offset))
+	      (let ((ma (sheet-mirrored-ancestor pane))
+		    (port (port pane)))
+		(when press
 		  (distribute-event port
 				    (make-instance 'pointer-button-press-event
 						   :sheet ma
@@ -471,17 +489,19 @@
 						   :native-y y
 						   :x :?? :y :??
 						   :modifier-state
-						   modifier))
-		  (when release
-		    (distribute-event port
-				      (make-instance 'pointer-button-release-event
-						     :sheet ma
-						     :pointer (port-pointer port)
-						     :button button
-						     :native-x x
-						     :native-y y
-						     :x :?? :y :??
-						     :modifier-state modifier))))))))))))
+						   modifier)))
+		(when release
+		  (distribute-event port
+				    (make-instance 'pointer-button-release-event
+						   :sheet ma
+						   :pointer (port-pointer port)
+						   :button button
+						   :native-x x
+						   :native-y y
+						   :x :?? :y :??
+						   :modifier-state
+						   modifier)))))
+	    (values record presentations)))))))
 
 
 (define-test-step click-on-window (pane-name left top &rest args)
@@ -787,6 +807,113 @@
 		 (prof:show-flat-profile))))))
     (let ((*execute-one-command-hook* #'profiling-hook))
       (funcall test))))
+
+(defun wait-for-frame (&key (type t) 
+			      (framem (find-frame-manager)) 
+			      timeout
+			    (state :enabled)
+			    (errorp t))
+  (let ((frame nil))
+    (flet ((predicate ()
+	     (setq frame (find-frame :type type :framem framem :state state))))
+      (if timeout
+	  (mp::process-wait-with-timeout "Waiting for frame" timeout #'predicate)
+	(mp:process-wait "Waiting for frame" #'predicate))
+      (unless (or frame (not errorp))
+	(error "Cannot find frame of type ~S" type))
+      frame)))
+
+
+(defun find-frame (&key (type t) 
+			(framem (find-frame-manager)) 
+			(state :enabled))
+  (find-if #'(lambda (frame)
+	       (and (typep frame type)
+		    (if (listp state)
+			(member (frame-state frame) state)
+		      (eq (frame-state frame) state))))
+	   (frame-manager-frames framem)))
+
+(defun find-notify-user (frame)
+  (getf (mp:process-property-list (clim-internals::frame-top-level-process frame)) 'notify-user))
+
+(defun notify-user-ok (frame)
+  (mp::process-interrupt (clim-internals::frame-top-level-process frame)
+			 #'(lambda () (throw 'notify-user t)))
+  (mp::process-allow-schedule))
+
+(defun find-user-interface-components (frame specifications &key (errorp t))
+  (let* ((n (length specifications))
+	 (result (make-list n)))
+    (map-over-sheets #'(lambda (sheet)
+			 (dotimes (i n)
+			   (when (and (not (nth i result))
+				      (sheet-matches-specification-p 
+				       sheet (nth i specifications)))
+			     (setf (nth i result) sheet))))
+		     (frame-top-level-sheet frame))
+    (when (and errorp (notevery #'identity result))
+      (error "Cannot find ui components ~A"
+	     (mapcan #'(lambda (spec res)
+			 (unless res (list spec)))
+		     specifications
+		     result)))
+    (values-list result)))
+
+(defun sheet-matches-specification-p (sheet specification)
+  (if (functionp specification)
+      (funcall specification sheet)
+    (typep sheet specification)))
+
+
+(defun wait-for-frame-to-exit (frame &key timeout)
+  (let ((done nil))
+    (flet ((predicate ()
+	     (setq done
+	       (not (eq (frame-state frame) :enabled)))))
+      (if timeout
+	  (mp::process-wait-with-timeout "Waiting for disable" timeout #'predicate)
+	(mp::process-wait "Waiting for disable" #'predicate)))
+    (assert done () "Frame did not un enable")))
+
+(defmacro with-frame-invocation ((frame) &body body)
+  `(invoke-with-frame-invocation ,frame #'(lambda () ,@body)))
+
+(defun invoke-with-frame-invocation (frame continuation)
+  (let ((*invocation* (make-instance 'frame-invocation
+				     :frame frame)))
+    (funcall continuation)))
+
+(define-test-step press-push-button (button)
+  (xm-silica::queue-active-event nil nil button))
+
+(defmacro with-waiting ((&body timeout) &body clauses)
+  (let ((i 0)
+	(result (gensym))
+	(which (gensym))
+	(time (gensym)))
+    `(let ((,result nil)
+	   (,time ,timeout)
+	   ,which)
+       (flet ((predicate ()
+		(or ,@(mapcar #'(lambda (clause)
+				  `(when (car (setq ,result (multiple-value-list ,(car clause))))
+				    (setq ,which ,(incf i))))
+			      clauses))))
+	 (if ,time
+	     (mp::process-wait-with-timeout "Waiting" ,time #'predicate)
+	   (mp::process-wait "Waiting" #'predicate)))
+       ,(do ((clauses clauses (cdr clauses))
+	    (i 0)
+	    res)
+	   ((null clauses)
+	    `(case ,which ,@(reverse res)))
+	  (let ((clause (car clauses)))
+	 (push `(,(incf i) 
+		     (destructuring-bind ,(second clause) ,result
+			,@(cddr clause)))
+	       res))))))
+
 
 ;;; This should be at the end:
 ;;; make the training selective.

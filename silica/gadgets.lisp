@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.54 1993/06/04 16:06:39 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.55 1993/07/22 15:38:53 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -325,9 +325,18 @@
  	    :initarg :current-selection
  	    :accessor radio-box-current-selection)))
 
+(defmethod (setf gadget-value) (new-value (gadget radio-box) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (unless (eq new-value (radio-box-current-selection gadget))
+    (dolist (toggle (radio-box-selections gadget))
+      (setf (gadget-value toggle)
+	(eq new-value toggle))))
+  (call-next-method))
+
 (defmethod initialize-instance :after ((rb radio-box) &key choices)
   (let* ((frame (pane-frame rb))
-	 (framem (frame-manager frame)))
+	 (framem (frame-manager frame))
+	 (selections nil))
     (assert (and frame framem) ()
       "There must be both a frame and frame manager active")
     (with-look-and-feel-realization (framem frame)
@@ -337,7 +346,8 @@
 	   ;; Adopt the button.  Some framems will disown the button
 	   ;; in order to do layout, but that will happen later.
 	   (unless (sheet-parent choice)
-	     (sheet-adopt-child rb choice)))
+	     (sheet-adopt-child rb choice))
+	   (push choice selections))
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
 	   (let* ((value (equal (radio-box-current-selection rb) choice))
@@ -348,8 +358,10 @@
 				     :client rb
 				     :id choice
 				     :parent rb)))
+	     (push button selections)
 	     (when value
 	       (setf (radio-box-current-selection rb) button)))))))
+    (setf (slot-value rb 'selections) (nreverse selections))
     (check-type (radio-box-current-selection rb) (or null pane))))
 
 (defmethod value-changed-callback :around 
@@ -377,17 +389,27 @@
  	    :initarg :current-selection
  	    :accessor check-box-current-selection)))
 
+(defmethod (setf gadget-value) (new-value (gadget check-box) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (unless (equal new-value (check-box-current-selection gadget))
+    (dolist (toggle (check-box-selections gadget))
+      (setf (gadget-value toggle)
+	(member toggle new-value))))
+  (call-next-method))
+
 (defmethod initialize-instance :after ((cb check-box) &key choices)
   (let* ((frame (pane-frame cb))
-	 (framem (frame-manager frame)))
+	 (framem (frame-manager frame))
+	 (selections nil))
     (assert (and frame framem) ()
       "There must be both a frame and frame manager active")
     (with-look-and-feel-realization (framem frame)
       (dolist (choice choices)
 	(etypecase choice
-	  (pane
+	  (toggle-button
 	   ;; Adopt the button.  Some framems will disown the button
 	   ;; in order to do layout, but that will happen later.
+	   (push choice selections)
 	   (unless (sheet-parent choice)
 	     (sheet-adopt-child cb choice)))
 	  (string
@@ -400,8 +422,10 @@
 				     :client cb
 				     :id choice
 				     :parent cb)))
+	     (push button selections)
 	     (when value
 	       (setf (car value) button)))))))
+    (setf (slot-value cb 'selections) (nreverse selections))
     (assert (every #'panep (check-box-current-selection cb)) () "Current selection must be a list of panes")))
 
 (defmethod value-changed-callback :around 
@@ -431,20 +455,26 @@
 	     (let ((,choices (list ,@body)))
 	       (make-pane 'radio-box
 		 :choices ,choices
-		 :selection ,current-selection
+		 :current-selection ,current-selection
 		 ,@options)))))
       (:some-of
 	`(let ((,current-selection nil))
 	   (macrolet ((radio-box-current-selection (form)
-			`(setq ,',current-selection 
-			       (append ,',current-selection ,form)))
+			(let ((button (gensym)))
+			  `(let ((,button ,form))
+			     (setq ,',current-selection 
+			       (append ,',current-selection (list ,button)))
+			     ,button)))
 		      (check-box-current-selection (form)
-			`(setq ,',current-selection 
-			       (append ,',current-selection ,form))))
+			(let ((button (gensym)))
+			  `(let ((,button ,form))
+			     (setq ,',current-selection 
+			       (append ,',current-selection (list ,button)))
+			     ,button))))
 	     (let ((,choices (list ,@body)))
 	       (make-pane 'check-box
 		 :choices ,choices
-		 :selection ,current-selection
+		 :current-selection ,current-selection
 		 ,@options))))))))
 
 
@@ -464,6 +494,8 @@
 		:accessor gadget-word-wrap))
   (:default-initargs :ncolumns 30 :nlines 1 :editable-p t :word-wrap nil))
 
+(defmethod gadget-current-selection ((text-field text-field))
+  nil)
 
 ;;; Viewport
 

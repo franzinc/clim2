@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.30 1993/06/04 16:07:02 cer Exp $
+;; $fiHeader: widget.lisp,v 1.31 1993/07/27 01:53:43 colin Exp $
 
 (in-package :tk)
 
@@ -112,7 +112,8 @@
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class parent args)))
     (xt_create_popup_shell
-	     (string-to-char* name)
+     ;;-- allocate-no-free
+     (string-to-char* name)
 	     handle
 	     parent
 	     arglist

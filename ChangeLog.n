@@ -1,3 +1,51 @@
+from cer: Thu Aug 12 09:01:17 PDT 1993
+
+Makefile.defs		Added definition of climdemo.fasl
+Makefile.generic	Added definition of climdemo.fasl
+clim/accept-values.lisp	removed warning
+clim/db-stream.lisp	Window-shift-visible-region now will clear and replay
+			common area  
+clim/excl-presentations.lisp	removed warning
+clim/input-editor-commands.lisp		removed warning
+clim/input-protocol.lisp		Deleted bogus receive-gesture{-list} methods
+clim/noting-progress.lisp		removed warning
+clim/pixmap-streams.lisp		text-style bug
+climtoys/booch.lisp		Added edge/cloud intersection code.
+climtoys/coverage.lisp		Added known-clim2-files
+climtoys/ib.lisp		Added commands to show palette and graph windows
+climtoys/ibgen.lisp		Code generation for text-editor
+demo/plot.lisp			removed warning
+demo/sysdcl.lisp		Added demo-last.lisp
+misc/dev-load-1.lisp		Load climdemo.fasl
+misc/train.lisp			Coverage report just on clim files.
+misc/undefinedsymbols.motif	Added XmTextFieldGetSelection
+postscript/pkgdcl.lisp		Moved (provide :climps) to actual code.
+postscript/postscript-port.lisp	Postscript code page suize bugs and use of
+			sequence output record
+silica/db-scroll.lisp		pane-viewport no longer recurses
+silica/event.lisp		downcased something?!
+silica/gadgets.lisp		(setf gadget-value) radio-box, check-box and
+				other bugs. text-field current-selection
+test/test-clim.lisp		Moved clim-tests stuff to new file
+test/test-demos.lisp		
+test/test-driver.lisp		New features
+test/test.lisp			Tests for text-selection
+test/testdcl.lisp		Added test-clim-tests.lisp
+tk/resources.lisp		Comments for allocation but no freeing
+tk/widget.lisp			Comments for allocation but no freeing
+tk/xlib.lisp			Comments for allocation but no freeing
+tk/xm-callbacks.lisp 		Added convert-pixmap-out method
+tk/xm-funs.lisp			New functions
+tk/xm-widgets.lisp		Comments for allocation but no freeing
+tk/xt-funs.lisp			
+tk-silica/ol-gadgets.lisp	Gadget-editable-p problems, current selection 
+tk-silica/xm-gadgets.lisp	current selection
+tk-silica/xt-frames.lisp	Added catcher, plus mechanism to allow
+				test-driver to catch menu choose
+tk-silica/xt-silica.lisp	with-toolkit-dialog-component needs a better name
+utils/packages.lisp		exported gadget-current-selection
+				
+-------------------------------------------------------------------------------
 from colin: Fri Jul 30 16:18:10 PDT 1993
 
 clim/pixmap-streams.lisp

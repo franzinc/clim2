@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.27 1993/06/02 18:40:31 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.28 1993/07/22 15:38:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -240,6 +240,7 @@ This may confused the input editor" gestures))
       
 ;;--- A work in progress...
 (defmethod compute-input-buffer-input-position ((istream input-editing-stream-mixin) x y)
+  (declare (ignore y))
   (multiple-value-bind (cursor-x cursor-y baseline height style max-x)
       (decode-stream-for-writing istream)
     ;; Cache some slot variables since we will not be writing them.

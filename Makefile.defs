@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.14 1993/07/22 15:37:33 cer Exp $
+# $fiHeader: Makefile.defs,v 1.16 1993/07/29 20:51:15 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -116,7 +116,7 @@ OLC_UNDEFS=misc/undefinedsymbols.colit
 
 # These are the fasls and the .o that form the product
 
-CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl
+CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl climdemo.fasl
 CLIM_OL_FASLS= climol.fasl clim-debugol.fasl
 CLIM_XM_FASLS= climxm.fasl clim-debugxm.fasl
 # clim1compat.fasl
@@ -280,6 +280,30 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
 
 GENERIC-GADGETS = clim/db-menu.fasl clim/db-list.fasl clim/db-text.fasl silica/db-button.fasl \
 	    silica/db-slider.fasl silica/scroll-pane.fasl silica/db-label.fasl
+
+
+DEMO-OBJS= demo/packages.fasl \
+	demo/demo-driver.fasl \
+	demo/listener.fasl \
+	demo/graphics-demos.fasl \
+	demo/cad-demo.fasl \
+	demo/navdata.fasl \
+	demo/navfun.fasl \
+	demo/puzzle.fasl \
+	demo/address-book.fasl \
+	demo/thinkadot.fasl \
+	demo/plot.fasl \
+	demo/color-editor.fasl \
+	demo/graphics-editor.fasl \
+	demo/bitmap-editor.fasl \
+	demo/ico.fasl \
+	demo/browser.fasl \
+	demo/peek-frame.fasl \
+	demo/process-browser.fasl \
+	demo/custom-records.fasl \
+	demo/demo-activity.fasl \
+	test/test-suite.fasl \
+	demo/demo-last.fasl
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
 

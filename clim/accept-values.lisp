@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.66 1993/07/22 15:37:43 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.67 1993/07/27 01:38:07 colin Exp $
 
 (in-package :clim-internals)
 
@@ -648,6 +648,7 @@
 
 (defmethod frame-manager-display-help 
     (framem (frame accept-values-own-window) (stream standard-input-editing-stream) continuation)
+  (declare (ignore framem))
   (declare (dynamic-extent continuation))
   ;;-- Yuck but think of a better way
   (let ((old-help *accept-help*))

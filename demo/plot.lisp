@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.24 1993/07/22 15:38:34 cer Exp $
+;; $fiHeader: plot.lisp,v 1.25 1993/07/27 01:45:58 colin Exp $
 
 (in-package :clim-demo)
 
@@ -381,15 +381,15 @@
       (make-contrasting-inks i j)))
       
 (defmethod default-width-and-height (stream (type (eql :plot)) points width height)
-  (declare (ignore stream points))
+  (declare (ignore stream points width height)) ;;--??
   (values 400 300))
 
 (defmethod default-width-and-height (stream (type (eql :pie)) points width height)
-  (declare (ignore stream points))
+  (declare (ignore stream points width height))
   (values nil nil))
 
 (defmethod default-width-and-height (stream (type (eql :bar)) points width height)
-  (declare (ignore stream))
+  (declare (ignore stream width height))
   (destructuring-bind (rows columns) (array-dimensions points)
     (values (+ (* rows 10) (* columns rows 30))
 	    300)))

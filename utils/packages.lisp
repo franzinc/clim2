@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.55 1993/05/25 20:42:58 cer Exp $
+;; $fiHeader: packages.lisp,v 1.56 1993/07/27 01:57:48 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2866,6 +2866,7 @@
     gadget-armed-callback
     gadget-client
     gadget-columns
+    gadget-current-selection
     gadget-disarmed-callback
     gadget-editable-p
     gadget-id

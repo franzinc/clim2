@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.49 1993/05/13 16:24:27 cer Exp $
+;; $fiHeader: test.lisp,v 1.50 1993/06/21 20:51:31 cer Exp $
 
 (in-package :clim-user)
 
@@ -1030,10 +1030,13 @@
     (c text-field :width '(50 :character))
     (d text-editor :height '(10 :line))
     (e label-pane :label "goodbye" :width '(50 :character)  :max-width +fill+)
-    (f push-button :label "goodbye" :width '(50 :character)))
+    (f push-button :label "goodbye" :width '(50 :character))
+    (g text-field :width '(50 :character) :editable-p nil)
+    (h text-editor :height '(10 :line)  :editable-p nil))
    (:layouts
     (default (scrolling (:max-height +fill+) 
-	       (vertically (:max-width +fill+ :y-spacing 20) z a b c d e f)))))
+	       (vertically (:max-width +fill+ :y-spacing 20) z a b c d
+			   e f g h)))))
 
 (define-application-frame tf109 ()
    ()
@@ -1115,6 +1118,8 @@
      (make-pane 'slider :label (make-graphical-label))
      (make-pane 'option-pane :label (make-graphical-label)))))
 
+
+
 (define-application-frame tf113 ()
   ()
   (:menu-bar t)
@@ -1145,6 +1150,43 @@
 	 "/usr/include/X11/bitmaps/tie_fighter"
 	 :designs (list +black+ ink))))))
 
-	      
-			    
+;;;
+
+(define-tf108-command (com-test-text-selection :name t)
+    ()
+  (let ((text-field (find-pane-named *application-frame* 'c))
+	(text-editor (find-pane-named *application-frame* 'd)))
+    (print (gadget-current-selection text-field))
+    (print (gadget-current-selection text-editor))))
+
+(define-tf108-command (com-test-text-editable :name t)
+    ()
+  (let ((text-field (find-pane-named *application-frame* 'c))
+	(text-editor (find-pane-named *application-frame* 'd)))
+    (setf (gadget-editable-p text-field) nil
+	  (gadget-editable-p text-editor) nil
+	  (gadget-editable-p text-field) t
+	  (gadget-editable-p text-editor) t)))
+;;
+
+
+(define-application-frame tf114 ()
+  ()
+  (:menu-bar t)
+  (:panes
+   (a (with-radio-box () "Common Lisp" "Smalltalk" "Fortran" "Cobol"))
+   (b (with-radio-box (:type :some-of) "Common Lisp" "Smalltalk" "Fortran" "Cobol")))
+  (:layouts
+   (default (vertically () a b))))
+
+(define-tf114-command com-update-boxes
+    ()
+  (let ((rb (find-pane-named *application-frame* 'a))
+	(cb (find-pane-named *application-frame* 'b)))
+    (let ((n1 (nth (random (length (radio-box-selections rb))) (radio-box-selections rb)))
+	  (n2 (list (nth (random (length (check-box-selections cb))) (check-box-selections cb)))))
+      (setf (gadget-value rb) n1)
+      (assert (eq n1 (radio-box-current-selection rb)))
+      (setf (gadget-value cb) n2)
+      (assert (equal n2 (check-box-current-selection cb))))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.36 1993/05/13 16:29:44 colin Exp $
+;; $fiHeader: event.lisp,v 1.37 1993/06/02 18:41:50 cer Exp $
 
 (in-package :silica)
 
@@ -701,7 +701,7 @@
 (define-event-resource pointer-enter-event 20)
 (define-event-resource pointer-exit-event 20)
 (define-event-resource pointer-button-press-event 10)
-(define-event-resource pointer-button-release-event 10)
+(define-event-resource Pointer-button-release-event 10)
 (define-event-resource key-press-event 10)
 (define-event-resource key-release-event 10)
 (define-event-resource window-configuration-event 10)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.85 1993/06/04 16:07:14 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.86 1993/07/27 01:55:59 colin Exp $
 
 (in-package :xm-silica)
 
@@ -426,6 +426,7 @@
 				 native-x native-y state)
 	       (tk::query-pointer (tk::widget-window widget))
 	     (declare (ignore same-p root child))
+
 	     (allocate-event 'pointer-motion-event
 			     :pointer (port-pointer port)
 			     :sheet sheet
@@ -548,6 +549,7 @@
        (let ((button (x-button->silica-button 
 		      (x11::xbuttonevent-button event)))
 	     (pointer (port-pointer port)))
+
 	 (distribute-event
 	  port
 	  (allocate-event 'pointer-button-press-event
@@ -564,6 +566,7 @@
        (let ((button (x-button->silica-button 
 		      (x11::xbuttonevent-button event)))
 	     (pointer (port-pointer port)))
+	 
 	 (distribute-event
 	  port
 	  (allocate-event 'pointer-button-release-event
@@ -1462,8 +1465,11 @@ the geometry of the children. Instead the parent has control. "))
 
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
-  (let* ((sheet (pointer-sheet pointer))
-	 (m (and (port sheet) (sheet-mirror sheet))))
+  (let* ((sheet (pointer-sheet pointer)))
+    (port-set-pointer-position-1 port sheet x y)))
+
+(defun port-set-pointer-position-1 (port sheet x y)
+  (let ((m (and (port sheet) (sheet-mirror sheet))))
     (when m
       (let ((display (port-display port)))
 	(x11:xwarppointer
@@ -1742,7 +1748,7 @@ the geometry of the children. Instead the parent has control. "))
 	   x11:grabmodeasync		; pointer-grab-mode
 	   x11:grabmodeasync		; keyboard
 	   (if confine-to widget 0)	; confine to
-	   (if cursor (realize-cursor port cursor) 0)
+	   (if cursor (realize-cursor port sheet cursor) 0)
 	   0				; current-time
 	   )
 	  (handler-bind ((error #'(lambda (condition)
@@ -1807,3 +1813,7 @@ the geometry of the children. Instead the parent has control. "))
     (declare (ignore state child root same-p))
     (values native-x native-y native-x native-y root-x root-y)))
 
+
+(defmacro with-toolkit-dialog-component ((tag value) &body body)
+  `(letf-globally (((getf (mp:process-property-list mp:*current-process*) ',tag) ,value))
+       ,@body))

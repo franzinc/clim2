@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.15 1993/07/22 15:37:35 cer Exp $
+# $fiHeader: Makefile.generic,v 1.17 1993/07/29 20:51:17 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -61,7 +61,7 @@ compile-ol:	$(OPENLOOK_OBJS) FORCE
 # Concatenation
 
 cat:	cat-xm cat-ol
-cat-g:	climg.fasl clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl # clim1compat.fasl
+cat-g:	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl # clim1compat.fasl
 cat-xm:	cat-g climxm.fasl clim-debugxm.fasl 
 cat-ol:	cat-g climol.fasl clim-debugol.fasl 
 
@@ -72,6 +72,13 @@ climg.fasl	: $(GENERIC-OBJS) $(XLIB-CLIM-OBJS)
 	$(MV) $(TMP)/clim.fasl_`whoami` climg.fasl
 	ls -lt climg.fasl >> Clim-sizes.n
 	ls -lt climg.fasl
+
+climdemo.fasl	: $(DEMO-OBJS)
+	$(CAT) $(DEMO-OBJS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climdemo.fasl
+	ls -lt climdemo.fasl >> Clim-sizes.n
+	ls -lt climdemo.fasl
+
 
 climgg.fasl	: $(GENERIC-GADGETS)
 	$(CAT) $(GENERIC-GADGETS) > $(TMP)/clim.fasl_`whoami`

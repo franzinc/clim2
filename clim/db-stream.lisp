@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.55 1993/07/22 15:37:46 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.56 1993/07/27 01:38:51 colin Exp $
 
 (in-package :clim-internals)
 
@@ -635,9 +635,14 @@
 (defmethod window-shift-visible-region ((window t)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)
-  (declare (ignore old-left old-top old-right old-bottom
-		   new-left new-top new-right new-bottom))
-  nil)
+  (multiple-value-bind (valid-p left top right bottom)
+      (ltrb-overlaps-ltrb-p old-left old-top old-right old-bottom
+			    new-left new-top new-right new-bottom)
+    (when valid-p 
+      (with-sheet-medium (medium window)
+	(medium-clear-area medium left top right bottom)
+	(repaint-sheet window (make-bounding-rectangle left top right bottom))))))
+
 
 #+Genera
 (defgeneric stream-compatible-inside-size (window)

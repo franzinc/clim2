@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.17 1993/05/13 16:24:42 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.20 1993/07/29 20:52:02 layer Exp $
 
 
 ;;
@@ -420,4 +420,6 @@
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XtParseAcceleratorTable")
     :return-type :unsigned-integer)
+
+
 

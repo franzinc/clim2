@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.43 1993/07/22 15:38:03 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.44 1993/07/27 01:39:55 colin Exp $
 
 (in-package :clim-internals)
 
@@ -296,41 +296,41 @@
   (unless *discard-pointer-release-events*
     gesture))
 
-(defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
-  (throw 'resynchronize t))
-
-(defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture list))
-  (let ((*original-stream* nil))
-    (receive-list-gesture stream (first gesture) (rest gesture)))
-  ;; Don't return this gesture to the higher level
-  nil)
-
-(defmethod receive-list-gesture
-	   ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
-  (redisplay-frame-pane (first args) (second args)))
-
-;;--- This needs to be looked at carefully!
-(defmethod receive-list-gesture
-	   ((stream input-protocol-mixin) (type (eql 'execute-frame-command)) command)
-  ;; Instead of executing here, we throw to the command catch tag if there is one
-  (let ((command-function (command-name (second command))))
-    (dolist (this-context *input-context*)
-      (let* ((context (first this-context))
-	     (tag (second this-context)))
-	(when (presentation-subtypep-1 'command context)
-	  (throw tag (values (second command) context)))))
-    ;; If no command context applies, then we can do no better than execute here and
-    ;; resynchronize
-    (apply #'execute-frame-command command)
-    ;; probably wants to resynchronize, right?
-    ;; should signal, though
-    (throw 'command-executed t)))
-
-(defmethod receive-list-gesture
-	   ((stream input-protocol-mixin) (type (eql 'stop-frame)) args)
-  (apply #'stop-frame args))
+;(defmethod receive-gesture
+;	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
+;  (throw 'resynchronize t))
+;
+;(defmethod receive-gesture
+;	   ((stream input-protocol-mixin) (gesture list))
+;  (let ((*original-stream* nil))
+;    (receive-list-gesture stream (first gesture) (rest gesture)))
+;  ;; Don't return this gesture to the higher level
+;  nil)
+;
+;(defmethod receive-list-gesture
+;	   ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
+;  (redisplay-frame-pane (first args) (second args)))
+;
+;;;--- This needs to be looked at carefully!
+;(defmethod receive-list-gesture
+;	   ((stream input-protocol-mixin) (type (eql 'execute-frame-command)) command)
+;  ;; Instead of executing here, we throw to the command catch tag if there is one
+;  (let ((command-function (command-name (second command))))
+;    (dolist (this-context *input-context*)
+;      (let* ((context (first this-context))
+;	     (tag (second this-context)))
+;	(when (presentation-subtypep-1 'command context)
+;	  (throw tag (values (second command) context)))))
+;    ;; If no command context applies, then we can do no better than execute here and
+;    ;; resynchronize
+;    (apply #'execute-frame-command command)
+;    ;; probably wants to resynchronize, right?
+;    ;; should signal, though
+;    (throw 'command-executed t)))
+;
+;(defmethod receive-list-gesture
+;	   ((stream input-protocol-mixin) (type (eql 'stop-frame)) args)
+;  (apply #'stop-frame args))
 
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture window-repaint-event))

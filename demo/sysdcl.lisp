@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.20 92/10/07 14:43:51 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.21 1993/07/27 01:46:08 colin Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -34,6 +34,8 @@
   ("process-browser" :load-before-compile ("demo-driver" "packages"))
   ("custom-records"  :load-before-compile ("demo-driver" "packages"))
   ("demo-activity"   :load-before-compile ("demo-driver" "packages"))
+  #+Allegro
+  ("demo-last")
   ("demo-prefill"    :features (or Genera Cloe-Runtime)))
 
 #+Genera

@@ -20,11 +20,22 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.48 1993/07/29 20:51:59 layer Exp $
+;; $fiHeader: resources.lisp,v 1.49 1993/07/30 23:58:27 colin Exp $
 
 
 (in-package :tk)
 
+#+not-yet
+(defmacro define-convert-out-method ((type) &body body)
+  `(defmethod convert-resource-out ((parent t) (type (eql ',type)) value)
+     ,@body))
+
+#+not-yet
+(defmacro define-convert-in-method ((type) &body body)
+  `(defmethod convert-resource-in ((parent t) (type (eql ',type)) value)
+     ,@body))
+
+  
 (defmacro define-enumerated-resource (type elements)
   (if (consp (car elements))
       `(progn
@@ -435,7 +446,7 @@
 	 (constraint-resource-used nil)
 	 (i 0))
     (dotimes (j len)
-      (setf (xt-arglist-value arglist j) (excl::malloc 8))) ; A crock...
+      (setf (xt-arglist-value arglist j) (excl::malloc 8))) ;--- A crock...
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
@@ -551,15 +562,8 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'bitmap)) value)
   (convert-pixmap-out parent value))
 
-(defun convert-pixmap-out (parent value)
-  (etypecase value
-    (pixmap value)
-    (string
-     (let* ((display (widget-display parent))
-	    (screen (x11:xdefaultscreenofdisplay display))
-	    (white (x11::xwhitepixel display 0))
-	    (black (x11::xblackpixel display 0)))
-       (xm_get_pixmap screen value white black)))))
+(defmethod convert-pixmap-out (parent (value pixmap))
+  value)
 
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
   (if value 1 0))
@@ -570,20 +574,31 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'bool)) value)
   (if value 1 0))
 
+(defvar *string-counter* 0)
+
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
+  ;;--- Allocate-no-free
+  (incf *string-counter* (length value))
   (string-to-char* value))
 
+(defvar *font-counter* 0)
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
   (etypecase value
     (string
+     ;;--- Allocate-no-free
+     (incf *font-counter*)
      (make-instance 'font
 		    :display (widget-display parent)
 		    :name value))
     (font value)))
 
+(defvar *color-counter* 0)
+
 (defmethod convert-resource-out ((parent t) (type (eql 'pixel)) value)
   (etypecase value
 	     (integer value)
+	     ;;--- Allocate-no-free
+	     (incf *color-counter*)
 	     (color (allocate-color (default-colormap (widget-display parent))
 				    value))))
 			   
@@ -598,6 +613,7 @@
 (defmethod convert-resource-out (parent (type (eql 'xt::accelerator-table))
 				 (value (eql nil)))
   (declare (ignore parent))
+  ;;--- Allocate-no-free
   (xt_parse_accelerator_table ""))
 
 
@@ -690,6 +706,7 @@
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'ol-edit-mode)) value)
   (ecase value
+    (:text-edit 66)
     (:text-read 67)))
 
 (define-enumerated-resource list-size-policy (:variable :constant :resize-if-possible))
@@ -707,6 +724,7 @@
 
 (defmethod convert-resource-out (parent (type (eql 'xt::translation-table)) value)
   (declare (ignore parent))
+  ;;--- Allocate-no-free
   (xt_parse_translation_table 
    (etypecase value
      (string value)
@@ -715,6 +733,8 @@
 ;; solaris 2.2 stuff
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'ol-str)) value)
+  ;;--- Allocate-no-free
+  (incf *string-counter* (length value))
   (string-to-char* value))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)
@@ -725,6 +745,8 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'ol-font)) value)
   (etypecase value
     (string
+     ;;--- Allocate-no-free
+     (incf *font-counter*)
      (make-instance 'font
 		    :display (widget-display parent)
 		    :name value))

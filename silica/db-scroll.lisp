@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.46 1993/06/02 18:41:47 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.47 1993/06/04 16:06:35 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -37,9 +37,11 @@
 (defmethod pane-viewport ((sheet sheet))
   (let ((parent (sheet-parent sheet)))
     (when parent
-      (if (viewportp parent)
-	  parent
-	  (pane-viewport parent)))))
+      (and (viewportp parent)
+	   parent
+	   ;;--- should this really recurse?
+	   #+ignore
+	   (pane-viewport parent)))))
 
 (defmethod pane-viewport-region ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
@@ -220,7 +222,7 @@
  	(unless (and (= x left) (= y top))
 	  ;;--- This should actually bash the sheet-transformation
 	  (setf (sheet-transformation sheet)
-		(make-translation-transformation (- x) (- y)))
+	    (make-translation-transformation (- x) (- y)))
 	  (bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
 	  (with-bounding-rectangle* (nleft ntop nright nbottom) 
 	      (pane-viewport-region sheet)
@@ -229,35 +231,32 @@
 	    (update-region sheet nleft ntop nright nbottom)
 	    ;; Must go after bounding-rectangle-set-position
 	    (update-scroll-bars viewport)
-	    (cond
-	      ;; If some of the stuff that was previously on display is still on
-	      ;; display, BITBLT it into the proper place and redraw the rest.
-	      ((ltrb-overlaps-ltrb-p left top right bottom
-				     nleft ntop nright nbottom)
-	       ;; Move the old stuff to the new position
-	       (window-shift-visible-region sheet 
-					    left top right bottom
-					    nleft ntop nright nbottom)
-	       (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-						  left top right bottom)))
-		 (with-sheet-medium (medium sheet)
-		   (dolist (region rectangles)
-		     (with-medium-clipping-region (medium region)
-		       (multiple-value-call #'medium-clear-area
-					    medium (bounding-rectangle* region))
-		       (when (output-recording-stream-p sheet)
-			 (replay (stream-output-history sheet) sheet region)))))))
-	      ;; Otherwise, just redraw the whole visible viewport
-	      ;; adjust for the left and top margins by hand so clear-area doesn't erase
-	      ;; the margin components.
-	      ((output-recording-stream-p sheet)
-	       (let ((region (viewport-viewport-region viewport)))
-		 ;;--- We should make the sheet-region bigger at this point.
-		 ;;--- Perhaps we do a union of the sheet-region and the viewport.
-		 (with-sheet-medium (medium sheet)
-		   (multiple-value-call #'medium-clear-area
-					medium (bounding-rectangle* region)))
-		 (replay (stream-output-history sheet) sheet region)))))
+	    (if (ltrb-overlaps-ltrb-p left top right bottom nleft ntop nright nbottom)
+		(progn
+		  ;; Move the old stuff to the new position
+		  (window-shift-visible-region sheet 
+					       left top right bottom
+					       nleft ntop nright nbottom)
+		  (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+						     left top right bottom)))
+		    (with-sheet-medium (medium sheet)
+		      (dolist (region rectangles)
+			(with-medium-clipping-region (medium region)
+			  (multiple-value-call #'medium-clear-area
+			    medium (bounding-rectangle* region))
+			  (if (output-recording-stream-p sheet)
+			      (replay (stream-output-history sheet) sheet region)
+			    (repaint-sheet sheet region)))))))
+	      (let ((region (viewport-viewport-region viewport)))
+		;;--- We should make the sheet-region bigger at this point.
+		;;--- Perhaps we do a union of the sheet-region and the viewport.
+		(with-sheet-medium (medium sheet)
+		  (multiple-value-call #'medium-clear-area
+		    medium (bounding-rectangle* region)))
+		(if (output-recording-stream-p sheet)
+		    (replay (stream-output-history sheet) sheet
+			    region)
+		  (repaint-sheet sheet region)))))
 	  (let ((frame (pane-frame sheet)))
 	    (when (and (/= left x) (/= top y) frame)
 	      (note-viewport-position-changed frame sheet))))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: noting-progress.lisp,v 1.6 93/03/19 09:43:42 cer Exp $
+;; $fiHeader: noting-progress.lisp,v 1.7 1993/07/22 15:38:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -123,15 +123,12 @@
     ((framem standard-frame-manager) (note progress-note))
   (with-slots (name stream numerator denominator name-displayed bar-length) note
     (when stream
-      (let* ((stream-width (bounding-rectangle-width stream))
-	     (line-height  (stream-line-height stream))
-	     (new-bar-length (floor (* stream-width numerator) denominator)))
-	(window-clear stream)
-	(with-output-recording-options (stream :record nil)
-	  (with-end-of-line-action (stream :allow)
-	    (with-end-of-page-action (stream :allow)
-	      (format stream "~A: ~3d%" name (round (* 100 numerator) denominator)))))
-	(force-output stream)))))
+      (window-clear stream)
+      (with-output-recording-options (stream :record nil)
+	(with-end-of-line-action (stream :allow)
+	  (with-end-of-page-action (stream :allow)
+	    (format stream "~A: ~3d%" name (round (* 100 numerator) denominator)))))
+      (force-output stream))))
 
 (defmethod frame-manager-display-progress-note
     ((framem null) (note progress-note))

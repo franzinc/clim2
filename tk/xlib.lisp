@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.46 93/05/13 16:30:55 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.47 1993/07/27 01:53:47 colin Exp $
 
 (in-package :tk)
 
@@ -201,7 +201,8 @@
   (let ((from (x11:make-xrmvalue))
 	(to-in-out (x11:make-xrmvalue)))
     (setf (x11:xrmvalue-size from) (1+ (length string))
-	  (x11:xrmvalue-addr from) (string-to-char* string)
+	  ;;-- allocate-no-free
+	  (x11:xrmvalue-addr from) (progn (incf *string-counter* (length string)) (string-to-char* string))
 	  (x11:xrmvalue-addr to-in-out) 0)
     (unless (zerop (xt::xt_convert_and_store widget "String" from to-type
 				      to-in-out))
