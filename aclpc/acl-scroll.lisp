@@ -445,3 +445,7 @@
     (resize-sheet child nwidth nheight)	;;; get the viewport sized correctly!
     (allocate-space child nwidth nheight)))
 
+
+
+(eval-when (compile load eval)
+  (setq excl::*enable-package-locked-errors* nil))

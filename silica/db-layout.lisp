@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-layout.lisp,v 1.38 1997/02/05 01:50:48 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-layout.lisp,v 1.38.24.1 1998/05/04 21:02:22 layer Exp $
 
 (in-package :silica)
 

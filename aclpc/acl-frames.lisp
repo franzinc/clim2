@@ -72,6 +72,7 @@
   ((min-width :accessor acl-top-min-width :initform nil)
    (min-height :accessor acl-top-min-height :initform nil)
    (accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)
+   (sheet-thread :initform nil :accessor clim-internals::sheet-thread)
    ))
 
 (defun record-accelerator (sheet keysym command)
@@ -163,18 +164,15 @@
 
 ;;; Disable all menu items.
 (defun clim-internals::enable-menu-items (frame enablep)
-  (let* ((sheet (frame-top-level-sheet frame))
-	 (mirror (sheet-mirror sheet))
-	 (menu (win::getmenu mirror)))
-    (map-command-menu-ids
-     frame
-     #'(lambda (menuid)
-	 (let ((command-name (second (aref *menu-id->command-table* menuid))))
-	   (with-slots (clim-internals::disabled-commands) frame
-	     (if enablep
-		 (setf clim-internals::disabled-commands
-		   (delete command-name clim-internals::disabled-commands))
-	       (push command-name clim-internals::disabled-commands))))))))
+  (map-command-menu-ids
+   frame
+   #'(lambda (menuid)
+       (let ((command-name (second (aref *menu-id->command-table* menuid))))
+	 (with-slots (clim-internals::disabled-commands) frame
+	   (if enablep
+	       (setf clim-internals::disabled-commands
+		 (delete command-name clim-internals::disabled-commands))
+	     (push command-name clim-internals::disabled-commands)))))))
 
 ;;; Either of these would be nicer, but redisplay of the menu bar causes them to not
 ;;; always get repainted in their ungrayed state at the end.  pr Aug97
@@ -220,12 +218,13 @@
 			     newtext))))
 
 (defun compute-msmenu-bar-pane (frame top command-table)
-  (let* ((text-style
+  (let* (#+ignore
+	 (text-style
 	   (and (listp command-table)
 		(getf (cdr command-table) :text-style)
 		`(:text-style ,(getf (cdr command-table) :text-style))))
 	 (mirror (sheet-mirror top))
-	 (menu-handle (win::GetMenu mirror))
+	 (menu-handle (win:GetMenu mirror))
 	 (command-table
 	   (if (listp command-table) (car command-table) command-table)))
     (when
@@ -246,19 +245,19 @@
 			      (command-enabled (car value) frame)))
 			 (menu-item-selected-p nil)
 			 (acckey (and (not top-level) keystroke))
-			 (flags (pc::ilogior
-				 pc::MF_STRING
+			 (flags (logior
+				 win:MF_STRING
 				 (if menu-item-available-p
-				     pc::MF_ENABLED pc::MF_GRAYED)
+				     win:MF_ENABLED win:MF_GRAYED)
 				 (if menu-item-selected-p
-				     pc::MF_CHECKED pc::MF_UNCHECKED)))
-			 (smflags (pc::ilogior flags pc::MF_POPUP)))
+				     win:MF_CHECKED win:MF_UNCHECKED)))
+			 (smflags (logior flags win:MF_POPUP)))
 		    (case type
 		      (:command
 		       (when acckey
 			 (record-accelerator top acckey value))
 		       (let ((menu-item-id (get-command-menu-item-id value frame)))
-			 (win::AppendMenu
+			 (win:AppendMenu
 			  menuhand
 			  flags
 			  menu-item-id
@@ -311,6 +310,19 @@
   #+ignore
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) t))
 
+(defmethod run-frame-top-level :before ((frame standard-application-frame)
+					&key &allow-other-keys)
+  (let* ((sheet (frame-top-level-sheet frame))
+	 (thread (when sheet (clim-internals::sheet-thread sheet))))
+    (unless (eq thread (current-process))
+      ;; Lisp may hang badly if you proceed.
+      (cerror "I don't care if the application crashes or hangs" 
+	      "This window was created in thread ~S,
+which is not its creator.
+Windows does not allow a window created in one thread 
+to be run from another."
+	     thread))))
+
 ;;--- Should "ungray" the command button, if there is one
 (defmethod note-command-enabled ((framem acl-frame-manager) frame command)
   (when (consp command) (setf command (car command)))
@@ -337,16 +349,6 @@
 ;; realize-mirror to the following method to stop the focus moving
 ;; when the window wasn't yet visible (cim 10/3/96) 
 
-#+acl86win32
-(eval-when (load compile eval)
-  (load "user32.dll"))
-
-#+acl86win32
-(ff:defforeign 'win::setforegroundwindow :entry-point "SetForegroundWindow"
-  :arguments '(integer) :return-type :integer)
-
-;;; pclhandle-value not on aclpc+++
-#+acl86win32
 (defmethod note-frame-enabled :around ((framem acl-frame-manager) frame)
   (call-next-method)
   (let ((*in-layout-avp* *in-layout-avp*)
@@ -359,9 +361,10 @@
 		       sheet)
       (setf *in-layout-avp* avp)
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
-      (win::setforegroundwindow 
-       #+aclpc (win::pclhandle-value (sheet-mirror sheet))
-	   #+acl86win32 (sheet-mirror sheet)))))
+      ;; On Windows95, this call often fails when enabling a menu-frame.
+      ;; But the menu shows up after a few seconds anyway.  So that is
+      ;; why it would be bad to check the return status of this guy.
+      (win:SetForegroundWindow (sheet-mirror sheet)))))
 
 (defmethod note-frame-layout-changed :after ((framem acl-frame-manager) frame)
   ;; added this to workaround some bugs with new layouts not being
@@ -387,74 +390,404 @@
 	    (subsize (length name)))
         (dotimes (i subsize)
           (ct::cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
-      (ct::cset (:char 256) cstr ((fixnum subsize)) #-aclpc (char-int #\NULL) #+aclpc 0)
-      (win::SetWindowText win cstr)))))
+	(ct::cset (:char 256) cstr ((fixnum subsize)) 
+		  #-aclpc (char-int #\NULL) #+aclpc 0)
+      (or (win:SetWindowText win cstr)
+	  (error "SetWindowText: system error ~s" (win:getlasterror)))))))
 
-;;; focus setting could be better, and support for exit box choices should
-;;; be added
+(defun select-messagebox-icon (style)
+  ;; Decides which Windows icon matches this (standardized) style. 
+  (if (member style '#.`(,win:mb_iconinformation
+			 ,win:mb_iconquestion
+			 ,win:mb_iconexclamation
+			 ,win:mb_iconstop
+			 ,win:mb_iconhand ; ?
+			 ,win:mb_iconasterisk ; ?
+			 ))
+      style				; user knows what they want
+    (case style
+      (:message win:mb_iconinformation)
+      (:inform win:mb_iconinformation)
+      (:question win:mb_iconquestion)
+      ((:warn :warning) win:mb_iconexclamation)
+      (:error win:mb_iconstop)
+      (otherwise win:mb_iconinformation))))
+
+(defun select-messagebox-buttons (exit-boxes)
+  ;; Decides which predefined button collection to use.
+  ;; You take a big performance hit here over using the constant,
+  ;; but hey, this is CLIM, we're minimizing developers' time.
+  ;; Return NIL if nothing seems to match, and the caller should
+  ;; fall back on the more general, but less pretty, accepting values.
+  (if (atom exit-boxes)
+      (when (member exit-boxes '#.`(,win:mb_ok
+				    ,win:mb_okcancel
+				    ,win:mb_yesno
+				    ,win:mb_retrycancel
+				    ,win:mb_yesnocancel
+				    ,win:mb_abortretryignore))
+	exit-boxes)			; user knows what they want
+    (flet ((find-label (text)
+	     (dolist (box exit-boxes)
+	       (when (consp box)
+		 (when (search text (second box) :test #'char-equal)
+		   ;; Use search rather than string-equal because
+		   ;; people tend to pad their labels with whitespace.
+		   (return-from find-label t))))
+	     nil)
+	   (find-naked-key (symbol)
+	     (dolist (box exit-boxes)
+	       (when (and (atom box) (eql box symbol))
+		 (return-from find-naked-key t)))))
+      (let ((number (length exit-boxes)))
+	(cond ((= number 3)
+	       (cond ((and (find-label "Yes")
+			   (find-label "No")
+			   (find-label "Cancel"))
+		      win:mb_yesnocancel)
+		     ((and (find-label "Abort")
+			   (find-label "Retry")
+			   (find-label "Ignore"))
+		      win:mb_abortretryignore)))
+	      ((= number 2)
+	       (cond ((or (find-naked-key :abort)
+			  (find-label "Cancel"))
+		      (cond ((or (find-naked-key :exit)
+				 (find-label "OK"))
+			     win:mb_okcancel)
+			    ((find-label "Retry")
+			     win:mb_retrycancel)))
+		     ((and (find-label "Yes")
+			   (find-label "No"))
+		      win:mb_yesno)))
+	      ((= number 1)
+	       (when (or (find-naked-key :exit)
+			 (find-label "OK"))
+		 win:mb_ok)))))))
+
+(defun select-messagebox-result (code button-style exit-boxes)
+  ;; Most ports assume the notify-user exit boxes are limited
+  ;; to :exit and :abort. This function tries to imagine which 
+  ;; one the user picked.
+  (when (zerop code)
+    (error "Not enough memory for MessageBox operation."))
+  (flet ((find-label (text)
+	   (dolist (box exit-boxes)
+	     (when (consp box)
+	       (when (search text (second box) :test #'char-equal)
+		 ;; Use search rather than string-equal because
+		 ;; people tend to pad their labels with whitespace.
+		 (return-from find-label (first box)))))))
+    (cond ((= button-style win:mb_ok)
+	   (or (find-label "OK") :exit))
+	  ((= button-style win:mb_yesno)
+	   (cond ((= code win:idyes) (or (find-label "Yes") :exit))
+		 ((= code win:idno) (or (find-label "No") :abort))))
+	  ((= button-style win:mb_retrycancel)
+	   (cond ((= code win:idretry) (or (find-label "Retry") :exit))
+		 ((= code win:idcancel) (or (find-label "Cancel") :abort))))
+	  ((= button-style win:mb_okcancel)
+	   (cond ((= code win:idok) (or (find-label "OK") :exit))
+		 ((= code win:idcancel) (or (find-label "Cancel") :abort))))
+	  ((= button-style win:mb_yesnocancel)
+	   (cond ((= code win:idyes) (or (find-label "Yes") :exit))
+		 ((= code win:idno) (or (find-label "No") :no))
+		 ((= code win:idcancel) (or (find-label "Cancel") :abort))))
+	  ((= button-style win:mb_abortretryignore)
+	   (cond ((= code win:idabort) (or (find-label "Abort") :abort))
+		 ((= code win:idretry) (or (find-label "Retry") :retry))
+		 ((= code win:idignore) (or (find-label "Ignore") :exit)))))))
+
+(defun message-box (hwnd message-string name &optional icon)
+  (win:messagebox hwnd
+		  (coerce message-string 'simple-string)
+		  (coerce name 'simple-string)
+		  (or icon 
+		      (logior win:MB_ICONSTOP 
+			      win:MB_TASKMODAL))))
+ 
 (defmethod frame-manager-notify-user
-	   ((framem acl-frame-manager) message-string
-	    &key (style :inform)
-		 (frame nil frame-p)
-		 (associated-window
-		   (if frame-p
-		       (frame-top-level-sheet frame)
-		       (graft framem)))
-		 (title "Notification")
-		 documentation
-		 (exit-boxes '(:exit :abort :help))
-		 (name title)
-		 text-style
-		 &allow-other-keys
-		  )
-  (let ((stream associated-window)
-	(icon (case style
-		(:inform cg::information-icon)
-		((:warn :warning) cg:warning-icon)
-		(:error cg:error-icon))))
-    #+(or aclpc acl86win32x)
-    (progn
-      (setq message-string (pc::cleanup-button-label message-string))
-      (cg:pop-up-message-dialog cg::*screen* title message-string
-				icon "OK")
-      (pc::clear-focus (pc::get-focus cg::*screen*))
-      (win::setFocus (sheet-direct-mirror stream) #-acl86win32 :static)
-      (clim-internals::stream-set-input-focus stream)
-      (enable-mirror *acl-port* stream))
-    #-(or aclpc acl86win32x)
-    (accepting-values (stream :exit-boxes exit-boxes :label title
-			      :own-window t)
-      (with-text-style (stream text-style)
-	(write-string message-string stream)))
+    ((framem acl-frame-manager) message-string
+     &key (style :inform)
+	  (frame nil frame-p)
+	  (associated-window
+	   (if frame-p
+	       (frame-top-level-sheet frame)
+	     (graft framem)))
+	  (title "Notification") 
+	  documentation
+	  (exit-boxes '(:exit :abort))
+	  (name title)
+	  text-style
+     &allow-other-keys)
+  (declare (ignore documentation))	; FIXME
+  ;; Uses MessageBox() to put up a simple dialog box,
+  ;; unless the user has specified some fancy options, in
+  ;; which case accepting-values will have to suffice.
+  (let ((icon (select-messagebox-icon style))
+	(buttons (select-messagebox-buttons exit-boxes)))
+    (if (and icon buttons (not text-style))
+	(let* ((hwnd (sheet-mirror associated-window))
+	       (code (message-box
+		      hwnd
+		      (coerce message-string 'simple-string) 
+		      (coerce name 'simple-string)
+		      (logior win:MB_TASKMODAL icon buttons)))
+	       (symbol (select-messagebox-result code buttons exit-boxes)))
+	  ;; Notify-user is supposed to return T or NIL:
+	  (case symbol
+	    (:exit t)
+	    (:abort nil)
+	    (otherwise symbol)))
+      (let ((stream associated-window))
+	(accepting-values (stream :exit-boxes exit-boxes
+				  :scroll-bars :both
+				  :label name
+				  :own-window t)
+	  (with-text-style (stream text-style)
+	    (write-string message-string stream)))))))
+
+(defun do-one-menu-item (popmenu item printer tick alist submenus)
+  (flet ((print-item (item)
+	   (with-output-to-string (stream)
+	     (funcall (or printer #'print-menu-item) item stream))))
+    (declare (dynamic-extent #'print-item))
+    (incf tick)
+    (ecase (clim-internals::menu-item-type item)
+      (:divider
+       (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
+      (:label
+       (win:appendmenu popmenu win:MF_DISABLED tick 
+		       (print-item item)))
+      (:item
+       (if (clim-internals::menu-item-items item)
+	   (let ((submenu (win:createpopupmenu)))
+	     (push submenu submenus)
+	     ;; submenu
+	     (win:appendmenu popmenu win:MF_POPUP submenu
+			     (print-item item))
+	     (map nil
+	       #'(lambda (it)
+		   (multiple-value-setq (tick alist submenus)
+		     (do-one-menu-item submenu it printer
+				       tick alist submenus)))
+	       (clim-internals::menu-item-items item)))
+	 (progn
+	   (push (list tick (menu-item-value item))
+		 alist)
+	   (win:appendmenu popmenu win:MF_ENABLED tick 
+			   (print-item item))))))
+    (values tick alist submenus)))
+
+;; Gets rid of scroll bars if possible.
+(defmethod frame-manager-menu-choose
+    ((framem acl-frame-manager) items &rest keys
+     &key printer
+	  presentation-type
+	  (associated-window (frame-top-level-sheet *application-frame*))
+	  text-style label
+	  foreground background
+	  cache
+	  (unique-id items)
+	  (id-test 'equal)
+	  (cache-value items)
+	  (cache-test #'equal)
+	  (gesture :select)
+	  row-wise
+	  n-columns
+	  n-rows
+	  x-position
+	  y-position
+	  scroll-bars)
+  (declare (ignore text-style
+		   gesture cache-test cache-value
+		   id-test unique-id label))
+  ;; What we oughta do here is implement a real Win32 menu.
+  ;; Think about calling CreatePopupMenu
+  (if (or presentation-type foreground background cache row-wise n-columns n-rows scroll-bars)
+      (call-next-method)
+    #+simple-but-sure
+    (apply #'call-next-method framem items :scroll-bars nil keys)
+    (let ((popmenu (win::CreatePopupMenu))
+	  (submenus nil)
+	  (flags (logior win:tpm_returncmd win:tpm_nonotify
+			 win:tpm_leftbutton win:tpm_rightbutton))
+	  (tick 0)
+	  (alist nil)
+	  (code 0))
+      (when (zerop popmenu)
+	(error "CreatePopupMenu -- system error ~A" (win:getlasterror)))
+      ;; These are probably the wrong coordinates.
+      (unless (and x-position y-position)
+	(multiple-value-setq (x-position y-position)
+	  (stream-pointer-position associated-window)))
+      (setq x-position (truncate x-position))
+      (setq y-position (truncate y-position))
+      (map nil #'(lambda (item)
+		   (multiple-value-setq (tick alist submenus)
+		     (do-one-menu-item popmenu item printer 
+				       tick alist submenus)))
+	   items)
+      (setq code
+	(win:trackpopupmenu
+	 popmenu flags x-position y-position 0 
+	 (sheet-mirror associated-window) 0))
+      (win:destroymenu popmenu)
+      (dolist (submenu submenus) (win:destroymenu submenu))
+      (second (assoc code alist)))))
+
+(defun make-filter-string (dotted-pair)
+  (format nil "~a (~a)~a~a~a"
+	  (car dotted-pair) (cdr dotted-pair) (cltl1:int-char 0)
+	  (cdr dotted-pair) (cltl1:int-char 0)))
+
+(eval-when (compile load eval) 
+  (defconstant *scratch-string-length* 256)
+  )
+
+(defparameter *scratch-lisp-string*
+    (make-string *scratch-string-length*))
+
+(defparameter *scratch-c-string*
+  (ff::allocate-fobject-c `(:array :char ,*scratch-string-length*)))
+
+(defun lisp-string-to-scratch-c-string (lisp-string)
+  (let ((length (min (length lisp-string)
+		     (1- *scratch-string-length*))))
+    (dotimes (i length 
+	       ;; null term
+	       (setf (ff::fslot-value-c '(:array :char 1)
+					*scratch-c-string*
+					length) 0))
+      (setf (ff::fslot-value-c '(:array char 1) *scratch-c-string*
+			       i)
+	(char-int (aref lisp-string i))))
+    *scratch-c-string*
     ))
 
+(defun scratch-c-string-to-lisp-string ()
+  (ff:char*-to-string *scratch-c-string*))
+
+(defun pathnames-from-directory-and-filenames (filename-list)
+  ;; Takes a list consisting of a directory namestring followed
+  ;; by a set of filenames relative to that directory.
+  ;; This is the sort of list returned by the common dialog
+  ;; when multiple choices are allowed.
+  ;; Returns a list of complete pathnames.
+  (if (eq (length filename-list) 1)
+      ;; If only one choice, no separate directory is returned
+      ;; by the GetOpenFileName call.
+      filename-list
+    (let ((directory (car filename-list)))
+      ;; Windows doesn't stick a backslash on the end of the dir.
+      #+(or (not aclmerge) (and 386 (not UNIX)))
+      (unless (eql (aref directory (1- (length directory)))
+		   #\\)
+	(setf directory (concatenate 'string directory "\\")))
+      (mapcar #'(lambda (filename)
+		  ;; cac removed call to namestring to have this function
+		  ;; return pathnames instead of strings.
+		  ;; 5-apr-94
+		  (merge-pathnames filename directory))
+	      (cdr filename-list)))))
+
+(defun get-pathname
+    (prompt host stream allowed-types initial-name
+     save-p multiple-p change-current-directory-p
+     warn-if-exists-p)
+  (flet ((fill-c-string (string)
+	   (let ((c-string (ff::allocate-fobject-c '(:array :char 256)))
+		 (length (length string)))
+	     (dotimes (i length (setf (ff::fslot-value-c '(:array :char 1)
+							 c-string
+							 length) 0))
+	       (setf (ff:fslot-value-c '(:array char 1) c-string i)
+		 (char-int (aref string i))))
+	     c-string)))
+    (let* ((open-file-struct (ct:ccallocate win:openfilename))
+	   (file-filter-string (fill-c-string
+				(apply #'concatenate 'string
+				       (mapcar #'make-filter-string allowed-types))))
+	   (initial-dir-string (fill-c-string
+				(or host (namestring *default-pathname-defaults*))))
+	   (prompt-string (fill-c-string prompt)))
+      (ct:csets win:fi-openfilename open-file-struct
+	     struct-size (pc::sizeof win:openfilename)
+	     owner (clim::sheet-mirror stream)
+	     hinst pc::*hinst*
+	     file-filter file-filter-string
+	     custom-filter (ct:ccallocate (:void *) :initial-value 0)
+	     max-custom-filter 0 ;; length of custom filter string
+	     filter-index 0		; zero means use custom-filter if supplied
+					; otherwise the first filter in the list
+	     selected-file (lisp-string-to-scratch-c-string (or initial-name ""))
+	     max-file 256
+	     file-title (ct:ccallocate (:void *) :initial-value 0)
+	     max-file-title 0
+	     initial-dir initial-dir-string
+	     window-title prompt-string
+	     flags (logior
+		    (if multiple-p win:ofn_allowmultiselect 0)
+		    (if save-p 0 win:ofn_filemustexist)
+		    (if warn-if-exists-p win:ofn_overwriteprompt 0)
+		    (if change-current-directory-p
+			0 win:ofn_nochangedir)
+		    win:ofn_hidereadonly
+		    )
+	     default-extension (ct:ccallocate (:void *) :initial-value 0)
+	     custom-data 0 ;; would be passed to the callback
+	     ;; callback ;; ignored since we don't pass that flag
+	     ;; template-name ;; ignored
+	     )
+      (let* ((error-code (if save-p
+			     (win:GetSaveFileName open-file-struct)
+			   (win:GetOpenFileName open-file-struct))))
+	(dolist (c-string (list file-filter-string initial-dir-string prompt-string))
+	  (ff::free-fobject-c c-string))
+	(if error-code ;; t means it worked
+	    (if multiple-p
+		(pathnames-from-directory-and-filenames
+		 (cg::spaced-string-to-list
+		  (string-downcase
+		   (scratch-c-string-to-lisp-string))))
+	      (pathname
+	       (string-downcase
+		(scratch-c-string-to-lisp-string))))
+	  (let ((error-code (win:CommDlgExtendedError)))
+	    (and (plusp error-code) ;; zero means cancelled, so return NIL
+		 (error (format nil 
+				"Common dialog error ~a."
+				(or (cdr (assoc error-code
+						pc::common-dialog-errors))
+				    error-code))))))))))
+
 (defmethod frame-manager-select-file
-  ((framem acl-frame-manager)
-   &key (default nil default-p)
-   (frame nil frame-p)
-   (associated-window
-	 (if frame-p
-		 (frame-top-level-sheet frame)
-		 (graft framem)))
-   (title "Select a file")
-   documentation
-   file-search-proc
-   directory-list-label
-   file-list-label
-   (exit-boxes '(:exit :abort :help))
-   (name title)
-   directory
-   pattern
-   &allow-other-keys)
+    ((framem acl-frame-manager)
+     &key (default nil default-p)
+	  (frame nil frame-p)
+	  (associated-window
+	   (if frame-p
+	       (frame-top-level-sheet frame)
+	     (graft framem)))
+	  (title "Select a file")
+	  documentation
+	  file-search-proc
+	  directory-list-label
+	  file-list-label
+	  (exit-boxes '(:exit :abort :help))
+	  (name title)
+	  directory
+	  pattern
+     &allow-other-keys)
   (let* ((stream associated-window)
-		 (path-string (or pattern (and default (namestring default))))
-		 (dir (or directory
-				  (and path-string
-					   (subseq path-string 0
-							   (position #\\ path-string :from-end t)))
-				  (namestring *default-pathname-defaults*))))
-	(get-pathname title dir stream '(("All Files" . "*.*")) path-string nil nil nil nil)
-	))
+	 (path-string (or pattern (and default (namestring default))))
+	 (dir (or directory
+		  (and path-string
+		       (subseq path-string 0
+			       (position #\\ path-string :from-end t)))
+		  (namestring *default-pathname-defaults*))))
+    (get-pathname title dir stream '(("All Files" . "*.*")) path-string nil nil nil nil)
+    ))
 
 ;;; ms-windows style command menu support
 
@@ -577,14 +910,35 @@
 (defmethod port-move-frame ((port acl-clim::acl-port) frame x y)
   (let ((sheet (frame-top-level-sheet frame)))
     (fix-coordinates x y)
-    (win::setWindowPos (sheet-mirror sheet)
-		       (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
-		       x y 0 0
-		    (logior win::swp_noactivate
-			    win::swp_nozorder
-			    win::swp_nosize))))
+    (or (win:setWindowPos (sheet-mirror sheet)
+			  (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
+			  x y 0 0
+			  (logior win:swp_noactivate
+				  win:swp_nozorder
+				  win:swp_nosize))
+	(error "SetWindowPos: system error ~s" (win:getlasterror)))))
 
 (in-package :clim-internals)
+
+;; TO DO: Check for the case of a frame enabled in one thread and
+;; then run-frame-top-level in another thread.  Should be an error.
+;; Lisp will hang.
+
+(defmethod enable-frame :before ((frame standard-application-frame))
+  (let* ((sheet (frame-top-level-sheet frame))
+	 (mirror (when sheet (sheet-direct-mirror sheet))))
+    (when mirror
+      ;; Validate the window handle to give a better error message.
+      (or (win:iswindow mirror)
+	  (error "The window handle ~S is not valid.  Frame
+~S cannot be enabled.  It is likely that
+Windows has destroyed it automatically as a
+result of the exit of the thread that created it:
+~S
+This typically happens when you attempt to reuse a disabled CLIM frame 
+in a second Lisp process.  This frame cannot be reused."
+		 mirror frame (when sheet (clim-internals::sheet-thread sheet))))
+      )))
 
 (defmethod layout-frame :around ((frame standard-application-frame)
 				 &optional width height)
@@ -627,8 +981,33 @@
 	;;; the code below makes sure that the frame grows or shrinks
 	;;; when the user resizes the frame window
 	#+ignore (win::showWindow handle win::sw_show)
-	(win::getClientRect handle wrect)
-	(win::InvalidateRect handle wrect 1)
-	(win::UpdateWindow handle)
+	(or (win:getClientRect handle wrect)
+	    (error "GetClientRect: system error ~s" (win:getlasterror)))
+	(or (win:InvalidateRect handle wrect 1)
+	    (error "InvalidateRect: system error ~s" (win:getlasterror)))
+	(or (win:UpdateWindow handle)
+	    (error "UpdateWindow: system error ~s" (win:getlasterror)))
 	))))
 
+(defun clean-frame (frame)
+  ;; (disable-frame frame)
+  ;; (enable-frame frame)
+  nil)
+
+(defun frame-find-position (frame)
+  (when frame 
+    (let* ((wrect (ct::ccallocate win::rect))
+	   (sheet (frame-top-level-sheet frame))
+	   (handle (when sheet (sheet-mirror sheet))))
+      (when handle
+	(win::GetWindowRect handle wrect)
+	(values (ct::cref win::rect wrect win::left) 
+		(ct::cref win::rect wrect win::top))))))
+
+(defun frame-set-position (frame x y)
+  (win:setWindowPos (sheet-mirror (frame-top-level-sheet frame))
+     (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
+     x y 0 0
+     (logior win:swp_noactivate
+	     win:swp_nozorder
+	     win:swp_nosize)))

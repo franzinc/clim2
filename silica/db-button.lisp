@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-button.lisp,v 1.22 1997/04/24 19:51:16 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-button.lisp,v 1.22.24.1 1998/05/04 21:02:21 layer Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."

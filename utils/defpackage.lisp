@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/defpackage.lisp,v 1.11 1997/02/05 01:54:45 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/defpackage.lisp,v 1.11.24.1 1998/05/04 21:02:56 layer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 

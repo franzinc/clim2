@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.59 1997/02/05 01:53:13 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.59.24.1 1998/05/04 21:02:38 layer Exp $
 
 (in-package :tk)
 
@@ -289,15 +289,16 @@
 	(ff:char*-to-string s)
       (excl::free s))))
 
-(defvar *x-error-handler-address*
-    (register-function 'x-error-handler))
-
-(defvar *x-io-error-handler-address*
-    (register-function 'x-io-error-handler))
+(defvar *x-error-handler-address* nil)
+(defvar *x-io-error-handler-address* nil)
 
 (defun setup-error-handlers ()
-  (x11:xseterrorhandler *x-error-handler-address*)
-  (x11:xsetioerrorhandler *x-io-error-handler-address*))
+  (x11:xseterrorhandler (or *x-error-handler-address*
+			    (setq *x-error-handler-address*
+			      (register-function 'x-error-handler))))
+  (x11:xsetioerrorhandler (or *x-io-error-handler-address*
+			      (setq *x-io-error-handler-address*
+				(register-function 'x-io-error-handler)))))
 
 (eval-when (load)
   (setup-error-handlers))

@@ -15,11 +15,13 @@
 #+acl86win32 (defvar null 0)
 
 (defclass acl-medium (basic-medium)
-    ((background-dc-image)
-     (foreground-dc-image)))
+  ((background-dc-image)
+   (foreground-dc-image)
+   (background :initform +ltgray+	; Windows SPECIFIES this must be the default
+	       :accessor medium-background)))
 
 (defmethod engraft-medium :after ((medium acl-medium) port sheet)
-  (declare (ignore port))
+  (declare (ignore port sheet))
   (with-slots (background-dc-image foreground-dc-image) medium
     (setf background-dc-image (dc-image-for-ink medium (medium-background medium)))
     (setf foreground-dc-image (dc-image-for-ink medium (medium-foreground medium)))))
@@ -77,6 +79,7 @@
 ;; than acl-window-medium (sdj 9/27/96)
 
 (defmethod select-acl-dc ((medium acl-medium) window dc)
+  (declare (ignore window))
   (let* ((sheet (medium-sheet medium))
 	 (region (sheet-device-region sheet))
 	 (medium-region (medium-clipping-region medium))
@@ -100,6 +103,15 @@
       (win::selectObject dc winrgn)
       (setf *created-region* winrgn)) 
     valid))
+
+(defmethod dc-image-for-ink (medium (ink (eql +ltgray+)))
+  (declare (ignore medium))
+  ;; This is not supposed to be just ANY light gray.
+  ;; This one is supposed to match exactly the color
+  ;; used by Windows for all the other gadgets, such as
+  ;; buttons and scroll bars.  MFC calls this "light
+  ;; gray in the current color scheme"
+  *ltgray-image*)
 
 (defmethod dc-image-for-ink (medium (ink (eql +foreground-ink+)))
   (slot-value medium 'foreground-dc-image))
@@ -212,7 +224,7 @@
 		   (color->wincolor (aref designs 0))))
 	 (width (array-dimension array 1))
 	 (height (array-dimension array 0))
-	 (into (pc::make-pixel-map width height 256))
+	 (into (make-pixel-map width height 256))
 	 color
 	 )
     (dotimes (i (length designs))
@@ -272,85 +284,85 @@
                   (aref a i (+ y-dim-floor j)))))))))  
 
 (defmethod dc-image-for-ink (medium (ink pattern))
-  (multiple-value-bind (array designs)
-    (decode-pattern ink)
-	#+acl86win32 (setq array (re-order-hack array))
-	(unless (= (length designs) 2)
-	  (return-from dc-image-for-ink
-				   (dc-image-for-multi-color-pattern
-					 medium array designs)))
-	(let* ((dc-image (copy-dc-image
-					   (slot-value medium 'foreground-dc-image)))
-		   ;; let's no try and use the color stuff yet because it
-		   ;; shows up bugs requiring hacks in the bbn code (cim 9/13/96)
-		   (nocolor t
-					#+notyet
-					(and (eq (aref designs 0) +background-ink+)
-						 (eq (aref designs 1) +foreground-ink+)))
-		   (tcolor (unless nocolor
-					 (color->wincolor (aref designs 1))))
-		   (bcolor (unless nocolor 
-					 (color->wincolor (aref designs 0))))
-		   (width (array-dimension array 1))
-		   (height (array-dimension array 0))
-		   (dim1 (* (ceiling width 32) 32)) 
-		   (into
-			 (make-array (list height dim1)
-						 :element-type 'bit
-						 :initial-element 0)))
-	  (dotimes (i height)
-		(dotimes (j width)
-		  (setf (aref into i j)  ;;; vector: (+ (* i dim1) j)
-				(if (zerop (aref array i j))
-					0
-					1))))
-	  (setf *bitmap-array* into)
-	  (let ((bitmap
-			  (note-created 'bitmap (win::createBitmap dim1 height 1 1
-								 #+aclpc (acl::%get-pointer into 4 0)
-								 #+acl86win32 into
-								 ;;;  %kernel-arhvec = 4
-								 ))))	
-		(setf (dc-image-bitmap dc-image) bitmap
-			  *created-bitmap* bitmap)
-		(setf (dc-image-background-color dc-image)
-			  (if nocolor
-				  (dc-image-text-color
-					(slot-value medium 'background-dc-image))
-				  bcolor))
-		(if tcolor (setf (dc-image-text-color dc-image) tcolor))
-		)
-	  dc-image)))
+  (multiple-value-bind (array designs) (decode-pattern ink)
+    (setq array (re-order-hack array))
+    (unless (= (length designs) 2)
+      (return-from dc-image-for-ink
+	(dc-image-for-multi-color-pattern
+	 medium array designs)))
+    (let* ((dc-image (copy-dc-image
+		      (slot-value medium 'foreground-dc-image)))
+	   ;; let's no try and use the color stuff yet because it
+	   ;; shows up bugs requiring hacks in the bbn code (cim 9/13/96)
+	   (nocolor t
+		    #+notyet
+		    (and (eq (aref designs 0) +background-ink+)
+			 (eq (aref designs 1) +foreground-ink+)))
+	   (tcolor (unless nocolor
+		     (color->wincolor (aref designs 1))))
+	   (bcolor (unless nocolor 
+		     (color->wincolor (aref designs 0))))
+	   (width (array-dimension array 1))
+	   (height (array-dimension array 0))
+	   (dim1 (* (ceiling width 32) 32)) 
+	   (into (make-array (list height dim1)
+			     :element-type 'bit
+			     :initial-element 0)))
+      (dotimes (i height)
+	(dotimes (j width)
+	  (setf (aref into i j)	 ;;; vector: (+ (* i dim1) j)
+	    (if (zerop (aref array i j)) 0 1))))
+      (setf *bitmap-array* into)
+      (let ((bitmap
+	     (note-created 'bitmap (win:createBitmap dim1 height 1 1 into))))
+	(setf (dc-image-bitmap dc-image) bitmap
+	      *created-bitmap* bitmap)
+	(setf (dc-image-background-color dc-image)
+	  (if nocolor
+	      (dc-image-text-color
+	       (slot-value medium 'background-dc-image))
+	    bcolor))
+	(if tcolor (setf (dc-image-text-color dc-image) tcolor)))
+      dc-image)))
 
 (defmethod dc-image-for-ink (medium (ink rectangular-tile))
   ;; The only case we handle right now is stipples
   (multiple-value-bind (array width height)
     (decode-tile-as-stipple ink)
     (unless array
-      (error "Rectangular tiles other than ~~
-stipples are not supported yet."))
-    (let ((into (make-array `(,bmdim ,bmdim) :element-type 'bit
-			    :initial-element 0))
-	  (dc-image (copy-dc-image
-		      (slot-value medium 'foreground-dc-image)))
-	  (width (array-dimension array 1))
-	  (height (array-dimension array 0)))
+      (error "Rectangular tiles other than stipples are not supported yet."))
+    ;; I don't know why width and height are wrong, but they are. JPM 8/25/97
+    (setq width (array-dimension array 1))
+    (setq height (array-dimension array 0))
+    (let* ((into (make-array `(,bmdim ,bmdim) :element-type 'bit
+		  	           :initial-element 0))
+           (pattern (decode-rectangular-tile ink))
+           (designs (pattern-designs pattern))
+           dc-image background-dc foreground-dc)
+      (unless (= (length designs) 2)
+        (error "Only 2-color stipples are currently supported."))
+      (setq background-dc (dc-image-for-ink medium (svref designs 0)))
+      (setq foreground-dc (dc-image-for-ink medium (svref designs 1)))
+      (setq dc-image (copy-dc-image foreground-dc))
       (dotimes (i bmdim)
-	(dotimes (j bmdim)
-	  (setf (aref into i j)
+	  (dotimes (j bmdim)
+	    (setf (aref into i j)
 		(logand 1 (lognot (aref array (mod i height)
-			      (mod j width)))))))
+			                        (mod j width)))))))
       (let* ((bitmap (note-created 'bitmap (win::createBitmap bmdim bmdim 1 1
-				       #+acl86win32 into
-                                       #+aclpc (acl::%get-pointer into 4 0))))
-	     (brush (note-created 'brush (win::createPatternBrush bitmap))))
-	(setf (dc-image-brush dc-image) brush
-	      *created-brush* brush)
-	(setf *created-tile* bitmap)
-	(setf (dc-image-background-color dc-image)
-	      (dc-image-text-color
-		(slot-value medium 'background-dc-image))))
-      dc-image)))
+				                      #+acl86win32 into
+                                              #+aclpc (acl::%get-pointer into 4 0))))
+	       (brush (note-created 'brush (win::createPatternBrush bitmap))))
+	  (setf (dc-image-brush dc-image) brush)
+        (setf *created-brush* brush)
+	  (setf *created-tile* bitmap)
+        ;; Setting ROP2 helps when +transparent-ink+ is the background ink.
+        (setf (dc-image-rop2 dc-image) (dc-image-rop2 background-dc))
+        (setf (dc-image-background-color dc-image)
+              (dc-image-text-color background-dc))
+        (setf (dc-image-text-color dc-image) 
+              (dc-image-text-color foreground-dc))
+        dc-image))))
 
 (defmethod dc-image-for-ink (medium (ink flipping-ink))
   (multiple-value-bind (ink1 ink2)
@@ -645,6 +657,7 @@ stipples are not supported yet."))
 (defmethod medium-draw-string* ((medium acl-medium)
 				string x y start end align-x align-y
 				towards-x towards-y transform-glyphs)
+  (declare (ignore transform-glyphs))
   (let ((window (medium-drawable medium)))
     (with-dc (window dc)
   (when (select-acl-dc medium window dc)
@@ -683,6 +696,7 @@ stipples are not supported yet."))
 (defmethod medium-draw-character* ((medium acl-medium)
 				   char x y align-x align-y
 				   towards-x towards-y transform-glyphs)
+  (declare (ignore transform-glyphs))
   (let ((window (medium-drawable medium)))
     (with-dc (window dc)
   (when (select-acl-dc medium window dc)
@@ -718,11 +732,12 @@ stipples are not supported yet."))
 			      towards-x towards-y transform-glyphs)
   (let ((window (medium-drawable medium)))
     (with-dc (window dc)
-  (if (characterp string-or-char)
-      (medium-draw-character* medium string-or-char x y align-x align-y
-			      towards-x towards-y transform-glyphs)
-      (medium-draw-string* medium string-or-char x y start end align-x align-y
-			   towards-x towards-y transform-glyphs)))))
+      dc
+      (if (characterp string-or-char)
+	  (medium-draw-character* medium string-or-char x y align-x align-y
+				  towards-x towards-y transform-glyphs)
+	(medium-draw-string* medium string-or-char x y start end align-x align-y
+			     towards-x towards-y transform-glyphs)))))
 
 (defmethod medium-clear-area ((medium acl-medium) left top right bottom)
   (let ((window (medium-drawable medium)))
@@ -798,17 +813,250 @@ stipples are not supported yet."))
 ;;; reading patterns from bitmap files
 
 (defun read-bitmap-file (path &key (format :bitmap) (port (find-port)))
-  (multiple-value-bind (array texture ignore width)
-    (pc::load-pixmap-1 path 0 nil nil nil nil)
-    (values array texture)))
+  (declare (ignore format port))
+  (load-pixmap-1 path 0))
+
+(defun load-pixmap-1 (filename index) ;; <18>
+  #-runtime-system
+  (format *trace-output* "~&Loading pixmap from file ~a ..." filename)
+  (multiple-value-prog1 ;; <5>
+      (with-open-file (s filename :element-type '(unsigned-byte 8))
+	(read-pixmap s index)) ;; <18>
+    #-runtime-system
+    (format *trace-output* "LOADED pixmap~%")))
+
+(defstruct (texture-info #+ig (:include faslable-structure) (:constructor make-texture-info))
+  (width nil :type (or null fixnum))
+  (height nil :type (or null fixnum))
+  (bits-per-pixel 1 :type fixnum)
+  (x-device-units-per-m nil :type (or null integer))
+  (y-device-units-per-m nil :type (or null integer))
+  (colors nil)
+  (invert-p nil))
+
+(defun bm-read-word (stream)
+   (+ (read-byte stream)
+      (ash (read-byte stream) 8)))
+
+(defun bm-read-long (stream)
+     (+ (bm-read-word stream)
+         (ash (bm-read-word stream) 16)))
+
+(defun make-pixel-map (x y &optional (palette-size 2)
+		       &key (initial-element 0))
+  (when (> (cond
+		((< 0 palette-size 3) (truncate (* x y) 8))
+		((< 2 palette-size 257) (* x y))
+		((< 256 palette-size #x10001) (* x y 2))
+		(t (* x y 4))) 
+	   #x10000)
+    (error "pixel-map bigger than 64k."))
+  (make-array (list y x)
+	      :element-type `(mod ,palette-size)
+	      :initial-element initial-element))
+
+(defun pixel-map-set (pm x y v) (setf (aref pm x y) v))
+
+(defun read-pixmap (stream &optional (index 0)) ;; <12>
+  (let* ((file-type nil)
+	 (number-of-resources 1)
+	 char1 char2 word2 file-size bytes-into-file
+	 image-offset image-size info-header-size
+	 width file-width height
+	 hotspot-x hotspot-y bits-per-pixel
+	 (compression 0)		; 0 = no compression
+	 (x-pixels-per-meter nil)
+	 (y-pixels-per-meter nil)
+	 (number-of-colors-used 0)
+         (previous-time 0) ;; <16>
+         this-time ;; <16>
+	 number-of-colors-in-file rgb
+	 pixmap mask palette-array texture-info
+	 pixel-byte byte-num real-y pixels-per-longword
+	 )
+    ;; Determine the type of file from the header (.bmp, .ico, or .cur)
+    (setq char1 (code-char (read-byte stream))
+	  char2 (code-char (read-byte stream)))
+    (cond ((and (eql char1 #\B)
+		(eql char2 #\M))
+	   (setq file-type :pixmap))
+	  ((and (zerop (char-int char1))
+		(zerop (char-int char2)))
+	   (setq word2 (bm-read-word stream))
+	   (cond ((eql word2 1)
+		  (setq file-type :icon))
+		 ((eql word2 2)
+		  (setq file-type :cursor)))))
+    (unless file-type
+      (error "Object being read is neither a ~
+device-independent bitmap, an icon, nor a cursor."))
+    (case file-type
+      (:pixmap
+       (setq file-size (bm-read-long stream))
+       (bm-read-word stream)		; reserved1 = 0
+       (bm-read-word stream)		; reserved2 = 0
+       (setq image-offset (bm-read-long stream))
+       )
+      ((:icon :cursor)
+       (setq number-of-resources (bm-read-word stream))
+       (setq bytes-into-file 6)
+       ;; skip the directory entries up to the requested one.
+       (dotimes (j index)
+	 (dotimes (k 16)		; each dir entry is 16 bytes
+	   (read-byte stream)
+	   (incf bytes-into-file)))
+       ;; read the requested directory entry
+       ;; most of these will be read again in the bitmapinfo header
+       (setq width (read-byte stream)
+             height (read-byte stream))
+       (setq number-of-colors-used (read-byte stream))
+       (read-byte stream)	; reserved
+       (setq hotspot-x (bm-read-word stream)) ; bit-planes for icon
+       (setq hotspot-y (bm-read-word stream)) ; bits-per-pixel for icon
+       (setq image-size (bm-read-long stream))
+       (setq image-offset (bm-read-long stream))
+       (incf bytes-into-file 16)
+       ;; skip the rest of the directory and the first n resources
+       ;; to get to the actual resource to read
+       (dotimes (j (- image-offset bytes-into-file))
+	 (read-byte stream))
+       ))
+      
+    ;; end of file-header; start of bitmap-info-header
+    (setq info-header-size (bm-read-long stream))
+    (setq width (bm-read-long stream)
+	  height (bm-read-long stream))
+    ;; for icons & cursors height is pixmap height + mask height
+    (unless (eq file-type :pixmap)
+      (setq height (floor height 2)))
+    (bm-read-word stream) ;; bit-planes = 1
+    (setq bits-per-pixel (bm-read-word stream))
+    (setq pixels-per-longword (floor 32 bits-per-pixel))
+    (setq file-width (* pixels-per-longword
+			(ceiling width pixels-per-longword)))
+    (when (>= info-header-size 20)
+      (setq compression (bm-read-long stream)))
+    (when (plusp compression)
+      (error "Reading of compressed bitmaps is not implemented."))
+    (when (>= info-header-size 24)
+      (bm-read-long stream)) ;; size of all bits (needed with compression)
+    (when (>= info-header-size 28)
+      (setq x-pixels-per-meter (bm-read-long stream)))
+    (when (>= info-header-size 32)
+      (setq y-pixels-per-meter (bm-read-long stream)))
+    (when (>= info-header-size 36)
+      (setq number-of-colors-used (bm-read-long stream)))
+    (when (>= info-header-size 40)
+      (bm-read-long stream))		;; number of "important colors" used
+    (dotimes (j (- info-header-size 40)) ;; should be none
+      (read-byte stream))	;; but throw away extra bytes if any
+    ;; end of bitmap-info-header; start of color table if any
+    (setq number-of-colors-in-file
+      (cond ((plusp number-of-colors-used)
+	     number-of-colors-used)
+	    (t
+	     (case bits-per-pixel
+	       (1 2)
+	       (4 16)
+	       (8 256)
+	       (24 0) ;; each pixel value is a direct rgb
+	       (t (error "~a is not a valid bits-per-pixel"
+			 bits-per-pixel))))))
+    
+    (when (plusp number-of-colors-in-file)
+      (setq palette-array (make-array number-of-colors-in-file))
+         
+      (dotimes (j number-of-colors-in-file)
+	(if (setq rgb (aref palette-array j))
+	    (setf (cg::rgb-blue rgb) (read-byte stream)
+		  (cg::rgb-green rgb) (read-byte stream)
+		  (cg::rgb-red rgb) (read-byte stream))
+	  (setf (aref palette-array j)
+	    (cg::make-rgb :blue (read-byte stream)
+			  :green (read-byte stream)
+			  :red (read-byte stream))))
+	(read-byte stream))	; reserved = 0
+      )					; end reading color table
+
+    (setq texture-info
+      (make-texture-info :width width ;; <10>
+			 :height height
+			 :bits-per-pixel bits-per-pixel
+			 :colors palette-array
+			 :invert-p nil)) ;; <18>
+      
+    ;; Read pixel values.
+    (setq pixmap (make-pixel-map
+		  file-width	;; multiple of 32 bits wide
+		  height
+		  (expt 2 bits-per-pixel))) ;; "palette size"
+    (dotimes (y height)
+      #-runtime-system
+      (when (and (> width 200) ;; <16>
+		 (> (setq this-time (get-internal-real-time))
+		    (+ previous-time
+		       internal-time-units-per-second)))
+	(setq previous-time this-time)
+	(format *trace-output* "Reading pixmap row ~a of ~a"
+		(1+ y) height))
+      (setq real-y (- (1- height) y))
+      (case bits-per-pixel
+	(1				; monochrome
+	 (dotimes (x (* 4 (ceiling width 32)))
+	   (setq pixel-byte (read-byte stream))
+	   (setq byte-num (* x 8))
+	   (dotimes (bit-num 8)
+	     (pixel-map-set pixmap (+ byte-num bit-num) real-y
+			    (if (logbitp (- 7 bit-num) pixel-byte)
+				1 0)))))
+	(4
+	 ;; rows are padded to word boundary even in the file apparently
+	 ;; so read 8 nibbles from each 4-byte section of the row
+	 (dotimes (x (* 4 (ceiling width 8)))
+	   (setq pixel-byte (read-byte stream))
+	   (setq byte-num (* x 2))
+	   (pixel-map-set pixmap byte-num real-y
+			  (ash pixel-byte -4)) ; high nibble
+	   (pixel-map-set pixmap (1+ byte-num) real-y
+			  (logand pixel-byte 15)))) ; low nibble
+	(8
+	 (dotimes (x (* 4 (ceiling width 4)))
+	   (pixel-map-set pixmap x real-y
+			  (read-byte stream))))
+	(24 (error "24-bit (direct-color) pixmaps are not implemented."))))
+    ;; Return the objects that were read.
+    hotspot-x hotspot-y image-size file-size number-of-resources
+    x-pixels-per-meter y-pixels-per-meter
+    (case file-type
+      (:pixmap
+       (values pixmap texture-info nil width
+	       ))
+      ((:icon :cursor)
+       (setq file-width (* 4 (ceiling width 32))) ;; <15>
+       (setq mask (make-pixel-map
+		   (* 8 file-width) ;; <15>
+		   height
+		   1)) ;; <4>
+       (dotimes (y height)
+	 (setq real-y (- (1- height) y))
+	 (dotimes (x file-width) ;; <15>
+	   (setq pixel-byte (read-byte stream))
+	   (setq byte-num (* x 8))
+	   (dotimes (bit-num 8)
+	     (pixel-map-set mask (+ byte-num bit-num) real-y
+			    (if (logbitp (- 7 bit-num) pixel-byte)
+				1 0)))))
+       (values pixmap texture-info mask width
+	       )))))
 
 (defun make-pattern-from-bitmap-file
-       (path &key designs (format :bitmap) (port (find-port)))
+    (path &key designs (format :bitmap) (port (find-port)))
+  (declare (ignore format))
   (multiple-value-bind (array texture-info)
       (read-bitmap-file path :port port)
     (let (colors numcolors climcolors color)
       (unless designs
-	(setf colors (cg::texture-info-colors texture-info))
+	(setf colors (texture-info-colors texture-info))
 	(setf numcolors (length colors))
 	(setf climcolors (make-array numcolors))
 	(dotimes (i numcolors)
@@ -821,13 +1069,36 @@ stipples are not supported yet."))
       (make-pattern array (or designs climcolors)))))
 
 (defparameter silica::*clim-icon-pattern* nil)
+(defparameter *clim-icon-pathname* (pathname "sys:code;clim.ico"))
+(defparameter *clim-icon* nil)
 
-(defun get-clim-icon ()
-  (let ((path (merge-pathnames "clim.ico" pc::*application-directory*)))
-    (when (probe-file path)
-      (setf silica::*clim-icon-pattern* 
-	    (make-pattern-from-bitmap-file "clim.ico" :port *acl-port*))
-      #+ignore (extract-icon-from-file "clim.ico"))))
+(defun get-clim-icon (&optional (path *clim-icon-pathname*))
+  (load-icon-from-file path))
+
+(defun clim-icon ()
+  (or *clim-icon* (setq *clim-icon* (get-clim-icon))))
+
+(defun load-icon-from-file (path)
+  (when (probe-file path)
+    (multiple-value-bind (array texture mask-array)
+	(read-bitmap-file path)
+      (create-icon array texture mask-array))))
+
+(defun icon-width ()
+   (win:GetSystemMetrics win:SM_CXICON))
+
+(defun icon-height ()
+   (win:GetSystemMetrics win:SM_CYICON))
+
+(defun create-icon (pixmap texture-info mask-bitmap) ;; <7>
+  (win:CreateIcon cg:*hinst*
+		  (icon-width)
+		  (icon-height)
+		  1 ;; planes (texture-info-bits-per-pixel texture-info)
+		  (texture-info-bits-per-pixel texture-info)
+		  mask-bitmap
+		  pixmap))
+		
 
 (in-package :clim-utils)
 

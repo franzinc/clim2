@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.3 1998/04/28 05:54:06 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.84.8.3.2.1 1998/05/04 21:03:03 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3294,12 +3294,18 @@
 			   clim-internals
 			   clim-lisp)))
 
+#+acl86win32
+(eval-when (compile load eval)
+(let ((excl::*enable-package-locked-errors* nil))
+  (defun system::rcsnote (&rest args) (warn "RCSNOTE call with ~a" args) nil)))
+
+
 (in-package :clim)
 
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 14)
+(cl:defvar *clim-build-version* 14.1)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

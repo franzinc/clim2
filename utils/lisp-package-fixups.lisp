@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10 -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/lisp-package-fixups.lisp,v 1.10 1997/02/05 01:54:58 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/lisp-package-fixups.lisp,v 1.10.24.1 1998/05/04 21:02:59 layer Exp $
 
 (in-package :cl-user)
 

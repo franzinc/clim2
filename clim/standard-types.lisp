@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/standard-types.lisp,v 1.38 1997/10/20 23:11:01 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/standard-types.lisp,v 1.38.24.1 1998/05/04 21:01:48 layer Exp $
 
 (in-package :clim-internals)
 

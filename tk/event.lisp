@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/event.lisp,v 1.27 1997/02/05 01:52:37 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/event.lisp,v 1.27.24.1 1998/05/04 21:02:36 layer Exp $
 
 (in-package :tk)
 
@@ -116,8 +116,7 @@
 	1
       0)))
 
-(defparameter *match-event-sequence-and-types-address*
-    (register-function 'match-event-sequence-and-types))
+(defparameter *match-event-sequence-and-types-address* nil)
 
 (defvar *event-matching-event* (x11:make-xevent :in-foreign-space t))
 
@@ -133,6 +132,9 @@
 			   :element-type '(unsigned-byte 32)))
 	 (i 2)
 	 (resulting-event *event-matching-event*)
+	 (addr (or *match-event-sequence-and-types-address*
+		   (setq *match-event-sequence-and-types-address*
+		     (register-function 'match-event-sequence-and-types))))
 	 (*sequence-matching-data* data))
     (declare (type (simple-array (unsigned-byte 32) (*)) data)
 	     (fixnum i))
@@ -143,12 +145,9 @@
       (incf i))
     (setf (aref data i) 0)
     (cond (block
-	   (x11:xifevent display resulting-event
-			 *match-event-sequence-and-types-address* 0)
+	   (x11:xifevent display resulting-event addr 0)
 	   resulting-event)
-	  ((zerop (x11:xcheckifevent display resulting-event
-				     *match-event-sequence-and-types-address*
-				     0))
+	  ((zerop (x11:xcheckifevent display resulting-event addr 0))
 	   nil)
 	  (t
 	   resulting-event))))
@@ -175,14 +174,15 @@
       (apply fn widget event args)
       0)))
 
-(defvar *event-handler-address* (register-function 'event-handler))
+(defvar *event-handler-address* nil)
 
 (defun add-event-handler (widget events maskable function &rest args)
   (xt_add_event_handler
    widget
    (encode-event-mask events)
    maskable
-   *event-handler-address*
+   (or *event-handler-address*
+       (setq *event-handler-address* (register-function 'event-handler)))
    (caar (push
 	  (list (new-callback-id) (cons function args))
 	  (widget-event-handler-data widget)))))

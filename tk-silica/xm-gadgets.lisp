@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-gadgets.lisp,v 1.97 1998/03/25 03:52:28 duane Exp $
+;; $Id: xm-gadgets.lisp,v 1.97.10.1 1998/05/04 21:02:45 layer Exp $
 
 (in-package :xm-silica)
 

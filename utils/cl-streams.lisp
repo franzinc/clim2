@@ -18,7 +18,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $Header: /repo/cvs.copy/clim2/utils/cl-streams.lisp,v 1.5 1997/02/05 01:54:35 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/cl-streams.lisp,v 1.5.24.1 1998/05/04 21:02:53 layer Exp $
 
 (in-package :clim-lisp)
 

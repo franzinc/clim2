@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/callbacks.lisp,v 1.28 1997/02/05 01:52:34 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/callbacks.lisp,v 1.28.24.1 1998/05/04 21:02:35 layer Exp $
 
 (in-package :tk)
 
@@ -50,8 +50,7 @@
   (declare (ignore widget call-data))
   (values))
 
-(defvar *callback-handler-address* (register-function
-				    'callback-handler))
+(defvar *callback-handler-address* nil)
 
 
 (defun add-callback (widget callback-name function &rest args)
@@ -61,7 +60,8 @@
     (xt_add_callback
      widget
      name
-     *callback-handler-address*
+     (or *callback-handler-address*
+	 (setq *callback-handler-address* (register-function 'callback-handler)))
      (caar (push
 	    (list (new-callback-id) (cons function args) type)
 	    (widget-callback-data widget))))))
@@ -77,14 +77,16 @@
     (funcall function widget)))
 
 
-(defvar *create-popup-child-proc-function-address*
-    (ff:register-function 'create-popup-child-proc-function))
+(defvar *create-popup-child-proc-function-address* nil)
 
 (defun (setf widget-create-popup-child-proc) (function widget)
   (push
    (cons :create-popup-child-proc function)
    (widget-callback-data widget))
-  (set-values widget :create-popup-child-proc *create-popup-child-proc-function-address*)
+  (set-values widget :create-popup-child-proc 
+	      (or *create-popup-child-proc-function-address*
+		  (setq *create-popup-child-proc-function-address*
+		    (ff:register-function 'create-popup-child-proc-function))))
   function)
 
 (defun remove-all-callbacks (widget callback-name)

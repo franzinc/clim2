@@ -20,7 +20,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $Header: /repo/cvs.copy/clim2/silica/protocols.lisp,v 1.6 1997/02/05 01:51:16 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/protocols.lisp,v 1.6.24.1 1998/05/04 21:02:30 layer Exp $
 
 (in-package :clim-utils)
 

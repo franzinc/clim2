@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.38 1997/05/31 01:00:36 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.38.24.1 1998/05/04 21:02:29 layer Exp $
 
 (in-package :silica)
 
@@ -112,14 +112,10 @@
     (when (port-process port)
       (destroy-process (port-process port)))
     (setf (port-process port)
-          #-acl86win32 (make-process 
-                   #'(lambda () (port-event-loop port))
-                   :name (format nil "CLIM Event Dispatcher for ~A" (port-server-path port)))
-          #+acl86win32 (mp:process-run-function
-                    `(:quantum 5
-                      :priority 1000
-                      :name ,(format nil "CLIM Event Dispatcher for ~A" (port-server-path port)))
-                    #'(lambda () (port-event-loop port))))))
+      (make-process 
+       #'(lambda () (port-event-loop port))
+       :name (format nil "CLIM Event Dispatcher for ~A" 
+		     (port-server-path port))))))
 
 
 (defgeneric port-event-loop (port))

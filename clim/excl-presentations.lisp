@@ -21,7 +21,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $Header: /repo/cvs.copy/clim2/clim/excl-presentations.lisp,v 1.19 1997/02/05 01:43:25 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/excl-presentations.lisp,v 1.19.24.1 1998/05/04 21:01:26 layer Exp $
 
 
 

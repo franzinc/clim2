@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $Header: /repo/cvs.copy/clim2/clim/japanese-input-editor.lisp,v 1.4 1997/10/20 23:11:01 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/japanese-input-editor.lisp,v 1.4.24.1 1998/05/04 21:01:38 layer Exp $
 
 (in-package :clim-internals)
 

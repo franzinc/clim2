@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/tracking-pointer.lisp,v 1.21 1997/02/05 01:45:15 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/tracking-pointer.lisp,v 1.21.24.1 1998/05/04 21:01:54 layer Exp $
 
 (in-package :clim-internals)
 

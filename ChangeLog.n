@@ -11,6 +11,38 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.14.1 (on acl50pnc branch)
+
+CLIM Port to ACL 5.0
+
+Documentation changes: none
+Tests for new features: no new features
+
+Fri May 1 10:00:00 1998  jmorrill@pointnclick.com and kreti
+     * Makefile.win32: New file for automating clim builds on Windows
+     * aclpc\winapi: New file containing foreign function interface to Windows
+     * aclpc\cgapi: New file containing random bits from common graphics
+     * aclpc\*: Lots of changes to remove common graphics, to revise the 
+       foreign function definitions, to accomodate real OS threads, to
+       accomodate Windows95, and to support Makefile.win32.
+     * clim\basic-translators: Prevent compile-time problem redefining comtab.
+     * clim\frames: Move some aclpc stuff from here to aclpc\acl-frames.
+     * clim\menus: (#+microsoft-32) don't reuse windows across OS threads
+     * demo\demo-driver: (#+microsoft-32) don't reuse windows across OS threads
+     * silica\event: convert port-event-wait from function to method so we
+       can specialize on it.
+     * silica\port: never run an OS thread at priority 1000.
+     * silica\sheet: clean up a duplicate definition
+     * tk-silica\xt-gadgets: Make arrow keys work as menu bar 
+       command accelerators (spr17142)
+     * utils\packages: added defn for rcsnote so NT builds work at PNC.
+     * wnn\bdic.c: include unistd.h so unix builds work at PNC.
+     * wnn\jl.c: include unistd.h so unix builds work at PNC.
+     * wnn\js.c: fix socket calls so unix builds work at PNC.
+       I don't see how this ever compiled.  There was
+       even a typo (sockaddr_un should be sockaddr_in).
+
+*******************************************************************************
 2.2.1.14
 
 Mon Apr 27 16:21:48 1998  Kevin Layer  <layer@ultra>

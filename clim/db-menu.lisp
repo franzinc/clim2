@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-menu.lisp,v 1.9 1997/02/05 01:43:07 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-menu.lisp,v 1.9.24.1 1998/05/04 21:01:22 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 

@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $Header: /repo/cvs.copy/clim2/demo/browser.lisp,v 1.25 1997/02/05 01:47:05 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/browser.lisp,v 1.25.24.1 1998/05/04 21:02:03 layer Exp $
 
 (in-package :clim-browser)
 

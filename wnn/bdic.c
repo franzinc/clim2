@@ -1,5 +1,5 @@
 /*
- * $Id: bdic.c,v 1.1 1996/03/13 09:56:30 colin Exp $
+ * $Id: bdic.c,v 1.1.28.1 1998/05/04 21:03:12 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -63,6 +63,7 @@
 #else
 #include <sys/types.h>
 #endif
+#include <unistd.h>    /* for F_OK */
 #ifndef JS
 #include <sys/stat.h>
 #include <stdio.h>

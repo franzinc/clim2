@@ -30,6 +30,8 @@
     (:default-pathname "clim2:;aclpc;")
   (:serial
    clim-standalone
+   "winapi"
+   "cgapi"
    "pkgdcl"
    "winwidgh"
    "climpat"

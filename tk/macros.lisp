@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/macros.lisp,v 1.20 1997/02/05 01:52:50 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/macros.lisp,v 1.20.24.1 1998/05/04 21:02:37 layer Exp $
 
 (in-package :tk)
 
@@ -55,7 +55,7 @@
   (if (null bindings)
       `(progn ,@body)
     (destructuring-bind
-	((var value type) &rest more-bindings)
+	((var value &optional type) &rest more-bindings)
 	bindings
       (let ((&var (intern (format nil "&~A" var)))
 	    (val '#:val)

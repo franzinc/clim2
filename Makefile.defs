@@ -1,14 +1,13 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.45 1998/03/18 20:27:52 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.45.12.1 1998/05/04 20:59:39 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
 SHARED_EXT = so
 
-LISP	= ../src/lispi
+#LISP	= ../src/lispi
+LISP	= /usr/bin/cl+patches
 DCL	= dcli
-CLIM	= climi.dxl
-
 CL	= $(LISP) -I $(DCL)
 CLOPTS	= -qq -batch -backtrace-on-error
 
@@ -18,7 +17,8 @@ CAT	= /bin/cat
 ECHO	= /bin/echo
 TAGS	= /usr/fi/etags
 TMP	= /usr/tmp
-MV	= mv
+#MV	= /usr/fi/mv-nfs
+MV	= /usr/bin/mv
 
 SHELL	= /bin/sh
 
@@ -51,6 +51,10 @@ gc_print	= nil
 compile_verbose	= t
 compile_print	= nil
 redef_warning	= t
+
+# where to dump the CLIM images
+CLIM		= clim.dxl
+
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
 	 	-DUSE_RE_COMP -DUSER_GETWD

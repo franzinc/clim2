@@ -93,31 +93,6 @@
     (clim-lisp:format simple-stream "~A" x)))
 
 
-(in-package :win)
-
-#+aclpc
-(cl:export 'mapWindowPoints)
-#+aclpc
-(defun-dll win::mapWindowPoints
-   ((hwndFrom win:hwnd)
-    (hwndTo win:hwnd)
-    (lppt win:lppoint)
-    (cPoints win:uint)
-    )
-   :return-type :long
-   :library-name "user32.dll"
-   :entry-name "MapWindowPoints")
-
-#+aclntxx
-(eval-when (compile load eval)
- (setq ct::*defapientry-allowed* t))
-#+aclntxx
-(defapientry win::mapWindowPoints "MapWindowPoints" 
-  (win:hwnd win:hwnd win:lppoint win:uint) win:long nil %oscall)
-#+aclntxx
-(eval-when (compile load eval)
- (setq ct::*defapientry-allowed* nil))
-
 (in-package :pc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -136,8 +111,7 @@
 			  (sorted nil)
 			  (label ""))
   (let* ((hwnd
-	   (#+acl86win32 CreateWindowEx #+acl86win32 0 ; extended-style
-        #+aclpc CreateWindow
+	   (CreateWindowEx 0 ; extended-style
 		"COMBOBOX"		; classname
 		(nstringify label)	; windowname
 		(logior
@@ -199,8 +173,7 @@
 			  (label "")
 			  (horizontal-extent 0))
   (let* ((hwnd
-	   (#+acl86win32 CreateWindowEx #+acl86win32 0			; extended-style
-        #+aclpc CreateWindow
+	   (CreateWindowEx 0		; extended-style
 		"LISTBOX"			; classname
 		(nstringify label)	; windowname
 		(logior
@@ -309,7 +282,8 @@
 	   0				; style
 	   "SCROLLBAR"			; classname
 	   (cg::nstringify "")		; windowname
-	   (logior (if (eql orientation :horizontal) win::SBS_HORZ win::SBS_VERT)
+	   (logior (if (eql orientation :horizontal) 
+		       win::SBS_HORZ win::SBS_VERT)
 		   win::WS_CHILD
 		   win::WS_BORDER
 		   win::WS_CLIPCHILDREN 
@@ -350,8 +324,7 @@
 			  (label ""))
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
-	  (#+acl86win32 win::createWindowEx #+acl86win32 0
- 	   #+aclpc win::createWindow
+	  (win::createWindowEx 0
 	   "BUTTON"			; classname
 	   (nstringify nlabel)		; windowname
 	   (logior buttonstyle
@@ -395,130 +368,53 @@
 		        (value nil)
 			(label "")
 			(scroll-mode nil))
-   (let* ((hwnd
-			(#+acl86win32 win::createWindowEx #+acl86win32 0
-			   #+aclpc win::createWindow
-			   "EDIT"		        ; classname
-			   (nstringify label)	; windowname
-			   (logior editstyle
-					   WS_CHILD
-					   WS_BORDER
-					   (if (member scroll-mode '(:horizontal :both t :dynamic))
-						   WS_HSCROLL
-						   0)
-					   (if (member scroll-mode '(:vertical :both t :dynamic))
-						   WS_VSCROLL
-						   0)
+  (let* ((hwnd
+	  (win::createWindowEx 
+	   WS_EX_CLIENTEDGE
+	   "EDIT"			; classname
+	   (nstringify label)		; windowname
+	   (logior editstyle
+		   WS_CHILD
+		   WS_BORDER
+		   WS_TABSTOP
+		   (if (member scroll-mode '(:horizontal :both t :dynamic))
+		       WS_HSCROLL
+		     0)
+		   (if (member scroll-mode '(:vertical :both t :dynamic))
+		       WS_VSCROLL
+		     0)
 					   
-					   WS_CLIPCHILDREN 
-					   WS_CLIPSIBLINGS)	; style
-			   0 0 0 0
-			   parent
-			   (ct::null-handle win::hmenu)
-			   *hinst*
-			   (symbol-name (gensym)))))
-	 (if (null-handle-p hwnd hwnd)
-		 ;; failed
-		 (cerror "proceed" "failed")
-		 ;; else succeed if we can init the DC
-		 (progn
-		   (if (stringp value)
-			   (pc::setWindowText hwnd (#+aclpc pc::lisp-string-to-scratch-c-string 
-										#+acl86win32 identity (silica::xlat-newline-return value))))
-		   ;; Override the default window proc.
-		   (progn ;+++
-			 #+aclpc
-			 (setf (pc::cpointer-value acl-clim::std-ctrl-proc-address)
-				   (pc::GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
-			 #+acl86win32
-			 (setf acl-clim::std-ctrl-proc-address
-				   (pc::GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
-		     #+aclpc
-			 (pc::SETWINDOWLONG hwnd
-								WINDOWS::GWL_WNDPROC (pc::cpointer-value
-													   acl-clim::clim-ctrl-proc-address))
-             #+acl86win32
-			 (pc::SETWINDOWLONG hwnd
-								WINDOWS::GWL_WNDPROC acl-clim::clim-ctrl-proc-address))
-		   (SetWindowPos hwnd (null-handle hwnd) 
-						 left top width height
-						 #.(ilogior SWP_NOACTIVATE SWP_NOZORDER)
-						 #-acl86win32 :static)))
-	 hwnd))
-
-;;; modestly doctored from pc package
-(defun acl-clim::get-pathname
-    (prompt host stream allowed-types initial-name
-     save-p multiple-p change-current-directory-p
-     warn-if-exists-p)
-  (flet ((fill-c-string (string)
-	   #+acl86win32
-	   (let ((c-string (ff::allocate-fobject-c '(:array :char 256)))
-		 (length (length string)))
-	     (dotimes (i length (setf (ff::fslot-value-c '(:array :char 1)
-							 c-string
-							 length) 0))
-	       (setf (ff:fslot-value-c '(:array char 1) c-string i)
-		 (char-int (aref string i))))
-	     c-string)
-	   #-acl86win32 string))
-    (let* ((open-file-struct (ccallocate openfilename))
-	   (file-filter-string (fill-c-string
-				(apply #'concatenate 'string
-				       (mapcar #'make-filter-string allowed-types))))
-	   (initial-dir-string (fill-c-string
-				(or host (namestring *default-pathname-defaults*))))
-	   (prompt-string (fill-c-string prompt)))
-      (csets fi-openfilename open-file-struct
-	     struct-size (sizeof openfilename)
-	     #+acl86win32 owner #+acl86win32 (clim::sheet-mirror stream)
-	     hinst *hinst*
-	     file-filter file-filter-string
-	     #+acl86win32 custom-filter #+acl86win32 (ccallocate (:void *) :initial-value 0)
-	     max-custom-filter 0 ;; length of custom filter string
-	     filter-index 0		; zero means use custom-filter if supplied
-					; otherwise the first filter in the list
-	     selected-file (lisp-string-to-scratch-c-string (or initial-name ""))
-	     max-file 256
-	     #+acl86win32 file-title #+acl86win32 (ccallocate (:void *) :initial-value 0)
-	     max-file-title 0
-	     initial-dir initial-dir-string
-	     window-title prompt-string
-	     flags (logior
-		    (if multiple-p ofn_allowmultiselect 0)
-		    (if save-p 0 ofn_filemustexist)
-		    (if warn-if-exists-p ofn_overwriteprompt 0)
-		    (if change-current-directory-p
-			0 ofn_nochangedir)
-		    ofn_hidereadonly
-		    )
-	     #+acl86win32 default-extension #+acl86win32 (ccallocate (:void *) :initial-value 0)
-	     custom-data 0 ;; would be passed to the callback
-	     ;; callback ;; ignored since we don't pass that flag
-	     ;; template-name ;; ignored
-	     )
-      (let* ((error-code (if save-p
-			    (GetSaveFileName open-file-struct)
-			   (GetOpenFileName open-file-struct))))
-	#+acl86win32
-	(dolist (c-string (list file-filter-string initial-dir-string prompt-string))
-	  (ff::free-fobject-c c-string))
-	(if error-code ;; t means it worked
-	    (if multiple-p
-		(pathnames-from-directory-and-filenames
-		 (spaced-string-to-list
-		  (string-downcase
-		   (scratch-c-string-to-lisp-string))))
-	      (pathname
-	       (string-downcase
-		(scratch-c-string-to-lisp-string))))
-	  (let ((error-code (CommDlgExtendedError)))
-	    (and (plusp error-code) ;; zero means cancelled, so return NIL
-		 (error (format nil 
-				"Common dialog error ~a."
-				(or (cdr (assoc error-code
-						common-dialog-errors))
-				    error-code))))))))))
+		   WS_CLIPCHILDREN 
+		   WS_CLIPSIBLINGS)	; style
+	   0 0 0 0
+	   parent
+	   (ct::null-handle win::hmenu)
+	   *hinst*
+	   (symbol-name (gensym)))))
+    (if (null-handle-p hwnd hwnd)
+	;; failed
+	(cerror "proceed" "failed")
+      ;; else succeed if we can init the DC
+      (progn
+	(if (stringp value)
+	    (pc::setWindowText 
+	     hwnd 
+	     (#+aclpc 
+	      pc::lisp-string-to-scratch-c-string 
+	      #+acl86win32
+	      identity
+	      (silica::xlat-newline-return value))))
+	;; Override the default window proc.
+	(progn				;+++
+	  (setf acl-clim::std-ctrl-proc-address
+	    (pc::GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
+	  (pc::SETWINDOWLONG hwnd
+			     WINDOWS::GWL_WNDPROC
+			     acl-clim::clim-ctrl-proc-address))
+	(SetWindowPos hwnd (null-handle hwnd) 
+		      left top width height
+		      #.(ilogior SWP_NOACTIVATE SWP_NOZORDER))))
+    hwnd))
 
 ;;; bitmap support
 
@@ -546,7 +442,7 @@
     (cset bitmapinfo bmi (bmiHeader biXPelsPerMeter) 0)
     (cset bitmapinfo bmi (bmiHeader biYPelsPerMeter) 0)
     ;; colors are a vector of RGB ;; create correct colors
-    (for i over-vector colors
+    (aclwin:for i aclwin:over-vector colors
 	 do
 	 (let ((rgb (aref (the vector colors) i)))
 	   (multiple-value-bind (cred cgreen cblue)
@@ -624,7 +520,7 @@
 
 ;;; about box support
 
-(defun pop-up-about-climap-dialog (frame &rest ignore)
+(defun pop-up-about-climap-dialog (frame &rest ignoreargs)
   (pop-up-message-dialog
     *screen*
     (format nil "About ~A" (clim-internals::frame-pretty-name frame))
@@ -658,3 +554,7 @@
 (defmethod format2 ((clim-stream clim-lisp:fundamental-stream)
 		    control-string format-args)
   (apply #'clim-lisp:format clim-stream control-string format-args))
+
+
+
+

@@ -222,43 +222,47 @@
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
   (declare (ignore width height))
   (with-slots (external-label x-margin y-margin initial-space-requirement
-							  ncolumns nlines text-style) pane
-	(let* ((p (sheet-parent pane))
-		   (ext-label-width 0)
-		   (ext-label-height 0)
-		   (tswid 0)
-		   (tshgt 0)
- 		   (space-for-scrollbars
- 			 (if (and (typep p 'silica::scroller-pane) (silica::scroller-pane-scroll-bar-policy p)) 2 0))
-		   (iwid (or (space-requirement-width initial-space-requirement) 0))
-		   (ihgt (or (space-requirement-height initial-space-requirement) 0)))
+	       ncolumns nlines text-style) pane
+    (let* ((p (sheet-parent pane))
+	   (ext-label-width 0)
+	   (ext-label-height 0)
+	   (tswid 0)
+	   (tshgt 0)
+	   (space-for-scrollbars
+	    (if (and (typep p 'silica::scroller-pane) 
+		     (silica::scroller-pane-scroll-bar-policy p)) 
+		2 0))
+	   (iwid (or (space-requirement-width initial-space-requirement) 0))
+	   (ihgt (or (space-requirement-height initial-space-requirement) 0)))
+      (with-sheet-medium (medium pane)
+	(multiple-value-setq (tswid tshgt)
+	  (text-size medium "W" :text-style text-style)))
+      (if (numberp ncolumns) 
+	  (setq iwid (max iwid (* (+ space-for-scrollbars ncolumns) tswid))))
+      (if (numberp nlines) 
+	  (setq ihgt (max ihgt (* (+ space-for-scrollbars nlines) tshgt))))
+      (when external-label
+	(let ((text-style (slot-value pane 'text-style)))
 	  (with-sheet-medium (medium pane)
-		(multiple-value-setq (tswid tshgt)
-							 (text-size medium "W" :text-style text-style)))
- 	  (if (numberp ncolumns) (setq iwid (max iwid (* (+ space-for-scrollbars ncolumns) tswid))))
- 	  (if (numberp nlines) (setq ihgt (max ihgt (* (+ space-for-scrollbars nlines) tshgt))))
-	  (when external-label
-		(let ((text-style (slot-value pane 'text-style)))
-		  (with-sheet-medium (medium pane)
-			(multiple-value-bind (w h)
-								 (text-size medium external-label :text-style text-style)
-								 (setq ext-label-width (+ w (text-style-width text-style medium))
-									   ext-label-height (+ h (floor
-															   (text-style-height 
-																 text-style medium) 
-															   2)))))))
-	  (multiple-value-bind (width height)
-						   (compute-gadget-label-size pane)
-						   (when (member (acl-clim::get-system-version) 
-										 ;;mm: Windows NT seems to look better too this way
-										 '(:win31 :winnt))
-							 (setq width (floor (* width 4) 3)))
-						   (let ((w (+ x-margin ext-label-width width x-margin))
-								 (h (+ y-margin (max ext-label-height height) y-margin)))
-							 (make-space-requirement
-							   :width  (max iwid w) :min-width w
-							   :height (max ihgt h) :min-height h)))
-	  )))
+	    (multiple-value-bind (w h)
+		(text-size medium external-label :text-style text-style)
+	      (setq ext-label-width (+ w (text-style-width text-style medium))
+		    ext-label-height (+ h (floor
+					   (text-style-height 
+					    text-style medium) 
+					   2)))))))
+      (multiple-value-bind (width height)
+	  (compute-gadget-label-size pane)
+	(when (member (acl-clim::get-system-version) 
+		      ;;mm: Windows NT seems to look better too this way
+		      '(:win31 :winnt))
+	  (setq width (floor (* width 4) 3)))
+	(let ((w (+ x-margin ext-label-width width x-margin))
+	      (h (+ y-margin (max ext-label-height height) y-margin)))
+	  (make-space-requirement
+	   :width  (max iwid w) :min-width w
+	   :height (max ihgt h) :min-height h)))
+      )))
 
 (defmethod compose-space ((pane mswin-text-field) &key width height)
   (declare (ignore width height))
@@ -359,8 +363,12 @@
   (with-slots (mirror value) pane
     (setq value str)			; Moved outside conditional - smh 26Nov96
     (when mirror
-      (pc::setWindowText mirror (#+aclpc pc::lisp-string-to-scratch-c-string 
-                                 #+acl86win32 identity (xlat-newline-return str)))
+      (pc::setWindowText
+       mirror (#+aclpc 
+	       pc::lisp-string-to-scratch-c-string 
+	       #+acl86win32
+	       identity
+	       (xlat-newline-return str)))
       ;; I wonder whether this avoidance of the callback is really correct,
       ;; or whether it was a quick workaround for bad control structure elsewhere.
       ;; It could be causing some of our ds problems, but I'm not changing it
@@ -369,21 +377,12 @@
 	(value-changed-callback pane
 				(gadget-client pane) (gadget-id pane) str)))))
 
-#+ignore
-(defmethod (setf gadget-value) :after (str (pane mswin-text-edit) &key invoke-callback)
-  (with-slots (mirror value) pane
-    (when mirror
-      (pc::setWindowText mirror str)
-      (setq value str)
-      ;;(format *standard-output* "gadget value set to ~s~%" str)
-      (when nil				;+++ invoke-callback
-	(value-changed-callback pane
-				(gadget-client pane) (gadget-id pane) str)))))
-
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror value) pane
     (if mirror				; else clause added - smh 26Nov96
-      (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 #-acl86win32 :static))
+	(let* ((wl (win::SendMessage mirror 
+				     win::WM_GETTEXTLENGTH 
+				     0 0 #-acl86win32 :static))
 	     (teb (make-string wl))
 	     (tlen (win::GetWindowText mirror teb (1+ wl))))
 	(declare (ignorable tlen))
@@ -482,8 +481,11 @@
   (load "user32.dll"))
   
 #+acl86win32
-(ff:defforeign 'win::DrawEdge :entry-point "DrawEdge"
-  :arguments '(integer integer integer integer) :return-type :integer)
+(ff:def-foreign-call (win::DrawEdge "DrawEdge")
+    ((a :int) (b :int) (c :int) (d :int))
+  :arg-checking nil
+  :release-heap :when-ok
+  :returning :int)
 
 #+aclpc
 (ct:defun-dll drawedge
@@ -570,7 +572,7 @@
 ;; the the label was given as a pixmap leave it to the user to destroy 
 ;; (cim 10/14/96)
 
-(defmethod note-sheet-degrafted ((pane hpbutton-pane))
+(defmethod note-sheet-degrafted :after ((pane hpbutton-pane))
   (let ((pixmap (slot-value pane 'pixmap))
 	(label (gadget-label pane)))
     (when (and pixmap (typep label 'pattern))
@@ -610,8 +612,9 @@
 (defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
   (with-slots (mirror) pane
     (when mirror
-      (pc::setWindowText mirror (#+aclpc pc::lisp-string-to-scratch-c-string
-                                 #+acl86win32 identity str)))))
+      (pc::setWindowText mirror
+			 (#+aclpc pc::lisp-string-to-scratch-c-string
+				  #+acl86win32 identity str)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -736,8 +739,9 @@
 (defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
   (with-slots (mirror) pane
     (when mirror
-      (pc::setWindowText mirror (#+aclpc pc::lisp-string-to-scratch-c-string
-                                 #+acl86win32 identity str)))))
+      (pc::setWindowText
+       mirror (#+aclpc pc::lisp-string-to-scratch-c-string
+		       #+acl86win32 identity str)))))
 
 ;;; When items are set in an hlist-pane the  mirror must be
 ;;; made to update its appearance appropriately.
@@ -1145,67 +1149,44 @@
 	       (nTrackPos int)))
   (defctype lpscrollinfo (scrollinfo *)))
 
-#+aclpc ;; the windows package doesn't use cl...
-(cl:eval-when (cl:compile cl:load cl:eval)
-  (cl:defconstant win::SIF_PAGE 2)
-  (cl:defconstant win::SIF_POS 4)
-  (cl:defconstant win::SIF_DISABLENOSCROLL 8)
-  (ct:defcstruct scrollinfo
-    ((cbSize :unsigned-long)
-     (fMask :unsigned-long)
-     (nMin :long)
-     (nMax :long)
-     (nPage :unsigned-long)
-     (nPos :long)
-     (nTrackPos :long))))
-
-#+acl86win32x ;; won't work, this one not in index
-(defapientry setscrollinfo "SetScrollInfo" (hwnd int lpscrollinfo :boolean)
-	     int ??? %oscall)
-
-#+acl86win32
-(ff:defforeign 'SetScrollInfo 
-    :entry-point "SetScrollInfo"
-    :arguments '(t t t t)
-    :return-type :integer)
-
-#+aclpc
-(ct:defun-dll SetScrollInfo ((hwnd :short-handle) (flags :short) (params (scrollinfo *)) (redraw-p :short-bool))
-   :return-type :short
-   :library-name "user32.dll"
-   :entry-name "SetScrollInfo")
+(ff:def-foreign-call (SetScrollInfo "SetScrollInfo")
+    ((a :int) (b :int) (c :int) (d :int))
+  :arg-checking nil
+  :release-heap :when-ok
+  :returning :int)
 
 (in-package :silica)
 
-(defmethod change-scroll-bar-values ((sb mswin-scroll-bar) &key
-							   slider-size
-							   value
-							   line-increment
-							   (page-increment slider-size))
+(defmethod change-scroll-bar-values ((sb mswin-scroll-bar) 
+				     &key
+				     slider-size
+				     value
+				     line-increment
+				     (page-increment slider-size))
   (let ((mirror (sheet-direct-mirror sb)))
     (when mirror
       (unless slider-size (setq slider-size (scroll-bar-size sb)))
       (unless value (setq value (gadget-value sb)))
       (multiple-value-bind (min max) (gadget-range* sb)
-      (let* ((scrollinfo-struct (ct:ccallocate win::scrollinfo))
-	 	 (win-id win::SB_CTL)  ; a control (decoupled from other panes)
-             (range (- max min))
-	 	 (win-size (floor (* *win-scroll-grain* (/ slider-size (+ range slider-size)))))
-	 	 (win-pos (floor (* (- *win-scroll-grain* slider-size)
-                                (/ (- value min) (- range slider-size))))))
-	    (ct::csets
-		     win::scrollinfo scrollinfo-struct
-		     win::cbSize (cg::sizeof win::scrollinfo)
-		     win::fMask #.(logior 
-                                win::SIF_PAGE 
-                                win::SIF_POS
-                                1   ;win::SIF_RANGE
-					  win::SIF_DISABLENOSCROLL)
-                 win::nMin 0
-                 win::nMax *win-scroll-grain*
-		     win::nPage win-size
-		     win::nPos win-pos)
-	    (win::SetScrollInfo (sheet-mirror sb) win-id scrollinfo-struct t))))))
+	(let* ((scrollinfo-struct (ct:ccallocate win::scrollinfo))
+	       (win-id win::SB_CTL)	; a control (decoupled from other panes)
+	       (range (- max min))
+	       (win-size (floor (* *win-scroll-grain* (/ slider-size (+ range slider-size)))))
+	       (win-pos (floor (* (- *win-scroll-grain* slider-size)
+				  (/ (- value min) (- range slider-size))))))
+	  (ct::csets
+	   win::scrollinfo scrollinfo-struct
+	   win::cbSize (cg::sizeof win::scrollinfo)
+	   win::fMask #.(logior 
+			 win::SIF_PAGE 
+			 win::SIF_POS
+			 1		;win::SIF_RANGE
+			 win::SIF_DISABLENOSCROLL)
+	   win::nMin 0
+	   win::nMax *win-scroll-grain*
+	   win::nPage win-size
+	   win::nPos win-pos)
+	  (win::SetScrollInfo (sheet-mirror sb) win-id scrollinfo-struct t))))))
 
 (defmethod (setf gadget-value) :after
 	   (nv (gadget mswin-scroll-bar) &key invoke-callback)

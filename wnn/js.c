@@ -1,5 +1,5 @@
 /*
- * $Id: js.c,v 1.1 1996/03/13 09:56:51 colin Exp $
+ * $Id: js.c,v 1.1.28.1 1998/05/04 21:03:14 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -201,9 +201,9 @@ register char *lang;
 {
 #ifdef AF_UNIX
     int sd;
-    struct sockaddr_un saddr;		/** ソケット **/
+    struct sockaddr_in saddr;		/** ソケット **/
     char *sock_name = NULL;
-    saddr.sun_family = AF_UNIX;
+    saddr.sin_family = AF_UNIX;
 
     /* find socket name from table by lang */
     if (lang && *lang) {
@@ -213,7 +213,7 @@ register char *lang;
     } else {
 	sock_name = sockname;		/* Jserver */
     }
-    strcpy(saddr.sun_path, sock_name);
+    /*  strcpy(saddr.sun_path, sock_name);  FIXME */
 	    
     if ((sd = socket(AF_UNIX,SOCK_STREAM, 0)) == ERROR) {
 #if DEBUG
@@ -221,7 +221,7 @@ register char *lang;
 #endif
 	return -1;
     }
-    if (connect(sd,(caddr_t)&saddr,strlen(saddr.sun_path)+sizeof(saddr.sun_family)) == ERROR) {
+    if (connect(sd,(struct sockaddr *)&saddr,sizeof(saddr)) == ERROR) {
 
 #if DEBUG
 	xerror("jslib:Can't connect socket.\n");
@@ -294,7 +294,7 @@ register int timeout;
 	signal(SIGALRM, connect_timeout);
 	alarm(timeout);
     }
-    ret = connect(sd, (caddr_t)&saddr_in, sizeof(saddr_in));
+    ret = connect(sd, (struct sockaddr *)&saddr_in, sizeof(saddr_in));
     if (timeout != 0 && timeout > 0) {
 	alarm(0);
 	signal(SIGALRM, SIG_IGN);
