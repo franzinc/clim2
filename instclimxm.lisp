@@ -1,8 +1,7 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Mon Jul  6 15:37:15 1998 by layer]-
 ;;
-;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1991-2002 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +18,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $Id: instclimxm.lisp,v 1.14 1998/08/06 23:15:36 layer Exp $
+;; $Id: instclimxm.lisp,v 1.14.36.1 2002/02/08 19:11:20 layer Exp $
 
 ;;
 ;; Load the Motif version of CLIM

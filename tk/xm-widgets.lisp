@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30.34.4 2001/06/26 17:15:55 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.30.34.5 2002/02/08 19:11:25 layer Exp $
 
 (in-package :tk)
 

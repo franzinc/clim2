@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: load-ol.lisp,v 1.31.36.1 2001/05/23 19:49:12 duane Exp $
+;; $Id: load-ol.lisp,v 1.31.36.2 2002/02/08 19:11:25 layer Exp $
 
 (in-package :user)
 

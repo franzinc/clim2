@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.12.12.3 2001/05/17 17:32:23 layer Exp $
+;; $Id: acl-prel.lisp,v 1.12.12.4 2002/02/08 19:11:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *

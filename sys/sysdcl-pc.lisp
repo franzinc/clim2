@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl-pc.lisp,v 1.6 1999/02/25 08:23:39 layer Exp $
+;; $Id: sysdcl-pc.lisp,v 1.6.34.1 2002/02/08 19:11:24 layer Exp $
 
 (in-package :cl-user)
 

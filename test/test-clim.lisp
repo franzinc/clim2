@@ -1,9 +1,8 @@
 ;; -*- mode: common-lisp; package: clim-user -*-
 ;;
-;;				-[Mon Jul  6 15:36:01 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: test-clim.lisp,v 1.19 1998/08/06 23:17:10 layer Exp $
+;; $Id: test-clim.lisp,v 1.19.36.1 2002/02/08 19:11:24 layer Exp $
 
 
 (in-package :clim-user)

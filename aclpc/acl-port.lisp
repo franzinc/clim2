@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.12.24.1 2000/10/05 18:02:10 layer Exp $
+;; $Id: acl-port.lisp,v 1.12.24.2 2002/02/08 19:11:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *

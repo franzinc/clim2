@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.macosx,v 1.1.2.2 2001/06/08 04:18:22 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.macosx,v 1.1.2.3 2002/02/08 19:11:20 layer Exp $
 #
 #  Makefile.macosx for CLIM 2.0
 #
@@ -26,7 +26,7 @@ XINCLUDES=-I/usr/X11R6/include
 CFLAGS= 
 PICFLAGS = 
 SHAREFLAGS = 
-MAKE_SHARED = ../src/bin/make_shared.mac
+MAKE_SHARED = sh ../src/bin/make_shared.mac
 AR = ar cq
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)

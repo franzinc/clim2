@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.12.34.3 2000/09/23 21:40:03 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.12.34.4 2002/02/08 19:11:20 layer Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -40,7 +40,7 @@ XLIB=-lX11
 XINCLUDES= -I/usr/include/Motif1.2 /usr/lpp/X11/lib/R6/Motif1.2/Xm12.imp
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
-MAKE_SHARED = ../src/bin/make_shared.ibm -make_exp ../src/bin/make_exp
+MAKE_SHARED = sh ../src/bin/make_shared.ibm -make_exp ../src/bin/make_exp
 STD_DEFINES =
 AR = ar clq
 

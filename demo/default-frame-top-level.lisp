@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: clim-internals -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: default-frame-top-level.lisp,v 1.5 2000/06/26 17:42:07 layer Exp $
+;; $Id: default-frame-top-level.lisp,v 1.5.10.1 2002/02/08 19:11:22 layer Exp $
 
 (in-package :clim-internals)
 

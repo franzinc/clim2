@@ -13,6 +13,16 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 <no version change>
 
+2002-02-08  Kevin Layer  <layer@crikey>
+
+	* Makefile.alpha,
+	* Makefile.cobjs,
+	* Makefile.macosx,
+	* Makefile.rs6000: don't assume shell scripts are executable
+
+*******************************************************************************
+<no version change>
+
 2002-01-28  Kevin Layer  <layer@crikey>
 
 	* buildclim.cl: b-l-i keyword arg changes

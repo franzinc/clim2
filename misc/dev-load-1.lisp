@@ -1,9 +1,8 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Wed Apr 26 20:24:45 2000 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: dev-load-1.lisp,v 1.41 2000/05/01 21:43:30 layer Exp $
+;; $Id: dev-load-1.lisp,v 1.41.24.1 2002/02/08 19:11:22 layer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
