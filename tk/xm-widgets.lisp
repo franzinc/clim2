@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30.34.1.14.2 2000/08/15 02:47:47 cley Exp $
+;; $Id: xm-widgets.lisp,v 1.30.34.1.14.3 2000/08/15 17:58:51 cley Exp $
 
 (in-package :tk)
 
@@ -76,10 +76,9 @@
 ;;-- This is a problem cos we dont know the number of items
 
 (defconstant xm-font-list-default-tag 
-    ;; this needs to be a native string.  It would probably be better
-    ;; if the definitions of the XM_STRING functions were changed to
-    ;; convert strings.
-    (excl:string-to-native "FONTLIST_DEFAULT_TAG_STRING"))
+    ;; This must be converted to a native string before being passed
+    ;; to any of the XmString functions.
+    "FONTLIST_DEFAULT_TAG_STRING")
 
 ;; this needs to be made to deal with compound strings for ics.
 
@@ -89,7 +88,8 @@
 	 ;;--- I think we need to read the book about
 	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
 	 ;;-- segment strings
-	 (xm_string_get_l_to_r value xm-font-list-default-tag &string)
+	 (excl:with-native-string (tag xm-font-list-default-tag)
+	   (xm_string_get_l_to_r value tag &string))
 	 (values (excl:native-to-string string)))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
@@ -151,7 +151,8 @@
 	    *empty-compound-string*
 	    (setq *empty-compound-string*
 	      (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
-				       (clim-utils:string-to-foreign xm-font-list-default-tag))))))))
+				       (clim-utils:string-to-foreign 
+					xm-font-list-default-tag))))))))
 
  (:-ics
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
