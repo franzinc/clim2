@@ -9,6 +9,10 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+join from acl62 to trunk on 2/12/04
+next join tag: use join2.sh
+
+*******************************************************************************
 
 2004-01-16  Kevin Layer  <layer@gemini>
 
@@ -30,6 +34,11 @@ If there are user-visible changes in this commit, then list the
 join from acl62 to trunk on 12/11/03
 next join tag: acl62_to_trunk_via_layer48_merge_121003
 *******************************************************************************
+
+2003-12-23  Kevin Layer  <layer@crikey>
+
+	* Makefile.linux: add dmalloc debugging stuff, turned off by
+	  default
 
 2003-12-10  Kevin Layer  <layer@crikey>
 
@@ -5901,4 +5910,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.6 $
+$Revision: 2.7 $
