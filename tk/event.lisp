@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.13 92/09/22 19:36:31 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.14 92/09/30 11:44:33 cer Exp $
 
 (in-package :tk)
 
@@ -145,6 +145,7 @@
 				 (event :unsigned-long)
 				 (continue-to-dispatch
 				  :unsigned-long))
+  (declare (ignore continue-to-dispatch))
   (let* ((widget (find-object-from-address widget))
 	 (eh-info (or (assoc client-data (widget-event-handler-data widget))
 		      (error "Cannot find event-handler info ~S,~S"

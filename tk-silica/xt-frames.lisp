@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.21 92/11/06 19:04:37 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.22 92/11/09 19:56:05 cer Exp $
 
 
 (in-package :xm-silica)
@@ -39,10 +39,14 @@
     (let* ((menu-bar (slot-value frame 'menu-bar))
 	   (menu-bar-pane
 	     (and menu-bar
-		  (make-pane 'menu-bar
-			     :command-table (if (eq menu-bar t)
-						(frame-command-table frame)
-						(find-command-table menu-bar)))))
+		  (apply #'make-pane 
+			 'menu-bar
+			 :command-table (cond ((eq t menu-bar)
+					       (frame-command-table frame))
+					      ((listp menu-bar)
+					       (find-command-table (car menu-bar)))
+					      (t (find-command-table menu-bar)))
+			 (and (listp menu-bar) (cdr menu-bar)))))
 	   (pointer-doc-pane
 	     ;;--- Don't like these forward references
 	     (and (clim-internals::frame-pointer-documentation-p frame)
@@ -63,12 +67,14 @@
 ;;;
 
 (defun command-button-callback (button dunno frame command-table item)
+  (declare (ignore dunno button))
   (execute-command-in-frame
    frame (second item)
    :presentation-type `(command :command-table ,command-table)))
 
 
 (defun frame-wm-protocol-callback (widget frame)
+  (declare (ignore widget))
   ;; Invoked when the Wm close function has been selected
   ;; We want to queue an "event" somewhere so that we can
   ;; synchronously quit from the frame

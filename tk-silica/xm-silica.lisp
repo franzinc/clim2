@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.26 92/10/02 15:21:04 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.27 92/10/29 16:55:43 cer Exp $
 
 (in-package :xm-silica)
 
@@ -56,7 +56,6 @@
 
 
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
-  (declare (ignore port))
   (cond ( ;;--- hack alert
 	 (popup-frame-p sheet)
 	 (values 'tk::xm-dialog-shell

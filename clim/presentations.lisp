@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.17 92/09/24 09:39:17 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.18 92/10/02 15:19:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -162,8 +162,8 @@
 
 (defun invoke-with-input-context (type override body-continuation context-continuation)
   (declare (dynamic-extent body-continuation context-continuation))
-  (with-presentation-type-decoded (type-name type-parameters) type
-    (with-stack-list* (type type-name type-parameters)
+ (with-presentation-type-decoded (type-name type-parameters TYPE-OPTIONS) type
+   (LET ((TYPE `((,TYPE-NAME ,@TYPE-PARAMETERS) ,@TYPE-OPTIONS)))
       (with-stack-list (this-tag 'catch-tag type)	;unique
 	(with-stack-list (this-context type this-tag)
 	  (let ((pwindow nil)

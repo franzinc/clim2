@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.19 92/10/07 14:43:18 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.20 92/11/06 19:02:44 cer Exp $
 
 (in-package :clim-demo)
 
@@ -110,6 +110,7 @@
   (:default-initargs :size 5 :early nil :wire-offset 20))
 
 (defmethod draw-body ((connection connection) stream &key (ink +foreground-ink+))
+  (declare (ignore stream ink))
   ;; Don't do a thing
   )
 

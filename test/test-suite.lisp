@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.44 92/11/09 19:55:44 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.45 92/11/13 14:46:50 cer Exp $
 
 (in-package :clim-user)
 
@@ -111,6 +111,7 @@ What about environment issue?
 
 (defun draw-multiple-rectangles (stream &optional (size 10) (sx 0) (sy 0))
   (with-mm-transformation (stream -x -y +x +y)
+    (declare (ignore -x -y +x +y))
     (let ((x sx)
 	  (y sy))
       (dolist (filled '(t nil))
@@ -152,6 +153,7 @@ What about environment issue?
 
 (defun draw-multiple-circles (stream &optional (size 10) (sx 0) (sy 0))
   (with-mm-transformation (stream -x -y +x +y)
+    (declare (ignore -x -y +x +y))
     (let ((x sx)
 	  (y sy))
       (dolist (filled '(t nil))
@@ -207,7 +209,27 @@ What about environment issue?
 	(formatting-cell (stream)
 	  (draw-circle* stream 0 0 50 
 			:ink +green+ :filled t
-			:start-angle (second angles) :end-angle (car angles)))))))
+			:start-angle (second angles) :end-angle (car
+								 angles)))))))
+
+(define-test (draw-some-points graphics) (stream)
+  "Draw lots of points"
+  (formatting-table (stream)
+      (dotimes (size 10)
+	(formatting-row (stream)
+	    (formatting-cell (stream)
+		(with-text-face (stream :italic)
+		  (format stream "~D size" size)))
+	  (formatting-cell (stream)
+	      (let ((points nil))
+		(dotimes (i 10) 
+		  (push (random 50) points)
+		  (push (random 50) points))
+		(surrounding-output-with-border (stream)
+		    (draw-points* stream points 
+				  :ink +red+
+				  :line-thickness size))))))))
+			      
 
 
 (defparameter *gettysburg-address*
@@ -1713,11 +1735,28 @@ Luke Luck licks the lakes Luke's duck likes."))
   "An ACCEPTING-VALUES dialog that has graphics inside of it."
   (graphics-dialog-internal stream))
 
+(define-test (graphics-dialog-options menus-and-dialogs) (stream)
+  "An ACCEPTING-VALUES dialog with options that has graphics inside of it."
+  (let ((own-window nil)
+	(scroll-bars nil))
+    (accepting-values (stream :align-prompts t)
+	(setf own-window (accept 'boolean
+				 :default own-window
+				 :prompt "Own window"
+				 :stream stream))
+      (setf scroll-bars (accept '(member nil t :both :dynamic :vertical :horizontal)
+				:view '(radio-box-view :orientation :vertical)
+				:default scroll-bars
+				:prompt "Scroll bars"
+				:stream stream
+				:active-p own-window)))
+    (graphics-dialog-internal stream own-window (and own-window scroll-bars))))
+
 (define-test (graphics-dialog-own-window menus-and-dialogs) (stream)
   "An own-window ACCEPTING-VALUES dialog that has graphics inside of it."
   (graphics-dialog-internal stream t))
 
-(defun graphics-dialog-internal (stream &optional own-window)
+(defun graphics-dialog-internal (stream &optional own-window scroll-bars)
   (labels ((display-color (object stream &key acceptably)
 	     (declare (ignore acceptably))
 	     (with-room-for-graphics (stream)
@@ -1738,7 +1777,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (line-thickness 1)
 	  (color-name :foreground)
 	  (line-thickness-units :normal))
-      (accepting-values (stream :own-window own-window :label "Graphics Dialog")
+      (accepting-values (stream :own-window own-window :label "Graphics Dialog"
+				:scroll-bars scroll-bars)
 	(setq square-dimension
 	      (accept 'number :stream stream
 		      :prompt "Size of square" :default square-dimension))
@@ -1834,7 +1874,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 						,@(and view `(:view ,view))
 						:prompt (format nil "~A,~A"
 								',(cadr x)
-								(if ,view (type-of ,view) :default))
+								,(if (constantp view)
+								     (if (eval view) `',(type-of (eval view)) :default)
+								   `(if ,view (type-of ,view) :default)))
 						:stream stream)
 				       (terpri stream)))
 				p))))
@@ -2822,6 +2864,7 @@ Luke Luck licks the lakes Luke's duck likes."))
        (setf (symbol-function 'read-gesture) old))))
 
 (defun ignore-clim-gesture (&rest ignore)
+  (declare (ignore ignore))
   (throw 'ignore-gesture nil))
 
 (define-benchmark (simple-menu-choose :iterations 10) (stream)

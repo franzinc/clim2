@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.18 92/11/06 18:59:58 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.19 92/11/19 14:18:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,11 +14,14 @@
 
 (defparameter *abort-gestures* '(:abort))
 
+(defparameter *asynchronous-abort-gestures* '(:asynchronous-abort))
+
 (defvar *accelerator-gestures* nil)
 (defvar *accelerator-numeric-argument* nil)
 
 
 ;; Noise strings and ACCEPT results
+
 
 (eval-when (compile load eval)
 (defstruct (noise-string (:constructor make-noise-string-1))
@@ -58,6 +61,7 @@
 
 (defmacro with-activation-gestures ((additional-gestures &key override) 
 				    &body body &environment env)
+  #-(or Genera Minima) (declare (ignore env))
   (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
   `(with-stack-list* 
@@ -87,7 +91,8 @@
 
 (defmacro with-delimiter-gestures ((additional-gestures &key override)
 				   &body body &environment env)
-  (when (characterp additional-gestures)	;yes, we mean CHARACTERP
+  #-(or Genera Minima) (declare (ignore env))
+  (when (characterp additional-gestures) ;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
   `(with-stack-list* 
        (*delimiter-gestures*

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.66 92/11/11 17:19:13 cer Exp $
+# $fiHeader: Makefile,v 1.67 92/11/11 17:46:21 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -265,6 +265,8 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/accept-values.fasl \
 			clim/drag-and-drop.fasl \
                         clim/item-list-manager.fasl \
+			postscript/pkgdcl.fasl \
+			postscript/postscript-s.fasl \
                         clim/stream-trampolines.fasl
 
 GENERIC-GADGETS = clim/db-menu.fasl clim/db-list.fasl clim/db-text.fasl silica/db-button.fasl \
@@ -339,8 +341,7 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/xt-pixmaps.fasl \
 		      tk-silica/last.fasl
 
-POSTSCRIPT_CLIM= postscript/pkgdcl.fasl \
-	postscript/postscript-port.fasl \
+POSTSCRIPT_CLIM= postscript/postscript-port.fasl \
 	postscript/postscript-medium.fasl \
 	postscript/laserwriter-metrics.fasl 
 
@@ -628,7 +629,7 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 # Building
 
 clim-xm:	FORCE $(CLIMOBJS)
-#	-$(RM) $(CLIM)
+	-$(RM) -f $(CLIM)
 	$(ECHO) " \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(XLIB)\") \
@@ -642,7 +643,7 @@ clim-xm:	FORCE $(CLIMOBJS)
 	echo CLIM-XM built!!!!	
 
 clim-ol:	FORCE $(CLIMOBJS)
-#	-$(RM) $(CLIM)
+	-$(RM) -f $(CLIMOL)
 	$(ECHO) " \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(XLIB)\") \

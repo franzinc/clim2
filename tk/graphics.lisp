@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.8 92/05/13 17:10:18 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.9 92/06/16 19:10:49 cer Exp $
 
 (in-package :tk)
 
@@ -36,11 +36,7 @@
   `(defun ,name ,arglist
      (error "~S not done yet" ',name)))
 
-(defstub draw-points (drawable gcontext points &optional relative-p)
-  )
-
-(defun draw-line (drawable gcontext x1 y1 x2 y2 &optional
-			     relative-p)
+(defun draw-line (drawable gcontext x1 y1 x2 y2)
   (x11:xdrawline
    (object-display drawable)
    drawable
@@ -103,14 +99,6 @@
        (* 2 y-radius)
        start-angle end-angle))))
 
-(defstub draw-lines (drawable gcontext points &key relative-p fill-p
-			    (shape :complex))
-  )
-
-
-(defstub draw-segments (drawable gcontext segments)
-  )
-
 (defun draw-rectangle (drawable gcontext x y width height &optional
 				  fill-p)
   (if fill-p
@@ -162,29 +150,6 @@
   (x11:xtextwidth font
 		  (+ start (string-to-char* sequence))
 		  (- end start)))
-
-
-(defstub draw-glyph (drawable gcontext x y elt
-			    &key translate width (size :default))
-  )
-
-
-(defstub draw-glyphs (drawable gcontext x y sequence
-			     &key (start 0) end translate width (size
-								 :default))
-  )
-
-
-(defstub draw-image-glyph (drawable gcontext x y elt
-				  &key translate width (size :default))
-  )
-
-
-(defstub draw-rectangles (drawable gcontext rectangles &optional fill-p)
-  )
-
-(defstub draw-arcs (drawable gcontext arcs &optional fill-p)
-  )
 
 (defun draw-string (drawable gc x y string &optional (start 0) end)
   (unless start (setq start 0))

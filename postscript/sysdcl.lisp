@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.4 92/09/24 09:40:40 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.5 92/10/02 15:21:19 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -8,14 +8,17 @@
 
 (clim-defsys:defsystem postscript-clim
     (:default-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
-		       #-Genera (frob-pathname "postscript")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
-			      #-Genera (frob-pathname "postscript")
-     :load-before-compile (clim-standalone))
+      #-Genera (frob-pathname "postscript")
+      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
+      #-Genera (frob-pathname "postscript")
+      :load-before-compile (clim-standalone))
   ("pkgdcl")
+  #+Allegro
+  ("postscript-s")
   ("postscript-port")
   ("postscript-medium")
   ("laserwriter-metrics"))
+
 
 #+Genera
 (clim-defsys:import-into-sct 'postscript-clim

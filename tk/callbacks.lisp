@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.19 92/11/09 10:55:55 cer Exp $
+;; $fiHeader: callbacks.lisp,v 1.20 92/11/18 15:54:51 colin Exp $
 
 (in-package :tk)
 
@@ -40,6 +40,7 @@
     (destructuring-bind
 	(ignore (fn &rest args) &optional type)
 	callback-info
+      (declare (ignore ignore))
       (apply fn
 	   widget
 	   (append (multiple-value-list (spread-callback-data widget call-data type))
@@ -47,6 +48,7 @@
     0))
 
 (defmethod spread-callback-data (widget call-data (type (eql nil)))
+  (declare (ignore widget call-data)) 
   (values))
 
 (defvar *callback-handler-address* (register-function
@@ -161,13 +163,15 @@
 	    (fourth z))))
 
 (defmethod spread-callback-data (widget data (type (eql :activate)))
+  (declare (ignore widget))
   (x-push-button-callback-struct-click-count data))
 
-(defmethod spread-callback-data (widget data (type (eql
-						    :modify-verify)))
+(defmethod spread-callback-data (widget data (type (eql :modify-verify)))
+  (declare (ignore widget))
   (xm-text-field-callback-struct-doit data))
 
 (defmethod spread-callback-data (widget call-data (type (eql 'drawing-area)))
+  (declare (ignore widget))
   (values (x-drawing-area-callback-window call-data)
 	  (x-drawing-area-callback-event call-data)))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.15 92/11/06 18:59:49 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.16 92/11/19 14:17:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -546,3 +546,10 @@
 		     vb (+ y (ceiling height 2)))))
     (values (coordinate vx) (coordinate vt) 
 	    (coordinate vr) (coordinate vb))))
+
+
+
+(define-graphics-recording draw-bezier-polygon (ink line-style clipping-region)
+  :bounding-rectangle
+    (position-sequence-bounding-rectangle 
+     position-seq line-style))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.36 92/11/10 08:56:23 cer Exp $
+;; $fiHeader: resources.lisp,v 1.37 92/11/13 14:47:01 cer Exp $
 
 (in-package :tk)
 
@@ -38,7 +38,6 @@
 
 
 (defmethod convert-resource-in (class type value)
-  (declare (ignore class))
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
   (convert-resource-in class type value))
 
@@ -636,3 +635,8 @@
 						  :max-on-bottom
 						  :max-on-left
 						  :max-on-right))
+
+
+(defmethod convert-resource-out ((parent t) (typep (eql 'ol-edit-mode)) value)
+  (ecase value
+    (:text-read 67)))

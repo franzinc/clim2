@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.52 92/11/18 15:55:31 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.53 92/11/19 14:25:30 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1011,9 +1011,76 @@ and on color servers, unless using white or black")
     (when drawable
       (let* ((ink (medium-ink medium))
 	     (line-style (medium-line-style medium))
+	     (thickness (line-style-thickness line-style))
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
-       ))))
+	(let* ((len (length position-seq))
+	       (xpoints (/ len 2))
+	       (j 0)
+	       (minx (ash 1 15))
+	       (miny (ash 1 15)))
+	  (declare (fixnum j xpoints minx miny))
+	  (macrolet ((inner-guts ()
+		       `(if (listp position-seq)
+			    (loop
+			      (when (null position-seq) (return nil))
+			      (guts (pop position-seq) (pop position-seq)))
+			  (do ((i 0 (+ i 2)))
+			      ((= i len))
+			    (declare (fixnum i))
+			    (guts (aref position-seq i) (aref position-seq (1+ i)))))))
+	    (cond ((< thickness 1.5)
+		   (let ((points (tk::make-xpoint-array :number xpoints)))
+		     (macrolet ((guts (x y)
+				  `(let ((x ,x)
+					 (y ,y))
+				     (convert-to-device-coordinates transform x y)
+				     (when (valid-point-p x y)
+				       (minf minx x)
+				       (minf miny y)
+				       (setf (tk::xpoint-array-x points j) x
+					     (tk::xpoint-array-y points j) y)
+				       (incf j)))))
+		       (inner-guts))
+		     (x11:xdrawpoints
+		      (tk::object-display drawable)
+		      drawable
+		      (adjust-ink (decode-ink ink medium)
+				  medium
+				  line-style
+				  minx miny)
+		      points
+		      j
+		      x11:coordmodeorigin)))
+		  (t
+		   (setq thickness (round thickness))
+		   (let ((points (tk::make-xarc-array :number xpoints)))
+		     (macrolet ((guts (x y)
+				  `(let ((x ,x)
+					 (y ,y))
+				     (convert-to-device-coordinates transform x y)
+				     (when (valid-point-p x y)
+				       (minf minx x)
+				       (minf miny y)
+				       (setf (tk::xarc-array-x points j) x
+					     (tk::xarc-array-y points j) y
+					     (tk::xarc-array-width points j) thickness
+					     (tk::xarc-array-height points j) thickness
+					     (tk::xarc-array-angle1 points j) 0
+					     (tk::xarc-array-angle2 points j) (* 360 64))
+				       (incf j)))))
+
+		       (inner-guts))
+		     (x11::xfillarcs
+		      (tk::object-display drawable)
+		      drawable
+		      (adjust-ink (decode-ink ink medium)
+				  medium
+				  line-style
+				  minx
+				  miny)
+		      points
+		      j))))))))))
 
 (defmethod medium-draw-line* ((medium xt-medium) x1 y1 x2 y2)
   (let ((drawable (medium-drawable medium)))
@@ -1119,6 +1186,9 @@ and on color servers, unless using white or black")
 		(port sheet) sheet medium x1 y1 x2 y2 filled)))))))
 
 (defmethod medium-draw-polygon* ((medium xt-medium) position-seq closed filled)
+  (medium-draw-polygon-1 medium  position-seq closed filled))
+
+(defun medium-draw-polygon-1 (medium position-seq closed filled)
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((sheet (medium-sheet medium))
@@ -1139,7 +1209,7 @@ and on color servers, unless using white or black")
 	      (let ((x (first ps))
 		    (y (second ps)))
 		(convert-to-device-coordinates transform x y)
-		(discard-illegal-coordinates medium-draw-polygon* x y)
+		(discard-illegal-coordinates medium-draw-polygon-1 x y)
 		(minf minx x)
 		(minf miny y)
 		(setf (tk::xpoint-array-x points i) x
@@ -1151,7 +1221,7 @@ and on color servers, unless using white or black")
 	    (let ((x (aref ps j))
 		  (y (aref ps (1+ j))))
 	      (convert-to-device-coordinates transform x y)
-	      (discard-illegal-coordinates medium-draw-polygon* x y)
+	      (discard-illegal-coordinates medium-draw-polygon-1 x y)
 	      (minf minx x)
 	      (minf miny y)
 	      (setf (tk::xpoint-array-x points i) x
@@ -1591,3 +1661,81 @@ and on color servers, unless using white or black")
 (defmethod medium-finish-output ((medium xt-medium))
   (x11:xsync (port-display (port medium)) 0))
 
+
+
+(defmethod medium-draw-bezier-polygon* ((medium xt-medium) points filled)
+  (let* ((npoints (length points))
+	 (last (1- npoints))
+	 (new-points (cons nil nil))
+	 (head new-points)
+	 (distance 1))
+    
+    (assert (evenp npoints))
+    (assert (zerop (mod (- (/ npoints 2) 4) 3)))
+    
+    (flet ((collect (x y)
+	     (let ((more (list x y)))
+	       (setf (cdr new-points) more
+		     new-points (cdr more)))))
+      (declare (dynamic-extent #'collect))
+      (collect (elt points 0) (elt points 1))
+      
+      (do ((i 0 (+ i 6)))
+	  ((= i (1- last)))
+	(render-bezier #'collect 
+		       (elt points i)
+		       (elt points (+ 1 i))
+		       (elt points (+ 2 i))
+		       (elt points (+ 3 i))
+		       (elt points (+ 4 i))
+		       (elt points (+ 5 i))
+		       (elt points (+ 6 i))
+		       (elt points (+ 7 i))
+		       distance))
+      
+      (collect (elt points (1- last)) (elt points last)))
+    
+    (print (length (cdr head)) excl:*initial-terminal-io*)
+    (medium-draw-polygon-1 medium (cdr head) nil filled)))
+
+
+(defun render-bezier (fn x0 y0 x1 y1 x2 y2 x3 y3 distance)
+  (let ((d1 (distance-from-line x0 y0 x3 y3 x1 y1))
+	(d2 (distance-from-line x0 y0 x3 y3 x2 y2)))
+    (if (and (< d1 distance) (< d2 distance))
+	nil
+      (multiple-value-bind
+	  (x00 y00 x10 y10 x20 y20 x30 y30 x01 y01 x11 y11 x21 y21 x31 y31)
+	  (split-bezier x0 y0 x1 y1 x2 y2 x3 y3)
+	(render-bezier fn x00 y00 x10 y10 x20 y20 x30 y30 distance)
+	(funcall fn x30 y30)
+	(render-bezier fn  x01 y01 x11 y11 x21 y21 x31 y31
+		       distance)))))
+
+
+(defun split-bezier (x0 y0 x1 y1 x2 y2 x3 y3)
+  ;; We should write a matrix multiplication macro
+  (values
+   ;; The first 1/2
+   x0 y0
+   (+ (/ x0 2) (/ x1 2)) (+ (/ y0 2) (/ y1 2))
+   (+ (/ x0 4) (/ x1 2) (/ x2 4))  (+ (/ y0 4) (/ y1 2) (/ y2 4))
+   (+ (* x0 1/8)  (* x1 3/8) (* x2 3/8) (* x3 1/8)) (+ (* y0 1/8)  (* y1 3/8) (* y2 3/8) (* y3 1/8))
+   ;; The second 1/2
+   (+ (* x0 1/8)  (* x1 3/8) (* x2 3/8) (* x3 1/8)) (+ (* y0 1/8)  (* y1 3/8) (* y2 3/8) (* y3 1/8))
+   (+ (/ x1 4) (/ x2 2) (/ x3 4))  (+ (/ y1 4) (/ y2 2) (/ y3 4))
+   (+ (/ x2 2) (/ x3 2)) (+ (/ y2 2) (/ y3 2))
+   x3 y3))
+
+(defun distance-from-line (x0 y0 x1 y1 x y)
+  (let* ((dx (- x1 x0))
+	 (dy (- y1 y0))
+	 (r-p-x (- x x0))
+	 (r-p-y (- y y0))
+	 (dot-v (+ (* dx dx) (* dy dy)))
+	 (dot-r-v (+ (* r-p-x dx) (* r-p-y dy)))
+	 (closest-x (+ x0 (* (/ dot-r-v dot-v)  dx)))
+	 (closest-y (+ y0 (* (/ dot-r-v dot-v)  dy))))
+    (let ((ax (- x closest-x))
+	  (ay (- y closest-y)))
+      (values (+ (* ax ax) (* ay ay)) closest-x closest-y))))

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.17 92/11/09 10:55:06 cer Exp $
+;; $fiHeader: plot.lisp,v 1.18 92/11/19 14:24:23 cer Exp $
 
 (in-package :clim-demo)
 
@@ -643,10 +643,6 @@
 	(values left top
 		(+ left (max 0 (- cwidth vwidth)))
 		(+ top (max 0 (- cheight vheight))))))))
-
-#+allegro
-(eval-when (compile load eval)
-  (require :climps))
 
 #+allegro
 (define-plot-demo-command (com-print-graph :name t :menu t)

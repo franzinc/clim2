@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.39 92/11/09 19:55:57 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.40 92/11/19 14:25:26 cer Exp $
 
 (in-package :xm-silica)
 
@@ -92,7 +92,11 @@
   ;; This code fills the menu-bar. If top level items do not have
   ;; submenus then it creates one with a menu of its own
   
-  (let ((mirror (call-next-method)))
+  (let* ((mirror (call-next-method))
+	 (text-style (menu-bar-text-style sheet))
+	 (font-list (and text-style
+			 (list :font-list (list (text-style-mapping port text-style)))))
+	 (options font-list))
     (labels ((update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
@@ -129,10 +133,11 @@
 					      :managed nil
 					      :parent shell
 					      :row-column-type :menu-pulldown))
-		      (cb (make-instance 'xt::xm-cascade-button-gadget
+		      (cb (apply #'make-instance 'xt::xm-cascade-button-gadget
 					 :parent parent
 					 :label-string menu
-					 :sub-menu-id submenu)))
+					 :sub-menu-id submenu
+					 options)))
 		 
 		 (set-button-mnemonic sheet
 				      cb (getf (command-menu-item-options item) :mnemonic))
@@ -182,18 +187,20 @@
 						'tk::xm-pulldown-menu
 						:managed nil
 						:parent parent))
-				      (cb (make-instance 'xt::xm-cascade-button-gadget
-							 :parent parent
-							 :label-string menu
-							 :sub-menu-id
-							 submenu)))
+				      (cb (apply #'make-instance 'xt::xm-cascade-button
+						 :parent parent
+						 :label-string menu
+						 :sub-menu-id
+						 submenu
+						 options)))
 				 (declare (ignore cb))
 				 (setq parent submenu)))
 			     (let ((button 
-				    (make-instance 'xt::xm-push-button-gadget
-						   :label-string menu
-						   :managed t
-						   :parent parent)))
+				    (apply #'make-instance 'xt::xm-push-button
+					   :label-string menu
+					   :managed t
+					   :parent parent
+					   options)))
 			       (push (list item button)
 				     commands-and-buttons)
 			       
@@ -285,7 +292,7 @@
     (when (typep shell 'tk::top-level-shell)
       (destructuring-bind (&key name &allow-other-keys) (clim-internals::frame-icon frame)
 	;;-- Dialog shells do not have :icon-name resource
-	(tk::set-values shell :icon-name (frame-pretty-name frame))))))
+	(tk::set-values shell :icon-name (or name (frame-pretty-name frame)))))))
 	
 
 ;;;
@@ -422,6 +429,7 @@
   (tk::destroy-widget (tk::widget-parent menu)))
 
 (defmethod framem-popdown-menu ((framem motif-frame-manager) menu)
+  (declare (ignore menu))
   ;; Should be already popped down
   nil)
 

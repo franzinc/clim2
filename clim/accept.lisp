@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.18 92/11/09 19:54:48 cer Exp $
+;; $fiHeader: accept.lisp,v 1.19 92/11/19 14:17:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -331,7 +331,8 @@
 	(with-input-from-string (stream string :start start :end end :index index)
 	  (handler-bind 
 	      ((parse-error
-		 #'(lambda (error)
+		#'(lambda (error)
+		    (declare (ignore error))
 		     ;; This private version of CHECK-FOR-DEFAULT is
 		     ;; enough for string and string streams to do a
 		     ;; reasonable job, but it's not perfect.  Some

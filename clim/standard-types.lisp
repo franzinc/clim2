@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.19 92/11/13 14:46:05 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.20 92/11/19 14:18:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -745,9 +745,8 @@
 	      " "
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (flet ((possibility-printer (possibility type stream)
-	     (let ((object (find (second possibility) sequence 
-				 :key value-key :test test)))
-	       (with-output-as-presentation (stream (list object) type)
+	     (let ((object (find (second possibility) sequence :key value-key :test test)))
+	       (with-output-as-presentation (stream (list (funcall value-key object)) type)
 		 (funcall printer (funcall name-key object) stream)))))
       (declare (dynamic-extent #'possibility-printer))
       (loop

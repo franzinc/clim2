@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.26 92/10/28 11:31:51 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.27 92/11/06 19:00:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -139,6 +139,7 @@
 ;;; Genera supports passing an environment to CONSTANTP and EVAL.  Allegro doesn't.
 ;;; Until we test all other candidates, be conservative.
 (defmacro with-end-of-page-action ((stream action) &body body &environment env)
+  #-(or Genera Minima) (declare (ignore env))
   (default-output-stream stream)
   (let ((actions '(:wrap :scroll :allow))
 	(assert-required t)
@@ -157,6 +158,7 @@
     wrapped-body))
 
 (defmacro with-end-of-line-action ((stream action) &body body &environment env)
+  #-(or Genera Minima) (declare (ignore env))
   (default-output-stream stream)
   (let ((actions '(:wrap :scroll :allow))
 	(assert-required t)
@@ -344,8 +346,7 @@
       (multiple-value-setq (cx cy) (stream-cursor-position stream)))
     (let ((viewport (or (pane-viewport-region stream) (sheet-region stream)))
 	  (new-x nil)
-	  (new-y nil)
-	  (old-cy cy))
+	  (new-y nil))
       (with-bounding-rectangle* (vleft vtop vright vbottom) viewport
 	;; Vertical case
         (unless (eq (stream-end-of-page-action stream) ':allow)

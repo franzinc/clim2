@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.20 92/11/13 14:46:02 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.21 92/11/19 14:18:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -362,7 +362,8 @@
       ;; was an abbreviation, so it never was reached during the type walk.
       ;; Check this out now.
       (error "~S is a presentation type abbreviation, not the name of a presentation type"
-	     (presentation-type-name putative-supertype)))))
+	     (presentation-type-name putative-supertype)))
+    (values subtype-p known-p)))
 
 ;; The guts of the above, but faster since we don't worry about the case
 ;; where a type abbreviation was passed in.

@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
+;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.38 92/11/18 15:56:08 colin Exp $
+;; $fiHeader: packages.lisp,v 1.39 92/11/19 14:25:49 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1978,6 +1978,8 @@
     deallocate-pixmap
     draw-arrow
     draw-arrow*
+    draw-bezier-polygon
+    draw-bezier-polygon*
     draw-circle
     draw-circle*
     draw-ellipse
@@ -2001,6 +2003,7 @@
     draw-text
     draw-text*
     medium-copy-area
+    medium-draw-bezier-polygon*
     medium-draw-character*
     medium-draw-ellipse*
     medium-draw-line*
@@ -2271,6 +2274,7 @@
     
     ;; Extended input
     *abort-gestures*
+    *asynchronous-abort-gestures*
     *accelerator-gestures*
     *input-wait-handler*
     *input-wait-test*
@@ -2687,6 +2691,7 @@
     interactor-pane
     layout-frame
     make-application-frame
+    map-over-frames
     note-command-disabled
     note-command-enabled
     note-frame-deiconified
@@ -2844,6 +2849,7 @@
     list-pane-mode
     menu-bar
     menu-bar-command-table
+    menu-bar-text-style
     menu-button
     menu-button-pane
     note-gadget-activated
@@ -3066,7 +3072,8 @@
     convert-to-device-coordinates
     convert-to-device-distances
     copy-vector-portion
-    define-class-mixture
+    ;;--- This is not used
+    ;; define-class-mixture
     define-constructor
     define-constructor-using-prototype-instance
     define-group

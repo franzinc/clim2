@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.7 92/10/28 11:32:49 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.8 92/11/18 15:54:17 colin Exp $
 
 (in-package :clim-demo)
 
@@ -30,7 +30,7 @@
      (cell-size :initarg :cell-size :initform 10)
      (columns :initarg :columns :initform 8)
      (array :initarg :array :initform nil)
-     (current-color :initarg :current-color :initform 0)
+     (current-color :initarg :current-color :initform 1)
      (colors :initarg :colors :initform 
 	     (list +background-ink+ +foreground-ink+)))
   (:panes
@@ -54,13 +54,13 @@
 (defmethod initialize-instance :after ((frame bitmap-editor) &key)
   (with-slots (rows columns array) frame
     (setf array (make-array (list rows columns) :initial-element 0))))
-    
+
 (defun display-palette (frame stream)
   (with-slots (colors current-color) frame
     (flet ((display-color (object stream)
 	     (with-room-for-graphics (stream)
 	       (draw-rectangle* stream 0 0 30 10 :ink object))))
-      (formatting-item-list (stream :n-columns 2)
+      (formatting-item-list (stream :n-columns 2  :x-spacing 30)
 	(formatting-cell (stream)
 	  (setf current-color
 		(position
@@ -75,7 +75,7 @@
 			  :prompt "Colors")
 		  colors)))
 	(formatting-cell (stream)
-	  (formatting-item-list (stream :n-columns 1)
+	  (formatting-item-list (stream :n-columns 1 :y-spacing 10)
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
 		  "Add Color"
@@ -91,19 +91,22 @@
 
 
 (defun replace-current-color (frame)
+  (declare (ignore frame))
   ;;--- Exercise for the reader
   )
 
 (defun delete-current-color (frame)
+  (declare (ignore frame))
   ;;--- Exercise for the reader
   )
 
 (defun bitmap-editor-add-color-to-palette (frame)
   (let ((fr (make-application-frame 'color-chooser)))
     (run-frame-top-level fr)
-    (with-slots (colors) frame
-      (setq colors (append colors (list (color fr)))))))
-
+    (with-slots (colors current-color) frame
+      (setq current-color (length colors)
+	    colors (append colors (list (color fr)))))))
+	    
 
 (define-bitmap-editor-command (com-choose-options :menu t)
     ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.13 92/10/29 16:55:32 cer Exp $
+;; $fiHeader: ico.lisp,v 1.14 92/11/06 19:02:57 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -204,7 +204,8 @@
 	 display black white drawable gcontext)
     (declare (integer win-w win-h)
 	     (integer ico-x ico-y ico-dx ico-dy xtop ytop prev-x prev-y)
-	     (special prev-x prev-y))
+	     (special prev-x prev-y)
+	     (ignore gcontext drawable white black display))
 
     (with-slots (draw-faces draw-edges ico-buffers inks0 inks1 inks2 inks3) frame
       (ecase *ico-mode*

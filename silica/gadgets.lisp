@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.39 92/11/13 14:46:44 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.40 92/11/18 15:54:32 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -329,8 +329,10 @@
 
 ;;; Menu bar
 (defclass menu-bar ()
-    ((command-table :initarg :command-table :initform nil
-		    :accessor menu-bar-command-table)))
+	  ((command-table :initarg :command-table :initform nil
+			  :accessor menu-bar-command-table)
+	   (text-style :initarg :text-style :initform nil
+		       :reader menu-bar-text-style)))
 
 
 ;;; Cascade button

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.30 92/10/28 11:33:15 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.31 92/11/13 14:47:10 cer Exp $
 
 
 (in-package :xm-silica)
@@ -273,7 +273,11 @@
   ;; This code fills the menu-bar. If top level items do not have
   ;; submenus then it creates one with a menu of its own
   
-  (let ((mirror (call-next-method)))
+  (let ((mirror (call-next-method))
+	(text-style (menu-bar-text-style sheet))
+	(font-list (and text-style
+			(list :font (text-style-mapping port text-style))))
+	(options font-list))
     (labels ((update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
@@ -333,23 +337,26 @@
 			     (make-instance 'xt::static-text
 					    :parent parent
 					    :managed nil
-					    :string " ")))
+					    :string " "
+					    options)))
 			  (:function
 			   ;;--- Do this sometime
 			   )
 			  (:menu
 			   (make-command-for-command-table-1
-			      (make-instance 'tk::menu-button
+			      (apply #'make-instance 'tk::menu-button
 						     :parent parent
-						     :label menu) 
+						     :label menu
+						     options) 
 			      item))
 
 			  (t
 			   (let ((button 
-				  (make-instance 'tk::oblong-button
+				  (apply #'make-instance 'tk::oblong-button
 						 :label menu
 						 :managed t
-						 :parent parent)))
+						 :parent parent
+						 options)))
 			     (set-button-accelerator-from-keystroke
 			      sheet button keystroke)
 			   
@@ -466,14 +473,17 @@
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-text-field) 
 				       (widget t))
-  (tk::add-callback (openlook-text-field-edit-widget sheet widget)
-		    :post-modify-notification
-		    'queue-value-changed-event
-		    sheet))
+  (when (gadget-editable-p sheet)
+    (tk::add-callback (openlook-text-field-edit-widget sheet widget)
+		      :post-modify-notification
+		      'queue-value-changed-event
+		      sheet)))
 
 (defmethod gadget-value ((gadget openlook-text-field))
   (if (sheet-direct-mirror gadget)
-      (text-editor-text (openlook-text-field-edit-widget gadget))
+      (if (gadget-editable-p gadget)
+	  (text-editor-text (openlook-text-field-edit-widget gadget))
+	(tk::get-values (sheet-direct-mirror gadget) :string))
     (call-next-method)))
 
 
@@ -482,7 +492,9 @@
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
     (with-no-value-changed-callbacks
-	(setf (text-editor-text (openlook-text-field-edit-widget gadget)) nv))))
+	(if (gadget-editable-p gadget)
+	    (setf (text-editor-text (openlook-text-field-edit-widget gadget)) nv)
+	  (tk::set-values (sheet-direct-mirror gadget) :string nv)))))
 
 ;;--- We need to implement the activate callback stuff so that when
 ;;--- the user hits return we invoke the callback. I guess we need to
@@ -852,7 +864,7 @@
 		   (editable gadget-editable-p)) sheet
     (values 'tk::text-edit
 	    (append
-	     `(and (not editable) `(:edit-type :text-read))
+	     (and (not editable) `(:edit-type :text-read))
 	     (and ncolumns (list :chars-visible ncolumns))
 	     (and nlines (list :lines-visible nlines))
 	     (and value `(:source ,value))))))

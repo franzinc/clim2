@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.57 92/11/13 14:47:16 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.58 92/11/18 15:55:18 colin Exp $
 
 (in-package :xm-silica)
 
@@ -401,6 +401,7 @@
 
 
 (defmethod compose-space ((m motif-scroll-bar) &key width height)
+  (declare (ignore width height))
   ;;-- We should probably ask the widget
   (let ((x 16))
     (ecase (gadget-orientation m)
@@ -552,7 +553,7 @@
              (and value `(:value ,value))))))
 
 (defmethod (setf gadget-editable-p) :after (nv (te motif-text-editor))
-  (let ((m (sheet-direct-mirror m)))
+  (let ((m (sheet-direct-mirror te)))
     (tk::set-values m :editable nv)))
 
 ;(defmethod compute-initial-mirror-geometry (parent (sheet motif-text-editor) initargs)
@@ -781,6 +782,7 @@
    :width 4 :height 4))
 
 (defmethod allocate-space ((fr motif-frame-pane) width height)
+  (declare (ignore width height))
   ;;-- We do not need to do anything here because
   ;;-- the pane should resize its child
   )
@@ -1297,7 +1299,6 @@
   ;;--- not any
   (dolist (child (sheet-children sheet))
     (let ((csr (compose-space child))
-          (width (bounding-rectangle-width child))
           (m (sheet-direct-mirror child)))
       (when m
         (tk::set-values 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.23 92/11/06 19:03:00 cer Exp $
+;; $fiHeader: listener.lisp,v 1.24 92/11/19 14:24:14 cer Exp $
 
 (in-package :clim-demo)
 
@@ -20,6 +20,7 @@
 (defmethod frame-maintain-presentation-histories ((frame lisp-listener)) t)
 
 (defmacro condition-restart-loop ((conditions description . args) &body body)
+  (declare (ignore conditions))
   (let ((tag (clim-utils:gensymbol 'restart)))
     `(tagbody ,tag
        (restart-case

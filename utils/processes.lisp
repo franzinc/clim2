@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.11 92/10/02 15:18:55 cer Exp $
+;; $fiHeader: processes.lisp,v 1.12 92/10/28 11:31:11 cer Exp $
 
 (in-package :clim-utils)
 
@@ -76,7 +76,7 @@
 	    (rplaca place nil))))))
 
 (defmacro with-recursive-lock-held ((place &optional state) &body forms)
-  #+(or Allegro Xerox Genera ccl Minima)
+  #+(or Xerox Genera ccl Minima)
   (declare (ignore state #+ccl place))
   #{Genera `(process:with-lock (,place) ,@forms)
     Minima `(minima:with-lock (,place) ,@forms)

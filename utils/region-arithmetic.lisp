@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.8 92/07/20 15:59:44 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.9 92/11/06 19:05:17 cer Exp $
 
 (in-package :clim-utils)
 
@@ -421,13 +421,13 @@
 						     (set standard-rectangle-set))
   (let ((new-rectangles nil))
     (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect
-      (flet ((intersection (rectangle)
+      (flet ((intersect (rectangle)
 	       (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
 		 (let ((new (ltrb-intersection left1 top1 right1 bottom1
 					       left2 top2 right2 bottom2)))
 		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'intersection))
-	(map-over-region-set-regions #'intersection set))
+	(declare (dynamic-extent #'intersect))
+	(map-over-region-set-regions #'intersect set))
       (if new-rectangles
 	  (apply #'make-rectangle-set new-rectangles)
 	  +nowhere+))))

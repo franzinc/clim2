@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.5 92/11/06 18:59:00 cer Exp $
+;; $fiHeader: activities.lisp,v 1.6 92/11/13 14:45:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -61,60 +61,77 @@
 (defmethod frame-exit ((activity activity))
   (signal 'frame-exit :frame activity))
 
-(defvar *activity* nil)
-
 (defmethod default-frame-top-level ((activity activity) &key &allow-other-keys)
-  (unless (activity-active-frame activity)
+  (if (activity-active-frame activity)
+      (enable-activity-frames activity)
     (setf (activity-active-frame activity)
-          (or (first (frame-manager-frames activity))
-	      (start-initial-application-frame activity))))
-  (loop
-    (let ((*activity* activity)
-	  (*original-stream* nil)
-	  (*input-wait-test* nil)
-	  (*input-wait-handler* nil)
-	  (*pointer-button-press-handler* nil)
-	  (*numeric-argument* nil)
-	  (*delimiter-gestures* nil)
-	  (*activation-gestures* nil)
-	  (*accelerator-gestures* nil)
-	  (*accelerator-numeric-argument* nil)
-	  (*input-context* nil)
-	  (*accept-help* nil)
-	  (*assume-all-commands-enabled* nil)
-	  (*command-parser* 'command-line-command-parser)
-	  (*command-unparser* 'command-line-command-unparser)
-	  (*partial-command-parser*
-	    'command-line-read-remaining-arguments-for-partial-command) 
-	  ;; Start these out nowhere
-	  ;;--- Surely these are bound by the frame top level
-	  ;; (*standard-output* nil)
-	  ;; (*standard-input* nil)
-	  ;; (*query-io* nil)
-	  (*pointer-documentation-output* nil))
+	(or (select-activity-initial-frame activity)
+	    (prog1 (start-initial-application-frame activity)
+	      (start-other-application-frames activity)))))
+  (unwind-protect
       (loop
-	(with-simple-restart (nil "~A top level" (frame-pretty-name activity))
-	  (catch 'window-resynchronize
-	    (unless (activity-active-frame activity)
-	      (setf (activity-active-frame activity)
-		    (first (frame-manager-frames activity))))
-	    (unless (activity-active-frame activity)
-	      (frame-exit activity))
-	    (let* ((frame (activity-active-frame activity))
-		   (*application-frame* frame)
-		   (top-level (frame-top-level frame)))
-	      (unwind-protect
-		  (loop
-		    (catch 'layout-changed
-		      (with-frame-manager ((frame-manager frame))
-			(setf (slot-value frame 'top-level-process)
+	(let ((*activity* activity)
+	      (*original-stream* nil)
+	      (*input-wait-test* nil)
+	      (*input-wait-handler* nil)
+	      (*pointer-button-press-handler* nil)
+	      (*numeric-argument* nil)
+	      (*delimiter-gestures* nil)
+	      (*activation-gestures* nil)
+	      (*accelerator-gestures* nil)
+	      (*accelerator-numeric-argument* nil)
+	      (*input-context* nil)
+	      (*accept-help* nil)
+	      (*assume-all-commands-enabled* nil)
+	      (*command-parser* 'command-line-command-parser)
+	      (*command-unparser* 'command-line-command-unparser)
+	      (*partial-command-parser*
+	       'command-line-read-remaining-arguments-for-partial-command) 
+	      ;; Start these out nowhere
+	      ;;--- Surely these are bound by the frame top level
+	      ;; (*standard-output* nil)
+	      ;; (*standard-input* nil)
+	      ;; (*query-io* nil)
+	      (*pointer-documentation-output* nil))
+	  (loop
+	    (with-simple-restart (nil "~A top level" (frame-pretty-name activity))
+	      (catch 'window-resynchronize
+		(unless (activity-active-frame activity)
+		  (setf (activity-active-frame activity)
+		    (select-next-active-frame activity)))
+		(unless (activity-active-frame activity)
+		  (frame-exit activity))
+		(let* ((frame (activity-active-frame activity))
+		       (*application-frame* frame)
+		       (top-level (frame-top-level frame)))
+		  (unwind-protect
+		      (loop
+			(catch 'layout-changed
+			  (with-frame-manager ((frame-manager frame))
+			    (setf (slot-value frame 'top-level-process)
 			      (slot-value activity 'top-level-process))
-			(if (atom top-level)
-			    (funcall top-level frame)
-			    (apply (first top-level) frame (rest top-level))))
-		      ;;--- Well, what *are* we supposed to do here?
-		      (break "do something")))
-		(setf (slot-value frame 'top-level-process) nil)))))))))
+			    (if (atom top-level)
+				(funcall top-level frame)
+			      (apply (first top-level) frame (rest top-level))))
+			  ;;--- Well, what *are* we supposed to do here?
+			  (break "do something")))
+		    (setf (slot-value frame 'top-level-process)
+		      nil))))))))
+    (disable-activity-frames activity)))
+
+(defmethod select-activity-initial-frame ((activity activity))
+  (first (frame-manager-frames activity)))
+
+(defmethod select-next-active-frame ((activity activity))
+  (and (activity-auto-select activity)
+       (first (frame-manager-frames activity))))
+		
+(defmethod disable-activity-frames ((activity activity))
+  (mapc #'disable-frame (frame-manager-frames activity)))
+
+(defmethod enable-activity-frames ((activity activity))
+  (mapc #'enable-frame (frame-manager-frames activity)))
+
 
 ;; Closes all of the frames in the activity and exits the activity's
 ;; top level loop
@@ -132,7 +149,15 @@
 (defmethod initialize-instance :after ((frame activity-frame) &key activity)
   (assert activity () "The activity frame ~S requires an activity" frame))
 
+(defclass secondary-activity-frame (activity-frame)
+	  ())
+
+(defmethod initialize-instance :after ((frame secondary-activity-frame) &key activity)
+  (assert (activity-frames activity) ()
+    "Other frames must be created before secondary activity frames"))
+
 ;; Starts an application frame and registers it in the activity
+
 (defmethod start-application-frame ((activity activity) frame-name &rest frame-options)
   (declare (dynamic-extent frame-options))
   (let* ((frame (apply #'make-application-frame frame-name
@@ -161,6 +186,9 @@
 ;; Starts the initial application, when the activity is started up.
 ;; There is no default method, so subclasses must implement this.
 (defgeneric start-initial-application-frame (activity))
+
+(defmethod start-other-application-frames ((activity activity))
+  nil)
 
 
 ;;; Callbacks from the window manager

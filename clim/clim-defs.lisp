@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.16 92/11/06 18:59:05 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.17 92/11/19 14:17:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -84,6 +84,7 @@
 (defvar *output-record-constructor-cache* (make-hash-table))
 
 (defmacro construct-output-record (type &rest initargs &environment env)
+  #-(or Genera Minima) (declare (ignore env))
   (let ((constructor nil))
     (cond ((and (constantp type #+(or Genera Minima) env)
 		(setq constructor (gethash (eval type #+(or Genera Minima-Developer) env)
@@ -102,6 +103,7 @@
 (defmacro with-new-output-record ((stream &optional record-type record &rest initargs)
 				  &body body &environment env)
   #+Genera (declare (zwei:indentation 0 3 1 1))
+  #-(or Genera Minima) (declare (ignore env))
   (unless record-type
     (setq record-type `'standard-sequence-output-record))
   (let ((constructor nil)
@@ -329,6 +331,10 @@
 (defmacro with-application-frame ((frame) &body body)
   `(let ((,frame *application-frame*))
      ,@body))
+
+;;; Acitivities
+
+(defvar *activity* nil)
 
 ;;; Command processor variables
 (defvar *command-parser* 'command-line-command-parser)

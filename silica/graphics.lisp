@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.21 92/10/02 15:18:24 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.22 92/11/19 14:25:00 cer Exp $
 
 (in-package :silica)
 
@@ -777,3 +777,8 @@
   (letf-globally (((medium-ink medium) +background-ink+)
 		  ((medium-transformation medium) +identity-transformation+))
     (medium-draw-rectangle* medium left top right bottom t)))
+
+(define-graphics-generic draw-bezier-polygon ((points point-sequence position-seq)
+							      &key (filled t))
+  :drawing-options :line-joint-cap
+  :position-sequences-to-transform (position-seq))

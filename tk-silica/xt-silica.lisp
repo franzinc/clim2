@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.58 92/11/18 15:55:40 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.59 92/11/19 14:25:34 cer Exp $
 
 (in-package :xm-silica)
 
@@ -543,6 +543,7 @@
 (defmethod sheet-mirror-exposed-callback (widget window event sheet)
   ;; This isn't really the right place to do this, but it's better than
   ;; in ensure-blinker-for-cursor.
+  (declare (ignore window))
   (let ((window (tk::widget-window widget)))
     (unless (getf (window-property-list window) 'backing-store-on)
       (setf (getf (window-property-list window) 'backing-store-on) t
@@ -663,6 +664,7 @@
   (unless (getf initargs :x)
     (multiple-value-bind (left top right bottom)
 	(sheet-actual-native-edges* sheet)
+      bottom right
       ;;--- We do not want to specify the x,y if this is a top-level
       ;;sheet.
       (unless (typep parent 'tk::shell)
@@ -768,7 +770,6 @@
 ;  (popup (widget-parent mirror)))
 
 (defmethod disable-mirror ((port xt-port) sheet)
-  (declare (ignore port))
   (let ((mirror (sheet-mirror sheet)))
     (when mirror
       (disable-xt-mirror (widget-parent mirror) mirror))))
@@ -918,10 +919,6 @@
 	      font)))
     font))
 
-
-(defmethod stream-set-input-focus (stream)
-  nil)
-
 (defmethod change-widget-geometry (parent child &rest args)
   (declare (ignore parent))
   ;; In this case let the parent deal with it
@@ -929,6 +926,7 @@
 
 
 (defmethod change-widget-geometry :around (parent child &key x y width height)
+  (declare (ignore parent))
   ;;-- Nasty use of (widget-callback-data child) field
   (unless (and (typep x '(signed-byte 16))
 	       (typep (+ x width) '(signed-byte 16))
@@ -949,13 +947,20 @@
   (call-next-method))
 
 (defmethod popup-frame-p ((frame application-frame))
-  (typep frame '(or clim-internals::menu-frame clim-internals::accept-values-own-window)))
+  (typep frame '(or clim-internals::menu-frame
+		 clim-internals::accept-values-own-window)))
+
+;;-- Is this the right thing to do?
+;;-- In particular it causes the frame to have a dialog shell.
+;;-- It should really be a secondary shell.
+#+ignore
+(defmethod popup-frame-p ((frame activity-frame))
+  t)
 
 (defmethod popup-frame-p ((sheet basic-sheet))
   (let ((frame (pane-frame sheet)))
     (and frame
 	 (popup-frame-p frame))))
-
 
 ;;; Keysym stuff
 
@@ -1315,11 +1320,13 @@ the geometry of the children. Instead the parent has control. "))
 ;;; If you get the urge to change the geometry of the children dont.
 
 (defmethod update-mirror-transformation-1 ((port port) sheet (parent xt-geometry-manager))
+  (declare (ignore sheet))
   ;; This gets called by the mirror-region-updated code.
   ;; There is probably no harm in doing this anyway
   nil)
 
 (defmethod update-mirror-region-1 ((port port) sheet (parent xt-geometry-manager))
+  (declare (ignore sheet))
   ;;--- This gets called by the invalidate-cached .. code.
   ;;---  Surely if a sheet is mirrored then you do not need to
   ;;--- invalidate any caches below that point
@@ -1351,6 +1358,7 @@ the geometry of the children. Instead the parent has control. "))
   (update-geo-manager-sheet-children sheet))
 
 (defmethod update-geo-manager-sheet-children (geo-manager)
+  (declare (ignore geo-manager))
   ;;--- Should this really do anything???????
   #+ignore
   (dolist (child (sheet-children geo-manager))
@@ -1460,6 +1468,8 @@ the geometry of the children. Instead the parent has control. "))
 			 (keysym->xt-keysym (xt-keysym->keysym (char-code keysym))))))
 	     (keysym->xt-keysym keysym)))
 	  (x-keycode nil))
+      (declare (ignore x-keycode))
+      ;;-- Is this correct????
       (unless x-keysym 
 	(return-from port-canonicalize-gesture-spec nil))
       (cons (xt-keysym->keysym x-keysym) shifts))))
@@ -1656,9 +1666,8 @@ the geometry of the children. Instead the parent has control. "))
 			   :button-release
 			   )))
 
-(defmethod port-set-sheet-grabbed-pointer-cursor ((port xt-port)
-							  sheet
-							  cursor)
+(defmethod port-set-sheet-grabbed-pointer-cursor ((port xt-port) sheet cursor)
+  (declare (ignore sheet))
   (when *pointer-grabbed*
     (x11::xchangeactivepointergrab
      (port-display port)

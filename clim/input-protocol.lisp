@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.31 92/11/06 18:59:55 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.32 92/11/19 14:18:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -151,8 +151,14 @@
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
-	(keysym (keyboard-event-key-name event)))
-    (cond ((and (characterp char) 
+	(keysym (keyboard-event-key-name event))
+	temp)
+    (cond ((and (member event *asynchronous-abort-gestures*
+		 :test #'keyboard-event-matches-gesture-name-p)
+		(setq temp (pane-frame stream))
+		(setq temp (slot-value temp 'top-level-process)))
+	   (process-interrupt temp #'abort))
+	  ((and (characterp char) 
 		(or (ordinary-char-p char)
 		    (diacritic-char-p char)))
 	   (queue-put (stream-input-buffer stream) char))
