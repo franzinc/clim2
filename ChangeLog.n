@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.6
+
+2001-05-31  Kevin Layer  <layer@crikey>
+
+	* Makefile.freebsd: add -lXp
+	* utils/clim-streams.lisp: bug10667/bug10666
+
+*******************************************************************************
 2.2.2.21.19
 
 2001-05-29  Kevin Layer  <layer@crikey>
