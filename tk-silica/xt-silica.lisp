@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.72 93/03/19 09:47:13 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.73 93/03/25 15:41:40 colin Exp $
 
 (in-package :xm-silica)
 
@@ -628,10 +628,13 @@
 	 (sheet-shell cf))))
 
 (defmethod find-shell-parent ((port xt-port) sheet)
-  (or (and  ;;--- hack alert
-       (popup-frame-p sheet)
-       (find-shell-of-calling-frame sheet))
-      (port-application-shell port)))
+  (or 
+   (and  
+    ;;--- hack alert
+    ;;**** Not needed any more [clim2bug462]
+    ;; (popup-frame-p sheet)
+    (find-shell-of-calling-frame sheet))
+   (port-application-shell port)))
 
 (defmethod find-shell-class-and-initargs ((port xt-port) (sheet t))
   (values 'top-level-shell 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.18 93/03/18 14:37:23 colin Exp $
+;; $fiHeader: compile-1.lisp,v 1.19 93/03/19 09:44:18 cer Exp $
 
 (in-package :user)
 
@@ -84,3 +84,7 @@
     (load file))
   #+ignore (load "compatibility/sysdcl.lisp")
   #+ignore (clim-defsys::compile-system 'clim-compatibility :propagate t))
+
+
+
+

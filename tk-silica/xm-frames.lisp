@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.49 93/03/18 14:39:04 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.50 93/03/19 09:46:59 cer Exp $
 
 (in-package :xm-silica)
 
@@ -340,7 +340,7 @@
 					   (#.+pointer-right-button+ "<Btn3Down>")
 					   (t "<Btn3Down>"))
 			      :managed nil))
-	 (font (and text-style (text-style-mapping (port framem) text-style)))
+	 (font (and text-style (text-style-mapping port text-style)))
 	 (font-list (and (or label simplep) font (list :font-list (list font)))))
     (when label
       (let ((title (if (atom label) label (car label))))
@@ -351,14 +351,15 @@
 		 :managed nil
 		 :label-string title
 		 (if text-style
-		     (list :font-list (list (text-style-mapping (port framem) text-style)))
+		     (list :font-list (list (text-style-mapping port text-style)))
 		   font-list))))
       (make-instance 'xt::xm-separator
 		     :managed nil
 		     :separator-type :double-line
 		     :parent menu))
     (labels ((make-menu-button (item class parent &rest options)
-	       (let ((button
+	       (let* ((style (clim-internals::menu-item-text-style item))
+		      (button
 		      (if simplep
 			  (apply #'make-instance
 				 class 
@@ -366,7 +367,10 @@
 				 :parent parent 
 				 :managed nil
 				 :label-string (string (menu-item-display item))
-				 (append font-list options))
+				 (if style
+				     (list* :font-list (list (text-style-mapping port style))
+					    options)
+				 (append font-list options)))
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item
@@ -448,6 +452,10 @@
 		    (setf value-returned nil return-value nil)
 		  (values value-returned return-value))))))
 
+(defmethod frame-manager-allows-menu-caching ((framem motif-frame-manager))
+  ;; Deal with the problem of motif installing passive grabs
+  nil)
+
 (defmethod framem-enable-menu ((framem motif-frame-manager) menu)
   (tk::manage-child menu))
 
@@ -512,3 +520,41 @@
 	       (denominator clim-internals::denominator)) note
     (tk::set-values *working-dialog* 
 		    :message-string (format nil "~A: ~3D%" name (round (* 100 numerator) denominator)))))
+
+;;
+
+(define-application-frame motif-menu-frame (clim-internals::menu-frame)
+  ()
+  (:pane
+   (with-slots ((menu clim-internals::menu)
+		(label clim-internals::label)
+		(scroll-bars clim-internals::scroll-bars)) *application-frame*
+     (make-pane 'motif-frame-pane
+		:shadow-type :out
+		:contents
+		(let ((main
+		       (if scroll-bars
+			   (scrolling (:scroll-bars scroll-bars)
+			     (setq menu (make-pane 'clim-stream-pane
+						   :initial-cursor-visibility nil)))
+			 (setq menu (make-pane 'clim-stream-pane
+					       :initial-cursor-visibility nil)))))
+		  (if label
+		      (vertically ()
+			(setq label (make-pane 'label-pane 
+					       :label ""
+					       :text-style clim-internals::*default-menu-label-text-style*))
+			main)
+		    main)))))
+
+  (:menu-bar nil))
+
+(defmethod clim-internals::frame-manager-get-menu ((framem motif-frame-manager) &key scroll-bars)
+  (let ((frame (make-application-frame 'motif-menu-frame
+				       :scroll-bars scroll-bars
+				       :frame-manager framem
+				       :save-under t)))
+    ;; This so that ports can do something interesting with popped-up
+    ;; menu frames, such as implemented "click off menu to abort".
+    (setf (getf (frame-properties frame) :menu-frame) t)
+    (values (slot-value frame 'clim-internals::menu) frame)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.20 92/12/07 12:15:50 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.21 93/03/19 09:46:52 cer Exp $
 
 
 (in-package :xm-silica)
@@ -85,16 +85,18 @@
     ;;    (when font (tk::set-values menu-shell :font font))
     
     (labels ((make-menu-button (item class parent &rest options)
-	       (let ((button
+	       (let* ((style (clim-internals::menu-item-text-style item))
+		      (button
 		      (if simplep
 			  (apply #'make-instance
 				 class 
 				 :sensitive (clim-internals::menu-item-active item)
 				 :parent parent 
 				 :managed nil
-				 :label (string (menu-item-display
-						 item))
-				 (append font-args options))
+				 :label (string (menu-item-display item))
+				 (if style
+				     (list* :font (text-style-mapping port style) options)
+				   (append font-args options)))
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item

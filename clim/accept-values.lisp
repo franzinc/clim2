@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.55 93/03/18 14:36:07 colin Exp $
+;; $fiHeader: accept-values.lisp,v 1.56 93/03/19 09:43:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -106,23 +106,24 @@
 
 (defmethod stream-accept ((stream accept-values-stream) type
 			  &rest accept-args
-			  &key (prompt t) (default nil default-supplied-p)
+			  &key (prompt t) query-identifier (default nil default-supplied-p)
 			       (view (stream-default-view stream)) (active-p t)
 			  &allow-other-keys)
   (declare (dynamic-extent accept-args))
   ;;--- When ACTIVE-P is NIL, this should do some sort of "graying out"
-  (let ((align-prompts (slot-value stream 'align-prompts))
-	query-identifier query)
+  (let ((align-prompts (slot-value stream 'align-prompts)) query)
     (cond (align-prompts
 	   ;; The user has asked to line up the labels, so oblige him
-	   (formatting-row (stream)
-	     (formatting-cell (stream :align-x align-prompts)
-	       (setq query-identifier 
-		     (apply #'prompt-for-accept
-			    (encapsulated-stream stream) type view accept-args)))
-	     (formatting-cell (stream :align-x :left)
-	       (setq query (find-or-add-query stream query-identifier type prompt
-					      default default-supplied-p view active-p)))))
+	   (updating-output (stream :unique-id (cons '#:accept (or query-identifier prompt))
+				    :id-test #'equal)
+	     (formatting-row (stream)
+	       (formatting-cell (stream :align-x align-prompts)
+		 (setq query-identifier 
+		   (apply #'prompt-for-accept
+			  (encapsulated-stream stream) type view accept-args)))
+	       (formatting-cell (stream :align-x :left)
+		 (setq query (find-or-add-query stream query-identifier type prompt
+						default default-supplied-p view active-p))))))
 	  (t
 	   (setq query-identifier
 		 (apply #'prompt-for-accept
@@ -155,6 +156,10 @@
 	(setf (accept-values-query-presentation query)
 	      (updating-output
 		  (stream :unique-id query-identifier
+			  ;;-- If the old-style text field value is
+			  ;;-- unchanged then we need this hack
+			  :all-new (and (not (typep view 'actual-gadget-view))
+					 (accept-values-query-changed-p query))
 			  :id-test #'equal
 			  :cache-value (list (if (accept-values-query-changed-p query)
 						 (accept-values-query-value query)
@@ -1019,6 +1024,7 @@
 		(accept-values-multiple-choices-query-identifier
 		  (accept-values-multiple-choice-choices object))
 		presentation))
+     :echo nil :maintain-history nil
      :gesture :select)
     (object)
   (list object))

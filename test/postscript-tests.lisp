@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.5 93/03/04 19:01:26 colin Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.6 93/03/19 09:46:31 cer Exp $
 
 (in-package :clim-user)
 
@@ -8,7 +8,10 @@
 ;;; output tests that can be used for generating postscript also.
 
 (define-application-frame clim-postscript-tests ()
-    ()
+			  ((printer-type :initarg :printer-type
+					 :initform :postscript
+					 :reader frame-printer-type))
+			   
   (:panes
     (interactor :interactor)
     (display :application))
@@ -36,27 +39,32 @@
      (window-expose ,stream)
      ,@body))
 
-(defmacro sending-postscript-to-editor-buffer ((stream-var buffer-name &rest options)
-					       &body body)
+(defmacro sending-printer-to-editor-buffer ((stream-var buffer-name &rest options)
+					    &body body)
+  (declare (ignore options))
   #+Allegro
   (let ((editor-stream-var '#:editor-stream))
     `(lep:with-output-to-temp-buffer (,editor-stream-var ,buffer-name)
-       (with-output-to-postscript-stream (,stream-var ,editor-stream-var ,@options)
-	 ,@body)))
-  #+Genera
-  (let ((editor-stream-var (make-symbol "EDITOR-STREAM")))
-    `(with-open-stream (,editor-stream-var
-			(zwei:open-interval-stream (zwei:find-buffer-named ,buffer-name t)))
-       (with-output-to-postscript-stream (,stream-var ,editor-stream-var ,@options)
-	 ,@body))))
+       (invoke-with-output-to-printer-stream 
+	(frame-printer-type *application-frame*)
+	,editor-stream-var
+	#'(lambda () (let ((,stream-var *standard-output*)) ,@body))))
+    #+Genera
+    (let ((editor-stream-var (make-symbol "EDITOR-STREAM")))
+      `(with-open-stream (,editor-stream-var
+			  (zwei:open-interval-stream (zwei:find-buffer-named ,buffer-name t)))
+	 (invoke-with-output-to-printer-stream 
+	  (frame-printer-type *application-frame*)
+	  ,editor-stream-var
+	  #'(lambda () (let ((,stream-var *standard-output*)) ,@body)))))))
 
 (defparameter *postscript-test-buffer-name* "postscript-test")
 
-(defmacro with-postscript-test-output-to-buffer ((stream-var &rest options)
+(defmacro with-printer-test-output-to-buffer ((stream-var &rest options)
 						 &body body)
-  `(sending-postscript-to-editor-buffer (,stream-var *postscript-test-buffer-name*
+  `(sending-printer-to-editor-buffer (,stream-var *postscript-test-buffer-name*
 					 ,@options)
-					,@body))
+				     ,@body))
 
 #+Genera (zwei:defindentation (define-postscript-test 0 5 1 5 2 1))
 
@@ -100,25 +108,14 @@
 	    (with-drawing-display-window (*standard-output*)
 	      ,command-body-form))
 	  (:file
-	    (with-open-file
-	        (file-stream "postscript.output" :direction :output :if-exists :supersede)
-	      (with-output-to-postscript-stream (*standard-output* file-stream)
-		,command-body-form)))
+	   (send-output-to-file #'(lambda () ,command-body-form)))
 	  (:printer 
-	    #+Allegro
-	    (with-open-stream 
-	      (printer-stream-var
-		(excl:run-shell-command (format nil "lpr -P~A" *allegro-printer*)
-					:input :stream :wait
-					nil))
-	      (with-output-to-postscript-stream (*standard-output* printer-stream-var)
-		,command-body-form))
+	   #+Allegro
+	   (send-output-to-printer #'(lambda () ,command-body-form))
 	    #-Allegro
 	    (error "Sorry, don't know how to send to printer"))
 	  (:buffer
-	    (with-postscript-test-output-to-buffer
-	        (*standard-output* :header-comments '(:title ,command-name-string))
-	      ,command-body-form))))
+	   (send-output-to-buffer #'(lambda () ,command-body-form) ,command-name-string))))
       ;; If the CLIM test suite is loaded, define a regular CLIM test as well.
       ,@(when (and (fboundp 'clim-user::define-test) group?)
 	  ;; CLIM-USER::DEFINE-TEST doesn't provide for arguments to tests.
@@ -146,6 +143,45 @@
 		       (warn "'~S (~A) can't define a CLIM test with arguments unless defaults are specified"
 			     'define-postscript-tests root-name))))))))
 
+
+
+(defun send-output-to-file (continuation)
+  (with-open-file
+      (file-stream "postscript.output" :direction :output :if-exists :supersede)
+    (invoke-with-output-to-printer-stream 
+     (frame-printer-type *application-frame*)
+     file-stream
+     continuation)))
+
+(defun send-output-to-printer (continuation)
+  (invoke-with-pipe-to-printer
+   (frame-printer-type *application-frame*)
+   #'(lambda (printer-stream)
+       (invoke-with-output-to-printer-stream 
+	(frame-printer-type *application-frame*)
+	printer-stream
+	continuation))))
+
+(defun send-output-to-buffer (continuation command-name-string)
+  (with-printer-test-output-to-buffer
+      (*standard-output* :header-comments `(:title ,command-name-string))
+    (funcall continuation)))
+
+
+
+(defmethod invoke-with-output-to-printer-stream ((type (eql :postscript)) stream continuation)
+  (with-output-to-postscript-stream (*standard-output* stream)
+    (funcall continuation)))
+
+(defmethod invoke-with-pipe-to-printer ((type (eql :postscript)) continuation)
+  (with-open-stream 
+      (printer-stream
+       (excl:run-shell-command (format nil "lpr -P~A" *allegro-printer*)
+			       :input :stream :wait
+			       nil))
+    (funcall continuation printer-stream)))
+
+
 (defmacro placing-output ((stream width height) &body body)
   `(let ((output-records nil))
      (macrolet ((placing-output-block (ignore &body body)

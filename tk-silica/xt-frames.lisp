@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.28 93/02/08 15:58:13 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.29 93/03/19 09:47:07 cer Exp $
 
 
 (in-package :xm-silica)
@@ -109,21 +109,20 @@
   (declare (values value chosen-item gesture))
   (let ((port (port framem))
 	menu closure)
+    (setq cache (and cache (frame-manager-allows-menu-caching framem)))
     (when cache
       (let ((x (assoc unique-id
 		      (frame-manager-menu-cache framem)
 		      :test id-test)))
 	(when x
 	  (destructuring-bind
-	      (menu-cache-value amenu aclosure) x
+	      (menu-cache-value amenu aclosure) (cdr x)
 	    (if (funcall cache-test cache-value menu-cache-value)
 		(setq menu amenu closure aclosure)
 	      (progn
 		(setf (frame-manager-menu-cache framem)
 		  (delete x (frame-manager-menu-cache framem)))
-		(framem-destroy-menu framem amenu)
-		#+ignore
-		(tk::destroy-widget (tk::widget-parent amenu))))))))
+		(framem-destroy-menu framem amenu)))))))
       
     (unless menu
       (multiple-value-setq
@@ -137,7 +136,7 @@
 				      label
 				      gesture))
       (when cache
-	(push (list unique-id menu closure) 
+	(push (list unique-id cache-value menu closure) 
 	      (frame-manager-menu-cache framem))))
 	  
     ;; initialize the closure
@@ -173,8 +172,11 @@
 	    (framem-popdown-menu framem menu))
 	(unless cache
 	  (framem-destroy-menu framem menu)))
-      
+      (port-force-output port)
       (values-list (nth-value 1 (funcall closure))))))
+
+(defmethod frame-manager-allows-menu-caching ((framem xt-frame-manager))
+  t)
 
 
 ;;;

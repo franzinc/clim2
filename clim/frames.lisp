@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.60 93/03/18 14:36:38 colin Exp $
+;; $fiHeader: frames.lisp,v 1.61 93/03/19 09:43:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,7 @@
      (menu-bar :initarg :menu-bar :initform nil)
      (histories :initform nil)
      (frame-manager :initform nil :accessor frame-manager)
-     (calling-frame :reader frame-calling-frame :initarg :calling-frame)
+     (calling-frame :initform nil :reader frame-calling-frame :initarg :calling-frame)
      ;; PANES is the description of all of the named panes,
      ;; ALL-PANES is an alist that stores all of the named panes that
      ;; have actually been realized so far
@@ -553,13 +553,16 @@
     (let ((layout-space-requirements 
 	   (cddr (assoc layout (frame-layouts frame)))))
       (changing-space-requirements (:layout nil)
-	(flet ((adjust-layout (sheet)
-		 (let ((x (and (panep sheet)
-			       (assoc (pane-name sheet) layout-space-requirements))))
-		   (if x (apply #'change-space-requirements sheet (cdr x))
-		     (change-space-requirements-to-default sheet)))))
+	(flet ((reset-sr (sheet)
+		 (when (panep sheet)
+		   (change-space-requirements-to-default sheet))))
 	  (declare (dynamic-extent #'adjust-layout))
-	  (map-over-sheets #'adjust-layout (frame-panes frame)))))))
+	  (map-over-sheets #'reset-sr (frame-panes frame))
+	  (dolist (pane-and-sr layout-space-requirements)
+	    (let ((name (car pane-and-sr)))
+	      (let ((pane (or (get-frame-pane frame name :errorp nil)
+			      (find-pane-named frame name))))
+		(apply #'change-space-requirements pane (cdr pane-and-sr))))))))))
 
 (defmethod frame-all-layouts ((frame standard-application-frame))
   (mapcar #'first (frame-layouts frame)))
@@ -860,6 +863,10 @@
 		 (apply tl-function frame (append args tl-args)))))
       (setq top-level-process nil))))
 
+;;; Update demo/default-frame-top-level.lisp if you change this
+;;--- I'm not really convinced that this is right  --SWM
+;;-- refers  to the choice of command-stream
+
 (defmethod default-frame-top-level ((frame standard-application-frame)
 				    &key command-parser command-unparser
 					 partial-command-parser
@@ -898,19 +905,9 @@
 	     ;;--- just pick up a stream from the dynamic environment
 	     (let ((si (or (frame-standard-input frame)
 			   (frame-standard-output frame))))
-	       ;;--- I'm not really convinced that this is right  --SWM
 	       (typecase si
 		 (output-protocol-mixin si)
 		 (t (frame-top-level-sheet frame))))))
-      #+Allegro
-      (unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
-	(assert (port *standard-input*)))
-      #+Allegro
-      (unless (typep *standard-output* 'excl::bidirectional-terminal-stream)
-	(assert (port *standard-output*)))
-      #+Allegro
-      (unless (typep *query-io* 'excl::bidirectional-terminal-stream)
-	(assert (port *query-io*)))
       ;; The read-eval-print loop for applications...
       (loop
 	;; Redisplay all the panes

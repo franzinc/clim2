@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.12 93/01/21 14:58:47 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.13 93/02/08 15:57:17 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -80,6 +80,10 @@
 	(format printer-stream  " ~,2F ~,2F ~,2F setrgbcolor~%" r g b)))))
 
 (defmethod maybe-set-color ((medium postscript-medium) (ink rectangular-tile))
+  ;; Handled in the patterned fill/stroke case
+  )
+
+(defmethod maybe-set-color ((medium postscript-medium) (ink pattern))
   ;; Handled in the patterned fill/stroke case
   )
 
@@ -478,6 +482,9 @@
   (with-postscript-glyph-for-character
     (port-glyph-for-character port character style our-font)))
 
+;;-- Is this needed??
+
+#+ignore
 (defmethod stream-scan-string-for-writing 
 	   ((stream clim-internals::output-protocol-mixin) (medium postscript-medium)
 	    string start end style cursor-x max-x &optional glyph-buffer)
@@ -542,22 +549,23 @@
 ;; information from the FCS?
 
 (defmethod text-style-width
-	   ((text-style standard-text-style) (medium postscript-medium))
+    ((text-style standard-text-style) (medium postscript-medium))
   ;; An 'M' is often square and of height approximating the point size of the font.
   ;;--- This should consult the real metrics.
-  (text-style-size-in-points text-style medium))
+  (nth-value 6 (port-glyph-for-character (port medium) #\M text-style)))
 
 (defmethod text-style-height 
 	   ((text-style standard-text-style) (medium postscript-medium))
-  (text-style-size-in-points text-style medium))
+  (nth-value 7 (port-glyph-for-character (port medium) #\M text-style)))
 
 (defmethod text-style-ascent
 	   ((text-style standard-text-style) (medium postscript-medium))
-  (* (text-style-height text-style medium) (- 1 *ps-magic-baseline-factor*)))
+  (nth-value 5 (port-glyph-for-character (port medium) #\M text-style)))
 
 (defmethod text-style-descent ((text-style standard-text-style)
 			       (medium postscript-medium))
-  (* (text-style-height text-style medium) *ps-magic-baseline-factor*))
+  (- (text-style-height text-style medium)
+     (text-style-ascent text-style medium)))
 
 ;;;--- This can probably go away when we have standardized text styles.
 (defmethod text-style-size-in-points

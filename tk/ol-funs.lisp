@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-funs.lisp,v 1.7 92/09/08 15:16:24 cer Exp $
+;; $fiHeader: ol-funs.lisp,v 1.8 92/12/14 15:03:59 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -133,6 +133,14 @@
 		 foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
+
+(defforeign 'ol_appl_delete_item
+    :entry-point (ff:convert-to-lang "ol_appl_delete_item")
+    :call-direct t
+    :arguments '(integer foreign-address integer)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
     
 (defforeign 'ol_list_item_pointer
     :entry-point (ff:convert-to-lang "ol_list_item_pointer")

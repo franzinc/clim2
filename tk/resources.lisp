@@ -20,21 +20,34 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.40 93/01/11 15:45:46 colin Exp $
+;; $fiHeader: resources.lisp,v 1.41 93/03/01 14:26:28 cer Exp $
 
 (in-package :tk)
 
 (defmacro define-enumerated-resource (type elements)
-  `(progn
-     (defmethod convert-resource-out (parent (type (eql ',type)) value)
-       (declare (ignore parent))
-       (or (position value ',elements)
-	   (error "cannot convert ~S to type ~S" value ',type)))
-     (defmethod resource-type-get-memref-type ((type (eql ',type)))
-       :unsigned-byte)
-     (defmethod convert-resource-in (parent (type (eql ',type)) value)
-       (declare (ignore parent))
-       (elt ',elements value))))
+  (if (consp (car elements))
+      `(progn
+	 (defmethod convert-resource-out (parent (type (eql ',type)) value)
+	   (declare (ignore parent))
+	   (case value
+	     ,@elements
+	     (t (error "cannot convert ~S to type ~S" value ',type))))
+	 (defmethod resource-type-get-memref-type ((type (eql ',type)))
+	   :unsigned-byte)
+	 (defmethod convert-resource-in (parent (type (eql ',type)) value)
+	   (declare (ignore parent))
+	   (ecase value
+	     ,@(mapcar #'(lambda (element) (list (second element) (first element))) elements))))
+    `(progn
+       (defmethod convert-resource-out (parent (type (eql ',type)) value)
+	 (declare (ignore parent))
+	 (or (position value ',elements)
+	     (error "cannot convert ~S to type ~S" value ',type)))
+       (defmethod resource-type-get-memref-type ((type (eql ',type)))
+	 :unsigned-byte)
+       (defmethod convert-resource-in (parent (type (eql ',type)) value)
+	 (declare (ignore parent))
+	 (elt ',elements value)))))
 
 
 (defmethod convert-resource-in (class type value)
@@ -597,6 +610,9 @@
 (defmethod convert-resource-in ((widget t) (type (eql 'widget)) x)
   (intern-widget x :display (widget-display widget)))
 
+(defmethod convert-resource-in ((widget t) (type (eql 'menu-widget)) x)
+  (intern-widget x :display (widget-display widget)))
+
 (defmethod convert-resource-in ((widget t) (type (eql 'window)) x)
   (and (not (zerop x))
        (intern-widget x :display (widget-display widget))))
@@ -617,6 +633,8 @@
 (define-enumerated-resource attachment (:none :form :opposite-form
 					      :widget :opposite-widget
 					      :position :self))
+
+
 
 ;;;--- Dont ask this is what OLIT sez the label-image of a oblong
 ;;;--- button is. I know why! its because its a f*cking image (rather
@@ -663,3 +681,10 @@
 (defmethod convert-resource-out ((parent t) (typep (eql 'ol-edit-mode)) value)
   (ecase value
     (:text-read 67)))
+
+(define-enumerated-resource list-size-policy (:variable :constant :resize-if-possible))
+
+(define-enumerated-resource shadow-type  ((:etched-in 5) 
+					  (:etched-out 6) 
+					  (:in 7)
+					  (:out 8)))

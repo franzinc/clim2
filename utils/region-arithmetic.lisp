@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.11 92/12/03 10:30:49 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.12 93/03/19 09:47:30 cer Exp $
 
 (in-package :clim-utils)
 
@@ -241,48 +241,45 @@
 	(t
 	 (ecase banding
 	   (:x-banding
-	    (when (< top2 top1)
-	      (rotatef left1 left2)
-	      (rotatef right1 right2)
-	      (rotatef top1 top2)
-	      (rotatef bottom1 bottom2))
 	    (let ((result nil))
-	       (when (< top1 top2)
-		 (push (make-bounding-rectangle left1 top1 right1 top2) result))
-	       (when (> bottom2 bottom1)
-		 (push (make-bounding-rectangle left2 bottom2 right2 bottom1) result))
-	       (when (< left1 left2)
-		 (let ((top (max top1 top2))
-		       (bottom (min bottom1 bottom2)))
-		   (when (> bottom top)
-		     (push (make-bounding-rectangle left1 top right2 bottom) result))))
-	       (when (> right1 right2)
-		 (let ((top (min bottom1 bottom2))
-		       (bottom (max top1 top2)))
-		   (when (> bottom top)
-		     (push (make-bounding-rectangle left2 top right1 bottom) result))))
-	       result))
+	      ;; Three slices
+	      ;;; Top slice
+	      (cond ((< top1 top2)
+		      (push (make-bounding-rectangle left1 top1 right1 top2) result))
+		     ((< top2 top1)
+		      (push (make-bounding-rectangle left2 top2 right2 top1) result)))
+	      ;; Bottom slice
+	      (cond ((< bottom1 bottom2)
+		     (push (make-bounding-rectangle left2 bottom1 right2 bottom2) result))
+		    ((< bottom2 bottom1)
+		     (push (make-bounding-rectangle left1 bottom2 right1 bottom1) result)))
+	      ;; Middle slice
+	      (push (make-bounding-rectangle (min left1 left2)
+					     (max top1 top2)
+					     (max right1 right2)
+					     (min bottom1 bottom2))
+		    result)
+	      result))
+	   
 	   (:y-banding
-	    (when (< left2 left1)
-	      (rotatef left1 left2)
-	      (rotatef right1 right2)
-	      (rotatef top1 top2)
-	      (rotatef bottom1 bottom2))
 	    (let ((result nil))
-	      (when (< left1 left2)
-		(push (make-bounding-rectangle left1 top1 left2 bottom1) result))
-	      (when (> right2 right1)
-		(push (make-bounding-rectangle right1 top2 right2 bottom2) result))
-	      (when (< top1 top2)
-		(let ((left (max left1 left2))
-		      (right (min right1 right2)))
-		  (when (> right left)
-		    (push (make-bounding-rectangle left top1 right bottom2) result))))
-	      (when (> bottom1 bottom2)
-		(let ((left (min right1 right2))
-		      (right (max left1 left2)))
-		  (when (> right left)
-		    (push (make-bounding-rectangle left top2 right bottom1) result))))
+	      ;; Three slices
+	      ;;; Left slice
+	      (cond ((< left1 left2)
+		      (push (make-bounding-rectangle left1 top1 left2 bottom1) result))
+		     ((< left2 left1)
+		      (push (make-bounding-rectangle left2 top2 left1 bottom2) result)))
+	      ;; Right slice
+	      (cond ((< right1 right2)
+		     (push (make-bounding-rectangle right1 top2 right2 bottom2) result))
+		    ((< right2 right1)
+		     (push (make-bounding-rectangle right2 top1 right1 bottom1) result)))
+	      ;; Middle slice
+	      (push (make-bounding-rectangle (max left1 left2)
+					     (min top1 top2)
+					     (min right1 right2)
+					     (max bottom1 bottom2))
+		    result)
 	      result))))))
 
 ;; Returns a single bounding rectangle that represents the intersection, or NIL.

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.29 93/03/18 14:37:46 colin Exp $
+;; $fiHeader: db-layout.lisp,v 1.30 93/03/19 09:44:36 cer Exp $
 
 (in-package :silica)
 
@@ -265,12 +265,23 @@
   (values width  min-width  max-width
 	  height min-height max-height))
 
+(defmethod normalize-space-requirement ((pane client-overridability-mixin) sr)
+  sr)
+
 (defmethod compose-space :around ((pane client-overridability-mixin) &key width height)
   (declare (ignore width height))
   (with-slots (space-requirement) pane
-    (space-requirement-combine
-     #'(lambda (x y) (or x y)) space-requirement (call-next-method))))
-
+    (multiple-value-bind (width1 min-width1 max-width1 height1 min-height1 max-height1) 
+	(space-requirement-components (normalize-space-requirement pane space-requirement))
+      (multiple-value-bind (width2 min-width2 max-width2 height2 min-height2 max-height2)
+	  (space-requirement-components (call-next-method))
+	(make-space-requirement
+	 :min-width (or min-width1 (if width1 (min width1 min-width2) min-width2))
+	 :max-width (or max-width1 (if width1 (max width1 max-width2) max-width2))
+	 :width (or width1 width2)
+	 :min-height (or min-height1 (if height1 (min height1 min-height2) min-height2))
+	 :max-height (or max-height1 (if height1 (max height1 max-height2) max-height2))
+	 :height (or height1 height2))))))
 ;;;
 ;;; Space Req Cache
 ;;;
@@ -352,31 +363,33 @@
 	     (setq alloc :fill))
 	    (t
 	      (let ((item-size (item-size item)))
-		(if (eq item-size :fill)
-		    (setq alloc :fill)
-		    (progn
-		      (setq alloc (desired-size item-size))
-		      (when (> give 0)
-			(if stretch-p
-			    (progn
-			      (setq used (/ (* (- (max-size item-size)
-						  (desired-size item-size))
-					       extra)
-					    give))
-			      (incf alloc used)
-			      (fix-coordinates alloc)
-			      (decf give (- (max-size item-size)
-					    (desired-size item-size))))
-			    (progn
-			      (setq used (/ (* (- (desired-size item-size)
-						  (min-size item-size))
-					       extra)
-					    give))
-			      (decf alloc used)
-			      (fix-coordinates alloc)
-			      (decf give (- (desired-size item-size)
-					    (min-size item-size)))))
-			(decf extra used)))))))
+		(cond ((eq item-size :fill)
+		       (setq alloc :fill))
+		      ((numberp item-size)
+		       (setq alloc (fix-coordinate (* item-size given))))
+		      (t
+		       (setq alloc (desired-size item-size))
+		       (when (> give 0)
+			 (if stretch-p
+			     (progn
+			       (setq used (/ (* (- (max-size item-size)
+						   (desired-size item-size))
+						extra)
+					     give))
+			       (incf alloc used)
+			       (fix-coordinates alloc)
+			       (decf give (- (max-size item-size)
+					     (desired-size item-size))))
+			   (progn
+			     (setq used (/ (* (- (desired-size item-size)
+						 (min-size item-size))
+					      extra)
+					   give))
+			     (decf alloc used)
+			     (fix-coordinates alloc)
+			     (decf give (- (desired-size item-size)
+					   (min-size item-size)))))
+			 (decf extra used)))))))
 	  (when (numberp alloc)
 	    (incf allocated alloc))
 	  (push alloc sizes)))

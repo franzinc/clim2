@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.29 92/12/16 16:46:52 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.30 93/03/19 09:43:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -549,8 +549,8 @@
     (let* ((current-output-record (stream-current-output-record stream))
 	   (new-output-record (and (stream-redisplaying-p stream)
 				   current-output-record
-				   (apply #'find-child-output-record-1
-					  current-output-record record-type initargs))))
+				   (apply #'find-child-output-record
+					  current-output-record t record-type initargs))))
       (multiple-value-bind (cursor-x cursor-y)
 	  (stream-cursor-position stream)
 	(declare (type coordinate cursor-x cursor-y))

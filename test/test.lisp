@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.44 93/02/08 15:57:48 cer Exp $
+;; $fiHeader: test.lisp,v 1.45 93/03/19 09:46:41 cer Exp $
 
 (in-package :clim-user)
 
@@ -383,7 +383,7 @@
 		    :width '(30 :character)
 		    :height '(10 :line))))
      (outlining ()
-       (scrolling ()
+       (scrolling (:scroll-bars :vertical)
 	 (make-pane 'text-editor 
 		    :word-wrap t
 		    :value "unix sucks more"
@@ -1018,16 +1018,79 @@
 							  :roman 20))))))
 
 (define-application-frame tf108 ()
-			  ()
+			   ()
+   (:command-table test-frame)
+   (:panes 
+    (z push-button :label "fart")
+    (a text-field)
+    (b label-pane :label "hello")
+    (c text-field :width '(50 :character))
+    (d text-editor :height '(10 :line))
+    (e label-pane :label "goodbye" :width '(50 :character))
+    (f push-button :label "goodbye" :width '(50 :character)))
+   (:layouts
+    (default (scrolling (:max-height +fill+) 
+	       (vertically (:y-spacing 20) z a b c d e f)))))
+
+(define-application-frame tf109 ()
+   ()
+   (:command-table test-frame)
+   (:panes
+    (a list-pane :items '(a b c) :visible-items 3)
+    (b option-pane :items '(x y z))
+    (z :interactor :height '(5 :line)))
+   (:layouts
+    (default (vertically () (scrolling () a) b z))))
+
+(define-test-frame-command (com-change-set-gadget-items :name t :menu t)
+    (&key 
+     (which 'boolean :default nil))
+  (let ((a (find-pane-named *application-frame* 'a))
+	(b (find-pane-named *application-frame* 'b)))
+    (when which
+      (setf (set-gadget-items a) '(1 2 3 4)
+	    (set-gadget-items b) '(p q r z)))
+    (unless which 
+      (setf (set-gadget-items a) '(p q r z)
+	    (set-gadget-items b) '(1 2 3 4)))))
+
+(define-application-frame tf110 ()
+  ()
+  (:menu-bar nil)
   (:command-table test-frame)
   (:panes 
-   (z push-button :label "fart")
-   (a text-field)
-   (b label-pane :label "hello")
-   (c text-field :width '(50 :character))
-   (d text-editor :height '(10 :line))
-   (e label-pane :label "goodbye" :width '(50 :character))
-   (f push-button :label "goodbye" :width '(50 :character)))
+   (a :application)
+   (b :interactor :height '(5 :line) :max-height '(5 :line))
+   (c :interactor :height '(5 :line)))
   (:layouts
-   (default (scrolling (:max-height +fill+) 
-	      (vertically (:y-spacing 20) z a b c d e f)))))
+   (default (vertically () (:fill a) b))
+   (other (vertically () (3/4 a) (:fill c)))))
+
+
+(define-application-frame tf111 ()
+  ()
+  (:menu-bar nil)
+  (:command-table test-frame)
+  (:pane
+   (vertically ()
+     (scrolling ()
+       (vertically ()
+	 (with-radio-box () "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:orientation :vertical) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:orientation :vertical :columns 2) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:orientation :horizontal :rows 2) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:orientation :horizontal :columns 1) "Common Lisp" "Smalltalk" "Fortran" "Cobol")))
+     (scrolling ()
+       (vertically ()
+	 (with-radio-box (:type :some-of) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:type :some-of :orientation :vertical) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:type :some-of :orientation :vertical :columns 2) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:type :some-of :orientation :horizontal :rows 2) "Common Lisp" "Smalltalk" "Fortran" "Cobol")
+	 (with-radio-box (:type :some-of :orientation :vertical :rows 1) "Common Lisp" "Smalltalk" "Fortran" "Cobol"))))))
+
+
+
+
+
+	      
+			    

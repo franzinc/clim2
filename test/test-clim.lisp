@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.20 93/02/08 15:57:09 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.1 93/03/19 09:46:34 cer Exp $
 
 
 (in-package :clim-user)
@@ -209,6 +209,25 @@
   (com-rotated-scaled-rectangles)
   (com-draw-some-rectangles))
 
+(define-frame-test test-drag-and-drop (clim-tests 
+					       :width 600 :height 600  
+					       :history-class r-tree-output-history
+					       )
+  ((com-drag-and-drop-tests)
+  (:presentation-click display-pane drag-source)
+  (:presentation-click display-pane drop-target)
+  (:presentation-click display-pane drag-source)
+  (:presentation-click display-pane drop-target)   
+  (:presentation-click display-pane drag-source)
+  (:presentation-click display-pane drop-target)   
+  (:presentation-click display-pane drag-source)
+  (:presentation-click display-pane drop-target)   
+  (:presentation-click display-pane drag-source)
+  (:presentation-click display-pane drop-target)
+  :abort)
+  (exit-clim-tests)
+  )
+
 (define-frame-test test-test-frame (test-frame :width 600 :height 600)
   ((com-clear)
    (com-make-table) 
@@ -233,6 +252,10 @@
    (com-make-one (:push-button))
    (com-switch)
    (com-switch))
+  (com-quit))
+
+(define-frame-test test-tf0 (tf0)
+  ()
   (com-quit))
 
 (define-frame-test test-tf99 (tf99)
@@ -315,13 +338,16 @@
   ()
   (com-quit))
 
-(define-frame-test test-tf107 (tf108)
+(define-frame-test test-tf108 (tf108)
   ()
   (com-quit))
 
 (defun run-postscript-tests (&key (output :view))
+  (run-printer-tests output :postscript))
+
+(defun run-printer-tests (output printer-type)
   (exercise-frame 'clim-postscript-tests
-		  '(:width 600 :height 600)
+		  `(:width 600 :height 600 :printer-type ,printer-type)
 		  (mapcar #'(lambda (command)
 			      (append command `(:output ,output)))
 			  '((pcom-test-set-1)
@@ -386,6 +412,15 @@
     ()
   (raise-frame *application-frame*))
 
+(define-frame-test-command com-frame-test-move
+    ()
+  (let ((x (random 200))
+	(y (random 200)))
+    (position-sheet-carefully (frame-top-level-sheet *application-frame*) x y)
+    (multiple-value-bind (nx ny)
+	(tk::get-values (silica:frame-shell *application-frame*) :x :y)
+      (assert (and (= x nx) (= y ny))))))
+
 (define-frame-test-command com-frame-test-bury
     ()
   (bury-frame *application-frame*))
@@ -409,6 +444,12 @@
    (:sleep 3)
    (com-frame-test-raise)
    (:sleep 3)
+   (com-frame-test-move)
+   (:sleep 1)
+   (com-frame-test-move)
+   (:sleep 1)
+   (com-frame-test-move)
+   (:sleep 1)
    (com-frame-test-iconify)
    (:sleep 2)
    (com-frame-test-deiconify)
@@ -428,5 +469,13 @@
 
 (setq excl:*global-gc-behavior* nil)
 
+(define-frame-test test-tf109 (tf109)
+  ((com-change-set-gadget-items)
+   (com-change-set-gadget-items :which t)
+   (com-change-set-gadget-items))
+  (com-quit))
 
 
+(define-frame-test test-tf111 (tf111)
+  ()
+  (com-quit))

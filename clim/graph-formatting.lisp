@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.24 93/01/21 14:57:59 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.25 93/03/19 09:43:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -782,7 +782,10 @@ circular graphs without accounting for this case.
 						      generation-descriptors)))
 				      (new (with-new-output-record
 					       (stream 'graph-node-filler-output-record-1 nil
-						:parent graph)
+						       :parent graph)
+					     ;;-- Goddamn! This is not
+					     ;;-- drawing an arc its
+					     ;;-- drawing a node
 					     (call-arc-drawer stream arc-drawer
 							      (graph-node-object parent)
 							      (graph-node-object node)

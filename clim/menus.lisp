@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.40 93/03/18 14:36:48 colin Exp $
+;; $fiHeader: menus.lisp,v 1.41 93/03/19 09:43:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,28 +13,32 @@
 (defparameter *default-menu-label-text-style* (make-text-style :fix :italic :normal))
 
 (define-application-frame menu-frame ()
-    (menu 
-     label 
-     (scroll-bars :initarg :scroll-bars 
-		  :initform t
-		  :reader menu-frame-scroll-bars))
+  (menu 
+   (label  :initform nil :accessor menu-frame-label)
+   (scroll-bars :initarg :scroll-bars 
+		:initform t
+		:reader menu-frame-scroll-bars))
   (:pane
    (with-slots (menu label scroll-bars) *application-frame*
      (outlining ()
-       (vertically ()
-	 (setq label (make-pane 'label-pane 
-		       :label ""
-		       :text-style *default-menu-label-text-style*))
-	 (if scroll-bars
-	     (scrolling (:scroll-bars scroll-bars)
-	       (setq menu (make-pane 'clim-stream-pane
-			    :initial-cursor-visibility nil)))
-	     (setq menu (make-pane 'clim-stream-pane
-			  :initial-cursor-visibility nil)))))))
-
+       (let ((main
+	      (if scroll-bars
+		  (scrolling (:scroll-bars scroll-bars)
+		    (setq menu (make-pane 'clim-stream-pane
+					  :initial-cursor-visibility nil)))
+		(setq menu (make-pane 'clim-stream-pane
+				      :initial-cursor-visibility nil)))))
+	 (if label
+	     (vertically ()
+	       (setq label (make-pane 'label-pane 
+				      :label ""
+				      :text-style *default-menu-label-text-style*))
+	       main)
+	   main)))))
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
+  ;; This is funny
   (and (boundp '*application-frame*)
        *application-frame*))
 
@@ -53,20 +57,22 @@
   :constructor 
     (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
       (frame-manager-get-menu framem :scroll-bars scroll-bars))
-  :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
-		(eq (frame-manager menu) (frame-manager root)))
+    :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
+		  (eq (not label) (not (menu-frame-label (pane-frame menu))))
+		  (eq (frame-manager menu) (frame-manager root)))
   :deinitializer (window-clear menu)
   :initializer (initialize-menu (port menu) menu :label label))
 
 (defmethod initialize-menu ((port basic-port) menu &key label)
   ;;--- Should this flush the menu's event queue?
-  (let ((text-style (if (listp label) 
-			(getf (rest label) :text-style *default-menu-label-text-style*)
+  (when label
+    (let ((text-style (if (listp label) 
+			  (getf (rest label) :text-style *default-menu-label-text-style*)
 			*default-menu-label-text-style*))
-	(label (if (listp label) (first label) label))
-	(label-pane (slot-value (pane-frame menu) 'label)))
-    (setf (gadget-label label-pane) (or label "")
-	  (pane-text-style label-pane) (parse-text-style text-style))))
+	  (label (if (listp label) (first label) label))
+	  (label-pane (slot-value (pane-frame menu) 'label)))
+      (setf (gadget-label label-pane) (or label "")
+	    (pane-text-style label-pane) (parse-text-style text-style)))))
 
 
 ;; items := (item*)

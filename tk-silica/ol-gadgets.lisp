@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.40 93/03/19 09:46:54 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.41 93/03/25 15:41:16 colin Exp $
 
 
 (in-package :xm-silica)
@@ -660,7 +660,28 @@
 
 ;;
 
-(defclass openlook-radio-box (openlook-geometry-manager 
+(defclass openlook-row-column-gadget-mixin ()
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet :around  ((port openlook-port)
+							      (parent t)
+							      (sheet openlook-row-column-gadget-mixin))
+  (multiple-value-bind (class initargs)
+      (call-next-method)
+      (let ((x (ecase (gadget-orientation sheet)
+		 (:vertical (or (gadget-columns sheet)
+				(and (silica::gadget-rows sheet)
+				     (ceiling (length (sheet-children sheet)) (silica::gadget-rows sheet)))))
+		 (:horizontal (or (silica::gadget-rows sheet)
+				  (and (silica::gadget-columns sheet)
+				     (ceiling (length (sheet-children sheet)) (silica::gadget-columns sheet))))))))
+	(when x (setf (getf initargs :measure) x)))
+      (values class initargs)))
+
+;;
+
+(defclass openlook-radio-box (openlook-row-column-gadget-mixin
+			      openlook-geometry-manager 
 			      mirrored-sheet-mixin
 			      sheet-multiple-child-mixin
 			      sheet-permanently-enabled-mixin
@@ -699,32 +720,37 @@
   (compose-space-for-radio/check-box rb))
 
 (defun compose-space-for-radio/check-box (rb &optional (spacing 0))
-  (let ((sum-w 0)
-	(max-w 0)
-	(max-h 0)
-	(sum-h 0)
-	(children (tk::widget-children (sheet-direct-mirror rb))))
-    (dolist (child children)
-      (multiple-value-bind
-	  (ignore-x igore-y width height)
-	  (xt::widget-best-geometry child)
-	(declare (ignore ignore-x igore-y))
-	(maxf max-h height)
-	(incf sum-w width)
-	(incf sum-h height)
-	(maxf max-w width)))
-    (case (gadget-orientation rb)
-      (:horizontal (make-space-requirement 
-		    :width (+ sum-w (* spacing (1- (length children))))
-		    :height max-h))
-      (:vertical (make-space-requirement 
-		  :width max-w 
-		  :height (+ sum-h (* spacing (1- (length children)))))))))
+  (let* ((sum-w 0)
+	 (max-w 0)
+	 (max-h 0)
+	 (sum-h 0)
+	 (mirror (sheet-direct-mirror rb))
+	 (children (tk::widget-children mirror)))
+    (multiple-value-bind (orientation measure)
+	(tk::get-values mirror :layout-type :measure)
+      (assert (= 1 measure) () "Multiple rows/columns NYI")
+      (dolist (child children)
+	(multiple-value-bind
+	    (ignore-x igore-y width height)
+	    (xt::widget-best-geometry child)
+	  (declare (ignore ignore-x igore-y))
+	  (maxf max-h height)
+	  (incf sum-w width)
+	  (incf sum-h height)
+	  (maxf max-w width)))
+      (case orientation
+	(:horizontal (make-space-requirement 
+		      :width (+ sum-w (* spacing (1- (length children))))
+		      :height max-h))
+	(:vertical (make-space-requirement 
+		    :width max-w 
+		    :height (+ sum-h (* spacing (1- (length children))))))))))
 
 ;;;
 
 
-(defclass openlook-check-box (openlook-geometry-manager
+(defclass openlook-check-box (openlook-row-column-gadget-mixin
+			      openlook-geometry-manager
 			      mirrored-sheet-mixin
 			      sheet-multiple-child-mixin
 			      sheet-permanently-enabled-mixin
@@ -882,38 +908,24 @@
 ;;;--- Flush ncolumns, nrows but perhaps keep them of compatibility
 ;;;--- We are not supporting (pixels :relative)
 
-(defmethod compose-space :around ((sheet openlook-text-field) &key width height)
+
+(defmethod silica::normalize-space-requirement ((sheet openlook-text-field) sr)
   (declare (ignore width height))
-  (compose-space-for-text-field-or-label
-   sheet (call-next-method)))
+  (normalize-space-for-text-field-or-label
+   sheet sr))
 
 ;;-- For label pane there are margin-{left,top,right,bottom} resources also
 ;;-- but they default to 0.
 
-(defmethod compose-space :around ((sheet openlook-label-pane) &key width height)
+(defmethod silica::normalize-space-requirement ((sheet openlook-label-pane) sr)
   (declare (ignore width height))
-  (compose-space-for-text-field-or-label
-   sheet (call-next-method)))
+  (normalize-space-for-text-field-or-label
+   sheet sr))
 
-(defmethod compose-space :around ((sheet openlook-push-button) &key width height)
+(defmethod silica::normalize-space-requirement ((sheet openlook-push-button) sr)
   (declare (ignore width height))
-  (compose-space-for-text-field-or-label
-   sheet (call-next-method)))
-  
-(defun compose-space-for-text-field-or-label (sheet sr)
-  (multiple-value-bind (width min-width max-width height min-height max-height)
-      (space-requirement-components sr)
-    (if (and (numberp width)
-	     (numberp min-width)
-	     (numberp max-width))
-	sr
-      (make-space-requirement
-       :width (process-width-specification sheet width)
-       :min-width (process-width-specification sheet min-width)
-       :max-width (process-width-specification sheet max-width)
-       :height height
-       :min-height min-height
-       :max-height max-height))))
+  (normalize-space-for-text-field-or-label
+   sheet sr))
 
 (defun process-width-specification (sheet width)
   (break "Make me work")
@@ -1016,25 +1028,8 @@
 	:width width :min-width min-width :max-width +fill+
 	:height height :min-height min-height :max-height +fill+))))
 
-(defmethod compose-space :around ((sheet openlook-text-editor) &key width height)
-   (declare (ignore width height))
-   (let ((sr (call-next-method)))
-     (multiple-value-bind (width min-width max-width height min-height max-height)
-	 (space-requirement-components (call-next-method))
-       (if (and (numberp width)
-		(numberp min-width)
-		(numberp max-width)
-		(numberp height)
-		(numberp min-height)
-		(numberp max-height))
-	   sr
-	 (make-space-requirement
-	  :width (process-width-specification sheet width)
-	  :min-width (process-width-specification sheet min-width)
-	  :max-width (process-width-specification sheet max-width)
-	  :height (process-height-specification sheet height)
-	  :min-height (process-height-specification sheet min-height)
-	  :max-height (process-height-specification sheet max-height))))))
+(defmethod silica::normalize-space-requirement ((sheet openlook-text-editor) sr)
+  (normalize-space-requirement-for-text-editor sheet sr))
 
 (defmethod gadget-value ((gadget openlook-text-editor))
   (if (sheet-direct-mirror gadget)
@@ -1283,11 +1278,17 @@
     (values 'xt::ol-list nil)))
 
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-list-pane))
-  (let ((widget (call-next-method))
-	(item-list nil)
+  (let ((widget (call-next-method)))
+    (add-items-to-list-pane-widget sheet widget)
+    widget))
+
+
+(defun add-items-to-list-pane-widget (sheet widget)
+  (let ((item-list nil)
 	(token-list nil)
 	selected-tokens
-	(count 0))
+	(count 0)
+	(add-item-fn (tk::get-values widget :appl-add-item)))
     (with-accessors ((items set-gadget-items)
 		     (value gadget-value)
 		     (value-key set-gadget-value-key)
@@ -1306,19 +1307,26 @@
 		     (dpb count '#.tk::ol_b_list_attr_appl 0)))
 	  (let ((token
 		 (tk::ol_appl_add_item
-		 (tk::get-values widget :appl-add-item)
-		 widget
-		 0
-		 0
-		 x)))
+		  add-item-fn
+		  widget
+		  0
+		  0
+		  x)))
 	    (push (list token count) token-list)
 	    (when selected-p (push token selected-tokens))
 	    (push x item-list))
 	  (incf count)))
       (setf (list-pane-item-list sheet) (nreverse item-list)
 	    (list-pane-token-list sheet) token-list
-	    (list-pane-current-tokens sheet) selected-tokens)
-      widget)))
+	    (list-pane-current-tokens sheet) selected-tokens))))
+
+(defmethod (setf set-gadget-items) :after (items (gadget openlook-list-pane))
+  (let ((m (sheet-direct-mirror gadget)))
+    (when m
+      (let ((delete-item-fn (tk::get-values widget :appl-delete-item)))
+	(dolist (token (list-pane-token-list sheet))
+	  (tk::ol_appl_delete_item delete-item-fn widget token))
+	(add-items-to-list-pane-widget gadget m)))))
 
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-list-pane) 
@@ -1392,11 +1400,7 @@
   (values 'xt::control nil))
 
 (defmethod realize-mirror ((port openlook-port) (sheet openlook-option-pane))
-  (with-accessors ((items set-gadget-items)
-		   (name-key set-gadget-name-key)
-		   (value-key set-gadget-value-key)
-		   (test set-gadget-test)
-		   (label gadget-label)) sheet
+  (with-accessors ((label gadget-label)) sheet
     (let* ((control (call-next-method))
 	   (label (apply #'make-instance 'tk::static-text
 			 :parent control
@@ -1410,31 +1414,47 @@
 				   :parent control))
 	   (menu-pane (tk::get-values widget :menu-pane)))
       (declare (ignore label))
-      (setf (option-menu-buttons sheet)
-	(mapcar #'(lambda (item)
-		    (let* ((currentp (funcall
-				      test (funcall value-key item)
-				      (gadget-value sheet)))
-			   (label (funcall name-key item))
-			   (button (make-instance 'tk::oblong-button
-						  :default currentp
-						  :label label
-						  :parent menu-pane)))
-		      (tk::add-callback button
-					:select
-					#'(lambda (&rest ignore)
-					    (declare (ignore ignore))
-					    (queue-value-changed-event
-					     widget sheet (funcall
-							   value-key item))
-					    (tk::set-values button :default t)
-					    (tk::set-values preview :string label)))
-		      (when currentp
-			(tk::set-values preview :string label))
-		      (list button item)))
-		items))
       (tk::set-values widget :preview-widget preview)
+      (create-option-menu-buttons sheet widget)
       control)))
+
+(defun create-option-menu-buttons (sheet widget)
+  (let ((menu-pane (tk::get-values widget :menu-pane))
+	(preview (tk::get-values widget :preview-widget)))
+  (with-accessors ((items set-gadget-items)
+		   (name-key set-gadget-name-key)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)) sheet
+    (setf (option-menu-buttons sheet)
+      (mapcar #'(lambda (item)
+		  (let* ((currentp (funcall
+				    test (funcall value-key item)
+				    (gadget-value sheet)))
+			 (label (funcall name-key item))
+			 (button (make-instance 'tk::oblong-button
+						:default currentp
+						:label label
+						:parent menu-pane)))
+		    (tk::add-callback button
+				      :select
+				      #'(lambda (&rest ignore)
+					  (declare (ignore ignore))
+					  (queue-value-changed-event
+					   widget sheet (funcall
+							 value-key item))
+					  (tk::set-values button :default t)
+					  (tk::set-values preview :string label)))
+		    (when currentp
+		      (tk::set-values preview :string label))
+		    (list button item)))
+	      items)))))
+
+(defmethod (setf set-gadget-items) :after (items (gadget openlook-option-pane))
+  (declare (ignore items))
+  (let ((m (sheet-direct-mirror gadget)))
+    (when m
+      (tk::unmanage-children (option-menu-buttons gadget))
+      (create-option-menu-buttons gadget m))))
 
 (defmethod (setf gadget-value) :after (nv (sheet openlook-option-pane) &key invoke-callback)
   (declare (ignore invoke-callback))

@@ -1,5 +1,7 @@
 (in-package :clim-user)
 
+(defvar *catch-errors-in-tests* t)
+
 (defclass invocation ()
 	  ((process :initform nil :accessor invocation-process)
 	   (frame :initform nil :accessor invocation-frame)
@@ -12,20 +14,24 @@
   (not (eq (invocation-state invocation) :dead)))
 
 (defmethod initialize-instance :after ((inv invocation) &key class initargs)
-  (flet ((run-frame-top-level-almost (frame)
-	   ;; Maybe this should be a handler bind so there is the
-	   ;; option of trying again as well as aborting the process
-	   (handler-case
-	       (unwind-protect
-		   (loop
-		     (let ((again (catch 'try-again
-				    (setf (invocation-state inv) :running)
-				    (run-frame-top-level frame)
-				    nil)))
-		       (unless again (return nil))))
-		 (setf (invocation-state inv) :dead))
-	     (error (condition)
-		    (handler-invocation-debugger-hook inv condition)))))
+  (labels ((do-it (frame)
+	     (unwind-protect
+		 (loop
+		   (let ((again (catch 'try-again
+				  (setf (invocation-state inv) :running)
+				  (run-frame-top-level frame)
+				  nil)))
+		     (unless again (return nil))))
+	       (setf (invocation-state inv) :dead)))
+	   (run-frame-top-level-almost (frame)
+	     ;; Maybe this should be a handler bind so there is the
+	     ;; option of trying again as well as aborting the process
+	     (if *catch-errors-in-tests*
+		 (handler-case
+		     (do-it frame)
+		   (error (condition)
+		     (handler-invocation-debugger-hook inv condition)))
+	       (do-it frame))))
     (let* ((frame (apply #'make-application-frame class initargs))
 	   (process (mp:process-run-function
 		     (format nil "~A Test process for" class)
@@ -143,8 +149,6 @@
 		  (when timeout
 		    (wait-for-clim-input-state invocation timeout)))
 	      (execute-command-in-frame (or avv-frame frame) command)))))))))
-
-(defvar *catch-errors-in-tests* t)
 
 (defun exercise-frame (class initargs commands exit-command &optional (error *catch-errors-in-tests*))
   (flet ((doit ()

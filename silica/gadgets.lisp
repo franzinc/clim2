@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.46 93/03/18 14:38:01 colin Exp $
+;; $fiHeader: gadgets.lisp,v 1.47 93/03/19 09:44:44 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -360,22 +360,28 @@
   (let* ((frame (pane-frame rb))
 	 (framem (frame-manager frame)))
     (assert (and frame framem) ()
-	    "There must be both a frame and frame manager active")
+      "There must be both a frame and frame manager active")
     (with-look-and-feel-realization (framem frame)
-      (dolist (button choices)
-	(if (panep button)
-	    ;; Adopt the button.  Some framems will disown the button
-	    ;; in order to do layout, but that will happen later.
-	    (unless (sheet-parent button)
-	      (sheet-adopt-child rb button))
-	    ;; Create a button if the user supplied an abbreviation
-	    (make-pane 'toggle-button 
-	      :value (equal (radio-box-current-selection rb) button)
-	      :label (if (stringp button)
-			 (string button)
-			 (gadget-label button))
-	      :id button
-	      :parent rb))))))
+      (dolist (choice choices)
+	(etypecase choice
+	  (pane
+	   ;; Adopt the button.  Some framems will disown the button
+	   ;; in order to do layout, but that will happen later.
+	   (unless (sheet-parent choice)
+	     (sheet-adopt-child rb choice)))
+	  (string
+	   ;; Create a button if the user supplied an abbreviation
+	   (let* ((value (equal (radio-box-current-selection rb) choice))
+		  (button (make-pane 'toggle-button 
+				     :value value
+				     :label choice
+				     :indicator-type :one-of
+				     :client rb
+				     :id choice
+				     :parent rb)))
+	     (when value
+	       (setf (radio-box-current-selection rb) button)))))))
+    (check-type (radio-box-current-selection rb) (or null pane))))
 
 (defmethod value-changed-callback :around 
 	   ((selection basic-gadget) (client radio-box) gadget-id value)
@@ -406,23 +412,28 @@
   (let* ((frame (pane-frame cb))
 	 (framem (frame-manager frame)))
     (assert (and frame framem) ()
-	    "There must be both a frame and frame manager active")
+      "There must be both a frame and frame manager active")
     (with-look-and-feel-realization (framem frame)
-      (dolist (button choices)
-	(if (panep button)
-	    ;; Adopt the button.  Some framems will disown the button
-	    ;; in order to do layout, but that will happen later.
-	    (unless (sheet-parent button)
-	      (sheet-adopt-child cb button))
-	    ;; Create a button if the user supplied an abbreviation
-	    (make-pane 'toggle-button 
-	      :value (equal (check-box-current-selection cb) button)
-	      :label (if (stringp button)
-			 (string button)
-			 (gadget-label button))
-	      :indicator-type :some-of
-	      :id button
-	      :parent cb))))))
+      (dolist (choice choices)
+	(etypecase choice
+	  (pane
+	   ;; Adopt the button.  Some framems will disown the button
+	   ;; in order to do layout, but that will happen later.
+	   (unless (sheet-parent choice)
+	     (sheet-adopt-child cb choice)))
+	  (string
+	   ;; Create a button if the user supplied an abbreviation
+	   (let* ((value (member choice (check-box-current-selection cb) :test #'equal))
+		  (button (make-pane 'toggle-button 
+				     :value (and value t)
+				     :label choice
+				     :indicator-type :some-of
+				     :client cb
+				     :id choice
+				     :parent cb)))
+	     (when value
+	       (setf (car value) button)))))))
+    (assert (every #'panep (check-box-current-selection cb)) () "Current selection must be a list of panes")))
 
 (defmethod value-changed-callback :around 
 	   ((selection basic-gadget) (client check-box) gadget-id value)
@@ -434,6 +445,24 @@
   (value-changed-callback
     client (gadget-client client) (gadget-id client) (check-box-current-selection client))
   (call-next-method))
+
+
+(defmacro with-radio-box ((&rest options &key (type :one-of) &allow-other-keys) &body body)
+  (with-keywords-removed (options options '(:type))
+    (let ((current-selection (gensym))
+	  (choices (gensym)))
+      `(let ((,current-selection nil))
+	 (macrolet ((radio-box-current-selection (form)
+		      `(setq ,',current-selection ,form)))
+	   (let ((,choices (list ,@body)))
+	     ;; this wants to be realize-pane as soon as I add the translations to
+	     ;; the various frame managers.
+	     (make-pane ',(ecase type
+			    (:one-of 'radio-box)
+			    (:some-of 'check-box))
+			:choices ,choices
+			:current-selection ,current-selection
+			,@options)))))))
 
 
 ;;; Text edit

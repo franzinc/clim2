@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.65 93/03/18 14:39:33 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.66 93/03/19 09:47:10 cer Exp $
 
 (in-package :tk-silica)
 
@@ -350,12 +350,12 @@
   ;;--- This breaks the default-from-mirror-resource code when you
   ;;--- change the layout of a sheet
   ;;--- Perhaps that should just setf slot-value instead
-  #+ignore
   (repaint-sheet (medium-sheet medium) +everywhere+))
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
-  (invalidate-indirect-inks medium))
+  (invalidate-indirect-inks medium)
+  (repaint-sheet (medium-sheet medium) +everywhere+))
 
 
 ;;; Colors and their monochrome imposters

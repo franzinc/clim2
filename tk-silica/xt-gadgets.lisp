@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.29 93/02/08 15:58:15 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.30 93/03/18 14:39:25 colin Exp $
 
 (in-package :xm-silica)
 
@@ -216,3 +216,37 @@
 
 (defmethod set-widget-orientation ((gadget xt-oriented-gadget) nv)
   (tk::set-values (sheet-direct-mirror gadget) :orientation nv))
+
+(defun normalize-space-for-text-field-or-label (sheet sr)
+  (multiple-value-bind (width min-width max-width height min-height max-height)
+      (space-requirement-components sr)
+    (if (and (numberp width)
+	     (numberp min-width)
+	     (numberp max-width))
+	sr
+      (make-space-requirement
+       :width (and width (process-width-specification sheet width))
+       :min-width (and min-width (process-width-specification sheet min-width))
+       :max-width (and max-width (process-width-specification sheet max-width))
+       :height height
+       :min-height min-height
+       :max-height max-height))))
+
+
+(defun normalize-space-requirement-for-text-editor (sheet sr)
+  (multiple-value-bind (width min-width max-width height min-height max-height)
+      (space-requirement-components sr)
+    (if (and (numberp width)
+	     (numberp min-width)
+	     (numberp max-width)
+	     (numberp height)
+	     (numberp min-height)
+	     (numberp max-height))
+	sr
+      (make-space-requirement
+       :width (and width (process-width-specification sheet width))
+       :min-width (and min-width (process-width-specification sheet min-width))
+       :max-width (and max-width (process-width-specification sheet max-width))
+       :height (and height (process-height-specification sheet height))
+       :min-height (and min-height (process-height-specification sheet min-height))
+       :max-height (and max-height (process-height-specification sheet max-height))))))

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.2 93/03/01 15:59:14 cer Exp $
+# $fiHeader: Makefile.generic,v 1.3 93/03/04 18:59:20 colin Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -172,13 +172,11 @@ train	:	FORCE
 
 benchmark:
 	$(ECHO) "\
-	(load \"climtoys/test-clim.lisp\") \
 	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
 "  | $(CLIM) $(CLOPTS) -batch
 
 testps :
 	$(ECHO) "\
-	(load \"climtoys/test-clim.lisp\") \
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output :$(PSVIEW)) \
 "  | $(CLIM) $(CLOPTS) -batch

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.55 93/02/10 10:04:16 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.56 93/03/25 15:40:54 colin Exp $
 
 (in-package :clim-user)
 
@@ -1212,23 +1212,24 @@ people, shall not perish from the earth.
 #+allegro
 (define-test (clos-metaobjects-graph formatted-output) (stream)
   "Draw a graph showing part of the CLOS class hierarchy"
-  (format-graph-from-roots 
-    (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
-    #'(lambda (o s)
-	(let ((text (format nil "~A" (clos::class-name o))))
-	  #+ignore
-	  (with-output-as-gadget (s)
-	    (make-pane 'push-button :label text
-		       :activate-callback #'(lambda (gadget) (print
-							      text excl:*initial-terminal-io*))))
-	  #-ignore
-	  (multiple-value-bind (width height) (text-size s text)
-	    (with-new-output-record (s)
-	      (draw-rectangle* s 0 0 width height :filled t :ink +red+)
-	      (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
-    #'clos::class-direct-subclasses
-    :stream stream
-    :merge-duplicates t))
+  (let ((color (make-gray-color 0.7)))
+    (format-graph-from-roots 
+     (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
+     #'(lambda (o s)
+	 (let ((text (format nil "~A" (clos::class-name o))))
+	   #+ignore
+	   (with-output-as-gadget (s)
+	     (make-pane 'push-button :label text
+			:activate-callback #'(lambda (gadget) (print
+							       text excl:*initial-terminal-io*))))
+	   #-ignore
+	   (multiple-value-bind (width height) (text-size s text)
+	     (with-new-output-record (s)
+	       (draw-rectangle* s 0 0 width height :filled t :ink color)
+	       (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
+     #'clos::class-direct-subclasses
+     :stream stream
+     :merge-duplicates t)))
 
 (define-test (offset-graph formatted-output) (stream)
   "Draw a graph offset in the window.  After refreshing, it should look the same."

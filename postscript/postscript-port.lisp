@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.15 93/02/08 15:57:19 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.16 93/03/19 09:44:27 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -27,7 +27,7 @@
 
 (defparameter *ps-magic-baseline-factor* 0.2)	;estimation of % baseline to bottom.
 
-(defparameter *1-pixel=points* 1.2)		;1 "average" pixel is about 1.2 points
+(defparameter *1-pixel=points* 1.0)		;1 "average" pixel is about 1.2 points
 
 ;; Convert CLIM units ("pixels") to (printers') points
 (defmacro pixels-to-points (&rest pixels)
@@ -154,10 +154,10 @@
 		 (:italic "heo" "Helvetica-Oblique")
 		 (:bold-italic "hebo" "Helvetica-BoldOblique"))
 		("Courier"
-		 (nil 0.6 "Courier")
-		 (:bold 0.6 "Courier-Bold")
-		 (:italic 0.6 "Courier-Oblique")
-		 (:bold-italic 0.6 "Courier-BoldOblique"))))
+		 (nil "co" "Courier")
+		 (:bold "cob" "Courier-Bold")
+		 (:italic "coo" "Courier-Oblique")
+		 (:bold-italic "cobo" "Courier-BoldOblique"))))
 
 (defun get-ps-fam-face-name (fcs)
   (let ((fam (first (psfck-true-ps-descriptor fcs)))
@@ -208,12 +208,11 @@
 ;;; That file consists of invocations of this function.
 ;;; Don't bother loading the width information for fixed width fonts like Courrier
 ;;; which already have their width hard-coded in *ps-font-family-data*?
+
 (defun setup-laserwriter-metrics (font-info)
-  (let ((char-widths (cdr font-info))
-	(name (caar font-info))
-	(scale (cadar font-info))
-	(box (caddar font-info))
-	(width-table nil))
+  (destructuring-bind ((name scale box) . char-widths)
+      font-info
+  (let ((width-table nil))
     (multiple-value-bind (family face size-kludge)
 	(find-family-and-face-for-postscript-font-name name)
       ;; If the kludgy size element of the font's description in
@@ -221,6 +220,8 @@
       ;; building the width table.
       (cond ((numberp size-kludge)
 	     (setq width-table size-kludge))
+	    ((numberp char-widths)
+	     (setq width-table (float (/ char-widths scale) 0f0)))
 	    (t
 	     (setq width-table (make-array 256))
 	     (dolist (char-info char-widths)
@@ -236,7 +237,7 @@
 		 (data `(,width-table ,height ,ascent ,descent)))
 	    (if temp
 		(setf (cdr temp) data)
-		(push `(,key ,@data) *char-width-tables*))))))))
+		(push `(,key ,@data) *char-width-tables*)))))))))
 
 (defun find-family-and-face-for-postscript-font-name (name)
   (dolist (family-data *ps-font-family-data*)
@@ -428,10 +429,13 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 /pat { imgdict begin gsave
         [/scal /patseq ] {exch def} forall
         /patheight patseq length def
+% This makes the assumption that the zero th element of the array
+% describes the first row of the pattern
         /patwidth patseq 0 get length 8 mul def
 %back up to an even phase boundary
         /pswidth patwidth scal mul def
         /psheight patheight scal mul def
+% untransform the width,height by the CTW
         pswidth psheight idtransform
         0 0 transform psheight fmod neg exch pswidth fmod neg exch idtransform
         3 -1 roll exch dup 0 gt {add} {exch pop} ifelse
@@ -443,6 +447,10 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
         /scanline -1 def /linebits 0 def
         width height idtransform abs scale scal dup scale
         width height true [width 0 0 height neg 0 height] 
+% This procedure returns the same row the right number of times
+% I suppose if the pattern does not fit exactly it does not matter
+% since there is a clipping region.
+% This certainly makes the assumption that one element = one line
         { linebits 0 le { /linebits width def
                           /scanline scanline 1 add patheight mod def
                           /linepat patseq scanline get def
@@ -458,17 +466,43 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
                /nocurrentpoint dup dup load exch { pop 0 0 0 0 } def 
                  pathbbox
                6 -2 roll def end
+% pattern scale opaque-p bx1 by1 bx2 by2
              4 2 roll 2 copy translate 4 -2 roll
+% pattern scale opaque-p  bx1 by1 bx2 by2 
              3 -1 roll sub 3 1 roll exch sub exch
+% pattern scale opaque-p dx dy
              3 -1 roll { 2 copy gsave 1 setgray newpath
                          0 0 moveto 0 exch lineto 0 rlineto currentpoint pop 0 lineto
                          closepath fill grestore } if
+% The above appears to draw a rectangle clipped by the path
+% pattern scale dx dy
              4 -2 roll pat } def
 %like fill, etc. but with pattern, scale and opaque-p options.
 /patfill { gsave clip patfill1 grestore newpath } def
 /pateofill { gsave eoclip patfill1 grestore newpath } def
 /patstroke { gsave strokepath clip patfill1 grestore newpath } def
- ")
+/cerfill { imgdict begin
+ [/depth /height /width] {exch def} forall
+ gsave
+   clip
+% Get the bounding box of the clip path on the stack   
+   initmatrix clippath
+   %condition-case for nocurrentpoint, returning empty rectangle
+             errordict begin
+               /nocurrentpoint dup dup load exch { pop 0 0 0 0 } def 
+                 pathbbox
+               6 -2 roll def end
+% Stack is bx1 by1 bx2 by2
+% So set the origin
+  pop pop translate
+  /str 2 string def
+  width height scale
+  width height depth [width 0 0 height neg 0 height]
+  { currentfile str readhexstring pop}
+  image
+ grestore
+end } def
+")
 
 (defvar *postscript-prologue*
         "statusdict /waittimeout 30 put
@@ -549,6 +583,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (terpri printer-stream)
   (write-string " 4 true " printer-stream))
 
+#+ignore
 (defun send-raster (printer-stream raster left top right bottom &optional (terpri t))
   (assert (= bottom (1+ top)))
   (unless (zerop (rem right 8))
@@ -587,18 +622,91 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 		  (when (> j 80) (force-buf)))))
 	    (when (> j 0) (force-buf))))))))
 
-(defun ps-fill (medium printer-stream ink)
-  (cond ((typep ink 'rectangular-tile)
-	 ;;--- Kludgy way to determine whether to use patterned drawing
-	 (multiple-value-bind (array width height)
-	     (decode-tile-as-stipple ink)
-	   (declare (ignore width height))
-	   (unless array
-	     (error "Rectangular tiles other than stipples are not supported yet."))
-	   (send-pattern medium printer-stream array)
-	   (format printer-stream " patfill~%")))
-	(t
-	 (format printer-stream " fill~%"))))
+(defun send-raster (printer-stream raster left top right bottom &optional (terpri t))
+  terpri
+  (assert (= bottom (1+ top)))
+  (let ((bits-per-cell 1))
+    (assert (<= bits-per-cell 8))
+    ;;-- really left-right * bits-per-cell has to be mod 8
+    (unless (zerop (rem (- right left) 8))
+      (error "Sorry, can't hack right - left /= 0 (mod 8); you have ; ~D,~D" right left))
+    (let ((i left)
+	  (n-cells (/ 8 bits-per-cell)))
+      (loop 
+	(when (= i right) (return))
+	(let ((value 0))
+	  (dotimes (j n-cells)
+	    (setq value (+ (ash value bits-per-cell) (aref raster top j))))
+	  (incf i n-cells)
+	  (write (truncate (ash value -4)) :stream printer-stream :base 16)
+	  (write (logand value 15) :stream printer-stream :base 16))))))
+
+(defmethod ps-fill (medium printer-stream (ink rectangular-tile))
+  ;;--- Kludgy way to determine whether to use patterned drawing
+  (multiple-value-bind (array width height)
+      (decode-tile-as-stipple ink)
+    (declare (ignore width height))
+      (unless array
+      (error "Rectangular tiles other than stipples are not supported yet."))
+    (send-pattern medium printer-stream array)
+    (format printer-stream " patfill~%")))
+
+
+(defmethod ps-fill (medium printer-stream (ink pattern))
+  (multiple-value-bind (array designs)
+      (decode-pattern ink)
+    (destructuring-bind (height width) (array-dimensions array)
+      (maybe-send-feature medium 'pattern-program *pattern-code*)
+      (let ((depth 8))
+	(flet ((index-fn (index)
+		 (round (* 255 (multiple-value-call #'color-luminosity
+				 (color-rgb
+				 (let ((ink (elt designs index)))
+				   (cond ((eq ink +foreground-ink+)
+					  (medium-foreground medium))
+					 ((eq ink +background-ink+)
+					  (medium-background medium))
+					 (t ink)))))))))
+	  (format printer-stream " ~D ~D ~D cerfill~%" width height depth)
+	  (send-hexstring-array printer-stream array width height
+				:function #'index-fn
+				:bits-per-cell depth))))))
+
+(defun send-hexstring-array (stream array width height &key
+						       (bits-per-cell 1)
+						       (function #'identity))
+  (let* ((n-cells (/ 8 bits-per-cell))
+	 (buffer (make-string 80))
+	 (pointer 0)
+	 (chars "0123456789abcdef"))
+    (declare (optimize (speed 3)
+		       (safety 0))
+	     (type simple-string chars buffer)
+	     (fixnum pointer n-cells bits-per-cell))
+    (assert (<= bits-per-cell 8))
+    (dotimes (row height)
+      (let ((column 0))
+	(loop
+	  (let ((value 0))
+	    (unless (< column width) (return))
+	    (dotimes (i n-cells)
+	      (if (< column width)
+		  (progn
+		    (setq value (+ (ash value bits-per-cell) (funcall function (aref array row column))))
+		    (incf column))
+		(setq value (ash value bits-per-cell))))
+	    (setf (aref buffer pointer) (aref chars (truncate (ash value -4))))
+	    (incf pointer)
+	    (setf (aref buffer pointer) (aref chars (logand value 15)))
+	    (incf pointer)
+	    (when (= pointer 80)
+	      (write-line buffer stream)
+	      (setf pointer 0))))))
+    (write-line (subseq buffer 0 pointer) stream)))
+
+(defmethod ps-fill (medium printer-stream ink)
+  (declare (ignore medium ink))
+  (format printer-stream " fill~%"))
 
 (defun ps-stroke (medium printer-stream ink)
   (cond ((typep ink 'rectangular-tile)
@@ -639,6 +747,34 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
     :port port 
     :color-p t
     :dynamic-p nil))
+
+(defmethod initialize-instance :after ((port postscript-port) &key)
+  (with-slots (silica::default-palette) port
+    (setf silica::default-palette (make-instance 'postscript-palette))))
+
+(defmethod realize-graft ((port postscript-port) (graft standard-graft))
+  (with-slots (page-width page-height) port
+    (with-slots (silica::mm-height silica::mm-width
+				   silica::pixel-height silica::pixel-width
+				   silica::pixels-per-point) 
+	graft
+      (setf silica::pixel-width    (* page-width 72)
+	    silica::pixel-height   (* page-height 72)
+	    silica::mm-width	   (* page-width 25.4)
+	    silica::mm-height      (* page-height 25.4)
+	    silica::pixels-per-point 1)
+      
+      (setf (sheet-region graft)
+	(ecase (graft-units graft)
+	  (:device (make-rectangle* 0 0 silica::pixel-width silica::pixel-height))
+	  (:mm    (make-rectangle* 0 0 silica::mm-width silica::mm-height))
+	  (:homogenous (make-rectangle* 0.0 0.0 1.0 1.0))))
+
+      (setf (sheet-native-transformation graft) +identity-transformation+)
+      ;;  (setf (sheet-mirror graft) (realize-mirror port graft)) ;;Is the mirror already realized?
+      ;;(update-native-transformation port graft)
+      )))
+
 
 (defmethod standardize-text-style ((port postscript-port) style &optional character-set)
   (declare (ignore character-set))
@@ -702,7 +838,8 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	  ((multi-page :initform nil :initarg :multi-page)
 	   ;; Need this for hacking "scrolling" of multi-page output
 	   (device-transformation :accessor sheet-device-transformation
-				  :initform +identity-transformation+))
+				  :initform +identity-transformation+)
+	   (generating-postscript :initform t :accessor stream-generating-postscript))
   (:default-initargs :default-text-margin 1000))
 
 (defmethod close ((stream postscript-stream) &key abort)
@@ -741,6 +878,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (declare (ignore movement old-height cursor-x cursor-y)))
 
 ;; Replay some PostScript output, breaking it into multiple pages
+
 (defmethod stream-replay ((stream postscript-stream) &optional region)
   (let* ((port (port stream))
 	 (medium (sheet-medium stream))
@@ -786,7 +924,16 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 			(setf viewport-x 0)
 			(incf viewport-y page-height))
 		    (setq viewport-x 0 viewport-y 0))))))))))
-		
+
+(defmethod invoke-with-output-recording-options :before 
+	   ((stream postscript-stream) continuation record draw)
+  (declare (ignore record continuation))
+  ;; See [clim2bug459]
+  (when (and draw 
+	     (not (stream-drawing-p stream))
+	     (not (stream-generating-postscript stream)))
+    (error "Cannot turning drawing on for postscript stream ~S" stream)))
+
 
 (defmacro with-output-to-postscript-stream ((stream-var file-stream &rest args) &body body)
   (declare (arglist (stream-var file-stream
@@ -811,46 +958,47 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	 (stream (make-instance 'postscript-stream
 				:multi-page multi-page))
 	 (abort-p t))
-    (setf (port stream) port)
+    (setf (port stream :graft (find-graft :port port)) port)
     (let ((medium (sheet-medium stream)))
       (setf (slot-value medium 'printer-stream) file-stream)
-      (with-output-recording-options (stream :record t :draw nil)
-	(unwind-protect
-	    (multiple-value-prog1
-		(funcall continuation stream)
-	      (force-output stream)
-	      (multiple-value-bind (width height) 
-		  (bounding-rectangle-size (stream-output-history stream))
-		(let* ((page-width
-			(floor (* (slot-value port 'page-width)
-				  (slot-value port 'device-units-per-inch))
-			       *1-pixel=points*))
-		       (page-height
-			(floor (* (slot-value port 'page-height)
-				  (slot-value port 'device-units-per-inch))
-			       *1-pixel=points*))
-		       (scale-factor
-			(progn
-			  (when (eq orientation :landscape)
-			    (rotatef page-width page-height))
-			  (if (or (not scale-to-fit)
-				  (and (< width page-width)
-				       (< height page-height)))
-			      1
-			    (min (/ page-width width)
-				 (/ page-height height))))))
-		  ;; Now do the output to the printer, breaking up the output into
-		  ;; multiple pages if that was requested
-		  (let ((string
-			 (with-output-to-string (string-stream)
-			   (letf-globally (((slot-value medium 'printer-stream) string-stream))
-			     (with-output-recording-options (stream :record nil :draw t)
-			       (stream-replay stream nil))))))
-		    (postscript-prologue medium
-					 :scale-factor scale-factor
-					 :orientation orientation
-					 :header-comments header-comments)
-		    (write-string string (slot-value medium 'printer-stream)))))
-	      (setq abort-p nil))
-	  (close stream :abort abort-p)
-	  (destroy-port port))))))
+      (unwind-protect
+	  (multiple-value-prog1
+	      (with-output-recording-options (stream :record t :draw nil)
+		(letf-globally (((stream-generating-postscript stream) nil))
+		  (funcall continuation stream)))
+	    (force-output stream)
+	    (multiple-value-bind (width height) 
+		(bounding-rectangle-size (stream-output-history stream))
+	      (let* ((page-width
+		      (floor (* (slot-value port 'page-width)
+				(slot-value port 'device-units-per-inch))
+			     *1-pixel=points*))
+		     (page-height
+		      (floor (* (slot-value port 'page-height)
+				(slot-value port 'device-units-per-inch))
+			     *1-pixel=points*))
+		     (scale-factor
+		      (progn
+			(when (eq orientation :landscape)
+			  (rotatef page-width page-height))
+			(if (or (not scale-to-fit)
+				(and (< width page-width)
+				     (< height page-height)))
+			    1
+			  (min (/ page-width width)
+			       (/ page-height height))))))
+		;; Now do the output to the printer, breaking up the output into
+		;; multiple pages if that was requested
+		(let ((string
+		       (with-output-to-string (string-stream)
+			 (letf-globally (((slot-value medium 'printer-stream) string-stream))
+			   (with-output-recording-options (stream :record nil :draw t)
+			     (stream-replay stream nil))))))
+		  (postscript-prologue medium
+				       :scale-factor scale-factor
+				       :orientation orientation
+				       :header-comments header-comments)
+		  (write-string string (slot-value medium 'printer-stream)))))
+	    (setq abort-p nil))
+	(close stream :abort abort-p)
+	(destroy-port port)))))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.30 92/12/14 15:04:41 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.31 92/12/16 16:50:47 cer Exp $
 
 (in-package :xm-silica)
 
@@ -71,21 +71,21 @@
    ((typep (pane-frame sheet) 'clim-internals::menu-frame)
     (values 'xt::override-shell
 	    '(:width 1
-	    :height 1)))
+	      :height 1)))
    
    ( ;;--- hack alert
-	 (popup-frame-p sheet)
-	 (values 'tk::xm-dialog-shell
-		 (append
-		  (let ((x (find-shell-of-calling-frame sheet)))
-		    (and x `(:transient-for ,x)))
-		  '(:keyboard-focus-policy :pointer)
-		  (and (typep (pane-frame sheet)
-			      'clim-internals::menu-frame)
-		       '(:override-redirect t)))))
+    (popup-frame-p sheet)
+    (values 'tk::xm-dialog-shell
+	    (append
+	     (let ((x (find-shell-of-calling-frame sheet)))
+	       (and x `(:transient-for ,x)))
+	     '(:keyboard-focus-policy :pointer)
+	     (and (typep (pane-frame sheet)
+			 'clim-internals::menu-frame)
+		  '(:override-redirect t)))))
 	 
-	(t
-	 (call-next-method))))
+   (t
+    (call-next-method))))
 
 (defmethod make-cursor-widget-for-port ((port motif-port) parent)
   (make-instance 'tk::xm-my-drawing-area

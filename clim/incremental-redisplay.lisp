@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.15 92/12/16 16:46:32 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.16 93/03/19 09:43:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -72,6 +72,9 @@
 
 (defmethod copy-display-state :after ((record output-record-mixin) old-is-ok)
   (setf (slot-value record 'old-children) (output-record-children record))
+  #+ignore
+  (when (clim-user::got-it (slot-value record 'old-children))
+    (break "old-children"))
   (unless old-is-ok
     (clear-output-record record)
     ;; let descendants know that they should refer to OLD-xxx if they
@@ -443,6 +446,12 @@
     (flet ((erase (record region)
 	     ;; REGION is the bounding rectangle
 	     (when region
+	       #+ignore
+	       (when (equal '( 0 0 63 14)
+			  (multiple-value-list 
+			      (bounding-rectangle* (bounding-rectangle-shift-position
+				 region old-x-offset old-y-offset))))
+	       (break))
 	       (multiple-value-bind (width height)
 		   (bounding-rectangle-size region)
 		 (declare (type coordinate width height))
@@ -463,6 +472,9 @@
 		   (declare (type coordinate old-e-x old-e-y))
 		   (unless (and (= (+ x-offset e-x) (+ old-x-offset old-e-x))
 				(= (+ y-offset e-y) (+ old-y-offset old-e-y)))
+		     #+ignore
+		     (break "~S" (list record old-bounding-rectangle
+				 old-x-offset old-y-offset))
 		     (push (list record
 				 (bounding-rectangle-shift-position
 				   old-bounding-rectangle old-x-offset old-y-offset)
@@ -637,23 +649,29 @@
 	       (with-bounding-rectangle* (left top right bottom) rectangle
 		 (translate-coordinates xoff yoff left top right bottom)
 		 (draw-rectangle* stream left top right bottom
-				  :ink +background-ink+  :filled t)))
+				  :ink +background-ink+  :filled t)
+		 #+ignore
+		 (break "erase ~S" (list left top right bottom))))
 	     (replay-record (record stream region)
 	       ;; REGION is the bounding rectangle
 	       (multiple-value-bind (x y) (bounding-rectangle-position record)
 		 (multiple-value-bind (eleft etop) (bounding-rectangle-position region)
 		   (replay-output-record record stream nil
 					 (+ xoff (- eleft x)) (+ yoff (- etop y)))))))
+	;; (format excl:*initial-terminal-io* "Doing erases~%")
 	(dolist (erase erases)
 	  (let ((region (second erase)))
 	    (erase-rectangle stream region)))
+	;; (format excl:*initial-terminal-io* "Doing erases for moves~%")
 	(dolist (move moves)
 	  (let ((erase (second move)))
 	    (erase-rectangle stream erase)))
+	;; (format excl:*initial-terminal-io* "Doing moves~%")
 	(dolist (move moves)
 	  (let ((record (first move))
 		(region (third move)))
 	    (replay-record record stream region)))
+	;; (format excl:*initial-terminal-io* "Doing draws~%")
 	(dolist (draw draws)
 	  (let ((record (first draw))
 		(region (second draw))

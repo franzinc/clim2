@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.67 93/03/19 09:47:02 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.68 93/03/25 15:41:27 colin Exp $
 
 (in-package :xm-silica)
 
@@ -390,6 +390,7 @@
             (real-value real-size) (compute-new-scroll-bar-values sb mmin mmax value slider-size)
           (tk::set-values
            mirror
+	   :page-increment real-size
            :slider-size real-size
            :value real-value))))))
 
@@ -539,38 +540,24 @@
 ;;;--- Flush ncolumns, nrows but perhaps keep them of compatibility
 ;;;--- We are not supporting (pixels :relative)
 
-(defmethod compose-space :around ((sheet motif-text-field) &key width height)
+
+(defmethod silica::normalize-space-requirement ((sheet motif-text-field) sr)
   (declare (ignore width height))
-  (compose-space-for-text-field-or-label
-   sheet (call-next-method)))
+  (normalize-space-for-text-field-or-label
+   sheet sr))
 
 ;;-- For label pane there are margin-{left,top,right,bottom} resources also
 ;;-- but they default to 0.
 
-(defmethod compose-space :around ((sheet motif-label-pane) &key width height)
+(defmethod silica::normalize-space-requirement ((sheet motif-label-pane) sr)
   (declare (ignore width height))
-  (compose-space-for-text-field-or-label
-   sheet (call-next-method)))
+  (normalize-space-for-text-field-or-label
+   sheet sr))
 
-(defmethod compose-space :around ((sheet motif-push-button) &key width height)
+(defmethod silica::normalize-space-requirement ((sheet motif-push-button) sr)
   (declare (ignore width height))
-  (compose-space-for-text-field-or-label
-   sheet (call-next-method)))
-  
-(defun compose-space-for-text-field-or-label (sheet sr)
-  (multiple-value-bind (width min-width max-width height min-height max-height)
-      (space-requirement-components sr)
-    (if (and (numberp width)
-	     (numberp min-width)
-	     (numberp max-width))
-	sr
-      (make-space-requirement
-       :width (process-width-specification sheet width)
-       :min-width (process-width-specification sheet min-width)
-       :max-width (process-width-specification sheet max-width)
-       :height height
-       :min-height min-height
-       :max-height max-height))))
+  (normalize-space-for-text-field-or-label
+   sheet sr))
 
 (defun process-width-specification (sheet width)
   (when (numberp width) (return-from process-width-specification width))
@@ -665,25 +652,9 @@
   (make-space-requirement :width (process-width-specification te`(,(gadget-columns te) :character))
 			  :height (process-height-specification te `(,(gadget-lines te) :line))))
 
-(defmethod compose-space :around ((sheet motif-text-editor) &key width height)
-   (declare (ignore width height))
-   (let ((sr (call-next-method)))
-     (multiple-value-bind (width min-width max-width height min-height max-height)
-	 (space-requirement-components (call-next-method))
-       (if (and (numberp width)
-		(numberp min-width)
-		(numberp max-width)
-		(numberp height)
-		(numberp min-height)
-		(numberp max-height))
-	   sr
-	 (make-space-requirement
-	  :width (process-width-specification sheet width)
-	  :min-width (process-width-specification sheet min-width)
-	  :max-width (process-width-specification sheet max-width)
-	  :height (process-height-specification sheet height)
-	  :min-height (process-height-specification sheet min-height)
-	  :max-height (process-height-specification sheet max-height))))))
+(defmethod silica::normalize-space-requirement ((sheet motif-text-editor) sr)
+  (declare (ignore width height))
+  (normalize-space-requirement-for-text-editor sheet sr))
 
 (defmethod (setf gadget-word-wrap) :after (nv (gadget motif-text-editor))
   (tk::set-values (sheet-direct-mirror gadget) :word-wrap (and nv t)))
@@ -812,8 +783,12 @@
   (multiple-value-bind (class initargs)
       (call-next-method)
       (let ((x (ecase (gadget-orientation sheet)
-		 (:vertical (gadget-columns sheet))
-		 (:horizontal (gadget-rows sheet)))))
+		 (:vertical (or (gadget-columns sheet)
+				(and (silica::gadget-rows sheet)
+				     (ceiling (length (sheet-children sheet)) (silica::gadget-rows sheet)))))
+		 (:horizontal (or (silica::gadget-rows sheet)
+				  (and (silica::gadget-columns sheet)
+				     (ceiling (length (sheet-children sheet)) (silica::gadget-columns sheet))))))))
 	(when x (setf (getf initargs :num-columns) x)))
     (values class initargs)))
   
@@ -829,9 +804,9 @@
             :scroll-bar-display-policy :static)))
 
 
-(defclass motif-radio-box (motif-geometry-manager
+(defclass motif-radio-box (motif-row-column-gadget-mixin
+			   motif-geometry-manager
                            mirrored-sheet-mixin
-                           xt-oriented-gadget
                            sheet-multiple-child-mixin
                            sheet-permanently-enabled-mixin
                            radio-box
@@ -848,9 +823,9 @@
   (values 'tk::xm-radio-box nil))
 
 
-(defclass motif-check-box (motif-geometry-manager
+(defclass motif-check-box (motif-row-column-gadget-mixin
+			   motif-geometry-manager
                            mirrored-sheet-mixin
-                           xt-oriented-gadget
                            sheet-multiple-child-mixin
                            sheet-permanently-enabled-mixin
                            check-box
@@ -865,7 +840,7 @@
                                                      (parent t)
                                                      (sheet motif-check-box))
   
-  (values 'tk::xm-row-column nil))
+  (values 'tk::xm-row-column '(:packing :column)))
 
 
 ;; Frame-viewport that we need because a sheet can have
@@ -899,7 +874,10 @@
                             sheet-permanently-enabled-mixin
                             layout-mixin
                             basic-pane)
-          ((thickness :initform nil :initarg :thickness)))
+  (
+   ;;-- this is ignored
+   (thickness :initform nil :initarg :thickness)
+   (shadow-type :initarg :shadow-type :initform nil)))
 
 (defmethod initialize-instance :after ((pane motif-frame-pane) &key
                                                                frame-manager frame
@@ -915,7 +893,8 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
                                                      (parent t)
                                                      (sheet motif-frame-pane))
-  (values 'tk::xm-frame nil))
+  (with-slots (shadow-type) sheet
+    (values 'tk::xm-frame (and shadow-type `(:shadow-type ,shadow-type)))))
 
 (defmethod compose-space ((fr motif-frame-pane) &key width height)
   (declare (ignore width height))
@@ -1041,6 +1020,7 @@
 		  (silica::scroller-pane-scroll-bar-policy p)))))
       (values 'xt::xm-list 
               `(
+		:list-size-policy :constant
 		:scroll-bar-display-policy 
 		,(case scroll-mode
 		   ((:vertical :both) :static)
@@ -1055,6 +1035,13 @@
                 ,@(and visible-items `(:visible-item-count ,visible-items))
                 :items ,(mapcar name-key items) 
                 :item-count ,(length items))))))
+
+(defmethod (setf set-gadget-items) :after (items (gadget motif-list-pane))
+  ;;---- What should this do about selected items and the value etc etc
+  (let ((m (sheet-direct-mirror gadget)))
+    (when m
+      (with-accessors ((name-key set-gadget-name-key)) gadget
+	(tk::set-values m :items (mapcar name-key items))))))
 
 (defun list-pane-single-selection-callback (widget item-position sheet)
   (declare (ignore item-count))
@@ -1105,36 +1092,49 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
                                                      (parent t)
                                                      (sheet motif-option-pane))
+  (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
+    (update-option-menu-buttons sheet pdm)
+    (values 'xt::xm-option-menu
+	    `(:sub-menu-id ,pdm))))
+
+(defun update-option-menu-buttons (sheet pdm)
   (with-accessors ((items set-gadget-items)
                    (printer silica::option-pane-printer)
                    (name-key set-gadget-name-key)
                    (value-key set-gadget-value-key)) sheet
-    (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
-      (setf (motif-option-menu-buttons sheet)
-        (mapcar #'(lambda (item)
-                    (let* ((name (funcall name-key item))
-                           (pixmap (unless (or (null printer) (eq printer #'write-token))
-                                     (pixmap-from-menu-item 
-                                      sheet name printer nil)))
-                           (button 
-                            (if (null pixmap)
-                                (make-instance 'tk::xm-push-button 
-                                               :label-string name
-                                               :parent pdm)
-                              (make-instance 'tk::xm-push-button 
-                                             :label-pixmap pixmap
-                                             :label-type :pixmap
-                                             :parent pdm))))
-                      (tk::add-callback  
-                       button
-                       :activate-callback
-                       'option-menu-callback-function
-                       (funcall value-key item)
-                       sheet)
-                      button))
-                items))
-      (values 'xt::xm-option-menu
-              `(:sub-menu-id ,pdm)))))
+    (setf (motif-option-menu-buttons sheet)
+      (mapcar #'(lambda (item)
+		  (let* ((name (funcall name-key item))
+			 (pixmap (unless (or (null printer) (eq printer #'write-token))
+				   (pixmap-from-menu-item 
+				    sheet name printer nil)))
+			 (button 
+			  (if (null pixmap)
+			      (make-instance 'tk::xm-push-button 
+					     :label-string name
+					     :parent pdm)
+			    (make-instance 'tk::xm-push-button 
+					   :label-pixmap pixmap
+					   :label-type :pixmap
+					   :parent pdm))))
+		    (tk::add-callback  
+		     button
+		     :activate-callback
+		     'option-menu-callback-function
+		     (funcall value-key item)
+		     sheet)
+		    button))
+	      items))))
+
+(defmethod (setf set-gadget-items) :after (items (gadget motif-option-pane))
+  (declare (ignore items))
+  ;;---- What should this do about selected items and the value etc etc
+  (let ((m (sheet-direct-mirror gadget)))
+    (when m
+      (let ((pdm (tk::get-values m :sub-menu-id)))
+	(tk::unmanage-children (tk::widget-children pdm))
+	(mapc #'tk::destroy-widget (tk::widget-children pdm))
+	(update-option-menu-buttons gadget pdm)))))
 
 (defun option-menu-callback-function (widget count value sheet)
   (declare (ignore count))
