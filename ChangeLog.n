@@ -1,0 +1,71 @@
+from jdi: Tue Apr 21 16:45:10 PDT 1992
+
+FILES MOVED OR CHANGED:
+	deleted:
+		xlib/xlib.lisp
+		tk/xtk.lisp
+	added:
+		tk/xt-defs.lisp
+		tk/xm-defs.lisp
+		tk/ol-defs.lisp
+		tk/ol-funs.lisp
+
+--
+
+IGNORE JDI SPECIFIC CHANGES TO Makefile
+
+--
+
+	Turn on call counting and declared-fixnums-remain-fixnums when
+	compiling Clim.
+		-- misc/compile-1
+
+	Repoint scm links.
+		-- misc/dec-load-1
+
+	Make clim-small build work.
+		-- misc/load-xm
+
+	tk/xtk becomes tk/xt-defs.  Added tk/xm-defs, tk/ol-defs, and tk/ol-funs.
+		-- sys/sysdcl
+
+	Renamed foreign functions consistently.  All XT foreign functions
+	are named like:
+		xt_add_callback
+	OL and XM are similiar
+		-- lots
+
+	Moved all def-c-types to tk/??-defs files.
+		-- lots
+
+	Moved all defforeigns to tk/??-funs files.
+
+	Opencode some foreign functions (those that are used a lot)
+
+	Event loop reworked -- added wait-for-event function so you can
+	wait for an event before grabbing the event lock.  Added event
+	locking so you can handle events synchronously.
+	
+	Added code to grab certain matching events from the event queue.
+		-- get-event-matching-sequence-and-types
+
+	Added synchronous event handling to copy-area to handle graphics-
+	expose events.
+
+	Miscellaneous cleanup of gcontext code.
+
+	Made c-types be created in lisp space, unless they have to be in
+	C space.
+
+	Fixed lookup-string, encode-dashes, draw-polygon*, and other places
+	that called malloc to not call malloc -- either use resource or
+	make-vector.
+
+	Made drawing with simple opacities (of the foreground color) work.
+
+	Made port event handler restartable.
+
+	Integrated Sun's copyright
+
+	Lots of other stuff
+
