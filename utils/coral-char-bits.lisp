@@ -1,5 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
+
+;; $fiHeader$
+
 (in-package :clim-utils)
 
 "Copyright (c) 1991 International Lisp Associates.  All rights reserved."
