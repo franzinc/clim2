@@ -1,5 +1,5 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -18,11 +18,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.86 1993/12/07 05:34:24 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.87 1994/12/05 00:01:56 colin Exp $
 
 (in-package :xm-silica)
 
-(defmethod make-pane-class ((framem motif-frame-manager) class &rest options) 
+(defmethod make-pane-class ((framem motif-frame-manager) class &rest options)
   (declare (ignore options))
   (second (assoc class '((scroller-pane motif-scroller-pane)
                          (outlined-pane motif-frame-pane)
@@ -69,7 +69,7 @@
 
 (defclass motif-value-changed-callback-pane () ())
 
-(defmethod add-sheet-callbacks :after 
+(defmethod add-sheet-callbacks :after
            ((port motif-port) (sheet motif-value-changed-callback-pane) (widget t))
   (tk::add-callback widget
                     :value-changed-callback
@@ -80,7 +80,7 @@
 
 (defclass motif-losing-focus-callback-pane () ())
 
-(defmethod add-sheet-callbacks :after 
+(defmethod add-sheet-callbacks :after
            ((port motif-port) (sheet motif-losing-focus-callback-pane) (widget t))
   (tk::add-callback widget
                     :losing-focus-callback
@@ -91,38 +91,35 @@
 
 (defclass motif-labelled-gadget () ())
 
-(defmethod find-widget-class-and-initargs-for-sheet
+(defmethod find-widget-initargs-for-sheet
     :around ((port motif-port)
              (parent t)
              (sheet motif-labelled-gadget))
-  (multiple-value-bind
-      (class initargs)
-      (call-next-method)
-    (unless *in-find-widget-name-and-class-hack*
-      (with-accessors ((alignment gadget-alignment)
-		       (label gadget-label)) sheet
-	(etypecase label
-	  ((or null string)
-	   (unless (getf initargs :label-string)
-	     (setf (getf initargs :label-string) (or label ""))))
-	  ((or tk::pixmap pattern)
-	   (unless (getf initargs :label-pixmap)
-	     (when (typep label 'pattern)
-	       (with-sheet-medium (medium sheet)
-		 (setq label
-		   (pixmap-from-pattern label medium :pixmap))))
-	     (setf (getf initargs :label-pixmap) label)
-	     ;;-- Perhaps we need to stipple this?
-	     (setf (getf initargs :label-insensitive-pixmap) label)
-	     (setf (getf initargs :label-type) :pixmap))))
-	(unless (getf initargs :alignment)
-	  (setf (getf initargs :alignment) 
-	    (ecase alignment
-	      ((:left nil) :beginning)
-	      (:center :center)
-	      (:right :end))))
-	(setf (getf initargs :recompute-size) nil)))
-    (values class initargs)))
+  (let ((initargs (call-next-method)))
+    (with-accessors ((alignment gadget-alignment)
+		     (label gadget-label)) sheet
+      (etypecase label
+	((or null string)
+	 (unless (getf initargs :label-string)
+	   (setf (getf initargs :label-string) (or label ""))))
+	((or tk::pixmap pattern)
+	 (unless (getf initargs :label-pixmap)
+	   (when (typep label 'pattern)
+	     (with-sheet-medium (medium sheet)
+	       (setq label
+		 (pixmap-from-pattern label medium :pixmap))))
+	   (setf (getf initargs :label-pixmap) label)
+	   ;;-- Perhaps we need to stipple this?
+	   (setf (getf initargs :label-insensitive-pixmap) label)
+	   (setf (getf initargs :label-type) :pixmap))))
+      (unless (getf initargs :alignment)
+	(setf (getf initargs :alignment)
+	  (ecase alignment
+	    ((:left nil) :beginning)
+	    (:center :center)
+	    (:right :end))))
+      (setf (getf initargs :recompute-size) nil))
+    initargs))
 
 (defmethod (setf gadget-label) :after (nv (sheet motif-labelled-gadget))
   (when (sheet-direct-mirror sheet)
@@ -131,7 +128,7 @@
 
 (defmethod (setf gadget-alignment) :after (nv (sheet motif-labelled-gadget))
   (when (sheet-direct-mirror sheet)
-    (tk::set-values (sheet-direct-mirror sheet) 
+    (tk::set-values (sheet-direct-mirror sheet)
                     :alignment (ecase nv
                                  ((:left nil) :beginning)
                                  (:center :center)
@@ -157,13 +154,13 @@
 
 ;;; Label
 
-(defclass motif-label-pane (label-pane xt-leaf-pane motif-labelled-gadget) 
+(defclass motif-label-pane (label-pane xt-leaf-pane motif-labelled-gadget)
           ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-label-pane))
-  (values 'tk::xm-label nil))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-label-pane))
+  'tk::xm-label)
 
 
 (defmethod compose-space ((sheet motif-label-pane) &key width height)
@@ -194,32 +191,28 @@
 (defclass motif-push-button (push-button
                              motif-action-pane
                              motif-labelled-gadget
-                             xt-leaf-pane) 
+                             xt-leaf-pane)
           ())
 
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-push-button))
-  (values 'tk::xm-push-button 
-	  #-ignore nil
-	  #+ignore '(:margin-width 8 :margin-height 8) ;1
-	  #+ignore '(:margin-width 10 :margin-height 10))) 
-
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-push-button))
+  'tk::xm-push-button)
 
 (defmethod add-sheet-callbacks
     ((port motif-port) (sheet t) (widget tk::xm-my-drawing-area))
-  (tk::add-callback widget 
-                    :expose-callback 
+  (tk::add-callback widget
+                    :expose-callback
                     'sheet-mirror-exposed-callback
                     sheet)
   (tk::add-callback widget
-		    :input-callback 
+		    :input-callback
 		    'sheet-mirror-input-callback
 		    sheet)
   (tk::add-event-handler widget
-                         '(:enter-window 
+                         '(:enter-window
                            :leave-window
                            :pointer-motion-hint
                            :pointer-motion
@@ -248,11 +241,11 @@
 ;;; default is set and 1 for buttons created *after*. However, the
 ;;; bulletin board uses the default-button shadowing for *all* buttons
 ;;; if any are set as the default.
-;;; 
+;;;
 ;;; What we do therefore is to allocate more space (by a fudge factor)
 ;;; for all push buttons which are part of bb's to allow for extra
 ;;; the extra space needed for the default shadowing.
-;;; 
+;;;
 ;;; This works well as long as there is at least one default button in
 ;;; a bb so that the shadowing is used. However if there are none then
 ;;; no shadowing occurs and the buttons look stupidly big. So as a
@@ -306,7 +299,7 @@
   (declare (ignore parent parent-widget))
   (tk::set-values widget :default-button widget))
 
-  
+
 
 ;;; range pane mixin
 
@@ -317,7 +310,7 @@
 (defmethod gadget-value ((gadget motif-range-pane))
   ;;--- We should use the scale functions to get the value
   (let ((mirror (sheet-direct-mirror gadget)))
-    (if mirror 
+    (if mirror
         (multiple-value-bind
             (smin smax) (gadget-range* gadget)
           (multiple-value-bind
@@ -340,22 +333,22 @@
             (tk::get-values mirror :minimum :maximum)
           (with-no-value-changed-callbacks
               (tk::set-values mirror
-                              :value 
-			      (fix-coordinate 
+                              :value
+			      (fix-coordinate
                                       (compute-symmetric-value
                                        smin smax nv mmin mmax)))))))))
 
-;;; 
+;;;
 
 (defclass motif-separator (xt-oriented-gadget
                            xt-leaf-pane
                            silica::separator)
           ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-separator))
-  (values 'tk::xm-separator nil))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-separator))
+  'tk::xm-separator)
 
 ;;; Slider
 
@@ -366,8 +359,8 @@
 ;;;
 
 (defmethod set-widget-orientation ((gadget motif-oriented-sliding-gadget) nv)
-  (tk::set-values (sheet-direct-mirror gadget) 
-		  :processing-direction 
+  (tk::set-values (sheet-direct-mirror gadget)
+		  :processing-direction
 		  (case nv
 		    (:vertical :max-on-top)
 		    (:horizontal :max-on-right))
@@ -385,15 +378,20 @@
                     'queue-drag-event
                     sheet))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-slider))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-slider))
+  'tk::xm-scale)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-slider))
   (with-accessors ((label gadget-label)
                    (show-value-p gadget-show-value-p)
                    (value gadget-value)) sheet
     (multiple-value-bind
         (smin smax) (gadget-range* sheet)
-      (let ((mmin 0) 
+      (let ((mmin 0)
             (mmax 1000)
             (decimal-points 0)
             (decimal-places (slider-decimal-places sheet)))
@@ -401,7 +399,7 @@
                     (typep smin '(signed-byte 32))
                     (typep smax '(signed-byte 32)))
                (setq mmin smin mmax smax decimal-points 0))
-              ;; Real case
+	      ;; Real case
               (t
                (setq smin (float smin) smax (float smax))
                (let ((scaling (expt 10 decimal-places)))
@@ -411,20 +409,18 @@
 
         (assert (and (typep mmin '(signed-byte 32))
                      (typep mmax '(signed-byte 32))))
-        
-        (values 'tk::xm-scale 
-                (append
-                 (and show-value-p (list :show-value show-value-p ))
-                 (and (stringp label) (list :title-string label))
-                 (list :minimum mmin
-                       :maximum mmax
-                       :decimal-points decimal-points)
-                 (and value 
-                      (list :value (fix-coordinate 
-                                    (compute-symmetric-value
-                                     smin smax value mmin mmax))))))))))
 
-(defmethod (setf gadget-show-value-p) :after (nv (sheet motif-slider)) 
+        (append (and show-value-p (list :show-value show-value-p))
+		(and (stringp label) (list :title-string label))
+		(list :minimum mmin
+		      :maximum mmax
+		      :decimal-points decimal-points)
+		(and value
+		     (list :value (fix-coordinate
+				   (compute-symmetric-value
+				    smin smax value mmin mmax)))))))))
+
+(defmethod (setf gadget-show-value-p) :after (nv (sheet motif-slider))
   (when (sheet-direct-mirror sheet)
     (tk::set-values (sheet-direct-mirror sheet) :show-value nv)))
 
@@ -461,16 +457,21 @@
           ())
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-scroll-bar))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-scroll-bar))
+  'tk::xm-scroll-bar)
+
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-scroll-bar))
   (let ((size (scroll-bar-size sheet)))
-    (values 'tk::xm-scroll-bar
-	    (append '(:minimum 0 :maximum 1000)
-		    (when size
-		      `(:slider-size 
-			,(convert-scroll-bar-value-out sheet
-						       size)))))))
+    (append '(:minimum 0 :maximum 1000)
+	    (when size
+	      `(:slider-size
+		,(convert-scroll-bar-value-out sheet
+					       size))))))
 
 ;;;--- We should use the motif functions for getting and changing the
 ;;;--- values
@@ -481,7 +482,7 @@
   (let ((mirror (sheet-direct-mirror sb)))
     (when mirror
       (multiple-value-bind
-	  (real-value real-size line-increment) 
+	  (real-value real-size line-increment)
 	  (compute-new-scroll-bar-values sb value slider-size line-increment)
 	(tk::set-values mirror
 			:increment line-increment :page-increment real-size
@@ -509,12 +510,12 @@
 
 (defmethod gadget-value ((gadget motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror gadget)))
-    (if mirror 
+    (if mirror
 	(convert-scroll-bar-value-in gadget
 				     (tk::get-values mirror :value))
       (call-next-method))))
 
-(defmethod (setf gadget-value) :after 
+(defmethod (setf gadget-value) :after
 	   (nv (gadget motif-scroll-bar) &key invoke-callback)
   (declare (ignore invoke-callback))
   (let ((mirror (sheet-direct-mirror gadget)))
@@ -555,9 +556,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod find-widget-class-and-initargs-for-sheet
+(defmethod find-widget-class-and-name-for-sheet
     ((port xt-port) (parent t) (sheet standard-sheet))
-  (values 'tk::xm-my-drawing-area nil))
+  'tk::xm-my-drawing-area)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -565,49 +566,52 @@
 (defclass motif-top-level-sheet (xt-top-level-sheet)
           ())
 
-(defmethod add-sheet-callbacks :after ((port motif-port) 
+(defmethod add-sheet-callbacks :after ((port motif-port)
                                        (sheet top-level-sheet)
                                        (widget tk::xm-my-drawing-area))
-  (tk::add-callback widget 
+  (tk::add-callback widget
                     :resize-callback 'sheet-mirror-resized-callback
                     sheet))
 
 (defparameter *xm-dialog-style*
     :primary-application-modal)
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet top-level-sheet))
-
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet top-level-sheet))
   (let* ((frame (pane-frame sheet))
 	 (name (and frame
 		    (frame-name frame))))
-    (if (popup-frame-p sheet)
-	;;--- hack alert
-	;; Seems that we need to use a bulletin board so that everything
-	;; comes up in the right place.
-	(values 'tk::xm-bulletin-board
-		(list :margin-width 0 :margin-height 0
-		      ;; We specify NIL for accelerators otherwise the
-		      ;; bulletin board messes with the event handling of
-		      ;; its drawing area children
-		      :accelerators nil
-		      ;; Prevents buttons from deactivating dialog
-		      :dialog-style *xm-dialog-style*
-		      :auto-unmanage nil
-		      :resize-policy :none
-		      :name name))
-      (values 'tk::xm-my-drawing-area 
-	      (list :resize-policy :none
-		    :name name
-		    :margin-width 0 :margin-height 0)))))
+    (values (if (popup-frame-p sheet)
+		;;--- hack alert
+		;; Seems that we need to use a bulletin board so that everything
+		;; comes up in the right place.
+		'tk::xm-bulletin-board
+	      'tk::xm-my-drawing-area)
+	     name)))
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet top-level-sheet))
+
+  (append (when (popup-frame-p sheet)
+	    ;; extra initargs for the bulletin board case
+	    (list :dialog-style *xm-dialog-style*
+		  ;; We specify NIL for accelerators otherwise the
+		  ;; bulletin board messes with the event handling of
+		  ;; its drawing area children
+		  :accelerators nil
+		  ;; Prevents buttons from deactivating dialog
+		  :auto-unmanage nil))
+	  (list :resize-policy :none
+		:margin-width 0 :margin-height 0)))
 
 ;;;;;;;;;;;;;;;;
 
-(defmethod add-sheet-callbacks :after ((port motif-port) (sheet t) 
+(defmethod add-sheet-callbacks :after ((port motif-port) (sheet t)
                                        (widget tk::xm-bulletin-board))
     (tk::add-event-handler widget
-                         '(:enter-window 
+                         '(:enter-window
                            :leave-window
                            :pointer-motion-hint
                            :pointer-motion
@@ -639,24 +643,27 @@
                             xt-leaf-pane)
           ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-text-field))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-text-field))
+  'tk::xm-text-field)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-text-field))
   (with-accessors ((editable gadget-editable-p)
 		   (value gadget-value)) sheet
-    (values 'tk::xm-text-field 
-            (append
-	     (and (not editable) '(:cursor-position-visible nil))
-	     `(:editable ,editable)
-             (and value `(:value ,value))))))
+    (append (and (not editable) '(:cursor-position-visible nil))
+	    `(:editable ,editable)
+	    (and value `(:value ,value)))))
 
 (defmethod gadget-current-selection ((tf motif-text-field))
   (let ((m (sheet-direct-mirror tf)))
-    (and m 
+    (and m
 	 (let  ((x (tk::xm_text_field_get_selection m)))
 	   (and (not (zerop x))
 		(ff:char*-to-string x))))))
-	 
+
 
 
 ;;; New definitions to support specifying width and height in terms of
@@ -745,10 +752,10 @@
 #+ignore
 (defmethod queue-modify-verify-event (widget doit sheet)
   (format excl:*initial-terminal-io* "~&~s,~s,~s" widget doit sheet))
-		    
-		    
 
-;;; 
+
+
+;;;
 
 (defclass motif-text-editor (motif-losing-focus-callback-pane
 			     motif-value-changed-callback-pane
@@ -758,10 +765,14 @@
                              xt-leaf-pane)
           ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet
-                                                      motif-text-editor))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-text-editor))
+  'tk::xm-text)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-text-editor))
   (with-accessors ((value gadget-value)
                    (editable gadget-editable-p)
                    (ncolumns gadget-columns)
@@ -771,21 +782,21 @@
 	   (let ((p (sheet-parent sheet)))
 	     (and (typep p 'motif-scroller-pane)
 		  (silica::scroller-pane-scroll-bar-policy p)))))
-      (values 'tk::xm-text
-	      (append
-	       `(:scroll-horizontal ,(and (member scroll-mode '(t :both :horizontal :dynamic)) t))
-	       `(:scroll-vertical ,(and (member scroll-mode '(t :both :vertical :dynamic)) t))
-	       (and (not editable) '(:cursor-position-visible nil))
-	       (list :edit-mode :multi-line)
-	       (list :editable editable)
-	       (and ncolumns (list :columns ncolumns))
-	       (and nlines (list :rows nlines))
-	       (and value `(:value ,value))
-	       (and word-wrap `(:word-wrap t)))))))
+      (append `(:scroll-horizontal
+		,(and (member scroll-mode '(t :both :horizontal :dynamic)) t))
+	      `(:scroll-vertical
+		,(and (member scroll-mode '(t :both :vertical :dynamic)) t))
+	      (and (not editable) '(:cursor-position-visible nil))
+	      (list :edit-mode :multi-line)
+	      (list :editable editable)
+	      (and ncolumns (list :columns ncolumns))
+	      (and nlines (list :rows nlines))
+	      (and value `(:value ,value))
+	      (and word-wrap `(:word-wrap t))))))
 
 (defmethod gadget-current-selection ((tf motif-text-editor))
   (let ((m (sheet-direct-mirror tf)))
-    (and m 
+    (and m
 	 (let  ((x (tk::xm_text_get_selection m)))
 	   (and (not (zerop x))
 		(ff:char*-to-string x))))))
@@ -843,18 +854,22 @@
                                xt-leaf-pane)
           ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-toggle-button))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-toggle-button))
+  'xt::xm-toggle-button)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-toggle-button))
   (with-accessors ((set gadget-value)
                    (indicator-type gadget-indicator-type)) sheet
-    (values 'xt::xm-toggle-button 
-            (append (list :set set)
-                    (ecase indicator-type
-                      ;;--- How can we deal with this portably
-                      ((nil) (list :indicator-on nil :shadow-thickness 2))
-                      (:one-of (list :indicator-type :one-of-many))
-                      (:some-of (list :indicator-type :n-of-many)))))))
+    (append (list :set set)
+	    (ecase indicator-type
+	      ;;--- How can we deal with this portably
+	      ((nil) (list :indicator-on nil :shadow-thickness 2))
+	      (:one-of (list :indicator-type :one-of-many))
+	      (:some-of (list :indicator-type :n-of-many))))))
 
 (defmethod gadget-value ((gadget motif-toggle-button))
   (let ((m (sheet-direct-mirror gadget)))
@@ -874,19 +889,19 @@
   nv)
 
 #+ignore
-(defmethod add-sheet-callbacks :after ((port motif-port) 
+(defmethod add-sheet-callbacks :after ((port motif-port)
                                        (sheet clim-stream-sheet)
                                        (widget tk::xm-my-drawing-area))
   ;;---- It would suprise me if we needed this.
-  (tk::add-callback widget 
-                    :resize-callback 
+  (tk::add-callback widget
+                    :resize-callback
                     'sheet-mirror-resized-callback
                     sheet))
 
 ;; ignoring the following function - what does it do - no-one appears
 ;; to call it (cim 6/21/94)
 
-#+ignore 
+#+ignore
 (defun scroll-bar-changed-callback (widget which scroller)
   (let* ((vp (sheet-child scroller))
          (viewport (viewport-viewport-region vp))
@@ -915,7 +930,7 @@
                         0
                         (/ value (- 100 size)))))
              (bounding-rectangle-min-y viewport)))))))
-        
+
 ;;;;;;;;;;;;;;;
 
 (defclass xm-viewport
@@ -928,32 +943,39 @@
 (defclass motif-row-column-gadget-mixin (xt-oriented-gadget)
 	  ())
 
-(defmethod find-widget-class-and-initargs-for-sheet :around  ((port motif-port)
-							      (parent t)
-							      (sheet motif-row-column-gadget-mixin))
-  (multiple-value-bind (class initargs)
-      (call-next-method)
-      (let ((x (ecase (gadget-orientation sheet)
-		 (:vertical (or (gadget-columns sheet)
-				(and (silica::gadget-rows sheet)
-				     (ceiling (length (sheet-children sheet)) (silica::gadget-rows sheet)))))
-		 (:horizontal (or (silica::gadget-rows sheet)
-				  (and (silica::gadget-columns sheet)
-				     (ceiling (length (sheet-children sheet)) (silica::gadget-columns sheet))))))))
-	(when x (setf (getf initargs :num-columns) x)))
-    (values class initargs)))
-  
+(defmethod find-widget-initargs-for-sheet :around  ((port motif-port)
+						    (parent t)
+						    (sheet motif-row-column-gadget-mixin))
+  (let ((initargs (call-next-method))
+	(x (ecase (gadget-orientation sheet)
+	     (:vertical (or (gadget-columns sheet)
+			    (and (silica::gadget-rows sheet)
+				 (ceiling (length (sheet-children sheet))
+					  (silica::gadget-rows sheet)))))
+	     (:horizontal (or (silica::gadget-rows sheet)
+			      (and (silica::gadget-columns sheet)
+				   (ceiling (length (sheet-children sheet))
+					    (silica::gadget-columns sheet))))))))
+    (when x
+      (setf (getf initargs :num-columns) x))
+    initargs))
+
 ;;;
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet xm-viewport))
-  (values 'tk::xm-my-drawing-area
-          `(:scrolling-policy :application-defined
-            :margin-width 0 :margin-height 0
-            :resize-policy :none
-            :scroll-bar-display-policy :static)))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet xm-viewport))
+  'tk::xm-my-drawing-area)
 
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet xm-viewport))
+  `(:scrolling-policy :application-defined
+		      :margin-width 0 :margin-height 0
+		      :resize-policy :none
+		      :scroll-bar-display-policy :static))
+
+;;;
 
 (defclass motif-radio-box (motif-row-column-gadget-mixin
 			   motif-geometry-manager
@@ -968,11 +990,10 @@
 (defmethod sheet-adopt-child :after ((gadget motif-radio-box) child)
   (setf (gadget-client child) gadget))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-radio-box))
-  (values 'tk::xm-radio-box nil))
-
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-radio-box))
+  'tk::xm-radio-box)
 
 (defclass motif-check-box (motif-row-column-gadget-mixin
 			   motif-geometry-manager
@@ -987,11 +1008,15 @@
 (defmethod sheet-adopt-child :after ((gadget motif-check-box) child)
   (setf (gadget-client child) gadget))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-check-box))
-  
-  (values 'tk::xm-row-column '(:packing :column)))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-check-box))
+  'tk::xm-row-column)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-check-box))
+  '(:packing :column))
 
 
 ;; Frame-viewport that we need because a sheet can have
@@ -1009,13 +1034,19 @@
 
 (defclass xm-frame-viewport (xm-frame-viewport-mixin) ())
 
-(defmethod find-widget-class-and-initargs-for-sheet
-    ((port xt-port) (parent t) (sheet xm-frame-viewport-mixin))
-  (values 'tk::xm-my-drawing-area 
-          ;;---  These are duplicated
-          (list :margin-width 0 
-                :resize-policy :none
-                :margin-height 0)))
+(defmethod find-widget-class-and-name-for-sheet ((port xt-port)
+						 (parent t)
+						 (sheet xm-frame-viewport-mixin))
+  'tk::xm-my-drawing-area)
+
+
+(defmethod find-widget-initargs-for-sheet ((port xt-port)
+					   (parent t)
+					   (sheet xm-frame-viewport-mixin))
+  ;;---  These are duplicated
+  (list :margin-width 0
+	:resize-policy :none
+	:margin-height 0))
 
 ;(defmethod allocate-space ((fr xm-frame-viewport-mixin) width height)
 ;  ;;-- Is this what wrapping space mixin should do???
@@ -1045,11 +1076,16 @@
       (sheet-adopt-child viewport contents))))
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-frame-pane))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-frame-pane))
+  'tk::xm-frame)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-frame-pane))
   (with-slots (shadow-type) sheet
-    (values 'tk::xm-frame (and shadow-type `(:shadow-type ,shadow-type)))))
+    (and shadow-type `(:shadow-type ,shadow-type))))
 
 (defmethod compose-space ((fr motif-frame-pane) &key width height)
   (declare (ignore width height))
@@ -1066,12 +1102,12 @@
 (defmethod add-sheet-callbacks
     ((port motif-port) (sheet t) (widget tk::xm-frame))
   (tk::add-event-handler widget
-                         '(:enter-window 
+                         '(:enter-window
                            :leave-window)
                          0
                          'sheet-mirror-event-handler
                          sheet))
- 
+
 ;;; Scrolling Window
 
 (defclass basic-motif-scrolling-window (motif-geometry-manager
@@ -1135,20 +1171,20 @@
           (when vsb-sr (maxf min-height (+ spacing (space-requirement-min-height vsb-sr))))
           (when hsb-sr (incf min-height (+ spacing (space-requirement-height hsb-sr))))
           (maxf max-height height)
-      
+
           (when hsb-sr (maxf width (+ spacing (space-requirement-min-width hsb-sr))))
           (when vsb-sr (incf width (+ spacing (space-requirement-width vsb-sr))))
           (when hsb-sr (maxf min-width (+ spacing (space-requirement-min-width hsb-sr))))
           (when vsb-sr (incf min-width (+ spacing (space-requirement-width vsb-sr))))
           (maxf max-width width)))
-      (make-space-requirement 
+      (make-space-requirement
         :width width :min-width min-width :max-width max-width
         :height height :min-height min-height :max-height max-height))))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet basic-motif-scrolling-window))
-  (values 'xt::xm-scrolled-window nil))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet basic-motif-scrolling-window))
+  'xt::xm-scrolled-window)
 
 ;; List-pane
 
@@ -1156,10 +1192,14 @@
           ())
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet
-                                                      motif-list-pane))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-list-pane))
+  'xt::xm-list)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-list-pane))
   (with-accessors ((items set-gadget-items)
                    (value gadget-value)
                    (value-key set-gadget-value-key)
@@ -1173,32 +1213,30 @@
 	   (let ((p (sheet-parent sheet)))
 	     (and (typep p 'motif-scroller-pane)
 		  (silica::scroller-pane-scroll-bar-policy p)))))
-      (values 'xt::xm-list 
-              `(
-		:list-size-policy 
-		#-ignore 
-		,(case scroll-mode
-		   (:vertical :variable)
-		   (t :constant))
-		#+ignore ;; this one required for buggy pre motif-1.2.4
-		,(case scroll-mode
-		   ((:horizontal t :both) :constant)
-		   (t :variable))
-		:scroll-bar-display-policy 
-		,(case scroll-mode
-		   ((:horizontal :vertical t :both) :static)
-		   (t :as-needed)
-		   :as-needed)
-                ,@(and selected-items
-                       `(:selected-item-count ,(length selected-items)
-                         :selected-items ,selected-items))
-                :selection-policy 
-                ,(ecase mode
-                   (:exclusive :browse-select)
-                   (:nonexclusive :multiple-select))
-                ,@(and visible-items `(:visible-item-count ,visible-items))
-                :items ,(mapcar name-key items) 
-                :item-count ,(length items))))))
+      `(:list-size-policy
+	#-ignore
+	,(case scroll-mode
+	   (:vertical :variable)
+	   (t :constant))
+	#+ignore ;; this one required for buggy pre motif-1.2.4
+	,(case scroll-mode
+	   ((:horizontal t :both) :constant)
+	   (t :variable))
+	:scroll-bar-display-policy
+	,(case scroll-mode
+	   ((:horizontal :vertical t :both) :static)
+	   (t :as-needed)
+	   :as-needed)
+	,@(and selected-items
+	       `(:selected-item-count ,(length selected-items)
+				      :selected-items ,selected-items))
+	:selection-policy
+	,(ecase mode
+	   (:exclusive :browse-select)
+	   (:nonexclusive :multiple-select))
+	,@(and visible-items `(:visible-item-count ,visible-items))
+	:items ,(mapcar name-key items)
+	:item-count ,(length items)))))
 
 (defmethod (setf set-gadget-items) :after (items (gadget motif-list-pane))
   ;;---- What should this do about selected items and the value etc etc
@@ -1218,23 +1256,23 @@
 
 (defun list-pane-single-selection-callback (widget item-position sheet)
   (declare (ignore item-count))
-  (let ((item (funcall (set-gadget-value-key sheet) 
+  (let ((item (funcall (set-gadget-value-key sheet)
                        (nth (1- item-position) (set-gadget-items sheet)))))
     ;;-- In browse select mode you get told when it is clicked on
     ;;-- even if it is already set.
     (unless (funcall (set-gadget-test sheet) item (gadget-value sheet))
-      (queue-value-changed-event 
+      (queue-value-changed-event
        widget sheet
        item))))
 
 (defun list-pane-multiple-selection-callback (widget item-positions sheet)
   (declare (ignore item-count))
   (let ((items (mapcar #'(lambda (item-position)
-                           (funcall (set-gadget-value-key sheet) 
+                           (funcall (set-gadget-value-key sheet)
                                     (nth (1- item-position)
                                          (set-gadget-items sheet))))
                        item-positions)))
-    (queue-value-changed-event 
+    (queue-value-changed-event
      widget sheet items)))
 
 
@@ -1242,7 +1280,7 @@
     ((port motif-port) (sheet motif-list-pane) (widget xt::xm-list))
   (tk::add-callback widget :browse-selection-callback
 		    'list-pane-single-selection-callback sheet)
-  (tk::add-callback widget :multiple-selection-callback 
+  (tk::add-callback widget :multiple-selection-callback
 		    'list-pane-multiple-selection-callback sheet))
 
 (defmethod (setf gadget-value) :after
@@ -1261,13 +1299,17 @@
 (defclass motif-option-pane (option-pane motif-labelled-gadget xt-leaf-pane)
           ((buttons :accessor motif-option-menu-buttons)))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-option-pane))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-option-pane))
+  'xt::xm-option-menu)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-option-pane))
   (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
     (update-option-menu-buttons port sheet pdm)
-    (values 'xt::xm-option-menu
-	    `(:sub-menu-id ,pdm :margin-height 0))))
+    `(:sub-menu-id ,pdm :margin-height 0)))
 
 (defun update-option-menu-buttons (port sheet pdm)
   (let ((initargs (find-widget-resource-initargs-for-sheet port sheet)))
@@ -1279,20 +1321,20 @@
 	(mapcar #'(lambda (item)
 		    (let* ((name (funcall name-key item))
 			   (pixmap (unless (or (null printer) (eq printer #'write-token))
-				     (pixmap-from-menu-item 
+				     (pixmap-from-menu-item
 				      sheet name printer nil)))
-			   (button 
+			   (button
 			    (if (null pixmap)
-				(apply #'make-instance 'tk::xm-push-button 
+				(apply #'make-instance 'tk::xm-push-button
 				  :label-string name
 				  :parent pdm
 				  initargs)
-			      (apply #'make-instance 'tk::xm-push-button 
+			      (apply #'make-instance 'tk::xm-push-button
 				:label-pixmap pixmap
 				:label-type :pixmap
 				:parent pdm
 				initargs))))
-		      (tk::add-callback  
+		      (tk::add-callback
 		       button
 		       :activate-callback
 		       'option-menu-callback-function
@@ -1306,10 +1348,12 @@
   ;;---- What should this do about selected items and the value etc etc
   (let ((m (sheet-direct-mirror gadget)))
     (when m
-      (let ((pdm (tk::get-values m :sub-menu-id)))
-	(tk::unmanage-children (tk::widget-children pdm))
-	(mapc #'tk::destroy-widget (tk::widget-children pdm))
-	(update-option-menu-buttons (port gadget) gadget pdm)))))
+      (let ((old-pdm (tk::get-values m :sub-menu-id))
+	    (pdm (make-instance 'xt::xm-pulldown-menu
+		   :managed nil :parent (tk::widget-parent m))))
+	(update-option-menu-buttons (port gadget) gadget pdm)
+	(tk::set-values m :sub-menu-id pdm)
+	(tk::destroy-widget old-pdm)))))
 
 (defun option-menu-callback-function (widget count value sheet)
   (declare (ignore count))
@@ -1317,7 +1361,7 @@
 
 (defmethod (setf gadget-value) :after
     (nv (gadget motif-option-pane) &key invoke-callback)
-  (declare (ignore invoke-callback)) 
+  (declare (ignore invoke-callback))
   (with-no-value-changed-callbacks
       (set-option-menu-value gadget nv)))
 
@@ -1343,7 +1387,7 @@
           (tk::set-values widget :menu-history (nth x (motif-option-menu-buttons gadget)))
           (let* ((name (funcall name-key (nth x items)))
                  (pixmap (unless (or (null printer) (eq printer #'write-token))
-                           (pixmap-from-menu-item 
+                           (pixmap-from-menu-item
                             gadget name printer nil)))
                  (widget (tk::intern-widget (tk::xm_option_button_gadget widget))))
             (if pixmap
@@ -1351,8 +1395,8 @@
               (tk::set-values widget :label-string name))))))))
 
 (defmethod frame-manager-notify-user ((framem motif-frame-manager)
-                                      message-string 
-                                      &key 
+                                      message-string
+                                      &key
                                       text-style
 				      background
 				      foreground
@@ -1369,15 +1413,15 @@
 					 :abort
 					 :help))
                                       (name :notify-user)
-				      x-position 
+				      x-position
 				      y-position)
-  (let* ((initargs (find-widget-resource-initargs-for-sheet 
+  (let* ((initargs (find-widget-resource-initargs-for-sheet
 		    (port framem) associated-window
 		    :foreground foreground :background background
 		    :text-style text-style))
 	 (font-list (getf initargs :font-list))
 	 (pixmap (when (typep style '(or string pixmap))
-		   (prog1 style 
+		   (prog1 style
 		     (setq style :message))))
 	 (dialog (apply #'make-instance (ecase style
 					 (:inform 'tk::xm-information-dialog)
@@ -1396,7 +1440,7 @@
 		       :label-font-list font-list
 		       :button-font-list font-list
 		       :text-font-list font-list
-		       (append 
+		       (append
 			(and pixmap `(:symbol-pixmap ,pixmap))
 			initargs)))
 	 (result nil))
@@ -1408,12 +1452,12 @@
                (setq result (list r))))
         (tk::add-callback dialog :ok-callback #'set-it t)
         (tk::add-callback dialog :cancel-callback #'set-it nil)
-        
-	(process-exit-boxes framem 
+
+	(process-exit-boxes framem
 			    associated-window
 			    documentation exit-boxes ok-button cancel-button
 			    help-button dialog)
-        
+
         (catch 'notify-user
 	  (unwind-protect
 	      (progn
@@ -1430,14 +1474,14 @@
 	    (tk::destroy-widget dialog))
 	  (car result))))))
 
-(defun process-exit-boxes (framem 
+(defun process-exit-boxes (framem
 			   associated-window
 			   documentation exit-boxes ok-button cancel-button
 			   help-button &optional dialog)
-  
+
   (flet ((display-help (widget ignore)
 	   (declare (ignore widget ignore))
-	   (frame-manager-notify-user 
+	   (frame-manager-notify-user
 	    framem
 	    documentation
 	    :associated-window associated-window))
@@ -1456,18 +1500,18 @@
     (set-button-state :exit ok-button :ok)
     (set-button-state :abort cancel-button :cancel)
     (set-button-state :help help-button :help)
-          
+
     (if documentation
 	(tk::add-callback help-button :activate-callback #'display-help)
       (xt::set-sensitive help-button nil))))
-  
+
 (defun get-message-box-child (widget &rest children)
   (values-list
    (mapcar #'(lambda (child)
                (tk::convert-resource-in
                 widget
                 'tk::widget
-                (tk::xm-message-box-get-child 
+                (tk::xm-message-box-get-child
                  widget
                  (tk::encode-box-child child))))
            children)))
@@ -1478,7 +1522,7 @@
                (tk::convert-resource-in
                 widget
                 'tk::widget
-                (tk::xm-selection-box-get-child 
+                (tk::xm-selection-box-get-child
                  widget
                  (tk::encode-box-child child))))
            children)))
@@ -1487,7 +1531,7 @@
 
 ;;; File Selection
 
-(defmethod frame-manager-select-file 
+(defmethod frame-manager-select-file
     ((framem motif-frame-manager) &key (frame nil frame-p)
 				  (associated-window
 				   (if frame-p
@@ -1507,13 +1551,13 @@
 				  text-style
 				  x-position
 				  y-position)
-                                  
-  (let* ((initargs (find-widget-resource-initargs-for-sheet 
+
+  (let* ((initargs (find-widget-resource-initargs-for-sheet
 		    (port framem) associated-window
 		    :foreground foreground :background background
 		    :text-style text-style))
 	 (font-list (getf initargs :font-list))
-	 (dialog (apply #'make-instance 
+	 (dialog (apply #'make-instance
 		       'tk::xm-file-selection-dialog
 		       :dialog-style *xm-dialog-style*
 		       :managed nil
@@ -1534,29 +1578,29 @@
 
       (when pattern
 	(tk::set-values dialog :pattern pattern))
-    
+
       (when directory-list-label
 	(tk::set-values dialog :dir-list-label-string
 			directory-list-label))
-    
+
       (when file-list-label
 	(tk::set-values dialog :file-list-label-string file-list-label))
-    
+
       (when file-search-proc
-	(tk::set-values dialog 
+	(tk::set-values dialog
 			:file-search-proc
 			(make-file-search-proc-function dialog
 							file-search-proc))
-	(tk::xm_file_selection_do_search 
-	 dialog (xt::xm_string_create_l_to_r 
+	(tk::xm_file_selection_do_search
+	 dialog (xt::xm_string_create_l_to_r
 		 (tk::get-values dialog :dir-mask)
 		 "")))
-    
-      (process-exit-boxes framem 
+
+      (process-exit-boxes framem
 			  associated-window
 			  documentation exit-boxes ok-button cancel-button
 			  help-button)
-    
+
       (flet ((set-it (widget r)
 	       (declare (ignore widget))
 	       (setq result (list r))))
@@ -1581,31 +1625,31 @@
 (ff::defun-c-callable file-search-proc-callback ((widget :unsigned-long)
                                                  (cb :unsigned-long))
   (setq widget (xt::find-object-from-address widget))
-  (file-search-proc-callback-1 
+  (file-search-proc-callback-1
    widget cb
    (or (cdr (assoc :file-search-proc (tk::widget-callback-data widget)))
        (error "No file search proc ~S" widget))))
-  
+
 (defun file-search-proc-callback-1 (widget cb fn)
   (multiple-value-bind
       (new newp)
       (funcall fn
-               (tk::convert-resource-in 
-                widget 'tk::xm-string 
+               (tk::convert-resource-in
+                widget 'tk::xm-string
                 (tk::xm-file-selection-box-callback-struct-value cb))
-               (tk::convert-resource-in 
-                widget 'tk::xm-string 
+               (tk::convert-resource-in
+                widget 'tk::xm-string
                 (tk::xm-file-selection-box-callback-struct-mask cb))
-               (tk::convert-resource-in 
-                widget 'tk::xm-string 
+               (tk::convert-resource-in
+                widget 'tk::xm-string
                 (tk::xm-file-selection-box-callback-struct-dir cb))
-               (tk::convert-resource-in 
-                widget 'tk::xm-string 
+               (tk::convert-resource-in
+                widget 'tk::xm-string
                 (tk::xm-file-selection-box-callback-struct-pattern
                  cb)))
     (when newp
-      (tk::set-values widget 
-                      :file-list-items new 
+      (tk::set-values widget
+                      :file-list-items new
                       :file-list-item-count (length new)
                       :list-updated t))))
 
@@ -1641,11 +1685,15 @@
 (defclass xm-paned-viewport (xm-frame-viewport-mixin) ())
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-paned-pane))
-  (values 'xt::xm-paned-window 
-          '(:margin-height 0 :margin-width 0)))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-paned-pane))
+  'xt::xm-paned-window)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-paned-pane))
+  '(:margin-height 0 :margin-width 0))
 
 
 (defmethod compose-space ((fr motif-paned-pane) &key width height)
@@ -1656,11 +1704,11 @@
             (m (sheet-direct-mirror child)))
         (when m
           #+ignore
-          (tk::set-values 
-           m 
+          (tk::set-values
+           m
            :pane-minimum (space-requirement-min-height csr)
            :pane-maximum (space-requirement-max-height csr)))
-        (setq sr 
+        (setq sr
           (if sr
               (space-requirement+ (space-requirement+* sr :height 10) csr)
             csr))))))
@@ -1681,8 +1729,8 @@
     (let ((csr (compose-space child))
           (m (sheet-direct-mirror child)))
       (when m
-        (tk::set-values 
-         m 
+        (tk::set-values
+         m
          :pane-minimum (fix-coordinate (space-requirement-min-height csr))
          :pane-maximum (fix-coordinate (space-requirement-max-height csr)))))))
 
@@ -1722,11 +1770,10 @@
         (sheet-adopt-child pane viewport)
         (sheet-adopt-child viewport child)))))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-rc-pane))
-  (values 'xt::xm-row-column nil))
-
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-rc-pane))
+  'xt::xm-row-column)
 
 ;; Form
 
@@ -1755,12 +1802,16 @@
 
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-                                                     (parent t)
-                                                     (sheet motif-form-pane))
+(defmethod find-widget-class-and-name-for-sheet ((port motif-port)
+						 (parent t)
+						 (sheet motif-form-pane))
+  'xt::xm-form)
+
+(defmethod find-widget-initargs-for-sheet ((port motif-port)
+					   (parent t)
+					   (sheet motif-form-pane))
   (with-slots (fraction-base) sheet
-    (values 'xt::xm-form 
-            (and fraction-base (list :fraction-base fraction-base )))))
+    (and fraction-base (list :fraction-base fraction-base))))
 
 
 (defmethod (setf port) :around ((port motif-port) (sheet motif-form-pane) &key graft)
@@ -1773,13 +1824,13 @@
   (dolist (attachment (slot-value sheet 'attachments))
     (apply #'tk::set-values (sheet-mirror (nth (car attachment) (sheet-children sheet)))
            (cdr attachment)))
-               
+
   (dolist (child (sheet-children sheet))
     (let ((csr (compose-space child))
           (m (sheet-direct-mirror child)))
       (when m
-        (tk::set-values 
-         m 
+        (tk::set-values
+         m
          :width (fix-coordinate (space-requirement-width csr))
          :height (fix-coordinate (space-requirement-height csr)))))))
 
@@ -1789,7 +1840,7 @@
 ;; Utilize a motif scrolling window to provide the scrollbars and
 ;; geometry management
 
-(defclass motif-scroller-pane (scroller-pane basic-motif-scrolling-window) 
+(defclass motif-scroller-pane (scroller-pane basic-motif-scrolling-window)
           ())
 
 (defmethod initialize-instance :after ((sp motif-scroller-pane) &key
@@ -1806,7 +1857,7 @@
           (setf (scroller-pane-vertical-scroll-bar sp) sb)
           (sheet-adopt-child sp sb)))
       (when (member scroll-bars '(t :both :dynamic :horizontal))
-        (let ((sb (make-pane 'scroll-bar 
+        (let ((sb (make-pane 'scroll-bar
                              :orientation :horizontal :id :horizontal
                              :client sp)))
           (setf (scroller-pane-horizontal-scroll-bar sp) sb)
@@ -1822,7 +1873,7 @@
 (defmethod initialize-mirror :after ((port motif-port)
                                      (parent motif-scroller-pane)
                                      (parent-widget t)
-                                     (sheet motif-scroll-bar) 
+                                     (sheet motif-scroll-bar)
                                      (widget t))
   (tk::set-values parent-widget
                   (if (eq sheet (scroller-pane-vertical-scroll-bar parent))
@@ -1848,8 +1899,8 @@
   ;; Really Xt should have a callback for this. Not the drawing area.
   (typecase widget
     (tk::xm-my-drawing-area
-     (tk::add-callback widget 
-                       :resize-callback 
+     (tk::add-callback widget
+                       :resize-callback
                        'sheet-mirror-resized-callback
                        sheet))
     (xt::xm-gadget
@@ -1873,18 +1924,18 @@
 
 ;; Support for help
 
-(defmethod add-sheet-callbacks :after 
+(defmethod add-sheet-callbacks :after
            ((port motif-port) (sheet gadget) (widget xt::xm-primitive))
   (add-help-callback sheet widget))
 
-(defmethod add-sheet-callbacks :after 
+(defmethod add-sheet-callbacks :after
            ((port motif-port) (sheet gadget) (widget xt::xm-manager))
   (add-help-callback sheet widget))
 
 (defun add-help-callback (sheet widget)
   (when (silica::gadget-help-callback sheet)
-    (tk::add-callback widget 
-		      :help-callback 
+    (tk::add-callback widget
+		      :help-callback
 		      'help-callback-function
 		      sheet)))
 
@@ -1895,7 +1946,7 @@
    (allocate-event 'gadget-help-event
 		   :gadget sheet)))
 
-(defclass gadget-help-event (gadget-event) 
+(defclass gadget-help-event (gadget-event)
   ())
 
 (defmethod handle-event ((sheet basic-gadget) (event gadget-help-event))
@@ -1918,16 +1969,6 @@
   (declare (ignore pane))
   (when (typep m 'xt::xt-root-class)
     (tk::set-values m :font-list (text-style-mapping port text-style))))
-
-(defmethod sheet-text-style :around ((port motif-port) (sheet t))
-   (or (call-next-method)
-       *default-text-style*))
-
-(defmethod sheet-text-style ((port motif-port) (sheet sheet-with-resources-mixin))
-  (pane-text-style sheet))
-  
-(defmethod sheet-text-style ((port motif-port) (sheet t))
-  (getf (get-application-resources port) :text-style))
 
 (defmethod find-widget-resource-initargs-for-sheet :around
     ((port motif-port) (sheet t) &key text-style)

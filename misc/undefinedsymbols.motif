@@ -21,3 +21,9 @@ XmFileSelectionDoSearch
 XmOptionLabelGadget
 XmOptionButtonGadget
 XmTextFieldGetSelection
+XmSelectionBoxGetChild
+XmFontListNextEntry
+XmToggleButtonSetState
+XmToggleButtonGetState
+XmTextGetSelection
+XmGetXmDisplay

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.19 1993/10/26 03:22:25 colin Exp $
+;; $fiHeader: ol-init.lisp,v 1.20 1994/12/05 00:01:06 colin Exp $
 
 (in-package :tk)
 
@@ -59,7 +59,7 @@
 (unless *ol-done*
   (ol-initialize)
   (xt-initialize)
-  (define-toolkit-classes 
+  (define-toolkit-classes
        *intrinsic-classes*
        *openlook-classes*)
   (setq *ol-done* t))
@@ -76,7 +76,7 @@
 			   (make-instance 'resource
 					  :name :menu-pane
 					  :type 'widget
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "menuPane")))
 
@@ -84,17 +84,16 @@
 		       (make-instance 'resource
 				      :name :menu-pane
 				      :type 'widget
-				      :original-name 
+				      :original-name
 				      (string-to-char*
 				       "menuPane")))
 
-#+ignore ;; moved to load-ol
-(progn
+#+dlfcn
+(when sys::*toolkit-shared*
   (defun reinitialize-toolkit ()
     (ol-initialize)
     (xt_toolkit_initialize)
     (setup-error-handlers)
     (install-ol-error-handlers)
     (fixup-class-entry-points))
-  (push '(:eval reinitialize-toolkit) excl::*restart-actions*)
-  )
+  (push '(:eval reinitialize-toolkit) excl::*restart-actions*))

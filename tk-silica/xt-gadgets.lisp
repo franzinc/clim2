@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[Thu Aug 19 15:39:02 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.39 1993/10/26 03:22:54 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.40 1994/12/05 00:02:03 colin Exp $
 
 (in-package :xm-silica)
 
@@ -33,36 +33,30 @@
       (tk::widget-best-geometry (sheet-direct-mirror pane) :width
 				width :height height)
     (declare (ignore x y borderwidth care-x care-y care-width
-		     care-height care-borderwidth)) 
+		     care-height care-borderwidth))
     (make-space-requirement :width width :height height)))
 
 
 ;;; Pane
 
-(defmethod find-widget-class-and-initargs-for-sheet :around
+(defmethod find-widget-class-and-name-for-sheet :around
 	   ((port xt-port) (parent t)
 	    (pane pane))
   ;; Include the name of the pane
   (multiple-value-bind
-      (class initargs)
+      (class name)
       (call-next-method)
-    (let ((name (pane-name pane)))
-      (values class
-	      (progn
-		(when (and name 
-			   (not (getf initargs :name)))
-		  (setf (getf initargs :name) name))
-		initargs)))))
+    (values class
+	    (or name
+		(pane-name pane)))))
 
 ;; Background/foreground/text-style mixin
 
-(defmethod find-widget-class-and-initargs-for-sheet :around
-    ((port xt-port) (parent t)
-     (sheet sheet-with-resources-mixin))
-  (multiple-value-bind (class initargs)
-      (call-next-method)
-    (let ((other-initargs (find-widget-resource-initargs-for-sheet port sheet)))
-      (values class (append initargs other-initargs)))))
+(defmethod find-widget-initargs-for-sheet :around
+	   ((port xt-port) (parent t)
+	    (sheet sheet-with-resources-mixin))
+  (append (call-next-method)
+	  (find-widget-resource-initargs-for-sheet port sheet)))
 
 (defun ensure-color (c palette)
   (etypecase c
@@ -80,7 +74,7 @@
 	      (decode-gadget-background medium sheet
 					(ensure-color background palette)))
 	  ,@(when foreground
-	      (decode-gadget-foreground medium sheet 
+	      (decode-gadget-foreground medium sheet
 					(ensure-color foreground palette))))))))
 
 (defmethod find-widget-resource-initargs-for-sheet
@@ -93,7 +87,7 @@
 					    palette)
       :foreground ,(decode-color-in-palette (ensure-color foreground palette)
 					    palette))))
-    
+
 (defmethod find-widget-resource-initargs-for-sheet :around
     ((port xt-port) (sheet t) &key foreground background)
   (let ((initargs (call-next-method))
@@ -131,21 +125,30 @@
     (with-sheet-medium (medium pane)
       (apply #'tk::set-values m (decode-gadget-background medium pane ink)))))
 
+(defmethod sheet-text-style :around ((port xt-port) (sheet t))
+   (or (call-next-method)
+       *default-text-style*))
 
-(defclass xt-pane (basic-pane) 
+(defmethod sheet-text-style ((port xt-port) (sheet sheet-with-resources-mixin))
+  (pane-text-style sheet))
+
+(defmethod sheet-text-style ((port xt-port) (sheet t))
+  (getf (get-application-resources port) :text-style))
+
+
+
+(defclass xt-pane (basic-pane)
 	  ;;--- Is this useful a hack enabling things to be passed through
 	  ;;--- to the mirror
 	  ((silica::mirror-initargs  :initarg :mirror-initargs))
   (:default-initargs :mirror-initargs nil))
 
-(defmethod find-widget-class-and-initargs-for-sheet :around ((port xt-port)
-							     (parent t)
-							     (sheet xt-pane))
-  (multiple-value-bind
-      (class initargs)
-      (call-next-method)
-    (values class (append (slot-value sheet 'silica::mirror-initargs) initargs))))
-	    
+(defmethod find-widget-initargs-for-sheet :around ((port xt-port)
+						   (parent t)
+						   (sheet xt-pane))
+  (append (slot-value sheet 'silica::mirror-initargs)
+	  (call-next-method)))
+
 (defmethod note-gadget-activated :after ((client t) (gadget xt-pane))
   (let (m)
     (when (setq m (sheet-direct-mirror gadget))
@@ -160,12 +163,12 @@
 
 (defclass xt-leaf-pane (sheet-permanently-enabled-mixin
 			client-overridability-mixin
-			mirrored-sheet-mixin 
+			mirrored-sheet-mixin
 			ask-widget-for-size-mixin
 			xt-pane)
 	  ())
 
-(defclass xt-top-level-sheet (top-level-sheet) 
+(defclass xt-top-level-sheet (top-level-sheet)
 	  ((accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)))
 
 ;;-- Is this safe?
@@ -189,7 +192,7 @@
 	  (get-values (tk::widget-parent mirror) :x :y)
 	(multiple-value-bind (width height)
 	    (get-values mirror :width :height)
-	  (values (coordinate x) (coordinate y) 
+	  (values (coordinate x) (coordinate y)
 		  (coordinate (+ x width)) (coordinate (+ y height))))))))
 
 (defmethod top-level-sheet-accelerator-gestures ((sheet top-level-sheet)) nil)
@@ -211,25 +214,25 @@
 			 1
 			 'sheet-mirror-event-handler
 			 sheet))
-			 
+
 
 ;;; scroll bar utilities
 
 (defun convert-scroll-bar-value-out (scroll-bar value)
-  (multiple-value-bind 
+  (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
     (fix-coordinate
      (compute-symmetric-value
       smin smax value 0 1000))))
 
 (defun convert-scroll-bar-value-in (scroll-bar value)
-  (multiple-value-bind 
+  (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
     (compute-symmetric-value
      0 1000 value smin smax )))
 
 (defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment)
-  (values 
+  (values
    (and value
 	(convert-scroll-bar-value-out scroll-bar value))
    (and slider-size
@@ -241,16 +244,17 @@
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
   (if (eq mp:*current-process* (port-process port))
       (progn
-	(loop 
+	(loop
 	  (when (funcall predicate) (return nil))
 	  (process-next-event port)))
     (mp:process-wait whostate predicate)))
 
+;; accelerator and mnemonic support
+
 (defun set-button-mnemonic (menubar button mnem)
-  (when mnem 
+  (when mnem
     (record-accelerator menubar (list mnem :meta))
     (tk::set-values button :mnemonic mnem)))
-
 
 (defun record-accelerator (menubar gesture)
   (let ((sheet (frame-top-level-sheet (pane-frame menubar))))
@@ -273,16 +277,14 @@
 
 (defclass xt-oriented-gadget () ())
 
-(defmethod find-widget-class-and-initargs-for-sheet :around ((port xt-port)
-                                                             (parent t)
-                                                             (sheet xt-oriented-gadget))
-  (multiple-value-bind
-      (class initargs)
-      (call-next-method)
+(defmethod find-widget-initargs-for-sheet :around ((port xt-port)
+						   (parent t)
+						   (sheet xt-oriented-gadget))
+  (let ((initargs (call-next-method)))
     (with-accessors ((orientation gadget-orientation)) sheet
       (unless (getf initargs :orientation)
         (setf (getf initargs :orientation) orientation)))
-    (values class initargs)))
+    initargs))
 
 (defmethod (setf gadget-orientation) :after (nv (gadget xt-oriented-gadget))
   (when (sheet-direct-mirror gadget)
@@ -325,7 +327,7 @@
        :min-height (and min-height (process-height-specification sheet min-height))
        :max-height (and max-height (process-height-specification sheet max-height))))))
 
-(defvar *funny-accelerator-characters* 
+(defvar *funny-accelerator-characters*
     '(
       ((#\\ :\\) "backslash")
       ((#\space :\ ) "space")
@@ -335,14 +337,14 @@
 
 (defun get-accelerator-text (keystroke &optional olit)
   (let ((key (car keystroke)))
-    (let ((x (assoc key *funny-accelerator-characters* 
+    (let ((x (assoc key *funny-accelerator-characters*
 		    :test #'member)))
       (if x
-	  (values (if olit 
+	  (values (if olit
 		      (format nil "<~A>"  (second x))
 		      (format nil "<Key>~A"  (second x)))
 		  (format nil "~A" key))
-	(values (if olit 
+	(values (if olit
 		    (format nil "<~A>" key)
 		  (format nil "<Key>~A" key))
 		(format nil "~A" key))))))

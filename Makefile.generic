@@ -1,48 +1,26 @@
-# $fiHeader: Makefile.generic,v 1.26 1994/11/23 23:28:33 smh Exp $
+# $fiHeader: Makefile.generic,v 1.28 1994/12/18 06:44:37 duane Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
 
+all: compile cat clim
+
+trained:
+	(${make} all train ; ${make} clim)
+
 FORCE:
 
-default: all-xm
-
-trained-clim-xm:	
-	(${make} all-xm train ; ${make} clim-xm)
-
-trained-clim-ol:	
-	(${make} all-ol train ; ${make} clim-ol)
-
-all-xm:	compile-xm cat-xm clim-xm
-all-ol:	compile-ol cat-ol clim-ol
-
-compile-xm:	$(MOTIF_OBJS) FORCE
-	$(ECHO) "\
+compile: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(ECHO) " \
 	(progn \
-	  (load \"misc/compile-1.lisp\") \
-	  (load-logical-pathname-translations \"clim2\") \
+	  (setf (logical-pathname-translations \"clim2\") \
+	    \`((\";**;*.*\" ,(current-directory)))) \
+	  #+ignore (load-logical-pathname-translations \"clim2\") \
+	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
-	  (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
-	  (let ((*compile-print $(COMPILE_PRINT)) \
-		(*compile-verbose* t) \
-		(excl:*redefinition-warnings* t) \
-		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
-		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
-		(excl:*record-xref-info* $(RECORD-XREF-INFO)) \
-		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
-	    (compile-it 'motif-clim)))" \
-     | $(CL) $(CLOPTS) -batch -backtrace-on-error
-
-compile-ol:	$(OPENLOOK_OBJS) FORCE
-	$(ECHO) "\
-	(progn \
 	  (load \"misc/compile-1.lisp\") \
-	  (load-logical-pathname-translations \"clim2\") \
-	  (setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
-	  (setq sys::*libx11-pathname* \"$(OLXLIB)\") \
-	  (setq sys::*clim-motif-pathname* \"clim-olit$(DEBUGLIB).o\") \
 	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
 	  (let ((*compile-print $(COMPILE_PRINT)) \
 		(*compile-verbose* t) \
@@ -51,210 +29,166 @@ compile-ol:	$(OPENLOOK_OBJS) FORCE
 		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
 		(excl:*record-xref-info* $(RECORD-XREF-INFO)) \
 		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
-	    (compile-it 'openlook-clim)))" \
-     | $(CL) $(CLOPTS) -batch -backtrace-on-error
+	    (compile-it '$(SYSTEM))))" \
+	| $(CL) $(CLOPTS))
 
 # Concatenation
 
-cat:	cat-xm cat-ol
-cat-g:	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl # clim1compat.fasl
-cat-xm:	cat-g climxm.fasl clim-debugxm.fasl 
-cat-ol:	cat-g climol.fasl clim-debugol.fasl 
+cat: $(PRODUCT-GENERIC-FASLS) $(PRODUCT-TK-FASLS)
 
-# part of XLIB-CLIM-OBJS will have to be put at the beginning climxm and climol
-
-climg.fasl	: $(GENERIC-OBJS) $(XLIB-CLIM-OBJS)
-	$(CAT) $(GENERIC-OBJS) $(XLIB-CLIM-OBJS) > $(TMP)/clim.fasl_`whoami`
+climg.fasl: $(GENERIC-FASLS)
+	$(CAT) $(GENERIC-FASLS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climg.fasl
 	ls -lt climg.fasl >> Clim-sizes.n
 	ls -lt climg.fasl
 
-climdemo.fasl	: $(DEMO-OBJS)
-	$(CAT) $(DEMO-OBJS) > $(TMP)/clim.fasl_`whoami`
+climdemo.fasl: $(DEMO-FASLS)
+	$(CAT) $(DEMO-FASLS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climdemo.fasl
 	ls -lt climdemo.fasl >> Clim-sizes.n
 	ls -lt climdemo.fasl
 
-
-climgg.fasl	: $(GENERIC-GADGETS)
-	$(CAT) $(GENERIC-GADGETS) > $(TMP)/clim.fasl_`whoami`
+climgg.fasl: $(HOMEGROWN-GADGET-FASLS)
+	$(CAT) $(HOMEGROWN-GADGET-FASLS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climgg.fasl
 	ls -lt climgg.fasl >> Clim-sizes.n
 	ls -lt climgg.fasl
 
+clim-debug.fasl: $(DEBUG-FASLS)
+	$(CAT) $(DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` clim-debug.fasl
+	ls -lt clim-debug.fasl >> Clim-sizes.n
+	ls -lt clim-debug.fasl
 
-climxm.fasl	: $(MOTIF-OBJS)
-	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
+climxm.fasl: $(XM-FASLS)
+	$(CAT) $(XM-FASLS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climxm.fasl
 	ls -lt climxm.fasl >> Clim-sizes.n
 	ls -lt climxm.fasl
 
-climol.fasl	: $(OPENLOOK-OBJS)
-	$(CAT) $(OPENLOOK-OBJS) > $(TMP)/clim.fasl_`whoami`
+clim-debugxm.fasl: $(XM-DEBUG-FASLS)
+	$(CAT) $(XM-DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` clim-debugxm.fasl
+	ls -lt clim-debugxm.fasl >> Clim-sizes.n
+	ls -lt clim-debugxm.fasl
+
+climol.fasl: $(OL-FASLS)
+	$(CAT) $(OL-FASLS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climol.fasl
 	ls -lt climol.fasl >> Clim-sizes.n
 	ls -lt climol.fasl
 
-echo-fasls:
-	ls -lt $(MOTIF-OBJS) > /tmp/foo
-
-clim-debug.fasl:	$(DEBUG-OBJS)
-	$(CAT) $(DEBUG-OBJS) > $(TMP)/clim-debug.fasl_`whoami`
-	$(MV) $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
-	ls -lt clim-debug.fasl >> Clim-sizes.n
-	ls -lt clim-debug.fasl
-
-clim-debugxm.fasl:	$(XM-DEBUG-OBJS)
-	$(CAT) $(XM-DEBUG-OBJS) > $(TMP)/clim-debugxm.fasl_`whoami`
-	$(MV) $(TMP)/clim-debugxm.fasl_`whoami` clim-debugxm.fasl
-	ls -lt clim-debugxm.fasl >> Clim-sizes.n
-	ls -lt clim-debugxm.fasl
-
-clim-debugol.fasl:	$(OL-DEBUG-OBJS)
-	$(CAT) $(OL-DEBUG-OBJS) > $(TMP)/clim-debugol.fasl_`whoami`
-	$(MV) $(TMP)/clim-debugol.fasl_`whoami` clim-debugol.fasl
+clim-debugol.fasl: $(OL-DEBUG-FASLS)
+	$(CAT) $(OL-DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` clim-debugol.fasl
 	ls -lt clim-debugol.fasl >> Clim-sizes.n
 	ls -lt clim-debugol.fasl
 
-climps.fasl: 	$(POSTSCRIPT_CLIM)
-	$(CAT) $(POSTSCRIPT_CLIM) > $(TMP)/climps.fasl_`whoami`
-	$(MV) $(TMP)/climps.fasl_`whoami` climps.fasl
+climps.fasl: $(POSTSCRIPT-FASLS)
+	$(CAT) $(POSTSCRIPT-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climps.fasl
 
-climhpgl.fasl : $(HPGL_OBJS)
-	$(CAT) $(HPGL_OBJS) > $(TMP)/climhpgl.fasl_`whoami`
-	$(MV) $(TMP)/climhpgl.fasl_`whoami` climhpgl.fasl
+climhpgl.fasl: $(HPGL-FASLS)
+	$(CAT) $(HPGL-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climhpgl.fasl
 
-clim1compat.fasl : $(CLIM1COMPAT)
-	$(CAT) $(CLIM1COMPAT) > $(TMP)/clim1compat.fasl_`whoami`
-	$(MV) $(TMP)/clim1compat.fasl_`whoami` clim1compat.fasl
+clim1compat.fasl: $(CLIM1COMPAT-FASLS)
+	$(CAT) $(CLIM1COMPAT-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` clim1compat.fasl
 	ls -lt clim1compat.fasl >> Clim-sizes.n
 	ls -lt clim1compat.fasl
 
-# We should only run these rules when
-# We do this because we because we might have only compiled one port
+# Building (loading and dumping)
 
-tk/xm-defs.fasl : tk/xm-defs.lisp
-	echo Foo
-
-
-# Building
-
-clim-xm:	FORCE $(MOTIF_OBJS)
+clim: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 	-$(RM) -f $(CLIM)
+	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
-		(load-logical-pathname-translations \"clim2\") \
-		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
-		(setq sys::*libx11-pathname* \"$(XLIB)\") \
-	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-		(load \"misc/dev-load-1.lisp\") \
-		(load-it 'motif-clim) \
-		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-		(load \"misc/dump.lisp\")" | $(CL) $(CLOPTS) -batch -backtrace-on-error
+	(progn \
+	  (setf (logical-pathname-translations \"clim2\") \
+	    \`((\";**;*.*\" ,(current-directory)))) \
+	  #+ignore (load-logical-pathname-translations \"clim2\") \
+	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
+	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (load \"misc/dev-load-1.lisp\") \
+	  (load-it '$(SYSTEM)) \
+	  (setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
+	  (load \"misc/dump.lisp\"))" \
+	| $(CL) $(CLOPTS))
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lLt $(CLIM) >> Clim-sizes.n
 	size $(CLIM) >> Clim-sizes.n
 	ls -lLt $(CLIM)
-	echo CLIM-XM built!!!!	
-
-clim-ol:	FORCE $(OPENLOOK_OBJS)
-	-$(RM) -f $(CLIM)
-	$(ECHO) " \
-		(load-logical-pathname-translations \"clim2\") \
-		(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
-		(setq sys::*libx11-pathname* \"$(OLXLIB)\") \
-	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
-		(load \"misc/dev-load-1.lisp\") \
-		(load-it 'openlook-clim) \
-		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-		(load \"misc/dump.lisp\")" | $(CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
-	ls -lLt $(CLIM) >> Clim-sizes.n
-	size $(CLIM) >> Clim-sizes.n
-	ls -lLt $(CLIM)
-	echo CLIM-OL built!!!!		
-
-clim-small:	FORCE
-	$(ECHO) " \
-		(load-logical-pathname-translations \"clim2\") \
-		(load \"misc/load-xm.lisp\") \
-		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-		(load \"misc/dump.lisp\")" | $(CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
-	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
-	size $(CLIM-SMALL) >> Clim-sizes.n
-	ls -lt $(CLIM-SMALL)
+	echo $(SYSTEM) built!!!!	
 
 # Training
 
-train	:	FORCE
-	$(TRAIN_TEXT)
+train: FORCE
+	$(ECHO) " \
+	(progn \
+	  (load \"misc/train.lisp\") \
+	  (train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
+		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
+		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
+		:hpglview $(HPGLVIEW)))" \
+	| $(CLIM) $(CLOPTS)
+	echo $(SYSTEM) trained!!!!	
 
 # the following two rules are used by make-dist so that we don't have 
 # to build a slim image to run the test suite
 
-train-xm:	FORCE
+load-train: FORCE
+	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
-	(load-logical-pathname-translations \"clim2\") \
-	(setq sys::*libxt-pathname* \"$(XTLIB)\") \
-	(setq sys::*libx11-pathname* \"$(XLIB)\") \
-        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-	(load \"misc/dev-load-1.lisp\") \
-	(load-it 'motif-clim :load-composer nil) \
-	$(TRAIN_LISP) \
-	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
-	   $(CL) $(CLOPTS) -batch -backtrace-on-error
+	(progn \
+	  (setf (logical-pathname-translations \"clim2\") \
+	    \`((\";**;*.*\" ,(current-directory)))) \
+	  #+ignore (load-logical-pathname-translations \"clim2\") \
+	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
+	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (load \"misc/dev-load-1.lisp\") \
+	  (load-it '$(SYSTEM)) \
+	  (load \"misc/train.lisp\") \
+	  (train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
+		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
+		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
+		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\")
+	  (clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\"))" \
+	| $(CL) $(CLOPTS))
 
-train-ol:	FORCE
+generate_test_report: FORCE
 	$(ECHO) " \
-	(load-logical-pathname-translations \"clim2\") \
-	(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
-	(setq sys::*libx11-pathname* \"$(OLXLIB)\") \
-        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
-	(load \"misc/dev-load-1.lisp\") \
-	(load-it 'openlook-clim :load-composer nil) \
-	$(TRAIN_LISP) \
-	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
-	   $(CL) $(CLOPTS) -batch -backtrace-on-error
+	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
+	| $(CLIM) $(CLOPTS)
 
-generate_test_report:
-	@$(ECHO) "\
-	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\") \
-	 (exit) \
-" | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
+profile: FORCE
+	$(ECHO) " \
+	(clim-user::run-profile-clim-tests)" \
+	| $(CLIM) $(CLOPTS)
 
-profile	:	FORCE
-	$(ECHO) "\
-	(clim-user::run-profile-clim-tests) \
-"       | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
+benchmark: FORCE
+	$(ECHO) " \
+	(clim-test::benchmark-clim $(BENCHMARK_FILE))" \
+	| $(CLIM) $(CLOPTS)
 
-benchmark:
-	$(ECHO) "\
-	(clim-test::benchmark-clim $(BENCHMARK_FILE)) \
-"  | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
-
-testps :
-	$(ECHO) "\
+testps: FORCE
+	$(ECHO) " \
 	(load \"test/postscript-tests.lisp\") \
-	(clim-user::run-postscript-tests :output $(PSVIEW)) \
-"  | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
-
-echo-train:
-	-$(ECHO) "$(TRAIN_LISP)(exit 0)"
+	(clim-user::run-postscript-tests :output $(PSVIEW))" \
+	| $(CLIM) $(CLOPTS)
 
 # Misc
 
 cleanobjs: 
-	rm -f $(CLIMOBJS) *.o
+	rm -f *.o
 
 clean:
 	find . -name '*.fasl' -print | xargs rm -f
-	rm -f $(CLIMFASLS) $(CLIMOBJS) *.o \
-	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c slim slim.ol slim-small
-	rm -f *.z *.Z *.gz *.ilt
-
-cheapclean:
-	find $(CHEAP_CLEAN) -name "*.fasl" -print | xargs rm -f
-
+	rm -f *.o *.so slim slim.ol \
+	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c 
+	rm -f *.z *.Z *.gz *.ilt *.out
 
 tags:
 	$(TAGS) $(ALL_SRC)
@@ -262,17 +196,7 @@ tags:
 wc:
 	wc $(ALL_SRC)
 
-swm-tape:
-	tar cf $(DEVICE) `find $(PUBDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
-
-dist:	FORCE
-	tar -cf -  $(SRC_FILES) | compress >  Dist/src.tar.Z
-
-rcscheck:
-	rcscheck $(DIRS) | grep -v .fasl
-
-
-################## Make-dist stuff
+################## make-dist stuff
 
 echo_XTLIB:
 	@echo $(XTLIB)
@@ -280,85 +204,43 @@ echo_XTLIB:
 echo_XLIB:
 	@echo $(XLIB)
 
-echo_OLXTLIB:
-	@echo $(OLXTLIB)
-
-echo_OLXLIB:
-	@echo $(OLXLIB)
-
-makeclimfasls	: $(CLIM_FASLS_TO_MAKE)
-makeclimxmfasls	: compile-xm cat-xm
-makeclimolfasls	: compile-ol cat-ol
+makeclimfasls: compile cat
 
 install_obj:
-	cp $(INSTALLED_CLIMOBJS) $(DEST)
+	cp $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS) $(DEST)
 	
 install_clim: install_obj
-	cp $(CLIMFASLS) $(DEST)
-
-# Link in the libraries & distribution object files with standard names
-#
-# the following rule is no longer used by sh/make-dist.  4/29/93 -layer
-link-objects	:
-	ln -s $(XTLIB) $(DEST)/libXt.a
-	ln -s $(XLIB) $(DEST)/libX11.a
-#	ln -s $(INSTALLED_CLIMOBJS) $(DEST)
-
-# Backwards compatibility...
-link-motif-libraries:	link-objects
+	cp $(PRODUCT-GENERIC-FASLS) $(PRODUCT-TK-FASLS) $(DEST)
 
 echo_src_files:
 	@echo $(PRODUCT_SRC_FILES)
 
-makeclimobjs: $(CLIMOBJS)
+makeclimobjs: $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 
 ################## Lower level Makefile stuff
 
-# This is still needed for rs/6000:
-
-xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl ;\
+xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o xmsupport.o
+	cd $(CL_SRC)
+	/bin/mv ucl ucl.climsave ; $(SAVEEXP)
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
+		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
+		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o \
+		$(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/xmsupport.o \
+		$(PWD)/xtsupport.o $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
+		$(MOTIFLIB) $(XTLIB) $(XLIB)' dcl ;\
 	/bin/mv ucl.climsave ucl; $(RESTEXP)
 
+ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o xmsupport.o
+	cd $(CL_SRC)
+	/bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ; $(SAVEEXP)
+	make stubs=$(stubs) \
+		user_objects=' \
+		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
+		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
+		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' ucl ;\
+	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl
+	/bin/mv dcl.climsave dcl
 
-ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ; $(SAVEEXP) ;\
-	make stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(MOTIFLIB) $(MOTIFXTRAOS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
-	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl ; /bin/mv dcl.climsave dcl
+################## End of make-dist stuff
 
-# these were moved here from Makefile.cobjs because SVR4 needs them, too
-# (and I didn't want to duplicate them in Makefile.cobjs-svr4).
-
-stub-motif.c	:  $(XT_UNDEFS)  $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
-	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
-	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()"  $(XMC_UNDEFS) >> /tmp/`whoami`stub-motif.c 
-	$(MV) /tmp/`whoami`stub-motif.c  stub-motif.c 
-
-stub-olit.c	:   $(XT_UNDEFS) $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
-	misc/make-stub-file "void ___lisp_load_olit_stub ()"  $(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
-	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()"  $(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
-	$(MV) /tmp/`whoami`stub-olit.c  stub-olit.c 
-
-stub-x.c	:  $(UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_x_stub ()"  $(UNDEFS) > stub-x.c 
-
-stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_xt_stub ()"  $(XT_UNDEFS)  > stub-xt.c 
-
-# To keep make from complaining about syntax.  This is in the wrong place,
-# because the HOST defaults to sun4 always.
-MAIN_OBJ = mainxm.o
-
-include $(C_OBJECT_MAKEFILE)
-
-
-xm-composer : xm-dcl
-	cd /usr/composer2 ; make CL=$(CL) rebuild-c2
-
-ol-composer : ol-dcl
-	cd /usr/composer2 ; make CL=$(CL) rebuild-c2
-
-
-lsxmfasls:
-	@ls -s $(MOTIF-OBJS) | sort -nr
+include Makefile.cobjs

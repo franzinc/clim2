@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[Tue Jul 27 13:40:13 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.27 1993/07/27 01:54:59 colin Exp $
+;; $fiHeader: ol-frames.lisp,v 1.28 1993/07/27 22:29:44 colin Exp $
 
 
 (in-package :xm-silica)
 
-(defclass openlook-frame-manager (xt-frame-manager) 
+(defclass openlook-frame-manager (xt-frame-manager)
     ()
   (:default-initargs :dialog-view +gadget-dialog-view+))
 
@@ -38,7 +38,7 @@
   (when (frame-panes frame)
     (let ((shell (frame-shell frame)))
       (tk::add-ol-callback
-       shell 
+       shell
        (ff::string-to-char* "wmProtocol")
        :wm-protocol
        'ol-frame-wm-protocol-callback
@@ -49,13 +49,13 @@
     (frame-wm-protocol-callback shell frame)))
 
 
-;;;; 
+;;;;
 
-(defmethod frame-manager-construct-menu 
-	   ((framem openlook-frame-manager) 
-	    items 
-	    printer 
-	    presentation-type 
+(defmethod frame-manager-construct-menu
+	   ((framem openlook-frame-manager)
+	    items
+	    printer
+	    presentation-type
 	    associated-window
 	    text-style
 	    label
@@ -64,19 +64,19 @@
 	    n-columns
 	    n-rows)
   (declare (ignore gesture))
-  (let* (value-returned 
+  (let* (value-returned
 	 return-value
 	 (simplep (and (null printer)
 		       (null presentation-type)))
 	 (port (port framem))
-	 (initargs (remove-keywords 
+	 (initargs (remove-keywords
 		    (if (and associated-window
 			     (typep associated-window 'sheet-with-resources-mixin))
 			(find-widget-resource-initargs-for-sheet port
 								 associated-window)
 		      (find-application-resource-initargs port))
 		    '(:font)))
-	 (default-text-style 
+	 (default-text-style
 	     (or (and associated-window
 		      (typep associated-window 'sheet-with-resources-mixin)
 		      (pane-text-style associated-window))
@@ -122,26 +122,27 @@
 		      (button
 		      (if simplep
 			  (apply #'make-instance
-				 class 
+				 class
 				 :sensitive (clim-internals::menu-item-active item)
-				 :parent parent 
+				 :parent parent
 				 :managed nil
 				 :label (princ-to-string (menu-item-display item))
-				 (list* :font 
+				 (list* :font
 					(text-style-mapping port text-style)
 					options))
 			(let* ((pixmap (pixmap-from-menu-item
-					associated-window 
+					associated-window
 					item
 					printer
 					presentation-type
 					text-style))
-			       (image (tk::image-from-pixmap pixmap))
+			       (image (tk::get-image pixmap
+						     :format x11:xypixmap))
 			       (button
 				(apply #'make-instance
-				       class 
+				       class
 				       :sensitive (clim-internals::menu-item-active item)
-				       :parent parent 
+				       :parent parent
 				       :label-type :image
 				       :label-image image
 				       options)))
@@ -183,13 +184,13 @@
 			      (:item
 			       (if (clim-internals::menu-item-items item)
 				   (let* ((menu-button
-					   (apply #'make-menu-button item 
+					   (apply #'make-menu-button item
 						  'xt::menu-button
 						  menu
 						  initargs))
 					  (submenu (tk::get-values menu-button :menu-pane)))
-				     (construct-menu-from-items 
-				      submenu 
+				     (construct-menu-from-items
+				      submenu
 				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
 					(apply #'make-menu-button item
@@ -207,11 +208,11 @@
 		    items)
 	       ;;
 	       (tk::manage-children (tk::widget-children menu))))
-	
+
       (construct-menu-from-items menu items))
     (tk::add-callback menu-shell
 		      :popdown-callback
-		      #'(lambda (&rest ignore) 
+		      #'(lambda (&rest ignore)
 			  (declare (ignore ignore))
 			  (setq value-returned t)))
     (values menu-shell

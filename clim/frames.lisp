@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.76 1993/12/07 05:33:36 colin Exp $
+;; $fiHeader: frames.lisp,v 1.77 1994/12/04 23:57:38 colin Exp $
 
 (in-package :clim-internals)
 
@@ -16,7 +16,7 @@
      (background :initform nil :initarg :background :accessor frame-background)
      (foreground :initform nil :initarg :foreground :accessor frame-foreground)
      (text-style :initform nil :initarg :text-style :accessor frame-text-style)
-     (command-table :initarg :command-table 
+     (command-table :initarg :command-table
 		    :initform (find-command-table 'user-command-table)
 		    :accessor frame-command-table)
      (disabled-commands :initarg :disabled-commands :initform nil)
@@ -34,7 +34,7 @@
      (pane-constructors :initarg :pane-constructors)
      (top-level-sheet :accessor frame-top-level-sheet
 		      :initarg :top-level-sheet :initform nil)
-     (state :initform :disowned :accessor frame-state 
+     (state :initform :disowned :accessor frame-state
 	    :type (member :disowned :disabled :enabled :shrunk))
      (top-level :initarg :top-level  :accessor frame-top-level)
      (current-layout :initarg :default-layout :initform nil
@@ -81,8 +81,8 @@
 				 (find-frame-manager)))
 	(t (find-frame-manager))))
 
-(defmethod initialize-instance :after ((frame standard-application-frame) 
-				       &key 
+(defmethod initialize-instance :after ((frame standard-application-frame)
+				       &key
 				       (frame-manager (find-frame-manager))
 				       geometry icon)
   (destructuring-bind (&key left top width height) geometry
@@ -199,7 +199,7 @@
 	    (t (warn-if-command-table-invalid name command-table)))
       (when (eq (first command-table) 't)
 	(setq command-table (list* name (rest command-table))))
-      (let ((pane-constructors 
+      (let ((pane-constructors
 	     (cond (panes
 		    (compute-pane-constructor-code panes))
 		   (pane
@@ -210,7 +210,7 @@
 			   (destructuring-bind (name pane &rest sizes) layout
 			     (check-type sizes list)
 			     (if sizes
-				 `(list ',name ',pane 
+				 `(list ',name ',pane
 					,@(mapcar
 					   #'(lambda (pane-and-size)
 					       (destructuring-bind (pane &rest sizes)
@@ -255,7 +255,7 @@
 		 #+Genera (scl:defprop ,command-definer
 				       zwei:defselect-function-spec-finder
 				       zwei:definition-function-spec-finder)))
-	   ;;--- Need to handle DISABLED-COMMANDS properly, 
+	   ;;--- Need to handle DISABLED-COMMANDS properly,
 	   ;;--- which entails doing a COPY-LIST
 	   (define-application-frame-1 ',name ',slots ,pane-constructors
 				       :layouts ,layout-value
@@ -333,7 +333,7 @@
 	     (otherwise
 	       (warn "The keyword ~S in the ~S option for frame ~S is invalid.~@
 		      The valid keywords are ~S and ~S."
-		     keyword :command-table frame-name :inherit-from :menu))))))) 
+		     keyword :command-table frame-name :inherit-from :menu)))))))
 
 (defun compute-generate-panes-code (name pane panes layouts)
   (cond (layouts (compute-complex-generate-panes-code name panes layouts))
@@ -366,7 +366,7 @@
 		  (frame-wrapper ,framem ,frame
 		    (with-look-and-feel-realization (,framem ,frame)
 		      (ecase (frame-current-layout ,frame)
-			,@(mapcar 
+			,@(mapcar
 			    #'(lambda (layout-spec)
 				(destructuring-bind (name pane &rest ignore) layout-spec
 				  (declare (ignore ignore))
@@ -393,7 +393,7 @@
   (with-slots (all-panes pane-constructors) frame
     (second (or (assoc name all-panes)
 		(let ((new-pane
-			(list name 
+			(list name
 			      (funcall (second (assoc name pane-constructors))
 				       frame (frame-manager frame)))))
 		  ;; Maintain ALL-PANES in the order the panes are created
@@ -423,8 +423,8 @@
       (let ((top-sheet (or (frame-top-level-sheet frame) panes)))
 	(if (and (sheet-enabled-p top-sheet)
 		 (not (frame-resizable frame)))
-	    (multiple-value-call #'allocate-space 
-	      top-sheet (bounding-rectangle-size top-sheet)) 
+	    (multiple-value-call #'allocate-space
+	      top-sheet (bounding-rectangle-size top-sheet))
 	  (resize-sheet top-sheet width height))))))
 
 
@@ -448,7 +448,7 @@
       (setf (sheet-enabled-p sheets) nil)
       (sheet-adopt-child (frame-top-level-sheet frame) sheets)
       (multiple-value-call #'layout-frame
-	frame 
+	frame
 	(if (frame-resizable frame)
 	    (values)
 	  (bounding-rectangle-size (frame-top-level-sheet frame))))
@@ -464,7 +464,7 @@
 
 (defun adjust-layout-requirements (frame layout)
   (when (frame-panes frame)
-    (let ((layout-space-requirements 
+    (let ((layout-space-requirements
 	   (cddr (assoc layout (frame-layouts frame)))))
       (changing-space-requirements (:layout nil)
 	(flet ((reset-sr (sheet)
@@ -480,9 +480,9 @@
 
 (defmethod frame-all-layouts ((frame standard-application-frame))
   (mapcar #'first (frame-layouts frame)))
-		 
+
 #+Genera (zwei:defindentation (make-application-frame 1 1))
-(defun make-application-frame (frame-name &rest options 
+(defun make-application-frame (frame-name &rest options
 			       &key frame-class
 				    enable pretty-name
 			            left top right bottom width height
@@ -499,7 +499,7 @@
       (error "Cannot specify ~S and ~S, S, ~S, ~S, ~S, or ~S at the same time"
 	     :geometry :left :top :right :bottom :width :height))
     (macrolet ((check-conflict (edge1 edge2 size)
-		 `(cond 
+		 `(cond
 		    ((and ,edge1 ,size)
 		     (if ,edge2
 			 (error "Cannot specify ~S, ~S, and ~S together" ,edge1 ,size ,edge2)
@@ -528,7 +528,7 @@
 	       (or (and (getf geometry :width)
 			(getf geometry :height))))
       (setf user-specified-size-p t)))
-  (with-keywords-removed (options options 
+  (with-keywords-removed (options options
 			  '(:frame-class :pretty-name :enable :save-under
 			    :left :top :right :bottom :width :height
 			    :user-specified-position-p :user-specified-size-p))
@@ -542,7 +542,7 @@
 			:user-specified-size-p user-specified-size-p
 			:user-specified-position-p user-specified-position-p
 			options)))
-      (when enable 
+      (when enable
 	(enable-frame frame))
       frame)))
 
@@ -550,7 +550,7 @@
 ;; exist, and then run it, possibly in its own process.  If one already exists,
 ;; just select it.
 (defun find-application-frame (frame-name &rest initargs
-			       &key (create t) (activate t) 
+			       &key (create t) (activate t)
 				    (own-process *multiprocessing-p*)
 				    frame-manager port
 				    frame-class
@@ -564,7 +564,7 @@
 	      (map-over-frames #'(lambda (frame)
 				   (when (typep frame frame-class)
 				     (return-from find-frame frame)))
-			       :frame-manager frame-manager 
+			       :frame-manager frame-manager
 			       :port port)))))
     (when (and create (null frame))
       (with-keywords-removed (initargs initargs '(:create :activate :own-process))
@@ -588,24 +588,24 @@
       (ecase old-state
 	(:enabled)
 	((:disabled :disowned)
-	 (setf (frame-state frame) :enabled)
 	 ;; If this is a new frame then if the user specified a width
 	 ;; then we should be using that
 	 ;; If the frame already exists then we probably should be using
 	 ;; the top level sheet size
 	 (multiple-value-bind (width height)
 	     (ecase old-state
-	       (:disowned 
+	       (:disowned
 		(values width height))
 	       (:disabled
 		(bounding-rectangle-size
-		 (frame-top-level-sheet frame))))  
+		 (frame-top-level-sheet frame))))
 	   (layout-frame frame width height)
 	   (when (and left top)
 	     (move-sheet (frame-top-level-sheet frame) left top))
 	   (note-frame-enabled (frame-manager frame) frame)))
-	(:shrunk 
-	 (note-frame-deiconified (frame-manager frame) frame))))))
+	(:shrunk
+	 (note-frame-deiconified (frame-manager frame) frame)))))
+  (setf (frame-state frame) :enabled))
 
 (defmethod shrink-frame ((frame standard-application-frame))
   (note-frame-iconified (frame-manager frame) frame))
@@ -632,15 +632,15 @@
 (defmethod bury-frame ((frame standard-application-frame))
   (bury-sheet (frame-top-level-sheet frame)))
 
-(defmethod note-frame-enabled 
+(defmethod note-frame-enabled
 	   ((framem standard-frame-manager) (frame standard-application-frame))
   )
 
-(defmethod note-frame-disabled 
+(defmethod note-frame-disabled
 	   ((framem standard-frame-manager) (frame standard-application-frame))
   )
 
-(defmethod note-frame-iconified 
+(defmethod note-frame-iconified
 	   ((framem standard-frame-manager) (frame standard-application-frame))
   )
 
@@ -663,7 +663,7 @@
   (let ((framem (frame-manager frame)))
     (when framem (frame-manager-note-pretty-name-changed framem frame))))
 
-(defmethod frame-manager-note-pretty-name-changed ((framem standard-frame-manager) 
+(defmethod frame-manager-note-pretty-name-changed ((framem standard-frame-manager)
 						   (frame standard-application-frame))
   nil)
 
@@ -680,7 +680,7 @@
 ;; Reset the state of the input editor and the presentation type system,
 ;; etc., in case there is an entry into another application from inside
 ;; the input editor, such as a Debugger written using CLIM.
-(defmacro with-clim-state-reset ((&key all 
+(defmacro with-clim-state-reset ((&key all
 				       (encapsulating-streams all)
 				       (presentation-types all)
 				       (input-editor all)
@@ -708,7 +708,7 @@
 	 ,@(when command-processor
 	     `((*command-parser* 'command-line-command-parser)
 	       (*command-unparser* 'command-line-command-unparser)
-	       (*partial-command-parser* 
+	       (*partial-command-parser*
 		 'command-line-read-remaining-arguments-for-partial-command)))
 	 ,@additional-bindings)
      ,@body))
@@ -790,11 +790,11 @@
   (loop
     (let* ((*standard-output*
 	    (or (frame-standard-output frame) *standard-output*))
-	   (*standard-input* 
+	   (*standard-input*
 	    (or (frame-standard-input frame) *standard-output*))
-	   (*query-io* 
+	   (*query-io*
 	    (or (frame-query-io frame) *standard-input*))
-	   (*error-output* 
+	   (*error-output*
 	    (or (frame-error-output frame) *standard-output*))
 	   (*pointer-documentation-output*
 	    (frame-pointer-documentation-output frame))
@@ -806,9 +806,9 @@
 		    #'command-line-command-parser
 		  #'menu-command-parser)))
 	   (*command-unparser*
-	    (or command-unparser 
+	    (or command-unparser
 		#'command-line-command-unparser))
-	   (*partial-command-parser* 
+	   (*partial-command-parser*
 	    (or partial-command-parser
 		(if interactor
 		    #'command-line-read-remaining-arguments-for-partial-command
@@ -856,9 +856,9 @@
 
 ;;; Sizing and moving of frames
 
-;; Sizes an application frame based on the size of the contents of the 
+;; Sizes an application frame based on the size of the contents of the
 ;; output recording stream STREAM.
-(defun size-frame-from-contents (stream 
+(defun size-frame-from-contents (stream
 				  &key width height
 				       (right-margin 10) (bottom-margin 10)
 				       (size-setter #'window-set-inside-size))
@@ -909,7 +909,7 @@
     (let ((title display-string))
       (when (and (stringp title)
 		 (not (string-equal title (frame-pretty-name frame))))
-	;; On some hosts this will update the title bar 
+	;; On some hosts this will update the title bar
 	(setf (frame-pretty-name frame) title))
       (multiple-value-bind (width height)
 	  (window-inside-size stream)
@@ -1008,7 +1008,7 @@
 	 (check-overlapping (or (atom ir) ;default is T
 				(getf (rest ir) :check-overlapping
 				      t)))
-	 needs-display 
+	 needs-display
 	 clear)
     (with-simple-restart (skip-pane-redisplay "Skip redisplaying pane ~S" pane)
       (loop
@@ -1021,7 +1021,7 @@
 	      (push pane (slot-value frame 'initialized-panes))))
 	  (return
 	    (cond (display-function
-		   (cond 
+		   (cond
 
 		    ;; display function with incremental redisplay
 		    (redisplay-p
@@ -1039,8 +1039,8 @@
 			      (when force-p
 				(window-clear pane))
 			      (invoke-pane-redisplay-function frame pane))
-			     (t 
-			      (redisplay redisplay-record pane 
+			     (t
+			      (redisplay redisplay-record pane
 					 :check-overlapping check-overlapping)))))
 
 		    ;; display function without incremental redisplay
@@ -1051,7 +1051,7 @@
 		       (window-clear pane))
 		     (invoke-pane-display-function frame pane)))
 		   (force-output pane))
-		  
+
 		  ;; no display function
 		  (force-p
 		   ;; If refilling from scratch, give the application a chance
@@ -1081,7 +1081,7 @@
 	   (apply display-function frame pane display-args))
 	  (t
 	   (apply display-function frame pane (append args display-args))))))
-			 
+
 ;;; The contract of this is to replay the contents of STREAM within the region.
 (defmethod frame-replay ((frame standard-application-frame) stream &optional region)
   (when (null region)
@@ -1090,7 +1090,7 @@
   (force-output stream))
 
 
-(defmethod read-frame-command ((frame standard-application-frame) 
+(defmethod read-frame-command ((frame standard-application-frame)
 			       &key (stream *standard-input*)	;--- FRAME-STANDARD-INPUT?
 			       ;; should the rest of the *command-parser*
 			       ;; etc. variables be passed as keywords or bound?
@@ -1171,7 +1171,7 @@
 			      (return-from read-frame-command command)))))
 	  (let ((*reading-frame-command* t))
 	    (call-next-method)))))))
-	
+
 ;;--- Actually this should be named COMMAND-EVENT
 (defclass presentation-event (event)
     ((value :initarg :value :reader presentation-event-value)
@@ -1229,27 +1229,27 @@
 		    :frame frame
 		    :value (list* function sheet arguments)
 		    :presentation-type `(command :command-table ,(frame-command-table frame))))))
-		  
+
 (defun queue-frame-command (frame command &optional (echo t))
   (queue-push (frame-command-queue frame) (list command :echo echo)))
 
-(defmethod execute-command-in-frame 
+(defmethod execute-command-in-frame
 	   ((frame standard-application-frame) command &rest initargs)
   (declare (dynamic-extent initargs))
   (distribute-event
     (port frame)
-    (apply #'allocate-event 'presentation-event 
+    (apply #'allocate-event 'presentation-event
  	   :frame frame
- 	   :sheet (frame-top-level-sheet frame) 
- 	   :value command 
+ 	   :sheet (frame-top-level-sheet frame)
+ 	   :value command
  	   initargs)))
 
-(defun make-command-timer (frame command 
+(defun make-command-timer (frame command
 			   &key (delay 0) interval
 				(command-table (frame-command-table frame)))
   (flet ((queue-command-event (timer)
 	   (declare (ignore timer))
-	   (execute-command-in-frame 
+	   (execute-command-in-frame
 	    frame command
 	    :echo  nil
 	    :queuep t
@@ -1286,9 +1286,9 @@
       (funcall *click-outside-menu-handler*))
     (when highlighted-presentation
       ;; Unhighlight on the way out.
-      ;; But only unhighlight the window that the click is from. 
+      ;; But only unhighlight the window that the click is from.
       (unhighlight-highlighted-presentation window nil))
-    (throw-highlighted-presentation 
+    (throw-highlighted-presentation
       (or (and (output-recording-stream-p window)
 	       (frame-find-innermost-applicable-presentation
 		 frame input-context window x y
@@ -1326,14 +1326,14 @@
 (defmethod frame-maintain-presentation-histories ((frame standard-application-frame))
   (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 
-(defmethod notify-user (frame message &rest options) 
+(defmethod notify-user (frame message &rest options)
   (declare (dynamic-extent options))
   (when frame
     (setf (getf options :frame) frame))
-  (apply #'frame-manager-notify-user 
+  (apply #'frame-manager-notify-user
 	 (if frame (frame-manager frame) (find-frame-manager)) message options))
 
-(defmethod select-file (frame &rest options) 
+(defmethod select-file (frame &rest options)
   (declare (dynamic-extent options))
   (when frame
     (setf (getf options :frame) frame))
@@ -1357,7 +1357,7 @@
   (frame-manager-display-pointer-documentation
     (frame-manager frame) frame presentation input-context window x y stream))
 
-(defmethod frame-manager-pointer-documentation-stream 
+(defmethod frame-manager-pointer-documentation-stream
 	   ((framem standard-frame-manager) frame stream)
   (declare (ignore frame))
   stream)
@@ -1368,7 +1368,7 @@
   (declare (ignore input-context x y))
   (when (frame-manager-pointer-documentation-stream framem frame stream)
     ;; The documentation should never say anything if we're not over a presentation
-    (when (null presentation) 
+    (when (null presentation)
       (frame-manager-display-pointer-documentation-string
 	framem frame stream nil))
     ;; Cheap test to not do this work too often
@@ -1397,7 +1397,7 @@
 	      (setq *last-pointer-documentation-time* 0))
 	    (force-output stream)))))))
 
-(defmethod frame-manager-display-pointer-documentation-string 
+(defmethod frame-manager-display-pointer-documentation-string
 	   ((framem standard-frame-manager) frame stream string)
   (let ((stream (frame-manager-pointer-documentation-stream framem frame stream)))
     (when stream
@@ -1449,7 +1449,7 @@
 				      (setq middle nil
 					    right nil)
 				      "L,M,R: ")
-				     ((eq left middle) 
+				     ((eq left middle)
 				      (setq middle nil)
 				      "L,M: ")
 				     (t "L: "))))
@@ -1493,7 +1493,7 @@
 	(let ((from-type (presentation-type presentation)))
 	  (dolist (context input-context)
 	    (let ((context-type (pop context)))	;input-context-type = first
-	      (let ((translators (find-presentation-translators 
+	      (let ((translators (find-presentation-translators
 				   from-type context-type (frame-command-table frame))))
 		(when translators
 		  (dolist (translator translators)

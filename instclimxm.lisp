@@ -20,18 +20,13 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimxm.lisp,v 1.7 93/04/28 17:19:04 layer Exp $
+;; $fiHeader: instclimxm.lisp,v 1.9 1994/06/08 06:56:32 duane Exp $
 
 ;;
 ;; Load the Motif version of CLIM
 ;;
 
 (in-package :system)
-
-#-svr4
-(progn
-  (defvar sys::*libx11-pathname* "c")
-  (defvar sys::*libxt-pathname* "c"))
 
 (load-application (require :climxm) :devel system::*devel*)
 

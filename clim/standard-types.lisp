@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.31 1993/12/07 05:33:44 colin Exp $
+;; $fiHeader: standard-types.lisp,v 1.32 1994/12/04 23:58:09 colin Exp $
 
 (in-package :clim-internals)
 
@@ -138,7 +138,7 @@
   (unless (eq type '*)
     (format stream " whose components are ")
     (describe-presentation-type type stream t)))
-  
+
 (define-presentation-type real (&optional low high)
   :options ((base 10 nil (integer 2 36))
 	    (radix nil nil boolean (:prompt "Display the base")))
@@ -178,7 +178,7 @@
   (describe-numeric-subrange low high stream base)
   (unless (= base 10)
     (format stream " in base ~D" base)))
-  
+
 (defun describe-numeric-subrange (low high stream &optional (base 10))
   (let ((*print-base* base))
     (if (eq low '*)
@@ -204,7 +204,7 @@
 
 (define-presentation-method presentation-type-specifier-p ((type real))
   (macrolet (#-(or Genera ANSI-90)
-	     (realp (object) 
+	     (realp (object)
 	       `(typep ,object '(or rational float))))
     (and (if (atom low)
 	     (or (eq low '*)
@@ -287,7 +287,7 @@
   (simple-lisp-object-parser type stream #'rationalp #'float))
 
 
-(define-presentation-type integer (&optional low high) 
+(define-presentation-type integer (&optional low high)
   :options ((base 10 nil (integer 2 36))
 	    (radix nil nil boolean (:prompt "Display the base")))
   :history number
@@ -481,7 +481,7 @@
 	   ;; Get around file-system braino I don't know how to resolve
 	   (setq completions (directory pathname)))
 	  (t
-	   (setq completions (directory 
+	   (setq completions (directory
 			       (make-pathname :host (pathname-host merged-pathname)
 					      :device (pathname-device merged-pathname)
 					      :directory (pathname-directory merged-pathname))))))
@@ -499,7 +499,7 @@
 			     (let ((s (search type pn-type :test #'char-equal)))
 			       (and s (zerop s)))))
 			  (t
-			   (let ((s (search name (pathname-name pn) 
+			   (let ((s (search name (pathname-name pn)
 					    :test #'char-equal)))
 			     (if (eq action :apropos-possibilities)
 				 (not (null s))
@@ -567,13 +567,13 @@
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (flet ((possibility-printer (possibility type stream)
  	   (with-output-as-presentation (stream (funcall value-key (second possibility)) type)
- 	     (funcall printer 
- 		      (funcall name-key (find (second possibility) sequence 
+ 	     (funcall printer
+ 		      (funcall name-key (find (second possibility) sequence
  					      :key value-key :test test))
  		      stream))))
     (declare (dynamic-extent #'possibility-printer))
     (values
-      (completing-from-suggestions 
+      (completing-from-suggestions
        (stream :partial-completers partial-completers
 	       :possibility-printer #'possibility-printer
 	       :help-displays-possibilities (<= (length sequence) 10))
@@ -749,8 +749,8 @@
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (flet ((possibility-printer (possibility type stream)
 	     (with-output-as-presentation (stream (list (funcall value-key (second possibility))) type)
-	       (funcall printer 
-			(funcall name-key (find (second possibility) sequence 
+	       (funcall printer
+			(funcall name-key (find (second possibility) sequence
 						:key value-key :test test))
 			stream))))
       (declare (dynamic-extent #'possibility-printer))
@@ -903,7 +903,7 @@
 (define-presentation-type-abbreviation subset-alist (alist &key (test 'eql))
   (make-presentation-type-specifier `(subset-completion ,alist
 							:test ,test
-							:value-key completion-alist-value-key) 
+							:value-key completion-alist-value-key)
 				    :name-key name-key
 				    :documentation-key documentation-key
 				    :partial-completers partial-completers
@@ -1001,7 +1001,7 @@
 	  (if (eql separator #\space)
 	      " "
 	      (make-array 2 :initial-contents (list separator #\space))))
-	(element-default-type 
+	(element-default-type
 	  (with-presentation-type-decoded (type-name parameters) default-type
 	    (if (eq type-name 'sequence)
 		(first parameters)
@@ -1040,7 +1040,7 @@
 	     (push object values)
 	     (push (or object-type element-type) types))))))))
 
-(defun accept-sequence-element (stream element-type view separators 
+(defun accept-sequence-element (stream element-type view separators
 				element-default element-default-type default-supplied-p)
   (declare (values object object-type))
   (multiple-value-bind (object object-type)
@@ -1090,7 +1090,7 @@
     :separator ,separator :echo-space ,echo-space)
   :options ((separator #\,)
 	    (echo-space t)))
-  
+
 (define-presentation-method presentation-type-specifier-p ((type sequence-enumerated))
   (every #'presentation-type-specifier-p element-types))
 
@@ -1103,7 +1103,7 @@
 	       (return nil))))
 	 ;; Do this if all the element types are the same
 	 (format stream "~D " (length element-types))
-	 (describe-presentation-type 
+	 (describe-presentation-type
 	   (car element-types) stream (length element-types)))
 	(t
 	 (let ((position 0)
@@ -1184,7 +1184,7 @@
 	     (element-default (and default-supplied-p (pop default)))
 	     (element-default-type (pop element-default-types)))
 	(multiple-value-bind (object object-type)
-	    (accept-sequence-element stream element-type view separators 
+	    (accept-sequence-element stream element-type view separators
 				     element-default element-default-type default-supplied-p)
 	  (push object values)
 	  (push (or object-type element-type) types)))
@@ -1350,7 +1350,7 @@
 		     (format stream " that ~:[satisfies~;doesn't satisfy~] ~S"
 			     not (first parameters))
 		     (return))
-		    ((eq name 'not) 
+		    ((eq name 'not)
 		     (setq not (not not))
 		     (setq type (first parameters)))
 		    (t
@@ -1502,7 +1502,7 @@
 (define-presentation-method map-over-presentation-type-supertypes ((type form) function)
   (with-presentation-type-decoded (name) type
     (funcall function name type)
-    (with-stack-list (new-name 'command-or-form 
+    (with-stack-list (new-name 'command-or-form
 			       :command-table (frame-command-table *application-frame*))
       (with-stack-list (new-type new-name :auto-activate auto-activate)
 	(funcall function 'command-or-form new-type))
@@ -1520,21 +1520,21 @@
   (let ((top-level (not desired-delimiter)))
     (flet ((read-recursive-1 ()
 	     (let ((char (read-char stream nil :eof)))
-	       (cond 
+	       (cond
 		((eq char :eof)
 		 (return-from read-recursive))
-		
+
 		;; ignore leading space
 		((and (zerop (fill-pointer input-buffer))
 		      (whitespace-char-p char)))
-		
+
 		;; ALWAYS terminate with activation gesture or delimiter
 		;; gesture at top level
 		((or (activation-gesture-p char)
 		     (and top-level (delimiter-gesture-p char)))
 		 (unread-char char stream)
 		 (return-from read-recursive))
-		
+
 		((not (or (ordinary-char-p char)
 			  (diacritic-char-p char)))
 		 (beep stream))
@@ -1544,11 +1544,11 @@
 		 (let ((escaped-char (read-char stream nil)))
 		   (when escaped-char
 		     (vector-push-extend escaped-char input-buffer))))
-		
+
 		(t
 		 (vector-push-extend char input-buffer)
-		 
-		 (if (and desired-delimiter 
+
+		 (if (and desired-delimiter
 			  (char-equal char desired-delimiter))
 		     (return-from read-recursive)
 		   (let ((other-delimiter (cdr (assoc char *char-associations*))))
@@ -1651,7 +1651,7 @@
 	  ;; The four most common are at the front, and here are the rest
 	  (t t)
 	  (null null)
-	  (scl:boolean boolean)			       
+	  (scl:boolean boolean)
 	  (symbol symbol)
 	  (keyword keyword)
 	  (number number (:base :radix :exact-float-value))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: panes.lisp,v 1.1 1994/12/04 23:58:01 colin Exp $
 
 (in-package :clim-internals)
 
@@ -18,7 +18,7 @@
 				    (with-look-and-feel-realization (framem frame)
 				      ,code)))))
 		   panes)))
-   
+
 (defun canonicalize-pane-spec (name code rest)
   (cond ((symbolp code)
 	 (unless (getf rest :name)
@@ -50,7 +50,7 @@
      :scroll-bars nil
      :width :compute :height :compute
      :max-height :compute
-     :end-of-page-action :allow 
+     :end-of-page-action :allow
      :end-of-line-action :allow))
 
 (define-pane-type :command-menu (&rest options)
@@ -58,13 +58,13 @@
   `(make-clim-stream-pane
      :type 'command-menu-pane
      ,@options
-     :display-function `(display-command-menu :command-table ,(frame-command-table frame))
+     :display-function `display-command-menu
      :incremental-redisplay t
      :display-after-commands t
      :text-style *command-table-menu-text-style*
      :scroll-bars nil
      :width :compute :height :compute
-     :end-of-page-action :allow 
+     :end-of-page-action :allow
      :end-of-line-action :allow))
 
 
@@ -76,13 +76,13 @@
 
 (define-pane-type :application (&rest options &key (scroll-bars :both))
   (declare (non-dynamic-extent options))
-  `(make-clim-application-pane 
+  `(make-clim-application-pane
      ,@options
      :scroll-bars ,scroll-bars))
 
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane 
+  `(make-clim-stream-pane
      :type 'accept-values-pane
      ,@options
      :display-after-commands :no-clear
@@ -146,10 +146,6 @@
   (declare (non-dynamic-extent options))
   `(make-pane 'option-pane ,@options))
 
-(define-pane-type :menu-bar (&rest options &key command-table)
+(define-pane-type :menu-bar (&rest options)
   (declare (non-dynamic-extent options))
-  (with-keywords-removed (options options '(:command-table))
-    `(make-pane 'menu-bar 
-		,@options
-		:command-table ,(or command-table
-				    `(frame-command-table frame)))))
+  `(make-pane 'menu-bar ,@options))

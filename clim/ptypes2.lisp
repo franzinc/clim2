@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.24 93/05/05 01:38:53 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.25 1993/07/27 01:40:48 colin Exp $
 
 (in-package :clim-internals)
 
@@ -82,7 +82,7 @@
 ;;; Return a list of the names of the direct supertypes
 (defun presentation-type-direct-supertypes (presentation-type)
   (with-presentation-type-decoded (type) presentation-type
-    (mapcar #'class-presentation-type-name 
+    (mapcar #'class-presentation-type-name
 	    (class-direct-superclasses (find-presentation-type-class type)))))
 
 
@@ -216,7 +216,7 @@
 	    (return i)))
 	(do ((i start (1+ i)))
 	    ((>= i end) nil)
-	  (when (find (aref string i) char-set :test test) 
+	  (when (find (aref string i) char-set :test test)
 	    (return i))))))
 
 
@@ -225,7 +225,7 @@
 (defun presentation-type-history (presentation-type)
   (let ((type (expand-presentation-type-abbreviation presentation-type)))
     (loop
-      (let ((history 
+      (let ((history
 	      (funcall-presentation-generic-function presentation-type-history type)))
 	(cond ((null history)
 	       (return-from presentation-type-history nil))
@@ -264,7 +264,7 @@
 ;;;; Map Over Supertypes
 
 ;;; Successively calls FUNCTION on the type and all its supertypes, in order.
-;;; FUNCTION is called with two arguments, the new type name and the new 
+;;; FUNCTION is called with two arguments, the new type name and the new
 ;;; presentation type specifier with parameters and options.
 #+Genera (zwei:defindentation (map-over-presentation-type-supertypes 1 2))
 (defun map-over-presentation-type-supertypes (presentation-type function)
@@ -379,7 +379,7 @@
 	(setq type-name (class-presentation-type-name type-name)))
       (unless (symbolp supertype-name)
 	(setq supertype-name (class-presentation-type-name supertype-name)))
-      
+
       ;; Do some quick tests first
       (cond ((eq type-name supertype-name)	;No inheritance involved
 	     (cond ((null supertype-parameters)
@@ -422,7 +422,7 @@
 		 (values t t)
 		 (values nil nil)))
 	    ((eq supertype-name 'and)
-	     (if (every #'(lambda (supertype) 
+	     (if (every #'(lambda (supertype)
 			    (with-presentation-type-decoded (type-name) supertype
 			      (unless (member type-name '(not satisfies))
 				(presentation-subtypep-1 type supertype))))
@@ -480,23 +480,23 @@
 
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
-			       present-p query-identifier 
+			       present-p query-identifier
 			       &key (prompt t) (active-p t))
   (funcall-presentation-generic-function accept-present-default
     presentation-type stream view default default-supplied-p present-p query-identifier
     :prompt prompt :active-p active-p))
 
 (define-default-presentation-method accept-present-default
-				    (presentation-type stream view
-				     default default-supplied-p
-				     present-p query-identifier
-				     &key prompt &allow-other-keys)
+    (presentation-type stream view
+		       default default-supplied-p
+		       present-p query-identifier
+		       &key prompt &allow-other-keys)
   (declare (ignore query-identifier prompt))
   (with-output-as-presentation (stream (second present-p) (first present-p))
     (if default-supplied-p
 	(present default presentation-type :stream stream :view view)
-	(with-text-face (stream :italic)
-	  (describe-presentation-type presentation-type stream 1)))))
+      (with-text-face (stream :italic)
+	(describe-presentation-type presentation-type stream 1)))))
 
 
 ;; Most gadgets do not include a prompt...
@@ -515,7 +515,7 @@
   (declare (ignore presentation-type framem query-identifier))
   view)
 
-(defun decode-indirect-view (type view frame-manager &rest args 
+(defun decode-indirect-view (type view frame-manager &rest args
 			     &key query-identifier read-only)
   (declare (dynamic-extent args))
   (declare (ignore query-identifier read-only))

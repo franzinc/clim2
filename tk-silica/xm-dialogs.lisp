@@ -20,26 +20,23 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.7 1993/06/02 18:42:25 cer Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.8 1993/07/27 01:55:17 colin Exp $
 
 (in-package :clim-internals)
 
 (defmethod frame-manager-construct-avv-panes ((frame accept-values-own-window)
 					      (framem xm-silica::motif-frame-manager))
-  (let (exit-button-stream own-window)
+  (let (exit-button-stream own-window pane)
     (values
      (with-look-and-feel-realization (framem frame)
        (with-slots (scroll-bars) frame
 	 (vertically ()
-	   (progn
-	     (setf own-window 
-	       (make-pane 'clim-stream-pane
-			  :output-record
-			  (make-instance 'standard-sequence-output-history)
-			  :initial-cursor-visibility :off))
-	     (if scroll-bars
-		 (scrolling (:scroll-bars scroll-bars) own-window)
-	       own-window))
+	   (multiple-value-setq (pane own-window)
+	     (make-clim-stream-pane
+	      :output-record
+	      (make-instance 'standard-sequence-output-history)
+	      :initial-cursor-visibility :off
+	      :scroll-bars scroll-bars))
 	   (make-pane 'silica::separator :orientation :horizontal)
 	   (setf exit-button-stream
 	     (make-pane 'clim-stream-pane

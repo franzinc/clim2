@@ -18,43 +18,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.13 1993/07/29 20:52:08 layer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.14 1993/11/23 19:59:12 cer Exp $
 
 (in-package :x11)
 
-(defmacro symbols-from-file (&rest files)
-  (let ((r nil))
-    (dolist (file files `(quote ,(nreverse r)))
-      (with-open-file (s file :direction :input)
-	(do ((l (read-line s nil nil) (read-line s nil nil)))
-	    ((null l))
-	  (push (ff:convert-to-lang l) r))))))
+#-dlfcn
+(progn
 
+  (defvar sys::*libx11-pathname* "X11")
 
-(defun load-undefined-symbols-from-library (file what libraries)
-  (let* ((n (length what)))
-    (when (> n 0)			; bug2898
-      (let ((names (coerce what 'vector))
-	    (entry-points (make-array n :element-type '(unsigned-byte 32))))
-	(declare (type (simple-array (unsigned-byte 32) (*))))
-	(when (> (ff:get-entry-points names entry-points) 0)
-	  #+ignore
-	  (dotimes (i n) 
-	    (when (= (aref entry-points i)
-		     sys::*impossible-load-address*)
-	      (format t ";; ~A is undefined~%" (aref names i))))
-	  (load file
-		:system-libraries libraries
-		:print t))))))
+  (unless (ff:get-entry-point (ff:convert-to-lang "XAllocColor"))
+    (load "stub-x.o"
+	  :system-libraries (list sys::*libx11-pathname*)
+	  :print t))
 
-(defvar sys::*libx11-pathname* "X11")
-
-(unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString")
-			    :note-shared-library-references nil)
-  (load "xlibsupport.o"
-	:system-libraries (list sys::*libx11-pathname*) :print t))
-
-(x11::load-undefined-symbols-from-library
- "stub-x.o"
- (x11::symbols-from-file "misc/undefinedsymbols")
- (list sys::*libx11-pathname*))
+  (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
+    (load "xlibsupport.o"
+	  :system-libraries (list sys::*libx11-pathname*)
+	  :print t)))

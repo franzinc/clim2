@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.74 1993/11/18 18:45:15 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.75 1994/12/05 00:00:46 colin Exp $
 
 (in-package :clim-user)
 
@@ -204,11 +204,11 @@ What about environment issue?
 	(formatting-cell (stream)
 	  (format stream "Arc from ~3F to ~3F" (car angles) (second angles)))
 	(formatting-cell (stream)
-	  (draw-circle* stream 0 0 50 
+	  (draw-circle* stream 0 0 50
 			:ink +red+ :filled t
 			:start-angle (car angles) :end-angle (second angles)))
 	(formatting-cell (stream)
-	  (draw-circle* stream 0 0 50 
+	  (draw-circle* stream 0 0 50
 			:ink +green+ :filled t
 			:start-angle (second angles) :end-angle (car angles)))))))
 
@@ -222,11 +222,11 @@ What about environment issue?
 	    (format stream "~D size" size)))
 	(formatting-cell (stream)
 	  (let ((points nil))
-	    (dotimes (i 10) 
+	    (dotimes (i 10)
 	      (push (random 50) points)
 	      (push (random 50) points))
 	    (surrounding-output-with-border (stream)
-	      (draw-points* stream points 
+	      (draw-points* stream points
 			    :ink +red+
 			    :line-thickness size))))))))
 
@@ -238,7 +238,7 @@ What about environment issue?
       (dotimes (i grid)
 	(dotimes (j grid)
 	  (when (eq (evenp i) (evenp j))
-	    (setq region 
+	    (setq region
 	      (region-union
 	       (make-bounding-rectangle
 		(* i cell) (* j cell) (* (1+ i) cell) (* (1+ j) cell))
@@ -383,7 +383,7 @@ people, shall not perish from the earth.
 	    (handler-case			;guard against unimplemented cases
 	        (let ((result (region-equal (eval region1) (eval region2)))
 		      (correct-result (equal region1 region2)))
-		  (with-output-as-presentation 
+		  (with-output-as-presentation
 		      (stream `(region-equal ,region1 ,region2) 'form
 		       :single-box t)
 		    (if (eq result correct-result)
@@ -428,7 +428,7 @@ people, shall not perish from the earth.
 	(formatting-cell (stream)
 	  (declare (ignore stream)))		;make a column for the row headings
 	(dolist (position positions)
-	  (formatting-cell (stream) 
+	  (formatting-cell (stream)
 	    (with-text-face (stream :italic)
 	      (format stream "(~D,~D)" (first position) (second position))))))
       (dolist (region regions)
@@ -443,7 +443,7 @@ people, shall not perish from the earth.
 				*test-regions-for-region-contains-position-p*))
 		  (x (first position))
 		  (y (second position)))
-	      (with-output-as-presentation 
+	      (with-output-as-presentation
 		  (stream `(region-contains-position-p ,region ,x ,y) 'form
 		   :single-box t)
 		(formatting-cell (stream :align-x :center)
@@ -502,7 +502,7 @@ people, shall not perish from the earth.
 	      (with-text-face (stream :italic)
 		(format stream "~A" region1)))
 	    (dolist (region2 regions)
-	      (with-output-as-presentation 
+	      (with-output-as-presentation
 		  (stream `(region-contains-region-p ,region1 ,region2) 'form
 		   :single-box t)
 		(formatting-cell (stream :align-x :center)
@@ -565,7 +565,7 @@ people, shall not perish from the earth.
 	      (with-text-face (stream :italic)
 		(format stream "~A" region1)))
 	    (dolist (region2 regions)
-	      (with-output-as-presentation 
+	      (with-output-as-presentation
 		  (stream `(region-intersects-region-p ,region1 ,region2) 'form
 		   :single-box t)
 		(formatting-cell (stream :align-x :center)
@@ -595,7 +595,7 @@ people, shall not perish from the earth.
 	     (apply ,function ,stream ,arguments)))
        (error ()
 	 (write-string "ERROR" ,stream)))))
-    
+
 (defmacro formatting-graphics-samples ((stream title &optional (columns 4)) &body body)
   `(labels ((format-graphics-sample (stream label sample &rest keywords)
 	      (let ((arguments (append (cdr sample) keywords)))
@@ -723,23 +723,23 @@ people, shall not perish from the earth.
     (with-output-as-presentation (stream 1 'form)
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 400 :towards-y 200))
-    (with-output-as-presentation (stream 2 'form) 
+    (with-output-as-presentation (stream 2 'form)
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 200 :towards-y 400
 		  :text-style '(nil :italic :large)))
-    (with-output-as-presentation (stream 3 'form) 
+    (with-output-as-presentation (stream 3 'form)
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 0 :towards-y 200
 		  :text-style '(nil :bold :large)))
-    (with-output-as-presentation (stream 4 'form) 
+    (with-output-as-presentation (stream 4 'form)
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 200 :towards-y 0
 		  :text-style '(nil :bold :small)))
     (do* ((x 300 (+ x 20))
 	  (all-packages (list-all-packages)))
 	((> x 1000))
-      (with-output-as-presentation (stream 4 'form) 
-	(draw-text* stream 
+      (with-output-as-presentation (stream 4 'form)
+	(draw-text* stream
 		    (let ((r ""))
 		      (dotimes (i 5 r)
 			(setq r (concatenate 'string
@@ -793,10 +793,10 @@ people, shall not perish from the earth.
 	  (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
 	    (if (probe-file filename)
 		(let ((pattern (make-pattern-from-bitmap-file
-				filename 
+				filename
 				:designs
 				(list +background-ink+ +foreground-ink+))))
-		  (draw-rectangle* stream 0 0 
+		  (draw-rectangle* stream 0 0
 				   (pattern-width pattern)
 				   (pattern-height pattern)
 				   :ink pattern))
@@ -814,14 +814,14 @@ people, shall not perish from the earth.
 	  (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
 	    (if (probe-file filename)
 		(let ((pattern (make-pattern-from-bitmap-file
-				filename 
+				filename
 				:designs
 				(list +background-ink+ +foreground-ink+))))
-		  (with-drawing-options (stream :clipping-region 
+		  (with-drawing-options (stream :clipping-region
 						*chess-board-clip-region*)
-		    (draw-rectangle* stream 0 0 
+		    (draw-rectangle* stream 0 0
 				     (pattern-width pattern)
-				     (pattern-height pattern) 
+				     (pattern-height pattern)
 				     :ink pattern)))
 	      (write-string "not found" stream))))))))
 
@@ -838,7 +838,7 @@ people, shall not perish from the earth.
 	    (draw-bezier-curve* stream points :filled filled)
 	    (do ((points points (cddr points)))
 		((null points))
-	      (draw-point* stream (car points) (cadr points) 
+	      (draw-point* stream (car points) (cadr points)
 			   :line-thickness 2 :ink +red+))))))))
 
 (defparameter *named-colors*
@@ -1024,7 +1024,7 @@ people, shall not perish from the earth.
       (formatting-cell (stream)
 	(declare (ignore stream)))
       (dolist (design *designs-to-compose-with*)
-	(format-graphics-cell stream 
+	(format-graphics-cell stream
 		       #'draw-rectangle* `(0 0 50 50 :ink ,(cadr design)))))
 
     (formatting-row (stream)
@@ -1034,7 +1034,7 @@ people, shall not perish from the earth.
 	(formatting-cell (stream :align-x :center)
 	  (with-text-family (stream :sans-serif)
 	    (write-string (car design) stream)))))
-      
+
     (dolist (design1 *designs-to-compose-with*)
       (formatting-row (stream)
 	(formatting-cell (stream :align-x :right :align-y :center)
@@ -1042,7 +1042,7 @@ people, shall not perish from the earth.
 	    (write-string (car design1) stream)))
 	(dolist (design2 *designs-to-compose-with*)
 	  (let ((ink (funcall composition (cadr design1) (cadr design2))))
-	    (format-graphics-cell stream 
+	    (format-graphics-cell stream
 			   #'draw-rectangle* `(0 0 50 50 :ink ,ink))))))))
 
 (define-test (complex-designs graphics) (stream)
@@ -1083,10 +1083,10 @@ people, shall not perish from the earth.
 					 (0 0 .5 .5 .5 .5 0 0)
 					 (0 0 0 .5 .5 0 0 0)))))
       (format-graphics-sample stream "opaque" sample :ink opaque)
-      (format-graphics-sample stream "opaque-tile" sample 
+      (format-graphics-sample stream "opaque-tile" sample
 			      :ink (make-rectangular-tile opaque 8 8))
       (format-graphics-sample stream "translucent" sample :ink translucent)
-      (format-graphics-sample stream "translucent-tile" sample 
+      (format-graphics-sample stream "translucent-tile" sample
 			      :ink (make-rectangular-tile translucent 8 8))))
 
 
@@ -1181,7 +1181,7 @@ people, shall not perish from the earth.
 	   (with-output-as-presentation (stream  n 'integer)
 	     (draw-circle* stream x y r :ink (make-contrasting-inks 4 n)))))
     (circle 100  50 40 1)
-    (let ((records (list 
+    (let ((records (list
 		    (circle  75 100 40 2)
 		    (circle 125 100 40 3)
 		    (circle 200 200 40 3))))
@@ -1405,7 +1405,7 @@ people, shall not perish from the earth.
 (define-test (clos-metaobjects-graph formatted-output) (stream)
   "Draw a graph showing part of the CLOS class hierarchy"
   (let ((color (make-gray-color 0.7)))
-    (format-graph-from-roots 
+    (format-graph-from-roots
      ;; dependee-mixin no longer exported -- smh 18may93
      (mapcar #'find-class '(clos:metaobject clos::dependee-mixin))
      #'(lambda (o s)
@@ -1413,7 +1413,7 @@ people, shall not perish from the earth.
 	   (multiple-value-bind (width height) (text-size s text)
 	     (with-new-output-record (s)
 	       (draw-rectangle* s 0 0 width height :filled t :ink color)
-	       (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
+	       (draw-text* s text 0 0 :align-x :left :align-y :top)))))
      #'clos::class-direct-subclasses
      :stream stream
      :merge-duplicates t)))
@@ -1425,7 +1425,7 @@ people, shall not perish from the earth.
       (formatting-item-list (stream)
 	(dolist (center-nodes '(nil t))
 	  (formatting-cell (stream)
-	    (format-graph-from-roots 
+	    (format-graph-from-roots
 	     ;; dependee-mixin no longer exported -- smh 18may93
 	     (mapcar #'find-class '(number))
 	     #'(lambda (o s)
@@ -1433,7 +1433,7 @@ people, shall not perish from the earth.
 		   (multiple-value-bind (width height) (text-size s text)
 		     (with-new-output-record (s)
 		       (draw-rectangle* s 0 0 width height :filled t :ink color)
-		       (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
+		       (draw-text* s text 0 0 :align-x :left :align-y :top)))))
 	     #'clos::class-direct-subclasses
 	     :stream stream
 	     :center-nodes center-nodes
@@ -1522,10 +1522,10 @@ people, shall not perish from the earth.
   (let ((minimum-width 12)
 	(sample-text "Luke Luck likes lakes.
 Luke's duck likes lakes.
-Luke Luck licks lakes.  
-Luke's duck licks lakes.  
+Luke Luck licks lakes.
+Luke's duck licks lakes.
 
-Luke's duck licks the lakes Luke Luck likes.  
+Luke's duck licks the lakes Luke Luck likes.
 Luke Luck licks the lakes Luke's duck likes."))
     (labels ((do-it (width stream)
 	       (when (<= width minimum-width)
@@ -1544,7 +1544,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defmacro define-table-cell-test (name description &body body)
   (let ((function-name (make-symbol (format nil "~S-TABLE-TEST" name))))
-    `(progn 
+    `(progn
        (defun ,function-name (stream) ,@body)
        (let ((old (assoc ',name *table-graphics-tests*)))
 	 (if old
@@ -1775,7 +1775,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   "Redisplay of nested overlapping graphics.  The inner rectangle should stay the same and visible the whole time."
   (flet ((draw (stream coords thickness)
 	   (draw-rectangle* stream
-			    (pop coords) (pop coords) (pop coords) (pop coords) 
+			    (pop coords) (pop coords) (pop coords) (pop coords)
 			    :filled nil :line-thickness thickness)))
     (let* ((tick 0)
 	   (outer-coords '(100 100 200 200))
@@ -1839,7 +1839,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	     (updating-output (stream :unique-id root)
 	       (format-graph-from-root root
 				       #'(lambda (node s)
-					   (updating-output (s 
+					   (updating-output (s
 							      :cache-value node)
 					     (write-string (node-name node) s)))
 				       #'cdr	;--- #'node-children
@@ -1927,7 +1927,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-drag-and-drop-translator test-suite-dnd
     (drag-source string drop-target presentations)
     (presentation destination-presentation)
-  (format nil "Dragged from ~D to ~D" 
+  (format nil "Dragged from ~D to ~D"
     (presentation-object presentation) (presentation-object destination-presentation)))
 
 (define-test (drag-and-drop-tests presentations) (stream)
@@ -1954,7 +1954,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   "A simple test of MENU-CHOOSE."
   (write-string
     (menu-choose '(("Whistle" :documentation "Select whistle")
-		   ("Pat head" 
+		   ("Pat head"
 		    :documentation "Pat head in various ways"
 		    :items
 		    (("with right hand" . "Pat head with right hand")
@@ -1990,12 +1990,12 @@ Luke Luck licks the lakes Luke's duck likes."))
 		  :label "foo" :text-style '(:fix :roman :huge)))
     (doit
      (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
-		  :label '("Foo" :text-style (:serif :bold :huge)) 
+		  :label '("Foo" :text-style (:serif :bold :huge))
 		  :text-style '(:fix :roman :huge)))
     (dotimes (i 5)
       (doit
        (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
-		    :label '("Foo" :text-style (:serif :bold :huge)) 
+		    :label '("Foo" :text-style (:serif :bold :huge))
 		    :printer #'princ)))))
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
@@ -2150,11 +2150,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (accept '(member :normal :point) :stream stream
 		      :prompt "Line style units" :default line-thickness-units))
 	(terpri stream)
-	(setq color-name 
+	(setq color-name
 	      (accept `((completion (:foreground :red :green :blue))
 			:name-key ,#'identity
 			:printer ,#'display-color)
-		      :view #+allegro '(radio-box-view 
+		      :view #+allegro '(radio-box-view
 					 :toggle-button-options (:indicator-type nil))
 			    #-allegro (stream-default-view stream)
 		      :stream stream
@@ -2176,7 +2176,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		  (draw-circle* stream radius radius radius
 				:filled nil))
 		(when draw-point
-		  (draw-point* stream 
+		  (draw-point* stream
 			       (/ square-dimension 4)
 			       (/ square-dimension 2)))
 		(when draw-\\-diagonal
@@ -2196,7 +2196,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (let ((x "hello"))
     (accepting-values (stream :own-window nil :label "Gadgets dialog")
       (stream-set-cursor-position stream 100000 0)
-      (setq x (accept 'string :view +text-field-view+ 
+      (setq x (accept 'string :view +text-field-view+
 		      :stream stream
 		      :default x))
       (terpri stream))))
@@ -2221,19 +2221,19 @@ Luke Luck licks the lakes Luke's duck likes."))
       (macrolet ((accepts (&rest accepts)
 		   `(progn
 		      ,@(mapcar #'(lambda (ac)
-				    (destructuring-bind 
+				    (destructuring-bind
 					(var type &key view (prompt (format nil "~A" var))) ac
 				      `(progn
-					 (setq ,var (accept ',type 
+					 (setq ,var (accept ',type
 							    :stream stream
 							    ,@(and view `(:view ,view))
 							    :default ,var
 							    :prompt ,prompt))
 					 (terpri stream))))
 				accepts))))
-	(accepts 
+	(accepts
 	 (d (float 0 1) :view '(slider-view :show-value-p t
-				:decimal-places 2 
+				:decimal-places 2
 				:min-label "min"
 				:max-label "max"))
 	 (e (integer 0 10) :view +slider-view+)
@@ -2269,7 +2269,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 					      :stream stream)
 				     (terpri stream)))
 			      p))))
-	
+
       (formatting-item-list (stream :n-columns 2)
 	(formatting-cell (stream)
 	  (with-aligned-prompts (stream)
@@ -2295,7 +2295,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	      (( 3 4) (sequence integer))
 	      ;; sequence-enumerated
 	      (t boolean))))
-	  
+
 	(formatting-cell (stream)
 	  (with-aligned-prompts (stream)
 	    (do-presents
@@ -2311,7 +2311,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	;; sequence-enumerated
 	(t boolean)) "
 	       string))))
-	  
+
 	(formatting-cell (stream)
 	  (with-aligned-prompts (stream)
 	    (do-presents
@@ -2323,10 +2323,10 @@ Luke Luck licks the lakes Luke's duck likes."))
   (macrolet ((accepts (&rest accepts)
 	       `(progn
 		  ,@(mapcar #'(lambda (ac)
-				(destructuring-bind 
+				(destructuring-bind
 				    (var type &key view (prompt (format nil "~A" var))) ac
 				  `(progn
-				     (setq ,var (accept ',type 
+				     (setq ,var (accept ',type
 							:stream stream
 							,@(and view `(:view ,view))
 							:default ,var
@@ -2424,8 +2424,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-test (scrolled-list-pane-tests menus-and-dialogs) (stream)
   "Resize the window and check things work ok"
-  (run-frame-top-level 
-   (make-application-frame 'list-pane-frame 
+  (run-frame-top-level
+   (make-application-frame 'list-pane-frame
 			   :input-buffer (stream-input-buffer stream))))
 
 
@@ -2448,7 +2448,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	   (time-continuation ',name ,iterations #'body :careful careful)))
        (define-command (,name :command-table benchmarks :menu t) ()
 	 (write-test-caption ,caption)
-	 (,function-name :careful nil))     
+	 (,function-name :careful nil))
        (pushnew (list ',name ',caption) *benchmarks* :test #'eq :key #'car))))
 
 ;;--- It would be nice if we could measure consing, too
@@ -2560,7 +2560,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (window-clear stream)
       (accepting-values (stream :align-prompts t)
 	(setq pathname
-	  (accept 'pathname :prompt "Pathname for results" 
+	  (accept 'pathname :prompt "Pathname for results"
 		  :stream stream :default pathname))
 	(setq comment
 	  (accept 'string :prompt "Comment describing this run"
@@ -2616,7 +2616,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	      (dolist (name-and-pathname specs)
 		(let* ((short-name (pop name-and-pathname))
 		       (pathname (pop name-and-pathname)))
-		  (with-open-file (file (pathname 
+		  (with-open-file (file (pathname
 					  (string-trim '(#\space) (namestring pathname)))
 				   :direction :input)
 		    (let ((comments
@@ -2659,7 +2659,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		       (when (zerop (mod column 4))
 			 (format s "~%  "))
 		       (if number
-			   (format s "~22@<~A ~2$ (~2$)~>" 
+			   (format s "~22@<~A ~2$ (~2$)~>"
 			     short-name number (float (/ number min)))
 			   (format s "~22@T"))))))))
 	;; Print out the summaries
@@ -3133,7 +3133,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (simple-graph-formatting :iterations 5) (stream)
   "Format a simple graph structure"
-  (let ((map 
+  (let ((map
 	  '("Copley"
 	    (("Auditorium" "Kenmore"
 	      (("Boston University" "Boston College")
@@ -3458,7 +3458,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 (define-application-frame clim-tests ()
-    ((history-class :initarg :history-class 
+    ((history-class :initarg :history-class
 		    :initform 'standard-tree-output-history
 		    :reader clim-tests-history-class))
   (:command-table (clim-tests
@@ -3476,9 +3476,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  ("Formatted Output" :menu formatted-output)
 			  ("Presentations" :menu presentations)
 			  ("Menus and Dialogs" :menu menus-and-dialogs)
-			  ("Exit" :command (exit-clim-tests)))))
+			  ("Exit Clim Tests" :command (exit-clim-tests)))))
   (:command-definer nil)
-  (:panes 
+  (:panes
    (caption-pane :application
 	      :scroll-bars :vertical
 		 :height 50 :max-height 50
@@ -3493,7 +3493,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
-    
+
 #+genera
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)

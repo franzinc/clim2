@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[Mon Aug  2 10:00:30 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,48 +20,102 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.17 1993/11/18 18:45:30 cer Exp $
+;; $fiHeader: image.lisp,v 1.18 1994/12/05 00:01:45 colin Exp $
 
 (in-package :xm-silica)
 
+;; make-pattern-from-bitmap-file and read-bitmap-file constitute the API
 
-(defun make-pattern-from-bitmap-file (file &rest args &key ((:designs supplied-designs)) format)
+(defparameter *bitmap-file-types*
+    '((:bitmap nil "xbm")
+      (:pixmap "xpm")
+      (:gif  "gif")
+      (:tiff "tiff" "tif")))
+
+(defun make-pattern-from-bitmap-file (file &rest args
+				      &key ((:designs supplied-designs))
+					   format)
+  (unless format
+    (let ((type (pathname-type file)))
+      (setq format
+	(or (car (find-if #'(lambda (x)
+			      (member type (cdr x) :test #'equal))
+			  *bitmap-file-types*))
+	    (error "Unknown bitmap file extension ~S, and no ~S specified"
+		   type :format)))))
   (multiple-value-bind (array designs)
       (with-keywords-removed (args args '(:designs))
 	(apply #'read-bitmap-file file args))
-    (make-pattern array 
-		  (or designs 
-		      supplied-designs 
-		      (error "Designs must be specified for this format: ~A"
-			     format)))))
+    (make-pattern array
+		  (or designs
+		      supplied-designs
+		      (list +background-ink+ +foreground-ink+)))))
 
-;;; 
+(defun make-bitmap-file-from-pattern (file pattern &rest args)
+  (multiple-value-bind (array designs)
+      (decode-pattern pattern)
+    (apply #'write-bitmap-file file array :designs designs args)))
+
+;;;
 
 (defparameter *bitmap-search-path* '("/usr/include/X11/bitmaps/"))
 
 (defun read-bitmap-file (pathname &key (format :bitmap) (port (find-port)))
-  ;; Creates an image from a C include file in standard X11 format
   (declare (type (or pathname string stream) pathname))
   (unless (probe-file pathname)
     (dolist (dir *bitmap-search-path*)
-      (let ((p (merge-pathnames pathname dir))) 
+      (let ((p (merge-pathnames pathname dir)))
 	(when (probe-file p)
 	  (return (setq pathname p))))))
   (let ((palette (and port (port-default-palette port))))
     (read-image-file format pathname palette)))
 
+(defun write-bitmap-file (pathname array &key designs (format :bitmap))
+  (write-image-file format pathname array designs))
+
+;;; read-image file methods dispatch to depending on format
+
+;;; X11 bitmap file
+
 (defmethod read-image-file ((format (eql :bitmap)) pathname palette)
   (declare (ignore palette))
   (if (streamp pathname)
-      (read-bitmap-file-1 pathname)
+      (read-x11-bitmap-file pathname)
     (with-open-file (fstream pathname :direction :input)
-      (read-bitmap-file-1 fstream))))
+      (read-x11-bitmap-file fstream))))
+
+(defmethod write-image-file ((format (eql :bitmap)) pathname array designs)
+  (declare (ignore designs))
+  (if (streamp pathname)
+      (write-x11-bitmap-file pathname array)
+    (with-open-file (fstream pathname :direction :output
+		     :if-exists :overwrite :if-does-not-exist :create)
+      (write-x11-bitmap-file fstream array))))
+
+;;; XPM (X Window System ASCII pixmaps)
 
 (defmethod read-image-file ((format (eql :pixmap)) pathname palette)
   (if (streamp pathname)
-      (read-pixmap-file-1 pathname palette)
+      (read-xpm-file pathname palette)
     (with-open-file (fstream pathname :direction :input)
-      (read-pixmap-file-1 fstream palette))))
+      (read-xpm-file fstream palette))))
+
+(defmethod write-image-file ((format (eql :pixmap)) pathname array designs)
+  (if (streamp pathname)
+      (write-xpm-file pathname array designs)
+    (with-open-file (fstream pathname :direction :output
+		     :if-exists :overwrite :if-does-not-exist :create)
+      (write-xpm-file fstream array designs))))
+
+;;; XPM version 3
+
+(defmethod read-image-file ((format (eql :pixmap-3)) pathname palette)
+  (if (streamp pathname)
+      (read-xpm-v3-file pathname palette)
+    (with-open-file (fstream pathname :direction :input)
+      (read-xpm-v3-file fstream palette))))
+
+;;; Use pbm filters for everything else
 
 (defmethod read-image-file ((format t) pathname palette)
   (multiple-value-bind (format filter)
@@ -72,26 +126,46 @@
 	  (with-open-stream (fstream (excl:run-shell-command
 				      command
 				      :wait nil
-				      ;;:error-output :stream
 				      :output :stream))
 	    (handler-case (read-image-file format fstream palette)
 	      (error (c)
-		(error "Unable to read image file: (~s ~s ~s) signalled \"~a\" ~
-			while executing ~s. ~
-			Make sure programs like xpm are executable in your path."
-		       'read-image-file format pathname palette command)
-		)))
+		(error "Unable to read image file: ~s, \"~a\" ~
+			while executing ~s." pathname c command))))
+	(sys:os-wait)))))
+
+(defmethod write-image-file ((format t) pathname array designs)
+  (multiple-value-bind (format read-filter filter)
+      (compute-filter-for-bitmap-format format)
+    (declare (ignore read-filter))
+    ;; copied from code/streamc.cl - basically a truename but without
+    ;; the probe-file
+    (let* ((truename (translate-logical-pathname
+		      (merge-pathnames (pathname pathname))))
+	   (command (format nil "~A > ~A" filter truename)))
+      (unwind-protect
+	  (with-open-stream (fstream (excl:run-shell-command
+				      command
+				      :wait nil
+				      :input :stream))
+	    (handler-case (write-image-file format fstream array designs)
+	      (error (c)
+		(error "Unable to write image file: ~s, \"~a\" ~
+			while executing ~s." pathname c command))))
 	(sys:os-wait)))))
 
 (defmethod compute-filter-for-bitmap-format (format)
   (error "Dont know how to convert from the format ~A" format))
 
 (defmethod compute-filter-for-bitmap-format ((format (eql :gif)))
-  (values :pixmap "giftoppm | ppmtoxpm"))
+  (values :pixmap "giftoppm | ppmtoxpm" "xpmtoppm | ppmtogif"))
+
+(defmethod compute-filter-for-bitmap-format ((format (eql :tiff)))
+  (values :pixmap "tifftopnm | ppmtoxpm" "xpmtoppm | pnmtotiff"))
 
 ;;;
 
-(defun read-bitmap-file-1 (fstream)
+(defun read-x11-bitmap-file (fstream)
+  ;; Creates an image from a C include file in standard X11 format
   (multiple-value-bind (width height depth left-pad format chars-per-pixel line)
       (get-bitmap-file-properties fstream)
     (declare (ignore format  chars-per-pixel line left-pad))
@@ -136,11 +210,47 @@
 		    (assert (zerop (mod bits-per-pixel 8)))
 		    (when (< pixel-offset width)
 		      (setf (aref data i pixel-offset)
-			(dpb byte (byte 8 offset-in-pixel) (aref data i pixel-offset))))))))))
+			(dpb byte
+			     (byte 8 offset-in-pixel)
+			     (aref data i pixel-offset))))))))))
 
 	(values data)))))
 
-(defun read-pixmap-file-1 (fstream palette)
+(defconstant +bytes-per-output-line+ 12)
+
+(defun write-x11-bitmap-file (fstream array)
+  (let ((byte-count 0)
+	(height (array-dimension array 0))
+	(width (array-dimension array 1)))
+    (format fstream "#define noname_width ~D~%" width)
+    (format fstream "#define noname_height ~D~%" height)
+    (format fstream "static char noname_bits[] = {")
+    (flet ((output-byte (byte)
+	     (format fstream
+		     (cond
+		      ((zerop byte-count) "~%   ")
+		      ((zerop (mod byte-count +bytes-per-output-line+)) ",~%   ")
+		      (t ", ")))
+	     (incf byte-count)
+	     (format fstream "0x~2,'0X" byte)))
+      (dotimes (i height)
+	(let ((byte 0)
+	      (bit 0))
+	  (dotimes (j width)
+	    (let ((pixel (aref array i j)))
+	      (assert (< pixel 2) ()
+		"~s format expects only two colors, try using ~s format"
+		:bitmap :pixmap)
+	      (setf (ldb (byte 1 bit) byte) pixel)
+	      (incf bit)
+	      (when (eql bit 8)
+		(output-byte byte)
+		(setq byte 0 bit 0))))
+	  (unless (zerop bit)
+	    (output-byte byte))))
+      (format fstream "};~%"))))
+
+(defun read-xpm-file (fstream palette)
   (multiple-value-bind (width height depth left-pad format
 			chars-per-pixel line)
       (get-bitmap-file-properties fstream)
@@ -154,30 +264,41 @@
 		 (let ((next (peek-char t fstream)))
 		   (if (eq next #\,) (read-char fstream)
 		     (return (nreverse strings)))))))
-	      (convert-color (x)
-		(if palette
-		    (find-named-color x palette)
-		  x)))
-      (let ((colors (do ((colors (read-strings) (cddr colors))
-			 (r nil))
-			((null colors) r)
-		      (push (cons (first colors) 
-				  (convert-color (second colors))) r)))
-	    (pixels (read-strings))
-	    (array (make-array (list height width)))
-	    (i 0))
+	   (convert-color (x)
+	     (if palette
+		 (find-named-color x palette)
+	       x)))
+      (let* ((codes (make-array (expt char-code-limit chars-per-pixel)))
+	     (designs
+	      (do ((color-specs (read-strings) (cddr color-specs))
+		   (designs nil)
+		   (index 0 (1+ index)))
+		  ((null color-specs) (nreverse designs))
+		(let ((code (first color-specs))
+		      (color (convert-color (second color-specs)))
+		      (key 0))
+		  (dotimes (i chars-per-pixel)
+		    (setq key (+ (char-code (schar code i))
+				 (* key char-code-limit))))
+		  (setf (svref codes key) index)
+		  (push color designs))))
+	     (array (make-array (list height width)))
+	     (pixels (read-strings))
+	     (i 0))
 	(declare (type (simple-array t (* *)) array)
 		 (string row))
 	(excl::fast
 	 (dolist (row pixels)
-	   (dotimes (j width)
-	     (let ((index (* j chars-per-pixel)))
-	       (setf (aref array i j)
-		 (position
-		  (subseq row index (+ index chars-per-pixel))
-		  colors :key #'car :test #'equal))))
+	   (let ((index 0))
+	     (dotimes (j width)
+	       (let ((key 0))
+		 (dotimes (i chars-per-pixel)
+		   (setq key (+ (char-code (schar row index))
+				(* key char-code-limit)))
+		   (incf index))
+		 (setf (aref array i j) (svref codes key)))))
 	   (incf i)))
-	(values array (mapcar #'cdr colors))))))
+	(values array designs)))))
 
 (defun get-bitmap-file-properties (fstream)
   (let ((line "")
@@ -189,7 +310,7 @@
       (when  (> (length line) 0)
 	(when (char= (aref line 0) #\#)
 	  (return))))
-  
+
     (loop
       (when  (> (length line) 0)
 	(unless (char= (aref line 0) #\#)
@@ -204,7 +325,7 @@
 				 ("height". :height)
 				 ("depth" . :depth)
 				 ("format" . :format)
-				 ;;--- 
+				 ;;---
 				 ("pixel" . :chars-per-pixel)
 				 ("left_pad" . :left-pad))))))
 	  ;; Get the name of the bitmaps
@@ -224,7 +345,7 @@
 	    (when ind
 	      (setf (getf properties ind) val)))))
       (setq line (read-line fstream)))
-  
+
     (flet ((extract-property (ind &rest default)
 	     (prog1 (apply #'getf properties ind default)
 	       (remf properties ind))))
@@ -235,26 +356,59 @@
 	      (extract-property :format nil)
 	      (extract-property :chars-per-pixel nil)
 	      line))))
-  
-  
+
+(defun write-xpm-file (fstream array designs)
+  (let* ((ncolors (length designs))
+	 (chars-per-pixel (ceiling (log ncolors 36)))
+	 (codes (make-array ncolors))
+	 (height (array-dimension array 0))
+	 (width (array-dimension array 1)))
+    (format fstream "#define noname_format 1~%")
+    (format fstream "#define noname_width ~D~%" width)
+    (format fstream "#define noname_height ~D~%" height)
+    (format fstream "#define noname_ncolors ~D~%" ncolors)
+    (format fstream "#define noname_chars_per_pixel ~D~%" chars-per-pixel)
+    (format fstream "static char *noname_colors[] = {")
+    (dotimes (i ncolors)
+      (unless (zerop i)
+	(write-char #\, fstream))
+      (let* ((code (format nil "~36,V,'0R" chars-per-pixel i))
+	     (color (elt designs i))
+	     (color-name (cond
+			  ((eql color +nowhere+) "none")
+			  (t (multiple-value-bind (red green blue)
+				 (color-rgb color)
+			       (let ((x #.(1- (ash 1 16))))
+				 (format nil "#~4,'0X~4,'0X~4,'0X"
+					 (truncate (* x red))
+					 (truncate (* x green))
+					 (truncate (* x blue)))))))))
+	(format fstream "~%   ~S, ~S" code color-name)
+	(setf (svref codes i) code)))
+    (format fstream "};~%")
+    (format fstream "static char *noname_pixels[] = {")
+    (dotimes (i height)
+      (unless (zerop i)
+	(write-char #\, fstream))
+      (terpri fstream)
+      (write-char #\" fstream)
+      (dotimes (j width)
+	(let ((code (svref codes (aref array i j))))
+	  (write-string code fstream)))
+      (write-char #\" fstream))
+    (format fstream "};~%")))
 
 
 
 ;; Support for the xpm version 3 format
 
-(defmethod read-image-file ((format (eql :pixmap-3)) pathname palette)
-  (if (streamp pathname)
-      (read-xpm-file-1 pathname palette)
-    (with-open-file (fstream pathname :direction :input)
-      (read-xpm-file-1 fstream palette))))
-
-(defun read-xpm-file-1 (stream palette)
+(defun read-xpm-v3-file (stream palette)
   (labels ((ensure-next-char (c)
 	     (assert (eql c (skip-whitespace)) () "Expected ~S" c)
 	     (read-char stream))
 	   (read-a-token (predicate &optional (stream stream))
 	     (skip-whitespace)
-	     (let ((chars (make-array 0 :fill-pointer 0 
+	     (let ((chars (make-array 0 :fill-pointer 0
 				      :adjustable t
 				      :element-type 'string-char)))
 	       (loop
@@ -298,25 +452,25 @@
       (ensure-next-char #\*)
 
       (setq name (read-a-token #'(lambda (c) (or (alphanumericp c) (eql c #\_)))))
-  
+
       (ensure-next-char #\[)
       (ensure-next-char #\])
       (ensure-next-char #\=)
       (ensure-next-char #\{)
-    
+
       (skip-comment)
-    
+
       (let ((values (read-a-string)))
 	(with-input-from-string (s values)
 	  (setq width (read s)
 		height (read s)
 		ncolors (read s)
 		cpp (read s))))
-    
+
       (skip-trailing-crap)
 
       (let ((array (make-array (list height width))))
-	
+
 	(dotimes (i ncolors)
 	  (let* ((string (prog1 (read-a-string) (skip-trailing-crap)))
 		    (chars (subseq string 0 cpp))
@@ -353,10 +507,10 @@
 			values))))
 	    (assert values () "Expected  key,color for ~S" chars)
 	    (push (cons chars values) colors)))
-			      
-    
+
+
 	(setq pixels (nreverse pixels))
-    
+
 	(dotimes (i height)
 	  (let ((string (read-a-string)))
 	    (skip-trailing-crap)
@@ -368,16 +522,18 @@
 		 colors
 		 :key #'car
 		 :test #'string=)))))
-      
+
 	(values array
 		(mapcar #'(lambda (name-and-versions)
-			    (let ((color (or (cdr (assoc "c" (cdr name-and-versions) :test #'string-equal))
+			    (let ((color (or (cdr (assoc "c" (cdr name-and-versions)
+							 :test #'string-equal))
 					     (cdr (car (cdr name-and-versions))))))
 			      (etypecase color
 				(color color)
 				(symbol (cond ((string-equal color 'none)
 					       +transparent-ink+)
-					      (palette 
+					      (palette
 						(find-named-color color palette))
 					      (t color))))))
 			colors))))))
+

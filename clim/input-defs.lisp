@@ -1,6 +1,6 @@
 M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.19 1993/05/25 20:40:52 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.20 1994/12/04 23:57:48 colin Exp $
 
 (in-package :clim-internals)
 
@@ -10,12 +10,12 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 
 (define-protocol-class pointer ())
 
-(defclass standard-pointer 
+(defclass standard-pointer
     (pointer)
   ((port :reader port :initform nil :initarg :port)
    (graft :reader graft :initform nil :initarg :graft)
    (sheet :accessor pointer-sheet :initform nil)
-   ;; Position in root (graft) coordinates 
+   ;; Position in root (graft) coordinates
    (x-position :accessor pointer-x-position
 	       :type coordinate :initform (coordinate 0))
    (y-position :accessor pointer-y-position
@@ -54,7 +54,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
       (with-slots (x-position y-position sheet) pointer
 	(transform-position (sheet-delta-transformation sheet nil)
 			    x-position y-position))
-    (multiple-value-bind (x y native-x native-y root-x root-y) 
+    (multiple-value-bind (x y native-x native-y root-x root-y)
 	(port-query-pointer (port pointer) (graft pointer))
       (declare (ignore x y native-x native-y))
       (values root-x root-y))))
@@ -62,7 +62,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 (defmethod sheet-pointer-position ((sheet basic-sheet) pointer)
   ;; If its not valid then need to do a query-pointer
   (unless (pointer-valid-p pointer)
-    (multiple-value-bind (x y native-x native-y) 
+    (multiple-value-bind (x y native-x native-y)
 	(port-query-pointer (port sheet) sheet)
       (declare (ignore native-x native-y))
       (return-from sheet-pointer-position (values x y))))
@@ -78,7 +78,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 				 sheet nca) new-x new-y))))))
 
 (defun sheets-nearest-common-ancestor (sheet1 sheet2)
-  (if (eq sheet1 sheet2) 
+  (if (eq sheet1 sheet2)
       sheet1
     (do ((sheet sheet1 (sheet-parent sheet)))
 	((null sheet))
@@ -96,7 +96,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	  (t (setq tr (compose-transformations
 		       tr (sheet-transformation sheet)))))))
 
-      
+
 (defmethod set-sheet-pointer-position ((sheet basic-sheet) pointer x y)
   (setf (pointer-sheet pointer) sheet
 	(pointer-position-changed pointer) t
@@ -121,7 +121,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
   (pointer-set-position pointer x y))
 
 ;; X and Y are in stream coordinates
-(defmethod pointer-set-position ((pointer standard-pointer) x y 
+(defmethod pointer-set-position ((pointer standard-pointer) x y
 							    &optional port-did-it)
   (with-slots (x-position y-position position-changed
 			  sheet native-x-position native-y-position valid) pointer
@@ -145,10 +145,10 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 ;;--  What is this meant to do?
 (defmethod pointer-native-position ((pointer standard-pointer))
   (unless (pointer-valid-p pointer)
-    (multiple-value-bind (x y native-x native-y root-x root-y) 
+    (multiple-value-bind (x y native-x native-y root-x root-y)
 	(port-query-pointer (port pointer) (graft pointer))
       (declare (ignore x y native-x native-y))
-      (return-from pointer-native-position (values root-x root-y)))) 
+      (return-from pointer-native-position (values root-x root-y))))
   ;;-- This is the wrong values. These are just some mirror values
   ;;rather than graft values
   (with-slots (native-x-position native-y-position) pointer
@@ -167,7 +167,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	  (y (coordinate y)))
       (setf native-x-position x
 	    native-y-position y
-	    position-changed t 
+	    position-changed t
 	    valid t))
     (unless port-did-it
       (multiple-value-bind (sheet-x sheet-y)
@@ -185,7 +185,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	;;--- it's hours before AAAI.  Note that this can cause blowouts
 	;;--- in multi-processing systems if the function that does the
 	;;--- unhighlighting depends on application state.
-	;;---	
+	;;---
 	;;--- let's go the whole hog and make a stab at binding
 	;;--- *application-frame* (cim 1/31/94)
 	(when (output-recording-stream-p sheet)
@@ -201,11 +201,11 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
     (when (and sheet (port sheet))
       (let ((native-x-position (pointer-native-x-position pointer))
 	    (native-y-position (pointer-native-y-position pointer)))
-	(multiple-value-setq (native-x-position native-y-position)
-	  (untransform-position (sheet-native-transformation sheet) 
-				native-x-position native-y-position))
-	(setf (pointer-x-position pointer) native-x-position
-	      (pointer-y-position pointer) native-y-position)))))
+	(multiple-value-bind (x-position y-position)
+	    (untransform-position (sheet-device-transformation sheet)
+				  native-x-position native-y-position)
+	  (setf (pointer-x-position pointer) x-position
+		(pointer-y-position pointer) y-position))))))
 
 (defmethod query-pointer ((pointer standard-pointer))
   (declare (values sheet x y))

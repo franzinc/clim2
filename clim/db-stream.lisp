@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.59 1993/11/18 18:44:14 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.60 1994/12/04 23:57:29 colin Exp $
 
 (in-package :clim-internals)
 
@@ -346,6 +346,13 @@
 ;; actually defines its visible size.  The stream pane's size is supposed
 ;; to represent the size of the contents, but may be stretched to fill the
 ;; available viewport space.
+
+;; well this method breaks accepting-values :own-window t by ignoring
+;; explicit :width/:height so I'm going to ignore it and see what else 
+;; breaks instead. Then perhaps we can make a fix which satisfies both 
+;; constraints. (cim 2/13/95)
+
+#+ignore
 (defmethod change-space-requirements :around
 	   ((pane clim-stream-pane) &rest keys &key width height &allow-other-keys)
   (declare (dynamic-extent keys))
@@ -353,14 +360,13 @@
   (multiple-value-bind (history-width history-height)
       (if (stream-output-history pane)
 	  (bounding-rectangle-size (stream-output-history pane))
-	  (values width height))
+	(values width height))
     ;; Don't ever shrink down smaller than our contents.
     (if (and (numberp width)
 	     (numberp height))
 	(apply #'call-next-method pane :width (max width history-width)
-				       :height (max height history-height) keys)
-	(call-next-method))))
-
+	       :height (max height history-height) keys)
+      (call-next-method))))
 
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())

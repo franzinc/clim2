@@ -1,20 +1,20 @@
-# $fiHeader: Makefile.defs,v 1.29 1994/11/23 23:28:29 smh Exp $
+# $fiHeader: Makefile.defs,v 1.32 1995/05/15 07:17:39 duane Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
 CL	= /usr/fi/dcl-devel
-CLOPTS	= -qq
+CLOPTS	= -qq -batch -backtrace-on-error
 
 DEVICE	= /dev/null
 RM	= /bin/rm
 CAT	= /bin/cat
 ECHO	= /bin/echo
 TAGS	= /usr/fi/etags
-# /tmp is either on /usr (in which case it points to /usr/tmp) or is on the
-# root filesystem, which is probably really small.  So, use /usr/tmp.
 TMP	= /usr/tmp
 MV	= /usr/fi/mv-nfs
+
+SHELL	= /bin/sh
 
 # Training
 
@@ -25,24 +25,7 @@ HPGLVIEW=:file
 TRAIN_COMPILE=t
 TRAIN_PROFILEP=t
 TRAIN_BM=t
-
 FRAME_TESTS=t
-
-TRAIN_LISP= \
-	(load \"misc/train.lisp\") \
-	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
-		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
-		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
-		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\")
-
-TRAIN_TEXT = \
-	$(ECHO) "\
-	$(TRAIN_LISP) \
-	(exit 0) \
-" | $(CLIM) $(CLOPTS) -batch -backtrace-on-error \
-	; echo CLIM trained!!!!	
-
-REPORT_FILE=dunno
 
 # Info
 LOAD_SOURCE_FILE_INFO=t
@@ -59,100 +42,68 @@ DEBUG   = 2
 COMPILE_PRINT=nil 
 
 # where to dump the CLIM images
-CLIM-SMALL	= ./slim-small
 CLIM		= ./slim
 
-CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD
+
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
+	 	-DUSE_RE_COMP -DUSER_GETWD
 LDFLAGS=
 OLDSPACE = 15000000
 NEWSPACE = 5000000
 PREMALLOCS = '-m 401408'
 
-PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
-DIRS0	=  tk tk-silica misc cloe climtoys hpgl
-DIRS	= $(PUBDIRS) xlib $(DIRS0)
-CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
-
-SRC_FILES = */*.lisp *.lisp Makefile.* misc/make-stub-file \
-	misc/undefinedsymbols \
-	misc/undefinedsymbols.olit misc/undefinedsymbols.colit \
-	misc/undefinedsymbols.motif misc/undefinedsymbols.cmotif \
-	misc/undefinedsymbols.xt \
-	xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c \
-	misc/clos-preload.cl misc/xtsupport.c misc/climgccursor.c
+# Used for tags
+ALL_SRC = *.lisp */*.lisp *.cl */*.cl *.c */*.c *.h */*.h
 
 # These are the files that make up the source code product.
-
 PRODUCT_SRC_FILES = sys/*.lisp utils/*.lisp  silica/*.lisp clim/*.lisp \
 	demo/*.lisp test/test-suite.lisp
 
-DEST=/dev/null
-DEBUGLIB=
-
-# This has to be kept consistent with xlib.lisp
+# This has to be kept consistent with xlib/xlib-funs.lisp
 UNDEFS=misc/undefinedsymbols
 
-# This should be the same as load-xt
+# This has to be kept consistent with tk/xt-funs.lisp
 XT_UNDEFS=misc/undefinedsymbols.xt
 
-# This should be the same as load-xm
+# This has to be kept consistent with tk/xm-funs.lisp
 XM_UNDEFS=misc/undefinedsymbols.motif
+# This has to be kept consistent with tk/xm-classes.lisp
 XMC_UNDEFS=misc/undefinedsymbols.cmotif
 
-# This should be the same as load-ol
+# This has to be kept consistent with tk/ol-funs.lisp
 OL_UNDEFS=misc/undefinedsymbols.olit
+# This has to be kept consistent with tk/ol-classes.lisp
 OLC_UNDEFS=misc/undefinedsymbols.colit
 
 # These are the fasls and the .o that form the product
 
-CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl climdemo.fasl
-CLIM_OL_FASLS= climol.fasl clim-debugol.fasl
-CLIM_XM_FASLS= climxm.fasl clim-debugxm.fasl
+PRODUCT-GENERIC-FASLS= \
+	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl \
+	climgg.fasl climhpgl.fasl
 
-CLIMFASLS=  $(CLIM_GENERIC_FASLS) $(CLIM_XM_FASLS)
+PRODUCT-XM-FASLS= climxm.fasl clim-debugxm.fasl
+PRODUCT-OL-FASLS= climol.fasl clim-debugol.fasl
 
+PRODUCT-GENERIC-OBJS= \
+	stub-xt.o stub-x.o xtsupport.o xlibsupport.o
 
-GENERIC_PUBLIC_OBJS= stub-xt.o stub-x.o xlibsupport.o xtsupport.o
-XM_PUBLIC_OBJS= stub-motif.o MyDrawingA.o
-OL_PUBLIC_OBJS= stub-olit.o olsupport.o
+STATIC-XM-OBJS= stub-motif.o xmsupport.o
+SHARED-XM-OBJS= climxm.so
 
-PUBLIC_OBJS= $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(OL_PUBLIC_OBJS)
+STATIC-OL-OBJS= stub-olit.o olsupport.o
+SHARED-OL-OBJS= climol.so
 
-OL_LICENSED_OBJS = clim-olit$(DEBUGLIB).o
-XM_LICENSED_OBJS = clim-motif$(DEBUGLIB).o 
+# The default is for statically linked Motif
 
-MOTIF_OBJS= $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
-OPENLOOK_OBJS= $(GENERIC_PUBLIC_OBJS) $(OL_PUBLIC_OBJS) $(OL_LICENSED_OBJS)
-
-CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
-
-INSTALLED_CLIMOBJS = $(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
-
-CLIM_OLFASLS_TO_MAKE = makeclimolfasls
-CLIM_FASLS_TO_MAKE = makeclimxmfasls $(CLIM_OLFASLS_TO_MAKE)
-
-# These are built into xm-dcl and ol-dcl.
-COMPOSEROBJS= $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-
-#	      $(CL_SRC)/code/gc_cursor.o \
-#	      $(CL_SRC)/code/unixsocket.o \
-#	      $(CL_SRC)/code/io.o $(CL_SRC)/code/exclio.o \
-#	      $(CL_SRC)/code/RunStatus.o
-
-# "Compile time objects" -- these go into clim-debug.fasl
-#
-DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
-	     xlib/x11-keysyms.fasl tk/xt-defs.fasl tk/xt-funs.fasl \
-             xlib/last.fasl
-
-XM-DEBUG-OBJS = tk/xm-defs.fasl tk/xm-funs.fasl 
-OL-DEBUG-OBJS = tk/ol-defs.fasl tk/ol-funs.fasl
+PRODUCT-TK-FASLS= $(PRODUCT-XM-FASLS)
+PRODUCT-TK-OBJS= $(STATIC-XM-OBJS)
+SYSTEM = motif-clim
 
 #
 # "Load time objects" -- these go into clim.fasl
 #
 
-CLIM-UTILS-OBJS = \
+GENERIC-FASLS= \
 	utils/excl-verification.fasl utils/lisp-package-fixups.fasl \
 	utils/defpackage.fasl utils/packages.fasl \
 	utils/defun-utilities.fasl utils/reader.fasl \
@@ -162,18 +113,14 @@ CLIM-UTILS-OBJS = \
 	utils/excl-streams.fasl utils/clim-macros.fasl \
 	utils/transformations.fasl utils/regions.fasl \
 	utils/region-arithmetic.fasl utils/extended-regions.fasl \
-	utils/base-designs.fasl utils/designs.fasl
-
-CLIM-SILICA-OBJS = \
+	utils/base-designs.fasl utils/designs.fasl \
 	silica/classes.fasl silica/text-style.fasl silica/macros.fasl \
 	silica/sheet.fasl silica/mirror.fasl silica/event.fasl \
 	silica/port.fasl silica/medium.fasl silica/framem.fasl \
 	silica/graphics.fasl silica/pixmaps.fasl silica/std-sheet.fasl \
 	silica/layout.fasl silica/db-layout.fasl silica/db-box.fasl \
 	silica/db-table.fasl silica/gadgets.fasl silica/db-scroll.fasl \
-	silica/db-border.fasl
-
-CLIM-STANDALONE-OBJS = \
+	silica/db-border.fasl \
 	clim/gestures.fasl clim/defprotocol.fasl \
 	clim/stream-defprotocols.fasl clim/defresource.fasl \
 	clim/temp-strings.fasl clim/clim-defs.fasl \
@@ -199,15 +146,10 @@ CLIM-STANDALONE-OBJS = \
 	clim/noting-progress.fasl clim/menus.fasl clim/accept-values.fasl \
 	clim/drag-and-drop.fasl clim/item-list-manager.fasl \
 	postscript/pkgdcl.fasl postscript/postscript-s.fasl \
-	clim/stream-trampolines.fasl
+	clim/stream-trampolines.fasl \
+	xlib/pkg.fasl xlib/load-xlib.fasl
 
-GENERIC-GADGETS = \
-	homegrown/db-menu.fasl homegrown/db-list.fasl \
-	homegrown/db-text.fasl homegrown/db-button.fasl \
-	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
-	homegrown/db-label.fasl homegrown/last.fasl
-
-DEMO-OBJS = \
+DEMO-FASLS= \
 	demo/packages.fasl demo/demo-driver.fasl demo/listener.fasl \
 	demo/graphics-demos.fasl demo/cad-demo.fasl demo/navdata.fasl \
 	demo/navfun.fasl demo/puzzle.fasl demo/address-book.fasl \
@@ -217,28 +159,24 @@ DEMO-OBJS = \
 	demo/custom-records.fasl demo/demo-activity.fasl \
 	test/test-suite.fasl demo/demo-last.fasl
 
-XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
+HOMEGROWN-GADGET-FASLS= \
+	homegrown/db-menu.fasl homegrown/db-list.fasl \
+	homegrown/db-text.fasl homegrown/db-button.fasl \
+	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
+	homegrown/db-label.fasl homegrown/last.fasl
 
-LOAD-XM-OBJS = tk/load-xm.fasl
-LOAD-OL-OBJS = tk/load-ol.fasl
-
-XT-TK-OBJS = \
+GENERIC-XT-FASLS= \
 	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xlib.fasl \
 	tk/font.fasl tk/gcontext.fasl tk/graphics.fasl tk/meta-tk.fasl \
 	tk/make-classes.fasl tk/foreign.fasl tk/widget.fasl \
 	tk/resources.fasl tk/event.fasl tk/callbacks.fasl \
 	tk/xt-classes.fasl tk/xt-init.fasl
 
-XM-TK-OBJS = \
+XM-FASLS= \
+	tk/load-xm.fasl $(GENERIC-XT-FASLS) \
 	tk/xm-classes.fasl tk/xm-callbacks.fasl tk/xm-init.fasl \
 	tk/xm-widgets.fasl tk/xm-font-list.fasl tk/xm-protocols.fasl \
-	tk/convenience.fasl tk/make-widget.fasl
-
-OL-CLIM-OBJS = \
-	tk/ol-classes.fasl tk/ol-init.fasl tk/ol-widgets.fasl \
-	tk/ol-callbacks.fasl tk/make-widget.fasl
-
-MOTIF-CLIM-OBJS = \
+	tk/convenience.fasl tk/make-widget.fasl \
 	tk-silica/pkg.fasl tk-silica/xt-silica.fasl \
 	tk-silica/xt-stipples.fasl tk-silica/xm-silica.fasl \
 	tk-silica/xt-graphics.fasl tk-silica/image.fasl \
@@ -247,8 +185,10 @@ MOTIF-CLIM-OBJS = \
 	tk-silica/xm-gadgets.fasl tk-silica/xt-pixmaps.fasl \
 	tk-silica/gc-cursor.fasl tk-silica/last.fasl
 
-
-OPENLOOK-CLIM-OBJS = \
+OL-FASLS= \
+	tk/load-ol.fasl $(GENERIC-XT-FASLS) \
+	tk/ol-classes.fasl tk/ol-init.fasl tk/ol-widgets.fasl \
+	tk/ol-callbacks.fasl tk/make-widget.fasl \
 	tk-silica/pkg.fasl tk-silica/xt-silica.fasl \
 	tk-silica/xt-stipples.fasl tk-silica/ol-silica.fasl \
 	tk-silica/xt-graphics.fasl tk-silica/image.fasl \
@@ -257,95 +197,28 @@ OPENLOOK-CLIM-OBJS = \
 	tk-silica/xt-pixmaps.fasl tk-silica/gc-cursor.fasl \
 	tk-silica/last.fasl
 
-POSTSCRIPT_CLIM = \
+POSTSCRIPT-FASLS= \
 	postscript/postscript-port.fasl postscript/postscript-medium.fasl \
 	postscript/laserwriter-metrics.fasl
 
-HPGL_OBJS= \
+HPGL-FASLS= \
 	hpgl/pkg.fasl hpgl/hpgl-port.fasl hpgl/hpgl-medium.fasl
 
-# Used for tags
+CLIM1COMPAT-FASLS= \
+	 compatibility/packages.fasl compatibility/clim1-compatibility.fasl
 
-ALL_SRC = \
-	sys/defsystem.lisp sys/distribution-script.lisp \
-	sys/load-clim2.lisp sys/sysdcl.lisp \
-	utils/excl-verification.lisp utils/lisp-package-fixups.lisp \
-	utils/defpackage.lisp utils/packages.lisp \
-	utils/defun-utilities.lisp utils/reader.lisp \
-	utils/clos-patches.lisp utils/clos.lisp utils/utilities.lisp \
-	utils/lisp-utilities.lisp utils/processes.lisp utils/queue.lisp \
-	utils/protocols.lisp utils/clim-streams.lisp \
-	utils/excl-streams.lisp utils/clim-macros.lisp \
-	utils/transformations.lisp utils/regions.lisp \
-	utils/region-arithmetic.lisp utils/extended-regions.lisp \
-	utils/designs.lisp silica/classes.lisp silica/text-style.lisp \
-	silica/macros.lisp silica/sheet.lisp silica/mirror.lisp \
-	silica/event.lisp silica/port.lisp silica/medium.lisp \
-	silica/framem.lisp silica/graphics.lisp silica/pixmaps.lisp \
-	silica/std-sheet.lisp silica/layout.lisp silica/db-layout.lisp \
-	silica/db-box.lisp silica/db-table.lisp silica/gadgets.lisp \
-	silica/db-border.lisp silica/db-scroll.lisp \
-	homegrown/db-menu.lisp homegrown/db-list.lisp \
-	homegrown/db-text.lisp homegrown/db-button.lisp \
-	homegrown/db-slider.lisp homegrown/db-label.lisp \
-	homegrown/scroll-pane.lisp homegrown/last.lisp clim/gestures.lisp \
-	clim/defprotocol.lisp clim/stream-defprotocols.lisp \
-	clim/defresource.lisp clim/temp-strings.lisp clim/clim-defs.lisp \
-	clim/stream-class-defs.lisp clim/interactive-defs.lisp \
-	clim/cursor.lisp clim/view-defs.lisp clim/input-defs.lisp \
-	clim/input-protocol.lisp clim/output-protocol.lisp \
-	clim/recording-defs.lisp clim/recording-protocol.lisp \
-	clim/text-recording.lisp clim/graphics-recording.lisp \
-	clim/interactive-protocol.lisp clim/input-editor-commands.lisp \
-	clim/formatted-output-defs.lisp clim/incremental-redisplay.lisp \
-	clim/coordinate-sorted-set.lisp clim/window-stream.lisp \
-	clim/pixmap-streams.lisp clim/ptypes1.lisp clim/completer.lisp \
-	clim/presentations.lisp clim/translators.lisp clim/histories.lisp \
-	clim/ptypes2.lisp clim/standard-types.lisp \
-	clim/excl-presentations.lisp clim/table-formatting.lisp \
-	clim/graph-formatting.lisp clim/surround-output.lisp \
-	clim/text-formatting.lisp clim/tracking-pointer.lisp \
-	clim/dragging-output.lisp clim/db-stream.lisp \
-	clim/gadget-output.lisp clim/accept.lisp clim/present.lisp \
-	clim/command.lisp clim/command-processor.lisp \
-	clim/basic-translators.lisp clim/frames.lisp clim/panes.lisp \
-	clim/default-frame.lisp clim/noting-progress.lisp clim/menus.lisp \
-	clim/accept-values.lisp clim/drag-and-drop.lisp \
-	clim/item-list-manager.lisp clim/stream-trampolines.lisp \
-	xlib/pkg.lisp xlib/ffi.lisp xlib/xlib-defs.lisp \
-	xlib/load-xlib.lisp xlib/xlib-funs.lisp xlib/x11-keysyms.lisp \
-	xlib/last.lisp tk/load-xm.lisp tk/load-ol.lisp tk/pkg.lisp \
-	tk/macros.lisp tk/xt-defs.lisp tk/foreign-obj.lisp tk/xlib.lisp \
-	tk/font.lisp tk/gcontext.lisp tk/graphics.lisp tk/meta-tk.lisp \
-	tk/make-classes.lisp tk/foreign.lisp tk/widget.lisp \
-	tk/resources.lisp tk/event.lisp tk/callbacks.lisp \
-	tk/xt-classes.lisp tk/xt-init.lisp tk/xm-defs.lisp \
-	tk/xm-classes.lisp tk/xm-callbacks.lisp tk/xt-funs.lisp \
-	tk/xm-funs.lisp tk/xm-classes.lisp tk/xm-init.lisp \
-	tk/xm-widgets.lisp tk/xm-font-list.lisp tk/xm-protocols.lisp \
-	tk/convenience.lisp tk/make-widget.lisp tk-silica/pkg.lisp \
-	tk-silica/xt-silica.lisp tk-silica/xt-stipples.lisp \
-	tk-silica/xm-silica.lisp tk-silica/xt-graphics.lisp \
-	tk-silica/image.lisp tk-silica/xt-frames.lisp \
-	tk-silica/xm-frames.lisp tk-silica/xt-gadgets.lisp \
-	tk-silica/xm-gadgets.lisp tk-silica/xt-pixmaps.lisp \
-	tk/ol-defs.lisp tk/ol-funs.lisp tk/ol-classes.lisp \
-	tk/ol-init.lisp tk/ol-widgets.lisp tk/ol-callbacks.lisp \
-	tk-silica/ol-silica.lisp tk-silica/ol-frames.lisp \
-	tk-silica/ol-gadgets.lisp \
-	misc/MyDrawingA.c misc/MyDrawingA.h misc/MyDrawingAP.h \
-	misc/climgccursor.c misc/olsupport.c misc/xtsupport.c \
-	xlib/xlibsupport.c stub-xt.c stub-x.c stub-motif.c \
-	misc/clos-preload.cl
+# "Compile time objects" -- these go into clim-debug.fasl
+#
+DEBUG-FASLS = \
+	xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
+	xlib/x11-keysyms.fasl tk/xt-defs.fasl tk/xt-funs.fasl \
+	xlib/last.fasl
 
-GENERIC-OBJS = \
-	 $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
+XM-DEBUG-FASLS = tk/xm-defs.fasl tk/xm-funs.fasl 
+OL-DEBUG-FASLS = tk/ol-defs.fasl tk/ol-funs.fasl
 
-MOTIF-OBJS = \
-	 $(LOAD-XM-OBJS) $(XT-TK-OBJS) $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS)
+# end of fasls
 
-OPENLOOK-OBJS = \
-	$(LOAD-OL-OBJS) $(XT-TK-OBJS) $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
 make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
@@ -354,8 +227,5 @@ make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	RECORD_XREF_INFO=${RECORD_XREF_INFO} CL=${CL} \
 	CLIM=${CLIM} COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP} -f ${Makefile}
 
-CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl
-
 BENCHMARK_FILE=nil
 
-C_OBJECT_MAKEFILE = Makefile.cobjs

@@ -1,4 +1,4 @@
-/* $fiHeader: xtsupport.c,v 1.10 1994/12/04 23:59:55 colin Exp $ */
+/* $fiHeader: xtsupport.c,v 1.11 1995/04/07 01:09:14 georgej Exp $ */
 
 #include <X11/Intrinsic.h>
 
@@ -92,7 +92,6 @@ typedef struct _XtAppStruct {
 
 #define IS_AT_OR_AFTER(t1, t2) (((t2).tv_sec > (t1).tv_sec) \
 	|| (((t2).tv_sec == (t1).tv_sec)&& ((t2).tv_usec >= (t1).tv_usec)))
-
 
 /* End of code extracts from X11R5 source tree */
 

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Mon Sep 26 02:03:59 1994 by smh]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.51 1994/11/23 23:29:16 smh Exp $
+;; $fiHeader: xlib.lisp,v 1.52 1994/12/05 00:01:14 colin Exp $
 
 (in-package :tk)
 
@@ -47,7 +47,7 @@
 (defclass screen (display-object) ())
 
 (defclass drawable (display-object) ())
-	  
+
 (defclass window (drawable)
   ((plist :accessor window-property-list :initform nil)))
 
@@ -105,20 +105,20 @@
     ((t :always) 2)
     (:when-mapped 1)
     ((nil :not-useful) 0)))
-    
+
 (defun decode-backing-store (x)
   (declare (optimize (speed 3) (safety 0)))
   (ecase x
     (2 :always)
     (1 :when-mapped)
     (0 :not-useful)))
-    
+
 (defun encode-save-under (x)
   (declare (optimize (speed 3) (safety 0)))
   (ecase x
     ((t :on) 1)
     ((nil :off) 0)))
-    
+
 (defun decode-save-under (x)
   (declare (optimize (speed 3) (safety 0)))
   (ecase x
@@ -148,7 +148,7 @@
 (defmethod drawable-depth ((window window))
   (window-depth window))
 
-  
+
 (defclass pixmap (drawable)
   ((width :initarg :width :reader pixmap-width)
    (height :initarg :height :reader pixmap-height)
@@ -165,7 +165,7 @@
   (let ((display (object-display pixmap)))
     (unregister-xid pixmap display)
     (x11:xfreepixmap display pixmap)))
-  
+
 (defmethod initialize-instance :after
 	   ((p pixmap) &key foreign-address width height depth drawable)
   (assert (and (plusp width) (plusp height))
@@ -192,13 +192,13 @@
 (defun get-resource (db name class)
   (with-ref-par ((type-ref 0))
     (let ((xrmvalue (x11:make-xrmvalue)))
-      (unless (zerop (x11:xrmgetresource db 
+      (unless (zerop (x11:xrmgetresource db
 					 name
 					 class
 					 type-ref xrmvalue))
 	(let ((type (char*-to-string (aref type-ref 0))))
 	  (values
-	   
+
 	   (cond
 	    ((equal type "String")
 	     (char*-to-string (x11:xrmvalue-addr xrmvalue)))
@@ -290,10 +290,16 @@
     (let ((n (position (cltl1::int-char 0) s)))
       (when n (setq s (subseq s 0 n))))
     s))
-      
+
+(defvar *x-error-handler-address*
+    (register-function 'x-error-handler))
+
+(defvar *x-io-error-handler-address*
+    (register-function 'x-io-error-handler))
+
 (defun setup-error-handlers ()
-  (x11:xseterrorhandler (register-function 'x-error-handler))
-  (x11:xsetioerrorhandler (register-function 'x-io-error-handler)))
+  (x11:xseterrorhandler *x-error-handler-address*)
+  (x11:xsetioerrorhandler *x-io-error-handler-address*))
 
 (eval-when (load)
   (setup-error-handlers))
@@ -321,8 +327,8 @@
 (defun create-colormap (display &optional (screen (display-screen-number display)))
   (intern-object-xid
    (x11:xcreatecolormap
-    display                
-    (x11:xrootwindow display screen)     
+    display
+    (x11:xrootwindow display screen)
     (x11:xdefaultvisual display screen)
     x11:allocnone)
    'colormap
@@ -338,7 +344,7 @@
 
 (defclass color (ff:foreign-pointer) ())
 
-(defmethod initialize-instance :after 
+(defmethod initialize-instance :after
 	   ((x color) &key foreign-address (in-foreign-space t) red green blue (pixel 0))
   (unless foreign-address
     (setq foreign-address (if in-foreign-space
@@ -352,7 +358,7 @@
     (setf (foreign-pointer-address x) foreign-address)))
 
 (defmethod print-object ((o color) s)
-  (print-unreadable-object 
+  (print-unreadable-object
    (o s :type t :identity t)
    (let ((cm o))
      (format s "~D:~D,~D,~D"
@@ -400,7 +406,7 @@
 	(values (x11:xcolor-pixel y)
 		(make-instance 'color :foreign-address y))))))
 
-(defvar *pixel-array* 
+(defvar *pixel-array*
     (make-array 1 :initial-element 0 :element-type '(unsigned-byte 32)))
 
 (defun free-color-cells (colormap pixel planes)
@@ -433,7 +439,7 @@
      (object-display colormap)
      colormap
      y)
-    (values 
+    (values
      (x11:xcolor-red y)
      (x11:xcolor-green y)
      (x11:xcolor-blue y))))
@@ -462,13 +468,13 @@
        `(clim-sys:using-resource (,var ,',name ,n)
 	  (let ((,var (cdr ,var)))
 	    ,@body)))))
-    
+
 (def-foreign-array-resource xcolor-array x11:make-xcolor-array)
 (def-foreign-array-resource xsegment-array x11:make-xsegment-array)
 (def-foreign-array-resource xpoint-array x11:make-xpoint-array)
 (def-foreign-array-resource xrectangle-array x11:make-xrectangle-array)
 (def-foreign-array-resource xarc-array x11:make-xarc-array)
-  
+
 (defun store-colors (colormap colors ncolors)
   (x11:xstorecolors
    (object-display colormap)
@@ -477,9 +483,9 @@
    ncolors))
 
 (defun alloc-color-cells (colormap ncolors nplanes)
-  (let* ((masks (make-array nplanes 
+  (let* ((masks (make-array nplanes
 			    :initial-element 0 :element-type '(unsigned-byte 32)))
-	 (pixels (make-array ncolors 
+	 (pixels (make-array ncolors
 			     :initial-element 0 :element-type '(unsigned-byte 32)))
 	 (z (x11:xalloccolorcells
 	     (object-display colormap)
@@ -493,7 +499,7 @@
       (error 'x-colormap-full))
     (values pixels masks)))
 
-   
+
 (defun default-screen (display)
   (intern-object-address
    (x11:xdefaultscreenofdisplay
@@ -513,7 +519,7 @@
 
 
 (defun query-pointer (window)
-  (with-ref-par 
+  (with-ref-par
       ((root 0)
        (child 0)
        (root-x 0 t)
@@ -535,12 +541,12 @@
 	  (values
 	   t
 	   (intern-object-xid
-	    (aref root 0) 
+	    (aref root 0)
 	    'window
 	    display
 	    :display display)
 	   (intern-object-xid
-	    (aref child 0) 
+	    (aref child 0)
 	    'window
 	    display
 	    :display display)
@@ -549,10 +555,10 @@
 	   (aref x 0)
 	   (aref y 0)
 	   (aref mask 0))))))
-	
 
 
-(defconstant *event-masks* 
+
+(defconstant *event-masks*
     '(:key-press
       :key-release
       :button-press
@@ -660,59 +666,59 @@
 	(values result
 		(aref keysym 0))))))
 
-(defclass image (ff:foreign-pointer)
+;; image support
+
+(defclass image (display-object)
   ((width :reader image-width :initarg :width)
    (height :reader image-height :initarg :height)
-   (data :reader image-data :initarg :data)
    (depth :reader image-depth :initarg :depth)
-   (format :reader image-format :initform x11:zpixmap :initarg :format)
-   (realized-displays :initform nil :accessor realized-displays)))
-  
+   (format :reader image-format :initform x11:zpixmap :initarg :format)))
 
 (defconstant bitmap-pad 8)
 
-(defmethod realize-image (image display)
-  (when (not (member display (realized-displays image)))
-    (let* ((width (image-width image))
-	   (height (image-height image))
-	   (data (image-data image))
-	   (depth (image-depth image))
-	   (format (image-format image))
-	   (bits-per-line (* width depth))
-	   (padded-bits-per-line (* bitmap-pad 
-				    (ceiling bits-per-line bitmap-pad)))
-	   (bytes-per-line (/ padded-bits-per-line 8))
-	   (v (excl::malloc (* bytes-per-line height)))
-	   (visual (x11:screen-root-visual
-		    (x11:xdefaultscreenofdisplay display)))
-	   (offset 0)
-	   (x (x11:xcreateimage display
-				visual
-				depth
-				format
-				offset
-				v
-				width
-				height
-				bitmap-pad
-				bytes-per-line)))
-      (case depth
-	(8 
-	 (dotimes (h height)
-	   (dotimes (w width)
-	     (setf (sys::memref-int v (+ (* h bytes-per-line) w) 0 :unsigned-byte)
-	       (aref data h w)))))
-	(t
-	 (dotimes (h height)
-	   (dotimes (w width)
-	     (x11:xputpixel x w h (aref data h w))))))
-      (setf (foreign-pointer-address image) x))
-    (push display (realized-displays image))))
+(defmethod initialize-instance :after
+	   ((image image) &key foreign-address data)
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (display format depth width height) image
+    (unless foreign-address
+      (let* ((bits-per-line (* width depth))
+	     (padded-bits-per-line (* bitmap-pad
+				      (ceiling bits-per-line bitmap-pad)))
+	     (bytes-per-line (/ padded-bits-per-line bitmap-pad))
+	     (v (excl::malloc (* bytes-per-line height)))
+	     (visual (x11:screen-root-visual
+		      (x11:xdefaultscreenofdisplay display)))
+	     (offset 0)
+	     (x (x11:xcreateimage display
+				  visual
+				  depth
+				  format
+				  offset
+				  v
+				  width
+				  height
+				  bitmap-pad
+				  bytes-per-line)))
+	(setf (foreign-pointer-address image) x)
+	(when data
+	  (case depth
+	    (8
+	     (let ((u 0))
+	       (dotimes (h height)
+		 (dotimes (w width)
+		   (setf (sys::memref-int v (+ u w) 0 :unsigned-byte)
+		     (aref data h w)))
+		 (incf u bytes-per-line))))
+	    (t
+	     (dotimes (h height)
+	       (dotimes (w width)
+		 (x11:xputpixel x w h (aref data h w)))))))))))
 
 (defmethod put-image (pixmap gc image
 		      &key (src-x 0) (src-y 0) (dest-x 0) (dest-y 0))
-  (let ((display (object-display pixmap)))
-    (realize-image image display)
+  (let ((display (object-display image)))
+    (unless (eq display (object-display pixmap))
+      (error "~S and ~S must be on the same display" image pixmap))
     (x11:xputimage
      display
      pixmap
@@ -725,47 +731,31 @@
      (image-width image)
      (image-height image))))
 
-(defmethod get-image (pixmap &key (x 0) (y 0) 
+(defmethod get-image (pixmap &key (x 0) (y 0)
 				  (width (pixmap-width pixmap))
 				  (height (pixmap-height pixmap))
 				  (format x11:zpixmap))
-  (let* ((display (object-display pixmap))
-	 (data (make-array (list height width)))
-	 (image (make-instance 'image
-		  :width width
-		  :height height
-		  :data data
-		  :depth (pixmap-depth pixmap)
-		  :format format
-		  :foreign-address (x11:xgetimage display
-						  pixmap
-						  x
-						  y
-						  width
-						  height
-						  #xff
-						  format))))
-    (push display (realized-displays image))
-    (dotimes (h height)
-      (dotimes (w width)
-	(setf (aref data h w)
-	  (x11:xgetpixel image w h))))
-    image))
+  (let ((display (object-display pixmap)))
+    (make-instance 'image
+      :display display
+      :width width
+      :height height
+      :depth (pixmap-depth pixmap)
+      :format format
+      :foreign-address (x11:xgetimage display
+				      pixmap
+				      x
+				      y
+				      width
+				      height
+				      #xff
+				      format))))
 
+(defun get-pixel (image x y)
+  (x11:xgetpixel image x y))
 
-;;--- calls to this should be replaced by the new and more general
-;; get-image defined above (cim 9/12/94)
-
-(defun image-from-pixmap (pixmap)
-  (x11:xgetimage
-   (object-display pixmap)
-   pixmap
-   0 
-   0 
-   (pixmap-width pixmap)
-   (pixmap-height pixmap)
-   #xff					; plane-mask
-   x11:xypixmap))
+(defun put-pixel (image x y pixel)
+  (x11:xputpixel image x y pixel))
 
 (defun destroy-image (image)
   (x11:xdestroyimage image))
@@ -821,7 +811,7 @@
 	 (nitems 0)
 	 (bytes-after 0)
 	 (prop 0))
-      (x11:xgetwindowproperty 
+      (x11:xgetwindowproperty
        display
        (x11:xdefaultrootwindow display)
        x11:xa-cut-buffer0

@@ -18,37 +18,41 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.25 1993/11/23 19:58:58 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.26 1994/12/05 00:00:57 colin Exp $
 
 (in-package :user)
 
 (require :climg)
 
-#+svr4
-(unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item")
-			    :note-shared-library-references nil)
-  (defun reinitialize-toolkit ()
-    (ol-initialize)
-    (xt_toolkit_initialize)
-    (setup-error-handlers)
-    (install-ol-error-handlers)
-    (fixup-class-entry-points))
-  (push '(:eval reinitialize-toolkit) excl::*restart-actions*)
-  (load "climol.so"))
-
-#-svr4
+#+dlfcn
 (progn
-  (defvar sys::*libxt-pathname* "Xt")
-  (defvar sys::*clim-olit-pathname* "clim-olit.o")
+  (defvar sys::*toolkit-shared* nil)
 
-  (x11::load-undefined-symbols-from-library
-   sys::*clim-olit-pathname*
-   (x11::symbols-from-file "misc/undefinedsymbols.olit")
-   (list sys::*libxt-pathname* sys::*libx11-pathname*))
+  (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item")
+			      :note-shared-library-references nil)
+    (load "clim2:;climol.so")
+    (setq sys::*toolkit-shared* t)))
+
+#-dlfcn
+(progn
+  (defvar sys::*libtk-pathname* "Ol")
+  (defvar sys::*libxt-pathname* "Xt")
+
+  (unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
+    (load "stub-olit.o"
+	  :system-libraries (list sys::*libtk-pathname*
+				  sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t)
+    (load "stub-xt.o"
+	  :system-libraries (list sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t))
 
   (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
     (load "olsupport.o"
-	  :system-libraries (list sys::*libxt-pathname*
+	  :system-libraries (list sys::*libtk-pathname*
+				  sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t))
 

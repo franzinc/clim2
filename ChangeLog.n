@@ -1,3 +1,220 @@
+Tue May 16 23:23:13 PDT 1995	Colin Meldrum (colin@vapor)
+
+Makefile.cobj-svr4	REMOVED - dlfcn and non-dlfcn both now handled in
+			 Makefile.cobj
+
+Makefile.sun4-ol, Makefile.sun4-svr4-ol	
+			NEW files. OpenLook now built using separate
+			Makefile from Motif default - simplifies things alot
+
+Makefile.*		major rewrite
+			changes too numerous to itemize
+
+instclimxm.lisp, instclimol.lisp
+			got rid of /x11/R4/... definitions for
+			sys::*libX11-pathname* and sys::*libxt-pathname*
+
+make-symbolic-links.sh	original tree pathname in the shell script - no
+			longer an argument
+
+clim/accept.values.lisp	made :initialy-select-query-id work for gadget fields
+			fixed bug with align-prompts
+			added show-as-default handling for default exit-box
+			fixeed up display when abort editting a field
+
+clim/command.lisp	added support for :button-type :help
+			
+clim/cursor.lisp	fixed bug with cursor drawing breaking with
+			non-identity stream transformation
+
+clim/db-stream.lisp	made :width, :height work for accepting-values
+			:own-window t
+
+clim/frames.lisp	frame-deiconified now called when wm de-iconifies a 
+			frame
+
+clim/gadget-output.lisp	text-editor-view accept-present-default method for
+			all ptypes
+
+clim/input-defs.lisp, clim/input-protocol.lisp
+			fixes bug with stream-pointer-position incorrectly
+			cached when sheet-transformation changes
+
+clim/input-protocol.lisp
+			fixes bug with inputting foreign characters under
+			OpenWindows with compose key	
+
+clim/interactive-defs.lisp
+			fixed read-token to deal with EOF on string stream
+
+clim/menus.lisp		added background and foreground args to default
+			frame-manager-menu-choose 
+
+clim/panes.lisp		fixed :command-menu and :menu-bar panes to grab
+			frames command-table lazily
+
+clim/text-formatting.lisp
+			fixed bug in write-buffer-and-continue to make
+			filling-output work better with presentations
+			
+clim/text-recording.lisp
+			fixed copy-textual-output-history to deal with
+			empty output-history
+
+climtoys/calendar.lisp	added multi-page calendar printing misc bug fixes
+
+sys/sysdcl.lisp		changed to new defsys
+
+demo/demo-driver.lisp	now only deiconifies a frame when it's really
+			shrunk 
+
+demo/graphics-editor.lisp
+			Added example "Help" menu and mnemonics
+
+misc/MyDrawingA.c	no longer includes "climgccursor.c"
+misc/xmsupport.c	includes "climgccursor.c" and "MyDrawingA.c"
+
+misc/train.lisp		added default for :report-file for clim devel
+
+misc/undefinedsymbols.motif
+			added some new entries
+
+silica/classes.lisp	added eventp gf and method defns
+
+silica/defsys.lisp	REMOVED
+
+silica/gadgets.lisp	menu-bar is now a row-column-gadget-mixin rather
+			than oriented-gadget-mixin
+			got rid of pattern and icon-pattern slots for
+			push-button (use label instead)
+
+sys/sysdcl.lisp		xlib/load-xlib.lisp and xlib/last.lisp now also
+			used with #+dlfcn 
+
+
+test/test-suite.lisp	"Exit Clim Tests" menu name now consistent
+
+test/defsys.lisp	REMOVED
+
+tk/load-ol.lisp		added sys::*toolkit-shared* to deal with
+			re-initializing of toolkit for svr4
+			added clim2 logical host for climol.so
+			got rid of clim-olit.o - use stubs directly
+
+tk/load-xm.lisp		added sys::*toolkit-shared* to deal with
+			re-initializing of toolkit for svr4
+			added clim2 logical host for climxm.so
+			got rid of clim-motif.o - use stubs directly
+			MyDrawingA.o changed to xmsupport.o
+
+tk/ol-init.lisp		added sys::*toolkit-shared* to deal with
+			re-initializing of toolkit for svr4
+
+tk/widget.lisp		got rid of widget name defaulting code (now done at 
+			tk-silica level)
+
+tk/xlib.lisp		added *x-error-handler-address* and
+			*x-io-error-handler-address* to hold callback address
+			major rework of image code for speed/space
+			added image-from-pixmap support
+			got rid of image-from-pixmap - use tk::get-image now
+
+tk/xm-defs.lisp		moved xm-font-list-default-tag fro xm-font-list
+
+tk/xm-init.lisp		added sys::*toolkit-shared* to deal with
+			re-initializing of toolkit for svr4
+
+tk/xm-widgets.lisp	fixed bug with string conversion for rs6k
+			added text-position resource-conversion (support
+			for text field selections)
+
+tk-silica/image.lisp	made make-pattern-from-bitmap-file smarter at
+			getting correct format
+			major rework for speed/space
+			added make-bitmap-file-from-pattern support
+			made read-bitmap-file more robust to errors in
+			filters
+
+tk-silica/ol-frames.lisp, tk-silica/ol-gadget.lisp
+			use tk::get-image rather than tk::image-from-pixmap
+
+tk-silica/ol-gadgets.lisp, tk-silica/xm-gadgets.lisp, tk-silica/xt-silica.lisp
+			find-widget-class-and-initargs-for-sheet replaced
+			with find-widget-class-and-name-for-sheet and
+			find-widget-initargs-for-sheet 
+			
+tk-silica/ol-gadget.lisp, tk-silica/xm-frames.lisp
+			handle null menu-bar-command-table
+
+tk-silica/xm-dialogs.lisp
+			frame-manager-construct-avv-panes stores now uses
+			make-clim-stream-pane avoiding problems with
+			unmirrored sheets when no scroll-bars
+
+tk-silica/xm-frames.lisp
+			motif-menu-bar now inherits from
+			motif-row-column-gadget-mixin
+			fixed bug with bogus min width for menu-bar
+			implemented help menu-item
+			fixed problems with updating sensitivity of
+			menu-bar menu-items and removing/adding menu-items
+			and keystrokes 
+			fixed bug with keystroke accelerators without modifiers 
+			
+tk-silica/xm-gadgets.lisp
+			added support for color icons
+			
+tk-silica/xt-gadgets.lisp
+			added sheet-text-style to deal with non-pane sheets 
+			(use *default-text-style*)
+
+tk-silica/xt-graphics.lisp
+			added code to support dynamic changing of a sheet's 
+			palette
+			major rework of pattern/image/pixmap code for speed/space
+			support for color icons
+			restarts for when palette is full
+			fixed bug in treatment of angles for draw-arc
+
+tk-silica/xt-pixmaps.lisp
+			added medium-copy-area method from pixmap to pixmap
+			make-pattern-from-pixmap extension
+
+tk-silica/xt-silica.lisp
+			made event handler process :no-interrupts t
+			*xt-font-families* now specifies iso8859-1 fonts by 
+			default (for handling of European character sets)
+			fallback font is "fixed"
+			default widget name from class-name in default
+			find-widget-class-and-name-for-sheet method
+			more graceful error-handling when a font cannot be
+			loaded due to server resource exhaustion
+			get-sheet-resources now does the right thing for
+			top-level sheets
+			port-move-frame worked yet another time. Hopefully
+			this should now work for both dialogs and non-dialog frames
+
+tk-silica/xt-stipples.lisp
+			*stipple-images* replaced by *stipple-data* -
+			create the image on a per-port basis in setup-stipples 
+
+utils/designs.lisp	improved palette full error handling
+			introduced *use-closest-color* (default t) and
+			find-closest-matching-color gf
+			
+utils/packages.lisp	exported the following from the CLIM package:
+			find-closest-matching-color use-other-color
+			*use-closest-color* +push-button-view+
+			push-button-view make-bitmap-file-from-pattern
+			write-bitmap-file compute-filter-for-bitmap-format 
+			exported palette-full-error from the clim-utils package
+			
+utils/regions.lisp	fixed bug in point-on-thick-ellipse-p
+
+xlib/load-xlib.lisp	removed symbols-from-file and load-undefined-symbols-from-library 
+			load "stub-x.o" and "xlibsupport.o" only in non
+			dlfcn case (dlfcn case handled in tk/load-xm.lisp)
+
 (for 4.3.devel.2 merge):
 
 Mon May 15 00:07:55 1995  Duane Rettig  (duane at clay)

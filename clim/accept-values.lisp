@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.74 1993/12/07 05:33:30 colin Exp $
+;; $fiHeader: accept-values.lisp,v 1.75 1994/12/04 23:57:18 colin Exp $
 
 (in-package :clim-internals)
 
@@ -41,7 +41,7 @@
 
 (defclass accept-values-query ()
      ((query-identifier :initarg :query-identifier)
-      (presentation-type :initarg :presentation-type 
+      (presentation-type :initarg :presentation-type
 			 :reader accept-values-query-type)
       (value :initarg :value
 	     :accessor accept-values-query-value)
@@ -96,7 +96,7 @@
   query-identifier)
 
 (defmethod prompt-for-accept ((stream accept-values-stream) type view
-			      &rest accept-args 
+			      &rest accept-args
 			      &key query-identifier &allow-other-keys)
   ;; This does nothing, the gadget ACCEPT methods should provide a label
   (unless (gadget-includes-prompt-p type stream view)
@@ -117,7 +117,7 @@
 				    :id-test #'equal)
 	     (formatting-row (stream)
 	       (formatting-cell (stream :align-x align-prompts)
-		 (setq query-identifier 
+		 (setq query-identifier
 		   (apply #'prompt-for-accept
 			  (encapsulating-stream stream) type view accept-args)))
 	       (letf-globally (((slot-value stream 'align-prompts) nil))
@@ -147,7 +147,7 @@
       (multiple-value-bind (query found-p)
 	  (gethash query-identifier query-table)
 	(unless query
-	  (setq query (make-instance 'accept-values-query 
+	  (setq query (make-instance 'accept-values-query
 			:presentation-type ptype
 			:value default
 			:query-identifier query-identifier)))
@@ -165,7 +165,7 @@
 			  :id-test #'equal
 			  :cache-value (list (if (accept-values-query-changed-p query)
 						 (accept-values-query-value query)
-					       default) 
+					       default)
 					     ptype
 					     active-p)
 			  :cache-test #'(lambda (x y)
@@ -216,7 +216,7 @@
 
 ;;--- It seems a little bizarre having a prompt argument, but we can't
 ;;--- think of a better way.
-(defmethod stream-present ((stream accept-values-stream) object presentation-type 
+(defmethod stream-present ((stream accept-values-stream) object presentation-type
 			   &rest present-args
 			   &key view (prompt nil prompt-p) (query-identifier nil)
 			   &allow-other-keys)
@@ -243,7 +243,7 @@
 	     ;; The user has asked to line up the labels, so oblige him
 	     (formatting-row (stream)
 	       (formatting-cell (stream :align-x align-prompts)
-		 (setq query-identifier 
+		 (setq query-identifier
 		       (apply #'prompt-for-accept (encapsulating-stream stream)
 			      presentation-type view present-args)))
 	       (formatting-cell (stream :align-x :left)
@@ -263,7 +263,7 @@
      (continuation :initarg :continuation)
      (exit-boxes :initform nil :initarg :exit-boxes)
      (selected-item :initform nil)
-     (initially-select-query-identifier 
+     (initially-select-query-identifier
        :initform nil :initarg :initially-select-query-identifier)
      (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
      (check-overlapping :initform t :initarg :check-overlapping)
@@ -279,12 +279,12 @@
     ((help-window :initform nil)
      (scroll-bars :initform nil :initarg :scroll-bars)
      (align-prompts :initform nil :initarg :align-prompts))
-    (:pane 
+    (:pane
      (let ((frame *application-frame*)
 	   panes)
        (with-slots (stream own-window exit-button-stream scroll-bars align-prompts)  frame
 	 (multiple-value-setq (panes own-window exit-button-stream)
-			      (frame-manager-construct-avv-panes 
+			      (frame-manager-construct-avv-panes
 			       frame (frame-manager frame)))
 	 (setq stream (make-instance 'accept-values-stream
 				     :align-prompts align-prompts
@@ -304,7 +304,7 @@
 	 (vertically ()
 	   (outlining ()
 	     (progn
-	       (setq own-window 
+	       (setq own-window
 		 (make-pane 'clim-stream-pane
 			    :initial-cursor-visibility :off
 			    :end-of-page-action :allow))
@@ -317,7 +317,7 @@
 			  :initial-cursor-visibility nil))))))
      own-window
      exit-button-stream)))
-      
+
 
 (defmethod frame-manager-accepting-values-frame-class ((framem standard-frame-manager))
   'accept-values-own-window)
@@ -325,7 +325,7 @@
 (defmethod frame-manager-default-exit-boxes ((framem standard-frame-manager))
   '((:abort) (:exit)))
 
-(defmethod frame-manager-exit-box-labels 
+(defmethod frame-manager-exit-box-labels
 	   ((framem standard-frame-manager) frame view)
   (declare (ignore frame view))
   '((:exit   "Exit")
@@ -338,7 +338,7 @@
 (defun invoke-accepting-values (stream continuation
 				 &key frame-class command-table
 				      own-window background foreground text-style
-				      (exit-boxes 
+				      (exit-boxes
 					(frame-manager-default-exit-boxes
 					  (frame-manager stream)))
  				      (resize-frame nil) (scroll-bars nil)
@@ -359,8 +359,8 @@
 	 (the-own-window nil))
      ;; Create the AVV, run it, and return its values
      (if own-window
-	 (let ((frame (make-application-frame 
-			(or frame-class 
+	 (let ((frame (make-application-frame
+			(or frame-class
 			    (frame-manager-accepting-values-frame-class
 			     frame-manager))
 			;;--- What is the correct thing here?
@@ -377,7 +377,7 @@
 			:own-window-properties (list x-position y-position
 						     width height
 						     right-margin bottom-margin)
-			:initially-select-query-identifier 
+			:initially-select-query-identifier
 			  (and initially-select-query-identifier
 			       (cons initially-select-query-identifier modify-initial-query))
 			:resynchronize-every-pass resynchronize-every-pass
@@ -403,7 +403,7 @@
 			  :stream avv-stream
 			  :continuation continuation
 			  :exit-boxes exit-boxes
-			  :initially-select-query-identifier 
+			  :initially-select-query-identifier
 			    (and initially-select-query-identifier
 				 (cons initially-select-query-identifier modify-initial-query))
 			  :resynchronize-every-pass resynchronize-every-pass
@@ -447,7 +447,7 @@
 	   (own-window-height (pop properties))
 	   (own-window-right-margin  (pop properties))
 	   (own-window-bottom-margin (pop properties))
-	   (view 
+	   (view
 	    (or view
 		(frame-manager-dialog-view (frame-manager frame))))
 	   (*editting-field-p* nil))
@@ -477,14 +477,16 @@
 		       (display-exit-boxes frame stream
 					   (stream-default-view stream)))))
 		 (run-avv ()
-		   (when (and initially-select-query-identifier
-			      (setq initial-query
-				    (find-query avv-record 
-						(car initially-select-query-identifier))))
-		     (move-focus-to-query stream 
-					  initial-query
-					  (not (cdr initially-select-query-identifier)))
-		     (redisplay avv stream :check-overlapping check-overlapping))
+		   (and initially-select-query-identifier
+			(setq initial-query
+			  (find-query avv-record
+				      (car initially-select-query-identifier)))
+			(move-focus-to-query stream
+					     initial-query
+					     (not (cdr initially-select-query-identifier)))
+			;; only do the redisplay if move-focus-to-query
+			;; returns t - ie for the non-gadget case
+			(redisplay avv stream :check-overlapping check-overlapping))
 		   (loop
 		     (let ((command
 			     (let ((command-stream (encapsulating-stream-stream stream)))
@@ -517,7 +519,7 @@
 					 (bounding-rectangle-size
 					   (stream-output-history own-window))
 				       (multiple-value-bind (vwidth vheight)
-					   (bounding-rectangle-size 
+					   (bounding-rectangle-size
 					     (window-viewport own-window))
 					 (if (eq (frame-resizable frame) :grow)
 					     (or (> width vwidth) (> height vheight))
@@ -531,7 +533,7 @@
 		     (size-frame-from-contents exit-button-stream
 		       :size-setter
 		         #'(lambda (pane w h)
-			     (change-space-requirements pane 
+			     (change-space-requirements pane
 			       :width w :min-width w :max-width w
 			       :height h :min-height h :max-height h))
 			 :right-margin 0 :bottom-margin 0))
@@ -588,7 +590,7 @@
 		       (run-avv)))
 	      (unless own-window
 		(deactivate-all-gadgets avv-record)
-		(move-cursor-beyond-output-record 
+		(move-cursor-beyond-output-record
 		  (encapsulating-stream-stream stream) avv)))))))))
 
 
@@ -601,7 +603,7 @@
     (when record
       (labels ((find-gadget-output-record (record)
 		 (typecase record
-		   (gadget-output-record 
+		   (gadget-output-record
 		    (return-from find-query-gadget (output-record-gadget record)))
 		   (output-record
 		    (map-over-output-records #'find-gadget-output-record record)))))
@@ -620,23 +622,41 @@
 	  (editp
 	   (com-edit-avv-choice query))
 	  (t
-	   (com-modify-avv-choice query)))))
+	   (com-modify-avv-choice query)))
+    ;; return nil for the gadget case so that we avoid redisplay which
+    ;; would otherwise mess up the gadget focus (cim 2/2/95)
+    (not gadget)))
 
 (defmethod display-view-background (stream (view view))
   (declare (ignore stream))
   nil)
 
-(defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
-								      &key (align-prompts t))
+(defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation
+					&key (align-prompts t))
   (setq align-prompts (ecase align-prompts
 			((t :right) :right)
 			((:left) :left)
 			((nil) nil)))
-  (letf-globally (((slot-value stream 'align-prompts) align-prompts)) 
-    (if align-prompts
-	(formatting-table (stream)
-	  (funcall continuation stream))
-      (funcall continuation stream))))
+  (let ((return-values nil))
+    (flet ((run-continuation (stream)
+	     (if align-prompts
+		 (formatting-table (stream)
+		   (setq return-values
+		     (multiple-value-list
+			 (funcall continuation stream))))
+	       (setq return-values
+		 (multiple-value-list
+		     (funcall continuation stream))))))
+      (let ((old-align-prompts (slot-value stream 'align-prompts)))
+	(unwind-protect
+	    (progn (setf (slot-value stream 'align-prompts) align-prompts)
+		   (if old-align-prompts
+		       (formatting-row (stream)
+			 (formatting-cell (stream)
+			   (run-continuation stream)))
+		     (run-continuation stream)))
+	  (setf (slot-value stream 'align-prompts) old-align-prompts))))
+    (values-list return-values)))
 
 (defmethod invoke-with-aligned-prompts ((stream t) continuation &key align-prompts)
   (declare (ignore align-prompts))
@@ -654,7 +674,7 @@
   ;; an input editing command
   (loop (read-gesture :stream stream)))
 
-(defmethod frame-manager-display-help 
+(defmethod frame-manager-display-help
     (framem (frame accept-values-own-window) (stream standard-input-editing-stream) continuation)
   (declare (ignore framem))
   (declare (dynamic-extent continuation))
@@ -695,7 +715,7 @@
 	   (own-window-height (pop own-window-properties))
 	   (own-window-right-margin  (pop own-window-properties))
 	   (own-window-bottom-margin (pop own-window-properties)))
-      (declare (ignore own-window-x-position own-window-y-position 
+      (declare (ignore own-window-x-position own-window-y-position
 		       own-window-width own-window-height))
       (multiple-value-bind (new-width new-height)
 	  (bounding-rectangle-size (slot-value stream 'avv-record))
@@ -722,9 +742,11 @@
 	  (,documentation (or (and (consp ,exit-box)
 				   (getf (cddr ,exit-box) :documentation))
 			      (getf (cddr (assoc ,value ,labels)) :documentation)))
-	  (,show-as-default (or (and (consp ,exit-box)
-			     (getf (cddr ,exit-box) :show-as-default))
-			(getf (cddr (assoc ,value ,labels)) :show-as-default))))
+	  (,show-as-default
+	   (if (and (consp ,exit-box)
+		    (member :show-as-default (cddr ,exit-box)))
+	       (getf (cddr ,exit-box) :show-as-default)
+	     (getf (cddr (assoc ,value ,labels)) :show-as-default))))
      ,@body))
 
 ;;; Applications can create their own AVV class and specialize this method in
@@ -813,7 +835,7 @@
     ((choice 'accept-values-choice))
   (with-slots (stream selected-item) *application-frame*
     (setq selected-item choice)
-    (accept-values-query-edit-value choice stream :modify t))) 
+    (accept-values-query-edit-value choice stream :modify t)))
 
 (define-presentation-to-command-translator modify-avv-choice
     (accept-values-choice com-modify-avv-choice accept-values
@@ -836,26 +858,29 @@
 	  (multiple-value-bind (x y) (output-record-position presentation)
 	    (stream-set-cursor-position stream (+ x xoff) (+ y yoff))))
 	(unwind-protect
-	    (progn (erase-output-record presentation stream)
-		   (catch-abort-gestures ("Abort editing the current field")
-		     (let ((new-value nil)
-			   (record nil))
-		       (setq record
-			 (with-new-output-record (stream)
-			   (setq new-value
-			     ;; The text cursor should be visible while this ACCEPT is
-			     ;; waiting for input to be typed into this field
-			     (letf-globally (((stream-read-gesture-cursor-state stream) t))
+	    (progn
+	      (erase-output-record presentation stream)
+	      (let* ((new-value nil)
+		     (aborted nil)
+		     (record
+		      (with-new-output-record (stream)
+			;; The text cursor should be visible while this ACCEPT is
+			;; waiting for input to be typed into this field
+			(letf-globally (((stream-read-gesture-cursor-state stream) t))
+			  (multiple-value-setq (new-value aborted)
+			    (catch-abort-gestures ("Abort editing the current field")
+			      (values
 			       (accept presentation-type
 				       :stream stream :prompt nil :default value
-				       :insert-default modify)))))
-		       ;; This so that the input editor's typing gets erased properly.
-		       (erase-output-record record stream)
-		       ;;--- Kludge until Bill can explain the whole "leave the delimiter" vs
-		       ;;--- "process the delimiter" scheme to me
-		       (when (read-gesture :stream stream :peek-p t :timeout 0)
-			 (process-delimiter stream))
-		       (setf value new-value))))
+				       :insert-default modify))))))))
+		;; This so that the input editor's typing gets erased properly.
+		(erase-output-record record stream)
+		;;--- Kludge until Bill can explain the whole
+		;;"leave the delimiter" vs "process the delimiter" scheme to me
+		(when (read-gesture :stream stream :peek-p t :timeout 0)
+		  (process-delimiter stream))
+		(unless aborted
+		  (setf value new-value))))
 	  (setf changed-p t))))))
 
 (defun map-over-accept-values-queries (avv-record continuation)
@@ -962,8 +987,8 @@
       t)))
 
 (defun verify-queries-1 (frame stream queries)
-  (display-invalid-queries 
-   frame 
+  (display-invalid-queries
+   frame
    stream
    (mapcar #'(lambda (query)
 	       (list
@@ -973,7 +998,7 @@
 		  (and (not (eq condition t)) condition))))
 	   queries))
   (move-focus-to-query stream (car queries)))
-	
+
 
 
 (defmethod display-invalid-queries ((frame standard-application-frame) stream query-info)
@@ -1015,7 +1040,7 @@
 		(gadget-background gadget) +red+)
 	(setf (gadget-background gadget) (gadget-original-background gadget))))))
 
-;; Focus-in callback/ value changed - establish normal 
+;; Focus-in callback/ value changed - establish normal
 ;; Focus-out callback - establish error condition
 ;; Need to save away contents, cursor position, colors.
 ;; What about the case when we are changing it back to ok cos some one
@@ -1048,11 +1073,11 @@
 
 (define-presentation-type accept-values-command-button ())
 
-(defmacro accept-values-command-button ((&optional stream &rest options &key (view nil viewp) &allow-other-keys) prompt 
+(defmacro accept-values-command-button ((&optional stream &rest options &key (view nil viewp) &allow-other-keys) prompt
 														 &body body &environment env)
   #+Genera (declare (zwei:indentation 1 3 2 1))
   #-(or Genera Minima) (declare (ignore env))
-  (declare (arglist ((&optional stream 
+  (declare (arglist ((&optional stream
 				&key documentation query-identifier
 				(cache-value t) (cache-test #'eql)
 				view resynchronize)
@@ -1205,7 +1230,7 @@
 		    (selected-p (funcall tester value selected-value)))
 	       (updating-output (stream :unique-id object
 					:cache-value selected-p)
-		 (with-output-as-presentation 
+		 (with-output-as-presentation
 		     (stream
 		      (make-accept-values-multiple-choice :choices choices :value value)
 		      choice-type)
@@ -1264,7 +1289,7 @@
 	   (present (list thing) type :stream stream)))
     (declare (dynamic-extent #'presenter))
     (accept-values-choose-from-sequence-1
-      stream sequence key selected-value 
+      stream sequence key selected-value
       #'(lambda (object sequence)
 	  (member object sequence :test tester))
       type query-identifier
@@ -1286,7 +1311,7 @@
 (defun accept-values-pane-displayer (frame pane
 				     &key displayer
 					  resynchronize-every-pass
-					  (check-overlapping t) 
+					  (check-overlapping t)
 					  view
 					  align-prompts
 					  max-height max-width)
@@ -1295,7 +1320,7 @@
 			((t :right) :right)
 			((:left) :left)
 			((nil) nil)))
-  (let* ((stream-and-record 
+  (let* ((stream-and-record
 	  (and (not *frame-layout-changing-p*)
 	       (gethash pane (get-frame-pane-to-avv-stream-table frame))))
 	 (avv-stream (car stream-and-record))
@@ -1303,7 +1328,7 @@
     (cond ((and avv-stream
 		(output-record-stream avv-record))
 	   (with-deferred-gadget-updates
-	     (letf-globally (((stream-default-view avv-stream) 
+	     (letf-globally (((stream-default-view avv-stream)
 			      (or view
 				  (frame-manager-dialog-view (frame-manager frame)))))
 	       (redisplay avv-record avv-stream :check-overlapping check-overlapping)
@@ -1314,7 +1339,7 @@
 					   align-prompts view)))))
 
 (defun accept-values-pane-displayer-1 (frame pane displayer align-prompts view)
-  (let ((avv-stream (make-instance 'accept-values-stream 
+  (let ((avv-stream (make-instance 'accept-values-stream
 				   :stream pane :align-prompts align-prompts))
 	(avv-record nil)
 	(view (or view
@@ -1324,7 +1349,7 @@
 		     view))
       (setq avv-record
 	(updating-output (avv-stream)
-	  (with-new-output-record 
+	  (with-new-output-record
 	      (avv-stream 'accept-values-output-record avv-record)
 	    (setf (slot-value avv-stream 'avv-record) avv-record)
 	    (if align-prompts
@@ -1395,7 +1420,7 @@
      (pane 't))
   (funcall (slot-value button 'continuation))
   (when (slot-value button 'resynchronize)
-    (let* ((stream-and-record (and (not *frame-layout-changing-p*)  
+    (let* ((stream-and-record (and (not *frame-layout-changing-p*)
 				   (gethash pane (get-frame-pane-to-avv-stream-table (pane-frame pane)))))
 	   (avv-stream (car stream-and-record))
 	   (avv-record (cdr stream-and-record)))
@@ -1565,7 +1590,7 @@
   (declare (dynamic-extent prompt))
   (move-cursor-to-view-position stream view)
   (updating-output (stream :unique-id query-identifier :id-test #'equal
-			   :cache-value (cons active-p cache-value) 
+			   :cache-value (cons active-p cache-value)
 			   :cache-test #'(lambda (x y)
 					   (and (eq (car x) (car y))
 						(funcall cache-test (cdr x) (cdr y)))))
@@ -1583,7 +1608,7 @@
 		 ;;surrounding-output-with-border without
 		 ;;this write-string output does not get bordered.
 		 (let ((*original-stream* nil))
-		   (pixmap-from-menu-item stream 
+		   (pixmap-from-menu-item stream
 					  prompt
 					  #'funcall
 					  nil))))
@@ -1594,7 +1619,7 @@
 						:continuation continuation
 						:documentation documentation
 						:resynchronize resynchronize)))
-		     (make-pane-from-view 
+		     (make-pane-from-view
 		      'push-button
 		      view ()
 		      :id record :client client
@@ -1619,14 +1644,6 @@
 	      (formatting-cell (stream) stream)
 	      (formatting-cell (stream) (doit stream)))
 	  (doit stream))))))
-
-
-
-
-
-
-;;; why do we need this - doesn't update-frame-settings do this for
-;;; us?
 
 (defmethod frame-manager-position-dialog ((framem standard-frame-manager)
 							  frame

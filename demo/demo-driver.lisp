@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.29 1993/10/26 03:21:55 colin Exp $
+;; $fiHeader: demo-driver.lisp,v 1.30 1993/10/28 07:12:59 colin Exp $
 
 (in-package :clim-demo)
 
@@ -75,7 +75,8 @@
 	       (push (cons port frame) (demo-frames demo)))
 	     (if (slot-value frame 'clim-internals::top-level-process)
 		 (unless activity-p
-		   (note-frame-deiconified (frame-manager frame) frame)
+		   (when (eq (frame-state frame) :shrunk)
+		     (note-frame-deiconified (frame-manager frame) frame))
 		   (raise-frame frame))
 	       (run-frame-top-level frame)))))
     (if background 

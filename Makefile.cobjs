@@ -1,29 +1,73 @@
-# $fiHeader: Makefile.cobjs,v 1.7 1994/06/08 06:56:23 duane Exp $
+# $fiHeader: Makefile.cobjs,v 1.8 1994/12/04 23:56:22 colin Exp $
 #
-#  Makefile.cobj for CLIM 2.0, containing non-svr4 C rules
+#  Makefile.cobj for CLIM 2.0
 #
 
-clim-motif$(DEBUGLIB).o	: stub-motif.o stub-xt.o
-	ld -r $(LDFLAGS) -o clim-motif$(DEBUGLIB).o \
-		stub-motif.o stub-xt.o $(MOTIFLIB) $(MOTIFXTRAOS)
+# stub files - identify the required definitions from Xm,Ol,Xt,X11
 
-clim-olit$(DEBUGLIB).o : stub-olit.o stub-xt.o
-	ld -r $(LDFLAGS) -o clim-olit$(DEBUGLIB).o \
-		stub-olit.o stub-xt.o $(OPENLOOKLIB)
+stub-motif.c: $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_motif_stub ()"  \
+		$(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
+	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()" \
+		$(XMC_UNDEFS) >> /tmp/`whoami`stub-motif.c 
+	$(MV) /tmp/`whoami`stub-motif.c stub-motif.c 
 
-xlibsupport.o : xlib/xlibsupport.c 
-	$(CC) -c $(CFLAGS) $(XINCLUDES) -o xlibsupport.o xlib/xlibsupport.c
+stub-olit.c: $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_olit_stub ()"  \
+		$(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
+	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()" \
+		$(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
+	$(MV) /tmp/`whoami`stub-olit.c stub-olit.c 
 
-xtsupport.o: misc/xtsupport.c
-	$(CC) -c $(CFLAGS) $(XINCLUDES) $(XTSUPPORTINCLUDES) -o xtsupport.o \
-		misc/xtsupport.c
+stub-xt.c: $(XT_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_xt_stub ()" \
+		$(XT_UNDEFS) > stub-xt.c 
 
-MyDrawingA.o: misc/MyDrawingA.c misc/climgccursor.c
-	$(CC) -c $(CFLAGS) $(XMINCLUDES) -o MyDrawingA.o misc/MyDrawingA.c
+stub-x.c: $(UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_x_stub ()"  \
+		$(UNDEFS) > stub-x.c 
+
+# support files - CLIM's C source files
+
+xmsupport.o : misc/xmsupport.c misc/climgccursor.c \
+		misc/MyDrawingA.c misc/MyDrawingA.h misc/MyDrawingAP.h
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		-o xmsupport.o misc/xmsupport.c
 
 olsupport.o: misc/olsupport.c misc/climgccursor.c
-	$(CC) -c $(CFLAGS) $(OLINCLUDES) -o olsupport.o misc/olsupport.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		-o olsupport.o misc/olsupport.c
 
-$(MAIN_OBJ): stub-motif.o stub-xt.o stub-x.o $(ACL_MAIN_OBJ)
-	ld -r $(LDFLAGS) -o $(MAIN_OBJ) $(ACL_MAIN_OBJ) stub-motif.o \
-		stub-xt.o stub-x.o $(MOTIFLIB) $(XTLIB) $(XLIB)
+xtsupport.o : misc/xtsupport.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		-o xtsupport.o misc/xtsupport.c
+
+xlibsupport.o : xlib/xlibsupport.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		 -o xlibsupport.o xlib/xlibsupport.c
+
+# .so's made from above support files (for dynamic loading)
+
+climxm.so: xlibsupport.o xtsupport.o xmsupport.o
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.so \
+		xlibsupport.o xtsupport.o xmsupport.o \
+		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+
+climol.so: xlibsupport.o xtsupport.o olsupport.o
+	(eval '$(SET_LIBRARY_PATH)' ;
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.so \
+		xlibsupport.o xtsupport.o olsupport.o \
+		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
+
+# mainxm.o contains all foreign code required by Motif version of CLIM 
+# (including code extracted from licenced libXm.a) statically linked
+
+mainxm.o: $(ACL_MAIN_OBJ) stub-motif.o stub-xt.o stub-x.o \
+		 xlibsupport.o xtsupport.o xmsupport.o 
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	ld -r $(LDFLAGS) -o mainxm.o \
+		$(ACL_MAIN_OBJ) stub-motif.o stub-xt.o stub-x.o \
+		xlibsupport.o xtsupport.o xmsupport.o \
+		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
 ;;				-[Mon Sep 26 02:04:49 1994 by smh]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.84 1994/11/23 23:29:26 smh Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.85 1994/12/05 00:02:06 colin Exp $
 
 (in-package :tk-silica)
 
@@ -72,7 +72,9 @@
 
 (defclass xt-medium (basic-medium)
   ((drawable :initform nil)
-   (ink-table :initform (make-hash-table :test #'equal))
+   ;; alist of (palette . ink-table) for non-current palettes
+   (ink-tables :initform nil)
+   (ink-table :initform nil)
    (indirect-inks :initform nil)
    (device-clip-region :initform nil)
    (device-clip-region-tick :initform 0)))
@@ -85,7 +87,7 @@
 (defmethod medium-drawable ((medium xt-medium))
   (with-slots (drawable sheet) medium
     (or drawable
-	(setf drawable (fetch-medium-drawable 
+	(setf drawable (fetch-medium-drawable
 			sheet
 			(sheet-mirror sheet))))))
 
@@ -94,9 +96,9 @@
 (defclass xt-palette (basic-palette)
   ((colormap :reader palette-colormap :initarg :colormap)
    (xcolor-cache :initform (make-hash-table) :reader palette-xcolor-cache)
-   (device-color-cache :initform (make-hash-table) 
+   (device-color-cache :initform (make-hash-table)
 		       :reader palette-device-color-cache)
-   (named-color-cache :initform (make-hash-table :test #'equalp) 
+   (named-color-cache :initform (make-hash-table :test #'equalp)
 		      :reader palette-named-color-cache)
    (white-pixel :initarg :white-pixel)
    (black-pixel :initarg :black-pixel)))
@@ -109,7 +111,7 @@
       :port port
       :colormap (or colormap
 		    (tk::create-colormap (port-display port)))
-      :dynamic-p (and 
+      :dynamic-p (and
 		  (member (port-visual-class port)
 			  '(:gray-scale :pseudo-color :direct-color))
 		  t)
@@ -117,26 +119,35 @@
       :white-pixel (x11:xwhitepixel display screen)
       :black-pixel (x11:xblackpixel display screen))))
 
-
 (defmethod medium-palette ((medium xt-medium))
   (let ((frame (pane-frame (medium-sheet medium))))
     (if frame
 	(frame-palette frame)
       (port-default-palette (port medium)))))
 
-(defmethod (setf frame-manager-palette) :after 
+(defmethod update-medium-ink-table ((medium xt-medium))
+  (let ((palette (medium-palette medium)))
+    (with-slots (ink-table ink-tables) medium
+      (when ink-table
+	(invalidate-indirect-inks medium))
+      (setf ink-table
+	(or (cdr (assoc palette ink-tables))
+	    (let ((new-ink-table (make-hash-table :test #'equal)))
+	      (push (cons palette new-ink-table) ink-tables)
+	      new-ink-table))))))
+
+(defmethod (setf frame-manager-palette) :after
 	   ((palette xt-palette) (framem standard-frame-manager))
   (let ((colormap (palette-colormap palette)))
     (dolist (frame (frame-manager-frames framem))
       (tk::set-values (frame-shell frame) :colormap colormap)
-      (map-over-sheets 
+      (map-over-sheets
        #'(lambda (sheet)
 	   (let ((medium (and (typep sheet
 				     'silica::sheet-with-medium-mixin)
 			      (sheet-medium sheet))))
 	     (when medium
-	       (with-slots (ink-table) medium
-		 (clrhash ink-table))
+	       (update-medium-ink-table medium)
 	       (repaint-sheet sheet +everywhere+))))
        (frame-top-level-sheet frame)))))
 
@@ -159,10 +170,10 @@
     (setq name (substitute #\space #\- (string name)))
     (or (gethash name named-color-cache)
 	(setf (gethash name named-color-cache)
-	  
+
 	  ;; put this back from lookup-color to parse-color because
 	  ;; openlook version still uses R4 (cim) 1/13/94
-	  
+
 	  (let ((xcolor (tk::parse-color (palette-colormap palette) name))
 		(x #.(1- (ash 1 16))))
 	    (if xcolor
@@ -276,7 +287,7 @@
     (or (gethash pixel device-color-cache)
 	(setf (gethash pixel device-color-cache)
 	  (make-instance 'xt-device-color
-	    :palette palette 
+	    :palette palette
 	    :pixel pixel)))))
 
 (defmethod device-color-color ((color xt-device-color))
@@ -315,8 +326,8 @@
       (values (setf (slot-value medium 'device-clip-region)
 		(let ((dr (sheet-device-region sheet))
 		      (mcr (medium-clipping-region medium)))
-		  (region-intersection 
-		   dr 
+		  (region-intersection
+		   dr
 		   (transform-region (sheet-device-transformation sheet) mcr))))
 	      (setf (slot-value medium 'device-clip-region-tick)
 		(1+ device-clip-region-tick))))))
@@ -346,30 +357,31 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-  (with-slots (indirect-inks drawable device-clip-region)
+  (with-slots (drawable device-clip-region)
       medium
-    (let ((palette (medium-palette medium)))
-      (with-slots (white-pixel black-pixel)
-	  palette
-	(setf device-clip-region nil)
-	(setf (medium-sheet medium) sheet)
-	(when (and drawable
-		   (not (eq (port-display port)
-			    (tk::object-display drawable))))
-	  (error "drawable and display do not match"))))))
+    (setf device-clip-region nil
+	  (medium-sheet medium) sheet)
+    (update-medium-ink-table medium)
+    (when (and drawable
+	       (not (eq (port-display port)
+			(tk::object-display drawable))))
+      (error "drawable and display do not match"))))
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
-  (with-slots (ink-table indirect-inks drawable)
+  (with-slots (ink-table ink-tables indirect-inks drawable)
       medium
     (setf drawable nil
+	  indirect-inks nil
 	  (medium-sheet medium) nil)
-    (maphash #'(lambda (ink gc) 
-		 (declare (ignore gc))
-		 (deallocate-ink ink medium))
-	     ink-table)
-    (clrhash ink-table)
-    (setf indirect-inks nil)))
+    (dolist (entry ink-tables)
+      (setf ink-table (cdr entry))
+      (maphash #'(lambda (ink gc)
+		     (declare (ignore gc))
+		     (deallocate-ink ink medium))
+	       ink-table)
+      (clrhash ink-table))
+    (setf ink-table nil)))
 
 (defun invalidate-indirect-inks (medium)
   (with-slots (ink-table indirect-inks)
@@ -429,20 +441,20 @@
 
 (defmethod indirect-ink-p ((ink rectangular-tile))
   (indirect-ink-p (decode-rectangular-tile ink)))
-	
+
 ;;; adjust ink
 
 (defvar *default-dashes* '(4 4))
 
 (defun adjust-ink (gc medium x-origin y-origin)
-  (declare (optimize (speed 3) (safety 0)))  
+  (declare (optimize (speed 3) (safety 0)))
   ;; line style
   (let ((line-style (medium-line-style medium)))
-    (unless (eq (ink-gcontext-last-line-style gc) 
+    (unless (eq (ink-gcontext-last-line-style gc)
 		line-style)
       (let* ((dashes (line-style-dashes line-style))
 	     (gc-line-style (if dashes :dash :solid)))
-	(tk::set-line-attributes 
+	(tk::set-line-attributes
 	 gc
 	 (let ((thickness (line-style-thickness line-style)))
 	   (ecase (line-style-unit line-style)
@@ -486,7 +498,7 @@
 	(setf (tk::gcontext-clip-mask gc)
 	  (macrolet ((region-rectangle (region)
 		       `(with-bounding-rectangle* (left top right bottom) ,region
-		          (list (fix-coordinate left) (fix-coordinate top) 
+		          (list (fix-coordinate left) (fix-coordinate top)
 				(fix-coordinate (- right left))
 				(fix-coordinate (- bottom top))))))
 	    (etypecase device-clip-region
@@ -508,7 +520,7 @@
 	  (tk::gcontext-ts-y-origin gc) y-origin))
   gc)
 
-  
+
 ;;; decode ink
 
 (defgeneric decode-ink (ink medium))
@@ -553,7 +565,7 @@
       medium
     (let* ((drawable (or drawable
 			 (tk::display-root-window (port-display (port sheet)))))
-	   (new-gc (make-instance 'ink-gcontext 
+	   (new-gc (make-instance 'ink-gcontext
 				  :drawable drawable
 				  :function boole-xor)))
       (multiple-value-bind (color1 color2)
@@ -562,14 +574,14 @@
 	  (logxor (decode-color color1 medium)
 		  (decode-color color2 medium))))
       new-gc)))
-		 
+
 (defmethod decode-ink-1 ((ink color) (medium xt-medium))
   (let ((palette (medium-palette medium)))
     (with-slots (white-pixel black-pixel) palette
       (with-slots (sheet drawable) medium
 	(let* ((port (port sheet))
-	       (drawable 
-		(or drawable 
+	       (drawable
+		(or drawable
 		    (tk::display-root-window (port-display port))))
 	       (new-gc (make-instance 'ink-gcontext :drawable drawable)))
 	  (cond ((palette-color-p palette)
@@ -579,7 +591,7 @@
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
 		   (let ((luminosity (color-luminosity r g b)))
-		     (cond 
+		     (cond
 		      ((<= luminosity 0.05)
 		       (setf (tk::gcontext-foreground new-gc) black-pixel))
 		      ((< 0.95 luminosity)
@@ -614,13 +626,13 @@
   (if (palette-color-p (medium-palette medium))
       (make-color-for-contrasting-ink ink)
     (make-gray-color-for-contrasting-ink ink)))
- 
+
 (defmethod decode-ink-1 ((ink contrasting-ink) (medium xt-medium))
   (decode-ink-1 (decode-contrasting-ink ink medium) medium))
 
-(defmethod decode-ink-1 ((pattern pattern) (medium xt-medium)) 
+(defmethod decode-ink-1 ((pattern pattern) (medium xt-medium))
   (decode-pattern-ink pattern medium))
-    
+
 (defmethod decode-ink-1 ((ink rectangular-tile) (medium xt-medium))
   (multiple-value-bind (pattern width height)
       (decode-rectangular-tile ink)
@@ -641,72 +653,112 @@
       (when pixmap
 	(tk::destroy-pixmap pixmap)))))
 
+(defun get-simple-vector-reader (vector)
+  (declare (optimize (safety 0) (speed 3)))
+  (typecase vector
+    ((simple-array (unsigned-byte 1) (*))
+     #'(lambda (vector index)
+	 (aref (the (simple-array (unsigned-byte 1) (*)) vector) index)))
+    ((simple-array (unsigned-byte 8) (*))
+     #'(lambda (vector index)
+	 (aref (the (simple-array (unsigned-byte 8) (*)) vector) index)))
+    ((simple-array t (*))
+     #'(lambda (vector index)
+	 (aref (the (simple-array t (*)) vector) index)))
+    (t #'aref)))
+
 (defun pixmap-from-pattern (pattern medium &optional format)
+  (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (array designs)
       (decode-pattern pattern)
+    (declare (simple-vector designs))
     (let* ((n-designs (length designs))
 	   (height (array-dimension array 0))
 	   (width (array-dimension array 1))
-	   (pixels (make-array n-designs))
-	   (image-data (make-array (list height width))))
+	   (pixels (make-array n-designs)))
       (declare (simple-vector pixels))
-      
+
+      ;; we only use the bitmap format (a) when we have to ie for
+      ;; transparent designs or (b) when we're using background and
+      ;; foreground inks - this is for creating 1 bit deep icon
+      ;; bitmaps
       (unless format
-	(setq format (if (eql n-designs 2) :bitmap :pixmap)))
+	(setq format (if (and (eql n-designs 2)
+			      (or (find +nowhere+ designs)
+				  (and (find +background-ink+ designs)
+				       (find +foreground-ink+ designs))))
+			 :bitmap
+		       :pixmap)))
 
-      (let ((bitmap
-	     (case format
-	       (:bitmap
-		(or (eql n-designs 2)
-		    (error "Can't make a bitmap from pattern with more than two designs"))) 
-	       (:pixmap
-		(and (find +nowhere+ designs)
-		     (error "Can't make a pixmap from a transparent pattern"))))))
-	
-	(dotimes (n (length designs))
-	  (let ((design (elt designs n)))
-	    (setf (svref pixels n) 
-	      (and (not (eql design +nowhere+))
-		   (decode-color design medium)))))
+      (case format
+	(:bitmap
+	 (unless (eql n-designs 2)
+	   (error "Can't make a bitmap from pattern with more than two designs")))
+	(:pixmap
+	 (when (find +nowhere+ designs)
+	   (error "Can't make a pixmap from a transparent pattern"))))
 
-	(let ((bitmap-bg (and bitmap
-			      (svref pixels 1) (svref pixels 0))))
-	  (dotimes (w width)
-	    (dotimes (h height)
-	      (let ((pixel (svref pixels (aref array h w))))
-		(setf (aref image-data h w)
-		  (if bitmap
-		      (if (eq pixel bitmap-bg) 0 1)
-		    pixel))))))
+      (dotimes (n n-designs)
+	(declare (fixnum n))
+	(let ((design (elt designs n)))
+	  (setf (svref pixels n)
+	    (and (not (eql design +nowhere+))
+		 (decode-color design medium)))))
 
-	(when bitmap
-	  (when (null (svref pixels 1))
-	    (rotatef (svref pixels 0) (svref pixels 1))))
-	
-	(let* ((port (port (medium-sheet medium)))
-	       (drawable (or (slot-value medium 'drawable)
-			     (tk::display-root-window (port-display port))))
-	       (depth (if bitmap
-			  1
-			(tk::drawable-depth drawable)))
-	       (image (make-instance 'tk::image
-			:width width
-			:height height
-			:data image-data
-			:depth depth))
-	       (pixmap (make-instance 'tk::pixmap
-			 :drawable drawable
-			 :width width
-			 :height height
-			 :depth depth)))
-	  (excl:without-interrupts
-	    (tk::put-image pixmap 
-			   (if bitmap
-			       (port-copy-gc-depth-1 port)
-			     (port-copy-gc port))
-			   image))
-	  (tk::destroy-image image)
-	  (values pixmap format pixels))))))
+      (let* ((port (port (medium-sheet medium)))
+	     (display (port-display port))
+	     (drawable (or (slot-value medium 'drawable)
+			   (tk::display-root-window display)))
+	     (depth (if (eq format :bitmap)
+			1
+		      (tk::drawable-depth drawable)))
+	     (image (make-instance 'tk::image
+		      :display display
+		      :width width
+		      :height height
+		      :depth depth))
+	     (pixmap (make-instance 'tk::pixmap
+		       :drawable drawable
+		       :width width
+		       :height height
+		       :depth depth)))
+
+	(if (eq format :bitmap)
+	    (let ((bg (and (eq format :bitmap)
+			   (or (position +nowhere+ designs)
+			       (position +background-ink+ designs)
+			       0))))
+	      (excl::with-underlying-simple-vector (array vector displacement)
+		(let ((reader (get-simple-vector-reader vector))
+		      (i displacement))
+		  (dotimes (h height)
+		    (declare (fixnum h))
+		    (dotimes (w width)
+		      (declare (fixnum w))
+		      (x11:xputpixel image w h
+				     (if (eq (funcall reader vector i) bg) 0 1))
+		      (incf i)))))
+	      (unless (eq bg 0)
+		(rotatef (svref pixels 0) (svref pixels 1))))
+	  (excl::with-underlying-simple-vector (array vector displacement)
+	    (let ((reader (get-simple-vector-reader vector))
+		  (i displacement))
+	      (declare (fixnum i))
+	      (dotimes (h height)
+		(declare (fixnum h))
+		(dotimes (w width)
+		  (declare (fixnum w))
+		  (x11:xputpixel image w h
+				 (svref pixels (funcall reader vector i)))
+		  (incf i))))))
+
+	(tk::put-image pixmap
+		       (if (eq format :bitmap)
+			   (port-copy-gc-depth-1 port)
+			 (port-copy-gc port))
+		       image)
+	(tk::destroy-image image)
+	(values pixmap format pixels)))))
 
 
 (defun decode-pattern-ink (pattern medium &optional tile-p)
@@ -762,24 +814,26 @@
 (defmethod decode-color-in-palette ((design design) (palette xt-palette))
   (error "Drawing with design: ~A not yet implemented" design))
 
+
+
 (defmethod decode-color-in-palette ((color color) (palette xt-palette))
   (let ((color-cache (palette-color-cache palette)))
     (or (gethash color color-cache)
 	(setf (gethash color color-cache)
 	  (if (palette-color-p palette)
-	      (loop
-		(restart-case
-		    (handler-case
-			(return
-			  (tk::allocate-color (palette-colormap palette)
-					      (get-xcolor color palette)))
-		      (tk::x-colormap-full ()
-			(error 'palette-full :palette palette)))
-		  (use-other (other)
-		      :report
-			(lambda (s)
-			  (format s "Use a different color"))
-		    (setq color other))))
+	      (restart-case
+		  (handler-case
+		      (tk::allocate-color (palette-colormap palette)
+					  (get-xcolor color palette))
+		    (tk::x-colormap-full ()
+		      (palette-full-error palette color)))
+		(use-other-color (other)
+		    :report (lambda (s)
+			      (format s "Use another color"))
+		    :interactive (lambda ()
+				   (list (excl::prompt-for-input 'color t
+				           "Enter another color to use: ")))
+		  (decode-color-in-palette other palette)))
 	    ;;-- support gray-scale here
 	    (with-slots (white-pixel black-pixel) palette
 	      (multiple-value-bind (r g b) (color-rgb color)
@@ -793,7 +847,7 @@
 			       (tk::alloc-color-cells
 				(palette-colormap palette) 1 0)
 			     (tk::x-colormap-full ()
-			       (error 'palette-full :palette palette)))
+			       (palette-full-error palette color)))
 			   0)))
 	  (update-palette-entry palette pixel (dynamic-color-color color))
 	  (push palette (dynamic-color-palettes color))
@@ -811,13 +865,13 @@
 		  (pixel-planes (gethash set layered-color-cache)))
 	     (unless pixel-planes
 	       (setq pixel-planes (decode-layered-color-set set palette)))
-	     (multiple-value-list 
+	     (multiple-value-list
 		 (decode-layered-color (layered-color-layers color) pixel-planes))))))))
 
 (defun decode-layered-color (layers pixel-planes)
   (let ((pixel (car pixel-planes))
 	(planes (cdr pixel-planes))
-	(mask 0)) 
+	(mask 0))
     (dolist (layer layers)
       (let ((plane-masks (pop planes)))
 	(if layer
@@ -847,7 +901,7 @@
 	    (tk::alloc-color-cells
 	     (palette-colormap palette) 1 total-nplanes)
 	  (tk::x-colormap-full ()
-	    (error 'palette-full :palette palette)))
+	    (palette-full-error palette)))
       (let ((pixel (aref pixels 0))
 	    (count 0)
 	    (planes nil))
@@ -858,7 +912,7 @@
 	      (incf count))
 	    (push plane-masks planes)))
 	(let ((pixel-planes (cons pixel planes)))
-	  (map-over-layered-colors  
+	  (map-over-layered-colors
 	   #'(lambda (dimensions)
 	       (let ((dynamic-color (apply #'aref dynamic-array dimensions))
 		     (pixel (decode-layered-color dimensions
@@ -1000,7 +1054,7 @@
      ,@(mapcar #'(lambda (binding)
  		   (destructuring-bind (min-var max-var form1 form2) binding
  		     (declare (ignore form1 form2))
- 		     `(when (> ,min-var ,max-var) 
+ 		     `(when (> ,min-var ,max-var)
  			(rotatef ,min-var ,max-var))))
  	       variables)
      ,@body))
@@ -1040,7 +1094,7 @@
 	      (t
 	       ;;--rounding
 	       ;;--what is the most efficient way of doing this?
-	       
+
 	       (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
 		 (declare (ignore rthickness))
 		 (with-fixnums ((min-x (- x lthickness))
@@ -1053,7 +1107,7 @@
 				medium
 				min-x
 				min-y)
-		    min-x min-y 
+		    min-x min-y
 		    size size 0 #.(* 360 64)
 		    t)))))))))
 
@@ -1071,7 +1125,7 @@
 	       (minx #.(ash 1 15))
 	       (miny #.(ash 1 15)))
 	  (declare (fixnum len j xpoints minx miny))
-	  (macrolet 
+	  (macrolet
 	      ((process-positions ()
 		 `(if (listp position-seq)
 		      (loop
@@ -1108,7 +1162,7 @@
 	        (declare (ignore rthickness))
 		(setq thickness (round thickness))
 		(tk::with-xarc-array (points xpoints)
-		  (macrolet 
+		  (macrolet
 		      ((process-position (x y)
 			 `(let ((x ,x)
 				(y ,y))
@@ -1194,7 +1248,7 @@
 					 (aref ps (+ 2 j)) (aref ps (+ 3 j)))
 		    (incf i))))
 	      (unless (zerop i)
-		(setq ink 
+		(setq ink
 		  (adjust-ink (decode-ink (medium-ink medium) medium) medium
 			      minx miny))
 		(x11:xdrawsegments
@@ -1234,7 +1288,7 @@
 	   (- max-y min-y)
 	   filled))))))
 
-(defmethod medium-draw-rectangles* ((medium xt-medium) rectangles filled) 
+(defmethod medium-draw-rectangles* ((medium xt-medium) rectangles filled)
   (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
@@ -1255,7 +1309,7 @@
 			  (with-clipped-fixnum-rectangle (x1 y1 x2 y2)
 			    (minf overall-min-x min-x)
 			    (minf overall-min-y min-y)
-			    (setf (x11:xrectangle-array-x rects i) min-x 
+			    (setf (x11:xrectangle-array-x rects i) min-x
 				  (x11:xrectangle-array-y rects i) min-y
 				  (x11:xrectangle-array-width rects i)
 				  (- max-x min-x)
@@ -1266,10 +1320,10 @@
 	      (declare (fixnum i))
 	      (if (listp rectangles)
 		  (loop
-		    (when (null rectangles) 
+		    (when (null rectangles)
 		      (return nil))
 		    (guts (pop rectangles) (pop rectangles)
-			  (pop rectangles) (pop rectangles))) 
+			  (pop rectangles) (pop rectangles)))
 		(do ((j 0 (+ j 4)))
 		    ((= j len))
 		  (declare (fixnum j))
@@ -1328,7 +1382,7 @@
 	  (when (and closed (not filled))
 	    (setf (x11:xpoint-array-x points (- npoints 1)) (x11:xpoint-array-x points 0)
 		  (x11:xpoint-array-y points (- npoints 1)) (x11:xpoint-array-y points 0)))
-	  (setq ink 
+	  (setq ink
 	    (adjust-ink (decode-ink (medium-ink medium) medium) medium
 			minx miny))
 	  (if filled
@@ -1350,7 +1404,7 @@
 
 (defmethod medium-draw-ellipse* ((medium xt-medium)
 				 center-x center-y
-				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 				 start-angle end-angle filled)
   (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
@@ -1364,15 +1418,14 @@
 	(with-single-floats (center-x center-y radius-1-dx radius-1-dy
 				      radius-2-dx radius-2-dy
 				      start-angle end-angle)
-	  (setq start-angle (- 2pi start-angle)
-		end-angle (- 2pi end-angle))
-	  (rotatef start-angle end-angle)
-	  (when (< end-angle start-angle)
-	    (setq end-angle (+ end-angle 2pi)))
+	  (setq start-angle (mod start-angle 2pi)
+		end-angle (mod end-angle 2pi))
+	  (unless (> end-angle start-angle)
+	    (incf end-angle 2pi))
 	  ;;--rounding in draw-ellipse
 	  (with-single-floats ((x-radius 0)
 			       (y-radius 0))
-	  
+
 	    (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
 		   (setq x-radius (abs radius-2-dx)
 			 y-radius (abs radius-1-dy)))
@@ -1380,25 +1433,21 @@
 		   (setq x-radius (abs radius-1-dx)
 			 y-radius (abs radius-2-dy)))
 		  (t
-		   (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+		   (let ((s-1 (+ (* radius-1-dx radius-1-dx)
 				 (* radius-1-dy radius-1-dy)))
-			 (s-2 (+ (* radius-2-dx radius-2-dx) 
+			 (s-2 (+ (* radius-2-dx radius-2-dx)
 				 (* radius-2-dy radius-2-dy))))
 		     (if (= s-1 s-2)
 			 (let ((r (sqrt s-1)))
 			   (setq x-radius r y-radius r))
 		       ;; Degrade to drawing a rectilinear ellipse
-		       (setq x-radius (sqrt s-1) 
+		       (setq x-radius (sqrt s-1)
 			     y-radius (sqrt s-2))))))
-	  
+
 	    (setq start-angle (* start-angle #.(float (/ (* 360 64) (* 2 pi)) 0s0)))
 	    (setq end-angle (* end-angle #.(float (/ (* 360 64) (* 2 pi)) 0s0)))
 
 	    ;;--rounding
-	    (if (> end-angle start-angle)
-		(setq end-angle (- end-angle start-angle))
-	      (setq end-angle (- start-angle end-angle)))
-	    
 	    (with-fixnums ((x-min (- center-x x-radius))
 			   (y-min (- center-y y-radius))
 			   (width (* 2 x-radius))
@@ -1406,17 +1455,17 @@
 			   end-angle
 			   start-angle)
 	      (discard-illegal-coordinates medium-draw-ellipse* x-min y-min)
-	      (tk::draw-ellipse-1 drawable 
+	      (tk::draw-ellipse-1 drawable
 				  (adjust-ink (decode-ink (medium-ink medium) medium)
 					      medium
 					      x-min
 					      y-min)
 				  x-min
-				  y-min 
-				  width 
+				  y-min
+				  width
 				  height
 				  start-angle
-				  end-angle
+				  (- end-angle start-angle)
 				  filled))))))))
 
 (defmethod medium-draw-text* ((medium xt-medium)
@@ -1446,7 +1495,7 @@
 				:start start :end end)))
 	     (when towards-x (decf towards-x dx))
 	     (decf x dx)))
-	  (:center 
+	  (:center
 	   (let ((dx (floor (text-size sheet string-or-char
 				       :text-style text-style
 				       :start start :end end) 2)))
@@ -1458,7 +1507,7 @@
 	   (let ((dy descent))
 	     (decf y dy)
 	     (when towards-y (decf towards-y dy))))
-	  (:center 
+	  (:center
 	   (let ((dy (- descent
 			(floor height 2))))
 	     (decf y dy)
@@ -1466,13 +1515,13 @@
 	  (:baseline nil)
 	  (:top
 	   (when towards-y (incf towards-y ascent))
-	   (incf y ascent))) 
+	   (incf y ascent)))
 	(fix-coordinates x y)
 	(discard-illegal-coordinates medium-draw-text* x y)
         (let ((gc (adjust-ink
 		   (decode-ink (medium-ink medium) medium)
 		   medium
-		   x 
+		   x
 		   (- y ascent))))
 	  (setf (tk::gcontext-font gc) font)
 	  (if (and towards-x towards-y)
@@ -1481,8 +1530,8 @@
 	       drawable
 	       gc
 	       x y
-	       string-or-char 
-	       start 
+	       string-or-char
+	       start
 	       end
 	       font
 	       towards-x towards-y transform-glyphs)
@@ -1506,7 +1555,7 @@
 		 (decf towards-y cy)
 		 (mod (round (atan towards-y towards-x) (/ pi 2.0)) 4)))
 	  (let ((transformation
-		   (make-rotation-transformation 
+		   (make-rotation-transformation
 		    (* (compute-rotation cx cy towards-x
 					 towards-y)
 		       (/ pi 2.0))
@@ -1524,12 +1573,12 @@
 			       gcontext
 			       x
 			       y
-			       string 
-			       start 
+			       string
+			       start
 			       end
 			       font
-			       towards-x 
-			       towards-y 
+			       towards-x
+			       towards-y
 			       transform-glyphs)
   (declare (ignore transform-glyphs))
   ;; When we are transforming glyphs:
@@ -1546,9 +1595,9 @@
 	   (ascent (xt::font-ascent font))
 	   (descent (xt::font-descent font)))
       (multiple-value-bind
-	  (pixmap columns 
-	   width 
-	   leftover-width 
+	  (pixmap columns
+	   width
+	   leftover-width
 	   rows height
 	   leftover-height)
 	  (find-rotated-text-pixmap
@@ -1561,9 +1610,9 @@
 
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
-	  
+
 	  #+debug
-	  (tk::copy-area pixmap gcontext 0 0 
+	  (tk::copy-area pixmap gcontext 0 0
 			 (tk::pixmap-width pixmap)
 			 (tk::pixmap-height pixmap)
 			 drawable 0 0)
@@ -1585,14 +1634,14 @@
 					   ascent descent height rotation pixmap
 					   min-char columns rows width
 				    leftover-width leftover-height)
-	    ;; Now its time to 
+	    ;; Now its time to
 	    (multiple-value-bind (dst-x dst-y)
 		(ecase rotation
 		  (0 (values x (- y ascent)))
 		  (1 (values (- x descent) y))
 		  (2 (values (- x pixmap-width) (- y descent)))
 		  (3 (values (- x ascent) (- y pixmap-height))))
-		    
+
 	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
 	      (decf (ink-gcontext-last-clip-region-tick gcontext))
 	      (setf (tk::gcontext-clip-x-origin gcontext) dst-x
@@ -1619,13 +1668,13 @@
 				 (port-rotated-string-cache port)
 				 :test #'equal)))
     (let ((res (assoc string (cdr strings-for-font) :test #'string=)))
-      (when res (return-from find-or-cache-string-pixmap 
+      (when res (return-from find-or-cache-string-pixmap
 		  (values-list (cdr res)))))
     (flet ((compute-string-dimensions ()
 	     (values (do ((r 0)
 			  (i start (1+ i)))
 			 ((= i end) r)
-		       (incf r 
+		       (incf r
 			     (xt::char-width font (char-int (aref string i)))))
 		     (+ ascent descent)))
 	   (compute-clip-x-and-clip-y (char char-width)
@@ -1637,13 +1686,13 @@
 	       (let ((columns columns)
 		     (rows rows))
 		 #+debug
-		 (format t "Was Row ~D of ~D, Column ~D of ~D~%" 
+		 (format t "Was Row ~D of ~D, Column ~D of ~D~%"
 			 row rows column columns)
 		 (dotimes (i rotation)
 		   (psetf column (- (1- rows) row) row column)
 		   (rotatef rows columns)))
 	       #+debug
-	       (format t "Now Row ~D of ~D, Column ~D of ~D~%" 
+	       (format t "Now Row ~D of ~D, Column ~D of ~D~%"
 		       row rows column columns)
 	       (let ((px (* column (if (oddp rotation) height width)))
 		     (py (* row (if (oddp rotation) width height)))
@@ -1676,15 +1725,15 @@
 	    (ecase rotation
 	      ((0 2) (values string-width string-height))
 	      ((1 3) (values string-height string-width)))
-	  (let ((string-pixmap (make-instance 'tk::pixmap 
-					      :depth 1
-					      :drawable pixmap
-					      :width pixmap-width
-					      :height
-					      pixmap-height)))
+	  (let ((string-pixmap (make-instance 'tk::pixmap
+				 :depth 1
+				 :drawable pixmap
+				 :width pixmap-width
+				 :height
+				 pixmap-height)))
 	    #+ignore
-	    (tk::draw-rectangle string-pixmap clear-gc 
-				0 0 
+	    (tk::draw-rectangle string-pixmap clear-gc
+				0 0
 				pixmap-width pixmap-height
 				t)
 	    (multiple-value-bind (x y)
@@ -1701,7 +1750,7 @@
 			 (char-width (xt::char-width font char))
 			 (cx x)
 			 (cy y))
-	      
+
 		    (ecase rotation
 		      (0 (decf cy ascent))
 		      (3 (decf cx ascent)
@@ -1709,12 +1758,12 @@
 		      (2 (decf cy descent)
 			 (decf cx char-width))
 		      (1 (decf cx descent)))
-	      
+
 		    (multiple-value-bind
 			(clip-x clip-y)
 			(compute-clip-x-and-clip-y char char-width)
 		      #+debug
-		      (format excl:*initial-terminal-io* "CLip-x, clip-y ~D,~D~%" 
+		      (format excl:*initial-terminal-io* "CLip-x, clip-y ~D,~D~%"
 			      clip-x clip-y)
 		      #+ignore
 		      (setf (tk::gcontext-clip-x-origin gcontext) clip-x
@@ -1722,9 +1771,9 @@
 			    )
 		      ;;-- We have lost the clipping region at this point!
 		      ;;--- We should draw in the background color also
-		      (tk::copy-area pixmap 
+		      (tk::copy-area pixmap
 				     copy-gc
-				     clip-x clip-y 
+				     clip-x clip-y
 				     (if (oddp rotation) height char-width)
 				     (if (oddp rotation) char-width height)
 				     string-pixmap cx cy ))
@@ -1734,12 +1783,12 @@
 	    (unless strings-for-font
 	      (push (setq strings-for-font (list (cons rotation font)))
 		    (port-rotated-string-cache port)))
-	    (push (list string string-pixmap pixmap-width pixmap-height) 
+	    (push (list string string-pixmap pixmap-width pixmap-height)
 		  (cdr strings-for-font))
 	    (values string-pixmap pixmap-width pixmap-height)))))))
 
 (defun find-rotated-text-pixmap (port font rotation)
-  (let ((x (assoc (list font rotation) (port-rotated-font-cache port) 
+  (let ((x (assoc (list font rotation) (port-rotated-font-cache port)
 		  :test #'equal)))
     (when x
       (return-from find-rotated-text-pixmap (values-list (cdr x))))
@@ -1784,10 +1833,10 @@
 		  ((> char max-char))
 		(when (= col columns)
 		  (setq col 0 row (1+ row)))
-		(setf (schar string 0) 
+		(setf (schar string 0)
 		  (cltl1:int-char char))
-		(tk::draw-string pixmap gc 
-				 (* col width) 
+		(tk::draw-string pixmap gc
+				 (* col width)
 				 (+ (* row height) ascent)
 				 string)
 		(incf col))
@@ -1842,7 +1891,7 @@
 		       mask-pixmap boole-set)
 	(do ((quad (/ array-size 2) (/ quad 2)))
 	    ((< quad 1))
-	  (copy-all-to mask-pixmap 0 0 temp-pixmap boole-1) ; 1        
+	  (copy-all-to mask-pixmap 0 0 temp-pixmap boole-1) ; 1
 	  (copy-all-to mask-pixmap 0 quad temp-pixmap boole-ior) ; 2
 	  (copy-all-to source-pixmap 0 0 temp-pixmap boole-and) ; 3
 	  (copy-all-to temp-pixmap 0 0 source-pixmap boole-xor) ; 4
@@ -1867,7 +1916,7 @@
 			      from from-left from-top
 			      to to-left to-top
 			      width height &key function)
-  (setf (tk::gcontext-function gc) 
+  (setf (tk::gcontext-function gc)
     (or function boole-1))
   (tk::copy-area from
 		 gc
@@ -1886,10 +1935,10 @@
 
 (defmethod text-style-ascent ((text-style t) (medium xt-medium))
   (tk::font-ascent (text-style-mapping (port medium) text-style)))
-					
+
 (defmethod text-style-descent ((text-style t) (medium xt-medium))
   (tk::font-descent (text-style-mapping (port medium) text-style)))
-					
+
 (defmethod text-style-fixed-width-p ((text-style t) (medium xt-medium))
   (let ((font (text-style-mapping (port medium) text-style)))
     ;;-??
@@ -1925,7 +1974,7 @@
 				 (medium-device-clip-region medium)))))
     (unless (eq r +nowhere+)
       (with-bounding-rectangle* (left top right bottom) r
-	(copy-from-pixmap pixmap 
+	(copy-from-pixmap pixmap
 			  (- left x) (- top y) (- right left ) (- bottom top)
 			  medium
 			  left top

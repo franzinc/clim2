@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.63 1994/06/08 06:57:00 duane Exp $
+;; $fiHeader: packages.lisp,v 1.64 1994/12/05 00:02:30 colin Exp $
 
 (in-package :common-lisp-user)
 
@@ -16,9 +16,9 @@
        #+(and CLIM-uses-lisp-stream-classes Allegro) stream)
 
  (:import-from #+PCL pcl #-PCL clos
-   class-direct-subclasses 
-   class-direct-superclasses 
-   class-precedence-list 
+   class-direct-subclasses
+   class-direct-superclasses
+   class-precedence-list
    class-prototype
    funcallable-standard-class)
 
@@ -70,7 +70,7 @@
    load-time-value
    logical-pathname
    logical-pathname-translations
-   loop-finish 
+   loop-finish
    nth-value
    pathname-match-p
    pprint-dispatch
@@ -196,7 +196,7 @@
    format
    fresh-line
    listen
-   pathname 
+   pathname
    peek-char
    read-byte
    read-char
@@ -248,12 +248,12 @@
    with-open-stream)
 
  #+Allegro
- (:shadow 
+ (:shadow
    pathname
    truename)
 
  #+Lucid
- (:shadow		
+ (:shadow
    close
    stream-element-type
    with-open-stream)
@@ -262,7 +262,7 @@
  (:shadow
    interactive-stream-p)
 
- (:export   
+ (:export
    &allow-other-keys
    &aux
    &body
@@ -367,7 +367,7 @@
    array-total-size
    array-total-size-limit
    arrayp
-   ash 
+   ash
    asin
    asinh
    assert
@@ -601,7 +601,7 @@
    echo-stream-input-stream
    echo-stream-output-stream
    ed
-   eighth 
+   eighth
    elt
    encode-universal-time
    end-of-file
@@ -684,7 +684,7 @@
    gensym
    gentemp
    get
-   get-decoded-time 
+   get-decoded-time
    get-dispatch-macro-character
    get-internal-real-time
    get-internal-run-time
@@ -797,7 +797,7 @@
    long-float-negative-epsilon
    long-site-name
    loop
-   loop-finish 
+   loop-finish
    lower-case-p
    machine-instance
    machine-type
@@ -1011,7 +1011,7 @@
    remhash
    remove
    remove-duplicates
-   remove-if 
+   remove-if
    remove-if-not
    remove-method
    remprop
@@ -1040,7 +1040,7 @@
    scale-float
    schar
    search
-   second 
+   second
    sequence
    serious-condition
    set
@@ -1105,7 +1105,7 @@
    standard-char-p
    standard-class
    standard-generic-function
-   standard-method 
+   standard-method
    standard-object
    step
    storage-condition
@@ -1297,7 +1297,7 @@
     defresource
     map-resource
     using-resource
-    
+
     ;; Processes
     *multiprocessing-p*
     all-processes
@@ -1338,10 +1338,10 @@
 ;; Define the CLIM package
 (defpackage clim
   (:use)				;use nothing
-  #+Allegro (:implementation-packages 
-	     :silica 
-	     :clim-utils 
-	     :clim-silica 
+  #+Allegro (:implementation-packages
+	     :silica
+	     :clim-utils
+	     :clim-silica
 	     :clim-internals
 	     :postscript-clim
 	     :xm-silica)
@@ -1360,10 +1360,10 @@
     null
     number
     or
-    pathname 
+    pathname
     ratio
     rational
-    real 
+    real
     sequence
     stream-advance-to-column
     stream-clear-input
@@ -1498,7 +1498,7 @@
     make-bounding-rectangle
     standard-bounding-rectangle
     with-bounding-rectangle*
-    
+
     ;; Transformations
     +identity-transformation+
     compose-rotation-with-transformation
@@ -1542,7 +1542,7 @@
     untransform-position
     untransform-rectangle*
     untransform-region
-    
+
     ;; Windowing substrate
     *default-server-path*
     +control-key+
@@ -1775,7 +1775,7 @@
     with-port-locked
     with-sheet-medium
     with-sheet-medium-bound
-    
+
     ;; Drawing options
     contrasting-dash-patterns-limit
     invoke-with-drawing-options
@@ -1795,7 +1795,7 @@
     with-rotation
     with-scaling
     with-translation
-    
+
     ;; Text styles
     *default-text-style*
     *undefined-text-style*
@@ -1823,7 +1823,7 @@
     with-text-family
     with-text-size
     with-text-style
-    
+
     ;; Graphics
     allocate-pixmap
     copy-area
@@ -1877,7 +1877,7 @@
     pixmap-width
     with-output-to-pixmap
     with-medium-state-cached
-    
+
     ;; Colors
     +background-ink+
     +flipping-ink+
@@ -1907,7 +1907,7 @@
     opacity-value
     opacityp
     with-delayed-recoloring
-    
+
     ;; Designs
     compose-in
     compose-out
@@ -1921,10 +1921,11 @@
     pattern-width
     pattern-array
     pattern-designs
-    
+
     ;; Palettes
     add-colors-to-palette
     color-stream-p
+    find-closest-matching-color
     frame-manager-palette
     frame-palette
     make-palette
@@ -1935,6 +1936,8 @@
     palettep
     port-default-palette
     remove-colors-from-palette
+    use-other-color
+    *use-closest-color*
 
     ;; Extended output
     *default-cursor-color*
@@ -1982,7 +1985,7 @@
     with-end-of-page-action
     with-output-buffered
     with-room-for-graphics
-    
+
     ;; Output recording
     add-character-output-to-text-record
     add-output-record
@@ -2045,7 +2048,7 @@
     with-new-output-record
     with-output-recording-options
     with-output-to-output-record
-    
+
     ;; Table formatting
     adjust-item-list-cells
     adjust-multiple-columns
@@ -2078,7 +2081,7 @@
     standard-table-output-record
     table-output-record
     table-output-record-p
-    
+
     ;; Graph formatting
     *default-generation-separation*
     *default-within-generation-separation*
@@ -2098,16 +2101,16 @@
     layout-graph-nodes
     standard-graph-node-output-record
     standard-graph-output-record
-    
+
     ;; Bordered output
     define-border-type
     surrounding-output-with-border
-    
+
     ;; Text formatting
     filling-output
     format-textual-list
     indenting-output
-    
+
     ;; Incremental redisplay
     augment-draw-set
     cache-output-record
@@ -2135,7 +2138,7 @@
     updating-output
     updating-output-record
     updating-output-record-p
-    
+
     ;; Extended input
     *abort-gestures*
     *accelerator-gestures*
@@ -2192,7 +2195,7 @@
     unread-gesture
     with-input-focus
     with-pointer-grabbed
-    
+
     ;; Presentation types
     *input-context*
     *null-presentation*
@@ -2203,6 +2206,7 @@
     +list-pane-view+
     +option-pane-view+
     +pointer-documentation-view+
+    +push-button-view+
     +radio-box-view+
     +slider-view+
     +text-editor-view+
@@ -2306,6 +2310,7 @@
     presentationp
     prompt-for-accept
     prompt-for-accept-1
+    push-button-view
     radio-box-view
     ratio
     rational
@@ -2344,7 +2349,7 @@
     with-presentation-type-options
     with-presentation-type-parameters
     with-presentations-to-string
-    
+
     ;; Presentation histories and kill rings
     do-history-elements
     history-top-element
@@ -2401,7 +2406,7 @@
     with-input-editing
     with-input-editor-typeout
     write-token
-    
+
     ;; Menus
     draw-standard-menu
     frame-manager-menu-choose
@@ -2413,7 +2418,7 @@
     menu-item-value
     print-menu-item
     with-menu
-    
+
     ;; Dialogs
     accept-values
     accept-values-command-button
@@ -2425,7 +2430,7 @@
     frame-manager-dialog-view
     invoke-accept-values-command-button
     with-aligned-prompts
-    
+
     ;; Command processor
     *command-argument-delimiters*
     *command-dispatchers*
@@ -2497,7 +2502,7 @@
     substitute-numeric-argument-marker
     user-command-table
     with-command-table-keystrokes
-    
+
     ;; Application frames and frame managers
     *application-frame*
     *default-frame-manager*
@@ -2548,7 +2553,7 @@
     frame-manager-exit-box-labels
     frame-manager-frames
     frame-manager-notify-user
-    frame-manager-pointer-documentation-stream 
+    frame-manager-pointer-documentation-stream
     frame-manager-select-file
     frame-name
     frame-named-panes
@@ -2604,7 +2609,7 @@
     window-viewport-position
     with-application-frame
     with-frame-manager
-    
+
     ;; Meta-frames, aka activities
     *activity*
     activity
@@ -2691,7 +2696,7 @@
     viewport-viewport-region
     vrack-pane
     with-look-and-feel-realization
-    
+
     ;; Gadgets
     action-gadget
     activate-callback
@@ -2784,13 +2789,17 @@
     ;; PostScript
     new-page
     with-output-to-postscript-stream)
-  
+
   #+Allegro
   (:export
    read-bitmap-file
    *bitmap-search-path*
    make-pattern-from-bitmap-file
-   make-pattern-from-pixmap)
+   make-pattern-from-pixmap
+   make-bitmap-file-from-pattern
+   write-bitmap-file
+   compute-filter-for-bitmap-format
+   )
 
   ;; Primary colors
   (:export
@@ -2884,7 +2893,7 @@
   #+Cloe-Runtime
   (:import-from cloe
     arglist)
- 
+
   #+Lucid
   (:import-from system
     arglist)
@@ -2935,7 +2944,7 @@
   (:export
     string-char
     char-bits)
-  
+
   (:export
     arglist
 
@@ -2961,7 +2970,7 @@
     *end-of-file-marker*
     +largest-coordinate+
     bind-to-list
-    canonicalize-and-match-lambda-lists	 
+    canonicalize-and-match-lambda-lists
     clause
     compile-time-property
     convert-to-device-coordinates
@@ -2984,7 +2993,7 @@
     flatten-arglist
     follow-synonym-stream
     funcallable-p
-    gensymbol 
+    gensymbol
     get-compile-time-local-property
     ignore-arglist
     lambda-list-variables-used-in-body
@@ -3002,7 +3011,7 @@
     roundf
     simple-vector-insert-element
     simple-vector-push-extend
-    standard-io-environment-vars-and-vals 
+    standard-io-environment-vars-and-vals
     time-elapsed-p
     trap-on-error
     whitespace-char-p
@@ -3012,7 +3021,7 @@
     with-stack-copy-of-list
     with-stack-list
     with-stack-list*
-    with-standard-io-environment 
+    with-standard-io-environment
     with-warnings-for-definition
     writing-clauses
 
@@ -3033,7 +3042,7 @@
     make-queue
     make-locking-queue
     map-over-queue
-    queue 
+    queue
     queue-contents-list
     queue-contents-type
     queue-empty-p
@@ -3065,7 +3074,7 @@
     defrole
     encapsulating-stream
     find-protocol
-    find-role 
+    find-role
     generate-trampolines
     operation
     operation-extra-args
@@ -3180,6 +3189,7 @@
     palette-delayed-recolors
     palette-dynamic-color-cache
     palette-layered-color-cache
+    palette-full-error
     pattern
     rectangular-tile
     rgb-color
@@ -3228,8 +3238,8 @@
     *null-text-style*
     *pointer-buttons*
     *ports*
-    *standard-character-set* 
-    *undefined-text-style* 
+    *standard-character-set*
+    *undefined-text-style*
     +highlighting-line-style+
     activate-gadget-event
     add-sheet-callbacks
@@ -3263,7 +3273,7 @@
     define-graphics-generic
     define-graphics-method
     define-text-style-mappings
-    define-text-style-mappings-1 
+    define-text-style-mappings-1
     distribute-event-1
     drag-gadget-event
     draw-gadget-label
@@ -3325,7 +3335,7 @@
     medium-text-bounding-box
     menu-bar-button
     menu-bar-pane
-    merged-text-style 
+    merged-text-style
     mirror->sheet
     mirror-edges*
     mirror-inside-edges*
@@ -3418,13 +3428,13 @@
     space-requirement-mixin
     standard-sheet
     standard-sheet-input-mixin
-    standardize-text-style 
+    standardize-text-style
     standardize-text-style-1
     stream-scan-character-for-writing
     stream-scan-string-for-writing
     stream-scan-string-for-writing-1
-    string-height 
-    string-width 
+    string-height
+    string-width
     text-style-index
     text-style-mapping*
     text-style-scale
@@ -3497,7 +3507,7 @@
 			   ;;-- We gotta fix the make-pane problem
 			   ;;-- first
 			   ;; clim
-			   clim-utils 
+			   clim-utils
 			   clim-silica
-			   clim-internals 
+			   clim-internals
 			   clim-lisp)))

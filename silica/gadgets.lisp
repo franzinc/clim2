@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.58 1993/11/18 18:44:55 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.59 1994/12/05 00:00:21 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -307,9 +307,7 @@
 (defclass push-button 
 	  (action-gadget labelled-gadget-mixin) 
     ((show-as-default :initform nil :initarg :show-as-default
-		      :accessor push-button-show-as-default)
-     (pattern :initarg :pattern)
-     (icon-pattern :initarg :icon-pattern)))
+		      :accessor push-button-show-as-default)))
 
 
 ;;; Toggle button
@@ -330,7 +328,7 @@
 
 ;;; Menu bar
 (defclass menu-bar (pane
-		    oriented-gadget-mixin
+		    row-column-gadget-mixin
 		    sheet-with-resources-mixin)
     ((command-table :initarg :command-table :initform nil
 		    :accessor menu-bar-command-table)))

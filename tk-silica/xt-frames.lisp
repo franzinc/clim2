@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[Wed Sep  8 11:40:41 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,20 +20,20 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.43 1993/11/23 19:59:09 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.44 1994/12/05 00:02:02 colin Exp $
 
 
 (in-package :xm-silica)
 
 ;; Basic intrinsics frame-manager
 
-(defclass xt-frame-manager (standard-frame-manager) 
+(defclass xt-frame-manager (standard-frame-manager)
     ((menu-cache
        :initform nil
        :accessor frame-manager-menu-cache)
      ))
 
-(defmethod frame-wrapper ((framem xt-frame-manager) 
+(defmethod frame-wrapper ((framem xt-frame-manager)
 			  (frame standard-application-frame) pane)
   (with-look-and-feel-realization (framem frame)
     (let* ((menu-bar (slot-value frame 'menu-bar))
@@ -41,7 +41,7 @@
 	    (and menu-bar
 		 (apply #'make-pane 'menu-bar
 			:name :menu-bar
-			:command-table (cond ((eq t menu-bar)
+			:command-table (cond ((eq menu-bar t)
 					      (frame-command-table frame))
 					     ((listp menu-bar)
 					      (find-command-table (car menu-bar)))
@@ -99,8 +99,8 @@
 
 (defmethod frame-manager-menu-choose
     ((framem xt-frame-manager) items &rest keys
-     &key printer 
-	  presentation-type 
+     &key printer
+	  presentation-type
 	  (associated-window (frame-top-level-sheet *application-frame*))
 	  text-style label
 	  foreground background
@@ -136,14 +136,14 @@
 		  (setf (frame-manager-menu-cache framem)
 		    (delete x (frame-manager-menu-cache framem)))
 		  (framem-destroy-menu framem amenu)))))))
-      
+
       (unless menu
 	(multiple-value-setq
 	    (menu closure)
-	  (frame-manager-construct-menu framem 
-					items 
-					printer 
-					presentation-type 
+	  (frame-manager-construct-menu framem
+					items
+					printer
+					presentation-type
 					associated-window
 					text-style
 					foreground
@@ -154,9 +154,9 @@
 					n-columns
 					n-rows))
 	(when cache
-	  (push (list unique-id cache-value menu closure) 
+	  (push (list unique-id cache-value menu closure)
 		(frame-manager-menu-cache framem))))
-	  
+
       ;; initialize the closure
       (funcall closure t)
       ;;
@@ -176,7 +176,7 @@
 	  (unwind-protect
 	      (progn
 		(loop
-		  (when (funcall closure) 
+		  (when (funcall closure)
 		    (setq aborted nil)
 		    (return nil))
 		  (framem-enable-menu framem menu)
@@ -185,14 +185,14 @@
 		  (with-toolkit-dialog-component (menu-choose items)
 		    (wait-for-callback-invocation
 		     port
-		     #'(lambda () 
+		     #'(lambda ()
 			 ;;-- This is to deal
 			 ;;-- with the race
 			 ;;-- condition where
 			 ;;-- the menu go down
 			 ;;-- to quick
 			 (or (funcall closure)
-			     (not (framem-menu-active-p framem menu)))) 
+			     (not (framem-menu-active-p framem menu))))
 		     "Returned value")))
 		(framem-popdown-menu framem menu))
 	    (if cache
@@ -221,10 +221,10 @@
 		    (xt::display-screen-number display))))
 
 (defmethod note-frame-deiconified ((framem xt-frame-manager) frame)
-  (x11:xmapwindow (port-display (port framem)) 
+  (x11:xmapwindow (port-display (port framem))
 		  (tk::widget-window (frame-shell frame))))
 
-;;; 
+;;;
 
 (defmethod invoke-with-mouse-grabbed-in-window ((framem xt-frame-manager) (window t) continuation &key)
   (invoke-with-pointer-grabbed window continuation))
@@ -232,7 +232,7 @@
 
 
 (defclass xt-menu-bar ()
-  ((command-name-to-button-table 
+  ((command-name-to-button-table
     :accessor menu-bar-command-name-to-button-table
     :initform nil)))
 
@@ -255,8 +255,6 @@
 		     (tk::set-sensitive button enabled))))))
 	(map-over-sheets #'update-sheet sheet)))))
 
-
-
 (defmethod update-frame-settings ((framem xt-frame-manager) (frame t))
   ;;--- Lets see how this works out
   (let ((graft (graft framem))
@@ -274,22 +272,22 @@
 	;;-- what about width and height
 	(when (and width height)
 	  (clim-internals::limit-size-to-graft width height graft)
-	  (tk::set-values shell :width (fix-coordinate width) 
+	  (tk::set-values shell :width (fix-coordinate width)
 			  :height (fix-coordinate height)))
 	(when (and left top)
-	  (tk::set-values shell 
+	  (tk::set-values shell
 			  :x (fix-coordinate left)
 			  :y (fix-coordinate top)))))
-    
+
     (tk::set-values shell :title (frame-pretty-name frame))
     (let ((icon (clim-internals::frame-icon frame)))
-      (flet ((decode-bitmap (x)
+      (flet ((decode-bitmap (x &optional format)
 	       (etypecase x
-		 (string x)
-		 (pattern 
+		 ((or string tk::pixmap) x)
+		 (pattern
 		  (let ((sheet (frame-top-level-sheet frame)))
 		    (with-sheet-medium (medium sheet)
-		      (pixmap-from-pattern x medium :bitmap)))))))
+		      (pixmap-from-pattern x medium format)))))))
 	(destructuring-bind
 	    (&key (name (frame-pretty-name frame)) pixmap clipping-mask) icon
 	  ;;-- Dialog shells do not have :icon-name resource
@@ -297,9 +295,10 @@
 	    (tk::set-values shell :icon-name name))
 	  (when pixmap
 	    (tk::set-values shell :icon-pixmap (decode-bitmap pixmap)))
-	  (when clipping-mask (tk::set-values shell :clip-mask (decode-bitmap clipping-mask))))))))
+	  (when clipping-mask
+	    (tk::set-values shell :icon-mask (decode-bitmap clipping-mask :bitmap))))))))
 
-(defmethod frame-manager-note-pretty-name-changed ((framem xt-frame-manager) 
+(defmethod frame-manager-note-pretty-name-changed ((framem xt-frame-manager)
 						   (frame standard-application-frame))
   (let ((shell (frame-shell frame)))
     (tk::set-values shell :title (frame-pretty-name frame))
@@ -322,7 +321,7 @@
        pointer-documentation-pane
        (and showp documentation)))))
 
-(defmethod clim-internals::frame-manager-position-dialog ((framem xt-frame-manager) 
+(defmethod clim-internals::frame-manager-position-dialog ((framem xt-frame-manager)
 							  frame
 							  own-window-x-position own-window-y-position)
   (when (and own-window-x-position own-window-y-position)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.46 1993/10/25 16:15:35 cer Exp $
+;; $fiHeader: menus.lisp,v 1.47 1994/12/04 23:57:57 colin Exp $
 
 (in-package :clim-internals)
 
@@ -290,7 +290,8 @@
 		 max-width max-height n-rows n-columns
 		 x-spacing y-spacing (row-wise nil)
 		 (cell-align-x ':left) (cell-align-y ':top)
-		 pointer-documentation menu-type gesture)
+		 pointer-documentation menu-type gesture
+		 background foreground)
   (declare (values value chosen-item gesture))
   (declare (ignore keys gesture))
   (flet ((present-item (item stream)
@@ -304,6 +305,10 @@
 	  #+Lucid (items items))
       (with-menu (menu associated-window :label label :scroll-bars scroll-bars)
 	(reset-frame (pane-frame menu) :title label)
+	(setf (medium-background menu) (or background
+					   (medium-background associated-window))
+	      (medium-foreground menu) (or foreground
+					   (medium-foreground associated-window)))
 	(with-text-style (menu text-style)
 	  (with-end-of-line-action (menu :allow)
 	    (loop

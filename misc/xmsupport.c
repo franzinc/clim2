@@ -17,43 +17,12 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: olsupport.c,v 1.4 1993/07/27 01:48:02 colin Exp $
+ * $fiHeader:$
  */
 
 /************************************************************************/
-/* Support code for Openlook interface                                  */
+/* Support code for Motif interface                                     */
 /************************************************************************/
 
-int ol_appl_add_item (fn, widget, parent, reference, item)
-int (*fn)();
-char *widget, *item;
-char *parent, *reference;
-{
-    return (*fn)(widget, parent, reference, item);
-}
-
-int ol_list_item_pointer (x)
-int x;
-{
-    return (OlListItemPointer(x));
-}
-
-void ol_appl_touch_item (fn, widget, token)
-int (*fn)();
-char *widget;
-int token;
-{
-    (*fn)(widget, token);
-}
-
-
-
-void ol_appl_delete_item (fn, widget, token)
-int (*fn)();
-char *widget;
-int token;
-{
-    (*fn)(widget, token);
-}
-
+#include "MyDrawingA.c"
 #include "climgccursor.c"

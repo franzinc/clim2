@@ -1,49 +1,23 @@
-# $fiHeader: Makefile.sgi4d-svr4,v 1.2 1994/06/08 06:56:29 duane Exp $
+# $fiHeader: Makefile.sgi4d-svr4,v 1.5 1995/05/15 07:17:42 duane Exp $
+#
+#  Makefile.sigi4d-svr4 for CLIM 2.0
+#
 
 include Makefile.defs
 
 Makefile=Makefile.sgi4d-svr4
 
-MOTIFHOME=
-XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
-MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
-XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB)_s.a 
+TKLIB=-lXm
+XTLIB=-lXt
+XLIB=-lX11
 
-MAINOBJXLIB=
-CLIMXMLIB=
+XINCLUDES=-I/usr/include
 
-XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
-XINCLUDES=-I$(MOTIFHOME)/usr/include
-XMINCLUDES=-I$(MOTIFHOME)/usr/include
-MOTIFXTRAOS=
-
-###############################################################################
-setup_LLP = /net/vapor/scm/bin/setup_LLP
-
-C_OBJECT_MAKEFILE = Makefile.cobjs-svr4
-
-XLIB-CLIM-OBJS = xlib/pkg.fasl
-
-GENERIC_PUBLIC_OBJS =
-XM_PUBLIC_OBJS =
-OL_PUBLIC_OBJS =
-PUBLIC_OBJS =
-OL_LICENSED_OBJS =
-XM_LICENSED_OBJS =
-MOTIF_OBJS = climxm.so
-OPENLOOK_OBJS = 
-CLIMOBJS= climxm.so
-CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
-INSTALLED_CLIMXMOBJS = MyDrawingA.o climxm.so
-INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o $(INSTALLED_CLIMXMOBJS)
+PRODUCT-TK-OBJS= $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 PICFLAGS = -KPIC
 SHAREFLAGS = -shared -all
 MAKE_SHARED = ld
-IMPORTS =
-
-PWD = .
-###############################################################################
 
 SAVEEXP = echo no exports file in this port
 RESTEXP = echo no exports file in this port

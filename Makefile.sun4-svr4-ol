@@ -1,0 +1,34 @@
+# $fiHeader$
+#
+#  Makefile.sun4-svr4-ol for CLIM 2.0
+#
+
+include Makefile.defs
+
+Makefile=Makefile.sun4-svr4-ol
+
+CLIM=./slim.ol
+
+SYSTEM=openlook-clim
+PRODUCT-TK-FASLS= $(PRODUCT-OL-FASLS)
+PRODUCT-TK-OBJS= $(STATIC_OL-OBJS) $(SHARED-OL-OBJS)
+
+
+XINCLUDES=-I/usr/openwin/include
+
+TKLIB=-lXol
+XTLIB=-lXt
+XLIB=-lX11
+
+SET_LIBRARY_PATH= \
+  LD_LIBRARY_PATH=/usr/openwin/lib:/usr/lib; export LD_LIBRARY_PATH
+
+# from here on this file should be the same as Makefile.sun4-svr4
+
+MOTIFXTRAS=-lgen
+
+PICFLAGS = -K pic
+SHAREFLAGS = -G
+MAKE_SHARED = ld
+
+include Makefile.generic

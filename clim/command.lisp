@@ -1,6 +1,6 @@
 s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.26 1993/10/26 03:21:30 colin Exp $
+;; $fiHeader: command.lisp,v 1.27 1994/12/04 23:57:24 colin Exp $
 
 (in-package :clim-internals)
 
@@ -420,7 +420,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 (defun add-menu-item-to-command-table (command-table string type value
 				       &key documentation (after ':end) 
 					    keystroke mnemonic
-					    text-style (errorp t))
+					    text-style button-type (errorp t))
   (check-type string (or string null))
   (check-type type (member :command :function :menu :divider))
   (when keystroke
@@ -458,7 +458,8 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
     (let* ((item `(,type ,value 
 		   ,@(and documentation `(:documentation ,documentation))
 		   ,@(and text-style `(:text-style ,text-style))
-		   ,@(and mnemonic `(:mnemonic ,mnemonic))))
+		   ,@(and mnemonic `(:mnemonic ,mnemonic))
+		   ,@(and button-type `(:button-type ,button-type))))
 	   ;; Entries are of the form (MENU-NAME KEYSTROKE MENU-ITEM)
 	   (entry (list string keystroke item)))
       (when (null menu)

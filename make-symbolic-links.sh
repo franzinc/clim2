@@ -1,12 +1,21 @@
 #!/bin/sh
 #
-# $fiHeader$
+# $fiHeader: make-symbolic-links.sh,v 1.1 1994/12/04 23:56:36 colin Exp $
 #
 # make a tree of links
 #
 
-original=$1
-linkdir=$2
+# 'original' must be changed whenever the source tree is moved
+# It must be a pathname accessible from any machine on the net
+
+original=/net/louie/usr/tech/colin/clim-2.0
+linkdir=$1
+
+if test -z "$linkdir"; then
+	linkdir=.
+fi
+
+echo "linking directory tree $linkdir to $original"
 
 # remove any existing links
 

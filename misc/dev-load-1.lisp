@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.31 1993/07/27 01:47:51 colin Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.35 1994/11/23 23:28:50 smh Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -38,7 +38,7 @@
 	     (load "sys/defsystem"))
    (load "clim2:;sys;sysdcl")))
 
-(defun load-it (sys &key (load-composer t))
+(defun load-it (sys &key load-composer)
   (let ((excl::*update-entry-points* nil)
 	(*load-source-file-info* t)
 	(*record-source-file-info* t)

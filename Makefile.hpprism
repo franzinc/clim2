@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.hpprism,v 1.3 1993/12/04 00:32:01 duane Exp $
+# $fiHeader: Makefile.hpprism,v 1.6 1995/05/15 07:17:41 duane Exp $
 #
 #  Makefile.hp700 for CLIM 2.0
 #
@@ -9,26 +9,14 @@ Makefile=Makefile.hpprism
 
 CL=/usr/fi/climdcl-devel
 
-CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -Wp,-H1280000
+CFLAGS= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
+	-DUSE_RE_COMP -DUSER_GETWD -Wp,-H1280000
 
-# 
-XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
-MOTIFLIB=/usr/lib/Motif1.2/libXm.a
+TKLIB=/usr/lib/Motif1.2/libXm.a
 XTLIB=/usr/lib/X11R5/libXt.a
 XLIB=/usr/lib/X11R5/libX11.a
+
 XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5
-XMINCLUDES=$(XINCLUDES)
-
-# Make motif only. This is like the dec.
-# Perhaps this should be included.
-
-CLIM_FASLS_TO_MAKE = makeclimxmfasls
-CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
-CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
-INSTALLED_CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
-
-# To keep make from complaining about syntax:
-MAIN_OBJ = mainxm.o
 
 # This is needed on the HP, because it doesn't like double semicolons:
 SAVEEXP = echo no exports file in this port

@@ -18,35 +18,41 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.29 1993/11/23 19:59:01 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.32 1995/05/15 07:17:56 duane Exp $
 
 (in-package :user)
 
 (require :climg)
 
 #+dlfcn
-(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
-			    :note-shared-library-references nil)
-  (load "clim2:;climxm.so")
-  (defun reinitialize-toolkit ()
-    (xt_toolkit_initialize)
-    (setup-error-handlers)
-    (fixup-class-entry-points))
-  (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
+(progn
+  (defvar sys::*toolkit-shared* nil)
+
+  (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
+			      :note-shared-library-references nil)
+    (load "clim2:;climxm.so")
+    (setq sys::*toolkit-shared* t)))
 
 #-dlfcn
 (progn
+  (defvar sys::*libtk-pathname* "Xm")
   (defvar sys::*libxt-pathname* "Xt")
-  (defvar sys::*clim-motif-pathname* "clim-motif.o")
 
-  (x11::load-undefined-symbols-from-library
-   sys::*clim-motif-pathname*
-   (x11::symbols-from-file "misc/undefinedsymbols.motif")
-   (list sys::*libxt-pathname* sys::*libx11-pathname*))
+  (unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
+    (load "stub-motif.o"
+	  :system-libraries (list sys::*libtk-pathname*
+				  sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t)
+    (load "stub-xt.o"
+	  :system-libraries (list sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t))
 
   (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
-    (load "MyDrawingA.o"
-	  :system-libraries (list sys::*libxt-pathname*
+    (load "xmsupport.o"
+	  :system-libraries (list sys::*libtk-pathname*
+				  sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t))
 

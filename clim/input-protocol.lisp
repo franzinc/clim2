@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.45 1993/08/12 16:03:07 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.46 1994/12/04 23:57:50 colin Exp $
 
 (in-package :clim-internals)
 
@@ -36,7 +36,7 @@
     (force-output stream))
   (loop
     (multiple-value-bind (gesture flag)
-	(call-next-method 
+	(call-next-method
 	  stream
 	  :timeout timeout :peek-p peek-p
 	  :input-wait-test input-wait-test
@@ -195,7 +195,9 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-exit-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
-(defmethod sheet-transformation-changed :after ((stream input-protocol-mixin) &key)
+(defmethod note-sheet-transformation-changed :after
+	   ((stream input-protocol-mixin) &key port-did-it)
+  (declare (ignore port-did-it))
   (let ((pointer (stream-primary-pointer stream)))
     (when pointer (pointer-decache pointer))))
 
@@ -247,7 +249,7 @@
 	       ;; gesture back from stream-input-wait.
 	       (when input-wait-handler
 		 (funcall input-wait-handler stream)))
-	      (otherwise 
+	      (otherwise
 	       (when input-happened
 		 (let ((gesture (queue-get (stream-input-buffer stream))))
 		   (when gesture
@@ -258,7 +260,7 @@
 		     ;;--- process the gesture in the input buffer.
 		     (let* ((sheet (and (typep gesture 'device-event)
 					(event-sheet gesture)))
-			    (new-gesture 
+			    (new-gesture
 			     (receive-gesture
 			      (if (or (null sheet) (eq sheet stream))
 				  (encapsulating-stream stream)
@@ -275,7 +277,7 @@
   (if *pointer-button-press-handler*
       ;; This may throw or something, but otherwise we will return NIL
       ;; which will cause the gesture to be eaten
-      (progn 
+      (progn
 	(when (and *click-outside-menu-handler*
 		   (output-recording-stream-p stream)
 		   (not (region-contains-position-p
@@ -340,7 +342,7 @@
   ;; Don't return.
   nil)
 
-(defmethod receive-gesture 
+(defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture pointer-enter-event))
   nil)
 
@@ -360,7 +362,7 @@
 (defmethod receive-gesture ((stream input-protocol-mixin) (gesture event))
   (process-event-locally stream gesture)
   nil)
-  
+
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) gesture)
   ;; don't translate it
@@ -412,7 +414,7 @@
 	      (input-editor-format istream "[Abort]")
 	      (force-output istream))
 	  (progn
-	    (write-string "[Abort]" stream) 
+	    (write-string "[Abort]" stream)
 	    (force-output stream))))))
   (error 'abort-gesture :event gesture))
 
@@ -450,7 +452,7 @@
 	(return-from stream-read-char gesture))
       ;;--- Probably wrong.  It prevents the input editor from ever seeing
       ;;--- mouse clicks, for example.
-      (beep stream))))
+      #+ignore (beep stream))))
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)
   (stream-unread-gesture (encapsulating-stream stream) character))
@@ -463,7 +465,7 @@
       ;; Don't pass off a pointer-button-press-handler that ignores clicks,
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
       (setq gesture (stream-read-gesture (encapsulating-stream stream) :timeout 0))
-      (when (or (null gesture) 
+      (when (or (null gesture)
 		(and (characterp gesture)
 		     (or (ordinary-char-p gesture)
 			 (diacritic-char-p gesture)) ))
@@ -483,10 +485,10 @@
   (let ((input-buffer (stream-input-buffer stream)))
     (when (queue-empty-p input-buffer)
       (return-from stream-listen nil))
-    ;; map over the input buffer looking for characters.  
+    ;; map over the input buffer looking for characters.
     ;; If we find one, return true
     (flet ((find-char (gesture)
-	     (when (and (characterp gesture) 
+	     (when (and (characterp gesture)
 			(or (ordinary-char-p gesture)
 			    (diacritic-char-p gesture)))
 	       (return-from stream-listen t))))
@@ -595,7 +597,7 @@
 (defun stream-compatible-any-tyi-1 (stream timeout eof)
   (let ((character (stream-read-gesture (encapsulating-stream stream) :timeout timeout)))
     (cond ((null character) nil)
-	  ((eq character *end-of-file-marker*) 
+	  ((eq character *end-of-file-marker*)
 	   (and eof (error "~a" eof)))
 	  ((and (characterp character)
 		(let ((activation (si:input-editor-option :activation)))

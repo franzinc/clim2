@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.23 93/05/13 16:23:15 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.24 1993/07/27 01:40:00 colin Exp $
 
 (in-package :clim-internals)
 
@@ -36,17 +36,17 @@
 
 (defvar *noise-string-style* (make-text-style nil nil :smaller))
 (defun-inline make-noise-string (&key display-string unique-id text-style)
-  (make-noise-string-1 :display-string display-string 
+  (make-noise-string-1 :display-string display-string
 		       :text-style (or text-style *noise-string-style*)
 		       :unique-id unique-id))
 
 (defvar *accept-result-style* (make-text-style nil :italic nil))
-(defun-inline make-accept-result (&key display-string unique-id 
+(defun-inline make-accept-result (&key display-string unique-id
 				       presentation-type presentation-object)
-  (make-accept-result-1 :display-string display-string 
+  (make-accept-result-1 :display-string display-string
 			:text-style *accept-result-style*
 			:unique-id unique-id
-			:presentation-type presentation-type 
+			:presentation-type presentation-type
 			:presentation-object presentation-object))
 
 ;;--- Kludge for processing asynchronous presentation events...
@@ -58,12 +58,12 @@
 
 (defvar *standard-activation-gestures* '(:newline :return :end))
 
-(defmacro with-activation-gestures ((additional-gestures &key override) 
+(defmacro with-activation-gestures ((additional-gestures &key override)
 				    &body body &environment env)
   #-(or Genera Minima) (declare (ignore env))
   (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
-  `(with-stack-list* 
+  `(with-stack-list*
        (*activation-gestures*
 	 ,additional-gestures
 	 ,(cond ((constantp override #+(or Genera Minima) env)
@@ -78,7 +78,7 @@
   (and (not (typep gesture '(or pointer-event noise-string end-of-file-marker)))
        (dolist (set *activation-gestures*)
 	 (when (if (listp set)
-		   (member gesture set 
+		   (member gesture set
 			   :test #'keyboard-event-matches-gesture-name-p)
 		   (funcall set gesture))
 	   (return-from activation-gesture-p t)))))
@@ -93,11 +93,11 @@
   #-(or Genera Minima) (declare (ignore env))
   (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
-  `(with-stack-list* 
+  `(with-stack-list*
        (*delimiter-gestures*
 	 ,additional-gestures
 	 ,(cond ((constantp override #+(or Genera Minima) env)
-		 (if (null (eval override #+(or Genera Minima-Developer) env)) 
+		 (if (null (eval override #+(or Genera Minima-Developer) env))
 		     '*delimiter-gestures*
 		     nil))
 		(t
@@ -108,7 +108,7 @@
   (and (not (typep gesture '(or pointer-event noise-string end-of-file-marker)))
        (dolist (set *delimiter-gestures*)
 	 (when (if (listp set)
-		   (member gesture set 
+		   (member gesture set
 			   :test #'keyboard-event-matches-gesture-name-p)
 		   (funcall set gesture))
 	   (return-from delimiter-gesture-p t)))))
@@ -120,7 +120,7 @@
 
 ;; READ-TOKEN reads characters until it encounters an activation gesture,
 ;; a delimiter character, or something else (like a mouse click).
-(defun read-token (stream &key input-wait-handler pointer-button-press-handler 
+(defun read-token (stream &key input-wait-handler pointer-button-press-handler
 			       click-only timeout)
   (with-temporary-string (string :length 50 :adjustable t)
     (let* ((gesture nil)
@@ -150,6 +150,8 @@
 		 (return-from read-token :timeout))
 		((and click-only (eq gesture :eof))
 		 (error "Got an EOF when waiting for mouse input"))
+		((eq gesture :eof)
+		 (return-token gesture))
 		((and click-only
 		      (not (typep gesture 'pointer-button-event)))
 		 (beep stream))
@@ -177,7 +179,7 @@
 			;;--- haven't updated WRITE-CHAR yet
 			#+++ignore (write-char gesture stream))
 		       (t (beep stream))))
-		(t (return-token gesture))))))))
+		(t (beep stream))))))))
 
 (defun write-token (token stream &key acceptably)
   (cond ((and acceptably (some #'delimiter-gesture-p token))
@@ -216,7 +218,7 @@
   (default-input-stream stream with-input-editor-typeout)
   `(flet ((with-ie-typeout-body (,stream) ,@body))
      (declare (dynamic-extent #'with-ie-typeout-body))
-     (invoke-with-input-editor-typeout 
+     (invoke-with-input-editor-typeout
        ,stream #'with-ie-typeout-body :erase ,erase)))
 
 
@@ -227,7 +229,7 @@
   ;; when in non-own-window AVVs, (PANE-FRAME STREAM) points to the
   ;; calling frame rather than the AVV frame.
   (frame-manager-display-input-editor-error
-    (frame-manager *application-frame*) 
+    (frame-manager *application-frame*)
     *application-frame* stream error))
 
 (defvar *accept-help* nil)

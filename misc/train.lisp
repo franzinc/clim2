@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.16 1993/11/23 19:58:44 cer Exp $
+;; $fiHeader: train.lisp,v 1.18 1995/04/07 01:09:12 georgej Exp $
 
 (defun train-clim (&key (train-times 2)
 			(psview nil)
@@ -36,7 +36,10 @@
 
   (room t)
 
-  (clim-test:with-test-reporting (:file report-file)
+  (clim-test:with-test-reporting (:file (or report-file
+					    (if (excl::featurep :clim-motif)
+						"notes/test-suite-reportxm.lisp"
+					      "notes/test-suite-reportol.lisp")))
     (when compile
       (compile-file-if-needed "test/test-suite" :print nil :verbose t))
     (load "test/test-suite.fasl")
@@ -125,6 +128,3 @@
 		  (if (excl::featurep :clim-motif)
 		      "climxm-preload.fasl"
 		    "climol-preload.fasl"))))
-
-
-

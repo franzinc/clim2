@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.hp700,v 1.2 93/05/13 16:22:43 cer Exp $
+# $fiHeader: Makefile.rs6000,v 1.2 1994/12/18 06:44:40 duane Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -7,45 +7,22 @@ include Makefile.defs
 
 Makefile=Makefile.rs6000
 
-CL=/usr/fi/dcl-devel
-
 CFLAGS	= -O -D_BSD -D_NO_PROTO -D_NONSTD_TYPES -D_MBI=void
 
-# 
-
-XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
-MOTIFLIB=-lXm
-MOTIFLIB_d=-lXm
+TKLIB=-lXm
 XTLIB=-lXt
 XLIB=-lX11
-MAINOBJXLIB=
-CLIMXMLIB=
-XINCLUDES= -I/usr/include -I/usr/include/Xm
-XMINCLUDES=$(XINCLUDES)
-MOTIFXTRAOS=
 
-C_OBJECT_MAKEFILE = Makefile.cobjs-svr4
+XINCLUDES= -I/usr/include
 
-XLIB-CLIM-OBJS = xlib/pkg.fasl
-
-OL_PUBLIC_OBJS =
-PUBLIC_OBJS = $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS)
-OL_LICENSED_OBJS =
-XM_LICENSED_OBJS =
-MOTIF_OBJS = climxm.so $(PUBLIC_OBJS)
-OPENLOOK_OBJS = 
-CLIMOBJS= climxm.so $(PUBLIC_OBJS)
-CLIM_FASLS_TO_MAKE = makeclimxmfasls
-CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
-INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o $(INSTALLED_CLIMXMOBJS)
-
-# To keep make from complaining about syntax:
-MAIN_OBJ = mainxm.o
-
-PICFLAGS =
-SHAREFLAGS =
+PRODUCT-TK-OBJS= $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MAKE_SHARED = make_shared
-IMPORTS = ../src/ucl.exp
+
+CL= /usr/fi/climdcl-devel
+
+# This should be defined in make-dist. For CLIM devel (ie making
+# slim images) we use climdcl-devel and don't use the shared library
+# IMPORTS = ../src/ucl.exp
 
 stubs = c2stubs
 

@@ -20,12 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.11 1993/07/27 01:54:01 colin Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.13 1994/12/18 06:44:58 duane Exp $
 
 (in-package :tk)
 
 (defconstant xm-font-is-font 0)
-(defconstant xm-font-list-default-tag "XmFONTLIST_DEFAULT_TAG_STRING")
 
 (defmethod convert-resource-out (parent (type (eql 'font-list)) value)
   (declare (ignore parent))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.8 1993/07/27 01:53:57 colin Exp $
+;; $fiHeader: xm-defs.lisp,v 1.9 1994/12/05 00:01:17 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -74,3 +74,5 @@
 (def-c-type (xm-selected-position-array :no-defuns) 1 :int)
 
 (def-c-type (xm-string-table :no-defuns) 1 * :char)
+
+(defconstant xm-font-list-default-tag "FONTLIST_DEFAULT_TAG_STRING")

@@ -20,18 +20,13 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimol.lisp,v 1.6 93/04/28 17:19:02 layer Exp $
+;; $fiHeader: instclimol.lisp,v 1.7 1993/07/27 01:37:41 colin Exp $
 
 ;;
 ;; Load the OpenLook version of CLIM
 ;;
 
 (in-package :system)
-
-#-svr4
-(progn
-  (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
-  (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a"))
 
 (load-application (require :climol) :devel system::*devel*)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.56 1993/12/07 05:33:40 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.57 1994/12/04 23:57:41 colin Exp $
 
 (in-package :clim-internals)
 
@@ -11,10 +11,10 @@
 ;;; Implementation of output-records that are tied to gadgets.
 
 ;;--- Why are these OUTPUT-RECORD-MIXINs?
-(defclass gadget-output-record 
+(defclass gadget-output-record
 	  (output-record-mixin output-record-element-mixin output-record)
     ((gadget :initform nil :accessor output-record-gadget)
-     (cache-value :initarg :cache-value :initform nil) 
+     (cache-value :initarg :cache-value :initform nil)
      (optional-values :initform nil)))
 
 (defmethod initialize-instance :after ((record gadget-output-record) &key cache-test size)
@@ -26,7 +26,7 @@
   :x-position x-position :y-position y-position :size size
   :cache-value cache-value)
 
-(defmethod match-output-records ((record gadget-output-record) 
+(defmethod match-output-records ((record gadget-output-record)
 				 &key (cache-value nil cache-value-p) (cache-test #'equal))
   (and cache-value-p
        (funcall cache-test cache-value (slot-value record 'cache-value))))
@@ -67,7 +67,7 @@
   (declare (ignore dx1 dy1 dx2 dy2))
   (update-gadget-position record))
 
-(defmethod bounding-rectangle-set-edges :after ((record gadget-output-record) 
+(defmethod bounding-rectangle-set-edges :after ((record gadget-output-record)
 						left top right bottom)
   (declare (ignore left top right bottom))
   (update-gadget-position record))
@@ -84,14 +84,14 @@
   (bounding-rectangle* record))
 
 #+++ignore
-(defmethod update-gadget-position ((record gadget-output-record)) 
+(defmethod update-gadget-position ((record gadget-output-record))
   (let ((gadget (output-record-gadget record)))
     (when gadget
       (with-bounding-rectangle* (left top right bottom) record
         (let ((xoff (coordinate 0))
 	      (yoff (coordinate 0)))
 	  (multiple-value-setq (xoff yoff)
-	    (convert-from-relative-to-absolute-coordinates 
+	    (convert-from-relative-to-absolute-coordinates
 	      (sheet-parent gadget) record))
 	  (move-and-resize-sheet gadget
 				 (+ left xoff) (+ top yoff)
@@ -106,7 +106,7 @@
 	    (output-record-stream record) (output-record-parent record))
 	(with-bounding-rectangle* (left top right bottom) record
 	  (translate-positions xoff yoff left top right bottom)
-	  (move-and-resize-sheet 
+	  (move-and-resize-sheet
 	    gadget left top (- right left) (- bottom top)))))))
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
@@ -128,7 +128,7 @@
 (defmethod window-clear :after ((window clim-stream-sheet))
   (dolist (child (sheet-children window))
     (sheet-disown-child window child)))
-  
+
 
 (defmacro with-output-as-gadget ((stream &rest options) &body body)
   (default-output-stream stream)
@@ -139,7 +139,7 @@
 	      (with-look-and-feel-realization (,framem ,frame)
 		,@body)))
        (declare (dynamic-extent #'with-output-as-gadget-body))
-       (invoke-with-output-as-gadget 
+       (invoke-with-output-as-gadget
 	 ,stream #'with-output-as-gadget-body ,@options))))
 
 #+++ignore
@@ -167,9 +167,9 @@
 	(replay record stream)
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
-	    
+
 #---ignore
-(defmethod invoke-with-output-as-gadget (stream continuation &rest args 
+(defmethod invoke-with-output-as-gadget (stream continuation &rest args
 					 &key cache-test cache-value update-gadget)
   (declare (dynamic-extent args))
   (declare (ignore cache-test cache-value))
@@ -211,7 +211,7 @@
 ;; kludge because of clear-output-record :after
 ;; Perhaps this should be moved somewhere.
 ;;  If think is because the clear-output-record stuff should be on
-;;  composite-output-records rather than displayed output-records 
+;;  composite-output-records rather than displayed output-records
 
 (defmethod bounding-rectangle-set-edges	:around ((record gadget-output-record)
 						 left top right bottom)
@@ -221,7 +221,7 @@
 #+++ignore
 (defmethod add-output-record :after ((record gadget-output-record) (parent t))
   (do ((p parent (output-record-parent p)))
-      ((null p) 
+      ((null p)
        (warn "Parent is not a output-history"))
     (when (typep p 'stream-output-history-mixin)
       (return t)))
@@ -273,7 +273,7 @@
 	    (cdr *with-deferred-gadget-updates*))
       (setf (sheet-enabled-p (output-record-gadget record)) state)))
 
-(define-presentation-method gadget-includes-prompt-p :around 
+(define-presentation-method gadget-includes-prompt-p :around
   ((type t) (stream t) (view actual-gadget-view))
   (let ((initargs (view-gadget-initargs view)))
     (or (getf initargs :label)
@@ -292,7 +292,7 @@
       (call-next-method)
     +radio-box-view+))
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type completion) stream (view radio-box-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
@@ -323,8 +323,8 @@
 		      #'(lambda (element)
 			  (let* ((value (funcall value-key element))
 				 (button
-				  (apply #'make-pane 'toggle-button 
-					 :label 
+				  (apply #'make-pane 'toggle-button
+					 :label
 					 (let ((name (funcall name-key element)))
 					   (if (eq printer #'write-token)
 					       name
@@ -342,12 +342,12 @@
 			    button))
 		      sequence))
 	       (radio-box
-		(make-pane-from-view 'radio-box view 
+		(make-pane-from-view 'radio-box view
 				     '(:toggle-button-options :label)
-		  :choices buttons 
-		  :current-selection current-selection 
+		  :choices buttons
+		  :current-selection current-selection
 		  :client stream
-		  :id query-identifier 
+		  :id query-identifier
 		  :value-changed-callback (make-accept-values-value-changed-callback
 					   stream query-identifier)
 		  :active active-p
@@ -370,7 +370,7 @@
       (call-next-method)
       +check-box-view+))
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type subset-completion) stream (view check-box-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
@@ -386,7 +386,7 @@
 	     (map-over-sheets
 	       #'(lambda (sheet)
 		   (when (typep sheet 'toggle-button)
-		     (let ((value 
+		     (let ((value
 			     (and default-supplied-p
 				  (member (gadget-id sheet) default
 					  :test test)
@@ -425,11 +425,11 @@
 			  button))
 		    sequence))
 	     (check-box
-	      (make-pane-from-view 'check-box view 
+	      (make-pane-from-view 'check-box view
 				   '(:toggle-button-options :label)
 		:choices buttons
 		:current-selection current-selection
-		:client stream 
+		:client stream
 		:id query-identifier
 		:value-changed-callback (make-accept-values-value-changed-callback
 					 stream query-identifier)
@@ -453,7 +453,7 @@
       (call-next-method)
       +toggle-button-view+))
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type boolean) stream (view toggle-button-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
@@ -480,7 +480,7 @@
 
 ;;; Numeric gadgets
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type real) stream (view slider-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
@@ -514,7 +514,7 @@
 	     (setf (gadget-value slider)
 		   (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-	(let ((slider 
+	(let ((slider
 		;;--- What other initargs do we pass along from the view?
 		(make-pane-from-view 'slider view ()
 		  :value (if default-supplied-p default min-value)
@@ -532,7 +532,7 @@
 		  :help-callback (make-gadget-help type))))
 	  (values (outlining () slider) slider))))))
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type integer) stream (view slider-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
@@ -542,7 +542,7 @@
 				       low high default-supplied-p t))
 
 (define-presentation-method present
-			    (object (type integer) stream (view slider-view) 
+			    (object (type integer) stream (view slider-view)
 			     &key acceptably query-identifier prompt)
   (declare (ignore acceptably))
   (make-integer-gadget-for-slider-view stream view t object
@@ -572,7 +572,7 @@
 		  :value (if default-supplied-p default min-value)
 		  :min-value min-value :max-value max-value
 		  :orientation (gadget-orientation view)
-		  :number-of-quanta (- max-value min-value) 
+		  :number-of-quanta (- max-value min-value)
 		  :decimal-places 0
 		  :show-value-p (gadget-show-value-p view)
 		  :client stream :id query-identifier
@@ -597,7 +597,7 @@
 		      ,view2))
 	       types)))
 
-(define-decode-indirect-view-methods-for-types 
+(define-decode-indirect-view-methods-for-types
     (gadget-dialog-view +text-field-view+)
     real string pathname sequence sequence-enumerated)
 
@@ -605,27 +605,27 @@
 (defmacro define-present-methods-for-types ((function view) &body types)
   `(progn
      ,@(mapcar #'(lambda (type)
-		   `(define-presentation-method present 
-		        (object (type ,type) stream (view ,view) 
+		   `(define-presentation-method present
+		        (object (type ,type) stream (view ,view)
 			 &key acceptably query-identifier prompt)
 		      (declare (ignore acceptably))
 		      (,function stream view t object t type prompt query-identifier :editable-p nil)))
 	       types)))
 
 ;;--- Should there be a method specialized on T???
-(define-present-methods-for-types 
+(define-present-methods-for-types
     (make-gadget-for-text-field-view text-field-view)
   real string pathname boolean
   completion subset-completion
   sequence sequence-enumerated)
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type t) stream (view text-field-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
   (declare (ignore present-p))
-  (make-gadget-for-text-field-view 
-    stream view active-p default default-supplied-p type prompt query-identifier :editable-p t)) 
+  (make-gadget-for-text-field-view
+    stream view active-p default default-supplied-p type prompt query-identifier :editable-p t))
 
 (defun make-gadget-for-text-field-view (stream view active-p default
 					default-supplied-p type
@@ -643,7 +643,7 @@
 		 (present-to-string default type)
 	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((text-field (make-pane-from-view 
+      (let ((text-field (make-pane-from-view
 			  'text-field view ()
 			  :value (if default-supplied-p
 				     (present-to-string default type)
@@ -656,7 +656,7 @@
 			  :focus-out-callback
 			    ;;--- Why do we check for editable-p?  If it
 			    ;;--- is read-only, won't this callback never be
-			    ;;--- called? (cim) 
+			    ;;--- called? (cim)
 			    (and editable-p
 				 `(accept-values-string-field-changed-callback
 				   ,stream ,query-identifier))
@@ -679,7 +679,7 @@
     ;; Only do the accept when the field has changed
     ;; Only call the callback if the query is still valid
     (when (and (accept-values-query-changed-p query)
-	       (accept-values-query-valid-p 
+	       (accept-values-query-valid-p
 		 query (accept-values-query-presentation query)))
       (handler-case
 	  (multiple-value-bind (object type index)
@@ -692,7 +692,7 @@
 	  (declare (ignore type))
 	  (assert (= index (length new-value)))
 	  object)
-	(error (c) 
+	(error (c)
 	  (setf (accept-values-query-error-p query) c)
 	  (let ((frame (pane-frame stream)))
 	    (unless (typep *application-frame* 'accept-values)
@@ -705,15 +705,15 @@
 
 ;;; Text Editor gadget
 
-(define-presentation-method accept-present-default 
-			    ((type string) stream (view text-editor-view)
+(define-presentation-method accept-present-default
+			    ((type t) stream (view text-editor-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p))
-  (make-gadget-for-text-editor
-    stream view active-p default t type prompt query-identifier :editable-p t))
+  (declare (ignore present-p))
+  (make-gadget-for-text-editor stream view active-p default default-supplied-p
+			       type prompt query-identifier :editable-p t))
 
-(define-present-methods-for-types 
+(define-present-methods-for-types
     (make-gadget-for-text-editor text-editor-view)
     string)
 
@@ -728,14 +728,14 @@
 	   (if active-p
 	       (activate-gadget button)
 	       (deactivate-gadget button))
- 	   (setf (gadget-value button) 
+ 	   (setf (gadget-value button)
 	     (if default-supplied-p
-		 default
+		 (present-to-string default type)
 	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-editor view '(:scroll-bars)
 			  :value (if default-supplied-p
-				     default
+				     (present-to-string default type)
 				   "")
 			  :client stream :id query-identifier
 			  :editable-p editable-p
@@ -745,25 +745,24 @@
 			  :focus-out-callback
 			    ;;--- Why do we check for editable-p?  If it
 			    ;;--- is read-only, won't this callback never be
-			    ;;--- called? (cim) 
+			    ;;--- called? (cim)
 			    (and editable-p
 				 `(accept-values-string-field-changed-callback
 				    ,stream ,query-identifier))
-
 			    :activate-callback
 			    (and editable-p
 				 `(accept-values-string-field-changed-callback
 				    ,stream ,query-identifier))
 			    :active active-p
 			    :help-callback (make-gadget-help type))))
- 	(values (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :both)) 
-		  text-field) 
+ 	(values (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :both))
+		  text-field)
 		text-field)))))
 
 
 ;;; List and option panes
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type completion) stream (view list-pane-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
@@ -774,18 +773,18 @@
 				   default query-identifier type printer
 				   :exclusive active-p))
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type subset-completion) stream (view list-pane-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
   (declare (ignore present-p default-supplied-p prompt))
-  (make-list/option-pane-for-ptype 'list-pane 
+  (make-list/option-pane-for-ptype 'list-pane
 				   stream view sequence
 				   name-key value-key test
 				   default query-identifier type printer
 				   :nonexclusive active-p))
 
-(defun make-list/option-pane-for-ptype (pane-type stream view sequence 
+(defun make-list/option-pane-for-ptype (pane-type stream view sequence
 					name-key value-key test
 					default query-identifier type
 					printer mode active-p)
@@ -825,19 +824,19 @@
 			     stream query-identifier)
 			 :active active-p
 			 :help-callback (make-gadget-help type)))))
-	(values (if (eq pane-type 'list-pane) 
+	(values (if (eq pane-type 'list-pane)
 		    (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :dynamic)) pane)
 		  pane)
 		pane)))))
 
-(define-presentation-method accept-present-default 
+(define-presentation-method accept-present-default
 			    ((type completion) stream (view option-pane-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
   (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'option-pane
 				   stream view sequence name-key value-key
-				   test default query-identifier type 
+				   test default query-identifier type
 				   printer
 				   :exclusive active-p))
 

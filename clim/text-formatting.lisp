@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.14 1993/10/26 03:21:42 colin Exp $
+;; $fiHeader: text-formatting.lisp,v 1.15 1994/12/04 23:58:12 colin Exp $
 
 (in-package :clim-internals)
 
@@ -105,7 +105,7 @@
 	  (buffer (slot-value filling-stream 'buffer))
 	  (break-characters (slot-value filling-stream 'break-characters)))
       ;; The general scheme here is to find a break character,
-      ;; buffer the string up to the break character, then call 
+      ;; buffer the string up to the break character, then call
       ;; STREAM-WRITE-CHAR on the break character to do the
       ;; necessary bookkeeping
       (loop
@@ -114,7 +114,7 @@
 					   (eql char #\Return)
 					   (member char break-characters)))
 				   string :start start :end end))
-	       (width (text-size stream string 
+	       (width (text-size stream string
 				 :start start :end (or break end))))
 	  (when (or (null break) (> break 0))
 	    (let* ((ofp (fill-pointer buffer))
@@ -147,6 +147,7 @@
 ;; buffering again, but remember the current cursor position instead of starting
 ;; at the beginning of the line.  This is the way we get presentations to be in
 ;; the right place, for example.
+
 (defmethod write-buffer-and-continue ((filling-stream filling-stream)
 				      continuation &rest continuation-args)
   (declare (dynamic-extent continuation continuation-args))
@@ -154,13 +155,7 @@
 	(fill-width (slot-value filling-stream 'fill-width))
 	(buffer (slot-value filling-stream 'buffer)))
     ;; Flush the current line buffer
-    (stream-write-string stream buffer)
-    (setf (fill-pointer buffer) 0)
-    ;; Move to the next line if necessary, writing the prefix string
-    ;;--- STREAM-CURSOR-POSITION is the wrong thing to look at
-    (when (> (stream-cursor-position stream) fill-width)
-      (stream-terpri stream)
-      (filling-stream-handle-line-break filling-stream))
+    (filling-stream-write-buffer filling-stream t)
     (let ((*original-stream* (encapsulating-stream filling-stream)))
       (apply continuation stream continuation-args))))
 
@@ -187,7 +182,7 @@
 			     #'stream-close-text-output-record wrapped))
 
 (defresource filling-stream (stream fill-width break-characters prefix prefix-width)
-  :constructor 
+  :constructor
     (make-instance 'filling-stream
       :buffer (make-array 100 :element-type #+ANSI-90 'character #-ANSI-90 'string-char
 			  :fill-pointer 0
@@ -227,7 +222,7 @@
 
 ;;; Indenting output
 
-(defclass indenting-output-record 
+(defclass indenting-output-record
 	  (standard-sequence-output-record)
     ((indentation :initarg :indentation)))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.22 1993/09/17 00:20:35 colin Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.23 1993/10/26 03:21:57 colin Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -9,7 +9,7 @@
 
 ;;; Define a "mix-in" frame class that manages a selected object
 
-;;--- This facility is not part of CLIM itself, but is part of a 
+;;--- This facility is not part of CLIM itself, but is part of a
 ;;--- graphical editing system that I have been developing privately,
 ;;--- which I call Zdrava. --SWM
 
@@ -39,7 +39,7 @@
 
 ;;--- This facility is part of Zdrava.
 
-(defclass object-handle (standard-point) 
+(defclass object-handle (standard-point)
     ((object :initarg :object :reader handle-object)
      (type :initarg :type :reader handle-type)))
 
@@ -54,7 +54,7 @@
 
 ;;--- This facility is part of Zdrava.
 
-(defclass basic-object (standard-bounding-rectangle) 
+(defclass basic-object (standard-bounding-rectangle)
     ((style :accessor object-style	;all objects have a line style
 	    :initarg :style)
      (redisplay-tick :initform 0)))	;redisplay when this changes
@@ -148,10 +148,10 @@
   (with-bounding-rectangle* (left top right bottom) object
     ;; Present the object as a BOX so that commands in the application
     ;; can be written using that presentation type.
-    (with-output-as-presentation (stream object 'box :single-box t) 
+    (with-output-as-presentation (stream object 'box :single-box t)
       (ecase (box-shape object)
 	(:oval
-	  (draw-oval* stream 
+	  (draw-oval* stream
 		      (/ (+ left right) 2) (/ (+ top bottom) 2)
 		      (/ (abs (- right left)) 2) (/ (abs (- bottom top)) 2)
 		      :filled nil :line-style (object-style object)))
@@ -169,10 +169,10 @@
       (convert-from-relative-to-absolute-coordinates
 	stream (output-record-parent record))
     (with-bounding-rectangle* (left top right bottom) record
-      (draw-rectangle* stream 
+      (draw-rectangle* stream
 		       (+ xoff (- left 3)) (+ yoff (- top 3))
 		       (+ xoff right 3) (+ yoff bottom 3)
-		       :ink (make-flipping-ink 
+		       :ink (make-flipping-ink
 			      (if (palette-color-p
 				    (frame-palette (pane-frame stream)))
 				  +red+
@@ -191,7 +191,7 @@
 (defmethod reshape-object ((object box) x y type)
   (with-bounding-rectangle* (left top right bottom) object
     (ecase type
-      (:nw (setq left x 
+      (:nw (setq left x
 		 top y))
       (:ne (setq right x
 		 top y))
@@ -209,7 +209,7 @@
     (tick-object (box-arrow-out object))))
 
 
-(defclass arrow (object-with-handles-mixin basic-object) 
+(defclass arrow (object-with-handles-mixin basic-object)
     ((box1 :initarg :box1)
      (box2 :initarg :box2)))
 
@@ -249,24 +249,34 @@
 
 (define-command-table graphics-editor-option-commands)
 
-(define-application-frame graphics-editor (selected-object-mixin) 
+(define-command-table graphics-editor-help-commands)
+
+(define-application-frame graphics-editor (selected-object-mixin)
     ((objects :initform nil)
      (counter :initform 0)
      (last-box :initform nil)
      (style :initform (make-line-style :thickness 1 :dashes nil))
      (shape :initform :rectangle))
   (:command-definer define-graphics-editor-command)
-  (:command-table (graphics-editor 
+  (:command-table (graphics-editor
 		    :inherit-from (accept-values-pane
 				   graphics-editor-file-commands
 				   graphics-editor-edit-commands
-				   graphics-editor-option-commands)
+				   graphics-editor-option-commands
+				   graphics-editor-help-commands)
 		    :inherit-menu :keystrokes
-		    :menu (("File" :menu graphics-editor-file-commands :mnemonic #\F :documentation "File commands")
-			   ("Edit" :menu graphics-editor-edit-commands :mnemonic #\E )
-			   ("Options" :menu graphics-editor-option-commands :mnemonic #\O))))
+		    :menu (("File" :menu graphics-editor-file-commands
+				   :mnemonic #\F :documentation "File Commands")
+			   ("Edit" :menu graphics-editor-edit-commands
+				   :mnemonic #\E :documentation "Edit Commands")
+			   ("Options" :menu graphics-editor-option-commands
+				      :mnemonic #\O :documentation
+				      "Options")
+			   ("Help" :menu graphics-editor-help-commands
+				   :mnemonic #\H :documentation "Help Commands"
+				   :button-type :help))))
   (:pointer-documentation t)
-  ;; Three panes: a display pane, and command menu, and a modeless 
+  ;; Three panes: a display pane, and command menu, and a modeless
   ;; dialog containing the line style options
   (:panes
     (display :application
@@ -278,7 +288,7 @@
     (horizontal-options :accept-values
 			:min-height :compute :height :compute :max-height :compute
 			:display-function
-			  `(accept-values-pane-displayer 
+			  `(accept-values-pane-displayer
 			     :displayer ,#'(lambda (frame stream)
 					     (accept-graphics-editor-options
 					       frame stream
@@ -286,18 +296,18 @@
     (vertical-options :accept-values
 		      :min-width :compute :width :compute :max-width :compute
 		      :display-function
-		        `(accept-values-pane-displayer 
+		        `(accept-values-pane-displayer
 			   :displayer ,#'(lambda (frame stream)
-					   (accept-graphics-editor-options 
+					   (accept-graphics-editor-options
 					     frame stream
 					     :orientation :vertical)))))
   (:layouts
-    (default 
-      (vertically () 
-	horizontal-options
-	(:fill display)))
+   (default
+       (vertically ()
+	 horizontal-options
+	 (:fill display)))
     (other
-      (horizontally () 
+      (horizontally ()
 	vertical-options
 	(:fill display)))))
 
@@ -378,7 +388,7 @@
 	  (:rectangle
 	    (draw-rectangle* stream left top (* 2 bottom) (* 2 right) :filled nil))
 	  (:oval
-	    (draw-oval* stream 
+	    (draw-oval* stream
 			(/ (+ left right) 2)
 			(/ (+ top bottom) 2)
 			(/ (abs (- right left)) 2)
@@ -458,7 +468,7 @@
 				  (if (palette-color-p
 					(frame-palette *application-frame*))
 				      +blue+
-				      +foreground-ink+) 
+				      +foreground-ink+)
 				  +background-ink+)
 		      #-allegro +flipping-ink+))
     ;;--- Zdrava supplies primitives to input basic objects such as
@@ -474,7 +484,7 @@
 			      :filled nil :ink flipping-ink)
 	     (setq rectangle-drawn nil))
 	   (when (eql window stream)
-	     (setq right x 
+	     (setq right x
 		   bottom y)
 	     (draw-rectangle* stream left top right bottom
 			      :filled nil :ink flipping-ink)
@@ -526,8 +536,8 @@
 ;; Deselect an object by clicking the Deselect menu button, or by
 ;; clicking over blank area without moving the mouse.
 (define-command (com-deselect-object :command-table graphics-editor-edit-commands
-				     :menu ("Deselect"
-					    :documentation "Deselect all objects")) 
+				     :menu ("Deselect" :mnemonic #\D
+					    :documentation "Deselect all objects"))
     ()
   (when (frame-selected-object *application-frame*)
     (deselect-object *application-frame* (frame-selected-object *application-frame*))))
@@ -589,9 +599,9 @@
 
 ;; OK, I added a menu button to clear the window.
 (define-command (com-clear :command-table
-			   graphics-editor-edit-commands 
+			   graphics-editor-edit-commands
 			   :keystroke (#\\ :control)
-			   :menu ("Clear" 
+			   :menu ("Clear" :mnemonic #\C
 				  :documentation "Clear all graphics"))
     ()
   (with-slots (objects selected-object last-box) *application-frame*
@@ -602,28 +612,36 @@
 
 ;; OK, I added a menu button to redisplay the window, too, although
 ;; it's only here for debugging.
-(define-command (com-redisplay :command-table graphics-editor-edit-commands 
-			       :keystroke (:r :meta) 
-			       :menu  ("Redisplay" :documentation "Redisplay windows"))
+(define-command (com-redisplay :command-table graphics-editor-edit-commands
+			       :keystroke (:r :meta)
+			       :menu  ("Redisplay" :mnemonic #\R
+						   :documentation "Redisplay windows"))
     ()
   (redisplay-frame-pane *application-frame* 'display :force-p t))
 
 (define-command (com-quit :command-table graphics-editor-file-commands
-			  :keystroke (:x :meta) 
-			  :menu ("Quit" :documentation "Quit application")) ()
+			  :keystroke (:x :meta)
+			  :menu ("Quit" :documentation "Quit application" :mnemonic #\Q)) ()
   (frame-exit *application-frame*))
 
-(define-command (com-change-layout :command-table graphics-editor-option-commands 
-				   :keystroke (:l :meta) 
-				   :menu ("Change application layout"
+(define-command (com-help :command-table graphics-editor-help-commands
+			  :menu ("On Application" :mnemonic #\A
+				 :documentation "Help on Application")) ()
+  (notify-user *application-frame* "No Help Available"
+	       :style :error))
+
+(define-command (com-change-layout :command-table graphics-editor-option-commands
+				   :keystroke (:l :meta)
+				   :menu ("Change application layout" :mnemonic #\l
 					  :documentation "Change layout"))
     ()
-  (let ((layouts (frame-all-layouts *application-frame*)))
+  (let* ((layouts (frame-all-layouts *application-frame*))
+	 (old-layout (frame-current-layout *application-frame*))
+	 (new-layout (or (second (member old-layout layouts))
+			 (car layouts))))
     (setf (frame-current-layout *application-frame*)
-	  (or (second (member (frame-current-layout *application-frame*) layouts))
-	      (car layouts)))))
+      new-layout)))
 
 
 (define-demo "Graphics Editor" graphics-editor
   :left 100 :top 100 :width 800 :height 500)
-

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Thu Jul 22 17:17:19 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.17 1993/10/26 03:22:35 colin Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.18 1994/12/05 00:01:25 colin Exp $
 
 (in-package :tk)
 
@@ -46,7 +46,7 @@
 			   (make-instance 'resource
 					  :name :delete-response
 					  :type 'tk::delete-response
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "deleteResponse")))
 
@@ -54,7 +54,7 @@
 			   (make-instance 'resource
 					  :name :font-list
 					  :type 'font-list
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "fontList")))
 
@@ -62,7 +62,7 @@
 			   (make-instance 'resource
 					  :name :keyboard-focus-policy
 					  :type 'tk::keyboard-focus-policy
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "keyboardFocusPolicy")))
 
@@ -71,7 +71,7 @@
 			   (make-instance 'resource
 					  :name :label-type
 					  :type 'tk::label-type
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "labelType")))
 
@@ -80,7 +80,8 @@
 
 ;;-- This is a problem cos we dont know the number of items
 
-(defconstant xm_string_default_char_set "")
+;; when you merge in the ICS version of this make sure you don't break
+;; the rs6k - see patch3344.cl
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
   (and (not (zerop value))
@@ -88,7 +89,7 @@
 	 ;;--- I think we need to read the book about
 	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
 	 ;;-- segment strings
-	 (xm_string_get_l_to_r value xm_string_default_char_set string)
+	 (xm_string_get_l_to_r value xm-font-list-default-tag string)
 	 (char*-to-string (aref string 0)))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
@@ -100,11 +101,14 @@
       (push (convert-resource-in parent 'xm-string (x-arglist table i))
 	    r))))
 
+;; when you merge in the ICS version of this make sure you don't break
+;; the rs6k - see patch3344.cl
+
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
   (note-malloced-object
-   (xm_string_create_l_to_r 
+   (xm_string_create_l_to_r
     (note-malloced-object (string-to-char* value))
-    (note-malloced-object (string-to-char* "")))))
+    (note-malloced-object (string-to-char* xm-font-list-default-tag)))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
@@ -113,7 +117,7 @@
 
 (defun encode-box-child (child)
   (let ((x (getf '(
-                   :none                  0 
+                   :none                  0
                    :apply         1
                    :cancel    2
                    :default   3
@@ -136,7 +140,7 @@
                    :dir-list-label   16
                    :file-list        :list
                    :file-list-label  :list-label
-                   ) 
+                   )
                  child)))
     (cond ((null x)
            (error "cannot encode child ~S" child))
@@ -152,7 +156,7 @@
 			   (make-instance 'resource
 					  :name :scroll-horizontal
 					  :type 'tk::boolean
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "scrollHorizontal")))
 
@@ -160,7 +164,7 @@
 			   (make-instance 'resource
 					  :name :scroll-vertical
 					  :type 'tk::boolean
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "scrollVertical")))
 
@@ -168,7 +172,7 @@
 			   (make-instance 'resource
 					  :name :word-wrap
 					  :type 'tk::boolean
-					  :original-name 
+					  :original-name
 					  (string-to-char*
 					   "wordWrap")))
 
@@ -191,3 +195,7 @@
 	 (white (x11::xwhitepixel display 0))
 	 (black (x11::xblackpixel display 0)))
     (xm_get_pixmap screen value white black)))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'text-position)) value)
+  value)
+

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Mon Jul 19 18:51:48 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.35 1993/10/26 03:22:30 colin Exp $
+;; $fiHeader: widget.lisp,v 1.36 1994/12/05 00:01:12 colin Exp $
 
 (in-package :tk)
 
@@ -60,13 +60,13 @@
   (xt_create_managed_widget name class parent args num-args))
 
 (defun create-widget (name widget-class parent &rest args)
-  (apply #'create-widget-1 
-	 #'xt-create-widget name widget-class parent 
+  (apply #'create-widget-1
+	 #'xt-create-widget name widget-class parent
 	 args))
 
 (defun create-managed-widget (name widget-class parent &rest args)
-  (apply #'create-widget-1 
-	 #'xt-create-managed-widget name widget-class parent 
+  (apply #'create-widget-1
+	 #'xt-create-managed-widget name widget-class parent
 	 args))
 
 
@@ -96,16 +96,16 @@
 
 (defun manage-children (children)
   (xt_manage_children (map '(simple-array (signed-byte 32))
-		     #'ff:foreign-pointer-address 
+		     #'ff:foreign-pointer-address
 		     children)
 		      (length children)))
 
 (defun unmanage-children (children)
   (xt_unmanage_children (map '(simple-array (signed-byte 32))
-			  #'ff:foreign-pointer-address 
+			  #'ff:foreign-pointer-address
 			  children)
 			(length children)))
-		     
+
 (defun destroy-widget (widget)
   (xt_destroy_widget widget))
 
@@ -154,9 +154,9 @@
   (find-object-from-address class))
 
 
-(defmethod initialize-instance :after ((w xt-root-class) 
-				       &rest args 
-				       &key foreign-address 
+(defmethod initialize-instance :after ((w xt-root-class)
+				       &rest args
+				       &key foreign-address
 					    name parent display
 				       &allow-other-keys)
   (when (or display parent)
@@ -170,8 +170,6 @@
        (remf args :foreign-address)
        (remf args :name)
        (remf args :parent)
-       (unless name
-	 (setq name (class-name (class-of w))))
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w (tkify-lisp-name name) parent args))))))
 
@@ -190,7 +188,7 @@
     (multiple-value-bind
 	(widget newp)
 	(apply
-	 #'intern-object-address 
+	 #'intern-object-address
 	 widget-address
 	 (widget-class-of widget-address)
 	 args)
@@ -249,8 +247,8 @@
 
 ;;--- Should call either XtResizeWidget or XtConfigureWidget
 
-(defun tk::configure-widget (widget &key x y width height 
-					 (border-width 
+(defun tk::configure-widget (widget &key x y width height
+					 (border-width
 					  (get-values widget :border-width)))
   (xt_configure_widget widget x y width height
 		       border-width))
@@ -285,7 +283,7 @@
 (defun initialize-toolkit (&rest args)
   (let* ((context (create-application-context)))
     (when *fallback-resources*
-      (xt_app_set_fallback_resources 
+      (xt_app_set_fallback_resources
        context
        (let* ((n (length *fallback-resources*))
 	      (v (make-array (1+ n) :element-type '(unsigned-byte 32))))
@@ -293,10 +291,10 @@
 	   (setf (aref v i) (ff:string-to-char* (nth i *fallback-resources*))))
 	 (setf (aref v n) 0)
 	 v)))
-    (let* ((display (apply #'make-instance 'display 
+    (let* ((display (apply #'make-instance 'display
 			   :context context
 			   args))
-	   (app (apply #'app-create-shell 
+	   (app (apply #'app-create-shell
 		       :display display
 		       :widget-class 'application-shell
 		       args)))

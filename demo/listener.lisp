@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.30 1993/07/22 15:38:29 cer Exp $
+;; $fiHeader: listener.lisp,v 1.32 1995/05/15 07:17:48 duane Exp $
 
 (in-package :clim-demo)
 
@@ -13,7 +13,7 @@
   (:menu-bar nil)
   (:top-level (lisp-listener-top-level))
   (:panes
-   (interactor :interactor 
+   (interactor :interactor
 	       #+allegro :excl-recording-p #+allegro t
 	       :scroll-bars :both))
   (:layouts (default interactor)))
@@ -51,7 +51,7 @@
 
 (defvar *use-native-debugger* nil)
 
-(defvar *prompt-arrow-1* 
+(defvar *prompt-arrow-1*
 	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0)
 			  (0 0 0 0 0 1 0 0 0 0 0 0)
 			  (0 0 0 0 0 1 1 0 0 0 0 0)
@@ -66,7 +66,7 @@
 			  (0 0 0 0 0 1 0 0 0 0 0 0))
 		      (list +background-ink+ +foreground-ink+)))
 
-(defvar *prompt-arrow-2* 
+(defvar *prompt-arrow-2*
 	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
 			  (0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0)
 			  (0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0)
@@ -122,12 +122,12 @@
 	      :prompt (case *listener-depth*
 			(0 *prompt-arrow-1*)
 			(1 *prompt-arrow-2*)
-			(otherwise 
-			  (concatenate 'string 
+			(otherwise
+			  (concatenate 'string
 			    (make-string (1+ *listener-depth*) :initial-element #\=)
 			    "> "))))))))))
 
-(defun lisp-listener-command-reader (frame stream command-table presentation-type 
+(defun lisp-listener-command-reader (frame stream command-table presentation-type
 				     &key keystrokes listener-depth (prompt "=> "))
   (catch-abort-gestures ("Return to ~A command level ~D"
 			 (frame-pretty-name frame) listener-depth)
@@ -172,7 +172,7 @@
 		      :prompt nil :prompt-mode :raw
 		      :additional-activation-gestures '(#+Genera #\End)))))
       (when (eq type :keystroke)
-	(let ((command (lookup-keystroke-command-item command-or-form command-table 
+	(let ((command (lookup-keystroke-command-item command-or-form command-table
 						      :numeric-argument numeric-arg)))
 	  (unless (clim-internals::keyboard-event-p command)
 	    (when (partial-command-p command)
@@ -185,7 +185,7 @@
 	     (beep))
 	    ((eq (presentation-type-name type) 'command)
 	     (terpri)
-	     (let ((*debugger-hook* 
+	     (let ((*debugger-hook*
 		     (unless *use-native-debugger*
 		       (and (zerop listener-depth) #'listener-debugger-hook))))
 	       (apply (command-name command-or-form)
@@ -193,9 +193,9 @@
 	     (terpri))
 	    (t
 	     (terpri)
-	     (let ((values 
+	     (let ((values
 		     (multiple-value-list
-		       (let ((*debugger-hook* 
+		       (let ((*debugger-hook*
 			       (unless *use-native-debugger*
 				 (and (zerop listener-depth) #'listener-debugger-hook))))
 			 (eval command-or-form)))))
@@ -359,7 +359,7 @@
 		     (let ((*print-length* 3)
 			   (*print-level* 3)
 			   (*print-pretty* nil))
-		       (present object 'expression 
+		       (present object 'expression
 				:stream stream :view +pointer-documentation-view+)))
      :gesture :select)
     (object)
@@ -393,7 +393,7 @@
   `(describe ,(quotify-object-if-necessary presentation)))
 
 (define-lisp-listener-command (com-edit-function :name t)
-    ((function 'expression 
+    ((function 'expression
 	       :provide-default t :prompt "function name"))
   (ed function))
 
@@ -412,7 +412,7 @@
   (window-clear (frame-standard-output *application-frame*)))
 
 #+Genera
-(add-keystroke-to-command-table 
+(add-keystroke-to-command-table
   'lisp-listener '(:l :control :meta) :command 'com-clear-output-history)
 
 #-Minima (progn
@@ -445,7 +445,7 @@
 			(let ((type1 (pathname-type p1))
 			      (type2 (pathname-type p2)))
 			  (and type1 type2 (string-lessp type1 type2))))))))
-      (setq pathnames (sort pathnames #'pathname-lessp 
+      (setq pathnames (sort pathnames #'pathname-lessp
 			    :key #+Genera #'first #-Genera #'identity)))
     (fresh-line stream)
     (format stream "~A" (namestring directory-pathname))
@@ -454,7 +454,7 @@
       (dolist (pathname pathnames)
 	(let (size creation-date author)
 	  #-Genera
-	  (with-open-file (file-stream pathname :direction :input) 
+	  (with-open-file (file-stream pathname :direction :input)
 	    (setf size (file-length file-stream)
 		  creation-date (file-write-date file-stream)
 		  author (file-author file-stream)))
@@ -480,7 +480,7 @@
 		(write-string author stream)))))))))
 
 (define-lisp-listener-command (com-show-file :name t)
-    ((pathname 'pathname 
+    ((pathname 'pathname
 	       :provide-default t :prompt "file"
 	       :gesture :select))
   (show-file pathname *standard-output*))
@@ -520,13 +520,13 @@
 
 #+Genera
 (define-lisp-listener-command (com-expunge-directory :name t)
-    ((directory 'pathname 
+    ((directory 'pathname
 		:provide-default t :prompt "directory"))
   (fs:expunge-directory directory))
 
 ;;--- We can do better than this
 (define-lisp-listener-command (com-copy-file :name t)
-    ((from-file 'pathname 
+    ((from-file 'pathname
 		:provide-default t :prompt "from file")
      (to-file 'pathname :default from-file :prompt "to file"))
   (write-string "Would copy ")
@@ -547,7 +547,7 @@
   (list `(,object)))
 
 (define-lisp-listener-command (com-load-file :name t)
-    ((pathnames '(sequence pathname) 
+    ((pathnames '(sequence pathname)
 		:provide-default t :prompt "file"))
   (map nil #'load pathnames))
 
@@ -576,7 +576,7 @@
 		("Santa Cruz Comic News" comic-news)
 		("Le Figaro" figaro)
 		("LautScribner" lautscribner)))
-		
+
 (define-presentation-method accept ((type printer) stream (view textual-view) &key)
   (completing-from-suggestions (stream :partial-completers '(#\space))
     (dolist (printer *printer-names*)
@@ -593,10 +593,10 @@
 
 #-Minima
 (define-lisp-listener-command (com-hardcopy-file :name t)
-    ((file 'pathname 
+    ((file 'pathname
 	   :provide-default t :prompt "file"
 	   :gesture :describe)
-     (printer 'printer 
+     (printer 'printer
 	      :prompt "printer"
 	      :gesture :select)
      &key
@@ -654,5 +654,5 @@
 #+Genera
 (define-genera-application lisp-listener
 			   :pretty-name "CLIM Lisp Listener"
-			   :select-key #\ˆ 
+			   :select-key #\ˆ
 			   :width +fill+ :height +fill+)

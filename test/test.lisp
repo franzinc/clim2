@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.52 1993/09/07 21:46:57 colin Exp $
+;; $fiHeader: test.lisp,v 1.53 1993/10/25 16:16:19 cer Exp $
 
 (in-package :clim-user)
 
@@ -31,7 +31,7 @@
     (draw-rectangle* stream 10 10 90 90 :ink +red+)))
 
 (define-application-frame test-frame () ()
-  (:pane 
+  (:pane
    (vertically ()
      (make-clim-interactor-pane
       :foreground +green+
@@ -72,7 +72,7 @@
 
 (define-test-frame-command (com-show :name t :menu t) ()
   (terpri *query-io*)
-  (display-command-table-menu 
+  (display-command-table-menu
     (frame-command-table *application-frame*) *query-io*
     :move-cursor t)
   (terpri *query-io*))
@@ -83,7 +83,7 @@
 (define-application-frame test-frame0 () ()
   (:command-table test-frame)
   (:pane (make-clim-interactor-pane))
-  (:icon :name "foo" 
+  (:icon :name "foo"
 	 :pixmap (make-pattern-from-bitmap-file
 		  "/usr/include/X11/bitmaps/terminal"
 		  :designs (list +red+ +green+)))
@@ -95,7 +95,7 @@
 
 (define-application-frame test-frame4 () ()
   (:command-table test-frame)
-  (:pane 
+  (:pane
     (vertically ()
       (make-pane 'push-button :label "Press me")
       (make-pane 'toggle-button)
@@ -119,7 +119,7 @@
        :width 300 :max-width +fill+
        :height 300 :max-height +fill+))
   (:layouts
-    (:default 
+    (:default
       (vertically ()
 	a b c e))
     (:more
@@ -132,7 +132,7 @@
 	  (:default :more)
 	  (:more :default))))
 
-(define-test-frame-command (com-number-please :name t) 
+(define-test-frame-command (com-number-please :name t)
     ((num 'integer :provide-default t))
   (print num *query-io*))
 
@@ -152,12 +152,12 @@
 				  (:gadget  +gadget-dialog-view+)
 				  (:default (frame-manager-dialog-view framem)))))
       (accepting-values (stream :own-window own-window)
-	(setq a (accept 'boolean  
+	(setq a (accept 'boolean
 			:stream stream
 			:default a :prompt "Boolean"))
 	(terpri stream)
 	(unless a
-	  (setq b (accept 'boolean  
+	  (setq b (accept 'boolean
 			  :stream stream
 			  :default b :prompt "Another boolean"))
 	  (terpri stream))
@@ -166,7 +166,7 @@
 			  :prompt "Line style units" :default c
 			  :view '(radio-box-view :label "Line style units")))
 	  (terpri stream))
-	(setq d (accept '(integer 0 100) 
+	(setq d (accept '(integer 0 100)
 			:stream stream
 			:prompt "Integer" :default d))
 	(terpri stream)
@@ -278,22 +278,22 @@
 
 (define-application-frame tf0 () (radio-box)
   (:command-table test-frame)
-  (:pane 
+  (:pane
     (vertically ()
       (outlining ()
 	(horizontally ()
-	  (make-pane 'push-button 
+	  (make-pane 'push-button
 	    :label "B1"
 	    :activate-callback 'push-button-callback)
-	  (make-pane 'push-button 
+	  (make-pane 'push-button
 	    :label "B2"
 	    :activate-callback 'push-button-callback)))
       (outlining ()
 	(horizontally ()
 	  (make-pane 'toggle-button
-	    :label "T1" :width 80 
+	    :label "T1" :width 80
 	    :value-changed-callback 'toggle-button-callback)
-	  (make-pane 'toggle-button 
+	  (make-pane 'toggle-button
 	    :label "T2" :width 80
 	    :value-changed-callback 'toggle-button-callback)))
       (outlining ()
@@ -376,14 +376,14 @@
    (vertically ()
      (outlining ()
        (scrolling ()
-	 (make-pane 'text-editor 
+	 (make-pane 'text-editor
 		    :word-wrap nil
 		    :value "c sucks"
 		    :width '(30 :character)
 		    :height '(10 :line))))
      (outlining ()
        (scrolling (:scroll-bars :vertical)
-	 (make-pane 'text-editor 
+	 (make-pane 'text-editor
 		    :word-wrap t
 		    :value "unix sucks more"
 		    :width '(30 :character)
@@ -391,7 +391,7 @@
 
 (define-application-frame tf99 () ()
   (:command-table test-frame)
-  (:pane 
+  (:pane
     (horizontally ()
       (make-pane 'slider
         :label "SliderH"
@@ -402,31 +402,31 @@
       (vertically ()
         (outlining ()
 	  (horizontally ()
-	    (make-pane 'push-button 
+	    (make-pane 'push-button
 	      :label "B1"
 	      :activate-callback 'push-button-callback)
-	    (make-pane 'push-button 
+	    (make-pane 'push-button
 	      :label "B2"
 	      :activate-callback 'push-button-callback)))
 	(outlining ()
 	  (horizontally ()
 	    (make-pane 'toggle-button
-	      :label "T1" 
+	      :label "T1"
 	      :value-changed-callback 'toggle-button-callback)
-	    (make-pane 'toggle-button 
+	    (make-pane 'toggle-button
 	      :label "T2"
 	      :value-changed-callback 'toggle-button-callback)))
 	(horizontally ()
 	  (outlining ()
 	    (scrolling ()
-	      (make-pane 'text-editor 
+	      (make-pane 'text-editor
 		:value "c sucks"
 		:value-changed-callback 'text-field-changed
 		:width '(30 :character)
 		:height '(10 :line))))
 	  (outlining ()
 	    (scrolling ()
-	      (make-pane 'text-editor 
+	      (make-pane 'text-editor
 		:value "unix sucks more"
 		:value-changed-callback 'text-field-changed
 		:width '(30 :character)
@@ -441,37 +441,37 @@
 
 (define-application-frame tf98 () ()
   (:command-table test-frame)
-  (:pane 
+  (:pane
     (vertically ()
       (outlining ()
 	(horizontally ()
-	  (make-pane 'push-button 
+	  (make-pane 'push-button
 	    :label "B1"
 	    :activate-callback 'push-button-callback)
-	  (make-pane 'push-button 
+	  (make-pane 'push-button
 	    :label "B2"
 	    :activate-callback 'push-button-callback)
 	  :fill))
       (outlining ()
 	(horizontally ()
 	  (make-pane 'toggle-button
-	    :label "T1" 
+	    :label "T1"
 	    :value-changed-callback 'toggle-button-callback)
-	  (make-pane 'toggle-button 
+	  (make-pane 'toggle-button
 	    :label "T2"
 	    :value-changed-callback 'toggle-button-callback)))
       (outlining ()
 	(horizontally ()
 	  (outlining ()
 	    (scrolling ()
-	      (make-pane 'text-editor 
+	      (make-pane 'text-editor
 		:value "c sucks"
 		:value-changed-callback 'text-field-changed
 		:width '(30 :character)
 		:height '(10 :line))))
 	  (outlining ()
 	    (scrolling ()
-	      (make-pane 'text-editor 
+	      (make-pane 'text-editor
 		:value "unix sucks more"
 		:value-changed-callback 'text-field-changed
 		:width '(30 :character)
@@ -483,22 +483,22 @@
 	    :show-value-p t
 	    :value-changed-callback 'slider-changed-callback
 	    :drag-callback 'slider-dragged-callback))))))
- 
+
 (define-application-frame tf988 () ()
   (:command-table test-frame)
-  (:pane 
+  (:pane
     (outlining ()
       (outlining ()
 	(horizontally ()
 	  (outlining ()
 	    (scrolling ()
-	      (make-pane 'text-editor 
+	      (make-pane 'text-editor
 		:value "lucid "
 		:value-changed-callback 'text-field-changed
 		:width '(30 :character)
 		:height '(10 :line))))
 	  (scrolling ()
-	    (make-pane 'text-editor 
+	    (make-pane 'text-editor
 	      :value "harlqn  more"
 	      :value-changed-callback 'text-field-changed
 		:width '(30 :character)
@@ -506,7 +506,7 @@
 
 (define-application-frame tf97 () ()
   (:command-table test-frame)
-  (:pane 
+  (:pane
     (vertically ()
       (horizontally ()
 	(scrolling ()
@@ -532,7 +532,7 @@
       (outlining ()
 	(outlining ()
 	  (scrolling ()
-	    (make-pane 'text-editor 
+	    (make-pane 'text-editor
 	      :value "lucid are nice guys "
 	      :value-changed-callback 'text-field-changed
 	      		:width '(30 :character)
@@ -548,7 +548,7 @@
     (d :application :height '(5 :line))
     (e :interactor :height '(50 :mm)))
   (:layouts
-    (:default 
+    (:default
       (vertically ()
 	(horizontally () a b)
 	(vertically () c d e)))))
@@ -577,7 +577,7 @@
     (d :application :height '(5 :line))
     (e :interactor :height '(50 :mm)))
   (:layouts
-    (:default 
+    (:default
       (vertically ()
 	(1/3 (horizontally () (1/10 a) (9/10 b)))
 	(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
@@ -591,7 +591,7 @@
     (d :application)
     (e :interactor :height '(50 :mm)))
   (:layouts
-    (:default 
+    (:default
       (vertically ()
 	(1/3 (horizontally () (1/10 a) (:fill b)))
 	(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
@@ -605,7 +605,7 @@
     (d :application)
     (e :interactor))
   (:layouts
-    (:default 
+    (:default
       (vertically ()
 	(1/3 (horizontally () (1/10 a) (9/10 b)))
 	(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
@@ -627,7 +627,7 @@
 (define-application-frame tf92 () ()
   (:pane
     (make-pane 'vbox-pane
-      :contents 
+      :contents
         (mapcar #'(lambda (x)
 		    (destructuring-bind (min max &optional (decimal-places 0)) x
 		      (make-pane 'slider
@@ -648,8 +648,8 @@
   (let ((x '(a c))
 	(stream *query-io*))
     (accepting-values (stream)
-      (setq x (accept '(subset a b c) 
-		      :default x 
+      (setq x (accept '(subset a b c)
+		      :default x
 		      :stream stream
 		      :prompt "foo")))
     (print x)))
@@ -658,9 +658,9 @@
   (let ((x 0)
 	(y nil)
 	(stream *query-io*))
-    (accepting-values (stream :resynchronize-every-pass t ) 
+    (accepting-values (stream :resynchronize-every-pass t )
       (setq x (accept 'integer
-		      :default x 
+		      :default x
 		      :stream stream
 		      :prompt "foo"))
       (terpri stream)
@@ -693,22 +693,22 @@
 			       ))
 	 (n (length ptypes-and-prompts))
 	 (values (make-array n :initial-element :none)))
-	   
+
     (accepting-values (stream :own-window own-window :label "foo")
       ;; Test of the member stuff
       (clim-utils:letf-globally (((stream-default-view stream)
-				  (if gadget-dialog-view 
+				  (if gadget-dialog-view
 				      (stream-default-view stream)
 				      +textual-dialog-view+)))
 	(dotimes (i n)
 	  (if (eq (svref values i) :none)
 	      (setf (svref values i)
-		    (accept (first (nth i ptypes-and-prompts)) 
+		    (accept (first (nth i ptypes-and-prompts))
 			    :stream stream
 			    :prompt (second (nth i ptypes-and-prompts))))
 	      (setf (svref values i)
 		    (accept (first (nth i ptypes-and-prompts))
-			    :default (svref values i) 
+			    :default (svref values i)
 			    :stream stream
 			    :prompt (second (nth i ptypes-and-prompts)))))
 	  (terpri stream))))
@@ -730,7 +730,7 @@
 	(terpri stream)
 	(accept-values-command-button (stream)
 	    "Press me"
-	  (restart-case 
+	  (restart-case
 	      (accepting-values (stream  :own-window t :label "inner accept")
 		(setq c (accept 'integer :stream stream :prompt "c" :default c))
 		(terpri stream)
@@ -782,12 +782,12 @@
       (vertically ()
 	d
 	(make-pane 'xm-silica::motif-rc-pane
-		   :contents (list* a 
-				    b 
+		   :contents (list* a
+				    b
 				    c
 				    (let ((r nil))
 				      (dotimes (i 10 (nreverse r))
-					(push 
+					(push
 					  (make-pane 'push-button
 						     :label (format nil "button ~D" i))
 					  r)))))))))
@@ -803,7 +803,7 @@
   (:layouts
     (:default
       (make-pane 'xm-silica::motif-form-pane
-		 :attachments '((0 :left-attachment :form 
+		 :attachments '((0 :left-attachment :form
 				   :right-attachment :position
 				   :right-position 33
 				   :top-attachment :form
@@ -838,7 +838,7 @@
      (dx 'integer)
      (dy 'integer))
   (shift-output-record *query-io* (car weird) dx dy))
-  
+
 
 (define-application-frame tf105 () ()
   (:command-table test-frame)
@@ -848,7 +848,7 @@
    (:default c)))
 
 
-(define-application-frame tf106 () 
+(define-application-frame tf106 ()
 			  ((s :initform "hello")
 			   (r :initform "hello")
 			   (w :initform :oval)
@@ -863,7 +863,7 @@
 			   (line-thickness-units :initform :normal))
   (:command-table (tf106 :inherit-from (accept-values-pane)))
   (:panes
-   (d :application 
+   (d :application
       :height :compute
       :display-function 'display-frame-b)
    (c :accept-values
@@ -881,10 +881,10 @@
 (defun display-frame-b (frame stream &key max-width max-height)
   (declare (ignore max-width max-height))
   (window-clear stream)
-  (with-slots (square-dimension 
+  (with-slots (square-dimension
 	       draw-circle
 	       draw-square
-	       draw-/-diagonal      
+	       draw-/-diagonal
 	       draw-\\-diagonal
 	       line-thickness
 	       line-thickness-units) frame
@@ -908,12 +908,12 @@
 	  (when draw-\\-diagonal
 	    (draw-line* stream 0 0 square-dimension square-dimension
 			:line-cap-shape :round)))))))
-      
+
 (defun display-frame-c (frame stream)
-  (with-slots (square-dimension 
+  (with-slots (square-dimension
 	       draw-circle
 	       draw-square
-	       draw-/-diagonal      
+	       draw-/-diagonal
 	       draw-\\-diagonal
 	       line-thickness
 	       line-thickness-units) frame
@@ -954,7 +954,7 @@
     (terpri stream)
     (setq r  (accept 'string :stream stream
 		     :prompt "foo"
-		     :view '(text-editor-view 
+		     :view '(text-editor-view
 			     :width (30 :character)
 			     :height (5 :line))
 		     :default r))
@@ -984,12 +984,12 @@
 	(stream *query-io*))
     (accepting-values (stream :align-prompts t :resynchronize-every-pass t)
       (setq y (accept '(member :a :b :c)
-		      :default y 
+		      :default y
 		      :active-p (< x 5)
 		      :stream stream
 		      :prompt "YYY"))
       (setq x (accept '(integer 0 10)
-		      :default x 
+		      :default x
 		      :view +slider-view+
 		      :stream stream
  		      :prompt "XXXX")))))
@@ -997,7 +997,7 @@
 
 (define-application-frame tf107 () ()
   (:command-table test-frame)
-  (:pane 
+  (:pane
    (bulletin-board ()
      ((10 10) (make-clim-interactor-pane
 		  :height '(10 :line)
@@ -1019,7 +1019,7 @@
 (define-application-frame tf108 ()
 			   ()
    (:command-table test-frame)
-   (:panes 
+   (:panes
     (z push-button :label "fart")
     (a text-field)
     (b label-pane :label "hello")
@@ -1030,7 +1030,7 @@
     (g text-field :width '(50 :character) :editable-p nil)
     (h text-editor :height '(10 :line)  :editable-p nil))
    (:layouts
-    (default (scrolling (:max-height +fill+) 
+    (default (scrolling (:max-height +fill+)
 	       (vertically (:max-width +fill+ :y-spacing 20) z a b c d
 			   e f g h)))))
 
@@ -1046,26 +1046,26 @@
 
 
 (define-test-frame-command (com-change-set-gadget-items :name t :menu t)
-    (&key 
+    (&key
      (which 'boolean :default nil))
   (let ((a (find-pane-named *application-frame* 'a))
 	(b (find-pane-named *application-frame* 'b)))
     (when which
       (setf (set-gadget-items a) '(1 2 3 4)
 	    (set-gadget-items b) '(p q r z)))
-    (unless which 
+    (unless which
       (setf (set-gadget-items a) '(p q r z)
 	    (set-gadget-items b) '(1 2 3 4)))))
 
 (define-test-frame-command (com-change-set-gadget-values :name t :menu t)
-    (&key 
+    (&key
      (which 'boolean :default nil))
   (let ((a (find-pane-named *application-frame* 'a))
 	(b (find-pane-named *application-frame* 'b)))
     (when which
       (setf (gadget-value a) 3
 	    (gadget-value b) 'q))
-    (unless which 
+    (unless which
       (setf (gadget-value a) 'z
 	    (gadget-value b) 2))))
 
@@ -1073,7 +1073,7 @@
   ()
   (:menu-bar nil)
   (:command-table test-frame)
-  (:panes 
+  (:panes
    (a :application)
    (b :interactor :height '(5 :line) :max-height '(5 :line))
    (c :interactor :height '(5 :line)))
@@ -1130,7 +1130,7 @@
     ()
   (dolist (pane-and-ink `((a ,+green+) (b ,+blue+) (i ,+red+)))
     (destructuring-bind (pane ink) pane-and-ink
-      (setf (sheet-pointer-cursor 
+      (setf (sheet-pointer-cursor
 	     (get-frame-pane *application-frame* pane))
 	(make-pattern-from-bitmap-file
 	 "/usr/include/X11/bitmaps/tie_fighter"
@@ -1140,7 +1140,7 @@
     ()
   (dolist (pane-and-ink `((a ,+green+) (b ,+blue+) (i ,+red+)))
     (destructuring-bind (pane ink) pane-and-ink
-      (setf (sheet-pointer-cursor 
+      (setf (sheet-pointer-cursor
 	     (get-frame-pane *application-frame* pane))
 	(make-pattern-from-bitmap-file
 	 "/usr/include/X11/bitmaps/tie_fighter"
@@ -1212,4 +1212,4 @@
 		    :prompt nil
 		    :query-identifier (cons view scroll-bars)
 		    :view (cons view (and scroll-bars `(:scroll-bars ,scroll-bars))))))))))
-	
+

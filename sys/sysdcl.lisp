@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.43 1994/11/23 23:29:01 smh Exp $
+;; $fiHeader: sysdcl.lisp,v 1.46 1994/12/18 06:44:51 duane Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -282,7 +282,7 @@
 (defsystem clim-homegrown
     (:default-pathname "clim2:;homegrown;")
   (:serial
-   clim-standalone 
+   clim-standalone
    clim-silica
    "scroll-pane"
    "db-button"
@@ -299,16 +299,12 @@
     (:default-pathname "clim2:;xlib;")
   (:serial
    clim-standalone
-
    "pkg"
-   #+ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
-					      "xlib/last.lisp")))
    "ffi"
-   ("xlib-defs" #|(:load-before-compile "ffi") |#) ; Takes forever to compile...
-   #-dlfcn ("load-xlib")
+   ("load-xlib")
+   ("xlib-defs" (:load-before-compile "ffi"))
    ("xlib-funs" (:load-before-compile "ffi"))
    ("x11-keysyms" (:load-before-compile "ffi"))
-   #-dlfcn
    ("last" (:load-before-compile "load-xlib" "xlib-funs"))
    ))
 
@@ -319,11 +315,9 @@
 		  (:serial
 		   xlib
 		   (,file)
-		   #+dlfcn
-		   ("last" (:pathname "clim2:;xlib;"))
 		   ("pkg")
 		   ("macros")
-		   ("xt-defs")		; Used to be 'xtk'.
+		   ("xt-defs")
 		   ("xt-funs")
 		   ("foreign-obj")
 		   ;; Xlib stuff
@@ -363,9 +357,7 @@
   ("ol-init")
   ("ol-widgets")
   ("ol-callbacks")
-  ("make-widget"))
-
-  )					;macrolet
+  ("make-widget")))
 
 #+Allegro
 (defsystem motif-clim
@@ -373,7 +365,7 @@
   (:serial
    clim-standalone
    xm-tk
-  
+
    ("pkg")
    ("xt-silica")
    ("xt-stipples")

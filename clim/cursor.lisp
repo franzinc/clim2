@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.25 1993/07/27 01:38:41 colin Exp $
+;; $fiHeader: cursor.lisp,v 1.26 1994/12/04 23:57:26 colin Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,7 @@
 ;;; that the stream has focus).  CLIM sets the focus while the mouse is in the window.
 ;;; CURSOR-VISIBILITY is CLIM 1.1 shorthand for hacking both the active and state flags
 ;;; at the same time.
- 
+
 ;;; Turning a cursor on requires drawing it on the stream, somehow.  That needs
 ;;; to go through to the port level, where an appropriate host-window-system thing
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
@@ -48,7 +48,7 @@
 (defmethod bounding-rectangle* ((cursor standard-text-cursor))
   (with-slots (x y width) cursor
     ;; this is surely wrong (ie what about height) - but frankly who
-    ;; cares?? --CIM  
+    ;; cares?? --CIM
     (values x y (+ x width) (+ y width))))
 
 (defconstant cursor_active (byte 1 0))
@@ -79,7 +79,7 @@
 		 (= y (coordinate ny)))
       (let ((state (cursor-state cursor))
 	    (active (cursor-active cursor)))
-	(if (or fastp 
+	(if (or fastp
 		(not (and state active)))
 	    (setf x (coordinate nx)
 		  y (coordinate ny))
@@ -90,7 +90,7 @@
 		(setf x (coordinate nx)
 		      y (coordinate ny)))
 	    (setf (cursor-state cursor) t)))))))
-  
+
 (defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
   (with-slots (flags) cursor
     (multiple-value-bind (active state focus)
@@ -151,7 +151,7 @@
        (if (cursor-state cursor)
 	   :on
 	 :off)))
- 
+
 (defmethod (setf cursor-visibility) (visibility (cursor standard-text-cursor))
   (let ((active (member visibility '(t :on :off) :test  #'eq)))
     (setf (cursor-active cursor) active)
@@ -214,7 +214,7 @@
 ;;; thus change from a hollow rectangle to a filled one (or in Genera, it might
 ;;; start blinking).
 
-(defmethod port-note-cursor-change ((port basic-port) 
+(defmethod port-note-cursor-change ((port basic-port)
 				    cursor stream (type (eql 'cursor-state)) old new)
   (let ((active (cursor-active cursor))
 	(focus (cursor-focus cursor)))
@@ -222,7 +222,7 @@
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	(port-draw-cursor port cursor stream x y old new focus)))))
 
-(defmethod port-note-cursor-change ((port basic-port) 
+(defmethod port-note-cursor-change ((port basic-port)
 				    cursor stream (type (eql 'cursor-active)) old new)
   (let ((state (cursor-state cursor))
 	(focus (cursor-focus cursor)))
@@ -230,11 +230,11 @@
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	(port-draw-cursor port cursor stream x y old new focus)))))
 
-(defmethod port-note-cursor-change ((port basic-port) 
+(defmethod port-note-cursor-change ((port basic-port)
 				    cursor stream (type (eql 'cursor-focus)) old new)
   (let ((active (cursor-active cursor))
 	(state (cursor-state cursor)))
-    (when (and active 
+    (when (and active
 	       state
 	       (not (eq old new)))
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
@@ -257,12 +257,13 @@
 	(with-drawing-options (stream :ink flipping-ink)
 	  (let ((x2 (+ x1 width))
 		(y2 (+ y1 height)))
-	    (if focus
-		(draw-rectangle* stream x1 y1 (1+ x2) (1+ y2)
-				 :filled t)
-	      (progn
-		(draw-line* stream x1 y1 x2 y1)
-		(draw-line* stream x1 y2 x2 y2)
-		(draw-line* stream x1 (1+ y1) x1 (1- y2))
-		(draw-line* stream x2 (1+ y1) x2 (1- y2))))))
+	    (with-identity-transformation (stream)
+	      (if focus
+		  (draw-rectangle* stream x1 y1 (1+ x2) (1+ y2)
+				   :filled t)
+		(progn
+		  (draw-line* stream x1 y1 x2 y1)
+		  (draw-line* stream x1 y2 x2 y2)
+		  (draw-line* stream x1 (1+ y1) x1 (1- y2))
+		  (draw-line* stream x2 (1+ y1) x2 (1- y2)))))))
 	(force-output stream)))))

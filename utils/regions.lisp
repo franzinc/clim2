@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.15 92/11/06 19:05:21 cer Exp $
+;; $fiHeader: regions.lisp,v 1.17 1993/08/19 20:10:31 smh Exp $
 
 (in-package :clim-utils)
 
@@ -158,7 +158,7 @@
 
 (defmethod region-equal ((everywhere1 everywhere) (everywhere2 everywhere)) t)
 
-(defmethod region-contains-position-p ((everywhere everywhere) x y) 
+(defmethod region-contains-position-p ((everywhere everywhere) x y)
   (declare (ignore x y))
   t)
 
@@ -307,7 +307,7 @@
      (max-y :initarg :max-y :reader rectangle-max-y :type coordinate)
      (points :initarg :points :type simple-vector :reader polygon-points)))
 
-(define-constructor make-rectangle-1 standard-rectangle 
+(define-constructor make-rectangle-1 standard-rectangle
 		    (min-x min-y max-x max-y points)
   :min-x min-x :min-y min-y :max-x max-x :max-y max-y :points points)
 
@@ -399,7 +399,7 @@
 
 (defmethod region-contains-position-p ((rectangle standard-rectangle) x y)
   (with-slots (min-x min-y max-x max-y) rectangle
-    (ltrb-contains-position-p min-x min-y max-x max-y 
+    (ltrb-contains-position-p min-x min-y max-x max-y
 			      (coordinate x) (coordinate y))))
 
 (defmethod region-contains-region-p ((rect1 standard-rectangle) (rect2 standard-rectangle))
@@ -534,7 +534,7 @@
 
 ;; This and the next three can also serve for output records, which are built
 ;; on top of BOUNDING-RECTANGLE.
-(defmethod region-equal ((rect1 standard-bounding-rectangle) 
+(defmethod region-equal ((rect1 standard-bounding-rectangle)
 			 (rect2 standard-bounding-rectangle))
   (with-slots ((sx1 left) (sy1 top) (ex1 right) (ey1 bottom)) rect1
     (with-slots ((sx2 left) (sy2 top) (ex2 right) (ey2 bottom)) rect2
@@ -543,17 +543,17 @@
 
 (defmethod region-contains-position-p ((rectangle standard-bounding-rectangle) x y)
   (with-slots (left top right bottom) rectangle
-    (ltrb-contains-position-p left top right bottom 
+    (ltrb-contains-position-p left top right bottom
 			      (coordinate x) (coordinate y))))
 
-(defmethod region-contains-region-p ((rect1 standard-bounding-rectangle) 
+(defmethod region-contains-region-p ((rect1 standard-bounding-rectangle)
 				     (rect2 standard-bounding-rectangle))
   (with-slots ((sx1 left) (sy1 top) (ex1 right) (ey1 bottom)) rect1
     (with-slots ((sx2 left) (sy2 top) (ex2 right) (ey2 bottom)) rect2
       (ltrb-contains-ltrb-p sx1 sy1 ex1 ey1
 			    sx2 sy2 ex2 ey2))))
 
-(defmethod region-intersects-region-p ((rect1 standard-bounding-rectangle) 
+(defmethod region-intersects-region-p ((rect1 standard-bounding-rectangle)
 				       (rect2 standard-bounding-rectangle))
   (with-slots ((sx1 left) (sy1 top) (ex1 right) (ey1 bottom)) rect1
     (with-slots ((sx2 left) (sy2 top) (ex2 right) (ey2 bottom)) rect2
@@ -563,7 +563,7 @@
 (defmacro with-bounding-rectangle* ((left top right bottom) region &body body)
   #+Genera (declare (zwei:indentation 1 3 2 1))
   `(multiple-value-bind (,left ,top ,right ,bottom)
-       (bounding-rectangle* ,region) 
+       (bounding-rectangle* ,region)
      (declare (type coordinate ,left ,top ,right ,bottom))
      ,@body))
 
@@ -621,30 +621,30 @@
     min-y))
 (define-bounding-rectangle-setf min-y top)
 
-(defun-inline bounding-rectangle-max-x (region) 
+(defun-inline bounding-rectangle-max-x (region)
   (with-bounding-rectangle* (min-x min-y max-x max-y) region
     (declare (ignore min-x min-y max-y))
     max-x))
 (define-bounding-rectangle-setf max-x right)
 
-(defun-inline bounding-rectangle-max-y (region) 
+(defun-inline bounding-rectangle-max-y (region)
   (with-bounding-rectangle* (min-x min-y max-x max-y) region
     (declare (ignore min-x min-y max-x))
     max-y))
 (define-bounding-rectangle-setf max-y bottom)
 
 (defun bounding-rectangle-min-point (region)
-  (with-bounding-rectangle* (min-x min-y max-x max-y) region 
+  (with-bounding-rectangle* (min-x min-y max-x max-y) region
     (declare (ignore max-x max-y))
     (make-point min-x min-y)))
 
 (defun bounding-rectangle-max-point (region)
-  (with-bounding-rectangle* (min-x min-y max-x max-y) region 
+  (with-bounding-rectangle* (min-x min-y max-x max-y) region
     (declare (ignore min-x min-y))
     (make-point max-x max-y)))
 
 (defun-inline bounding-rectangle-position (region)
-  (with-bounding-rectangle* (left top right bottom) region 
+  (with-bounding-rectangle* (left top right bottom) region
     (declare (ignore right bottom))
     (values left top)))
 
@@ -715,13 +715,13 @@
     (- right left)))
 
 (defun-inline bounding-rectangle-height (region)
-  (with-bounding-rectangle* (left top right bottom) region 
+  (with-bounding-rectangle* (left top right bottom) region
     (declare (ignore left right))
     (- bottom top)))
 
 (defun-inline bounding-rectangle-size (region)
   (declare (values width height))
-  (with-bounding-rectangle* (left top right bottom) region 
+  (with-bounding-rectangle* (left top right bottom) region
     (values (- right left) (- bottom top))))
 
 ;; Set the size of the rectangle, and return the rectangle as the value
@@ -772,30 +772,30 @@
     top))
 (define-bounding-rectangle-setf top)
 
-(defun-inline bounding-rectangle-right (region) 
-  (with-bounding-rectangle-ltrb (left top right bottom) region 
+(defun-inline bounding-rectangle-right (region)
+  (with-bounding-rectangle-ltrb (left top right bottom) region
     (declare (ignore left top bottom))
     right))
 (define-bounding-rectangle-setf right)
 
-(defun-inline bounding-rectangle-bottom (region) 
-  (with-bounding-rectangle-ltrb (left top right bottom) region 
+(defun-inline bounding-rectangle-bottom (region)
+  (with-bounding-rectangle-ltrb (left top right bottom) region
     (declare (ignore left top right))
     bottom))
 (define-bounding-rectangle-setf bottom)
 
 (defgeneric* (setf bounding-rectangle*) (left top right bottom region))
-(defmethod* (setf bounding-rectangle*) 
+(defmethod* (setf bounding-rectangle*)
 	    (left top right bottom (region standard-bounding-rectangle))
   (bounding-rectangle-set-edges region left top right bottom))
 
 (defgeneric* (setf bounding-rectangle-position) (x y region))
-(defmethod* (setf bounding-rectangle-position) 
+(defmethod* (setf bounding-rectangle-position)
 	    (x y (region standard-bounding-rectangle))
   (bounding-rectangle-set-position region x y))
 
 (defgeneric* (setf bounding-rectangle-size) (width height region))
-(defmethod* (setf bounding-rectangle-size) 
+(defmethod* (setf bounding-rectangle-size)
 	    (width height (region standard-bounding-rectangle))
   (bounding-rectangle-set-size region width height))
 
@@ -903,8 +903,8 @@
 ;; compared to radii.  The calculation is exact for circles.
 (defun point-on-thick-ellipse-p (x y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 				 half-thickness)
-  (let* ((det (- (* radius-1-dx radius-2-dy) (* radius-1-dy radius-2-dx)))
-	 (avrad*delta (* (sqrt (abs det)) half-thickness)))
+  (let* ((det (abs (- (* radius-1-dx radius-2-dy) (* radius-1-dy radius-2-dx))))
+	 (avrad*delta (* (sqrt det) half-thickness)))
     (<= (square (- det avrad*delta))
 	(+ (square (- (* radius-2-dy x) (* radius-2-dx y)))
 	   (square (- (* radius-1-dx y) (* radius-1-dy x))))
@@ -959,15 +959,15 @@
 	      ((and (= radius-2-dx 0) (= radius-1-dy 0))
 	       (values (abs radius-1-dx) (abs radius-2-dy)))
 	      (t
-	       (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+	       (let ((s-1 (+ (* radius-1-dx radius-1-dx)
 			     (* radius-1-dy radius-1-dy)))
-		     (s-2 (+ (* radius-2-dx radius-2-dx) 
+		     (s-2 (+ (* radius-2-dx radius-2-dx)
 			     (* radius-2-dy radius-2-dy))))
 		 (if (= s-1 s-2)
 		     (let ((r (truncate (sqrt s-1))))
 		       (values r r))
 		   ;; Degrade to drawing a rectilinear ellipse
-		   (values (truncate (sqrt s-1)) 
+		   (values (truncate (sqrt s-1))
 			   (truncate (sqrt s-2)))))))
       (let* ((x1 (+ center-x (* x-radius (cos theta-1))))
 	     (y1 (+ center-y (* y-radius (sin theta-1))))

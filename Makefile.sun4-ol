@@ -1,0 +1,24 @@
+# $fiHeader$
+#
+#  Makefile.sun4-ol for CLIM 2.0
+#
+
+include Makefile.defs
+
+Makefile=Makefile.sun4-ol
+
+CLIM=./slim.ol
+
+SYSTEM= openlook-clim
+PRODUCT-TK-FASLS= $(PRODUCT-OL-FASLS)
+PRODUCT-TK-OBJS= $(STATIC-OL-OBJS)
+
+OPENLOOKHOME=/usr/openwin
+
+XINCLUDES=-I$(OPENLOOKHOME)/include
+
+TKLIB=$(OPENLOOKHOME)/lib/libXol.a
+XTLIB=$(OPENLOOKHOME)/lib/libXt.a
+XLIB=$(OPENLOOKHOME)/lib/libX11.a
+
+include Makefile.generic

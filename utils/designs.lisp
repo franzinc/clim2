@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.17 1993/09/07 21:47:39 colin Exp $
+;; $fiHeader: designs.lisp,v 1.18 1994/12/05 00:02:24 colin Exp $
 
 (in-package :clim-utils)
 
@@ -316,24 +316,57 @@
 
 (eval-when (#-Allegro compile load eval)
 (define-condition palette-full (error)
-  ((palette :initarg :palette :reader palette-full-palette))
+  ((palette :initarg :palette :reader palette-full-palette)
+   (color :initarg :color :reader palette-full-color))
   (:report (lambda (condition stream)
 	     (format stream "The palette ~S is full"
 	       (palette-full-palette condition)))))
 )	;eval-when
 
+(defvar *use-closest-color* t)
+
+(defmethod palette-full-error ((palette basic-palette) &optional color)
+  (if (and *use-closest-color*
+	   (find-restart 'use-other-color))
+      (invoke-restart 'use-other-color
+	(find-closest-matching-color palette color))
+    (error 'palette-full :palette palette :color color)))
+
+(defmethod find-closest-matching-color ((palette basic-palette) (desired-color color))
+  (let ((best-color nil)
+	(best-distance most-positive-fixnum))
+    (multiple-value-bind (desired-red desired-green desired-blue)
+	(color-rgb desired-color)
+      (flet ((distance (color)
+	       (multiple-value-bind (red green blue)
+		   (color-rgb color)
+		 (let ((dr (- red desired-red))
+		       (dg (- green desired-green))
+		       (db (- blue desired-blue)))
+		   (+ (* dr dr) (* dg dg) (* db db))))))
+	(maphash #'(lambda (color value)
+		     (declare (ignore value))
+		     (let ((distance (distance color)))
+		       (when (< distance best-distance)
+			 (setq best-color color
+			       best-distance distance))))
+		 (palette-color-cache palette))))
+    (values best-color
+	    best-distance)))
+
 (defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
-  (let ((colors-done nil))
+  (let ((colors-done nil)
+	(*use-closest-color* nil))
     (dolist (color colors)
       (handler-case
-	(progn
-	  (push color colors-done)
-	  (allocate-color color palette))
+	  (progn
+	    (push color colors-done)
+	    (allocate-color color palette))
 	(palette-full (condition)
-	 (dolist (color colors-done)
-	   (deallocate-color color palette))
-	 (error condition))))))
+	  (dolist (color colors-done)
+	    (deallocate-color color palette))
+	  (error condition))))))
 
 (defmethod remove-colors-from-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))

@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Fri Nov 19 00:56:06 1993 by duane]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-init.lisp,v 1.11 1993/11/24 03:57:02 duane Exp $
+;; $fiHeader: xm-init.lisp,v 1.12 1994/12/05 00:01:22 colin Exp $
 
 (in-package :tk)
 
@@ -28,7 +28,7 @@
 
 (unless *xm-done*
   (xt-initialize)
-  (define-toolkit-classes 
+  (define-toolkit-classes
       *intrinsic-classes*
       *motif-classes*)
   (setq *xm-done* t))
@@ -36,10 +36,11 @@
 
 
 
-#+ignore ;; moved into load-xm.lisp
-(unless (ff::symbol-in-main-symbol-table-p "XtToolkitInitialize")
+#+dlfcn
+(when sys::*toolkit-shared*
   (defun reinitialize-toolkit ()
     (xt_toolkit_initialize)
     (setup-error-handlers)
     (fixup-class-entry-points))
   (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
+

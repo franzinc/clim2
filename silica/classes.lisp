@@ -1,7 +1,7 @@
 
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.34 1993/06/02 18:41:45 cer Exp $
+;; $fiHeader: classes.lisp,v 1.35 1993/07/22 15:38:45 cer Exp $
 
 (in-package :silica)
 
@@ -126,6 +126,10 @@
   ((timestamp :reader event-timestamp
 	      :initform (atomic-incf *event-timestamp*) :initarg :timestamp)))
 
+(defgeneric eventp (object))
+
+(defmethod eventp ((object t)) nil)
+(defmethod eventp ((object event)) t)
 
 (define-event-class device-event (event) 
   ((sheet :reader event-sheet :initarg :sheet)

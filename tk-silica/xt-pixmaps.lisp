@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.19 1993/12/07 05:34:29 colin Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.20 1994/12/05 00:02:09 colin Exp $
 
 
 (in-package :xm-silica)
@@ -61,9 +61,10 @@
 		   :sheet sheet
 		   :pixmap pixmap)))
     (setf (slot-value medium 'drawable) pixmap)
+    (update-medium-ink-table medium)
     medium))
 
-(defmethod medium-copy-area 
+(defmethod medium-copy-area
     ((from-medium xt-medium) from-x from-y width height
      (to-medium xt-medium) to-x to-y
      &optional (function boole-1))
@@ -119,13 +120,13 @@
 						     (make-bounding-rectangle minx miny maxx maxy))
 					    :sheet sheet))))
 		       (setq event (tk::get-event-matching-sequence-and-types
-				    to-drawable seq-no '(:graphics-expose) 
+				    to-drawable seq-no '(:graphics-expose)
 				    :block nil))
 		       (unless event
 			 (return))))))))))))))
 
 
-(defmethod medium-copy-area 
+(defmethod medium-copy-area
     ((pixmap xt-pixmap) from-x from-y width height
      (to-medium xt-medium) to-x to-y
      &optional (function boole-1))
@@ -138,11 +139,11 @@
 	   (copy-gc (port-copy-gc (port to-medium))))
       (clim-sys:without-scheduling
 	(letf-globally (((tk::gcontext-function copy-gc) function))
-	  (tk::copy-area 
+	  (tk::copy-area
 	   pixmap copy-gc from-x from-y width height
 	   window to-x to-y))))))
 
-(defmethod medium-copy-area 
+(defmethod medium-copy-area
     ((from-medium xt-medium) from-x from-y width height
      (pixmap xt-pixmap) to-x to-y
      &optional (function boole-1))
@@ -155,31 +156,53 @@
 	   (copy-gc (port-copy-gc (port from-medium))))
       (clim-sys:without-scheduling
 	(letf-globally (((tk::gcontext-function copy-gc) function))
-	  (tk::copy-area 
-	   window copy-gc from-x from-y width height 
+	  (tk::copy-area
+	   window copy-gc from-x from-y width height
 	   pixmap to-x to-y))))))
 
-(defmethod make-pattern-from-pixmap ((pixmap xt-pixmap) 
+(defmethod medium-copy-area
+    ((from-pixmap xt-pixmap) from-x from-y width height
+     (to-pixmap xt-pixmap) to-x to-y
+     &optional (function boole-1))
+  ;;-- What about the graphics exposure event problem
+  (fix-coordinates from-x from-y to-x to-y)
+  (let ((copy-gc (port-copy-gc (port from-pixmap))))
+    (clim-sys:without-scheduling
+      (letf-globally (((tk::gcontext-function copy-gc) function))
+	(tk::copy-area
+	 from-pixmap copy-gc from-x from-y width height
+	 to-pixmap to-x to-y)))))
+
+(defmethod make-pattern-from-pixmap ((pixmap xt-pixmap)
 				     &key
 				     (x 0)
 				     (y 0)
 				     (width (pixmap-width pixmap))
 				     (height (pixmap-height pixmap)))
+  (declare (optimize (speed 3) (safety 0)))
   (let* ((image (tk::get-image pixmap :x x :y y :width width :height height))
-	 (image-data (tk::image-data image))
 	 (pattern-data (make-array (list height width)))
-	 (pixels nil)
+	 ;; warning this assumes a max depth of 8. For larger depths
+	 ;; we should use a sparse array
+	 (pixels (make-array 256))
+	 (colors nil)
+	 (color-count -1)
 	 (palette (port-default-palette (port pixmap))))
+    (declare (simple-vector pixels)
+	     (type (simple-array t (* *)) pattern-data))
+    (assert (not (> (tk::image-depth image) 8)) ()
+      "~s doesn't support images of depth greater than 8" 'make-pattern-from-pixmap)
     (dotimes (w width)
       (dotimes (h height)
-	(let ((pixel (aref image-data h w)))
-	  (unless (member pixel pixels)
-	    (setf pixels (nconc pixels (list pixel))))
+	(let ((pixel (x11:xgetpixel image w h)))
 	  (setf (aref pattern-data h w)
-	    (position pixel pixels)))))
+	    (or (svref pixels pixel)
+		(let ((color (device-color-color
+			      (make-device-color palette pixel))))
+		  (push color colors)
+		  (setf (svref pixels pixel)
+		    (incf color-count))))))))
     (tk::destroy-image image)
-    (make-pattern pattern-data 
-		  (mapcar #'(lambda (pixel)
-			      (device-color-color
-			       (make-device-color palette pixel)))
-			  pixels))))
+    (make-pattern pattern-data
+		  (nreverse colors))))
+
