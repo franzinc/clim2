@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.58 93/04/07 09:07:12 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.59 93/04/07 17:23:55 cer Exp $
 
 (in-package :clim-user)
 
@@ -230,6 +230,20 @@ What about environment issue?
 			    :ink +red+
 			    :line-thickness size))))))))
 
+
+(defparameter *chess-board-clip-region*
+    (let ((region +nowhere+)
+	  (cell 80)
+	  (grid 8))
+      (dotimes (i grid)
+	(dotimes (j grid)
+	  (when (eq (evenp i) (evenp j))
+	    (setq region 
+	      (region-union
+	       (make-bounding-rectangle
+		(* i cell) (* j cell) (* (1+ i) cell) (* (1+ j) cell))
+	       region)))))
+      region))
 
 (defparameter *gettysburg-address*
 	      "
@@ -770,8 +784,36 @@ people, shall not perish from the earth.
 				filename 
 				:designs
 				(list +background-ink+ +foreground-ink+))))
-		  (draw-rectangle* stream 0 0 (pattern-width pattern) (pattern-height pattern) :ink pattern))
+		  (draw-rectangle* stream 0 0 
+				   (pattern-width pattern)
+				   (pattern-height pattern)
+				   :ink pattern))
 	      (write-string "not found" stream))))))))
+
+#+allegro
+(define-test (clipped-image-test graphics) (stream)
+  "Test clipping of images"
+  (formatting-table (stream)
+    (dolist (name '("woman" "escherknot" "tie_fighter" "mensetmanus"))
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (write-string name stream))
+	(formatting-cell (stream)
+	  (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
+	    (if (probe-file filename)
+		(let ((pattern (make-pattern-from-bitmap-file
+				filename 
+				:designs
+				(list +background-ink+ +foreground-ink+))))
+		  (with-drawing-options (stream :clipping-region 
+						*chess-board-clip-region*)
+		    (draw-rectangle* stream 0 0 
+				     (pattern-width pattern)
+				     (pattern-height pattern) 
+				     :ink pattern)))
+	      (write-string "not found" stream))))))))
+
+
 
 
 (define-test (draw-some-bezier-curves graphics) (stream)
@@ -2419,7 +2461,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (clipped-line-drawing :iterations 10) (stream)
   "Draw lines through a clipping region"
-  (with-drawing-options (stream :clipping-region (make-bounding-rectangle 50 50 250 250))
+  (with-drawing-options (stream :clipping-region *chess-board-clip-region*)
     (line-drawing-kernel stream 50)))
 
 (defun shape-drawing-kernel (stream n-shapes filled-p &key (clear t))
@@ -2484,7 +2526,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (clipped-shape-drawing :iterations 5) (stream)
   "Draw shapes through a clipping region"
-  (with-drawing-options (stream :clipping-region (make-bounding-rectangle 50 50 250 250))
+  (with-drawing-options (stream :clipping-region *chess-board-clip-region*)
     (shape-drawing-kernel stream 10 nil)))
 
 ;;; Text benchmarks
@@ -2525,7 +2567,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (clipped-text-output :iterations 3) (stream)
   "Draw lines through a clipping region"
-  (with-drawing-options (stream :clipping-region (make-bounding-rectangle 50 50 250 250))
+  (with-drawing-options (stream :clipping-region *chess-board-clip-region*)
     (repeat 5
       (write-string "Four" stream)
       (write-string " score and " stream)

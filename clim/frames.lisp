@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.62 93/03/31 10:38:34 cer Exp $
+;; $fiHeader: frames.lisp,v 1.63 93/04/02 13:36:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -395,13 +395,19 @@
      :end-of-page-action :allow 
      :end-of-line-action :allow))
 
-(define-pane-type :command-menu (&rest options &key command-table)
+(define-pane-type :command-menu (&rest options)
   (declare (non-dynamic-extent options))
-  (with-keywords-removed (options options '(:command-table))
-    `(make-pane 'menu-bar 
-		,@options
-		:command-table ,(or command-table
-				    `(frame-command-table frame)))))
+  `(make-clim-stream-pane
+     :type 'command-menu-pane
+     ,@options
+     :display-function `(display-command-menu :command-table ,(frame-command-table frame))
+     :incremental-redisplay t
+     :display-after-commands t
+     :text-style *command-table-menu-text-style*
+     :scroll-bars nil
+     :width :compute :height :compute
+     :end-of-page-action :allow 
+     :end-of-line-action :allow))
 
 
 (define-pane-type :interactor (&rest options &key (scroll-bars :vertical))
@@ -482,9 +488,13 @@
   (declare (non-dynamic-extent options))
   `(make-pane 'option-pane ,@options))
 
-(define-pane-type menu-bar (&rest options)
+(define-pane-type :menu-bar (&rest options &key command-table)
   (declare (non-dynamic-extent options))
-  `(make-pane 'menu-bar ,@options))
+  (with-keywords-removed (options options '(:command-table))
+    `(make-pane 'menu-bar 
+		,@options
+		:command-table ,(or command-table
+				    `(frame-command-table frame)))))
 
 
 (defmethod find-or-make-pane-named ((frame standard-application-frame) name)
@@ -1520,9 +1530,7 @@
 			(button-translator (intern symbol))
 			(button-presentation (fintern "~A-~A" symbol 'presentation))
 			(button-context (fintern "~A-~A" symbol 'context)))
-		   `(when (and (or (null ,button-translator)
-				   (> (presentation-translator-priority ,translator)
-				      (presentation-translator-priority ,button-translator)))
+		   `(when (and (null ,button-translator)
 			       (button-and-modifier-state-matches-gesture-name-p
 				 (button-index ,button) modifier-state
 				 (presentation-translator-gesture-name ,translator)))

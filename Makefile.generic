@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.6 93/04/02 18:40:38 cer Exp $
+# $fiHeader: Makefile.generic,v 1.7 93/04/07 09:06:22 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -196,7 +196,8 @@ cleanobjs:
 
 clean:
 	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f $(CLIMFASLS) \
-	  $(CLIMOBJS) stub-motif.o stub-olit.o slim slim-small
+	  $(CLIMOBJS) stub-motif.o stub-olit.o stub-xt.o stub-x.o \
+	  stub-motif.c stub-olit.c stub-xt.c stub-x.c slim slim-small
 
 
 cheapclean:

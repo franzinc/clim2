@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.51 93/03/31 10:40:17 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.52 93/04/02 13:37:20 cer Exp $
 
 (in-package :xm-silica)
 
@@ -65,7 +65,7 @@
       (values 'xt::xm-row-column 
 	      ;;--- It makes sense to be able to specify the orientation
 	      ;;--- of the command menu
-	      (list :orientation :horizontal))
+	      (list :orientation (gadget-orientation sheet)))
     (values 
      'tk::xm-menu-bar 
      ;;---- This seems important but why
@@ -333,7 +333,12 @@
 	    associated-window
 	    text-style
 	    label
-	    gesture)
+	    gesture
+	    row-wise
+	    n-columns
+	    n-rows)
+  (when row-wise
+    (rotatef n-rows n-columns))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)
@@ -350,6 +355,17 @@
 					   (#.+pointer-middle-button+ "<Btn2Down>")
 					   (#.+pointer-right-button+ "<Btn3Down>")
 					   (t "<Btn3Down>"))
+			      :orientation (if row-wise 
+					       :horizontal
+					     :vertical)
+			      :packing :column
+			      :num-columns 
+			      (or n-columns
+				  (and n-rows
+				       (ceiling (length items) n-rows))
+				  (if row-wise 
+				      (length items)
+				    1))
 			      :managed nil))
 	 (font (and text-style (text-style-mapping port text-style)))
 	 (font-list (and (or label simplep) font (list :font-list (list font)))))

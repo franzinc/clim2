@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.75 93/04/02 13:37:41 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.76 93/04/07 09:07:31 cer Exp $
 
 (in-package :xm-silica)
 
@@ -147,13 +147,13 @@
 	       '(:static-color :true-color :pseudo-color :direct-color))
        t))
 
-(defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
-			     (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+(defvar *xt-font-families* '((:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+			     (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
 			     (:serif 
 			      ;; This causes problems on OpenWindows 3.0!
-			      ;; "*-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
-			      "*-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
-			      "*-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
+			      ;; "-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
+			      "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+			      "-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -189,7 +189,7 @@
 			      (if bold '(:bold :italic) :italic)
 			    (if bold :bold :roman)))
 		    (designed-point-size (parse-integer (ninth tokens)))
-		    (designed-y-resolution (parse-integer (nth 10 tokens)))
+		    (designed-y-resolution (parse-integer (nth 11 tokens)))
 		    (point-size (* (float designed-point-size)
 				   (/ designed-y-resolution
 				      screen-pixels-per-inch)))
@@ -199,12 +199,14 @@
 	(let ((family (car family-stuff)))
 	  (dolist (font-pattern (cdr family-stuff))
 	    (dolist (xfont (tk::list-font-names display font-pattern))
-	      (let ((text-style (font->text-style xfont family)))
-		;; prefer first font satisfying this text style, so
-		;; don't override if we've already defined one.
-		(unless (text-style-mapping-exists-p
-			 port text-style *standard-character-set* t)
-		  (setf (text-style-mapping port text-style) xfont)))))
+	      ;; this hack overcomes a bug with hp's scalable fonts
+	      (unless (find #\* xfont)
+		(let ((text-style (font->text-style xfont family)))
+		  ;; prefer first font satisfying this text style, so
+		  ;; don't override if we've already defined one.
+		  (unless (text-style-mapping-exists-p
+			   port text-style *standard-character-set* t)
+		    (setf (text-style-mapping port text-style) xfont))))))
 	  ;; Now build the logical size alist for the family
 	  ))
       (let (temp)

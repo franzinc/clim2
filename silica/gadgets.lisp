@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.47 93/03/19 09:44:44 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.48 93/03/31 10:39:36 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -333,6 +333,7 @@
 
 ;;; Menu bar
 (defclass menu-bar (pane
+		    oriented-gadget-mixin
 		    sheet-with-resources-mixin)
     ((command-table :initarg :command-table :initform nil
 		    :accessor menu-bar-command-table)))

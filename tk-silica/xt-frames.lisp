@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.30 93/03/31 10:40:25 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.31 93/04/02 13:37:33 cer Exp $
 
 
 (in-package :xm-silica)
@@ -105,7 +105,10 @@
 		 (id-test 'equal)
 		 (cache-value items)
 		 (cache-test #'equal)
-		 (gesture :select))
+		 (gesture :select)
+		 row-wise
+		 n-columns
+		 n-rows)
   (declare (ignore keys))      
   (declare (values value chosen-item gesture))
   (let ((port (port framem))
@@ -135,7 +138,10 @@
 				      associated-window
 				      text-style
 				      label
-				      gesture))
+				      gesture
+				      row-wise
+				      n-columns
+				      n-rows))
       (when cache
 	(push (list unique-id cache-value menu closure) 
 	      (frame-manager-menu-cache framem))))

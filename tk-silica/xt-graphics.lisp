@@ -20,15 +20,25 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.68 93/04/02 13:37:36 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.69 93/04/07 09:07:27 cer Exp $
 
 (in-package :tk-silica)
 
 (defclass ink-gcontext (tk::gcontext)
-  ((last-medium-clip-mask :initform nil :fixed-index 2)
+  ((last-device-clip-region :initform nil :fixed-index 2)
    (last-line-style :initform nil :fixed-index 3)
    (shift-tile-origin :initform nil :fixed-index 4)
-   (ink-clip-mask :initform nil :fixed-index 5)))
+   (ink-clip-region :initform nil :fixed-index 5)))
+
+(defmacro ink-gcontext-last-device-clip-region (gcontext)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					'last-device-clip-region)))
+(defsetf ink-gcontext-last-device-clip-region (gcontext) (value)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					      'last-device-clip-region)
+       ,value)))
 
 (defmacro ink-gcontext-last-line-style (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
@@ -38,16 +48,6 @@
   `(locally (declare (optimize (speed 3) (safety 0)))
      (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
 					      'last-line-style)
-       ,value)))
-
-(defmacro ink-gcontext-last-medium-clip-mask (gcontext)
-  `(locally (declare (optimize (speed 3) (safety 0)))
-     (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					'last-medium-clip-mask)))
-(defsetf ink-gcontext-last-medium-clip-mask (gcontext) (value)
-  `(locally (declare (optimize (speed 3) (safety 0)))
-     (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					      'last-medium-clip-mask)
        ,value)))
 
 (defmacro ink-gcontext-shift-tile-origin (gcontext)
@@ -60,21 +60,21 @@
 					      'shift-tile-origin)
        ,value)))
 
-(defmacro ink-gcontext-ink-clip-mask (gcontext)
+(defmacro ink-gcontext-ink-clip-region (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					'ink-clip-mask)))
-(defsetf ink-gcontext-ink-clip-mask (gcontext) (value)
+					'ink-clip-region)))
+(defsetf ink-gcontext-ink-clip-region (gcontext) (value)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					      'ink-clip-mask)
+					      'ink-clip-region)
        ,value)))
 
 (defclass xt-medium (basic-medium)
   ((drawable :initform nil)
    (ink-table :initform (make-hash-table :test #'equal))
    (indirect-inks :initform nil)
-   (clip-mask :initform nil)))
+   (device-clip-region :initform nil)))
 
 (defmethod make-medium ((port xt-port) sheet)
   (make-instance 'xt-medium
@@ -258,46 +258,33 @@
 
 
 ;;
-;; Clip mask is invalidated when:
+;; medium's device clip region is invalidated when:
 ;;   1. medium's sheet's device region changes
 ;;   2. medium's clipping region changes
 ;;   3. medium's sheet's device transformation changes
 
-(defmethod medium-clip-mask ((medium xt-medium))
-  (with-slots (sheet clip-mask) medium
-    (or clip-mask
-	(setf clip-mask
+(defun medium-device-clip-region (medium)
+  (with-slots (sheet device-clip-region) medium
+    (or device-clip-region
+	(setf device-clip-region
 	  (let ((dr (sheet-device-region sheet))
 		(mcr (medium-clipping-region medium)))
-	    (unless (eq mcr +everywhere+)
-	      (setq mcr (transform-region (sheet-device-transformation sheet) mcr))
-	      (setq dr (region-intersection dr (bounding-rectangle mcr))))
-	    (cond ((eq dr +everywhere+)
-		   :none)
-		  ((eq dr +nowhere+)
-		   :nowhere)
-		  #+ignore
-		  ((typep dr 'clim-utils:standard-rectangle-set)
-		   ;;-- Do something more complicated
-		   )
-		  (t
-		   (with-bounding-rectangle* (left top right bottom) dr
-		     (list (fix-coordinate left) (fix-coordinate top) 
-			   (fix-coordinate (- right left))
-			   (fix-coordinate (- bottom top)))))))))))
+	    (region-intersection 
+	     dr 
+	     (transform-region (sheet-device-transformation sheet) mcr)))))))
 
 (defmethod (setf medium-clipping-region) :after (cr (medium xt-medium))
   (declare (ignore cr))
-  (with-slots (clip-mask) medium
-    (setf clip-mask nil)))
+  (with-slots (device-clip-region) medium
+    (setf device-clip-region nil)))
 
 (defmethod invalidate-cached-regions :after ((medium xt-medium))
-  (with-slots (clip-mask) medium
-    (setf clip-mask nil)))
+  (with-slots (device-clip-region) medium
+    (setf device-clip-region nil)))
 
 (defmethod invalidate-cached-transformations :after ((medium xt-medium))
-  (with-slots (clip-mask) medium
-    (setf clip-mask nil)))
+  (with-slots (device-clip-region) medium
+    (setf device-clip-region nil)))
 
 
 
@@ -311,12 +298,12 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-  (with-slots (indirect-inks drawable clip-mask)
+  (with-slots (indirect-inks drawable device-clip-region)
       medium
     (let ((palette (medium-palette medium)))
       (with-slots (white-pixel black-pixel)
 	  palette
-	(setf indirect-inks nil clip-mask nil)
+	(setf indirect-inks nil device-clip-region nil)
 	(setf (medium-sheet medium) sheet)
 	(when (and drawable
 		   (not (eq (port-display port)
@@ -389,114 +376,79 @@
 
 (defvar *default-dashes* '(4 4))
 
-(defun adjust-ink (gc medium line-style x-origin y-origin)
-  (unless (eq (ink-gcontext-last-line-style gc) line-style)
-    (let* ((dashes (line-style-dashes line-style))
-	   (gc-line-style (if dashes :dash :solid)))
-	
-      (tk::set-line-attributes 
-       gc
-       (let ((thickness (line-style-thickness line-style)))
-	 (ecase (line-style-unit line-style)
-	   (:normal)
-	   (:point
-	    (setq thickness (* (graft-pixels-per-point (graft medium))
-			       thickness))))
-	 (when (< thickness 2)
-	   (setq thickness 0))
-	 (setq thickness (the fixnum (round thickness)))
-	 thickness)
-       gc-line-style
-       (ecase (line-style-cap-shape line-style)
-	 (:butt :butt)
-	 (:square :projecting)
-	 (:round :round)
-	 (:no-end-point :not-last))
-       (ecase (line-style-joint-shape line-style)
-	 ((:miter :none) :miter)
-	 (:bevel :bevel)
-	 (:round :round)))
-    
-      (when (eq gc-line-style :dash)
-	(setf (tk::gcontext-dashes gc)
-	  (if (excl::sequencep dashes) dashes *default-dashes*))
-	;; The following isn't really right, but it's better than nothing.
-	(setf (tk::gcontext-dash-offset gc) (1- y-origin))))
-    (setf (ink-gcontext-last-line-style gc) line-style))
+(defun adjust-ink (gc medium x-origin y-origin)
+  
+  ;; line style
+  (let ((line-style (medium-line-style medium)))
+    (unless (eq (ink-gcontext-last-line-style gc) 
+		line-style)
+      (let* ((dashes (line-style-dashes line-style))
+	     (gc-line-style (if dashes :dash :solid)))
+	(tk::set-line-attributes 
+	 gc
+	 (let ((thickness (line-style-thickness line-style)))
+	   (ecase (line-style-unit line-style)
+	     (:normal)
+	     (:point
+	      (setq thickness (* (graft-pixels-per-point (graft medium))
+				 thickness))))
+	   (if (< thickness 2)
+	       0
+	     (the fixnum (round thickness))))
+	 gc-line-style
+	 (ecase (line-style-cap-shape line-style)
+	   (:butt :butt)
+	   (:square :projecting)
+	   (:round :round)
+	   (:no-end-point :not-last))
+	 (ecase (line-style-joint-shape line-style)
+	   ((:miter :none) :miter)
+	   (:bevel :bevel)
+	   (:round :round)))
+	(when (eq gc-line-style :dash)
+	  (setf (tk::gcontext-dashes gc)
+	    (if (excl::sequencep dashes) dashes *default-dashes*))
+	  ;; The following isn't really right, but it's better than nothing.
+	  (setf (tk::gcontext-dash-offset gc) (1- y-origin))))
+      (setf (ink-gcontext-last-line-style gc) line-style)))
 
-  (let ((ink-clip-mask (ink-gcontext-ink-clip-mask gc))
-	(medium-clip-mask (medium-clip-mask medium))
-	(last-clip-mask (ink-gcontext-last-medium-clip-mask gc)))
-    (multiple-value-bind (clip-mask x-origin y-origin)
-	(adjust-clip-mask medium ink-clip-mask medium-clip-mask x-origin y-origin)
-      (unless (eq last-clip-mask clip-mask)
-	(when (and (not (eq last-clip-mask ink-clip-mask))
-		   (typep last-clip-mask 'tk::pixmap))
-	  (tk::destroy-pixmap last-clip-mask))
-	(setf (tk::gcontext-clip-mask gc) clip-mask
-	      (ink-gcontext-last-medium-clip-mask gc) clip-mask))
-      (when x-origin
-	(setf (tk::gcontext-clip-x-origin gc) x-origin
-	      (tk::gcontext-clip-y-origin gc) y-origin))))
-      
+  ;; clip mask
+  (let ((device-clip-region (medium-device-clip-region medium))
+	(ink-clip-region (ink-gcontext-ink-clip-region gc)))
+    (when ink-clip-region
+      (setq device-clip-region 
+	(region-intersection (transform-region
+			      (make-translation-transformation x-origin y-origin)
+			      ink-clip-region)
+			     device-clip-region)))
+    (unless (eq (ink-gcontext-last-device-clip-region gc)
+		device-clip-region)
+      (setf (tk::gcontext-clip-mask gc)
+	(macrolet ((region-rectangle (region)
+		     `(with-bounding-rectangle* (left top right bottom) ,region
+		        (list (fix-coordinate left) (fix-coordinate top) 
+			      (fix-coordinate (- right left))
+			      (fix-coordinate (- bottom top))))))
+	  (etypecase device-clip-region
+	    (everywhere :none)
+	    (nowhere nil)
+	    (standard-rectangle-set
+	     (let ((regions (region-set-regions device-clip-region))
+		   (rectangles nil))
+	       (dolist (region regions)
+		 (push (region-rectangle region) rectangles))
+	       rectangles))
+	    (standard-bounding-rectangle
+	     (list (region-rectangle device-clip-region))))))
+      (setf (ink-gcontext-last-device-clip-region gc) device-clip-region)))
+
+  ;; tile and stipple origin
   (when (ink-gcontext-shift-tile-origin gc)
     (setf (tk::gcontext-ts-x-origin gc) x-origin
 	  (tk::gcontext-ts-y-origin gc) y-origin))
   gc)
 
-(defun adjust-clip-mask (medium ink-clip-mask medium-clip-mask x-origin y-origin)
-  (if ink-clip-mask
-      (cond 
-       ((eq medium-clip-mask :nowhere) :nowhere)
-       ((eq medium-clip-mask :none) 
-	  (values ink-clip-mask x-origin y-origin))
-       (t
-	;; all subsequent co-ordinates are relative to x,y-origin
-	(let ((ink-pixmap-p (typep ink-clip-mask 'tk::pixmap))
-	      (medium-x (- (first medium-clip-mask) x-origin))
-	      (medium-y (- (second medium-clip-mask) y-origin))
-	      (medium-width (third medium-clip-mask))
-	      (medium-height (fourth medium-clip-mask))
-	      ink-x ink-y ink-width ink-height)
-	  (if ink-pixmap-p
-	      (setq ink-x 0 ink-y 0
-		    ink-width (tk::pixmap-width ink-clip-mask)
-		    ink-height (tk::pixmap-height ink-clip-mask))
-	    (setq ink-x (first ink-clip-mask)
-		  ink-y (second ink-clip-mask)
-		  ink-width (third ink-clip-mask)
-		  ink-height (fourth ink-clip-mask)))
-	  #+ignore (format excl:*initial-terminal-io* "~&ink:~d,~d,~d,~d"
-			   ink-x ink-y ink-width ink-height)
-	  #+ignore (format excl:*initial-terminal-io* "~&medium:~d,~d,~d,~d"
-			   medium-x medium-y medium-width medium-height)
-	  (let* ((x (max ink-x medium-x))
-		 (width (- (min (+ ink-x ink-width)
-				(+ medium-x medium-width))
-			   x))
-		 (y (max ink-y medium-y))
-		 (height (- (min (+ ink-y ink-height)
-				 (+ medium-y medium-height))
-			    y)))
-	    (if (or (<= width 0) (<= height 0))
-		:nowhere
-	      (if (and (= width ink-width) (= height ink-height))
-		  (values ink-clip-mask x-origin y-origin)
-		(if ink-pixmap-p
-		    (let* ((clip-pixmap (make-instance 'tk::pixmap
-						       :drawable ink-clip-mask
-						       :width width
-						       :height height
-						       :depth 1))
-			   (port (port (medium-sheet medium))))
-		      (stream-bitblt-support (port-copy-gc-depth-1 port)
-					     ink-clip-mask x y
-					     clip-pixmap 0 0
-					     width height)
-		      (values clip-pixmap (+ x-origin x) (+ y-origin y)))
-		  (values (list x y width height) x-origin y-origin))))))))
-    medium-clip-mask))
-
+  
 ;;; decode ink
 
 (defgeneric decode-ink (ink medium))
@@ -608,185 +560,90 @@
   (decode-ink-1 (decode-contrasting-ink ink medium) medium))
 
 (defmethod decode-ink-1 ((pattern pattern) (medium xt-medium)) 
-  (multiple-value-bind (array designs)
-      (decode-pattern pattern)
-    (let* ((height (array-dimension array 0))
-	   (width (array-dimension array 1))
-	   (image-data (make-array (list height width)))
-	   (clip-image-data (make-array (list height width)
-					:initial-element 1))
-	   (design-pixels (make-array (length designs)))
-	   (transparent-p nil))
-	(declare (simple-vector design-pixels))
-
-	;; Cache the decoded designs from the pattern
-	(dotimes (n (length designs))
-	  (let ((design (elt designs n)))
-	    (if (eql design +nowhere+)
-		(setf transparent-p t)
-	      (setf (svref design-pixels n)
-		(decode-color design medium)))))
-	
-	(dotimes (w width)
-	  (dotimes (h height)
-	    (let ((pixel (svref design-pixels (aref array h w))))
-	      (setf (aref image-data h w)
-		(or pixel
-		    (setf (aref clip-image-data h w) 0))))))
-	(let* ((port (port (medium-sheet medium)))
-	       (drawable (or (slot-value medium 'drawable)
-			     (tk::display-root-window (port-display port))))
-	       (depth (tk::drawable-depth drawable))
-	       (image (make-instance 'tk::image
-				    :width width
-				    :height height
-				    :data image-data
-				    :depth depth))
-	       (clip-image (and transparent-p
-				(make-instance 'tk::image
-					       :width width
-					       :height height
-					       :data clip-image-data
-					       :depth 1)))
-	       (gc (make-instance 'ink-gcontext :drawable drawable))
-	       (pixmap (make-instance 'tk::pixmap
-				      :drawable drawable
-				      :width width
-				      :height height
-				      :depth depth))
-	       (clip-mask (if transparent-p
-			      (make-instance 'tk::pixmap
-					     :drawable drawable
-					     :width width
-					     :height height
-					     :depth 1)
-			    (list 0 0 width height))))
-	  (tk::put-image pixmap gc image)
-	  (when transparent-p
-	    (tk::put-image clip-mask 
-			   (port-copy-gc-depth-1 port)
-			   clip-image))
-	  (setf (tk::gcontext-tile gc) pixmap
-		(tk::gcontext-fill-style gc) :tiled
-		(ink-gcontext-ink-clip-mask gc) clip-mask
-		(ink-gcontext-shift-tile-origin gc) t)
-	  gc))))
-
-;;---the following extends a pattern for tiling by making it
-;;transparent. This causes problems in the test-suite. This is more
-;;correct with regards to the spec but maybe the spec is "wrong" on
-;;this one
-#+ignore 
-(defun decode-extended-pattern (pattern width height)
-  (multiple-value-bind (array designs)
-      (decode-pattern pattern)
-    (if (and (= (array-dimension array 0) height)
-	     (= (array-dimension array 1) width))
-	(values array designs)
-      (let* ((transparent (position +nowhere+ designs))
-	     (extended-designs 
-	      (if transparent
-		  designs
-		(progn
-		  (setq transparent (length designs))
-		  (concatenate 'vector designs (vector +nowhere+)))))
-	     (extended-array (make-array (list height width))))
-	(dotimes (w width)
-	  (dotimes (h height)
-	    (setf (aref extended-array h w)
-	      (if (array-in-bounds-p array h w)
-		  (aref array h w)
-		transparent))))
-	(values extended-array extended-designs)))))
-
-;; for the moment we use this one which replicates the pattern
-(defun decode-extended-pattern (pattern width height)
-  (multiple-value-bind (array designs)
-      (decode-pattern pattern)
-    (let ((pattern-height (array-dimension array 0))
-	  (pattern-width (array-dimension array 1)))
-      (if (or (< pattern-height height)
-	      (< pattern-width width))
-	  (let* ((extended-array (make-array (list height width))))
-	    (dotimes (w width)
-	      (dotimes (h height)
-		(setf (aref extended-array h w)
-		  (aref array (mod h pattern-height) (mod w pattern-width)))))
-	    (values extended-array designs))
-	(values array designs)))))
-	    
+  (decode-pattern-ink pattern medium))
+    
 (defmethod decode-ink-1 ((ink rectangular-tile) (medium xt-medium))
   (multiple-value-bind (pattern width height)
       (decode-rectangular-tile ink)
-    (multiple-value-bind (array designs)
-	(decode-extended-pattern pattern width height)
-      (let* ((image-data (make-array (list height width)))
-	     (design-pixels (make-array (length designs)))
-	     (two-color-p (= (length designs) 2)) 
-	     two-color-fg two-color-bg)
-	(declare (simple-vector design-pixels))
+    (declare (ignore width height))
+    (decode-pattern-ink pattern medium t)))
+      
+(defun decode-pattern-ink (pattern medium &optional tile-p)
+  (multiple-value-bind (array designs)
+      (decode-pattern pattern)
+    (let* ((height (array-dimension array 0))
+	   (width (array-dimension array 0))
+	   (image-data (make-array (list height width)))
+	   (design-pixels (make-array (length designs)))
+	   (two-color-p (eql (length designs) 2))
+	   two-color-fg
+	   two-color-bg)
+      (declare (simple-vector design-pixels))
 
-	;; Cache the decoded designs from the pattern
-	(dotimes (n (length designs))
-	  (let ((design (elt designs n)))
-	    (if (eql design +nowhere+)
-		(unless two-color-p
-		  (error "Transparent tiled pattern ~S has more than two designs"
-			 pattern))
-	      (setf (svref design-pixels n)
-		(decode-color design medium)))))
-		
-	(when two-color-p
-	  (setq two-color-bg (svref design-pixels 0)
-		two-color-fg (svref design-pixels 1))
-	  ;; make sure that any transparent design is the bg
-	  (when (null (svref design-pixels 1))
-	    (rotatef two-color-bg two-color-fg)))
+      ;; Cache the decoded designs from the pattern
+      (dotimes (n (length designs))
+	(let ((design (elt designs n)))
+	  (if (eql design +nowhere+)
+	      (unless two-color-p
+		(error "Transparent pattern ~S has more than two designs" pattern))
+	    (setf (svref design-pixels n)
+	      (decode-color design medium)))))
+
+      (when two-color-p
+	(setq two-color-bg (svref design-pixels 0)
+	      two-color-fg (svref design-pixels 1))
+	;; make sure that any transparent design is the bg
+	(when (null (svref design-pixels 1))
+	  (rotatef two-color-bg two-color-fg)))
 	    
-	(dotimes (w width)
-	  (dotimes (h height)
-	    (let ((pixel (svref design-pixels (aref array h w))))
-	      (setf (aref image-data h w)
-		(if two-color-p
-		    (if (eq pixel two-color-bg)
-			0
-		      1)
-		  pixel)))))
+      (dotimes (w width)
+	(dotimes (h height)
+	  (let ((pixel (svref design-pixels (aref array h w))))
+	    (setf (aref image-data h w)
+	      (if two-color-p
+		  (if (eq pixel two-color-bg)
+		      0
+		    1)
+		pixel)))))
 
-	(let* ((port (port (medium-sheet medium)))
-	       (drawable (or (slot-value medium 'drawable)
-			     (tk::display-root-window
-			      (port-display port)))) 
-	       (depth (if two-color-p
-			  1
-			(tk::drawable-depth drawable)))
-	       (image (make-instance 'tk::image
-				     :width width
-				     :height height
-				     :data image-data
-				     :depth depth))
-	       (gc (make-instance 'ink-gcontext :drawable drawable))
-	       (pixmap 
-		(make-instance 'tk::pixmap
-			       :drawable drawable
-			       :width width
-			       :height height
-			       :depth depth)))
-	  (tk::put-image pixmap 
-			 (if two-color-p
-			     (port-copy-gc-depth-1 port)
-			   gc) 
-			 image)
-	  (if two-color-p
-	      (setf (tk::gcontext-stipple gc) pixmap
-		    (tk::gcontext-fill-style gc) (if two-color-bg
-						     :opaque-stippled
-						   :stippled)
-		    (tk::gcontext-foreground gc) (or two-color-fg 0)
-		    (tk::gcontext-background gc) (or two-color-bg 0))
-	    (setf (tk::gcontext-tile gc) pixmap
-		  (tk::gcontext-fill-style gc) :tiled))
-	  gc)))))
+      (let* ((port (port (medium-sheet medium)))
+	     (drawable (or (slot-value medium 'drawable)
+			   (tk::display-root-window
+			    (port-display port)))) 
+	     (depth (if two-color-p
+			1
+		      (tk::drawable-depth drawable)))
+	     (image (make-instance 'tk::image
+				   :width width
+				   :height height
+				   :data image-data
+				   :depth depth))
+	     (gc (make-instance 'ink-gcontext :drawable drawable))
+	     (pixmap 
+	      (make-instance 'tk::pixmap
+			     :drawable drawable
+			     :width width
+			     :height height
+			     :depth depth)))
+	(tk::put-image pixmap 
+		       (if two-color-p
+			   (port-copy-gc-depth-1 port)
+			 gc) 
+		       image)
+	(if two-color-p
+	    (setf (tk::gcontext-stipple gc) pixmap
+		  (tk::gcontext-fill-style gc) (if two-color-bg
+						   :opaque-stippled
+						 :stippled)
+		  (tk::gcontext-foreground gc) (or two-color-fg 0)
+		  (tk::gcontext-background gc) (or two-color-bg 0))
+	  (setf (tk::gcontext-tile gc) pixmap
+		(tk::gcontext-fill-style gc) :tiled))
+	(unless tile-p
+	  (setf (ink-gcontext-shift-tile-origin gc) t
+		(ink-gcontext-ink-clip-region gc) 
+		(make-bounding-rectangle 0 0 width height)))
+	gc))))
 
 ;;; decode color
 
@@ -1069,7 +926,6 @@
 		drawable
 		(adjust-ink (decode-ink ink medium)
 			    medium
-			    line-style
 			    x y)
 		x y))
 	      (t
@@ -1078,7 +934,6 @@
 		drawable
 		(adjust-ink (decode-ink ink medium)
 			    medium
-			    line-style
 			    (the fixnum (- (the fixnum x) (the fixnum thickness)))
 			    (the fixnum (- (the fixnum y) (the fixnum thickness))))
 		x y 
@@ -1129,7 +984,6 @@
 		      drawable
 		      (adjust-ink (decode-ink ink medium)
 				  medium
-				  line-style
 				  minx miny)
 		      points
 		      j
@@ -1157,7 +1011,6 @@
 		      drawable
 		      (adjust-ink (decode-ink ink medium)
 				  medium
-				  line-style
 				  minx
 				  miny)
 		      points
@@ -1176,7 +1029,6 @@
 	 drawable
 	 (adjust-ink (decode-ink ink medium)
 		     medium
-		     (medium-line-style medium)
 		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
 		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
 	 x1 y1 x2 y2)))))
@@ -1225,7 +1077,6 @@
 			       (aref ps (+ 2 j)) (aref ps (+ 3 j)))))
 	  (setq ink 
 	    (adjust-ink (decode-ink (medium-ink medium) medium) medium
-			(medium-line-style medium)
 			minx miny))
 	  (x11:xdrawsegments
 	   (tk::object-display drawable)
@@ -1257,7 +1108,6 @@
 	   drawable
 	   (adjust-ink (decode-ink ink medium)
 		       medium
-		       (medium-line-style medium)
 		       min-x min-y)
 	   min-x min-y
 	   (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
@@ -1311,7 +1161,6 @@
 	   drawable
 	   (adjust-ink (decode-ink ink medium)
 		       medium
-		       (medium-line-style medium)
 		       overall-min-x overall-min-y)
 	   rects
 	   nrects
@@ -1364,7 +1213,6 @@
 		(tk::xpoint-array-y points (- npoints 1)) (tk::xpoint-array-y points 0)))
 	(setq ink 
 	  (adjust-ink (decode-ink (medium-ink medium) medium) medium
-		      (medium-line-style medium)
 		      minx miny))
 	(if filled
 	    (x11:xfillpolygon
@@ -1406,7 +1254,6 @@
 	  drawable
 	  (adjust-ink (decode-ink (medium-ink medium) medium)
 		      medium
-		      (medium-line-style medium)
 		      (- center-x 
 			 (abs (if (zerop radius-1-dx) radius-2-dx radius-1-dx)))
 		      (- center-y 
@@ -1464,7 +1311,6 @@
         (let ((gc (adjust-ink
 		   (decode-ink (medium-ink medium) medium)
 		   medium
-		   (medium-line-style medium)
 		   x 
 		   (- y ascent))))
 	  (setf (tk::gcontext-font gc) font)
@@ -1550,8 +1396,8 @@
 
 
 	  #+ignore (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  #+ignore (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
-	  
+	  #+ignore (setf (ink-gcontext-last-device-clip-region gcontext) nil)
+
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
 	  
@@ -1587,7 +1433,7 @@
 		  (3 (values (- x ascent) (- y pixmap-height))))
 		    
 	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
-	      (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
+	      (setf (ink-gcontext-last-device-clip-region gcontext) nil)
 	      (setf (tk::gcontext-clip-x-origin gcontext) dst-x
 		    (tk::gcontext-clip-y-origin gcontext) dst-y)
 	      (tk::draw-rectangle drawable gcontext
