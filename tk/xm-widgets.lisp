@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.28.22.3 1998/12/17 00:19:48 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.28.22.4 1999/01/25 18:20:09 layer Exp $
 
 (in-package :tk)
 
@@ -42,7 +42,7 @@
 					  :name :delete-response
 					  :type 'tk::delete-response
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "deleteResponse")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -50,7 +50,7 @@
 					  :name :font-list
 					  :type 'font-list
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "fontList")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
@@ -58,7 +58,7 @@
 					  :name :keyboard-focus-policy
 					  :type 'tk::keyboard-focus-policy
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "keyboardFocusPolicy")))
 
 
@@ -67,7 +67,7 @@
 					  :name :label-type
 					  :type 'tk::label-type
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "labelType")))
 
 
@@ -197,13 +197,16 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'default-button-type)) value)
   (encode-box-child value))
 
+;; JPM: Use FF:string-to-char* at compile time for strings that will
+;; never get freed, use string-to-foreign at run time for strings
+;; that will get freed.
 
 (tk::add-resource-to-class (find-class 'xm-text)
 			   (make-instance 'resource
 					  :name :scroll-horizontal
 					  :type 'tk::boolean
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "scrollHorizontal")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -211,7 +214,7 @@
 					  :name :scroll-vertical
 					  :type 'tk::boolean
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "scrollVertical")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -219,7 +222,7 @@
 					  :name :word-wrap
 					  :type 'tk::boolean
 					  :original-name
-					  (clim-utils:string-to-foreign
+					  (ff:string-to-char*
 					   "wordWrap")))
 
 (defun make-xm-string-table (&key (number 1))

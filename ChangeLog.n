@@ -11,6 +11,17 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.40
+
+1999-01-25  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* tk/xm-widgets: be careful to use aclmalloc rather than malloc
+  at compile time
+* silica/gadgets: remove repaint-sheet method that is conditionally
+  compiled for mswindows but that is not needed at all
+* silica/mirror: fix apparent timing problem with events on windows
+
+*******************************************************************************
 2.2.1.39
 
 Thu Jan 21 19:48:47 1999  Duane Rettig  <duane@beta>

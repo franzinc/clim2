@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadgets.lisp,v 1.65.8.3 1998/12/17 00:19:33 layer Exp $
+;; $Id: gadgets.lisp,v 1.65.8.4 1999/01/25 18:20:08 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -705,13 +705,6 @@
 	  (unless (eq +nowhere+ rect)
 	    (with-bounding-rectangle* (left top right bottom) rect
 	      (draw-rectangle* medium left top right bottom))))))))
-
-#+(or acl86win32 aclpc)
-(defmethod repaint-sheet ((sheet viewport) region)
-  (with-sheet-medium (medium sheet)
-    (with-bounding-rectangle* (left top right bottom) region
-      (draw-rectangle* medium left top right bottom
-		       :ink +background-ink+))))
 
 (defmethod note-space-requirements-changed ((pane viewport) inner)
   (declare (ignore inner))

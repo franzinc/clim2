@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: mirror.lisp,v 1.36.22.3 1998/12/17 00:19:35 layer Exp $
+;; $Id: mirror.lisp,v 1.36.22.4 1999/01/25 18:20:09 layer Exp $
 (in-package :silica)
 
 ;;;"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
@@ -469,5 +469,9 @@
 
 (defmethod handle-event ((sheet mirrored-sheet-mixin)
 			 (event window-configuration-event))
-  (mirror-region-updated (port sheet) sheet)
-  (deallocate-event event))
+  (let ((port (port sheet)))
+    ;; On Windows, you may occasionally get events during
+    ;; initialization and before the sheet has a port. 
+    ;; I suppose we should ignore them.  JPM.
+    (when port (mirror-region-updated port sheet))
+    (deallocate-event event)))
