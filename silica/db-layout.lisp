@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.8 92/02/24 13:04:26 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.9 92/03/04 16:19:28 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -82,6 +82,9 @@
   nil)
 
 (defmethod note-sheet-region-changed :after ((pane layout-mixin) &key port)
+  (note-layout-mixin-region-changed pane :port port))
+   
+(defmethod note-layout-mixin-region-changed ((pane layout-mixin) &key port)
   (declare (ignore port))
   (multiple-value-bind (width height) (bounding-rectangle-size pane)
     (allocate-space pane width height)))
@@ -203,7 +206,8 @@
 	  
 
 (defmethod compose-space ((pane space-requirement-mixin) &key width height)
-  (slot-value pane 'space-requirement))
+  (or (slot-value pane 'space-requirement)
+      (slot-value pane 'initial-space-requirement)))
 
 (defmethod change-space-requirement ((pane space-requirement-mixin) &rest keys)
   (declare (dynamic-extent keys))
@@ -243,6 +247,22 @@ slot that defaults to NIL"))
 				    :min-width min-width
 				    :max-height max-height
 				    :min-height min-height)))))
+
+(warn "duplicate?")
+
+(defmethod default-space-requirements ((pane basic-client-space-requirement-mixin) 
+				       &key (width 0)
+					    (min-width width)
+					    (max-width width)
+					    (height 0)
+					    (min-height height)
+					    (max-height height))
+  (values width
+	  min-width
+	  max-width
+	  height
+	  min-height
+	  max-height))
 
 ;;;;
 
@@ -494,4 +514,20 @@ provided elsewhere"))
 		       space-requirement-cache-mixin
 		       sheet-permanently-enabled-mixin)
     ())
+
+
+;;-- Does this need to be more complicated.
+;; What is the correct behavior. Should it take a space requirement??
+;; and just call allocate-space
+
+(defclass bboard-pane (space-requirement-mixin layout-pane) 
+	  ())
+
+(defmethod allocate-space ((pane bboard-pane) width height)
+  (declare (ignore width height))
+  (dolist (child (sheet-children pane))
+    (let ((space-req (compose-space child)))
+      (resize-sheet* child 
+		     (space-requirement-width space-req)
+		     (space-requirement-height space-req)))))
 

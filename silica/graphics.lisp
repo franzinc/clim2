@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.5 92/02/24 13:04:38 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.6 92/03/04 16:19:43 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -77,6 +77,63 @@
 
 (eval-when (compile load eval)
 
+(defun write-graphics-function-transformer (name 
+					    medium-graphics-function-name
+					    unspread-argument-names
+					    spread-arguments
+					    spread-name
+					    spread-argument-names
+					    drawing-options
+					    other-keyword-arguments
+					    arguments)
+  (declare (ignore spread-arguments))
+  (list
+   `(define-compiler-macro ,spread-name 
+	(&whole form 
+		medium-or-stream 
+		,@spread-argument-names &rest drawing-options-and-keyword-arguments)
+      (or (transform-graphics-function-call 
+	   medium-or-stream
+	   ',medium-graphics-function-name
+	   ',drawing-options
+	   ',other-keyword-arguments
+	   (list ,@spread-argument-names)
+	   drawing-options-and-keyword-arguments)
+	  form))
+   `(define-compiler-macro ,name 
+	(&whole form medium-or-stream ,@unspread-argument-names 
+	 &rest drawing-options-and-keyword-arguments)
+      (or (transform-graphics-function-call 
+	   medium-or-stream
+	   ',medium-graphics-function-name
+	   ',drawing-options
+	   ',other-keyword-arguments
+	   (list ,@unspread-argument-names)
+	   drawing-options-and-keyword-arguments
+	   ',arguments)
+	  form))))
+
+(defun generate-argument-spreading-code (x)
+  (if (consp x)
+      (destructuring-bind (argname type . names) x
+	(ecase type
+	  (point-sequence
+	   (destructuring-bind (new-name) names
+	     (values argname
+		     (list `(unspread-point-sequence ,argname))
+		     (list new-name))))
+	  (point
+	   (destructuring-bind (x y) names
+	     (values
+	      argname
+	      (list `(point-x ,argname)
+		    `(point-y ,argname))
+	      (list x y))))))
+    (values
+     x
+     (list x)
+     (list x))))
+
 (defun decode-graphics-function-arguments (arguments)
   (let* ((keyn (position '&key arguments))
 	 (no-keyword (subseq arguments 0 keyn))
@@ -85,24 +142,12 @@
 	 spread-arguments 
 	 spread-argument-names)
     (dolist (x no-keyword)
-      (if (consp x)
-	  (destructuring-bind (argname type . names) x
-	    (push argname unspread-argument-names)
-	    (ecase type
-	      (point-sequence
-		(destructuring-bind (new-name) names
-		  (push `(unspread-point-sequence ,argname) spread-arguments)
-		  (push new-name spread-argument-names)))
-	      (point
-		(destructuring-bind (x y) names
-		  (push `(point-x ,argname) spread-arguments)
-		  (push x spread-argument-names)
-		  (push `(point-y ,argname) spread-arguments)
-		  (push y spread-argument-names)))))
-	  (progn
-	    (push x unspread-argument-names)
-	    (push x spread-arguments)
-	    (push x spread-argument-names))))
+      (multiple-value-bind
+	  (argname spread-args spread-values)
+	  (generate-argument-spreading-code x)
+	  (push argname unspread-argument-names)
+	  (dolist (x spread-args) (push x spread-arguments))
+	  (dolist (x spread-values) (push x spread-argument-names))))
     (values (nreverse unspread-argument-names)
 	    (nreverse spread-arguments)
 	    (nreverse spread-argument-names)
@@ -113,7 +158,83 @@
 			(intern (symbol-name (if (consp x) (car x) x))
 				*keyword-package*))
 		    keyword))))
-)	;eval-when
+
+(defun transform-graphics-function-call (medium-or-stream
+					 medium-graphics-function-name
+					 drawing-options
+					 other-keyword-arguments
+					 required-arguments
+					 rest-argument
+					 &optional 
+					 arguments)
+  (let ((drawing-options
+	 (mapcar #'(lambda (x)
+		     (intern x :keyword))
+		 drawing-options)))
+    (flet ((kw-arg-keyword (x)
+	     (intern (if (consp x) (car x) x) :keyword))
+	   (kw-arg-default-value (x)
+	     (and (consp x) (second x))))
+      (when (do ((args rest-argument (cddr args)))
+		(nil)
+	      (cond ((null args) (return t))
+		    ((null (cdr args)) (return nil))
+		    ((not (or (member (car args) drawing-options)
+			      (dolist (arg other-keyword-arguments)
+				(when (eq (kw-arg-keyword arg) (car args))
+				  (return t)))))
+		     (return nil))))
+	(let (bindings)
+	  (when arguments
+	    (setq required-arguments
+	      (mapcan #'(lambda (arg req-arg)
+			  (let ((g (gensym)))
+			    (push (list g req-arg) bindings)
+			    (if (consp arg)
+				(nth-value
+				 1
+				 (generate-argument-spreading-code
+				  (cons g
+					(cdr arg))))
+			      (list g))))
+		      arguments
+		      required-arguments))
+	    (setq bindings (nreverse bindings)))
+	  (let* ((stuff
+		  (do ((args rest-argument (cddr args))
+		       (result nil))
+		      ((null args)
+		       (nreverse result))
+		    (let ((kw (car args))
+			  (value (cadr args)))
+		      (push (list kw (gensym) value) result))))
+		 (medium-or-stream-name (gensym))
+		 (call
+		  `(,medium-graphics-function-name
+		    ,medium-or-stream-name
+		    ,@required-arguments
+		    ,@(mapcar #'(lambda (kw-arg)
+				  (or 
+				   (second (assoc (kw-arg-keyword kw-arg) stuff))
+				   (kw-arg-default-value kw-arg)))
+			      other-keyword-arguments)))
+		 (supplied-drawing-options
+		  (mapcan #'(lambda (do)
+			      (let ((x (assoc do stuff)))
+				(and x (list do (second x)))))
+			  drawing-options)))
+	    
+	    `(let ((,medium-or-stream-name ,medium-or-stream))
+	       (let ,bindings
+		 (let ,(mapcar #'(lambda (x)
+				 (list (second x) (third x)))
+		      stuff)
+		 ,(if supplied-drawing-options
+		      `(with-drawing-options 
+			   (,medium-or-stream-name ,@supplied-drawing-options)
+			 ,call)
+		    call))))))))))
+)					;eval-when
 
 
 (defmacro transform-points ((transform) &rest points)
@@ -220,6 +341,16 @@
 	 (setf (get ',name 'args)
 	       '((,@spread-argument-names ,@keyword-argument-names)
 		 ,@args)) 
+	 ,@(write-graphics-function-transformer
+	    name 
+	    medium-graphics-function-name
+	    unspread-argument-names
+	    spread-arguments
+	    spread-name
+	    spread-argument-names
+	    drawing-options
+	    other-keyword-arguments
+	    arguments)
 	 (defmethod ,medium-graphics-function-name ((sheet sheet) 
 						    ,@spread-argument-names
 						    ,@keyword-argument-names)
@@ -250,6 +381,13 @@
 				  ,@spread-argument-names
 				  ,@keyword-argument-names)))))))
 
+
+
+
+
+
+	       
+			    
 
 (define-graphics-function draw-point ((point point x y))
   :drawing-options :point

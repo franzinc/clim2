@@ -20,43 +20,27 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.6 92/02/24 13:03:10 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.7 92/02/28 09:17:23 cer Exp Locker: cer $
 
 (in-package :tk)
 
-(defmacro symbols-from-file (file)
-  (with-open-file (s file :direction :input)
-    (do ((r nil)
-	 (l (read-line s nil nil) (read-line s nil nil)))
-	((null l)
-	 `(quote ,r))
-      (push l r))))
 
-
-(defun load-undefined-symbols-from-library (what kludges libraries)
-  (setq what (remove-if #'ff::get-entry-point what))
-  (when what
-    (mapc #'foreign-functions:remove-entry-point kludges)
-    (load "" 
-	  :unreferenced-lib-names what
-	  :foreign-files libraries
-	  :print t)))
 
 ;;;; 
 (defvar *libxm-pathname* "/usr/motif/usr/lib/libXm.a")
 (defvar *libxt-pathname* "/usr/motif/usr/lib/libXt.a")
-(defvar *libx11-pathname* "/usr/motif/usr/lib/libX11.a")
+
 
 (defun load-from-xm ()
-  (load-undefined-symbols-from-library
-   (list* "_XCopyGC" (symbols-from-file "misc/undefinedsymbols.motif"))
+  (x11::load-undefined-symbols-from-library
+   (list* "_XCopyGC" (x11::symbols-from-file "misc/undefinedsymbols.motif"))
    '("__unpack_quadruple" 
      "__prod_b10000" 
      "__carry_out_b10000" 
      "__prod_65536_b10000")
    (list *libxm-pathname*
 	 *libxt-pathname*
-	 *libx11-pathname*)))
+	 x11::*libx11-pathname*)))
 
 (load-from-xm)
 

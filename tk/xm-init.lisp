@@ -20,16 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-init.lisp,v 1.4 92/02/16 20:55:08 cer Exp $
+;; $fiHeader: xm-init.lisp,v 1.5 92/02/24 13:04:03 cer Exp Locker: cer $
 
 
 (in-package :tk)
 
 (defvar *xm-done* nil)
 
-(warn "This bites")
-
 (unless *xm-done*
+  (xt-initialize)
   (define-toolkit-classes *motif-classes*)
   (setq *xm-done* t))
 

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.6 92/02/24 13:07:33 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.7 92/03/04 16:21:37 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -130,6 +130,9 @@
       (let* (gadget
 	     (record
 	      (with-new-output-record (stream 'gadget-output-record record)
+		;;--- Do we really need to do this. under what
+		;;--- situations does this happen and why cant we loose
+		;;--- the gadget
 		(unless (setq gadget (output-record-gadget record))
 		  (associate-record-and-gadget
 		   record
@@ -204,9 +207,13 @@
   ;; value-key, test, sequence
   (with-output-as-gadget (stream)
     (let* ((gadget
-	     (realize-pane 'radio-box 
-			   :client stream
-			   :id query-identifier)))
+	    (realize-pane 'radio-box 
+			  :label (and (stringp prompt) prompt)
+			  :value-changed-callback
+			  (make-accept-values-value-changed-callback
+			   stream query-identifier)
+			  :client stream
+			  :id query-identifier)))
       (dolist (element sequence)
 	(realize-pane 'toggle-button 
 		      :value (and default-supplied-p
@@ -225,12 +232,20 @@
 						    present-p query-identifier
 						    &key (prompt t))
   (declare (ignore default-supplied-p present-p))
-  (with-output-as-gadget (stream)
-    (realize-pane 'toggle-button
-		  :client stream
-		  :id query-identifier
-		  :value default
-		  :label (and (stringp prompt) prompt))))
+  (let ((x (with-output-as-gadget (stream)
+	     (realize-pane 'toggle-button
+			   :client stream 
+			   :value-changed-callback
+			   (make-accept-values-value-changed-callback
+			    stream query-identifier)
+			   :id query-identifier
+			   :value default
+			   :label (and (stringp prompt) prompt)))))
+    ;;--- WE end up not making a new gadget sometimes, I think because
+    ;;--- we find a gadget already in the record so we need to modify
+    ;;-- the value!
+    (setf (gadget-value x) default)))
+    
 
 
 (define-presentation-method accept-present-default ((type integer)
@@ -242,6 +257,9 @@
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
     (realize-pane 'slider
+		  :value-changed-callback
+		  (make-accept-values-value-changed-callback
+		   stream query-identifier)
 		  :client stream
 		  :width 100
 		  :value (if default-supplied-p default 0)

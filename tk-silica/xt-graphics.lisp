@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.11 92/03/04 16:20:43 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.12 92/03/09 17:41:28 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -337,7 +337,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
       (unless (eq mcr +everywhere+)
 	(setq mcr (transform-region (sheet-device-transformation sheet) mcr))
 	(setq dr (region-intersection dr (bounding-rectangle mcr))))
-      (cond ((eq dr +everywhere+)
+      (cond ((or #+ignore t (eq dr +everywhere+))
 	     (setf (tk::gcontext-clip-mask gc) 
 	       :none))
 	    ((eq dr +nowhere+)

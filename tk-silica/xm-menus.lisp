@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.5 92/03/04 16:20:38 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.6 92/03/10 15:39:59 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -93,17 +93,19 @@
 			       (port-display port)))
 	(declare (ignore ignore win1 win2 x y))
 	(tk::set-values menu :x root-x :y root-y)
-	(tk::manage-child menu)
-	;; Now we have to wait
-	(port-force-output port)
-	(mp::process-wait "Returned value" #'(lambda () 
-					       ;;-- This is to deal
-					       ;;-- with the race
-					       ;;-- condition where
-					       ;;-- the menu go down
-					       ;;-- to quick
-					       (or (not (tk::is-managed-p menu))
-						   value-returned)))
+	(loop
+	  (when value-returned (return nil))
+	  (tk::manage-child menu)
+	  ;; Now we have to wait
+	  (port-force-output port)
+	  (mp::process-wait "Returned value" #'(lambda () 
+						 ;;-- This is to deal
+						 ;;-- with the race
+						 ;;-- condition where
+						 ;;-- the menu go down
+						 ;;-- to quick
+						 (or (not (tk::is-managed-p menu))
+						     value-returned))))
 	;; destroy the menu
 	(tk::unmanage-child menu)
 	(values-list return-value)))))
@@ -113,9 +115,12 @@
     (setf (stream-text-margin menu) 1000)
     (let ((rec (with-output-recording-options (menu :draw nil :record t)
 		 (with-output-to-output-record (menu)
-		   (if presentation-type
-		       (present menu-item presentation-type :stream menu)
-		   (funcall printer menu-item menu))))))
+		   (handler-case
+		       (if presentation-type
+			   (present menu-item presentation-type :stream menu)
+			 (funcall printer menu-item menu))
+		     (error (c)
+		       (write-string "Error in printer" menu)))))))
       (multiple-value-bind
 	  (width height)
 	  (bounding-rectangle-size rec)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.10 92/03/06 14:17:30 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.11 92/03/10 10:11:39 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -44,8 +44,7 @@
 (defun invoke-callback-function (function &rest args)
   (declare (dynamic-extent args))
   (if (consp function)
-      (with-stack-list* (args args (cdr function))
-	(apply (car function) args))
+      (apply (car function) (append args (cdr function)))
       (apply function args)))
 
 
@@ -70,14 +69,22 @@
   (with-slots (value) gadget
     (setf value new-value)))
 
-(defgeneric (setf gadget-value) (nv gadget))
+(defgeneric (setf gadget-value) (nv gadget &key))
 
-(defmethod (setf gadget-value) (nv (gadget value-gadget))
+(defmethod (setf gadget-value) (nv (gadget value-gadget) &key)
   (declare (ignore nv)))
 
-(defmethod (setf gadget-value) :after (nv (gadget value-gadget))
+;;-- What is the correct default?
+
+(defmethod (setf gadget-value) :after (nv (gadget value-gadget) &key invoke-callback)
   (with-slots (value) gadget
-    (setf value nv)))
+    (setf value nv))
+  (when invoke-callback
+    (value-changed-callback
+     gadget 
+     (gadget-client gadget)
+     (gadget-id gadget)
+     nv)))
 
 
 (defclass action-gadget (gadget) 
@@ -100,10 +107,9 @@
 (defclass labelled-gadget ()
     ((label :initarg :label
 	    :accessor gadget-label)
-     (alignment :initarg :halign		;--- compatibility hack
-		:initarg :alignment
+     (alignment :initarg :x-align
 		:accessor gadget-alignment))
-  (:default-initargs :label nil))
+  (:default-initargs :label nil :x-align :center))
 
 ;;--- Do the right thing
 #---ignore
@@ -166,7 +172,7 @@
 
 
 (defclass label-pane
-	  (labelled-gadget)
+	  (gadget labelled-gadget)
     ())
 
 
@@ -179,9 +185,11 @@
 	  (value-gadget oriented-gadget) 
     ((selections :initform nil 
 		 :reader radio-box-selections)
-     (current-selection :initform nil
-			:initarg :current-selection
-			:accessor radio-box-current-selection)))
+     ;;--- think about this
+     (value :initform nil
+	    :initarg :current-selection
+	    :initarg :current
+	    :accessor radio-box-current-selection)))
 
 (defmethod initialize-instance :after ((rb radio-box) &key choices)
   (let ((fr (pane-frame rb)))
@@ -202,7 +210,15 @@
 ;; As well as the callback mechanism a we want to specify a binding to commands
 (defclass text-field 
 	  (value-gadget action-gadget) 
-    ())
+	  ())
+
+(defclass text-editor (text-field) 
+	  ((ncolumns :initarg :ncolumns
+		     :accessor gadget-columns)
+	   (nlines :initarg :nlines
+		     :accessor gadget-lines))
+  (:default-initargs :ncolumns 1 :nlines 1))
+
 
 
 ;;; Viewport
@@ -223,12 +239,24 @@
 	  (make-bounding-rectangle 0 0 width height))))
 
 (defmethod allocate-space ((viewport viewport) width height)
-  ;; We do nothing to the child of a viewport
-  nil)
+  ;;-- Make sure the child is at least as big as the viewport
+  (let* ((child (sheet-child viewport)))
+    (multiple-value-bind
+	(cwidth cheight)
+	(bounding-rectangle-size child)
+      (when (or (< cwidth width)
+		(< cheight height))
+	(resize-sheet* child
+		       (max width cwidth)
+		       (max height cheight))))))
+		       
+
 
 (defmethod allocate-space :after ((viewport viewport) width height)
   (bounding-rectangle-set-size
-    (viewport-viewport-region viewport) width height)
+   (viewport-viewport-region viewport) width height)
+  ;; At this point  it might make sense to move the viewport if it is
+  ;; big enough to contain the contents
   (update-scrollbars viewport)
   (viewport-region-changed (sheet-child viewport) viewport))
 

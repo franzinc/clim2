@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.7 92/03/09 17:41:12 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.8 92/03/10 15:39:56 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -60,7 +60,10 @@
 
 (defun update-scrollbars (vp)
   (with-bounding-rectangle* (minx miny maxx maxy)
-      (stream-output-history (sheet-child vp))
+    (let ((c (sheet-child vp)))
+      (if (typep c 'clim-internals::output-recording-mixin)
+	  (stream-output-history c)
+	c))
     (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
 	(viewport-viewport-region vp)
       (with-slots (horizontal-scrollbar vertical-scrollbar)
@@ -69,6 +72,10 @@
 			  miny maxy vminy vmaxy)
 	(update-scrollbar horizontal-scrollbar
 			  minx maxx vminx vmaxx)))))
+
+;;;--- In the case where the viewport is bigger than the window this
+;;;code gets things kind a wrong. Checkout the thinkadot puzzl. Its
+;;;cos (- (--) (- vminx)) is -ve
 
 (defun update-scrollbar (scrollbar minx maxx vminx vmaxx)
   (declare (optimize (safety 0) (speed 3)))
@@ -120,7 +127,9 @@
 					      size)
   (declare (ignore sheet))
   (with-slots (viewport contents) client
-    (let* ((extent (stream-output-history contents))
+    (let* ((extent (if (typep contents 'clim-internals::output-recording-mixin)
+		       (stream-output-history contents)
+		     contents))
 	   (vp viewport)
 	   (viewport (viewport-viewport-region vp)))
       (case id
@@ -146,7 +155,7 @@
 			(/ value (- 100 size)))))
 	    :y (bounding-rectangle-min-y viewport)))))))
 
-(defun update-region (stream nminx nminy nmaxy nmaxx &key no-repaint)
+(defun update-region (stream nminx nminy nmaxx nmaxy &key no-repaint)
   ;;-- I suspect that we should pass in mins and maxs since this does
   ;;-- assume that the window origin is 0,0 and I think that this
   ;;-- causes the compass menu test to fail since there are graphics at
@@ -159,10 +168,10 @@
 		(> nmaxx r)
 		(> nmaxy b))
 	(setf (sheet-region stream)
-	  (make-bounding-rectangle  (min nminx (bounding-rectangle-min-x stream))
-				    (min nminy (bounding-rectangle-min-y stream))
-				    (max nmaxx (bounding-rectangle-max-x stream))
-				    (max nmaxy (bounding-rectangle-max-y stream))))))
+	  (make-bounding-rectangle  (min nminx l)
+				    (min nminy tt)
+				    (max nmaxx r)
+				    (max nmaxy b)))))
   #+ignore
   (let ((width (- nmaxx nminx))
 	(height (- nmaxy nminy)))
@@ -185,39 +194,54 @@
 	;;--- Is this the correct place
 	(update-scrollbars vp)
 	(with-bounding-rectangle* (nleft ntop nright nbottom) 
-	    (pane-viewport-region stream)
+	  (pane-viewport-region stream)
+	  ;;-- Do we really want to do this here??
+	  (update-region stream nleft ntop nright nbottom)
 	  (cond
-	    ;; if some of the stuff that was previously on display is still on display
-	    ;; bitblt it into the proper place and redraw the rest.
-	    ((ltrb-overlaps-ltrb-p left top right bottom
-				   nleft ntop nright nbottom)
-	     ;; move the old stuff to the new position
-	     (window-shift-visible-region stream 
-					  left top right bottom
-					  nleft ntop nright nbottom)
-	     (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-						left top right bottom)))
-	       (dolist (region rectangles)
-		 (with-sheet-medium (medium stream)
-		   (multiple-value-call #'draw-rectangle*
-		     medium
-		     (bounding-rectangle* region)
-		     :ink +background-ink+ :filled t))
-		 (replay (stream-output-history stream) stream region))))
-	 ;; otherwise, just redraw the whole visible viewport
-	 ;; Adjust for the left and top margins by hand so clear-area doesn't erase
-	 ;; the margin components.
-	 (t 
-	  (let ((region (viewport-viewport-region vp)))
-	    ;;---- We should make the sheet-region bigger at this point
-	    ;; Perhaps we do a union of the sheet-region and the viewport
-	    (with-sheet-medium (medium vp)
-	      (draw-rectangle* medium
-			       0 0 
-			       (bounding-rectangle-width region)
-			       (bounding-rectangle-height region)
-			       :ink +background-ink+ :filled t))
-	    (replay (stream-output-history stream) stream region)))))))))
+	   ;; if some of the stuff that was previously on display is still on display
+	   ;; bitblt it into the proper place and redraw the rest.
+	   ((ltrb-overlaps-ltrb-p left top right bottom
+				  nleft ntop nright nbottom)
+	    ;; move the old stuff to the new position
+	    #+ignore
+	    (break "before shifting ~S"
+		   (list (list left top right bottom)
+			 (list nleft ntop nright nbottom)))
+	    (window-shift-visible-region stream 
+					 left top right bottom
+					 nleft ntop nright nbottom)
+	    (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+					       left top right
+					       bottom)))
+	      #+ignore
+	      (break "done shifting")
+	      (with-sheet-medium (medium stream)
+		(dolist (region rectangles)
+		  (multiple-value-call #'draw-rectangle*
+		    medium
+		    (bounding-rectangle* region)
+		    :ink +background-ink+ :filled t)
+		  #+ignore
+		  (break "cleared region ~S" region)
+		  (when (typep stream 'clim-internals::output-recording-mixin)
+		    (replay (stream-output-history stream) stream
+			    region))
+		  #+ignore
+		  (break "done replay")))))
+	   ;; otherwise, just redraw the whole visible viewport
+	   ;; Adjust for the left and top margins by hand so clear-area doesn't erase
+	   ;; the margin components.
+	   ((typep stream 'clim-internals::output-recording-mixin)
+	    (let ((region (viewport-viewport-region vp)))
+	      ;;---- We should make the sheet-region bigger at this point
+	      ;; Perhaps we do a union of the sheet-region and the viewport
+	      (with-sheet-medium (medium vp)
+		(draw-rectangle* medium
+				 0 0 
+				 (bounding-rectangle-width region)
+				 (bounding-rectangle-height region)
+				 :ink +background-ink+ :filled t))
+	      (replay (stream-output-history stream) stream region)))))))))
 
 
 
@@ -524,11 +548,13 @@
 	 (value (compute-symmetric-value min max coord min-value max-value)))
     (setf (gadget-value scroll-bar) value)))
 
-(defmethod (setf gadget-value) (nv (pane scroll-bar-pane))
+;;;-- This looks like a value gadget to me
+
+(defmethod (setf gadget-value) (nv (pane scroll-bar-pane) &key)
   (with-slots (value) pane
     (setf value nv)))
 
-(defmethod (setf gadget-value) :around (nv (pane scroll-bar-pane))
+(defmethod (setf gadget-value) :around (nv (pane scroll-bar-pane) &key)
   (declare (ignore nv))
   (if (port pane)
       (let ((shaft (slot-value pane 'shaft-pane)))

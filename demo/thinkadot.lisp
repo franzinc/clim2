@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.2 92/02/24 13:09:34 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.3 92/03/04 16:23:05 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -39,22 +39,24 @@
 
 
 (define-application-frame thinkadot ()
-    ((node1)
-     (node2)
-     (node3)
-     (node4)
-     (node5)
-     (node6)
-     (node7)
-     (node8)
-     (all-nodes)
-     (lexit)
-     (rexit))
-  (:panes ((display :application
-		    :display-function 'draw-the-display
-		    :incremental-redisplay t
-		    :scroll-bars nil)
-	   (menu :command-menu))))
+  ((node1)
+   (node2)
+   (node3)
+   (node4)
+   (node5)
+   (node6)
+   (node7)
+   (node8)
+   (all-nodes)
+   (lexit)
+   (rexit))
+  (:panes
+   (display
+    (realize-pane 'application-pane
+		  :display-function 'draw-the-display
+		  :incremental-redisplay t)))
+  (:layout
+   (:default (scrolling () display))))
 
 (defmethod initialize-instance :after ((frame thinkadot) &key)
   (multiple-value-bind (w h)
@@ -88,7 +90,9 @@
 (defvar *light-color* (make-gray-color 0.667))
 (defvar *dark-color* +black+)
 
-(defmethod draw-the-display ((frame thinkadot) stream)
+
+(defmethod draw-the-display ((frame thinkadot) stream &key max-width max-height)
+  (declare (ignore max-width max-height))
   (with-slots (all-nodes lexit rexit) frame
     (let ((id 0))
       (dolist (node all-nodes)
@@ -138,7 +142,8 @@
   (drop-a-marble node))
 
 (define-presentation-to-command-translator drop-a-marble
-    (entry-node com-drop-marble thinkadot)
+    (entry-node com-drop-marble thinkadot
+		:documentation "Drop Marble")
     (object)
   `(,object))
 
@@ -157,9 +162,6 @@
       (setf (td-node-direction node) nil))))
 
 (define-thinkadot-command (com-exit :menu T) ()
-  (let ((window (frame-top-level-sheet *application-frame*)))
-    (window-clear window)
-    (setf (window-visibility window) nil))
   (frame-exit *application-frame*))
 
 

@@ -20,33 +20,8 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-xm.lisp,v 1.3 92/02/26 10:24:03 cer Exp $
-
-(excl::free (excl::malloc 131072))
-
-(setq *ignore-package-name-case* t)
-(set-case-mode :case-insensitive-lower)
-
-(tenuring
- (let ((*load-source-file-info* t)
-       (*load-xref-info* nil))
-   (let ((*enable-package-locked-errors* nil))
-     (load "sys/defsystem"))
-   (load "sys/sysdcl")))
+;; $fiHeader: dev-load-xm.lisp,v 1.5 92/03/04 16:23:12 cer Exp Locker: cer $
 
 
-(tenuring 
- (let ((*load-source-file-info* t)
-       (*load-xref-info* nil)
-       (excl:*global-gc-behavior* nil))
-   (defsys::load-system 'motif-clim)))
-
-(compile-file-if-needed "test/test-suite")
-
-(tenuring
- (load "test/test-suite") 
- (load "misc/clos-preload.fasl" :if-does-not-exist nil))
-
-(load "demo/sysdcl")
-(tenuring
- (defsys::load-system 'clim-demo))
+(load "misc/dev-load-1")
+(load-it 'motif-clim)

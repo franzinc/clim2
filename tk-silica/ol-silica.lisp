@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.5 92/02/24 13:06:12 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.6 92/03/04 16:20:32 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -32,7 +32,7 @@
   'openlook-port)
 
 (warn "Changing the default server path to ~S"
-      (setq *default-server-path* '(:openlook :display "localhost:0")))
+      (setq *default-server-path* '(:openlook)))
 
 (defmethod port-note-cursor-change ((port openlook-port)
 				    cursor stream type old new)

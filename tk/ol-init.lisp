@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.6 92/02/24 13:03:42 cer Exp Locker: cer $
+;; $fiHeader: ol-init.lisp,v 1.7 92/03/09 17:40:52 cer Exp Locker: cer $
 
 
 (in-package :tk)
@@ -72,6 +72,7 @@
 
 (unless *ol-done*
   (ol-initialize)
+  (xt-initialize)
   (define-toolkit-classes *openlook-classes*)
   (setq *ol-done* t))
 

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.7 92/02/24 13:04:44 cer Exp $
+;; $fiHeader: layout.lisp,v 1.8 92/03/04 16:19:45 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -104,16 +104,18 @@
 		 ,@options))
 
 
-(defmethod resize-sheet* ((sheet sheet) width height)
+(defmethod resize-sheet* ((sheet sheet) width height &key force)
   (when (or width height)
-    (with-bounding-rectangle* (minx miny maxx maxy) sheet
-      (when (or (and width (/= (- maxx minx) width))
-		(and height (/= (- maxy miny) height)))
-	(setf (sheet-region sheet)
-	      (make-bounding-rectangle
-		minx miny
-		(if width (+ width minx) maxx)
-		(if height (+ height miny) maxy)))))))
+    (with-bounding-rectangle* 
+	(minx miny maxx maxy) sheet
+	(when (or force
+		  (and width (/= (- maxx minx) width))
+		  (and height (/= (- maxy miny) height)))
+	  (setf (sheet-region sheet)
+	    (make-bounding-rectangle
+	     minx miny
+	     (if width (+ width minx) maxx)
+	     (if height (+ height miny) maxy)))))))
 
 (defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
   (resize-sheet* sheet width height)
@@ -291,18 +293,43 @@
 
 
 ;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
+
 (defclass top-level-sheet 
-	  (pane
-	   wrapping-space-mixin
-	   mirrored-sheet-mixin
-	   sheet-multiple-child-mixin)
-    ())
+    (
+     ;; Have these so that we can use 
+     clim-internals::window-stream
+     ;;
+     pane
+     wrapping-space-mixin
+     mirrored-sheet-mixin
+     sheet-multiple-child-mixin)
+    ()
+  (:default-initargs :text-cursor nil :text-margin 10))
 
-(defmethod allocate-space ((sheet top-level-sheet) width height)
-  (resize-sheet* (first (sheet-children sheet)) width height))
 
-(defmethod compose-space ((sheet top-level-sheet) &key width height)
-  (compose-space (first (sheet-children sheet)) :width width :height height))
+;; invoke-with-recording-options
+;; default-text-margin
+;; stream-read-gesture
+
+
+(defmethod note-layout-mixin-region-changed ((pane top-level-sheet) &key port)
+  (if port
+      (multiple-value-call #'layout-frame
+	(pane-frame pane) 
+	(bounding-rectangle-size pane))
+    (call-next-method)))
+
+;(defmethod allocate-space ((sheet top-level-sheet) width height)
+;  ;;--- To make openlook windows fill the vertical dimension we need
+;  ;;--- to do this why???. Actually doing this seems to make a lot of sense
+;  ;;--- Perhaps what should happen is that if the sheet-region is
+;  ;;--- changed by the port we should layout the entire frame instead
+;  (clear-space-requirement-caches-in-tree (first (sheet-children sheet)))
+;  ;;
+;  (resize-sheet* (first (sheet-children sheet)) width height))
+;
+;(defmethod compose-space ((sheet top-level-sheet) &key width height)
+;  (compose-space (first (sheet-children sheet)) :width width :height height))
 
 
 (defclass leaf-pane 

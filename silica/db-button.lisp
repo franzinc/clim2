@@ -3,7 +3,7 @@
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader$
+;; $fiHeader: db-button.lisp,v 1.3 92/03/10 15:45:49 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -120,7 +120,8 @@
 ;; This is done in the (SETF GADGET-VALUE) method because that's where it 
 ;; would be done in, say, Motif.  (I.e. we'd pass the SET-GADGET-VALUE off
 ;; to Motif which would toggle the indicator.)
-(defmethod (setf gadget-value) :after (nv (pane toggle-button-pane))
+
+(defmethod (setf gadget-value) :after (nv (pane toggle-button-pane) &key)
   (when (port pane)
     ;; If it's not grafted, don't draw it.
     (with-sheet-medium (medium pane)
@@ -130,8 +131,8 @@
 	       (cx (+ left radius))
 	       (cy (+ top (round (- bottom top) 2))))
 	  (draw-circle* medium cx cy (round radius 2)
-			:ink (if (gadget-value pane) +foreground-ink+ +background-ink+))))))
-  (value-changed-callback pane (gadget-client pane) (gadget-id pane) nv))
+			:ink (if (gadget-value pane) +foreground-ink+
+			       +background-ink+)))))))
 
 (defmethod handle-event ((pane toggle-button-pane) (event pointer-button-press-event))
   (with-slots (armed) pane

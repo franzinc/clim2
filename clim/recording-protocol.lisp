@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.3 92/03/04 16:22:13 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.5 92/03/10 10:12:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1138,6 +1138,7 @@
   (letf-globally (((stream-recording-p stream) record)
 		  ((stream-drawing-p stream) draw))
     (funcall continuation)))
+
 
 ;;; The following two are only called when STREAM-RECORDING-P is true and the
 ;;; characters are printable (see CHARACTER-DRAWING.LISP).

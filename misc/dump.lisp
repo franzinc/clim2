@@ -20,12 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dump.lisp,v 1.1 92/02/16 20:31:29 cer Exp $
+;; $fiHeader: dump.lisp,v 1.3 92/03/04 16:23:13 cer Exp Locker: cer $
 
 ;; Assuming CLIM is loaded, dump it into /usr/tmp/clim.temp_$USER.
 (room t)
 (sys:resize-areas :global-gc t :old 1000000 :new 500000)
 (room t)
+
 (dumplisp :name (concatenate 'simple-string "/tmp/clim.temp_"
 			     (sys:getenv "USER"))
 	  :checkpoint nil)

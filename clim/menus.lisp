@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.14 92/03/06 09:08:44 cer Exp $
+;; $fiHeader: menus.lisp,v 1.15 92/03/10 10:12:44 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -24,8 +24,9 @@
   (and (boundp '*application-frame*)
        *application-frame*))
 
-(defun get-menu (&key server-path)
+(defun get-menu (&key port)
   (let ((frame (make-application-frame 'menu-frame
+				       :parent port
 				       :save-under t)))
     (values (slot-value frame 'menu) frame)))
 
@@ -61,9 +62,8 @@
 
 #+Silica
 (defresource menu (associated-window root)
-  :constructor (let* ((port (if (null root) (find-port) (port root)))
-		      (server-path (port-server-path port)))
-		 (get-menu :server-path server-path))
+  :constructor (let* ((port (if (null root) (find-port) (port root))))
+		 (get-menu :port port))
   :deinitializer (window-clear menu)
   ;; We used to have an initializer that set record-p, cleared the window, and set
   ;; the size.  Record-p is unnecessary because we explicitly bind it below

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: excl-verification.lisp,v 1.4 92/02/24 13:05:36 cer Exp $
+;; $fiHeader: excl-verification.lisp,v 1.5 92/03/10 10:11:51 cer Exp Locker: cer $
 
 (in-package :sys)
 
@@ -31,5 +31,5 @@ You do not have patches ~{~S ~}"
 	   dont-have)))
 
 (si::rcsnote
- "CLIM 2.0"
+ "CLIM 2.0.alpha.0"
  "$fiHeader: ")

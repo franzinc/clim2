@@ -20,14 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-init.lisp,v 1.1 92/02/16 20:31:00 cer Exp $
+;; $fiHeader: xt-init.lisp,v 1.2 92/02/24 13:04:16 cer Exp Locker: cer $
 
 
 (in-package :tk)
 
 (defvar *xt-done* nil)
 
-(unless *xt-done*
-  (toolkit-initialize)
-  (define-toolkit-classes *intrinsic-classes*)
-  (setq *xt-done* t))
+(defun xt-initialize ()
+  (unless *xt-done*
+    (toolkit-initialize)
+    (define-toolkit-classes *intrinsic-classes*)
+    (setq *xt-done* t)))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.14 92/03/06 09:08:32 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.16 92/03/10 10:12:02 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -29,6 +29,7 @@
 			 (push-button motif-push-button)
 			 (label-pane motif-label-pane)
 			 (text-field motif-text-field)
+			 (silica::text-editor motif-text-editor)
 			 (toggle-button motif-toggle-button)
 			 (menu-bar motif-menu-bar)
 			 (viewport xm-viewport)
@@ -66,7 +67,7 @@
       (tk::get-values (sheet-mirror gadget) :value)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget motif-value-pane))
+(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key)
   (when (sheet-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
 
@@ -103,9 +104,16 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-label-pane))
-  (with-accessors ((label gadget-label)) sheet
+  (with-accessors ((label gadget-label)
+		   (alignment gadget-alignment)) sheet
     (values 'tk::xm-label
-	    (and label (list :label-string label)))))
+	    (append
+	     (list :alignment 
+		   (ecase alignment
+		     ((:left nil) :beginning)
+		     (:center :center)
+		     (:right :end)))
+	     (and label (list :label-string label))))))
 
 
 ;;; Push button
@@ -278,10 +286,6 @@
 
 (defclass motif-top-level-sheet (top-level-sheet) ())
 
-(warn "This is really bogus")
-
-(defmethod stream-read-char-no-hang ((x motif-top-level-sheet))
-  nil)
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet motif-top-level-sheet)
@@ -347,6 +351,41 @@
 	    (append
 	     (and value `(:value ,value))))))
 
+;;; 
+
+(defclass motif-text-editor (xt-leaf-pane
+			     motif-value-pane 
+			     motif-action-pane
+			     silica::text-editor)
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-text-editor))
+  (with-accessors ((value gadget-value)
+		   (ncolumns silica::gadget-columns)
+		   (nlines silica::gadget-lines)) sheet
+    (values 'tk::xm-text
+	    (append
+	     (and ncolumns (list :columns ncolumns))
+	     (and nlines (list :rows nlines))
+	     (and value `(:value ,value))))))
+
+(defmethod set-mirror-geometry (parent (sheet motif-text-editor) initargs)
+  (multiple-value-bind (left top right bottom)
+      (sheet-actual-native-edges* sheet)
+      (setf (getf initargs :x) (floor left)
+	    (getf initargs :y) (floor top))
+    initargs))
+
+
+(defmethod compose-space ((te motif-text-editor) &key width height)
+  (declare (ignore width height))
+  (let ((sr (call-next-method)))
+    (setq sr (silica::copy-space-requirement sr))
+    (setf (space-requirement-max-width sr) +fill+
+	  (space-requirement-max-height sr) +fill+)
+    sr))
 
 ;;; Toggle button
 
@@ -374,7 +413,7 @@
       (tk::get-values (sheet-mirror gadget) :set)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget motif-toggle-button))
+(defmethod (setf gadget-value) (nv (gadget motif-toggle-button) &key)
   (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :set nv)))
 

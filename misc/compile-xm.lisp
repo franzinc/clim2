@@ -20,30 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-xm.lisp,v 1.5 92/03/09 17:42:03 cer Exp Locker: cer $
+;; $fiHeader: compile-xm.lisp,v 1.6 92/03/10 10:13:13 cer Exp Locker: cer $
 
 (in-package :user)
 
-(setq *ignore-package-name-case* t)
-(set-case-mode :case-insensitive-lower)
-(setf *load-source-file-info* t)
-(setf *record-source-file-info* t)
-(setf *load-xref-info* nil)
-(setf *record-xref-info* nil)
-(setf (sys:gsgc-switch :print) nil)
-(setf (sys:gsgc-switch :stats) nil)
-
-(setq *compile-print* nil)
-(unless (find-package 'excl-defsystem)
-  (compile-file-if-needed "sys/defsystem")
-  (let ((*enable-package-locked-errors* nil))
-    (load "sys/defsystem")))
-(unless (errorset (defsys::find-system 'motif-clim))
-  (load "sys/sysdcl"))
-(defsys::compile-system 'motif-clim :propagate t)
-(tenuring
- (defsys::load-system 'motif-clim))
-(compile-file-if-needed "test/test-suite")
-(load "demo/sysdcl")
-(defsys::compile-system 'clim-demo :propagate t)
-
+(load "misc/compile-1")
+(compile-it 'motif-clim)

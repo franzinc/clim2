@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.9 92/03/04 16:21:04 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.11 92/03/10 10:12:13 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -197,6 +197,7 @@
 	(setf exit-button-stream
 	      (realize-pane 'clim-stream-pane
 			    :initial-cursor-visibility nil)))))
+  (:top-level (accept-values-top-level))
   (:menu-bar nil)
   (:command-table accept-values)
   (:command-definer nil))
@@ -275,6 +276,7 @@
 	 (bottom-margin 10))
      (if own-window
 	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
+					      :parent *application-frame*
 					      :calling-frame *application-frame*
 					      :continuation continuation
 					      :exit-boxes exit-boxes
@@ -1035,17 +1037,26 @@
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
 	    (realize-pane 'push-button
+			  :activate-callback
+			  #'(lambda (gadget)
+			      (declare (ignore gadget))
+			      (com-abort-avv))
 			  :client frame
 			  :id :abort
 			  :label abort)))
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
 	    (realize-pane 'push-button
+			  :activate-callback
+			  #'(lambda (gadget)
+			      (declare (ignore gadget))
+			      (com-exit-avv))
 			  :client frame
 			  :id :exit
 			  :label exit))))))))
 
 ;; Callback for exit boxes
+#+ignore
 (defmethod activate-callback ((button push-button) (client accept-values) id)
   (ecase id
     (:abort (com-abort-avv))
@@ -1060,6 +1071,7 @@
     (setf value new-value
 	  changed-p t)))
 
+#+ignore
 (defmethod value-changed-callback :around ((gadget value-gadget)
 					   (client accept-values-stream) id new-value)
   (declare (ignore new-value))
@@ -1067,14 +1079,28 @@
     ;; Only call the callback if the query is still valid
     (call-next-method)))
 
-;; Callback for value gadgets
+#+ignore
 (defmethod value-changed-callback ((gadget value-gadget)
 				   (client accept-values-stream) id new-value)
   (do-avv-command new-value client id))
 
+#+ignore
 (defmethod value-changed-callback ((gadget radio-box)
 				   (client accept-values-stream) id new-value)
   (do-avv-command (gadget-id new-value) client id))
+
+
+(defun accept-values-value-changed-callback (gadget new-value stream query-id)
+  (declare (ignore gadget))
+  (when (accept-values-query-valid-p (accept-values-query-presentation query-id))
+    ;; Only call the callback if the query is still valid
+    (do-avv-command new-value stream query-id)))
+
+(defun make-accept-values-value-changed-callback (stream query-id)
+  ;; We attach a callback function directly now
+  `(,#'accept-values-value-changed-callback ,stream ,query-id))
+
+;;;;;;;;;;;;;;;
 
 (defun do-avv-command (new-value client id)
   (throw-highlighted-presentation
@@ -1092,27 +1118,46 @@
 
 ;; This is how we associate an output-record with the button
 (defmethod invoke-accept-values-command-button
-    	   (stream continuation (view gadget-dialog-view) prompt
-	    &key (documentation (if (stringp prompt)
-				    prompt
-				    (with-output-to-string (stream)
-				      (funcall prompt stream))))
-		 (query-identifier (list ':button documentation))
-		 (cache-value t) (cache-test #'eql)
-		 resynchronize)
+    (stream continuation (view gadget-dialog-view) prompt
+     &key (documentation (if (stringp prompt)
+			     prompt
+			   (with-output-to-string (stream)
+			     (funcall prompt stream))))
+	  (query-identifier (list ':button documentation))
+	  (cache-value t) (cache-test #'eql)
+	  resynchronize)
   (declare (dynamic-extent prompt))
   (updating-output 
    (stream :unique-id query-identifier :id-test #'equal
 	   :cache-value cache-value :cache-test cache-test)
    (with-output-as-gadget (stream)
-     (realize-pane 'push-button
-		   :label prompt
-		   :id (stream-current-output-record (slot-value stream 'stream))
-		   :client (make-instance 'accept-values-command-button
-					  :continuation continuation
-					  :documentation documentation
-					  :resynchronize resynchronize)))))
+     (let ((id (stream-current-output-record (slot-value stream
+							 'stream)))
+	   (client (make-instance 'accept-values-command-button
+				  :continuation continuation
+				  :documentation documentation
+				  :resynchronize resynchronize)))
+       (realize-pane 'push-button
+		     :activate-callback
+		     #'(lambda (button)
+			 (when (accept-values-query-valid-p id)
+			   (throw-highlighted-presentation
+			    (make-instance 'standard-presentation
+					   :object `(com-avv-command-button ,client ,id)
+					   :type 'command)
+			    *input-context*
+			    ;;--- It would be nice if we had the real event...
+			    (make-instance 'pointer-button-press-event
+					   :sheet (sheet-parent button)
+					   :x 0
+					   :y 0
+					   :modifiers 0
+					   :button 256))))
+		     :label prompt
+		     :id id
+		     :client client)))))
 
+#+ignore
 (defmethod activate-callback ((button push-button)
 			      (client accept-values-command-button) id)
   (when (accept-values-query-valid-p id)

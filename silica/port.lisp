@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.7 92/03/09 17:41:14 cer Exp Locker: cer $
+;; $fiHeader: port.lisp,v 1.8 92/03/10 10:11:43 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -68,13 +68,16 @@
   (mapc function *ports*))
 
 (defgeneric restart-port (port)
-  (:method
-    ((port port))
-    (when (port-process port)
-      (destroy-process (port-process port)))
-    (setf (port-process port)
-	  (make-process #'(lambda () (port-event-loop port))
-			:name "CLIM Event Dispatcher"))))
+  )
+
+(defmethod restart-port ((port port))
+  (when (port-process port)
+    (destroy-process (port-process port)))
+  (setf (port-process port)
+    (make-process #'(lambda () (port-event-loop port))
+		  :name (format nil
+				"CLIM Event Dispatcher for ~A"
+				(port-server-path port)))))
 
 (defgeneric port-event-loop (port)
   (:method ((port port))
@@ -110,12 +113,11 @@
   (:method ((x graft)) t)
   (:method ((x t)) nil))
 
-(defun find-graft (&key (port (find-port))
-			(server-path *default-server-path*)
-			(orientation :default)
-			(units :device))
-  (unless port
-    (setq port (find-port :server-path server-path)))
+(defun find-graft (&key 
+		   (server-path *default-server-path*)
+		   (orientation :default)
+		   (units :device)
+		   (port (find-port :server-path server-path)))
   (map-over-grafts #'(lambda (graft)
 		       (when (graft-matches-spec graft orientation units)
 			 (return-from find-graft graft)))
@@ -131,6 +133,8 @@
 (defmethod initialize-instance :after ((graft graft) &key port)
   (pushnew graft (port-grafts port))
   (realize-graft port graft))
+
+
 
 (defmethod update-mirror-region ((port port) (sheet graft))
   ;;--- I don't think we ever change the region of a graft...

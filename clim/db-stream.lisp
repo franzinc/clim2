@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.8 92/02/24 13:07:16 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.9 92/03/04 16:21:21 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -193,6 +193,7 @@
 
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())
+(defclass pointer-documentation-pane (clim-stream-pane) ())
 (defclass command-menu-pane (clim-stream-pane) ())
 
 (defmethod compose-space :before ((pane command-menu-pane) &key width height)
@@ -268,9 +269,9 @@
     (when text-record (replay text-record stream))))
 
 (defmethod window-erase-viewport ((stream window-stream))
-  (with-output-recording-options (stream :record nil)
+  (with-sheet-medium (medium stream)
     (multiple-value-call #'draw-rectangle*
-      (sheet-medium stream)
+      medium
       (bounding-rectangle* (or (pane-viewport stream)
 			       stream))
       :ink +background-ink+)))
@@ -330,6 +331,15 @@
 ;; location.  It does NOT do any cleaning up after itself.  It does not side-effect
 ;; the output history of the window.  It calls COPY-AREA whose contract is to 
 ;; do the above, the whole above, and nothing but the above.
+
+;;;---
+(defmethod window-shift-visible-region ((window t)
+					old-left old-top old-right old-bottom
+					new-left new-top new-right
+					new-bottom)
+  (declare (ignore old-left old-top old-right old-bottom new-left new-top new-right new-bottom))
+  nil)
+
 (defmethod window-shift-visible-region ((window clim-stream-sheet)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)

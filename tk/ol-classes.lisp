@@ -20,85 +20,85 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-classes.lisp,v 1.1 92/02/16 20:30:56 cer Exp $
+;; $fiHeader: ol-classes.lisp,v 1.2 92/02/24 13:03:35 cer Exp Locker: cer $
 
 (in-package :tk)
 
-  (defparameter *openlook-classes* '(
-				     ;; Base classes
-				     "_applicationShellWidgetClass"
-				     "_compositeWidgetClass"
-				     "_constraintWidgetClass"
-				     "_coreWidgetClass"
-				     "_objectClass"
-				     "_overrideShellWidgetClass"
-				     "_shellWidgetClass"
-				     "_topLevelShellWidgetClass"
-				     "_transientShellWidgetClass"
-				     "_vendorShellWidgetClass"
-				     "_wmShellWidgetClass"
+(defparameter *openlook-classes* '(
+				   ;; Base classes
+				   "_applicationShellWidgetClass"
+				   "_compositeWidgetClass"
+				   "_constraintWidgetClass"
+				   "_coreWidgetClass"
+				   "_objectClass"
+				   "_overrideShellWidgetClass"
+				   "_shellWidgetClass"
+				   "_topLevelShellWidgetClass"
+				   "_transientShellWidgetClass"
+				   "_vendorShellWidgetClass"
+				   "_wmShellWidgetClass"
 
-				     ;; OpenLook specific classes
-				     ;; Some of these are both gadgets
-				     ;; and widget and I think the
-				     ;; names are the same!
+				   ;; OpenLook specific classes
+				   ;; Some of these are both gadgets
+				   ;; and widget and I think the
+				   ;; names are the same!
 				     
-				     "_abbrevMenuButtonWidgetClass"
-				     "_abbrevStackWidgetClass"
-				     "_arrowWidgetClass"
-				     "_baseWindowShellWidgetClass"
-				     "_bulletinBoardWidgetClass"
-				     "_buttonWidgetClass"
-				     "_buttonGadgetClass"
-				     "_buttonStackWidgetClass"
+				   "_abbrevMenuButtonWidgetClass"
+				   "_abbrevStackWidgetClass"
+				   "_arrowWidgetClass"
+				   "_baseWindowShellWidgetClass"
+				   "_bulletinBoardWidgetClass"
+				   "_buttonWidgetClass"
+				   "_buttonGadgetClass"
+				   "_buttonStackWidgetClass"
 
-				     ;;"_buttonStackGadgetClass"
+				   ;;"_buttonStackGadgetClass"
 
-				     "_captionWidgetClass"
-				     "_checkBoxWidgetClass"
-				     "_controlAreaWidgetClass"
-				     "_eventObjClass"
-				     "_exclusivesWidgetClass"
-				     "_flatCheckBoxWidgetClass"
-				     "_flatExclusivesWidgetClass"
-				     "_flatNonexclusivesWidgetClass"
-				     "_flatWidgetClass"
-				     "_footerPanelWidgetClass"
-				     "_formWidgetClass"
-				     "_helpWidgetClass"
-				     "_listPaneWidgetClass"
-				     "_magWidgetClass"
-				     "_managerWidgetClass"
-				     "_menuShellWidgetClass"
-				     "_menuButtonWidgetClass"
+				   "_captionWidgetClass"
+				   "_checkBoxWidgetClass"
+				   "_controlAreaWidgetClass"
+				   "_eventObjClass"
+				   "_exclusivesWidgetClass"
+				   "_flatCheckBoxWidgetClass"
+				   "_flatExclusivesWidgetClass"
+				   "_flatNonexclusivesWidgetClass"
+				   "_flatWidgetClass"
+				   "_footerPanelWidgetClass"
+				   "_formWidgetClass"
+				   "_helpWidgetClass"
+				   "_listPaneWidgetClass"
+				   "_magWidgetClass"
+				   "_managerWidgetClass"
+				   "_menuShellWidgetClass"
+				   "_menuButtonWidgetClass"
 
-				     ;;"_menuButtonGadgetClass"
+				   ;;"_menuButtonGadgetClass"
 
-				     "_nonexclusivesWidgetClass"
-				     "_noticeShellWidgetClass"
-				     "_oblongButtonWidgetClass"
-				     ;; "_oblongButtonGadgetClass"
-				     "_popupWindowShellWidgetClass"
-				     "_primitiveWidgetClass"
-				     "_pushpinWidgetClass"
-				     "_rectButtonWidgetClass"
-				     "_scrollbarWidgetClass"
-				     "_scrolledWindowWidgetClass"
-				     "_scrollingListWidgetClass"
-				     "_sliderWidgetClass"
-				     "_staticTextWidgetClass"
-				     "_stubWidgetClass"
-				     "_textWidgetClass"
+				   "_nonexclusivesWidgetClass"
+				   "_noticeShellWidgetClass"
+				   "_oblongButtonWidgetClass"
+				   ;; "_oblongButtonGadgetClass"
+				   "_popupWindowShellWidgetClass"
+				   "_primitiveWidgetClass"
+				   "_pushpinWidgetClass"
+				   "_rectButtonWidgetClass"
+				   "_scrollbarWidgetClass"
+				   "_scrolledWindowWidgetClass"
+				   "_scrollingListWidgetClass"
+				   "_sliderWidgetClass"
+				   "_staticTextWidgetClass"
+				   "_stubWidgetClass"
+				   "_textWidgetClass"
 				     
 				     ;;; This two seem to be broken!
-				     ;; "_textEditWidgetClass"
-				     ;;"_textPaneWidgetClass"
+				   ;; "_textEditWidgetClass"
+				   ;;"_textPaneWidgetClass"
 				     
-				     "_compositeWidgetClass"
-				     "_overrideShellWidgetClass"
-				     "_shellWidgetClass"
-				     "_topLevelShellWidgetClass"
-				     "_widgetClass"
-				     "_widgetClassRec"
-				     "_drawAreaWidgetClass"
-				     ))
+				   "_compositeWidgetClass"
+				   "_overrideShellWidgetClass"
+				   "_shellWidgetClass"
+				   "_topLevelShellWidgetClass"
+				   "_widgetClass"
+				   "_widgetClassRec"
+				   "_drawAreaWidgetClass"
+				   ))

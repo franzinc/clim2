@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.1 92/01/31 14:32:11 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.5 92/03/04 16:23:04 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -22,28 +22,26 @@
 			    #+Allegro (frob-pathname "demo")
 			    #+CMU "/home/hornig/clim/rel-2/cmu/"
 			    #+CCL-2 "ccl;clim-2.0:fasls:"
-   :needed-systems (clim-standalone))
+;;;; :needed-systems (clim-standalone)
+			    )
 
   ("packages")
   ("aaai-demo-driver" :load-before-compile ("packages"))
   ("listener"       :load-before-compile ("aaai-demo-driver" "packages"))
   ("graphics-demos" :load-before-compile ("aaai-demo-driver" "packages")
 		    :features (not Minima))
-  #+++when-converted
+  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
   ("cad-demo"	    :load-before-compile ("aaai-demo-driver" "packages")
 		    :features (not Minima))
-  #+++when-converted
   ("navdata"	    :load-before-compile ("packages")
 		    :features (not Minima))
-  #+++when-converted
   ("navfun"         :load-before-compile ("aaai-demo-driver" "navdata" "packages")
 		    :features (not Minima))
-  #+++when-converted
-  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
-  #+++when-converted
-  ("address-book"   :load-before-compile ("aaai-demo-driver" "packages"))
-  #+++when-converted
-  ("thinkadot"      :load-before-compile ("aaai-demo-driver" "packages"))
+  ("address-book"   :load-before-compile ("aaai-demo-driver"
+					  "packages"))
+  ("thinkadot"      :load-before-compile ("aaai-demo-driver"
+					  "packages"))
+  
   ("demo-prefill" :features (and (not Silica) (or Genera Cloe-Runtime))))
 
 #+Genera

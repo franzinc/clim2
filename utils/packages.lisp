@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.4 92/02/24 13:05:46 cer Exp $
+;; $fiHeader: packages.lisp,v 1.7 92/03/10 10:11:54 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1745,6 +1745,7 @@
     pointer-event-y
     pointer-exit-event
     pointer-motion-event
+    port-notify-user
     poll-pointer
     port
     port-keyboard-input-focus
@@ -2514,6 +2515,8 @@
     pane-frame
     pane-needs-redisplay
     panes-need-redisplay
+    pane-viewport
+    pane-viewport-region
     read-frame-command
     reconfigure-frame
     redisplay-frame-command-menu
@@ -2556,6 +2559,7 @@
     scrolling
     spacing
     tabling
+    text-editor
     text-field
     text-stream-pane
     top-level-sheet
@@ -2572,12 +2576,14 @@
     disarmed-callback
     drag-callback
     gadget
+    gadget-alignment
     gadget-client
     gadget-id
     gadget-indicator-type
     gadget-label
     gadget-orientation
     gadget-value
+    label-pane
     menu-bar
     note-gadget-activated
     note-gadget-deactivated
@@ -3240,7 +3246,6 @@
     intern-text-style
     invoke-callback-function
     label-button-pane
-    label-pane
     labelled-gadget
     line-editor-pane
     list-pane
@@ -3265,8 +3270,6 @@
     one-of-pane
     outlined-pane
     pane-scroller
-    pane-viewport
-    pane-viewport-region
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
     pointer-press-event

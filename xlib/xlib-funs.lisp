@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader$
+;;; $fiHeader: xlib-funs.lisp,v 1.1 92/03/06 17:07:01 cer Exp Locker: cer $
 
 (in-package :x11)
 
@@ -1769,7 +1769,7 @@
    (gc gc)
    (x fixnum-int)
    (y fixnum-int)
-   (string :simple-string)
+   (string (:pointer char))
    (start fixnum-int)
    (end fixnum-int))
 

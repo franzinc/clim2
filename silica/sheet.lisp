@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.6 92/02/24 13:04:55 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.7 92/03/04 16:19:55 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -51,8 +51,6 @@
     (unless (and x (null (cdr x)))
       (error "Not one child:~S" sheet))
     (car x)))
-
-(defmethod sheet-shell (sheet) sheet)
 
 (defun map-over-sheets (function sheet)
   (declare (dynamic-extent function))

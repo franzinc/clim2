@@ -1,22 +1,28 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.1 92/01/31 14:32:10 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.2 92/02/24 13:09:31 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
 "Copyright (c) 1989, 1990, 1991 Symbolics, Inc.  All rights reserved."
 
 (define-application-frame puzzle 
-			  ()
-    ((puzzle :initform (make-array '(4 4))
-	     :accessor puzzle-puzzle))
-  (:panes ((title :title)
-	   (menu :command-menu)
-	   (display :application
-		    :default-text-style '(:fix :bold :very-large)
-		    :scroll-bars nil
-		    :incremental-redisplay T
-		    :display-function 'draw-puzzle))))
+    ()
+  ((puzzle :initform (make-array '(4 4))
+	   :accessor puzzle-puzzle))
+  (:panes
+   (display
+    (outlining ()
+	       (realize-pane 'application-pane
+			     :text-cursor nil
+			     :width :compute
+			     :max-width +fill+
+			     :height :compute
+			     :max-height +fill+
+			     :incremental-redisplay T
+			     :display-function 'draw-puzzle))))
+  (:layout
+   (:default display)))
 
 (defmethod frame-query-io ((puzzle puzzle))
   (get-frame-pane puzzle 'display))
@@ -63,8 +69,11 @@
       (dotimes (column 4)
 	(setf (aref puzzle-array row column) (mod (1+ (encode-puzzle-cell row column)) 16))))))
 
-(defmethod draw-puzzle ((puzzle puzzle) stream)
-  (with-end-of-page-action (stream :allow)
+(defmethod draw-puzzle ((puzzle puzzle) stream &key max-width max-height)
+  (declare (ignore max-width max-height))
+  (with-text-style (stream  '(:fix :bold :very-large))
+   (with-end-of-page-action (stream :allow)
+      (with-end-of-line-action (stream :allow)
     (let ((puzzle-array (puzzle-puzzle puzzle)))
       ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
       (stream-set-cursor-position* stream 0 0)
@@ -81,7 +90,7 @@
 		      (unless (zerop value)
 			(with-output-as-presentation 
 			    (stream (encode-puzzle-cell row column) 'puzzle-cell)
-			  (format stream "~D" value))))))))))))))
+			  (format stream "~D" value))))))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)

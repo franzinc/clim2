@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.1 92/01/31 14:32:06 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.2 92/02/24 13:09:28 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -220,11 +220,11 @@
   (draw-coastline *coastline*)
   (flet ((present-position (object)
 	   (present object (class-name (class-of object))
-		    :view +iconic-view+ :single-box t)))
+		    :view +gadget-view+ :single-box t)))
     (mapc #'present-position *position-list*))
   (flet ((present-route (object)
 	   (present object (class-name (class-of object))
-		    :view +iconic-view+ :single-box nil)))
+		    :view +gadget-view+ :single-box nil)))
     (mapc #'present-route *route-list*)
     (mapc #'present-route *victor-airway-list*)))
 
@@ -307,14 +307,14 @@
     (format stream "NDB ~A ~A" name longname)))
 
 #-Allegro
-(defclass intersection (named-position) ())
+(defclass named-intersection (named-position) ())
 
 #+Allegro
 (eval-when (compile load eval)
-  (defclass intersection (named-position) ()))
+  (defclass named-intersection (named-position) ()))
 
-(defmethod draw-position ((intersection intersection) stream &optional label)
-  (with-slots (longitude latitude) intersection
+(defmethod draw-position ((named-intersection named-intersection) stream &optional label)
+  (with-slots (longitude latitude) named-intersection
     (multiple-value-bind (x y) (scale-coordinates longitude latitude)
       (rounding-coordinates (x y)
 	(let ((color-args (and (color-stream-p stream)
@@ -343,7 +343,7 @@
 
 (define-presentation-type ground-position ())
 
-(define-presentation-method present (object (type ground-position) stream (view iconic-view) &key)
+(define-presentation-method present (object (type ground-position) stream (view gadget-view) &key)
   (draw-position object stream))
 
 
@@ -354,7 +354,7 @@
   (let ((*print-object-readably* acceptably))
     (format stream "~A" (position-name object))))
 
-(define-presentation-method present (object (type named-position) stream (view iconic-view)
+(define-presentation-method present (object (type named-position) stream (view gadget-view)
 				     &key)
   (draw-position object stream
 		 (and (typep object 'named-position)
@@ -372,7 +372,7 @@
 
 (define-presentation-type NDB ())
 
-(define-presentation-type intersection ())
+(define-presentation-type named-intersection ())
 
 (define-presentation-type visual-checkpoint ())
 
@@ -494,7 +494,7 @@
   (let ((*print-object-readably* acceptably))
     (format stream "~A" (route-name object))))
 
-(define-presentation-method present (object (type route) stream (view iconic-view) &key)
+(define-presentation-method present (object (type route) stream (view gadget-view) &key)
   (let ((drawing-args (if (color-stream-p stream)
 			  (list :ink +red+)
 			  '(:line-dashes t))))
@@ -522,7 +522,7 @@
   (let ((*print-object-readably* acceptably))
     (format stream "~A" (route-name object))))
 
-(define-presentation-method present (object (type victor-airway) stream (view iconic-view)
+(define-presentation-method present (object (type victor-airway) stream (view gadget-view)
 				     &key)
   (let ((drawing-args (if (color-stream-p stream)
 			  (list :ink +blue+)
@@ -1018,20 +1018,17 @@
 ;;; Flight-Planner user interface
 
 (define-application-frame Flight-Planner
-			  ()
-    ((fp-window))
-  (:panes ((title :title)
-	   (display :application)
-	   (commands :command-menu)
-	   (interactor :interactor)
-	   (documentation :pointer-documentation)))
-  (:layout ((default
-	      (:column 1
-	       (title :compute)
-	       (display :rest)
-	       (commands :compute)
-	       (interactor 1/5)
-	       (documentation :compute))))))
+    ()
+  ((fp-window))
+  (:panes 
+   (display (realize-pane 'application-pane))
+   (interactor (realize-pane 'interactor-pane)))
+  (:layout 
+   (default
+       (vertically 
+	()
+	(scrolling () display)
+	(scrolling () interactor)))))
 
 (define-Flight-Planner-command (com-Zoom-In :name t :menu t) ()
   (multiple-value-bind (longitude latitude)
@@ -1104,11 +1101,11 @@
 
 (defun route-start-object-p (thing)		;--- kludge!
   (or (typep thing 'airport)
-      (typep thing 'intersection)
+      (typep thing 'named-intersection)
       (typep thing 'vor)))
 
 (define-presentation-type-abbreviation route-start-object ()
-  '(or airport intersection vor))
+  '(or airport named-intersection vor))
 
 ;;; Add <kind>
 (define-Flight-Planner-command (com-Add-Object :name t :menu "Add")
@@ -1122,17 +1119,17 @@
     (ground-position
       (let ((new-position (query-new-position)))
 	(when new-position
-	  (present new-position 'ground-position :view +iconic-view+)
+	  (present new-position 'ground-position :view +gadget-view+)
 	  (push new-position *position-list*))))
     (route
       (let* ((new-route (query-new-route :route-start route-start)))
 	(when new-route
-	  (present new-route 'route :view +iconic-view+)
+	  (present new-route 'route :view +gadget-view+)
 	  (push new-route *route-list*))))
     (victor-airway
       (let ((new-victor-airway (query-new-victor-airway)))
 	(when new-victor-airway
-	  (present new-victor-airway 'victor-airway :view +iconic-view+)
+	  (present new-victor-airway 'victor-airway :view +gadget-view+)
 	  (push new-victor-airway *victor-airway-list*))))
     (aircraft
       (let ((new-aircraft (query-new-aircraft)))
@@ -1158,7 +1155,7 @@
       (terpri *query-io*)
       (setq long-name (accept 'string :prompt "Long name"))
       (terpri *query-io*)
-      (setq kind (accept '(member airport vor intersection visual-checkpoint)
+      (setq kind (accept '(member airport vor named-intersection visual-checkpoint)
 			 :prompt "Kind of position"))
       (terpri *query-io*)
       (setq lat-and-long (accept 'latitude-and-longitude :prompt "Latitude, Longitude"))
@@ -1176,11 +1173,11 @@
 (defun waypoint-object-p (thing)		;--- kludge!
   (or (null thing)
       (typep thing 'airport)
-      (typep thing 'intersection)
+      (typep thing 'named-intersection)
       (typep thing 'vor)))
 
 (define-presentation-type-abbreviation waypoint-object ()
-  '(or null airport intersection vor))
+  '(or null airport named-intersection vor))
 
 (defun query-new-route (&key (name nil) (route-start nil))
   (do* ((overfly ())
@@ -1611,11 +1608,11 @@
   ;; Airports
   (add-position "HFD" 'airport (degminsec 41 44) (degminsec 72 39) 19  15 "Hartford-Brainard")
  
-  ;; Intersections
-  (add-position "DREEM" 'intersection (degminsec 42 21.6) (degminsec 71 44.3) 0 15 "DREEM")
-  (add-position "GRAYM" 'intersection (degminsec 42 06.1) (degminsec 72 01.9) 0 15 "GRAYM")
-  (add-position "WITNY" 'intersection (degminsec 42 03) (degminsec 72 14.2) 0 15 "WITNY")
-  (add-position "EAGRE" 'intersection (degminsec 41 45) (degminsec 72 20.6) 0 15 "EAGRE")
+  ;; Named-Intersections
+  (add-position "DREEM" 'named-intersection (degminsec 42 21.6) (degminsec 71 44.3) 0 15 "DREEM")
+  (add-position "GRAYM" 'named-intersection (degminsec 42 06.1) (degminsec 72 01.9) 0 15 "GRAYM")
+  (add-position "WITNY" 'named-intersection (degminsec 42 03) (degminsec 72 14.2) 0 15 "WITNY")
+  (add-position "EAGRE" 'named-intersection (degminsec 41 45) (degminsec 72 20.6) 0 15 "EAGRE")
 
   ;; VOR's
 

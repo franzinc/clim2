@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.4 92/03/04 16:21:13 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.5 92/03/10 10:12:20 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -46,9 +46,11 @@
 	   (with-accept-help ((:top-level-help #'command-help))
 	     (multiple-value-bind (command final-delimiter)
 		 (invoke-command-name-parser-and-collect-1 
-		   command-name arg-parser delimiter-parser stream)
-	       (if (member final-delimiter *command-previewers*
-			   :test #'keyboard-event-matches-gesture-name-p)
+		  command-name arg-parser delimiter-parser stream)
+	       ;;-- In the cad demo this ends up as NIL. Is that ok??
+	       (if (and final-delimiter
+			(member final-delimiter *command-previewers*
+			   :test #'keyboard-event-matches-gesture-name-p))
 		   (with-input-editor-typeout (stream)
 		     (accept-values-command-parser
 		       command-name command-table 

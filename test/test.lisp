@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.14 92/03/04 16:22:41 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.15 92/03/09 17:41:57 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -46,6 +46,12 @@
 
 
 (define-application-frame test-frame0 () ()
+  (:command-table test-frame)
+  (:pane 
+    (scrolling ()
+	       (realize-pane 'interactor-pane))))
+
+(define-application-frame test-frame01 () ()
   (:command-table test-frame)
   (:pane 
     (scrolling ()
@@ -217,20 +223,20 @@
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
 	      (surrounding-output-with-border (stream)
-		(with-output-as-gadget (stream)
+		(clim-internals::with-output-as-gadget (stream)
 		  (realize-pane 'slider))))))
     (let ((weird (cons nil nil)))
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
 	      (surrounding-output-with-border (stream)
-		(with-output-as-gadget (stream)
+		(clim-internals::with-output-as-gadget (stream)
 		  (realize-pane 'push-button
 				:label "Amazing"))))))
     (let ((weird (cons nil nil)))
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
 	      (surrounding-output-with-border (stream)
-		(with-output-as-gadget (stream)
+		(clim-internals::with-output-as-gadget (stream)
 		  (scrolling ()
 		    (realize-pane 'interactor-pane)))))))))
 
@@ -259,7 +265,7 @@
     ()
   (let* ((stream *query-io*))
     (flet ((make-it (i)
-	     (with-output-as-gadget (stream)
+	     (clim-internals::with-output-as-gadget (stream)
 	       (realize-pane 
 		 'push-button
 		 :label (format nil "Amazing ~D" i)))))
@@ -274,7 +280,7 @@
 (define-test-frame-command (com-make-radio-box :name t :menu t)
     ()
   (let* ((stream *query-io*))
-    (with-output-as-gadget (stream)
+    (clim-internals::with-output-as-gadget (stream)
       (let* (#+ignore (frame-pane (realize-pane 'frame-pane))
 	     (gadget
 	       (realize-pane 'radio-box
@@ -338,3 +344,48 @@
 
 (defun slider-dragged-callback (slider value)
   (format t "~&Slider ~A dragged to ~S" (gadget-label slider) value))
+
+
+(defclass insect () ())
+
+(define-test-frame-command (com-make-insect :name t :menu t)
+    ()
+  (let ((i (make-instance 'insect)))
+    (with-output-as-presentation (t i (presentation-type-of i))
+      (print i))
+    (terpri)))
+
+(define-test-frame-command (com-describe-insect :name t :menu t)
+    ((bug 'insect
+	  :gesture (nil :menu t)
+	  :prompt "Select an insect"))
+  (describe bug))
+
+
+
+(define-application-frame tf99 () ()
+  (:command-table test-frame)
+  (:pane 
+    (vertically ()
+      (outlining ()
+	(horizontally ()
+	  (realize-pane 'push-button 
+			:label "B1"
+			:activate-callback 'push-button-callback)
+	  (realize-pane 'push-button 
+			:label "B2"
+			:activate-callback 'push-button-callback)))
+      (outlining ()
+	(horizontally ()
+	  (realize-pane 'toggle-button
+			:label "T1" 
+			:value-changed-callback 'toggle-button-callback)
+	  (realize-pane 'toggle-button 
+			:label "T2"
+			:value-changed-callback 'toggle-button-callback)))
+      (outlining ()
+	(spacing ()
+	  (realize-pane 'slider
+			:label "Slider"
+			:value-changed-callback 'slider-changed-callback
+			:drag-callback 'slider-dragged-callback))))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.13 92/03/10 10:12:04 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.14 92/03/10 15:40:01 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -394,6 +394,7 @@
       ;;--- We do not want to specify the x,y if this is a top-level
       ;;sheet.
       (unless (typep parent 'tk::shell)
+	;;--floor
 	(setf (getf initargs :x) (floor left)
 	      (getf initargs :y) (floor top)))
       (setf (getf initargs :width) (floor (- right left))
@@ -417,7 +418,8 @@
 (defmethod find-shell-of-calling-frame ((frame application-frame))
   (let (cf)
     (and (setq cf (frame-calling-frame frame))
-	 (sheet-shell (frame-top-level-sheet cf)))))
+	 (setq cf (frame-top-level-sheet cf))
+	 (sheet-shell cf))))
 
 (defmethod find-shell-parent (port sheet)
   (or (and  ;;--- hack alert

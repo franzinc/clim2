@@ -1,4 +1,4 @@
-%%  $fiHeader: clim.todo,v 1.11 92/03/12 13:41:57 cer Exp Locker: cer $
+K%%  $fiHeader: clim.todo,v 1.12 92/03/13 09:55:56 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -103,9 +103,6 @@
       those really mean to coerce to the COORDINATE type.
     - The per-port code will needs to "devicize" all coordinates.  For example,
       for CLX that means integerizing, but not for PostScript.
-  * [swm] Reinstate graphics function optimizers.
-    - Is any of the CLIM 1.0 graphics-defining stuff useful?
-    - Is any of the ILA CLIM graphics-defining stuff useful?
 
 % Size issues
   * [swm] Modularize with load on demand/required modules
@@ -163,69 +160,66 @@
 %% ********************************************* CER things 
 
 % Silica back-ends
-  * [cer,jdi] Xt
-    - Motif
-    - OpenLook
+
 
 % Holes to fill in
-  * [cer] INPUT-PROTOCOL and the HANDLE-EVENT problem
-  - Why does INPUT-PROTOCOL-MIXIN define an input buffer?  What's wrong with the
-    sheet event queue?
-  - What we really need to do is maintain a separate input buffer for the stream,
-    then STREAM-READ-GESTURE should loop doing HANDLE-EVENT until something gets
-    inserted into the stream's input buffer.  When there is something in input
-    buffer, STREAM-READ-GESTURE should then process it.
-  * [cer] Define cursor protocol
-  * [cer] Rename DEFSYS package to CLIM-DEFSYS.
+ * [cer,1d] INPUT-PROTOCOL and the HANDLE-EVENT problem
+    - Why does INPUT-PROTOCOL-MIXIN define an input buffer?  What's wrong with the
+      sheet event queue?
+    - What we really need to do is maintain a separate input buffer for the stream,
+      then STREAM-READ-GESTURE should loop doing HANDLE-EVENT until something gets
+      inserted into the stream's input buffer.  When there is something in input
+      buffer, STREAM-READ-GESTURE should then process it.
+  * [cer,0.5d] Define cursor protocol
+  * [cer,0.5d] Rename DEFSYS package to CLIM-DEFSYS.
   * Sheet protocol.
-    - [cer] How do we deal with the case where a sheet has one children and its
+    - [cer,1d] How do we deal with the case where a sheet has one children and its
       mirror allows one children only but the sheet actually has two children,
       e.g., (FRAME (HORIZONTALLY () () ())).
-  * [cer] Multiple layouts need to allow different size reqs for the sheets.
-  * [cer] The code for switching layouts needs to be cleaned up.
-  * [cer] Protocol to compute to the WM the desired geometry of the frame.
-  * [cer] When the viewport is resized in might need to be moved, for example, if
+  * [cer,1d] Multiple layouts need to allow different size reqs for the sheets.
+  * [cer,1d] The code for switching layouts needs to be cleaned up.
+  * [cer,0.5d] Protocol to compute to the WM the desired geometry of the frame.
+  * [cer,0.5d] When the viewport is resized in might need to be moved, for example, if
     it becomes big enough to display the entire window: in the ALLOCATE-SPACE for
     viewport. 
-  * [cer] Pointer documentation panes and other pane types,
-  * [cer] Gadget enable/disable protocol.
-  * [cer] On-demand scrollbars.
-  * [cer] Complete layout protocol
-  * [cer] Complete set of layout gadgets.
-  * [cer] writers for gadgets
-  * [cer] notify-user
-	
-% Cleanups
-  * [cer] Sort out the whole server path mechanism and make sure we can
+  * [cer,0.5d] Pointer documentation panes and other pane types,
+  * [cer,0.5d] Gadget enable/disable protocol.
+  * [cer,0.5] On-demand scrollbars.
+  * [cer,1d] Complete layout protocol
+  * [cer,1d] Complete set of layout gadgets.
+  * [cer,1d] notify-user
+  * [cer,1d] Sort out the whole server path mechanism and make sure we can
     windows where we want.
-
-% Bugs to fix
-  * [cer] What's the problem with radio-boxes and move-cursor-after.  The
+  * [cer,0.5d] What's the problem with radio-boxes and move-cursor-after.  The
     alternative definitions almost work except for exit-buttons.  I think the
     bounding rectangle of gadget output records is computed incorrectly and that
     it works because the UPDATE-GADGET-POSITION is broken to match. 
-  * [cer] why? #<standard-method STREAM-READ-CHAR-NO-HANG (motif-top-level-sheet) @ #x1b18eee>
-  * [cer] When default-text-margin slot yet bound, drawing on a unexposed window
+  * [cer,0.5d] When default-text-margin slot yet bound, drawing on a unexposed window
     can cause problems. 
-  * [cer] command parser uses the variable stream, + others.
-  * [cer] perhaps max widths ending up smaller than widths!
-  * [cer] :fill in box panes??
-  * [cer] why do we need a pane when we read commands?
-  * [cer] replay-output-record is not called on output-record-mixin!
+  * [cer,0.5d] command parser uses the variable stream, + others rather
+    than gensyms
+  * [cer, 0.5d] perhaps max widths ending up smaller than widths!
+	  * [cer,0.5d] replay-output-record is not called on output-record-mixin!
     See the method in recording-output-protocol.lisp
-  * [cer] I suspect that replay needs to intersect the region with the
+  * [cer,0.1d] I suspect that replay needs to intersect the region with the
     viewport
-  * [cer] why in the without-as-gadget code does the stream-redisplay
+  * [cer,0.5d] why in the without-as-gadget code does the stream-redisplay
     cause us to resuse an old output record and gadget.  in
     accept-present-default results in gadgets with the (old) wrong
     value being used.
+  * Menu enhancements
+    - separators in menus
+    - In active menu items
+    - Labels in menus
+    - Hierarchical menus
+  * Locking
+
 
 %% ******************************************* JDI things
 
 % Holes to fill in
-  * [jdi] Design and implement a colormap scheme
+  * [jdi,5d,d] Design and implement a colormap scheme
     - Poll the CLIM@BBN.COM mailing list to see what the requirements are.
-
 
 %% **************************************** UNASSIGNED things
 
@@ -265,7 +259,6 @@
   * [all] Should we do "stream relative" coordinates (as opposed to the current
     "parent relative" scheme) for output records?  It solves some problems, but
     introduces others. 
-  * silica::shift-code is undefined in the gesture code.
 
 % Final spec conformance checking
 % Beefing up the test suites.
@@ -275,6 +268,13 @@
   * [all] Meet CLIM 1.0 performance goals.
   * [all] Surpass CLIM 1.0 performance goals.
   * Add port-level (graft-level? medium-level?) caches for inks.
+
+% Performance things
+  * Why does text-style-mapping need to call standardize-text-style -
+    in particular this interns like hell.
+  * transformers for draw-circle* and perhaps others.
+  * automagic replay-output-record to do with with-medium earlier on and use
+    that all the way through
 
 % User Guide.
 

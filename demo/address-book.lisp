@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.1 92/01/31 14:31:57 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.2 92/02/24 13:09:16 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -94,30 +94,35 @@
       (write-string number stream))))
 
 ;;; Define the application-frame for our application
+
 (define-application-frame address-book
-			  ()
-    ;; This application has two state variables, the currently displayed
-    ;; address and the window from which user queries should be read.
-    ((current-address :initform nil)
-     (interaction-pane )
-     (name-pane))
+    ()
+  ;; This application has two state variables, the currently displayed
+  ;; address and the window from which user queries should be read.
+  ((current-address :initform nil)
+   (interaction-pane )
+   (name-pane))
+  
   (:panes
-    ((interactor :interactor)
-     (menu :command-menu)
-     (address :application
-	      :incremental-redisplay t
-	      :display-function 'display-current-address)
-     (names :application
-	    :incremental-redisplay t
-	    :display-function 'display-names)))
+   (interactor
+    (scrolling ()
+	       (realize-pane 'interactor-pane)))
+   (address
+    (scrolling ()
+	       (realize-pane 'application-pane
+			     :incremental-redisplay t
+			     :display-function
+			     'display-current-address)))
+   (names
+    (scrolling ()
+	       (realize-pane 'application-pane
+			     :incremental-redisplay t
+			     :display-function 'display-names))))
   (:layout
-    ((default
-       (:column 1
-	(:row 1/2
-	 (address 1/2)
-	 (names :rest))
-	(menu :compute)
-	(interactor :rest))))))
+   (default
+       (vertically ()
+	(horizontally () address names)
+	interactor))))
 
 ;;; This is the display-function for the upper-left pane, which specified 
 ;;; :display-function '(incremental-redisplay-display-function display-current-address).

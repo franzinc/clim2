@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.4 92/02/24 13:03:04 cer Exp Locker: cer $
+;; $fiHeader: graphics.lisp,v 1.5 92/03/09 17:40:45 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -76,6 +76,11 @@
 		 ;; Degrade to drawing a rectilinear ellipse
 		 (values (truncate (sqrt s-1)) 
 			 (truncate (sqrt s-2)))))))
+    (setq start-angle (round (* start-angle (/ (* 360 64) (* 2 pi)))))
+    (setq end-angle (round (* end-angle (/ (* 360 64) (* 2 pi)))))
+    (if (> end-angle start-angle)
+	(setq end-angle (- end-angle start-angle))
+      (setq end-angle (- start-angle end-angle)))
     (if filled
 	(x11:xfillarc
 	 (object-display drawable)
@@ -85,8 +90,7 @@
 	 (- center-y y-radius)
 	 (* 2 x-radius)
 	 (* 2 y-radius)
-	 0
-	 (* 360 64))
+	 start-angle end-angle)
       (x11:xdrawarc
        (object-display drawable)
        drawable
@@ -95,8 +99,8 @@
        (- center-y y-radius)
        (* 2 x-radius)
        (* 2 y-radius)
-       0
-       (* 360 64)))))
+       start-angle 
+       end-angle))))
 
 (defstub draw-lines (drawable gcontext points &key relative-p fill-p
 			    (shape :complex))
@@ -186,13 +190,23 @@
 (defun draw-string (drawable gc x y string &optional (start 0) end)
   (unless start (setq start 0))
   (unless end (setq end (length string)))
+  #-ignore
   (x11::xdrawstring
    (object-display drawable)
    drawable
    gc
    x y 
    (+ start (string-to-char* string))
-   (- end start)))
+   (- end start))
+  #+ignore
+  (x11:lisp-xdrawstring
+   (object-display drawable)
+   drawable
+   gc
+   x y 
+   string
+   start
+   end))
 
 
 

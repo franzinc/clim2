@@ -1,8 +1,8 @@
-# $fiHeader: Makefile,v 1.16 92/03/10 10:13:11 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.17 92/03/10 16:00:50 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
-CL	= /net/sparky/usr/tech/jdi/4.1/src/dcl
+CL	= /vapor/usr/tech/cer/cl/src/dcl
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
 
@@ -23,7 +23,7 @@ DEVICE	= /dev/null
 RM	= /bin/rm
 CAT	= /bin/cat
 ECHO	= /bin/echo
-MV	= mv
+MV	= mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
 
@@ -131,7 +131,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl
 
-XT-CLIM-OBJS = tk/pkg.fasl \
+XT-TK-OBJS = tk/pkg.fasl \
                 tk/foreign-obj.fasl \
                 tk/macros.fasl \
                 tk/xlib.fasl \
@@ -149,12 +149,17 @@ XT-CLIM-OBJS = tk/pkg.fasl \
                 tk/xt-classes.fasl \
                 tk/xt-init.fasl
 
-XM-CLIM-OBJS = tk/xm-classes.fasl \
+XM-TK-OBJS = tk/xm-classes.fasl \
                 tk/xm-init.fasl \
                 tk/xm-widgets.fasl \
                 tk/xm-font-list.fasl \
                 tk/xm-protocols.fasl \
                 tk/convenience.fasl \
+                tk/make-widget.fasl
+
+OL-CLIM-OBJS = tk/ol-classes.fasl \
+                tk/ol-init.fasl \
+                tk/ol-callbacks.fasl \
                 tk/make-widget.fasl
 
 MOTIF-CLIM-OBJS = xm-silica/pkg.fasl \
@@ -171,10 +176,6 @@ MOTIF-CLIM-OBJS = xm-silica/pkg.fasl \
                    xm-silica/xt-pixmaps.fasl \
                    xm-silica/xm-cursor.fasl
 
-OL-CLIM-OBJS = tk/ol-classes.fasl \
-                tk/ol-init.fasl \
-                tk/ol-callbacks.fasl \
-                tk/make-widget.fasl
 
 OPENLOOK-CLIM-OBJS = xm-silica/pkg.fasl \
                       xm-silica/xt-silica.fasl \
@@ -188,30 +189,54 @@ OPENLOOK-CLIM-OBJS = xm-silica/pkg.fasl \
                       xm-silica/ol-gadgets.fasl \
                       xm-silica/xt-pixmaps.fasl
 
-MOTIF-OBJS = $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS) \
-	     $(XLIB-CLIM-OBJS) $(XT-CLIM-OBJS) $(XM-CLIM-OBJS) \
-	     $(MOTIF-CLIM-OBJS) 
+GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
+XT-OBJS= $(XLIB-CLIM-OBJS) $(XT-TK-OBJS)
+MOTIF-OBJS =  $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 
+OPENLOOK-OBJS = #(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
-OPENLOOK-OBJS = $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) \
-		$(CLIM-STANDALONE-OBJS) $(XLIB-CLIM-OBJS) $(XT-CLIM-OBJS) \
-		$(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
+default: all-xm
 
-default: compile clim
+all-xm:	compile-xm cat-xm clim-xm
+all-ol:	compile-ol cat-ol clim-ol
 
-all:	compile cat clim
+# Compilation
 
-compile:	FORCE
+compile-xm:	FORCE
 	$(ECHO) " \
 		(setq *ignore-package-name-case* t) \
 		(set-case-mode :case-insensitive-lower) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
 		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
 
-clim.fasl:	$(MOTIF-OBJS)
-	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
-	$(MV) $(TMP)/clim.fasl_`whoami` clim.fasl
-	ls -lt clim.fasl >> Clim-sizes.n
-	ls -lt clim.fasl
+compile-ol:	FORCE
+	$(ECHO) " \
+		(setq *ignore-package-name-case* t) \
+		(set-case-mode :case-insensitive-lower) \
+		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
+		(load \"misc/compile-ol.lisp\")" | $(CL) $(CLOPTS) -batch
+
+# Concatenation
+
+cat-xm:	climg.fasl climxm.fasl clim-debug.fasl
+cat-ol:	climg.fasl climol.fasl clim-debug.fasl
+
+climg.fasl	: $(GENERIC-OBJS) $(XT-OBJS)
+	$(CAT)  $(GENERIC-OBJS) $(XT-OBJS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climg.fasl
+	ls -lt climg.fasl >> Clim-sizes.n
+	ls -lt climg.fasl
+
+climxm.fasl	: $(MOTIF-OBJS)
+	$(CAT)  $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climxm.fasl
+	ls -lt climxm.fasl >> Clim-sizes.n
+	ls -lt climxm.fasl
+
+climol.fasl	: $(OPENLOOK-OBJS)
+	$(CAT)  $(OPENLOOK-OBJS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climol.fasl
+	ls -lt climol.fasl >> Clim-sizes.n
+	ls -lt climol.fasl
 
 echo-fasls:
 	ls -lt $(MOTIF-OBJS) > /tmp/foo
@@ -222,9 +247,9 @@ clim-debug.fasl:	$(DEBUG-OBJS)
 	ls -lt clim-debug.fasl >> Clim-sizes.n
 	ls -lt clim-debug.fasl
 
-cat:	clim.fasl clim-debug.fasl
+# Building
 
-clim:	FORCE
+clim-xm:	FORCE
 	-$(RM) $(CLIM)
 	$(ECHO) " \
 		(setq *ignore-package-name-case* t) \
@@ -234,6 +259,19 @@ clim:	FORCE
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lt $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
+
+
+clim-ol:	FORCE
+	-$(RM) $(CLIM)
+	$(ECHO) " \
+		(setq *ignore-package-name-case* t) \
+		(set-case-mode :case-insensitive-lower) \
+		(load \"misc/dev-load-ol.lisp\") \
+		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
+	ls -lt $(CLIM) >> Clim-sizes.n
+	ls -lt $(CLIM)
+
 
 clim-small:	FORCE
 	$(ECHO) " \
@@ -245,11 +283,8 @@ clim-small:	FORCE
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
 	ls -lt $(CLIM-SMALL)
 
-xm-composer:
-	cd tk ; $(MAKE) xm-composer
 
-xm-dcl:
-	cd tk ; $(MAKE) xm-dcl
+# Misc
 
 clean:
 	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim.fasl
@@ -266,7 +301,7 @@ swm-tape:
 
 dist:
 	tar -cf - \
-	*/*.lisp *.lisp Makefile */Makefile \
+	*/*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
 	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif \
 	| compress >  Dist/src.tar.Z
 
@@ -278,4 +313,63 @@ echo_src_files:
 	@find . '(' -name '*.cl' -o -name '*.lisp' ')' -print
 
 FORCE:
+
+################## Lower level Makefile stuff
+
+CL_SRC=/vapor/usr/tech/cer/cl/src
+OPENWINHOME=/usr/openwin-3.0
+
+#MOTIFHOME=/usr/motif
+#MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm.a 
+#XLIBS=$(MOTIFHOME)/usr/lib/libXt.a $(MOTIFHOME)/usr/lib/libX11.a
+
+#MOTIFLIB=/x11/motif-1.1/lib/Xm/libXm.a
+#XLIBS=/x11/R4/src/mit/lib/Xt/libXt_d.a /x11/R4/src/mit/lib/X/libX_d.a 
+
+XLIBHOME=/misc
+MOTIFLIB=$(XLIBHOME)/libXm_d.a
+XLIBS=$(XLIBHOME)/libXt_d.a $(XLIBHOME)/libX_d.a
+
+#OLXLIBS=$(XLIBS)
+OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2/
+OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
+#LIBXOL=$(OPENWINHOME)/lib/libXol.a
+LIBXOL=$(OLCOPYLIB)/libXol.a
+
+# This has to be kept consistent with xlib.lisp
+
+UNDEFS=misc/undefinedsymbols
+
+# This should be the same as load-xm
+
+XM_UNDEFS=misc/undefinedsymbols.motif
+
+# This should be the same as load-ol
+
+OL_UNDEFS=misc/undefinedsymbols.olit
+
+default	: xm-composer
+
+ol-dcl	:  stub-olit.o
+	cd $(CL_SRC) ; /bin/rm -f ucl ;\
+	 make ucl_xtras='$(PWD)/stub-olit.o $(LIBXOL) $(OLXLIBS)' dcl
+
+xm-dcl	: stub-motif.o
+	cd $(CL_SRC) ; /bin/rm -f ucl ;\
+	make ucl_xtras='$(PWD)/stub-motif.o $(MOTIFLIB) $(XLIBS)' dcl	
+
+stub-motif.c	: $(UNDEFS) $(XM_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_motif_stub ()" $(UNDEFS) $(XM_UNDEFS) > stub-motif.c 
+
+stub-olit.c	: $(UNDEFS) $(OL_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_olit_stub ()" $(UNDEFS) $(OL_UNDEFS) > stub-olit.c 
+
+FRC	: 
+
+xm-composer : xm-dcl
+	cd /usr/composer2 ; make CL=/vapor/usr/tech/cer/cl/src/dcl rebuild-c2
+
+ol-composer : ol-dcl
+	cd /usr/composer2 ; make CL=/vapor/usr/tech/cer/cl/src/dcl rebuild-c2
+
 

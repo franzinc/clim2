@@ -3,7 +3,7 @@
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader$
+;; $fiHeader: db-slider.lisp,v 1.3 92/03/10 15:45:47 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -152,11 +152,8 @@
 	 (value (compute-symmetric-value min max coord min-value max-value)))
     (setf (gadget-value pane) value)))
 
-(defmethod (setf gadget-value) (nv (pane slider-pane))
-  (with-slots (value) pane
-    (setf value nv)))
 
-(defmethod (setf gadget-value) :around (nv (pane slider-pane))
+(defmethod (setf gadget-value) :around (nv (pane slider-pane) &key)
   (declare (ignore nv))
   (if (port pane)
       (with-sheet-medium (medium pane)

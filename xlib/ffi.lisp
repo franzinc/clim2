@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.6 92/02/24 13:06:33 cer Exp Locker: cer $
+;; $fiHeader: ffi.lisp,v 1.7 92/03/09 17:41:32 cer Exp Locker: cer $
 
 (in-package :x11)
 
@@ -86,9 +86,9 @@
 	      (error ":overlays used in a way we cannot handle")))))
      (defmacro ,(fintern "~A~A" 'make- name) ()
        #+ignore
-       (excl::malloc ,(ff::cstruct-property-length (ff::cstruct-prop name)))
+       `(excl::malloc ,,(ff::cstruct-property-length (ff::cstruct-prop name)))
        #-ignore
-       (ff::make-cstruct ',name))))
+       `(ff::make-cstruct ',',name))))
 	  
 
 (defun trans-slot-type (type)

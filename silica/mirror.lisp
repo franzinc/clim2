@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.11 92/03/06 14:17:31 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.12 92/03/10 10:11:42 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -250,6 +250,8 @@
   ;; Compute transformation from sheet-region to mirror cordinates.
   (update-mirror-transformation-1 port sheet (sheet-parent sheet)))
 
+(defvar *check-mirror-transformation* nil)
+
 (defmethod update-mirror-transformation-1 ((port port) sheet parent)
   (declare (ignore parent))
   ;; would imagine that a lot of the time this would be identity
@@ -262,10 +264,11 @@
 		     (- right left)))
 	    (sc-y (/ (- mirror-bottom mirror-top)
 		     (- bottom top))))
-	(when (or (/= sc-x 1.0)
-		  (/= sc-y 1.0)
-		  (not (zerop tr-x))
-		  (not (zerop tr-y)))
+	(when (and *check-mirror-transformation*
+		   (or (/= sc-x 1.0)
+		       (/= sc-y 1.0)
+		       (not (zerop tr-x))
+		       (not (zerop tr-y))))
 	  (let (#+Allegro (*error-output* excl::*initial-terminal-io*))
 	    (warn "Mirror scaling ~S,~S,~S,~S" 
 		  (list tr-x tr-y sc-x sc-y) sheet

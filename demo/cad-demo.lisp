@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.2 92/02/24 13:09:20 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.3 92/03/04 16:22:58 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -499,9 +499,13 @@
       (cond ((eq ink +background-ink+)
 	     ;;--- gee, am I getting carried away?
 	     (multiple-value-bind (nx ny)
-		 (drawing-surface-to-viewport-coordinates stream x y)
-	       (decf ny *component-size*)
-	       (window-clear-area stream (- nx 10) (- ny 10) nx (+ ny 20))))
+		 #+ignore drawing-surface-to-viewport-coordinates
+		 (values x y)
+		 (decf ny *component-size*)
+		 (with-sheet-medium (medium stream)
+		   (draw-rectangle* medium
+				    (- nx 10) (- ny 10) nx (+ ny 20)
+				    :ink +background-ink+))))
 	    (t
 	     (draw-text* stream name (- x 10) (- y 10)))))))
 
@@ -527,32 +531,33 @@
 
 ;;; First define a "application" that manages the application's state variables
 ;;; and defines a high-level division of screen real estate.
+
+
+
 (define-application-frame cad-demo
 			  (standard-application-frame output-record)
-    ((object-list :initform nil))
+  ((object-list :initform nil))
   (:panes
-    ((title :title
-	    :display-string "Mini-CAD")
-     (menu :command-menu)
-     (design-area :application)
-     (documentation :pointer-documentation)))
+   (design-area 
+    (realize-pane 'application-pane)))
+  (:pointer-documentation t)
   (:layout
-    ((main
-       (:column :rest
-	(title :compute)
-	(menu :compute)
-	(design-area :rest)
-	(documentation :compute)))
-     (other
-       (:column :rest
-	(title :compute)
-	(:row :rest
-	 (menu :compute)
-	 (design-area :rest))
-	(documentation :compute)))))
+   (:default
+       (scrolling ()
+		  design-area)))
   (:top-level
     (default-frame-top-level :partial-command-parser cad-demo-partial-command-parser)))
 
+;;--- I am amazed every day by something
+;; and this was it today !!!!
+
+(defmethod initialize-instance :around ((cd cad-demo) &key)
+  (call-next-method)
+  (let ((dp (get-frame-pane cd 'design-area)))
+    ;;--- kludge this one pane
+    (setf (stream-output-history dp) cd)
+    (setf (stream-recording-p dp) nil)))
+  
 (defun cad-demo-partial-command-parser (partial-command command-table stream start-location)
   (let ((name (command-name partial-command)))
     (if (eq name 'com-create-component)
@@ -675,6 +680,7 @@
 ;(make-component-prototypes)
 
 ;;; Return the class name of the selected component
+
 (defun select-component (parent)
   (labels ((draw-icon-menu (menu presentation-type)
 	     (formatting-table (menu :x-spacing 5)
@@ -696,7 +702,7 @@
   (with-menu (menu parent)
     (let ((component (menu-choose-from-drawer
 		       menu 'menu-item #'draw-icon-menu)))
-      (class-name (class-of component)))))
+      (class-name (class-of component))))))
 
 
 
@@ -884,15 +890,17 @@
 (define-cad-demo-command (com-exit-CAD-demo :menu "Exit" :keystroke #\X)
     ()
   ;; assume called via run-cad-demo
-  (throw 'exit-cad-demo nil))
+  (frame-exit *application-frame*))
 
-(define-cad-demo-command (com-swap-layouts :menu "Swap Layouts")
-    ()
-  (let ((current-layout (frame-current-layout *application-frame*)))
-    (setf (frame-current-layout *application-frame*)
-	  (case current-layout
-	    (main 'other)
-	    (other 'main)))))
+;;;------------
+;;; Right now there is only one
+;(define-cad-demo-command (com-swap-layouts :menu "Swap Layouts")
+;    ()
+;  (let ((current-layout (frame-current-layout *application-frame*)))
+;    (setf (frame-current-layout *application-frame*)
+;	  (case current-layout
+;	    (main 'other)
+;	    (other 'main)))))
 
 #||
 

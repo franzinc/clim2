@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.5 92/02/24 13:06:08 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.6 92/03/04 16:20:30 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -30,6 +30,7 @@
   (second (assoc class '((scroll-bar openlook-scrollbar)
 			 (slider openlook-slider)
 			 (push-button openlook-push-button)
+			 (label-pane openlook-label-pane)
 			 (text-field openlook-text-field)
 			 (toggle-button openlook-toggle-button)
 			 (menu-bar openlook-menu-bar)
@@ -151,10 +152,6 @@
 		    :resize-callback 'sheet-mirror-resized-callback
 		    sheet))
 
-(warn "This is really bogus")
-
-(defmethod stream-read-char-no-hang ((x openlook-top-level-sheet))
-  nil)
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -263,3 +260,105 @@
 (defun command-button-callback-ol (button frame item)
   (command-button-callback button nil frame item))
 
+
+
+;;; Label pane
+
+(defclass openlook-label-pane (xt-leaf-pane silica::label-pane) 
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+						     (parent t)
+						     (sheet openlook-label-pane))
+  (with-accessors ((label gadget-label)
+		   (alignment gadget-alignment)) sheet
+    (values 'tk::static-text
+	    (append
+	     (list :alignment 
+		   (ecase alignment
+		     ((:left nil) :left)
+		     (:center :center)
+		     (:right :right)))
+	     (and label (list :string label))))))
+  
+;;; Push button
+
+(defclass openlook-push-button (xt-leaf-pane
+				push-button
+				openlook-action-pane) 
+	  ())
+
+
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+						     (parent t)
+						     (sheet openlook-push-button))
+  (declare (ignore port))
+  (with-accessors ((label gadget-label)) sheet
+    (values 'tk::menu-button 
+	    (and label (list :label label)))))
+
+;;
+
+
+(defclass openlook-action-pane () ())
+
+(defmethod add-sheet-callbacks :after ((port openlook-port) (sheet openlook-action-pane) (widget t))
+  (tk::add-callback widget
+		    :select
+		    'queue-active-event-ol
+		    sheet))
+
+(defmethod queue-active-event-ol ((widget openlook-action-pane) sheet)
+  (distribute-event
+   (port sheet)
+   (make-instance 'activate-gadget-event
+		  :gadget sheet)))
+
+
+;;; Text field
+
+(defclass openlook-text-field (xt-leaf-pane
+			       openlook-value-pane 
+			       openlook-action-pane
+			       text-field)
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+						     (parent t)
+						     (sheet openlook-text-field))
+  (with-accessors ((value gadget-value)) sheet
+    (values 'tk::text
+	    (append
+	     (and value `(:string ,value))))))
+
+
+;;; Value stuff
+;;; I suspect that this is worthless
+
+(defclass openlook-value-pane () ())
+
+(defmethod add-sheet-callbacks :after ((port openlook-port) (sheet
+							     openlook-value-pane) (widget t))
+  #+igore
+  (tk::add-callback widget
+		    :value-changed-callback
+		    'queue-value-changed-event
+		    sheet))
+
+(defmethod gadget-value ((gadget openlook-value-pane))
+  (if (sheet-direct-mirror gadget)
+      (tk::get-values (sheet-mirror gadget) :value)
+    (call-next-method)))
+
+(defmethod (setf gadget-value) (nv (gadget openlook-value-pane) &key)
+  (when (sheet-mirror gadget)
+    (tk::set-values (sheet-mirror gadget) :value nv)))
+
+(defmethod queue-value-changed-event (widget sheet)
+  (declare (ignore widget))
+  (distribute-event
+   (port sheet)
+   (make-instance 'value-changed-gadget-event
+		  :gadget sheet
+		  :value (gadget-value sheet))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.6 92/03/04 16:22:34 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.8 92/03/10 10:13:03 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -408,7 +408,7 @@
 
 
 #+(and Silica Allegro)
-(defsys:defsystem xlib-clim
+(defsys:defsystem xlib
     (:default-pathname (frob-pathname "xlib")
 	:default-binary-pathname (frob-pathname "xlib")
 	:needed-systems (clim-standalone)
@@ -424,11 +424,11 @@
 
 
 #+(and Silica Allegro)
-(defsys:defsystem xt-clim
+(defsys:defsystem xt-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
-     :needed-systems (xlib-clim)
-     :load-before-compile (xlib-clim))
+     :needed-systems (xlib)
+     :load-before-compile (xlib))
   ;; General stuff
   ("pkg")
   ("foreign-obj")
@@ -453,11 +453,11 @@
   ("xt-init"))
 
 #+(and Silica Allegro)
-(defsys:defsystem xm-clim
+(defsys:defsystem xm-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
-     :needed-systems (xt-clim)
-     :load-before-compile (xt-clim))
+     :needed-systems (xt-tk)
+     :load-before-compile (xt-tk))
   ;; Motif specific stuff
   ("xm-classes")
   ("xm-init")
@@ -471,11 +471,11 @@
   ("make-widget"))
 
 #+(and Silica Allegro)
-(defsys:defsystem ol-clim
+(defsys:defsystem ol-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
-     :needed-systems (xt-clim)
-     :load-before-compile (xt-clim))
+     :needed-systems (xt-tk)
+     :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
   ("ol-classes")
   ("ol-init")
@@ -487,8 +487,8 @@
 (defsys:defsystem motif-clim
     (:default-pathname (frob-pathname "xm-silica")
      :default-binary-pathname (frob-pathname "xm-silica")
-     :needed-systems (xm-clim)
-     :load-before-compile (xm-clim))
+     :needed-systems (clim-standalone xm-tk)
+     :load-before-compile (clim-standalone xm-tk))
   ("pkg")
   ("xt-silica")
   ("xm-silica")
@@ -507,8 +507,8 @@
 (defsys:defsystem openlook-clim
     (:default-pathname (frob-pathname "xm-silica")
      :default-binary-pathname (frob-pathname "xm-silica")
-     :needed-systems (ol-clim)
-     :load-before-compile (ol-clim))
+     :needed-systems (clim-standalone ol-tk)
+     :load-before-compile (clim-standalone ol-tk))
   ("pkg")
   ("xt-silica")
   ("ol-silica")
