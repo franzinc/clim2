@@ -19,7 +19,7 @@ XMINCLUDES=-I$(MOTIFHOME)/usr/include
 
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 # Do we really need this. Why is it referenced?
-MOTIFXTRAOS=$(MOTIFHOME)/usr/lib/Motif/Sun/dlsym.o
+# MOTIFXTRAOS=$(MOTIFHOME)/usr/lib/Motif/Sun/dlsym.o
 
 OPENLOOKHOME=/net/vapor/x11/olit-3.0
 OLXLIB= $(OPENLOOKHOME)/lib/libX11.a

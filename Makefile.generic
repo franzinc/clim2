@@ -317,12 +317,19 @@ echo-xm-ucl-xtras:
 	@echo $(PWD)/stub-x.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o   $(MOTIFLIB) $(XTLIB) $(XLIB) $(XMDCLXTRAS)
 
 ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o xtsupport.o  $(MALLOCOBJS)
-	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(OLXLIBS)' dcl
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(OLXLIBS)' dcl ;\
+	/bin/mv ucl.climsave ucl
 
 xm-dcl	: stub-x.o stub-xt.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
-	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl	
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl ;\
+	/bin/mv ucl.climsave ucl
+
+ucl.clim: stub-x.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ;\
+	make ucl_xtras='$(PWD)/stub-x.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
+	/bin/mv ucl ucl.clim ; /bin/mv ucl.climsave ucl ; /bin/mv dcl.climsave dcl
 
 dcl	: 
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\

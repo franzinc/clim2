@@ -1,3 +1,17 @@
+Thu Sep 16 22:26:58 1993  Duane Rettig  (duane at clay)
+
+	* Makefile.defs: Parameterize composer CL_SRC directory
+
+	* Makefile.generic: Save ucl for .o inclusion
+
+	* Makefile.hpprism: New file
+
+	* Makefile.sun4: Comment MOTIFXTRAOS
+
+	* misc/compile-1.lisp: Set update-entry-points to nil for speed
+
+	* misc/dev-load-1.lisp: Set update-entry-points to nil for speed
+
 from colin: Thu Sep 16 17:17:55 PDT 1993
 
 clim/completer.lisp		fix to clim2bug600

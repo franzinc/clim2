@@ -150,11 +150,11 @@ CLIM_FASLS_TO_MAKE = makeclimxmfasls $(CLIM_OLFASLS_TO_MAKE)
 #	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
 
 # These are built into xm-dcl and ol-dcl.
-COMPOSEROBJS= /scm/4.1/sparc/src/code/excldep.o /scm/4.1/sparc/src/code/socket.o \
-	      /scm/4.1/sparc/src/code/gc_cursor.o \
-	      /scm/4.1/sparc/src/code/unixsocket.o \
-	      /scm/4.1/sparc/src/code/io.o /scm/4.1/sparc/src/code/exclio.o \
-	      /scm/4.1/sparc/src/code/RunStatus.o
+COMPOSEROBJS= $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
+	      $(CL_SRC)/code/gc_cursor.o \
+	      $(CL_SRC)/code/unixsocket.o \
+	      $(CL_SRC)/code/io.o $(CL_SRC)/code/exclio.o \
+	      $(CL_SRC)/code/RunStatus.o
 
 
 

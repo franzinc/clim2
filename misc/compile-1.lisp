@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[]-
+;;				-[Wed Sep 15 18:09:45 1993 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -59,42 +59,43 @@
 
 
 (defun compile-it (sys)
-  (unless (ignore-errors (clim-defsys::find-system sys))
-    (load "sys/sysdcl"))
-  (clim-defsys::compile-system sys :propagate t)
-  (tenuring
-   (clim-defsys::load-system sys))
+  (let ((excl::*update-entry-points* nil))
+    (unless (ignore-errors (clim-defsys::find-system sys))
+      (load "sys/sysdcl"))
+    (clim-defsys::compile-system sys :propagate t)
+    (tenuring
+     (clim-defsys::load-system sys))
 
-  (load "postscript/sysdcl")
-  (clim-defsys::compile-system 'postscript-clim :propagate t)
-  (clim-defsys::load-system 'postscript-clim)
+    (load "postscript/sysdcl")
+    (clim-defsys::compile-system 'postscript-clim :propagate t)
+    (clim-defsys::load-system 'postscript-clim)
 
-  (compile-file-if-needed "test/test-suite")
+    (compile-file-if-needed "test/test-suite")
 
-  (load "test/test-suite")
+    (load "test/test-suite")
   
-  (load "demo/sysdcl")
-  (clim-defsys::compile-system 'clim-demo :propagate t)
-  (clim-defsys::load-system 'clim-demo)
+    (load "demo/sysdcl")
+    (clim-defsys::compile-system 'clim-demo :propagate t)
+    (clim-defsys::load-system 'clim-demo)
   
-  (progn
-    (load "test/testdcl")
-    (tenuring 
-     (clim-defsys::compile-system 'testing)
-     (clim-defsys::load-system 'testing)))
+    (progn
+      (load "test/testdcl")
+      (tenuring 
+       (clim-defsys::compile-system 'testing)
+       (clim-defsys::load-system 'testing)))
 
-  (when (probe-file "climtoys/sysdcl.lisp")
-    (load "climtoys/sysdcl.lisp")
-    (clim-defsys::compile-system 'clim-toys))
+    (when (probe-file "climtoys/sysdcl.lisp")
+      (load "climtoys/sysdcl.lisp")
+      (clim-defsys::compile-system 'clim-toys))
   
-  #+ignore (load "compatibility/sysdcl.lisp")
-  #+ignore (clim-defsys::compile-system 'clim-compatibility :propagate t)
+    #+ignore (load "compatibility/sysdcl.lisp")
+    #+ignore (clim-defsys::compile-system 'clim-compatibility :propagate t)
 
-  (load "hpgl/sysdcl")
-  (clim-defsys::compile-system 'hpgl-clim :propagate t)
-  (clim-defsys::load-system 'hpgl-clim)
+    (load "hpgl/sysdcl")
+    (clim-defsys::compile-system 'hpgl-clim :propagate t)
+    (clim-defsys::load-system 'hpgl-clim)
   
-  )
+    ))
 
 
 

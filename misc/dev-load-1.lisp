@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Thu Aug 12 11:35:05 1993 by layer]-
+;;				-[Wed Sep 15 18:09:43 1993 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -36,7 +36,8 @@
      (load "sys/sysdcl")))
 
 (defun load-it (sys &key (load-composer t))
-  (let ((*load-source-file-info* t)
+  (let ((excl::*update-entry-points* nil)
+	(*load-source-file-info* t)
 	(*record-source-file-info* t)
 	(*load-xref-info* nil)
 	(excl:*global-gc-behavior* nil))
