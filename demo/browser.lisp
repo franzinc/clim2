@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.10 92/08/18 17:26:13 cer Exp Locker: cer $
+;; $fiHeader: browser.lisp,v 1.11 92/09/30 11:45:18 cer Exp Locker: cer $
 
 (in-package :clim-browser)
 
@@ -684,9 +684,8 @@
 		   as form = `(,(si:defstruct-slot-description-ref-macro-name slot-description)
 			       ',object)
 		   collect (eval form))))
-	  ;;--- What do we do for INSTANCEP?
 	  (#+genera (si:instancep object)
-	   #+allegro (typep object 'standard-object)
+	   #-genera (typep object 'standard-object)
 	   #+genera (setq object (si:follow-structure-forwarding object))
 	   ;;--- How to arrange for the slot names to be printed?
 	   ;; This works for Genera Flavors because they are embedded in CLOS
@@ -705,9 +704,8 @@
 (defmethod node-any-inferior-objects-p ((node lisp-object-call-node) (type (eql ':objects)))
   (let ((object (node-object node)))
     (or (consp object)
-        ;;--- What do we do for INSTANCEP?
 	#+genera (si:instancep object)
-	#+allegro (typep object 'standard-object)
+	#-genera (typep object 'standard-object)
 	(and (arrayp object)
 	     (not (stringp object))))))
 
@@ -732,22 +730,22 @@
   (:command-definer t)
   (:command-table (browser :inherit-from (accept-values-pane)))
   (:panes
-   #+++ignore
-   (title :application
-	  :display-after-commands t
-	  :display-function 'display-title-pane
-	  :default-text-style '(:sans-serif :bold :large))
-   (graph :application
-	  :display-function 'display-graph-pane
-	  :display-after-commands t
-	  :incremental-redisplay t
-	  :scroll-bars :both)
-   (interactor :interactor :height '(5 :line))
-   (control-panel :accept-values
-		  :height :compute
-		  :display-function
-		  '(accept-values-pane-displayer
-		    :displayer accept-call-graph-options)))
+    #+++ignore
+    (title :application
+	   :display-after-commands t
+	   :display-function 'display-title-pane
+	   :default-text-style '(:sans-serif :bold :large))
+    (graph :application
+	   :display-function 'display-graph-pane
+	   :display-after-commands t
+	   :incremental-redisplay t
+	   :scroll-bars :both)
+    (interactor :interactor :height '(5 :line))
+    (control-panel :accept-values
+		   :height :compute
+		   :display-function
+		   '(accept-values-pane-displayer
+		      :displayer accept-call-graph-options)))
   (:layouts
    (default
        (vertically ()
