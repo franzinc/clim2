@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.15 92/03/09 17:42:01 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.16 92/03/10 10:13:11 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -267,6 +267,7 @@ swm-tape:
 dist:
 	tar -cf - \
 	*/*.lisp *.lisp Makefile */Makefile \
+	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif \
 	| compress >  Dist/src.tar.Z
 
 rcscheck:
