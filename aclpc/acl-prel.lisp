@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: acl-prel.lisp,v 2.5.26.1 2004/07/23 06:15:59 duane Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -515,7 +515,7 @@
 	    ;; stable after closing the clipboard.
 	    (when (zerop hmem)
 	      (check-last-error "GetClipboardData"))
-	    (setq string (ct:handle-value win:handle hmem))
+	    (setq string (ct:handle-value win:win-handle hmem))
 	    (cond ((zerop string) (values nil nil))
 		  (t
 		   (when (integerp string)
