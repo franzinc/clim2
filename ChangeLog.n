@@ -12,6 +12,11 @@ If there are user-visible changes in this commit, then list the
 
 *******************************************************************************
 
+2004-05-27  Charles A. Cox  <cox@gemini>
+
+	* ChangeLog.n: Add cvs Revision marker to help track cvs versions
+	sent to Kido.
+
 2003-12-23  Kevin Layer  <layer@crikey>
 
 	* Makefile.linux: add dmalloc debugging stuff, turned off by
@@ -5831,3 +5836,5 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Integrated Sun's copyright
 
 	Lots of other stuff
+
+$Revision: 1.119.2.25.2.13 $
