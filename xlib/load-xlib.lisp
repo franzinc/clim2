@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.11 93/04/16 09:26:47 layer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.13 1993/07/29 20:52:08 layer Exp $
 
 (in-package :x11)
 
@@ -47,7 +47,7 @@
 		:system-libraries libraries
 		:print t))))))
 
-(defvar sys::*libx11-pathname* "-lX11")
+(defvar sys::*libx11-pathname* "X11")
 
 (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString")
 			    :note-shared-library-references nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.71 1993/10/25 16:15:15 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.72 1993/11/18 18:44:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -565,14 +565,10 @@
 	    (unwind-protect
 		(cond (own-window
 		       (size-panes-appropriately)
-		       (multiple-value-bind (x y)
-			   #+++ignore (pointer-position (port-pointer (port own-window)))
-			   #---ignore (values 100 100)
-			 (when (and own-window-x-position own-window-y-position)
-			   (setq x own-window-x-position
-				 y own-window-y-position))
-			 (position-sheet-carefully
-			   (frame-top-level-sheet (pane-frame own-window)) x y))
+		       (frame-manager-position-dialog
+			(frame-manager frame)
+			frame
+			own-window-x-position own-window-y-position)
 		       (setf (window-visibility own-window) t)
 		       (with-input-focus (own-window)
 			 (when exit-button-record
@@ -591,6 +587,11 @@
 		(deactivate-all-gadgets avv-record)
 		(move-cursor-beyond-output-record 
 		  (encapsulating-stream-stream stream) avv)))))))))
+
+
+
+
+
 
 (defun find-query-gadget (query)
   (let ((record (accept-values-query-presentation query)))
@@ -1615,3 +1616,14 @@
 
 
 
+(defmethod clim-internals::frame-manager-position-dialog ((framem standard-frame-manager)
+							  frame
+							  own-window-x-position own-window-y-position)
+  (multiple-value-bind (x y)
+      #+++ignore (pointer-position (port-pointer (port frame)))
+      #---ignore (values 100 100)
+      (when (and own-window-x-position own-window-y-position)
+	(setq x own-window-x-position
+	      y own-window-y-position))
+      (position-sheet-carefully
+       (frame-top-level-sheet frame) x y)))

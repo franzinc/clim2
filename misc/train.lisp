@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.14 1993/09/22 18:26:27 layer Exp $
+;; $fiHeader: train.lisp,v 1.15 1993/11/18 18:44:44 cer Exp $
 
 (defun train-clim (&key (train-times 2) 
 			(psview nil)
@@ -102,7 +102,7 @@
     (clim-user::run-profile-clim-tests))
 
   (when benchmarkp 
-    (clim-user::benchmark-clim))
+    (clim-test::benchmark-clim))
 
   ;; delete the preload fasls for the type of clim we are testing, so that
   ;; make-dist cat use the one we will make.

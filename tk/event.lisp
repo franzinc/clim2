@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.21 1993/09/17 19:06:37 cer Exp $
+;; $fiHeader: event.lisp,v 1.22 1993/11/18 18:45:25 cer Exp $
 
 (in-package :tk)
 
@@ -102,22 +102,25 @@
 	(reason :wait-function)
 	(t :timeout)))
 
+(defvar *sequence-matching-data*)
+
 (defun-c-callable match-event-sequence-and-types ((display :unsigned-long)
 						  (event :unsigned-long)
 						  (arg :unsigned-long))
+  (declare (ignore arg))
   ;; Arg points to a n element (unsigned-byte 32) vector, where the first
   ;; element is the display, the second is the sequence number, and
   ;; the other elements are the event types to be matched (null terminated).
-  (let ((desired-display (sys:memref-int arg 0 0 :unsigned-long))
-	(desired-sequence (sys:memref-int arg 4 0 :unsigned-long))
-	(event-type (x11:xevent-type event)))
-    
+  (let* ((arg *sequence-matching-data*)
+	 (desired-display (aref arg 0))
+	 (desired-sequence (aref arg 1))
+	 (event-type (x11:xevent-type event)))
+    (declare (type (simple-array (unsigned-byte 32) (*)) arg))
     
     (if (and (eql desired-display display)
 	     (eql desired-sequence (x11:xanyevent-serial event))
-	     (do* ((i 8 (+ i 4))
-		   (desired-type (sys:memref-int arg i 0 :unsigned-long)
-				 (sys:memref-int arg i 0 :unsigned-long)))
+	     (do* ((i 2 (1+ i))
+		   (desired-type (aref arg i) (aref arg i)))
 		 ((zerop desired-type) nil)
 	       (if (eql desired-type event-type)
 		   (return t))))
@@ -127,18 +130,21 @@
 (defparameter *match-event-sequence-and-types-address*
     (register-function 'match-event-sequence-and-types))
 
+(defvar *event-matching-event* (x11:make-xevent :in-foreign-space t))
+
 (defun get-event-matching-sequence-and-types (display-object seq-no types
 					      &key (block t))
   (unless (consp types)
     (setq types (list types)))
-  (let ((display (object-display display-object))
-	;;-- This is pretty scarey. Heap allocated objects are passed
-	;;-- to C which then passes them to lisp. If a GC happens we
-	;;-- could be hosed
-	(data (make-array (+ 3 (length types))
-			  :element-type '(unsigned-byte 32)))
-	(i 2)
-	(resulting-event (x11:make-xevent)))
+  (let* ((display (object-display display-object))
+	 ;;-- This is pretty scarey. Heap allocated objects are passed
+	 ;;-- to C which then passes them to lisp. If a GC happens we
+	 ;;-- could be hosed
+	 (data (make-array (+ 3 (length types))
+			   :element-type '(unsigned-byte 32)))
+	 (i 2)
+	 (resulting-event *event-matching-event*)
+	 (*sequence-matching-data* data))
     (declare (type (simple-array (unsigned-byte 32) (*)) data)
 	     (fixnum i)) 
     (setf (aref data 0) (ff:foreign-pointer-address display))
@@ -149,11 +155,11 @@
     (setf (aref data i) 0)
     (cond (block
 	   (x11:xifevent display resulting-event
-			 *match-event-sequence-and-types-address* data)
+			 *match-event-sequence-and-types-address* 0)
 	   resulting-event)
 	  ((zerop (x11:xcheckifevent display resulting-event
 				     *match-event-sequence-and-types-address*
-				     data))
+				     0))
 	   nil)
 	  (t
 	   resulting-event))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.30 1993/07/27 01:40:04 colin Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.31 1993/11/18 18:44:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1056,6 +1056,7 @@
   (stream-yay-or-nay-p stream
 		       '(member-alist (("Y" :value t) ("N" :value nil)))
 		       format-string args))
+
 
 (defmethod stream-y-or-n-or-newline-p ((stream input-protocol-mixin) 
 				       &optional (format-string "") &rest args)

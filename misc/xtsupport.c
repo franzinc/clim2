@@ -1,9 +1,11 @@
-/* $fiHeader: xtsupport.c,v 1.6 93/05/13 16:23:52 cer Exp $ */
+/* $fiHeader: xtsupport.c,v 1.7 1993/07/27 01:48:11 colin Exp $ */
 
 #include <X11/Intrinsic.h>
 
 #include <signal.h>
 #include <stdio.h>
+#include "IntrinsicP.h"
+#include "CoreP.h"
 
 #ifdef sparc
 #include "IntrinsicI.h"
@@ -107,3 +109,9 @@ unsigned long XtAppIntervalNextTimer(app)
 	}
 
 #endif
+
+xt_widget_num_popups (w)
+Widget w;
+{
+    return (w->core.num_popups);
+}

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.22 1993/06/04 16:06:51 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.24 1993/07/29 20:51:52 layer Exp $
 
 (in-package :user)
 
@@ -32,7 +32,7 @@
 
 #-svr4
 (progn
-  (defvar sys::*libxt-pathname* "-lXt")
+  (defvar sys::*libxt-pathname* "Xt")
   (defvar sys::*clim-olit-pathname* "clim-olit.o")
 
   (x11::load-undefined-symbols-from-library

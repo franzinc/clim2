@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.41 1993/09/17 19:07:17 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.42 1993/10/25 16:16:44 cer Exp $
 
 
 (in-package :xm-silica)
@@ -311,3 +311,10 @@
        frame
        pointer-documentation-pane
        (and showp documentation)))))
+
+(defmethod clim-internals::frame-manager-position-dialog ((framem xt-frame-manager) 
+							  frame
+							  own-window-x-position own-window-y-position)
+  (when (and own-window-x-position own-window-y-position)
+    (position-sheet-carefully
+     (frame-top-level-sheet frame) own-window-x-position own-window-y-position)))

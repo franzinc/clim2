@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.39 1993/09/17 19:07:14 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.40 1993/11/18 18:45:40 cer Exp $
 
 (in-package :xm-silica)
 
@@ -186,14 +186,14 @@
     (when m (tk::xm_process_traversal m 0))))
 
 
-;;;--- dont do this for a while since it destroys other things.
-
-#+ignore
 (defmethod destroy-mirror :around ((port xt-port) (sheet top-level-sheet))
   (let* ((m (sheet-direct-mirror sheet))
 	 (shell (and m (tk::widget-parent m))))
     (call-next-method)
-    (when shell (tk::destroy-widget shell))))
+    (when (and shell
+	       ;; Do it only if the shell has no popup children [clim2bug598]
+	       (zerop (tk::xt_widget_num_popups shell)))
+      (tk::destroy-widget shell))))
 
 
 (defmethod port-move-frame :after ((port motif-port) frame x y)

@@ -1,3 +1,21 @@
+from cer: Tue Nov 23 11:57:29 PST 1993
+
+Makefile.defs		Make it point to dcl-devel
+clim/accept-values.lisp		Added frame-manager-position-dialog
+clim/interactive-protocol.lisp	Added line
+misc/train.lisp			clim-test: change
+misc/xtsupport.c		Added xt_widget_num_popups
+silica/db-scroll.lisp		Make scroll-extent a generic function
+tk/event.lisp			Rewrote to sequence get-event-matching-sequence-and-types to use
+				a special variable to pass data to predicate callback
+tk/load-ol.lisp			Xt instead of -lXt in library specification
+tk/load-xm.lisp			Xt instead of -lXt in library specification
+tk/xt-funs.lisp			Added xt_widget_num_popups
+tk-silica/xm-silica.lisp	Destroy-shell when num-popups is zerop
+tk-silica/xt-frames.lisp	Added frame-manager-position-dialog
+xlib/load-xlib.lisp		X11 instead of -lX11 in library specification
+------------------------------------------------------------
+
 from cer: Thu Nov 18 10:42:51 PST 1993
 
 Makefile.defs			Moved to devel.19

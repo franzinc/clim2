@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.49 1993/10/25 16:16:05 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.50 1993/10/26 03:22:09 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -209,7 +209,7 @@
   (declare (ignore nleft ntop nright nbottom no-repaint))
   nil)
 
-(defun scroll-extent (sheet x y)
+(defmethod scroll-extent ((sheet basic-sheet) x y)
   ;;--- CER says that this really isn't right...
   (fix-coordinates x y)
   (let ((viewport (pane-viewport sheet)))

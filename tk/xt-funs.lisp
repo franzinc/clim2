@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.21 1993/08/12 16:04:55 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.22 1993/10/25 16:16:31 cer Exp $
 
 
 ;;
@@ -429,4 +429,11 @@
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XtAppSetFallbackResources")
     :return-type :void)
+
+(ff:defforeign 'xt_widget_num_popups
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "xt_widget_num_popups")
+    :return-type :fixnum)
 
