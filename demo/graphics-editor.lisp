@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.16 92/11/19 14:24:11 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.17 93/04/23 09:17:53 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -239,7 +239,14 @@
 ;;; The application itself
 
 (define-command-table graphics-editor-file-commands)
-(define-command-table graphics-editor-edit-commands)
+
+(define-command-table graphics-editor-edit-commands
+    :menu (("Deselect" :command (com-deselect-object))
+	   ("divide1" :divider nil)
+	   ("Clear" :command (com-clear))
+	   ("divide2" :divider nil)
+	   ("Redisplay" :command (com-redisplay))))
+
 (define-command-table graphics-editor-option-commands)
 
 (define-application-frame graphics-editor (selected-object-mixin) 

@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.21 93/03/19 09:43:18 cer Exp $
+;; $fiHeader: command.lisp,v 1.22 93/04/23 09:17:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1196,16 +1196,45 @@
 	     (setf (get ',command-name 'n-required) ,n-required)
 	     (define-command-1 #',parser-name ',command-name)
 	     ,(when command-table
-		`(progn
-		   (remove-command-from-command-table ',command-name ',command-table
-						      :errorp nil)
-		   (add-command-to-command-table ',command-name ',command-table
+		`(ensure-command-in-command-table ',command-name ',command-table
 						 :name ',command-line-name
 						 :menu ',menu-item
-						 :keystroke ',keystroke
-						 :errorp nil)))
+						 :keystroke ',keystroke))
 	     ,@translators))))))
 
+
+(defun ensure-command-in-command-table (command-name command-table &key name menu keystroke)
+  
+  (when menu
+    (let ((menu-options (and (consp menu) (cdr menu)))
+	  (menu-name (if (consp menu) (car menu) menu)))
+
+      (when (eq (getf menu-options :after :replace) :replace)
+	;; Find who to insert it after or whether we need to put it at
+	;; the beginning
+	(with-slots ((menu-vector menu)) (find-command-table command-table)
+	  (let ((position (position (if (eq menu-name t)
+					(or name (command-name-from-symbol command-name))
+				      menu-name)
+				    menu-vector :test #'menu-name-equal :key #'first)))
+	    (cond ((null position)
+		   (setf (getf menu-options :after) :end
+			 menu (cons menu-name menu-options)))
+		  ((zerop position)
+		   (setf (getf menu-options :after) :start
+			 menu (cons menu-name menu-options)))
+		  (t
+		   (setf (getf menu-options :after) (first (aref menu-vector (1- position)))
+			 menu (cons menu-name menu-options)))))))))
+    
+  (remove-command-from-command-table command-name command-table
+				     :errorp nil)
+    
+  (add-command-to-command-table command-name command-table
+				:name name
+				:menu menu
+				:keystroke keystroke
+				:errorp nil))
 
 (defun remove-command (name)
   (maphash #'(lambda (key comtab)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.51 93/03/25 15:41:59 colin Exp $
+;; $fiHeader: packages.lisp,v 1.52 93/04/02 18:41:13 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2276,6 +2276,7 @@
     redisplay-output-record
     redisplayable-stream-p
     standard-updating-output-record
+    stream-redisplaying-p
     updating-output
     updating-output-record
     updating-output-record-p
