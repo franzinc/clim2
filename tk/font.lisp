@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.24 2000/03/04 05:13:48 duane Exp $
+;; $Id: font.lisp,v 1.24.32.1 2000/07/10 23:51:48 cley Exp $
 
 (in-package :tk)
 
@@ -128,7 +128,8 @@
 	  (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
-	    (setf (elt seq i) (char*-to-string (xfontname-list names i))))
+	    (setf (elt seq i) (excl:native-to-string 
+			       (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
 
 #+broken
@@ -146,7 +147,7 @@
 	    (setf (elt seq i)
 	      (make-instance 'font
 			     :foreign-address (xfontstruct-array fonts i)
-			     :name (char*-to-string (xfontname-list
+			     :name (excl:native-to-string (xfontname-list
 						     names i)))))
 	;;--- Dont free the font info
 	(x11:xfreefontnames names)))))
@@ -174,13 +175,13 @@
 					&def-string))
 	  (missing-charsets nil))
       (dotimes (i missing-count)
-	(push (ff:char*-to-string
+	(push (excl:native-to-string
 	       (sys:memref-int missing-list 0 (* i #-64bit 4 #+64bit 8)
 			       :unsigned-natural))
 	      missing-charsets))
       (values font-set missing-charsets
 	      (unless (zerop def-string)
-		(ff:char*-to-string def-string))))))
+		(excl:native-to-string def-string))))))
 
 (defmethod initialize-instance :after ((fs font-set) &key
 						     foreign-address display base-names)
@@ -203,7 +204,7 @@
 				  &font-name-list-return))
 	  (fonts nil))
       (dotimes (i n)
-	(let ((name (ff:char*-to-string
+	(let ((name (excl:native-to-string
 		     (sys:memref-int font-name-list-return
 				     0 (* i #-64bit 4 #+64bit 8) :unsigned-natural))))
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 1.47 1999/02/25 08:23:42 layer Exp $
+;; $Id: widget.lisp,v 1.47.32.1 2000/07/10 23:51:50 cley Exp $
 
 (in-package :tk)
 
@@ -281,7 +281,7 @@
 					    (clim-utils:string-to-foreign locale))
 				       0))))
       (unless (zerop r)
-	(ff:char*-to-string r))))))
+	(values (excl:native-to-string r)))))))
 
 ;; Could not think of anywhere better!
 
@@ -319,8 +319,9 @@
 		       args)))
       (values context display app))))
 
-(defun xt-name (w) (char*-to-string (xt_name w)))
-(defun xt-class (w) (char*-to-string (xt-class-name (xt_class w))))
+(defun xt-name (w) (values (excl:native-to-string (xt_name w))))
+(defun xt-class (w) (values (excl:native-to-string 
+			     (xt-class-name (xt_class w)))))
 
 (defun widget-resource-name-and-class (w)
   (do* ((names nil (cons (xt-name w) names))
