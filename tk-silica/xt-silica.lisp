@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.69 93/02/08 15:58:19 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.70 93/03/04 19:02:28 colin Exp $
 
 (in-package :xm-silica)
 
@@ -1163,62 +1163,61 @@
     (if (logtest x x11:mod2mask) +super-key+ 0)
     (if (logtest x x11:mod3mask) +hyper-key+ 0)))
 
-;;;---- This is just an experiment
 
-;(defmethod engraft-medium :before ((medium t) (port xt-port) (pane clim-stream-pane))
-;  (default-from-resources medium port pane))
-;
-;(defmethod engraft-medium :before ((medium t) (port xt-port) (pane top-level-sheet))
-;  (default-from-resources medium port pane))
+(defmethod find-widget-class 
+    ((port xt-port) (parent t) (sheet mirrored-sheet-mixin))
+  (multiple-value-bind (class initargs)
+      (find-widget-class-and-initargs-for-sheet port parent sheet)
+    (declare (ignore initargs))
+    class))
 
-
-;;--- Why is medium class-specialized on T here?  --SWM
-(defmethod engraft-medium :before ((medium t) (port xt-port) 
-				   (pane clim-internals::output-protocol-mixin))
-  (default-from-resources medium port pane))
-
-(defmethod engraft-medium :before ((medium t) (port xt-port) (pane viewport))
-  (default-from-resources medium port pane))
-
-;; whats wrong with this?
-;; Well I think there is some dreadful method combination order
-;; problem which results in mediums being grafted before mirrors
-
-#+ignore
-(defmethod engraft-medium :before ((medium t) (port xt-port) (pane standard-sheet-output-mixin))
-  (default-from-resources medium port pane))
-
+(defmethod find-widget-class
+    ((port xt-port) (parent t) (sheet basic-sheet))
+  (class-name (class-of sheet)))
 
 ;;-- What do we do about pixmap streams. I guess they should inherit
 ;;-- properties from the parent.
 
-;;--- Unless the foreground, background and default-text-style have
-;;--- been set we want to query the resource database for the values
-;; Either (a) ask a widget or (b) Do it directly.
-;; Well it looks like we have to use a widget
-;; If we wanted to get a font then we are in trouble because there is
-;; not such resource here
+;;; what's the deal with pixmap streams they don't seem to have
+;;; parents??? This next method is probably wrong but at the moment
+;;; it's the best I can come up with (cim)
 
-(defun default-from-resources (medium port pane)
-  (let* ((w (sheet-mirror pane))
-	 (display (silica::port-display port))
+(defmethod get-sheet-resources ((port xt-port) (sheet pixmap-stream))
+  (multiple-value-bind (names classes)
+      (xt::widget-resource-name-and-class (port-application-shell port))
+    (get-xt-resources port names classes)))
+  
+(defmethod get-sheet-resources ((port xt-port) sheet)
+  (let ((parent-widget (sheet-mirror (sheet-parent sheet))))
+    (multiple-value-bind (parent-names parent-classes)
+	(xt::widget-resource-name-and-class parent-widget)
+      (let ((names
+	     (append parent-names
+		     (list (string (or (pane-name sheet) "")))))
+	    (classes 
+	     (append parent-classes
+		     (list 
+		      (string 
+		       (or (find-widget-class port parent-widget sheet) ""))))))
+	(get-xt-resources port names classes)))))
+
+(defun get-xt-resources (port names classes)
+  (let* ((display (silica::port-display port))
 	 (db (tk::display-database display))
-	 (palette (medium-palette medium)))
-    ;; Make sure we dont have a pixmp
-    ;;-- What about the case when there is a pixmap
-    (when (typep w 'xt::xt-root-class)
-      (multiple-value-bind (name class)
-	  (xt::widget-resource-name-and-class w)
-	(let ((background (xt::get-resource db name "background"
-					    class "Background"))
-	      (foreground (xt::get-resource db name "foreground" 
-					    class "Foreground"))
-	      (text-style (xt::get-resource db name "textStyle"
-					    class "TextStyle")))
-	  (when text-style
-	    (unless (medium-default-text-style pane)
-	      (setf (medium-text-style pane) 
-		(let ((spec (read-from-string text-style)))
+	 (palette (port-default-palette port))
+	 (background (xt::get-resource db names "background"
+				       classes "Background"))
+	 (foreground (xt::get-resource db names "foreground" 
+				       classes "Foreground"))
+	 (text-style (xt::get-resource db names "textStyle"
+				       classes "TextStyle")))
+    `(,@(and background `(:background 
+			  ,(find-named-color background palette)))
+      ,@(and foreground `(:foreground 
+			  ,(find-named-color foreground palette)))
+      ,@(and text-style
+	     `(:text-style
+	       ,(let ((spec (read-from-string text-style)))
 		  (etypecase spec
 		    (cons (parse-text-style spec))
 		    (string (silica::make-device-font 
@@ -1226,15 +1225,7 @@
 			     (make-instance 'tk::font 
 					    :display display
 					    :name (car (tk::list-font-names
-							display spec))))))))))
-	  (when foreground
-	    (unless (medium-foreground pane)
-	      (setf (medium-foreground pane)
-		(find-named-color foreground palette))))
-	  (when background
-	    (unless (medium-background pane)
-	      (setf (medium-background pane)
-		(find-named-color background palette)))))))))
+							display spec))))))))))))
 
 ;;;--- Gadget activation deactivate
 

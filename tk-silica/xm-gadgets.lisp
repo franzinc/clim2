@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.64 93/03/01 14:26:36 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.65 93/03/04 19:02:03 colin Exp $
 
 (in-package :xm-silica)
 
@@ -716,8 +716,7 @@
           `(:scrolling-policy :application-defined
             :margin-width 0 :margin-height 0
             :resize-policy :none
-            :scroll-bar-display-policy :static
-	    :name ,(string (pane-name (car (sheet-children sheet)))))))
+            :scroll-bar-display-policy :static)))
 
 
 (defclass motif-radio-box (motif-geometry-manager
@@ -783,7 +782,7 @@
 ;  (move-and-resize-sheet (sheet-child fr) 0 0 width height))
 
 
-(defclass motif-frame-pane (foreground-background-and-text-style-mixin
+(defclass motif-frame-pane (sheet-with-resources-mixin
 			    motif-geometry-manager
                             mirrored-sheet-mixin
                             sheet-single-child-mixin
@@ -1452,20 +1451,12 @@
 ;; Utilize a motif scrolling window to provide the scrollbars and
 ;; geometry management
 
-#+ignore ;; added this to assoc list in make-pane-class at top of file
-(defmethod make-pane-class ((framem motif-frame-manager) 
-                            (class (eql 'scroller-pane)) 
-                            &rest options) 
-  (declare (ignore options))
-  'motif-scroller-pane)
-
-
 (defclass motif-scroller-pane (scroller-pane basic-motif-scrolling-window) 
           ())
 
 (defmethod initialize-instance :after ((sp motif-scroller-pane) &key
-                                                                scroll-bars 
-                                                                contents frame-manager frame) 
+                                                                scroll-bars contents
+								frame-manager frame)
   (if (setf (scroller-pane-gadget-supplies-scrolling-p sp)
         (gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
@@ -1482,7 +1473,10 @@
 			     :orientation :horizontal :id :horizontal :client sp)))
           (setf (scroller-pane-horizontal-scroll-bar sp) sb)
           (sheet-adopt-child sp sb)))
-      (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
+      (sheet-adopt-child sp (setf (slot-value sp 'viewport) 
+			      (make-pane 'viewport
+					 :scroller-pane sp
+					 :background (pane-background sp))))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
 
 (defmethod gadget-supplies-scrolling-p ((sheet t)) nil)

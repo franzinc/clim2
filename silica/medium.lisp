@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.31 92/12/16 16:49:35 cer Exp $
+;; $fiHeader: medium.lisp,v 1.32 93/01/11 15:45:18 colin Exp $
 
 (in-package :silica)
 
@@ -94,31 +94,51 @@
 (defvar *default-pane-foreground* +black+)
 (defvar *default-pane-background* +white+)
 
-(defclass foreground-background-and-text-style-mixin ()
-    ((foreground :initform nil :initarg :foreground
-		 :accessor pane-foreground)
-     (background :initform nil :initarg :background
-		 :accessor pane-background)
-     (text-style :initform #+allegro nil #-allegro *default-text-style*
-		 :initarg :text-style
-		 :accessor pane-text-style)))
+(defclass sheet-with-resources-mixin ()
+    ((foreground :initform nil :accessor pane-foreground)
+     (background :initform nil :accessor pane-background)
+     (text-style :initform nil :accessor pane-text-style)
+     (initargs :initform nil :reader sheet-with-resources-initargs)))
 
-(defmethod initialize-instance :after ((pane foreground-background-and-text-style-mixin)
-				       &key &allow-other-keys)
-  (with-slots (text-style) pane
-    ;; Convert the text style if necesary
-    (etypecase text-style
-      (cons (setq text-style (parse-text-style text-style)))
-      (text-style nil)
-      (null))))
+(defmethod initialize-instance :after 
+	   ((sheet sheet-with-resources-mixin) &rest args)
+  (with-slots (initargs) sheet
+    (setf initargs args)))
+
+
+(defmethod get-sheet-resources ((port basic-port) 
+				(sheet sheet-with-resources-mixin))
+  nil)
+  
+;;-- What do we do about pixmap streams. I guess they should inherit
+;;-- properties from the parent.
+
+(defmethod note-sheet-grafted :before ((sheet sheet-with-resources-mixin)) 
+  (let ((initargs (sheet-with-resources-initargs sheet))
+	(resources (get-sheet-resources (port sheet) sheet)))
+    (setf (pane-foreground sheet) (or (getf initargs :foreground) 
+				      (getf resources :foreground)
+				      *default-pane-foreground*)
+	  (pane-background sheet) (or (getf initargs :background) 
+				      (getf resources :background)
+				      *default-pane-background*)
+	  (pane-text-style sheet) (or (getf initargs :text-style) 
+				      (getf resources :text-style)
+				      *default-text-style*))))
 
 (defmethod engraft-medium :after
-	   ((medium basic-medium) port (sheet foreground-background-and-text-style-mixin))
-  (declare (ignore port))
-  (setf (slot-value medium 'text-style)
-	(parse-text-style (slot-value medium 'text-style)))
-  (setf (slot-value medium 'default-text-style) 
-	(parse-text-style (slot-value medium 'default-text-style))))
+	   ((medium basic-medium) port (sheet sheet-with-resources-mixin))
+  ;; We set the slots directly in order to avoid running any per-port
+  ;; :AFTER methods (or whatever).  That work should be done by similar
+  ;; per-port methods on ENGRAFT-MEDIUM.
+  (with-slots (foreground background 
+	       text-style default-text-style merged-text-style-valid)
+      medium
+    (setf foreground (pane-foreground sheet)
+ 	  background (pane-background sheet)
+	  default-text-style (parse-text-style (pane-text-style sheet))
+	  text-style default-text-style
+	  merged-text-style-valid nil)))
 
 
 (defclass pane-repaint-background-mixin () ())

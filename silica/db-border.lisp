@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.16 92/12/16 16:48:32 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.17 93/02/08 15:57:24 cer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -98,7 +98,7 @@
 	      (make-text-style :sans-serif :italic :small))
 
 (defclass label-pane 
-	  (foreground-background-and-text-style-mixin
+	  (sheet-with-resources-mixin
 	   labelled-gadget-mixin
 	   pane)
     ()

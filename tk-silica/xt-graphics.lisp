@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.63 93/02/10 10:04:25 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.64 93/03/04 19:02:14 colin Exp $
 
 (in-package :tk-silica)
 
@@ -501,24 +501,22 @@
 ;;; entries for the same gc in the table which causes problems when
 ;;; they need to be freed
 
-(defmethod decode-ink :around ((ink design) (medium xt-medium))
+(defmethod decode-ink ((ink design) (medium xt-medium))
   (with-slots (ink-table indirect-inks) medium
     (or (gethash ink ink-table)
-	(multiple-value-bind (gc recursive-p)
-	    (call-next-method)
-	  (unless recursive-p
-	    (when (indirect-ink-p ink)
-	      (push ink indirect-inks))
-	    (setf (gethash ink ink-table) gc))
+	(let ((gc (decode-ink-1 ink medium)))
+	  (when (indirect-ink-p ink)
+	    (push ink indirect-inks))
+	  (setf (gethash ink ink-table) gc)
 	  gc))))
 
-;;; the default decode-ink method. Make a gc using
+;;; the default decode-ink-1 method. Make a gc using
 ;;; decode-color-in-palette to get the pixel value
 
 ;;--- This is really only makes sense for color, dynamic-color, and
 ;;--- layered-color. Perhaps there should be a class like basic-color?
 
-(defmethod decode-ink ((ink design) (medium xt-medium))
+(defmethod decode-ink-1 ((ink design) (medium xt-medium))
   (with-slots (sheet drawable) medium
     (let* ((drawable (or drawable
 			 (tk::display-root-window (port-display (port sheet)))))
@@ -530,7 +528,7 @@
 	  (setf (tk::gcontext-plane-mask new-gc) mask)))
       new-gc)))
 
-(defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
+(defmethod decode-ink-1 ((ink flipping-ink) (medium xt-medium))
   (with-slots (sheet drawable)
       medium
     (let* ((drawable (or drawable
@@ -545,7 +543,7 @@
 		  (decode-color color2 medium))))
       new-gc)))
 		 
-(defmethod decode-ink ((ink color) (medium xt-medium))
+(defmethod decode-ink-1 ((ink color) (medium xt-medium))
   (let ((palette (medium-palette medium)))
     (with-slots (white-pixel black-pixel) palette
       (with-slots (sheet drawable) medium
@@ -574,10 +572,10 @@
 			     (decode-stipple luminosity port))))))))
 	  new-gc)))))
 
-(defmethod decode-ink ((ink (eql +nowhere+)) (medium xt-medium))
+(defmethod decode-ink-1 ((ink (eql +nowhere+)) (medium xt-medium))
   (decode-ink-opacity ink medium))
 
-(defmethod decode-ink ((ink standard-opacity) (medium xt-medium))
+(defmethod decode-ink-1 ((ink standard-opacity) (medium xt-medium))
   (decode-ink-opacity ink medium))
 
 (defmethod decode-ink-opacity (opacity (medium xt-medium))
@@ -597,11 +595,10 @@
       (make-color-for-contrasting-ink ink)
     (make-gray-color-for-contrasting-ink ink)))
  
-(defmethod decode-ink ((ink contrasting-ink) (medium xt-medium))
-  (values 
-   (decode-ink (decode-contrasting-ink ink medium) medium) t))
+(defmethod decode-ink-1 ((ink contrasting-ink) (medium xt-medium))
+  (decode-ink-1 (decode-contrasting-ink ink medium) medium))
 
-(defmethod decode-ink ((pattern pattern) (medium xt-medium)) 
+(defmethod decode-ink-1 ((pattern pattern) (medium xt-medium)) 
   (multiple-value-bind (array designs)
       (decode-pattern pattern)
     (let* ((height (array-dimension array 0))
@@ -709,7 +706,7 @@
 	    (values extended-array designs))
 	(values array designs)))))
 	    
-(defmethod decode-ink ((ink rectangular-tile) (medium xt-medium))
+(defmethod decode-ink-1 ((ink rectangular-tile) (medium xt-medium))
   (multiple-value-bind (pattern width height)
       (decode-rectangular-tile ink)
     (multiple-value-bind (array designs)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.28 93/01/18 13:58:13 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.29 93/02/08 15:58:15 cer Exp $
 
 (in-package :xm-silica)
 
@@ -57,7 +57,7 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet :around
     ((port xt-port) (parent t)
-     (sheet foreground-background-and-text-style-mixin))
+     (sheet sheet-with-resources-mixin))
   (multiple-value-bind
       (class initargs)
       (call-next-method)
@@ -82,33 +82,10 @@
 	      (append (decode-gadget-foreground medium sheet silica::foreground)
 		      initargs)))))
 
-      (if text-style
-	  (setf (getf initargs :font-list)
-	    (text-style-mapping port text-style))
-	(multiple-value-bind (parent-name parent-class)
-	    (xt::widget-resource-name-and-class parent)
-	  (let* ((full-class (concatenate 'string parent-class "."
-					  (string class)))
-		 (full-name (concatenate 'string parent-name "." 
-					 (or "" (getf initargs
-						      :name))))
-		 (display (silica::port-display port))
-		 (db (tk::display-database display))
-		 (text-style (xt::get-resource db full-name "textStyle"
-					       full-class "TextStyle")))
-	    (when text-style
-	      (let ((spec (read-from-string text-style)))
-		(setf (getf initargs :font-list)
-		  (etypecase spec
-		    (cons
-		     (text-style-mapping port (parse-text-style spec)))
-		    (string
-		     (make-instance 'tk::font 
-				    :display display
-				    :name (car (tk::list-font-names
-						display spec)))))))))))
-	
-      (values class initargs))))
+      (when text-style
+	(setf (getf initargs :font-list)
+	  (text-style-mapping port text-style))))
+    (values class initargs)))
 
 (defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))

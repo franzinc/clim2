@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.44 93/01/21 14:57:47 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.45 93/02/08 15:56:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -318,15 +318,17 @@
 ;; to WITH-LOOK-AND-FEEL-REALIZATION
 (defmacro make-clim-stream-pane (&rest options
 				 &key (type ''clim-stream-pane) 
-				      label (label-alignment #+Genera :bottom #-Genera :top)
-				      (scroll-bars ':vertical) (borders t)
+				      label 
+				      (label-alignment #+Genera :bottom #-Genera :top)
+				      (scroll-bars ':vertical)
+				      (borders t)
 				      (display-after-commands nil dac-p)
 				      (background nil background-p)
+				      name
 				 &allow-other-keys)
   (setq options (remove-keywords options '(:type :scroll-bars :borders
 					   :label :background
 					   :label-alignment :display-after-commands)))
-  
   (let* ((stream '#:clim-stream)
 	 (display-time
 	   (and dac-p
@@ -340,7 +342,10 @@
 				     ,@(and background-p `(:background ,background-var))
 				     ,@options))))
     (when scroll-bars
-      (setq pane `(scrolling (:scroll-bars ,scroll-bars ,@(and background-p `(:background ,background-var)))
+      (setq pane `(scrolling
+		      (:scroll-bars ,scroll-bars
+		       :name ,name
+		       ,@(and background-p `(:background ,background-var)))
 		    ,pane)))
     (when label
       (let ((label (if (stringp label)
@@ -354,13 +359,20 @@
 			   ,@(and background-p `(:background ,background-var))))))
 	(ecase label-alignment
 	  (:bottom
-	    (setq pane `(vertically (,@(and background-p `(:background ,background-var))) ,pane ,label)))
+	   (setq pane `(vertically 
+			   (,@(and background-p `(:background ,background-var)))
+			 ,pane
+			 ,label)))
 	  (:top
-	    (setq pane `(vertically (,@(and background-p `(:background ,background-var))) ,label ,pane))))))
+	   (setq pane `(vertically 
+			   (,@(and background-p `(:background ,background-var)))
+			 ,label
+			 ,pane))))))
     (when borders 
-      (setq pane `(outlining (:thickness 1 ,@(and background-p
-						  `(:background
-						    ,background-var)))
+      (setq pane `(outlining 
+		      (:thickness 1 
+		       :name ,name
+		       ,@(and background-p `(:background ,background-var)))
 		    #+Allegro ,pane
 		    #-Allegro (spacing (:thickness 1) ,pane))))
     `(let ((,stream)

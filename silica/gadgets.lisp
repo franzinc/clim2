@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.44 93/01/21 14:59:03 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.45 93/02/08 15:57:32 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -10,7 +10,7 @@
 
 (define-protocol-class gadget (pane))
 
-(defclass basic-gadget (foreground-background-and-text-style-mixin gadget)
+(defclass basic-gadget (sheet-with-resources-mixin gadget)
     ((id :initarg :id :reader gadget-id :initform nil)
      (client :initarg :client :initform nil :accessor gadget-client)
      (armed-callback :initarg :armed-callback :initform nil
@@ -332,11 +332,10 @@
 
 
 ;;; Menu bar
-(defclass menu-bar (pane)
+(defclass menu-bar (pane
+		    sheet-with-resources-mixin)
     ((command-table :initarg :command-table :initform nil
-		    :accessor menu-bar-command-table)
-     (text-style :initarg :text-style :initform nil
-		 :reader menu-bar-text-style)))
+		    :accessor menu-bar-command-table)))
 
 
 ;;; Cascade button
@@ -461,6 +460,7 @@
 	  (sheet-single-child-mixin
 	   sheet-permanently-enabled-mixin
 	   wrapping-space-mixin
+	   sheet-with-resources-mixin
 	   basic-pane)
     ;; This describes the region that we are displaying
     ((viewport-region :accessor viewport-viewport-region)

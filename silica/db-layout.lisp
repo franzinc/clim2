@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.27 92/12/16 16:48:36 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.28 93/01/21 14:58:53 cer Exp $
 
 (in-package :silica)
 
@@ -655,7 +655,7 @@
 ;;--- It would be nice if this and COMPOSITE-PANE had single- and multiple-child
 ;;--- versions so that users could get better error diagnostics
 (defclass layout-pane (sheet-mute-input-mixin
-		       foreground-background-and-text-style-mixin
+		       sheet-with-resources-mixin
 		       space-requirement-mixin
 		       space-requirement-cache-mixin
 		       sheet-permanently-enabled-mixin

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.33 93/01/21 14:58:13 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.34 93/02/08 15:56:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -24,19 +24,11 @@
 (defmethod interactive-stream-p ((stream basic-extended-output-protocol))
   nil)
 
-
-(defclass output-protocol-mixin
-	  (basic-extended-output-protocol)
+(defclass output-protocol-mixin (basic-extended-output-protocol
+				 sheet-with-resources-mixin)
      ((cursor-x :type coordinate :initform (coordinate 0))
       (cursor-y :type coordinate :initform (coordinate 0))
       ;; We use the next three to initialize the medium
-      (foreground :initform nil :initarg :foreground
-		  :accessor medium-foreground)
-      (background :initform nil :initarg :background
-		  :accessor medium-background)
-      (default-text-style :initform nil
-			  :initarg :default-text-style :initarg :text-style
-			  :accessor medium-default-text-style)
       (baseline :accessor stream-baseline
 		:type coordinate :initform (coordinate 0))
       (current-line-height :accessor stream-current-line-height
@@ -64,62 +56,11 @@
 							  :initial-element 0)
 		     :text-margin nil))
 
-;; Prevent using the instance-ref instructions on these, since they
-;; usually have :BEFORE/:AFTER qualifiers on the SETF methods that will
-;; cause the instance-ref instructions to take a slow trap.
-#+(or Genera Minima)
-(progn
-  (declaim (notinline medium-foreground (setf medium-foreground)))
-  (declaim (notinline medium-background (setf medium-background)))
-  (declaim (notinline medium-text-style (setf medium-text-style)))
-  (declaim (notinline medium-default-text-style (setf medium-default-text-style))))
-
 (defmethod initialize-instance :after ((stream output-protocol-mixin)
 				       &key text-margin)
   (when text-margin
     (setq text-margin (process-spacing-arg stream text-margin 'stream-text-margin))
     (setf (slot-value stream 'text-margin) text-margin)))
-
-(defmethod (setf medium-foreground) :after (new-value (stream output-protocol-mixin))
-  (let ((medium (sheet-medium stream)))
-    ;; Watch out for uninitialized MEDIUM slot.
-    (when (mediump medium)
-      (setf (medium-foreground medium) new-value))))
-
-(defmethod (setf medium-background) :after (new-value (stream output-protocol-mixin))
-  (let ((medium (sheet-medium stream)))
-    ;; Watch out for uninitialized MEDIUM slot.
-    (when (mediump medium)
-      (setf (medium-background medium) new-value))))
-
-;;--- Need to write some macros to define these trampolines
-(defmethod (setf medium-default-text-style) :after (style (stream output-protocol-mixin))
-  (declare (ignore style))
-  (with-slots (default-text-style) stream
-    (setq default-text-style (parse-text-style default-text-style))))
-
-(defmethod engraft-medium :after
-	   ((medium basic-medium) port (stream output-protocol-mixin))
-  ;; We set the slots directly in order to avoid running any per-port
-  ;; :AFTER methods (or whatever).  That work should be done by similar
-  ;; per-port methods on ENGRAFT-MEDIUM.
-  (with-slots (silica::foreground silica::background
-	       silica::text-style silica::default-text-style 
-	       silica::merged-text-style-valid) medium
-    (setf silica::foreground 
-	    (or (medium-foreground stream)
-		(setf (slot-value stream 'foreground) *default-pane-foreground*))
- 	  silica::background 
-	    (or (medium-background stream)
-		(setf (slot-value stream 'background) *default-pane-background*))
-	  silica::default-text-style
-	    (parse-text-style (or (medium-default-text-style stream)
-				  (setf (slot-value stream 'default-text-style)
-					(port-default-text-style port))))
-	  silica::text-style 
-	    (or (medium-text-style stream)
-		(parse-text-style silica::default-text-style))
-	  silica::merged-text-style-valid nil)))
 
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.58 93/01/21 14:57:55 cer Exp $
+;; $fiHeader: frames.lisp,v 1.59 93/02/08 15:56:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -78,26 +78,15 @@
 	(t (find-frame-manager))))
 
 (defmethod initialize-instance :after ((frame standard-application-frame) 
-				       &rest args
-				       &key frame-manager
-					    geometry icon
-					    (parent frame-manager parent-p))
-  (declare (ignore args))
+				       &key 
+				       (frame-manager (find-frame-manager))
+				       geometry icon)
   (destructuring-bind (&key left top width height) geometry
     (declare (ignore left top width height)))
   (destructuring-bind (&key name pixmap clipping-mask) icon
     (declare (ignore name pixmap clipping-mask)))
-  (let ((frame-manager
-	  (etypecase parent
-	    (null (unless parent-p (find-frame-manager)))
-	    (list (apply #'find-frame-manager parent))
-	    (frame-manager parent)
-	    (application-frame (frame-manager parent))
-	    (port (find-frame-manager :port parent))
- 	    (graft (find-frame-manager :port (port parent)))
-	    (sheet (frame-manager (pane-frame parent))))))
-    (when frame-manager
-      (adopt-frame frame-manager frame))))
+  (when frame-manager
+    (adopt-frame frame-manager frame)))
 
 (defmethod find-named-color (name (frame standard-application-frame) &key (errorp t))
   (find-named-color name (frame-palette frame) :errorp errorp))
@@ -400,19 +389,14 @@
      :end-of-page-action :allow 
      :end-of-line-action :allow))
 
-(define-pane-type :command-menu (&rest options)
+(define-pane-type :command-menu (&rest options &key command-table)
   (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane
-     :type 'command-menu-pane
-     ,@options
-     :display-function `(display-command-menu :command-table ,(frame-command-table frame))
-     :incremental-redisplay t
-     :display-after-commands t
-     :text-style *command-table-menu-text-style*
-     :scroll-bars nil
-     :width :compute :height :compute
-     :end-of-page-action :allow 
-     :end-of-line-action :allow))
+  (with-keywords-removed (options options '(:command-table))
+    `(make-pane 'menu-bar 
+		,@options
+		:command-table ,(or command-table
+				    `(frame-command-table frame)))))
+
 
 (define-pane-type :interactor (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))

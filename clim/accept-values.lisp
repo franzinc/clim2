@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.53 93/02/08 15:56:36 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.54 93/03/04 18:59:38 colin Exp $
 
 (in-package :clim-internals)
 
@@ -331,7 +331,7 @@
 			    (frame-manager-accepting-values-frame-class
 			      frame-manager))
 			:calling-frame *application-frame*
-			:parent frame-manager
+			:frame-manager frame-manager
 			:pretty-name label
 			:continuation continuation
 			:exit-boxes exit-boxes

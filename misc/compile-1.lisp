@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.16 92/11/09 10:55:28 cer Exp $
+;; $fiHeader: compile-1.lisp,v 1.17 92/12/07 12:15:00 cer Exp $
 
 (in-package :user)
 
@@ -64,18 +64,21 @@
   (clim-defsys::compile-system sys :propagate t)
   (tenuring
    (clim-defsys::load-system sys))
+
   (load "postscript/sysdcl")
   (clim-defsys::compile-system 'postscript-clim :propagate t)
   (clim-defsys::load-system 'postscript-clim)
+
   (compile-file-if-needed "test/test-suite")
+
   (load "demo/sysdcl")
   (clim-defsys::compile-system 'clim-demo :propagate t)
-  (load "compatibility/sysdcl.lisp")
   (clim-defsys::load-system 'clim-demo)
-  (when (probe-file "climtoys/sysdcl.lisp")
-    (load "climtoys/sysdcl.lisp")
-    (clim-defsys::compile-system 'clim-toys))
-  (load "compatibility/sysdcl.lisp")
-  #+ignore
-  (clim-defsys::compile-system 'clim-compatibility :propagate t))
+
+  (load "climtoys/sysdcl.lisp")
+  (clim-defsys::compile-system 'clim-toys)
+  (clim-defsys::load-system 'clim-toys)
+
+  #+ignore (load "compatibility/sysdcl.lisp")
+  #+ignore (clim-defsys::compile-system 'clim-compatibility :propagate t))
 

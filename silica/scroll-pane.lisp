@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: scroll-pane.lisp,v 1.1 92/12/07 12:15:21 cer Exp $
+;; $fiHeader: scroll-pane.lisp,v 1.2 92/12/16 16:49:44 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -403,7 +403,7 @@
 	   space-requirement-mixin
 	   sheet-single-child-mixin
 	   shared-medium-sheet-output-mixin
-	   foreground-background-and-text-style-mixin
+	   sheet-with-resources-mixin
 	   pane-repaint-background-mixin
 	   leaf-pane)
     ((end :initarg :end)
@@ -474,7 +474,7 @@
 	   space-requirement-mixin
 	   sheet-single-child-mixin
 	   shared-medium-sheet-output-mixin
-	   foreground-background-and-text-style-mixin
+	   sheet-with-resources-mixin
 	   pane-repaint-background-mixin
 	   leaf-pane)
     ((scroll-bar :initarg :scroll-bar)

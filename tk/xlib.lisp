@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.39 93/02/08 15:57:57 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.40 93/03/04 19:01:38 colin Exp $
 
 (in-package :tk)
 
@@ -187,15 +187,23 @@
   (unless foreign-address
     (setf (foreign-pointer-address db) (x11:xrmgetstringdatabase ""))))
 
-(defun get-resource (db name resource-name class resource-class)
-  (with-ref-par ((type 0))
-    (let ((xrmvalue (x11:make-xrmvalue)))
-      (unless (zerop (x11:xrmgetresource db 
-					 (concatenate 'string name resource-name)
-					 (concatenate 'string class resource-class)
-					 type xrmvalue))
-	(values (char*-to-string (x11:xrmvalue-addr xrmvalue))
-		(char*-to-string (aref type 0)))))))
+(defun get-resource (db names name classes class)
+  (let ((full-name "")
+	(full-class ""))
+    (dolist (n names)
+      (setq full-name (concatenate 'string full-name (string n) ".")))
+    (setq full-name (concatenate 'string full-name (string name)))
+    (dolist (c classes)
+      (setq full-class (concatenate 'string full-class (string c) ".")))
+    (setq full-class (concatenate 'string full-class (string class)))
+    (with-ref-par ((type 0))
+      (let ((xrmvalue (x11:make-xrmvalue)))
+	(unless (zerop (x11:xrmgetresource db 
+					   full-name
+					   full-class
+					   type xrmvalue))
+	  (values (char*-to-string (x11:xrmvalue-addr xrmvalue))
+		  (char*-to-string (aref type 0))))))))
 
 (defun convert-string (widget string to-type)
   (let ((from (x11:make-xrmvalue))

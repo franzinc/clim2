@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.47 93/02/08 15:58:07 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.48 93/02/10 10:04:22 cer Exp $
 
 (in-package :xm-silica)
 
@@ -115,27 +115,8 @@
   ;; submenus then it creates one with a menu of its own
   
   (let* ((mirror (call-next-method))
-	 (text-style (menu-bar-text-style sheet))
-	 (font-list 
-	  (if text-style
-	      (list :font-list (text-style-mapping port text-style))
-	    (multiple-value-bind (name class)
-		(xt::widget-resource-name-and-class mirror)
-	      (let* ((display (silica::port-display port))
-		     (db (tk::display-database display))
-		     (text-style (xt::get-resource db name "textStyle"
-						   class "TextStyle")))
-		(when text-style
-		  (let ((spec (read-from-string text-style)))
-		    (list :font-list
-			  (etypecase spec
-			    (cons
-			     (text-style-mapping port (parse-text-style spec)))
-			    (string
-			     (make-instance 'tk::font 
-					    :display display
-					    :name (car (tk::list-font-names
-							display spec))))))))))))
+	 (text-style (pane-text-style sheet))
+	 (font-list (list :font-list (text-style-mapping port text-style)))
 	 (options font-list))
     (labels ((update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))

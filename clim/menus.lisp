@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.38 92/12/16 16:46:43 cer Exp $
+;; $fiHeader: menus.lisp,v 1.39 93/02/08 15:56:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -42,7 +42,7 @@
 (defmethod frame-manager-get-menu ((framem standard-frame-manager) &key scroll-bars)
   (let ((frame (make-application-frame 'menu-frame
 				       :scroll-bars scroll-bars
-				       :parent framem
+				       :frame-manager framem
 				       :save-under t)))
     ;; This so that ports can do something interesting with popped-up
     ;; menu frames, such as implemented "click off menu to abort".
