@@ -11,6 +11,18 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.7
+
+Sat Feb 28 15:18:45 1998  Duane Rettig  <duane@beta>
+
+	* Makefile.rs6000: Fix bug in rs/6000
+
+	* tk/xt-funs.lisp: Fix bug in rs/6000
+
+	* tk-silica/gc-cursor.lisp: Conform gc hooks to new style
+ 
+
+*******************************************************************************
 2.2.1.6 (merge from 2.2.1.5 branch)
 
 *******************************************************************************

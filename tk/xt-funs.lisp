@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xt -*-
 ;;
-;;				-[Thu Nov 10 19:28:13 1994 by smh]-
+;;				-[Thu Feb 26 15:05:28 1998 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xt-funs.lisp,v 1.29 1997/02/05 01:53:29 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xt-funs.lisp,v 1.30 1998/03/02 23:17:04 duane Exp $
 
 
 ;;
@@ -58,7 +58,9 @@
     :return-type :void)
 
 (defforeign 'xt_toolkit_initialize
-    :entry-point (ff:convert-to-lang "XtToolkitInitialize")
+    :entry-point (ff:convert-to-lang
+		  #-rs6000 "XtToolkitInitialize"
+		  #+rs6000 "_XtToolkitInitialize")
     :call-direct t
     :arguments nil
     :arg-checking nil

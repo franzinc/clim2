@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.8 1997/10/20 23:10:57 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.9 1998/03/02 23:17:03 duane Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -22,7 +22,7 @@ AR = ar clq
 
 # This should be defined in make-dist. For CLIM devel (ie making
 # slim images) we use climdcl-devel and don't use the shared library
-# IMPORTS = ../src/ucl.exp
+IMPORTS = stub-x.o stub-xt.o stub-motif.o ../src/lisp.exp
 
 stubs = c2stubs
 
