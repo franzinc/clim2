@@ -765,6 +765,24 @@
 	  (return-from get-avv-frame (car avv-frame)))
 	(sleep 1)))))
 
+#+ignore
+(defun find-avv-query (avv-stream prompt)
+  (let ((table (slot-value (slot-value avv-stream 'clim-internals::avv-record) 'clim-internals::query-table)))
+    (maphash #'(lambda (query-id query)
+		 (when (if (consp query-id) ;;--yuck
+			   (and
+			    (eq (car query-id) :query-identifier)
+			    (consp (cdr query-id))
+			    (equal (cadr query-id) prompt))
+			 (eq query-id prompt))
+		   (return-from find-avv-query query)))
+	     table)
+    (maphash #'(lambda (x y)
+		 (print x)
+		 (print y))
+	     table)
+    (error "Could not find query ~S" prompt)))
+
 (defun find-avv-query (avv-stream prompt)
   (maphash #'(lambda (query-id query)
 	       (when (if (consp query-id) ;;--yuck
@@ -775,6 +793,7 @@
 		       (eq query-id prompt))
 		 (return-from find-avv-query query)))
 	   (slot-value (slot-value avv-stream 'clim-internals::avv-record) 'clim-internals::query-table)))
+
 
 (define-test-step change-query-value (prompt new-value &optional pane-name)
   (with-slots (process avv-frame) invocation

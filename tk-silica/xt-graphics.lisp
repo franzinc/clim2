@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.79 1993/09/17 00:21:30 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.80 1993/09/17 19:07:19 cer Exp $
 
 (in-package :tk-silica)
 
@@ -613,7 +613,7 @@
 	     (case format
 	       (:bitmap (or (eql n-designs 2)
 			    (error "Can't make a bitmap from pattern with more than two designs"))) 
-	       (:pixmap (and (member +nowhere+ designs)
+	       (:pixmap (and (find +nowhere+ designs)
 			     (error "Can't make a pixmap from a transparent pattern"))))))
 	
 	(dotimes (n (length designs))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.25 1993/09/17 00:20:30 colin Exp $
+;; $fiHeader: demo-driver.lisp,v 1.26 1993/09/17 18:35:47 colin Exp $
 
 (in-package :clim-demo)
 
@@ -23,8 +23,7 @@
        (defun ,do-name (&rest args)
 	 (apply #'run-demo demo args)))))
 
-(when (find-class 'clim-user::clim-tests nil)
-  (define-demo "Test Suite" clim-user::clim-tests :width 600 :height 420))
+(define-demo "Test Suite" clim-user::clim-tests :width 600 :height 420)
 
 (define-application-frame demo-driver ()
     ()

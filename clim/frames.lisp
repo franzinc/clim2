@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.72 1993/09/07 21:45:43 colin Exp $
+;; $fiHeader: frames.lisp,v 1.73 1993/09/17 19:05:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -673,6 +673,7 @@
 (defun find-application-frame (frame-name &rest initargs
 			       &key (create t) (activate t) 
 				    (own-process *multiprocessing-p*)
+				    frame-manager port
 				    frame-class
 			       &allow-other-keys)
   (declare (dynamic-extent initargs))
@@ -683,7 +684,9 @@
 	    (block find-frame
 	      (map-over-frames #'(lambda (frame)
 				   (when (typep frame frame-class)
-				     (return-from find-frame frame))))))))
+				     (return-from find-frame frame)))
+			       :frame-manager frame-manager 
+			       :port port)))))
     (when (and create (null frame))
       (with-keywords-removed (initargs initargs '(:create :activate :own-process))
 	(setq frame (apply #'make-application-frame frame-name initargs))))

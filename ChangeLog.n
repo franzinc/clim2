@@ -1,3 +1,13 @@
+from cer: Wed Sep 22 14:19:31 PDT 1993
+
+Makefile.defs			-> devel.18
+clim/accept-values.lisp		Moved (defvar *editting-field-p* nil) before use
+clim/frames.lisp		find-application-frame now takes :port, :frame-manager args
+demo/demo-driver.lisp		Always define test suite demo
+demo/plot.lisp			Removed bogus translator
+test/test-driver.lisp		Added commented out debugging function
+tk-silica/xt-graphics.lisp	Replaced member by find since its on a vector
+
 Wed Sep 22 10:57:07 1993  Kevin Layer  (layer@sole)
 
 	* clim-2.0/Makefile.cobjs: move .c generation stuff to

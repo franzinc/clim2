@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.68 1993/08/12 16:02:56 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.69 1993/09/17 19:04:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -422,6 +422,8 @@
 		         (delete frame (frame-manager-frames framem))
 		       (slot-value frame 'frame-manager) nil))))))))
 
+(defvar *editting-field-p* nil)
+
 (defmethod accept-values-top-level ((frame accept-values) &rest args)
   (declare (ignore args))
   (with-slots (stream continuation resynchronize-every-pass check-overlapping
@@ -812,8 +814,6 @@
      :gesture :modify-field)
     (object)
   (list object))
-
-(defvar *editting-field-p* nil)
 
 (defmethod accept-values-query-edit-value ((query accept-values-query) stream &key modify)
   (with-slots (presentation-type value changed-p prompt presentation) query
