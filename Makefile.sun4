@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sun4,v 1.13 1996/03/13 09:55:17 colin Exp $
+# $fiHeader: Makefile.sun4,v 1.14 1996/03/15 05:18:05 colin Exp $
 #
 #  Makefile.sun4 for CLIM 2.0
 #
@@ -17,7 +17,5 @@ XLIB=/net/louie/malle/colin/X11R5/Ximp-libs/libX11.a
 
 AR = ar cq
 
-# not needed anymore - we make libwnn.a in clim-2.0
-#WNNLIB=/usr/fi/X11R5/lib/libwnn.a
 
 include Makefile.generic

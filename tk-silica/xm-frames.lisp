@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.71 1995/11/08 06:15:55 georgej Exp $
+;; $fiHeader: xm-frames.lisp,v 1.72 1996/03/01 05:44:09 colin Exp $
 
 (in-package :xm-silica)
 
@@ -434,10 +434,11 @@
 		      (text-style (if item-text-style
 				      (merge-text-styles item-text-style menu-text-style)
 				    menu-text-style))
+		      (sensitive (clim-internals::menu-item-active item))
 		      (button
 		       (if simplep
 			   (apply #'make-instance class
-				  :sensitive (clim-internals::menu-item-active item)
+				  :sensitive sensitive
 				  :parent parent
 				  :managed nil
 				  :label-string (princ-to-string (menu-item-display item))
@@ -451,10 +452,13 @@
 					 item
 					 printer
 					 presentation-type
-					 text-style))
+					 :text-style text-style
+					 :background background
+					 :foreground foreground
+					 :gray-out (not sensitive)))
 				(button
 				 (apply #'make-instance class
-					:sensitive (clim-internals::menu-item-active item)
+					:sensitive sensitive
 					:parent parent
 					:label-type :pixmap
 					:label-pixmap pixmap

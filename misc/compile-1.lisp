@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.29 1995/11/08 06:12:20 georgej Exp $
+;; $fiHeader: compile-1.lisp,v 1.31 1996/03/24 01:52:48 duane Exp $
 
 (in-package :user)
 
@@ -58,7 +58,6 @@
     (tenuring
      (excl:load-system sys))
 
-    #+ics
     (progn
       (excl:compile-system 'wnn :include-components t)
       (excl:load-system 'wnn))

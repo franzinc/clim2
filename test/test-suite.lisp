@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.77 1995/10/17 05:02:53 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.78 1996/03/01 05:43:09 colin Exp $
 
 (in-package :clim-user)
 
@@ -1925,10 +1925,26 @@ Luke Luck licks the lakes Luke's duck likes."))
   :inherit-from 'integer)
 
 (define-drag-and-drop-translator test-suite-dnd
-    (drag-source string drop-target presentations)
-    (presentation destination-presentation)
+    (drag-source string drop-target presentations
+		 :drag-documentation ((object destination-object stream)
+				      (format stream "Drop ~s on ~s" object destination-object))
+		 :documentation "documentation"
+		 :pointer-documentation "pointer-documentation"
+		 :destination-tester ((object destination-object)
+				      (not (eq object destination-object))))
+  (presentation destination-presentation)
   (format nil "Dragged from ~D to ~D"
-    (presentation-object presentation) (presentation-object destination-presentation)))
+	  (presentation-object presentation) (presentation-object
+					      destination-presentation)))
+
+
+(define-drag-and-drop-translator test-suite-dnd-blank
+    (drag-source string drop-target presentations
+		 :drag-documentation "Don't drop now"
+		 :pointer-documentation "bar bar"
+		 :documentation "Documentatoin")
+  ()
+  (format nil "Dragged to blank area"))
 
 (define-test (drag-and-drop-tests presentations) (stream)
   "Try drag and drop"
@@ -2318,6 +2334,38 @@ Luke Luck licks the lakes Luke's duck likes."))
 	      +slider-view+
 	      (5.0 float)
 	      (1 integer))))))))
+
+(define-test (gadget-resource-dialog menus-and-dialogs) (stream)
+  "Test gadgets with non-default background, text-style + printer"
+  (let ((printer #'princ)
+	(background +red+)
+	(text-style (make-text-style :sans-serif :italic :large)))
+    (accepting-values (stream)
+      (accept `((member a b c) :printer ,printer)
+	      :stream stream :prompt "X"
+	      :view `(radio-box-view :background ,background
+				     :text-style ,text-style))
+      (terpri stream)
+      (accept `((subset a b c) :printer ,printer)
+	      :stream stream :prompt "Y"
+	      :view `(check-box-view :background ,background
+				     :text-style ,text-style))
+      (terpri stream)
+      (accept `((member p q r) :printer ,printer)
+	      :stream stream :prompt "Z"
+	      :view `(option-pane-view :background ,background
+				       :text-style ,text-style))
+      (terpri stream)
+      (accept-values-command-button
+	  (stream
+	   :view `(push-button-view :background ,background
+				    :text-style ,text-style))
+	  (funcall printer 'hello stream)
+	(menu-choose '(a b c) :printer printer
+		     :background background
+		     :text-style text-style)))))
+
+
 
 (defun gadgets-dialog-internal (stream &optional own-window)
   (macrolet ((accepts (&rest accepts)
@@ -3489,7 +3537,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 (make-instance (clim-tests-history-class *application-frame*))))
   (:layouts
     (:default
-      (vertically () caption-pane display-pane))))
+      (vertically () caption-pane display-pane)))
+  (:pointer-documentation t))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
@@ -3505,6 +3554,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-command (exit-clim-tests :command-table clim-tests :menu t)
     ()
   (frame-exit *application-frame*))
+
 
 
 

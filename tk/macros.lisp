@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.17 1996/01/23 06:47:01 duane Exp $
+;; $fiHeader: macros.lisp,v 1.18 1996/03/01 05:43:27 colin Exp $
 
 (in-package :tk)
 
@@ -103,16 +103,22 @@
 	(:-ics ,string)))))
 
 (defmacro lisp-string-to-string16 (string)
-  (clim-utils:with-gensyms (length string16 i)
+  (clim-utils:with-gensyms (length string16 i j code)
     (clim-utils:once-only (string)
       `(excl:ics-target-case
 	(:+ics
 	 (let* ((,length (length ,string))
-		(,string16 (make-array (1+ ,length) :element-type '(unsigned-byte 16))))
+		(,string16 (make-array (* (1+ ,length) 2)
+				       :element-type '(unsigned-byte 8)))
+		(,j 0))
 	   (dotimes (,i ,length)
-	     (setf (aref ,string16 ,i)
-	       (xchar-code (char ,string ,i))))
-	   (setf (aref ,string16 ,length) 0)
+	     (let ((,code (xchar-code (char ,string ,i))))
+	       (setf (aref ,string16 ,j) (ldb (byte 8 8) ,code))
+	       (incf ,j)
+	       (setf (aref ,string16 ,j) (ldb (byte 8 0) ,code))
+	       (incf ,j)))
+	   (setf (aref ,string16 ,j) 0
+		 (aref ,string16 (1+ ,j)) 0)
 	   ,string16))
 	(:-ics (error "~S called in non-ICS Lisp"
 		      'lisp-string-to-string16))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.81 1996/03/01 05:41:55 colin Exp $
+;; $fiHeader: frames.lisp,v 1.82 1996/03/13 09:55:32 colin Exp $
 
 (in-package :clim-internals)
 
@@ -80,6 +80,9 @@
   (cond (*application-frame* (or (frame-manager *application-frame*)
 				 (find-frame-manager)))
 	(t (find-frame-manager))))
+
+(defmethod frame-manager ((graft graft))
+  (find-frame-manager :port (port graft)))
 
 (defmethod initialize-instance :after ((frame standard-application-frame)
 				       &key
@@ -403,15 +406,22 @@
     (dolist (x pane-constructors)
       (find-or-make-pane-named frame (car x)))))
 
+;; Many window managers will negotiate correctly with the toolkit to
+;; limit frames to the screen size. For those that don't (notably olwm)
+;; *graft-maximum-size-factor* allows you to control how much of graft
+;; to use. Setting it some value less than 1 will allow you to see the
+;; window manager decoration (which CLIM can't know the size of)
+;; cim 7/12/96
+
+;; Perhaps this should be a slot in the graft and not set globally
+
+(defvar *graft-maximum-size-factor* nil)
+
 (defmacro limit-size-to-graft (width height graft)
   `(multiple-value-bind (graft-width graft-height)
        (bounding-rectangle-size ,graft)
      ;;--- This fudge factor stuff looks dubious  --SWM
-     ;; using 1 works ok by limiting the size of the top level window
-     ;; (not the top level window + frame). As you can't know (I don't
-     ;; think) what the particular wm frame size will be using a hard
-     ;; wired fudge factor of .9 seems ok to me (cim 9/4/95)
-     (let ((fudge-factor #-ignore 0.9 #+ignore 1))
+     (let ((fudge-factor (or *graft-maximum-size-factor* 1)))
        (minf-or ,width (* graft-width fudge-factor))
        (minf-or ,height (* graft-height fudge-factor)))))
 

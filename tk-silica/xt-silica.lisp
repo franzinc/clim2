@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.102 1996/03/13 09:56:15 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.103 1996/03/15 05:18:31 colin Exp $
 
 (in-package :xm-silica)
 
@@ -207,10 +207,11 @@
 	 (screen-pixels-per-inch
 	  (* 25.4 (/ (x11::xdisplayheight display screen)
 		     (x11:xdisplayheightmm display screen)))))
-    (labels ((parse-token (token)
-	       (and token
-		    (parse-integer token)))
-	     (font->text-style (font family)
+    (flet ((font->text-style (font family)
+	     (flet ((parse-token (token)
+		      (if token
+			  (parse-integer token)
+			(return-from font->text-style nil))))
 	       (let* ((tokens (disassemble-x-font-name font))
 		      (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
 		      (bold (equalp (nth 3 tokens) "bold"))
@@ -228,7 +229,7 @@
 			      (or (eql pixel-size 0)
 				  (eql point-size 0)
 				  (eql average-width 0)))
-		   (make-text-style family face (/ corrected-point-size 10))))))
+		   (make-text-style family face (/ corrected-point-size 10)))))))
       (dolist (per-charset *xt-font-families*)
 	(destructuring-bind (character-set fallback &rest families) per-charset
 	  (dolist (per-family families)

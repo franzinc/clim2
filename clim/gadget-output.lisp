@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.58 1995/05/17 19:47:55 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.59 1995/10/17 05:01:32 colin Exp $
 
 (in-package :clim-internals)
 
@@ -293,9 +293,9 @@
     +radio-box-view+))
 
 (define-presentation-method accept-present-default
-			    ((type completion) stream (view radio-box-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t) (active-p t))
+    ((type completion) stream (view radio-box-view)
+		       default default-supplied-p present-p query-identifier
+		       &key (prompt t) (active-p t))
   (declare (ignore present-p prompt))
   (move-cursor-to-view-position stream view)
   (let ((current-selection nil))
@@ -304,60 +304,75 @@
 	     ;;--- This sucks
 	     (if active-p
 		 (activate-gadget radio-box)
-		 (deactivate-gadget radio-box))
+	       (deactivate-gadget radio-box))
 	     (map-over-sheets
-	       #'(lambda (sheet)
-		   (when (typep sheet 'toggle-button)
-		     (when (setf (gadget-value sheet)
-				 (and default-supplied-p
-				      (funcall test (gadget-id sheet) default)))
-		       (setf (radio-box-current-selection radio-box) sheet))))
-	       radio-box)))
+	      #'(lambda (sheet)
+		  (when (typep sheet 'toggle-button)
+		    (when (setf (gadget-value sheet)
+			    (and default-supplied-p
+				 (funcall test (gadget-id sheet) default)))
+		      (setf (radio-box-current-selection radio-box) sheet))))
+	      radio-box)))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let* ((toggle-options
-		 (getf (view-gadget-initargs view) :toggle-button-options))
+		(getf (view-gadget-initargs view) :toggle-button-options))
 	       (radio-box-label
-		 (getf (view-gadget-initargs view) :label))
+		(getf (view-gadget-initargs view) :label))
+	       (label-options
+		(getf (view-gadget-initargs view) :label-options))
+	       (borders
+		(getf (view-gadget-initargs view) :borders t))
 	       (buttons
-		 (map 'list
-		      #'(lambda (element)
-			  (let* ((value (funcall value-key element))
-				 (button
-				  (apply #'make-pane 'toggle-button
-					 :label
-					 (let ((name (funcall name-key element)))
-					   (if (eq printer #'write-token)
-					       name
-					     (pixmap-from-menu-item stream name printer nil)))
-					 :indicator-type
-					 (getf toggle-options :indicator-type :one-of)
-					 :value
-					 (and default-supplied-p
-					      (funcall test value default))
-					 :id value
-					 toggle-options)))
-			    (when (and default-supplied-p
-				       (funcall test value default))
-			      (setq current-selection button))
-			    button))
-		      sequence))
+		(map 'list
+		  #'(lambda (element)
+		      (let* ((value (funcall value-key element))
+			     (button
+			      (apply #'make-pane 'toggle-button
+				     :label
+				     (let ((name (funcall name-key element)))
+				       (if (eq printer #'write-token)
+					   name
+					 (apply #'pixmap-from-menu-item
+						stream name printer nil
+						:gray-out (not active-p)
+						(view-gadget-initargs view))))
+				     :indicator-type
+				     (getf toggle-options :indicator-type :one-of)
+				     :value
+				     (and default-supplied-p
+					  (funcall test value default))
+				     :id value
+				     toggle-options)))
+			(when (and default-supplied-p
+				   (funcall test value default))
+			  (setq current-selection button))
+			button))
+		  sequence))
 	       (radio-box
-		(make-pane-from-view 'radio-box view
-				     '(:toggle-button-options :label)
-		  :choices buttons
-		  :current-selection current-selection
-		  :client stream
-		  :id query-identifier
-		  :value-changed-callback (make-accept-values-value-changed-callback
-					   stream query-identifier)
-		  :active active-p
-		  :help-callback (make-gadget-help type))))
-	  (values (if radio-box-label
-		      (outlining ()
-			(vertically ()
-			  (make-pane 'label-pane :label radio-box-label)
-			  radio-box))
-		      (outlining () radio-box))
+		(make-pane-from-view
+		 'radio-box view
+		 '(:toggle-button-options :label
+		   :label-options :borders)
+		 :choices buttons
+		 :current-selection current-selection
+		 :client stream
+		 :id query-identifier
+		 :value-changed-callback (make-accept-values-value-changed-callback
+					  stream query-identifier)
+		 :active active-p
+		 :help-callback (make-gadget-help type))))
+	  (values (let ((labelled-radio-box
+			 (if radio-box-label
+			     (vertically ()
+			       (apply #'make-pane 'label-pane
+				      :label radio-box-label
+				      label-options)
+			       radio-box)
+			   radio-box)))
+		    (if borders
+			(outlining ()
+			  labelled-radio-box)
+		      labelled-radio-box))
 		  radio-box))))))
 
 
@@ -371,9 +386,9 @@
       +check-box-view+))
 
 (define-presentation-method accept-present-default
-			    ((type subset-completion) stream (view check-box-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t) (active-p t))
+    ((type subset-completion) stream (view check-box-view)
+			      default default-supplied-p present-p query-identifier
+			      &key (prompt t) (active-p t))
   (declare (ignore present-p prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget check-box)
@@ -381,66 +396,80 @@
 	   ;;--- This sucks
 	   (if active-p
 	       (activate-gadget check-box)
-	       (deactivate-gadget check-box))
+	     (deactivate-gadget check-box))
 	   (let ((current-selection nil))
 	     (map-over-sheets
-	       #'(lambda (sheet)
-		   (when (typep sheet 'toggle-button)
-		     (let ((value
-			     (and default-supplied-p
-				  (member (gadget-id sheet) default
-					  :test test)
-				  t)))
-		       (when value (push sheet current-selection))
-		       (setf (gadget-value sheet) value))))
-	       check-box)
+	      #'(lambda (sheet)
+		  (when (typep sheet 'toggle-button)
+		    (let ((value
+			   (and default-supplied-p
+				(member (gadget-id sheet) default
+					:test test)
+				t)))
+		      (when value (push sheet current-selection))
+		      (setf (gadget-value sheet) value))))
+	      check-box)
 	     (setf (check-box-current-selection check-box) current-selection))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let* ((toggle-options
-	       (getf (view-gadget-initargs view) :toggle-button-options))
+	      (getf (view-gadget-initargs view) :toggle-button-options))
 	     (check-box-label
-	       (getf (view-gadget-initargs view) :label))
+	      (getf (view-gadget-initargs view) :label))
+	     (label-options
+	      (getf (view-gadget-initargs view) :label-options))
+	     (borders
+	      (getf (view-gadget-initargs view) :borders t))
 	     (current-selection nil)
 	     (buttons
-	       (map 'list
-		    #'(lambda (element)
-			(let* ((value (funcall value-key element))
-			       (actual-value (and default-supplied-p
-						  (member value default
-							  :test test)
-						  t))
-			       (button
-				 (apply #'make-pane 'toggle-button
+	      (map 'list
+		#'(lambda (element)
+		    (let* ((value (funcall value-key element))
+			   (actual-value (and default-supplied-p
+					      (member value default
+						      :test test)
+					      t))
+			   (button
+			    (apply #'make-pane 'toggle-button
 				   :label
-				     (let ((name (funcall name-key element)))
-				       (if (eq printer #'write-token)
-					   name
-					   (pixmap-from-menu-item stream name printer nil)))
+				   (let ((name (funcall name-key element)))
+				     (if (eq printer #'write-token)
+					 name
+				       (apply #'pixmap-from-menu-item
+					      stream name printer nil
+					      :gray-out (not active-p)
+					      (view-gadget-initargs view))))
 				   :indicator-type
-				     (getf toggle-options :indicator-type :some-of)
+				   (getf toggle-options :indicator-type :some-of)
 				   :value actual-value
 				   :id value
 				   toggle-options)))
-			  (when actual-value (push button current-selection))
-			  button))
-		    sequence))
+		      (when actual-value (push button current-selection))
+		      button))
+		sequence))
 	     (check-box
 	      (make-pane-from-view 'check-box view
-				   '(:toggle-button-options :label)
-		:choices buttons
-		:current-selection current-selection
-		:client stream
-		:id query-identifier
-		:value-changed-callback (make-accept-values-value-changed-callback
-					 stream query-identifier)
-		:active active-p
-		:help-callback (make-gadget-help type))))
-	(values (if check-box-label
-		    (outlining ()
-		      (vertically ()
-			(make-pane 'label-pane :label check-box-label)
-			check-box))
-		    (outlining () check-box))
+				   '(:toggle-button-options :label
+				     :label-options :borders)
+				   :choices buttons
+				   :current-selection current-selection
+				   :client stream
+				   :id query-identifier
+				   :value-changed-callback (make-accept-values-value-changed-callback
+							    stream query-identifier)
+				   :active active-p
+				   :help-callback (make-gadget-help type))))
+	(values (let ((labelled-check-box
+		       (if check-box-label
+			   (vertically ()
+			     (apply #'make-pane 'label-pane
+				    :label check-box-label
+				    label-options)
+			     check-box)
+			 check-box)))
+		  (if borders
+		      (outlining ()
+			labelled-check-box)
+		    labelled-check-box))
 		check-box)))))
 
 
@@ -454,9 +483,9 @@
       +toggle-button-view+))
 
 (define-presentation-method accept-present-default
-			    ((type boolean) stream (view toggle-button-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t) (active-p t))
+    ((type boolean) stream (view toggle-button-view)
+		    default default-supplied-p present-p query-identifier
+		    &key (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
@@ -464,18 +493,25 @@
 	   ;;--- This sucks
 	   (if active-p
 	       (activate-gadget button)
-	       (deactivate-gadget button))
+	     (deactivate-gadget button))
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((button (make-pane-from-view 'toggle-button view ()
-		      :value default
-		      :client stream :id query-identifier
-		      :value-changed-callback
-		        (make-accept-values-value-changed-callback
-			 stream query-identifier)
-		      :active active-p
-		      :help-callback (make-gadget-help type))))
- 	(values (outlining () button) button)))))
+      (let ((borders
+	     (getf (view-gadget-initargs view) :borders t))
+	    (button (make-pane-from-view
+		     'toggle-button view
+		     '(:borders)
+		     :value default
+		     :client stream :id query-identifier
+		     :value-changed-callback
+		     (make-accept-values-value-changed-callback
+		      stream query-identifier)
+		     :active active-p
+		     :help-callback (make-gadget-help type))))
+ 	(values (if borders
+		    (outlining () button)
+		  button)
+		button)))))
 
 
 ;;; Numeric gadgets
@@ -514,23 +550,30 @@
 	     (setf (gadget-value slider)
 		   (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-	(let ((slider
+	(let ((borders
+	       (getf (view-gadget-initargs view) :borders t))
+	      (slider
 		;;--- What other initargs do we pass along from the view?
-		(make-pane-from-view 'slider view ()
-		  :value (if default-supplied-p default min-value)
-		  :min-value min-value :max-value max-value
-		  :orientation (gadget-orientation view)
-		  :decimal-places (or (slider-decimal-places view) 0)
-		  :show-value-p (gadget-show-value-p view)
-		  :client stream :id query-identifier
-		  :value-changed-callback
-		    (and editable-p
-			 (make-accept-values-value-changed-callback
-			   stream query-identifier))
-		  :active active-p
-		  :editable-p editable-p
-		  :help-callback (make-gadget-help type))))
-	  (values (outlining () slider) slider))))))
+	       (make-pane-from-view
+		'slider view
+		'(:borders)
+		:value (if default-supplied-p default min-value)
+		:min-value min-value :max-value max-value
+		:orientation (gadget-orientation view)
+		:decimal-places (or (slider-decimal-places view) 0)
+		:show-value-p (gadget-show-value-p view)
+		:client stream :id query-identifier
+		:value-changed-callback
+		(and editable-p
+		     (make-accept-values-value-changed-callback
+		      stream query-identifier))
+		:active active-p
+		:editable-p editable-p
+		:help-callback (make-gadget-help type))))
+	  (values (if borders
+		      (outlining () slider)
+		    slider)
+		  slider))))))
 
 (define-presentation-method accept-present-default
 			    ((type integer) stream (view slider-view)
@@ -562,28 +605,35 @@
 	     ;;--- This sucks
 	     (if active-p
 		 (activate-gadget slider)
-		 (deactivate-gadget slider))
+	       (deactivate-gadget slider))
 	     (setf (gadget-value slider)
-		   (if default-supplied-p default min-value))))
+	       (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-	(let ((slider
-		;;--- What other initargs do we pass along from the view?
-		(make-pane-from-view 'slider view ()
-		  :value (if default-supplied-p default min-value)
-		  :min-value min-value :max-value max-value
-		  :orientation (gadget-orientation view)
-		  :number-of-quanta (- max-value min-value)
-		  :decimal-places 0
-		  :show-value-p (gadget-show-value-p view)
-		  :client stream :id query-identifier
-		  :value-changed-callback
-		    (and editable-p
-			 (make-accept-values-value-changed-callback
-			   stream query-identifier))
-		  :active active-p
-		  :editable-p editable-p
-		  :help-callback (make-gadget-help type))))
-	  (values (outlining () slider) slider))))))
+	(let ((borders
+	       (getf (view-gadget-initargs view) :borders t))
+	      (slider
+	       ;;--- What other initargs do we pass along from the view?
+	       (make-pane-from-view
+		'slider view
+		'(:borders)
+		:value (if default-supplied-p default min-value)
+		:min-value min-value :max-value max-value
+		:orientation (gadget-orientation view)
+		:number-of-quanta (- max-value min-value)
+		:decimal-places 0
+		:show-value-p (gadget-show-value-p view)
+		:client stream :id query-identifier
+		:value-changed-callback
+		(and editable-p
+		     (make-accept-values-value-changed-callback
+		      stream query-identifier))
+		:active active-p
+		:editable-p editable-p
+		:help-callback (make-gadget-help type))))
+	  (values (if borders
+		      (outlining () slider)
+		    slider)
+		  slider))))))
 
 
 ;;; Text Field gadget

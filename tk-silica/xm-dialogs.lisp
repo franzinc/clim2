@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.10 1995/11/08 06:15:52 georgej Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.11 1996/03/01 05:44:07 colin Exp $
 
 (in-package :clim-internals)
 
@@ -36,7 +36,8 @@
 	      :output-record
 	      (make-instance 'standard-sequence-output-history)
 	      :initial-cursor-visibility :off
-	      :scroll-bars scroll-bars))
+	      :scroll-bars scroll-bars
+	      :end-of-page-action :allow))
 	   (make-pane 'silica::separator :orientation :horizontal)
 	   (setf exit-button-stream
 	     (make-pane 'clim-stream-pane

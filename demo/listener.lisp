@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.32 1995/05/15 07:17:48 duane Exp $
+;; $fiHeader: listener.lisp,v 1.33 1995/05/17 19:48:42 colin Exp $
 
 (in-package :clim-demo)
 
@@ -11,6 +11,7 @@
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
   (:menu-bar nil)
+  (:pointer-documentation t)
   (:top-level (lisp-listener-top-level))
   (:panes
    (interactor :interactor

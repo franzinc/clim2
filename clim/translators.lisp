@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.13 1993/07/27 01:41:46 colin Exp $
+;; $fiHeader: translators.lisp,v 1.14 1995/10/17 05:01:49 colin Exp $
 
 (in-package :clim-internals)
 
@@ -249,13 +249,17 @@
 						      :errorp nil))
       translator)))
 
-(defun write-translator-function (function translator-name clause-name extra-args)
+(defun write-translator-function (function translator-name clause-name
+				  args &optional (use-default-args t))
   (let ((function-name (gensymbol translator-name clause-name))
 	(arglist (first function))
 	(body (rest function)))
     (multiple-value-bind (arglist ignores)
 	(canonicalize-and-match-lambda-lists
-	  (append *translator-function-arglist* extra-args) arglist)
+	 (if use-default-args
+	     (append *translator-function-arglist* args)
+	   args)
+	 arglist)
       (values `(defun ,function-name ,arglist
 		 ,@(and ignores `((declare (ignore ,@ignores))))
 		 ,@body)

@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.92 1996/03/01 05:44:12 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.93 1996/03/13 09:56:11 colin Exp $
 
 (in-package :xm-silica)
 
@@ -189,7 +189,8 @@
       ((or null string)
        (with-sheet-medium (medium sheet)
 	 (multiple-value-setq (width height)
-	   (text-size medium label :text-style (pane-text-style sheet)))))
+	   (text-size medium label
+		      :text-style (pane-text-style sheet)))))
       (tk::pixmap
        (setq width (xt::pixmap-width label)
 	     height (xt::pixmap-height label)))
@@ -1076,17 +1077,21 @@
 						    (parent t)
 						    (sheet motif-row-column-gadget-mixin))
   (let ((initargs (call-next-method))
-	(x (ecase (gadget-orientation sheet)
-	     (:vertical (or (gadget-columns sheet)
-			    (and (silica::gadget-rows sheet)
+	(columns
+	 (ecase (gadget-orientation sheet)
+	   (:vertical (or (gadget-columns sheet)
+			  (and (silica::gadget-rows sheet)
+			       (ceiling (length (sheet-children sheet))
+					(silica::gadget-rows sheet)))))
+	   (:horizontal (or (silica::gadget-rows sheet)
+			    (and (silica::gadget-columns sheet)
 				 (ceiling (length (sheet-children sheet))
-					  (silica::gadget-rows sheet)))))
-	     (:horizontal (or (silica::gadget-rows sheet)
-			      (and (silica::gadget-columns sheet)
-				   (ceiling (length (sheet-children sheet))
-					    (silica::gadget-columns sheet))))))))
-    (when x
-      (setf (getf initargs :num-columns) x))
+					  (silica::gadget-columns sheet)))))))
+	(spacing (silica::gadget-spacing sheet)))
+    (when columns
+      (setf (getf initargs :num-columns) columns))
+    (when spacing
+      (setf (getf initargs :spacing) spacing))
     initargs))
 
 ;;;
@@ -1343,19 +1348,15 @@
 	       (and (typep p 'motif-scroller-pane)
 		    (scroller-pane-scroll-bar-policy p)))))
 	`(:list-size-policy
-	  #-ignore
 	  ,(case scroll-mode
+	     ;; specifying the list-size-policy as :variable is the
+	     ;; only way of getting only vertical scroll-bars
 	     (:vertical :variable)
 	     (t :constant))
-	  #+ignore ;; this one required for buggy pre motif-1.2.4
-	  ,(case scroll-mode
-	     ((:horizontal t :both) :constant)
-	     (t :variable))
 	  :scroll-bar-display-policy
 	  ,(case scroll-mode
 	     ((:horizontal :vertical t :both) :static)
-	     (t :as-needed)
-	     :as-needed)
+	     (t :as-needed))
 	  ,@(and selected-items
 		 `(:selected-item-count ,(length selected-items)
 		   :selected-items ,selected-items
@@ -1367,6 +1368,12 @@
 	  ,@(and visible-items `(:visible-item-count ,visible-items))
 	  :items ,(mapcar name-key items)
 	  :item-count ,(length items))))))
+
+(defmethod gadget-visible-items ((gadget motif-list-pane))
+  (let ((m (sheet-direct-mirror gadget)))
+    (if m
+	(tk::get-values m :visible-item-count)
+      (call-next-method))))
 
 (defmethod (setf set-gadget-items) :after (items (gadget motif-list-pane))
   ;;---- What should this do about selected items and the value etc etc
@@ -1457,18 +1464,21 @@
 		    (let* ((name (funcall name-key item))
 			   (pixmap (unless (or (null printer) (eq printer #'write-token))
 				     (pixmap-from-menu-item
-				      (sheet-parent sheet) name printer nil)))
+				      (sheet-parent sheet) name printer nil
+				      :text-style (pane-text-style sheet)
+				      :background (pane-background sheet)
+				      :foreground (pane-foreground sheet))))
 			   (button
 			    (if (null pixmap)
 				(apply #'make-instance 'tk::xm-push-button
-				  :label-string name
-				  :parent pdm
-				  initargs)
+				       :label-string name
+				       :parent pdm
+				       initargs)
 			      (apply #'make-instance 'tk::xm-push-button
-				:label-pixmap pixmap
-				:label-type :pixmap
-				:parent pdm
-				initargs))))
+				     :label-pixmap pixmap
+				     :label-type :pixmap
+				     :parent pdm
+				     initargs))))
 		      (tk::add-callback
 		       button
 		       :activate-callback
@@ -1509,21 +1519,24 @@
 			  :font-list))
     mirror))
 
-(defun set-option-menu-value (gadget nv)
+(defun set-option-menu-value (sheet nv)
   (with-accessors ((items set-gadget-items)
                    (value-key set-gadget-value-key)
                    (test set-gadget-test)
                    (printer silica::option-pane-printer)
-                   (name-key set-gadget-name-key)) gadget
-    (when (sheet-direct-mirror gadget)
+                   (name-key set-gadget-name-key)) sheet
+    (when (sheet-direct-mirror sheet)
       (let* ((x (position nv items :test test :key value-key))
-             (widget (sheet-direct-mirror gadget)))
+             (widget (sheet-direct-mirror sheet)))
         (when x
-          (tk::set-values widget :menu-history (nth x (motif-option-menu-buttons gadget)))
+          (tk::set-values widget :menu-history (nth x (motif-option-menu-buttons sheet)))
           (let* ((name (funcall name-key (nth x items)))
                  (pixmap (unless (or (null printer) (eq printer #'write-token))
                            (pixmap-from-menu-item
-                            (sheet-parent gadget) name printer nil)))
+                            (sheet-parent sheet) name printer nil
+			    :text-style (pane-text-style sheet)
+			    :background (pane-background sheet)
+			    :foreground (pane-foreground sheet))))
                  (widget (tk::intern-widget (tk::xm_option_button_gadget widget))))
             (if pixmap
                 (tk::set-values widget :label-pixmap pixmap :label-type :pixmap)

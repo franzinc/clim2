@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.23 1996/01/23 06:47:20 duane Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.24 1996/03/01 05:43:49 colin Exp $
 
 (in-package :tk)
 
@@ -155,7 +155,7 @@
     (note-malloced-object
      (xm_string_create_l_to_r
       (note-malloced-object (string-to-char* value))
-      (note-malloced-object (string-to-char* xm-font-list-default-tag)))))))
+      (note-malloced-object (string-to-char* "")))))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: jserver.lisp,v 1.1 1995/10/20 17:42:17 colin Exp $
+;; $fiHeader: jserver.lisp,v 1.2 1996/03/01 05:44:50 colin Exp $
 
 (in-package :wnn)
 
@@ -61,9 +61,9 @@
 			 ;; it's important to specify a timeout of -1
 			 ;; in the call to jl_open_lang otherwise wnn
 			 ;; messes with sigalrm
-			 (jl_open_lang (tk::lisp-string-to-string8 login)
-				       (tk::lisp-string-to-string8 host)
-				       (tk::lisp-string-to-string8 lang)
+			 (jl_open_lang (ff:string-to-char* login)
+				       (ff:string-to-char* host)
+				       (ff:string-to-char* lang)
 				       0 0 0 -1))
 		(setf (mp:process-quantum mp:*current-process*) temp)
 		(mp:process-allow-schedule))))

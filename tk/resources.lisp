@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.55 1996/01/23 06:47:08 duane Exp $
+;; $fiHeader: resources.lisp,v 1.56 1996/03/01 05:43:35 colin Exp $
 
 
 (in-package :tk)
@@ -642,10 +642,6 @@
      (:+ics (let ((euc (ff:char*-to-euc value)))
 	      (excl:euc-to-string euc)))
      (:-ics (char*-to-string value)))))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
-  (unless (zerop value)
-))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'boolean)) value)
   (not (zerop value)))

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.14 1993/10/25 16:16:10 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.16 1995/11/08 06:13:18 georgej Exp $
 
 
 (in-package :clim-user)
@@ -382,6 +382,14 @@
   (clim-test:with-test-success-expected ('filling-output-on-plain-stream-test)
     (filling-output (*standard-output* :fill-width '(20 :character))
       (write-string *gettysburg-address* *standard-output*))))
+
+(push 'filling-output-on-string-stream-test clim-test:*frame-tests*)
+
+(defun filling-output-on-string-stream-test ()
+  (clim-test:with-test-success-expected ('filling-output-on-string-stream-test)
+    (with-output-to-string (stream)
+      (filling-output (stream :fill-width '(20 :character))
+	(write-string *gettysburg-address* stream)))))
 
 ;;--- This would be nice but the problem occurs in the event handler process
 ;;----

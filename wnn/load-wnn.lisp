@@ -18,11 +18,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-wnn.lisp,v 1.2 1996/03/13 09:56:55 colin Exp $
+;; $fiHeader: load-wnn.lisp,v 1.3 1996/03/15 05:18:37 colin Exp $
 
 (in-package :user)
 
 ;;; compare with tk/load-xm for update to new makefile style
+
+(excl:ics-target-case
+(:+ics
 
 #-dlfcn
 (progn
@@ -42,6 +45,6 @@
 (provide :wnn)
 (pushnew :wnn *features*)
 
-
+)) ;; ics-target-case
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.47 1995/05/17 19:48:00 colin Exp $
+;; $fiHeader: input-protocol.lisp,v 1.48 1995/10/17 05:01:36 colin Exp $
 
 (in-package :clim-internals)
 
@@ -126,8 +126,7 @@
 	      (cursor-width-and-height-pending-protocol cursor)
 	    (with-bounding-rectangle* (left top right bottom) region
 	      (when (ltrb-overlaps-ltrb-p left top right bottom
-					  x y (+ x width) (+ y
-							     height))
+					  x y (+ x width) (+ y height))
 		(with-sheet-medium (medium stream)
 		  (with-medium-clipping-region (medium region)
 		    (declare (ignore medium))
