@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.50 2000/05/01 21:43:18 layer Exp $
+# $Id: Makefile.generic,v 1.51 2000/06/27 05:23:20 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 all: compile cat # $(CLIM)
@@ -9,7 +9,8 @@ compile_depends = wnn.$(SHARED_EXT)
 endif
 
 ifeq ($(OS_NAME),windows)
-runlisp_args = -o compile.out 
+build_runlisp_args = -o build.out 
+concat_runlisp_args = -o concat.out 
 endif
 
 compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
@@ -35,11 +36,12 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(compile-it (quote $(SYSTEM)))' >> build.tmp
 	echo '(exit 0)' >> build.tmp
 	(eval '$(SET_LIBRARY_PATH)'; \
-	 sh ../src/runlisp.sh -f build.tmp $(runlisp_args) $(CL) $(CLOPTS))
+	 sh ../src/runlisp.sh -f build.tmp $(build_runlisp_args) \
+	 $(CL) $(CLOPTS))
 ifeq ($(OS_NAME),windows)
 # various programs expect to see the result of the compile on stdout, so
 # cat it now:
-	@cat compile.out
+	@cat build.out
 endif
 
 # Concatenation
@@ -51,11 +53,12 @@ cat: compile
 	echo '(concatenate-it (quote $(SYSTEM)))' >> cat.tmp
 	echo '(exit 0)' >> cat.tmp
 	(eval '$(SET_LIBRARY_PATH)'; \
-	 sh ../src/runlisp.sh -f cat.tmp $(runlisp_args) $(CL) $(CLOPTS))
+	 sh ../src/runlisp.sh -f cat.tmp $(concat_runlisp_args) \
+	 $(CL) $(CLOPTS))
 ifeq ($(OS_NAME),windows)
 # various programs expect to see the result of the compile on stdout, so
 # cat it now:
-	@cat compile.out
+	@cat concat.out
 endif
 	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS) >> Clim-sizes.n
 	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS)
@@ -173,6 +176,7 @@ cleanfasls: FORCE
 	find . -name '*.fasl' -print | xargs rm -f
 
 clean:
+	rm *.out
 	find . -name '*.fasl' -print | xargs rm -f
 	rm -f *.o *.$(SHARED_EXT) *.a slim \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c

@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.16
+
+2000-06-26  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: use different output files for build and
+	concat of fasls
+
+*******************************************************************************
 2.2.2.15 -- join from cley2 branch
 next merge tag: cley2_merg1
 
