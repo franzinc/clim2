@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.35 1993/06/02 18:41:56 cer Exp $
+;; $fiHeader: medium.lisp,v 1.37 1993/08/19 20:10:13 smh Exp $
 
 (in-package :silica)
 
@@ -159,6 +159,7 @@
 
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (sheet sheet-with-resources-mixin))
+  (declare (ignore port))
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
@@ -168,7 +169,7 @@
     (setf foreground (pane-foreground sheet)
  	  background (pane-background sheet)
 	  default-text-style (parse-text-style (pane-text-style sheet))
-	  text-style default-text-style
+	  text-style nil
 	  merged-text-style-valid nil)))
 
 
@@ -390,6 +391,10 @@
 
 
 (defmethod (setf medium-default-text-style) :before (new (medium basic-medium))
+  (declare (ignore new))
+  (setf (medium-merged-text-style-valid medium) nil))
+
+(defmethod (setf medium-text-style) :before (new (medium basic-medium))
   (declare (ignore new))
   (setf (medium-merged-text-style-valid medium) nil))
 

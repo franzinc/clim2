@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.37 1993/05/05 01:38:48 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.38 1993/06/04 16:06:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1095,7 +1095,7 @@
 						     orientation
 						     direction)
   (declare (ignore direction))
-  (let ((style (medium-text-style pane)))
+  (let ((style (medium-merged-text-style pane)))
     (ecase orientation
       (:horizontal (text-style-width style pane))
       (:vertical (+ (text-style-height style pane)

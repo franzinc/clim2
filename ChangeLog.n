@@ -1,3 +1,63 @@
+from colin: Tue Sep  7 14:42:57 PDT 1993
+
+Makefile.defs			now using devel.17
+
+clim/output-recording-defs.lisp	removed
+clim/standard-sequence.lisp	removed
+clim/standard-tree.lisp 	removed
+clim/text-output-recording.lisp removed
+
+clim/frames.lisp		added function limit-size-to-graft
+
+clim/graphics-recording.lisp	bounding rectangle for text-output-records
+				changed to use medium-merged-text-style
+				rather than medium-text-style
+
+clim/output-protocol.lisp	silica::scrolled-pane-line-scroll-amount
+				uses medium-merged-text-style rather than
+				medium-text-style 
+
+demo/plot.lisp			use medium-merged-text-style...
+
+silica/medium.lisp		engraft-medium sets text-style of new
+				medium to nil (not medium-default-text-style)
+				added setf medium-text-style :before method
+				which invalidates medium-merged-text-style
+
+silica/port.lisp		added defgeneric port-type, port-name
+
+test/test.lisp			use pattern for icon pixmap
+
+tk-silica/image.lisp		added truename for files passed to pbm
+				filters in read-bitmap-file 
+
+tk-silica/xm-gadgets.lisp	hack to make setf (gadget-alignment) work
+
+tk-silica/xt-frames.lisp	made update-frame-settings use
+				pixmap-from-pattern with bitmap format
+				limit size of top level shell to size of
+				graft 
+				
+tk-silica/xt-gadgets.lisp	decode-gadget-background handles patterns
+				properly 
+
+tk-silica/xt-graphics.lisp	engraft-medium doesn't set indirect-inks to
+				nil anymore (only degraft-medium does) and
+				doesn't call invalidate-indirect-inks
+				added gf deallocate-ink
+				decode-pattern-ink split into
+				decode-pattern-ink and pixmap-from-pattern
+
+tk-silica/xt-silica.lisp	added port-name
+				made get-xt-resources more robust to
+				invalid resource specifications
+
+utils/designs.lisp		fixed bug in (method color-rgb (ihs-color))
+
+utils/packages.lisp		export port-name from clim package
+
+-------------------------------------------------------------------------------
+
 Thu Aug 12 12:01:08 1993  Kevin Layer  (layer@sole)
 
 	* Makefile.cobjs-svr4: make sure setup_LLP exists before using it.

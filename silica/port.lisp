@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.30 93/02/08 15:57:38 cer Exp $
+;; $fiHeader: port.lisp,v 1.31 1993/07/22 15:38:59 cer Exp $
 
 (in-package :silica)
 
@@ -66,6 +66,8 @@
 (defmethod find-port-type (x)
   (error "Cannot find port type: ~S" x))
 
+(defgeneric port-type (port))
+(defgeneric port-name (port))
 
 (defmethod initialize-instance :around ((port basic-port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.15 93/05/13 16:32:53 colin Exp $
+;; $fiHeader: designs.lisp,v 1.16 1993/07/27 01:57:08 colin Exp $
 
 (in-package :clim-utils)
 
@@ -296,9 +296,9 @@
 	 (hh (mod (- hue .5f0) 1.0f0))
 	 (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
 	 (s3 (sin saturation))
-	 (x (* (sqrt ihs-rgb-c1) s3 (cos hh) intensity))
-	 (y (* (sqrt ihs-rgb-c2) s3 (sin hh) intensity))
-	 (z (* (sqrt ihs-rgb-c3) (cos saturation) intensity)))
+	 (x (* ihs-rgb-c1 s3 (cos hh) intensity))
+	 (y (* ihs-rgb-c2 s3 (sin hh) intensity))
+	 (z (* ihs-rgb-c3 (cos saturation) intensity)))
     (macrolet ((range (x)
 		 `(max 0.0f0 (min 1.0f0 ,x))))
       (values (range (+ x x z))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.50 1993/06/21 20:51:31 cer Exp $
+;; $fiHeader: test.lisp,v 1.51 1993/08/12 16:04:35 cer Exp $
 
 (in-package :clim-user)
 
@@ -84,13 +84,9 @@
   (:command-table test-frame)
   (:pane (make-clim-interactor-pane))
   (:icon :name "foo" 
-	 :pixmap (make-pattern 
-		   (let ((x (make-array '(48 48))))
-		     (dotimes (i 48)
-		       (dotimes (j 48)
-			 (setf (aref x i j) (random 2))))
-		     x)
-		   (list +red+ +green+)))
+	 :pixmap (make-pattern-from-bitmap-file
+		  "/usr/include/X11/bitmaps/terminal"
+		  :designs (list +red+ +green+)))
   (:pointer-documentation t)
   (:geometry :width 800 :height 800))
 

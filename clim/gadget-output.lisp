@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.51 1993/05/25 20:40:49 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.52 1993/07/27 01:39:32 colin Exp $
 
 (in-package :clim-internals)
 
@@ -703,8 +703,6 @@
 	(multiple-value-bind (object type index)
 	    (accept-from-string (accept-values-query-type query) new-value)
 	  (declare (ignore type))
-	  ;; we can put this back in when we handle ol text-fields
-	  ;; correctly (see tk-silica/ol-gadgets)
 	  (assert (= index (length new-value)))
 	  object)
 	(error (c) 

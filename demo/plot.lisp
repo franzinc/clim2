@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[Thu Jul 22 17:14:40 1993 by colin]-
+;;				-[Mon Aug 23 14:13:24 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.25 1993/07/27 01:45:58 colin Exp $
+;; $fiHeader: plot.lisp,v 1.26 1993/08/12 16:03:37 cer Exp $
 
 (in-package :clim-demo)
 
@@ -200,8 +200,8 @@
 			   :cache-value (cons type (copy-list y-labels))
 			   :cache-test #'equalp)
     (let ((n-lines (length y-labels))
-	  (ascent (text-style-ascent (medium-text-style stream) stream))
-	  (descent (text-style-descent (medium-text-style stream) stream))
+	  (ascent (text-style-ascent (medium-merged-text-style stream) stream))
+	  (descent (text-style-descent (medium-merged-text-style stream) stream))
 	  (i 0))
       (surrounding-output-with-border (stream)
 	(formatting-table (stream)

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
-;;				-[Thu Jul 22 18:06:19 1993 by colin]-
+;;				-[Thu Aug 19 18:38:51 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.76 1993/06/23 00:13:59 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.77 1993/07/27 01:55:47 colin Exp $
 
 (in-package :tk-silica)
 
@@ -309,14 +309,12 @@
     (let ((palette (medium-palette medium)))
       (with-slots (white-pixel black-pixel)
 	  palette
-	(setf indirect-inks nil 
-	      device-clip-region nil)
+	(setf device-clip-region nil)
 	(setf (medium-sheet medium) sheet)
 	(when (and drawable
 		   (not (eq (port-display port)
 			    (tk::object-display drawable))))
-	  (error "drawable and display do not match"))
-	(invalidate-indirect-inks medium)))))
+	  (error "drawable and display do not match"))))))
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
@@ -325,12 +323,8 @@
     (setf drawable nil
 	  (medium-sheet medium) nil)
     (maphash #'(lambda (ink gc) 
-		 (declare (ignore ink))
-		 (let ((pixmap (or (tk::gcontext-stipple gc)
-				   (tk::gcontext-tile gc))))
-		   (when pixmap
-		     (tk::destroy-pixmap pixmap))
-		   (tk::free-gcontext gc)))
+		 (declare (ignore gc))
+		 (deallocate-ink ink medium))
 	     ink-table)
     (clrhash ink-table)
     (setf indirect-inks nil)))
@@ -339,14 +333,14 @@
   (with-slots (ink-table indirect-inks)
       medium
     (dolist (ink indirect-inks)
-      (let* ((gc (gethash ink ink-table))
-	     (pixmap (or (tk::gcontext-stipple gc)
-			 (tk::gcontext-tile gc))))
-	(when pixmap
-	  (tk::destroy-pixmap pixmap))
-	(tk::free-gcontext gc))
+      (deallocate-ink ink medium)
       (remhash ink ink-table))
     (setf indirect-inks nil)))
+
+(defmethod deallocate-ink ((ink design) (medium xt-medium))
+  (with-slots (ink-table) medium
+    (let ((gc (gethash ink ink-table)))
+      (tk::free-gcontext gc))))
 
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
@@ -477,15 +471,6 @@
 
 (defgeneric decode-ink (ink medium))
 
-;;; we provide this around method which implement a cache of already
-;;; decoded inks
-
-;;; if the decode method for an ink calculates the gcontext by calling
-;;; decode-ink it should also return t as it's second value. (eg for
-;;; contrasting inks) This prevent problems with having multiple
-;;; entries for the same gc in the table which causes problems when
-;;; they need to be freed
-
 (defmethod decode-ink ((ink design) (medium xt-medium))
   (with-slots (ink-table indirect-inks) medium
     (or (gethash ink ink-table)
@@ -513,9 +498,11 @@
 	  (setf (tk::gcontext-plane-mask new-gc) mask)))
       new-gc)))
 
+#+ignore
 (defmethod decode-ink-1 ((x (eql +foreground-ink+)) (medium xt-medium))
   (decode-ink-1 (medium-foreground medium) medium))
 
+#+ignore
 (defmethod decode-ink-1 ((x (eql +background-ink+)) (medium xt-medium))
   (decode-ink-1 (medium-background medium) medium))
 
@@ -597,84 +584,111 @@
       (decode-rectangular-tile ink)
     (declare (ignore width height))
     (decode-pattern-ink pattern medium t)))
-      
-(defun decode-pattern-ink (pattern medium &optional tile-p)
+
+(defmethod deallocate-ink :before ((ink pattern) (medium xt-medium))
+  (deallocate-pattern-ink ink medium))
+
+(defmethod deallocate-ink :before ((ink rectangular-tile) (medium xt-medium))
+  (deallocate-pattern-ink ink medium))
+
+(defun deallocate-pattern-ink (ink medium)
+  (with-slots (ink-table) medium
+    (let* ((gc (gethash ink ink-table))
+	   (pixmap (or (tk::gcontext-stipple gc)
+		       (tk::gcontext-tile gc))))
+      (when pixmap
+	(tk::destroy-pixmap pixmap)))))
+
+(defun pixmap-from-pattern (pattern medium &optional format)
   (multiple-value-bind (array designs)
       (decode-pattern pattern)
-    (let* ((height (array-dimension array 0))
+    (let* ((n-designs (length designs))
+	   (height (array-dimension array 0))
 	   (width (array-dimension array 1))
-	   (image-data (make-array (list height width)))
-	   (design-pixels (make-array (length designs)))
-	   (two-color-p (eql (length designs) 2))
-	   two-color-fg
-	   two-color-bg)
-      (declare (simple-vector design-pixels))
+	   (pixels (make-array n-designs))
+	   (image-data (make-array (list height width))))
+      (declare (simple-vector pixels))
+      
+      (unless format
+	(setq format (if (eql n-designs 2) :bitmap :pixmap)))
 
-      ;; Cache the decoded designs from the pattern
-      (dotimes (n (length designs))
-	(let ((design (elt designs n)))
-	  (if (eql design +nowhere+)
-	      (unless two-color-p
-		(error "Transparent pattern ~S has more than two designs" pattern))
-	    (setf (svref design-pixels n)
-	      (decode-color design medium)))))
+      (let ((bitmap
+	     (case format
+	       (:bitmap (or (eql n-designs 2)
+			    (error "Can't make a bitmap from pattern with more than two designs"))) 
+	       (:pixmap (and (member +nowhere+ designs)
+			     (error "Can't make a pixmap from a transparent pattern"))))))
+	
+	(dotimes (n (length designs))
+	  (let ((design (elt designs n)))
+	    (setf (svref pixels n) 
+	      (and (not (eql design +nowhere+))
+		   (decode-color design medium)))))
 
-      (when two-color-p
-	(setq two-color-bg (svref design-pixels 0)
-	      two-color-fg (svref design-pixels 1))
-	;; make sure that any transparent design is the bg
-	(when (null (svref design-pixels 1))
-	  (rotatef two-color-bg two-color-fg)))
-	    
-      (dotimes (w width)
-	(dotimes (h height)
-	  (let ((pixel (svref design-pixels (aref array h w))))
-	    (setf (aref image-data h w)
-	      (if two-color-p
-		  (if (eq pixel two-color-bg)
-		      0
-		    1)
-		pixel)))))
+	(let ((bitmap-bg (and bitmap
+			      (svref pixels 1) (svref pixels 0))))
+	  (dotimes (w width)
+	    (dotimes (h height)
+	      (let ((pixel (svref pixels (aref array h w))))
+		(setf (aref image-data h w)
+		  (if bitmap
+		      (if (eq pixel bitmap-bg) 0 1)
+		    pixel))))))
 
-      (let* ((port (port (medium-sheet medium)))
-	     (drawable (or (slot-value medium 'drawable)
-			   (tk::display-root-window
-			    (port-display port)))) 
-	     (depth (if two-color-p
-			1
-		      (tk::drawable-depth drawable)))
-	     (image (make-instance 'tk::image
-				   :width width
-				   :height height
-				   :data image-data
-				   :depth depth))
-	     (gc (make-instance 'ink-gcontext :drawable drawable))
-	     (pixmap 
-	      (make-instance 'tk::pixmap
-			     :drawable drawable
-			     :width width
-			     :height height
-			     :depth depth)))
-	(tk::put-image pixmap 
-		       (if two-color-p
-			   (port-copy-gc-depth-1 port)
-			 gc) 
-		       image)
-	(tk::destroy-image image)
-	(if two-color-p
+	(when bitmap
+	  (when (null (svref pixels 1))
+	    (rotatef (svref pixels 0) (svref pixels 1))))
+	
+	(let* ((port (port (medium-sheet medium)))
+	       (drawable (or (slot-value medium 'drawable)
+			     (tk::display-root-window (port-display port))))
+	       (depth (if bitmap
+			  1
+			(tk::drawable-depth drawable)))
+	       (image (make-instance 'tk::image
+			:width width
+			:height height
+			:data image-data
+			:depth depth))
+	       (pixmap (make-instance 'tk::pixmap
+			 :drawable drawable
+			 :width width
+			 :height height
+			 :depth depth)))
+	  (tk::put-image pixmap 
+			 (if bitmap
+			     (port-copy-gc-depth-1 port)
+			   (port-copy-gc port))
+			 image)
+	  (tk::destroy-image image)
+	  (values pixmap format pixels))))))
+
+
+(defun decode-pattern-ink (pattern medium &optional tile-p)
+  (multiple-value-bind (pixmap format pixels)
+      (pixmap-from-pattern pattern medium)
+    (let* ((drawable (or (slot-value medium 'drawable)
+			 (tk::display-root-window
+			  (port-display (port (medium-sheet medium))))))
+	   (gc (make-instance 'ink-gcontext :drawable drawable)))
+      (if (eq format :bitmap)
+	  (let ((bg (svref pixels 0))
+		(fg (svref pixels 1)))
 	    (setf (tk::gcontext-stipple gc) pixmap
-		  (tk::gcontext-fill-style gc) (if two-color-bg
+		  (tk::gcontext-fill-style gc) (if bg
 						   :opaque-stippled
 						 :stippled)
-		  (tk::gcontext-foreground gc) (or two-color-fg 0)
-		  (tk::gcontext-background gc) (or two-color-bg 0))
-	  (setf (tk::gcontext-tile gc) pixmap
-		(tk::gcontext-fill-style gc) :tiled))
-	(unless tile-p
-	  (setf (ink-gcontext-shift-tile-origin gc) t
-		(ink-gcontext-ink-clip-region gc)
-		(make-bounding-rectangle 0 0 width height)))
-	gc))))
+		  (tk::gcontext-foreground gc) (or fg 0)
+		  (tk::gcontext-background gc) (or bg 0)))
+      (setf (tk::gcontext-tile gc) pixmap
+	    (tk::gcontext-fill-style gc) :tiled))
+      (unless tile-p
+	(setf (ink-gcontext-shift-tile-origin gc) t
+	      (ink-gcontext-ink-clip-region gc)
+	      (make-bounding-rectangle 0 0
+				       (pattern-width pattern)
+				       (pattern-height pattern))))
+      gc)))
 
 ;;; decode color
 
@@ -695,7 +709,7 @@
 (defmethod decode-color ((ink standard-opacity) (medium xt-medium))
   (if (> (opacity-value ink) 0.5)
       (decode-color +foreground-ink+ medium)
-      (decode-color +background-ink+ medium)))
+    (decode-color +background-ink+ medium)))
 
 (defmethod decode-color ((ink contrasting-ink) (medium xt-medium))
   (decode-color (decode-contrasting-ink ink medium) medium))
@@ -1308,7 +1322,8 @@
       (let* ((port (port medium))
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet))
-	     (font (text-style-mapping port (medium-text-style medium)))
+	     (text-style (medium-merged-text-style medium))
+	     (font (text-style-mapping port text-style))
 	     (ascent (tk::font-ascent font)))
 	(convert-to-device-coordinates transform x y)
 	(discard-illegal-coordinates medium-draw-text* x y)
@@ -1318,26 +1333,25 @@
 	  (setq string-or-char (string string-or-char)))
 	(ecase align-x
 	  (:right
-	   (let ((dx (text-size sheet string-or-char
-				:text-style (medium-text-style medium)
+	   (let ((dx (text-size sheet string-or-char :text-style text-style
 				:start start :end end)))
 	     (when towards-x (decf towards-x dx))
 	     (decf x dx)))
 	  (:center 
 	   (let ((dx (floor (text-size sheet string-or-char
-				       :text-style (medium-text-style medium)
+				       :text-style text-style
 				       :start start :end end) 2)))
 	     (when towards-x (decf towards-x dx))
 	     (decf x dx)))
 	  (:left nil))
 	(ecase align-y
 	  (:bottom
-	   (let ((dy (text-style-descent (medium-text-style medium) medium)))
+	   (let ((dy (text-style-descent text-style medium)))
 	     (decf y dy)
 	     (when towards-y (decf towards-y dy))))
 	  (:center 
-	   (let ((dy (- (text-style-descent (medium-text-style medium) medium)
-			(floor (text-style-height (medium-text-style medium) medium) 2))))
+	   (let ((dy (- (text-style-descent text-style medium)
+			(floor (text-style-height text-style medium) 2))))
 	     (decf y dy)
 	     (when towards-y (decf towards-y dy))))
 	  (:baseline nil)

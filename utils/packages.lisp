@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.56 1993/07/27 01:57:48 colin Exp $
+;; $fiHeader: packages.lisp,v 1.57 1993/08/12 16:05:20 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1851,6 +1851,7 @@
     port-alive-p
     port-keyboard-input-focus
     port-modifier-state
+    port-name
     port-pointer
     port-properties
     port-server-path

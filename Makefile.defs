@@ -1,9 +1,9 @@
-# $fiHeader: Makefile.defs,v 1.16 1993/07/29 20:51:15 layer Exp $
+# $fiHeader: Makefile.defs,v 1.18 1993/08/31 04:53:51 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= /usr/fi/dcl-4.2.devel.15
+CL	= /usr/fi/dcl-4.2.devel.17
 
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)

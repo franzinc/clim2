@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.70 1993/07/22 15:37:51 cer Exp $
+;; $fiHeader: frames.lisp,v 1.71 1993/07/27 01:39:24 colin Exp $
 
 (in-package :clim-internals)
 
@@ -521,32 +521,33 @@
 		  ;; Maintain ALL-PANES in the order the panes are created
 		  (setq all-panes (nconc all-panes (list new-pane)))
 		  new-pane)))))
- 
+
+(defmacro limit-size-to-graft (width height graft)
+  `(multiple-value-bind (graft-width graft-height)
+       (bounding-rectangle-size ,graft)
+     ;;--- This fudge factor stuff looks dubious  --SWM
+     (let ((fudge-factor #+Allegro 0.9 #-Allegro 1))
+       (minf-or ,width (* graft-width fudge-factor))
+       (minf-or ,height (* graft-height fudge-factor)))))
+
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
   (let ((panes (frame-panes frame))
 	(*application-frame* frame))
     (when panes
       (clear-space-requirement-caches-in-tree panes)
-      (multiple-value-bind (graft-width graft-height) 
-	  (bounding-rectangle-size (graft frame))
-	(cond ((and width height)
-	       (minf width graft-width) 
-	       (minf height graft-height))
-	      (t
-	       (let ((sr (compose-space panes)))
-		 (setq width  (or width (space-requirement-width sr))
-		       height (or height (space-requirement-height sr)))
-		 ;;--- This fudge factor stuff looks dubious  --SWM
-		 (let ((fudge-factor #+Allegro 0.9 #-Allegro 1))
-		   (minf-or width (* graft-width fudge-factor))
-		   (minf-or height (* graft-height fudge-factor)))))))
+      (unless (and width height)
+	(let ((sr (compose-space panes)))
+	  (setq width  (or width (space-requirement-width sr))
+		height (or height (space-requirement-height sr)))))
+      (limit-size-to-graft width height (graft frame))
+
       ;;--- Don't bother with this if the size didn't change?
       (let ((top-sheet (or (frame-top-level-sheet frame) panes)))
 	(if (and (sheet-enabled-p top-sheet)
 		 (not (frame-resizable frame)))
 	    (multiple-value-call #'allocate-space 
 	      top-sheet (bounding-rectangle-size top-sheet)) 
-	    (resize-sheet top-sheet width height))))))
+	  (resize-sheet top-sheet width height))))))
 
 (defvar *frame-layout-changing-p* nil)
 

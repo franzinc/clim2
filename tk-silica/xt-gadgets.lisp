@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Fri Jul 30 15:12:38 1993 by colin]-
+;;				-[Thu Aug 19 15:39:02 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.36 1993/07/27 01:55:40 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.37 1993/07/30 23:58:39 colin Exp $
 
 (in-package :xm-silica)
 
@@ -87,15 +87,13 @@
     
 (defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))
-  (let ((gc (decode-ink ink medium)))
-    (if (tk::gcontext-stipple gc)
-	(list :background-pixmap (tk::gcontext-stipple gc))
-      (list :background (tk::gcontext-foreground gc)))))
+  (let ((pixel (decode-color ink medium)))
+    (list :background pixel)))
 
 (defmethod decode-gadget-background (medium sheet (ink pattern))
   (declare (ignore sheet))
-  (let ((gc (decode-ink ink medium)))
-    (list :background-pixmap (tk::gcontext-stipple gc))))
+  (let ((pixmap (pixmap-from-pattern ink medium :pixmap)))
+    (list :background-pixmap pixmap)))
 
 (defmethod decode-gadget-foreground (medium sheet ink)
   (declare (ignore sheet))
@@ -111,7 +109,6 @@
   (when (typep m 'xt::xt-root-class)
     (with-sheet-medium (medium pane)
       (apply #'tk::set-values m (decode-gadget-background medium pane ink)))))
-
 
 
 (defclass xt-pane (basic-pane) 

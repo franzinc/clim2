@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Mon Jul 19 18:52:07 1993 by colin]-
+;;				-[Thu Aug 26 18:34:07 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.37 1993/07/27 01:55:36 colin Exp $
+;; $fiHeader: xt-frames.lisp,v 1.38 1993/08/12 16:05:10 cer Exp $
 
 
 (in-package :xm-silica)
@@ -248,17 +248,22 @@
 
 (defmethod update-frame-settings ((framem xt-frame-manager) (frame t))
   ;;--- Lets see how this works out
-  (let ((shell (sheet-shell (frame-top-level-sheet frame))))
-    (let ((sr (compose-space (frame-top-level-sheet frame))))
+  (let ((graft (graft framem))
+	(shell (sheet-shell (frame-top-level-sheet frame))))
+    (let* ((sr (compose-space (frame-top-level-sheet frame)))
+	   (width (fix-coordinate (space-requirement-min-width sr)))
+	   (height (fix-coordinate (space-requirement-min-height sr))))
+      (clim-internals::limit-size-to-graft width height graft)
       (tk::set-values shell
-		      :min-width (fix-coordinate (space-requirement-min-width sr))
-		      :min-height (fix-coordinate (space-requirement-min-height sr))))
+		      :min-width width
+		      :min-height height))
 
     (let ((geo (clim-internals::frame-geometry frame)))
       (destructuring-bind
 	  (&key left top width height &allow-other-keys) geo
 	;;-- what about width and height
 	(when (and width height)
+	  (clim-internals::limit-size-to-graft width height graft)
 	  (tk::set-values shell :width (fix-coordinate width) 
 			  :height (fix-coordinate height)))
 	(when (and left top)
@@ -268,24 +273,21 @@
     
     (tk::set-values shell :title (frame-pretty-name frame))
     (let ((icon (clim-internals::frame-icon frame)))
-      (flet ((decode-pixmap (x)
+      (flet ((decode-bitmap (x)
 	       (etypecase x
 		 (string x)
 		 (pattern 
 		  (let ((sheet (frame-top-level-sheet frame)))
 		    (with-sheet-medium (medium sheet)
-		      (destructuring-bind (&key background-pixmap)
-			  (decode-gadget-background medium sheet x)
-			background-pixmap)))))))
+		      (pixmap-from-pattern x medium :bitmap)))))))
 	(destructuring-bind
 	    (&key (name (frame-pretty-name frame)) pixmap clipping-mask) icon
 	  ;;-- Dialog shells do not have :icon-name resource
 	  (when (typep shell 'tk::top-level-shell)
 	    (tk::set-values shell :icon-name name))
 	  (when pixmap
-	    (tk::set-values shell :icon-pixmap (decode-pixmap pixmap)))
-	  (when clipping-mask
-	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))
+	    (tk::set-values shell :icon-pixmap (decode-bitmap pixmap)))
+	  (when clipping-mask (tk::set-values shell :clip-mask (decode-bitmap clipping-mask))))))))
 
 (defmethod frame-manager-note-pretty-name-changed ((framem xt-frame-manager) 
 						   (frame standard-application-frame))

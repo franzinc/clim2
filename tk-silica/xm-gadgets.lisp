@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.79 1993/07/27 01:55:28 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.80 1993/08/12 16:05:07 cer Exp $
 
 (in-package :xm-silica)
 
@@ -131,7 +131,8 @@
                     :alignment (ecase nv
                                  ((:left nil) :beginning)
                                  (:center :center)
-                                 (:right :end)))))
+                                 (:right :end))
+		    :label-string (or (gadget-label sheet) ""))))
 
 ;;; Motif widgets that support the activate callback
 

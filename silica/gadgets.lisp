@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.55 1993/07/22 15:38:53 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.56 1993/08/12 16:04:16 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -374,7 +374,7 @@
   (when (eq value t)
     (setf (radio-box-current-selection client) selection)
     (value-changed-callback 
-      client (gadget-client client) (gadget-id client) selection))
+     client (gadget-client client) (gadget-id client) selection))
   (call-next-method))
 
 
@@ -433,10 +433,10 @@
   (declare (ignore gadget-id))
   (if (eq value t)
       (pushnew selection (check-box-current-selection client))
-      (setf (check-box-current-selection client)
-	    (delete selection (check-box-current-selection client))))
+    (setf (check-box-current-selection client)
+      (delete selection (check-box-current-selection client))))
   (value-changed-callback
-    client (gadget-client client) (gadget-id client) (check-box-current-selection client))
+   client (gadget-client client) (gadget-id client) (check-box-current-selection client))
   (call-next-method))
 
 

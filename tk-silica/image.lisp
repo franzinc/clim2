@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Mon Jul 12 14:47:08 1993 by colin]-
+;;				-[Mon Aug  2 10:00:30 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.13 1993/07/22 15:39:27 cer Exp $
+;; $fiHeader: image.lisp,v 1.14 1993/07/27 01:54:53 colin Exp $
 
 (in-package :xm-silica)
 
@@ -58,7 +58,8 @@
 	(format filter)
 	(compute-filter-for-bitmap-format format)
       (with-open-stream (fstream (excl:run-shell-command
-				  (format nil "cat ~A | ~A" pathname filter)
+				  (format nil "cat ~A | ~A"
+					  (truename pathname) filter)
 				  :wait nil
 				  :error-output :stream
 				  :output :stream))

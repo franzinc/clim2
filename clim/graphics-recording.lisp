@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.22 93/04/07 09:06:40 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.23 1993/07/27 01:39:42 colin Exp $
 
 (in-package :clim-internals)
 
@@ -517,7 +517,8 @@
 (define-graphics-recording draw-text (ink text-style clipping-region)
   :bounding-rectangle
     (medium-text-bounding-box medium string-or-char x y
-			      start end align-x align-y text-style
+			      start end align-x align-y
+			      (medium-merged-text-style medium)
 			      towards-x towards-y transform-glyphs transformation))
 
 (defmethod medium-text-bounding-box ((sheet standard-sheet-output-mixin) string x y

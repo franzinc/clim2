@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Thu Jul 22 16:32:23 1993 by colin]-
+;;				-[Wed Aug 25 11:15:21 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.86 1993/07/27 01:55:59 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.87 1993/08/12 16:05:13 cer Exp $
 
 (in-package :xm-silica)
 
@@ -51,6 +51,9 @@
 (defmethod port-type ((port xt-port))
   ':xt)
 
+(defmethod port-name ((port xt-port))
+  (ff:char*-to-string 
+   (x11:display-display-name (port-display port))))
 
 (defmethod port-copy-gc ((port xt-port))
   ;;-- Assume 1-1 port-graft mapping?
@@ -1196,8 +1199,8 @@
       (find-widget-class-and-initargs-for-sheet port parent sheet)
     (let ((class-name 
 	   (tk::widget-class-name (tk::class-handle (find-class class)))))
-      (values (getf initargs :name 
-		    (string-downcase class-name :start 0 :end 1))
+      (values (or (getf initargs :name)
+		  (string-downcase class-name :start 0 :end 1))
 	      class-name))))
 
 (defmethod find-widget-name-and-class
@@ -1268,17 +1271,21 @@
 		*resource-class* resource-class)
 	  `(,@(and background `(:background ,background))
 	    ,@(and foreground `(:foreground ,foreground))
-	    ,@(and text-style
-		   `(:text-style
-		     ,(let ((spec (read-from-string text-style)))
-			(etypecase spec
-			  (cons (parse-text-style spec))
-			  (string (silica::make-device-font 
-				   port 
+	    ,@(let ((style (convert-text-style port display text-style)))
+		(and style `(:text-style ,style)))))))))
+
+(defun convert-text-style (port display text-style)
+  (ignore-errors
+   (let ((spec (read-from-string text-style)))
+     (if (consp spec)
+	 (parse-text-style spec)
+       (let ((font-name (or (and (stringp spec) spec)
+			    text-style)))
+	 (silica::make-device-font port 
 				   (make-instance 'tk::font 
 				     :display display
 				     :name (car (tk::list-font-names
-						 display spec)))))))))))))))
+						 display font-name)))))))))
 
 ;;;--- Gadget activation deactivate
 
