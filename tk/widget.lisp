@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.cl,v 1.5 92/01/06 20:43:49 cer Exp Locker: cer $
+;; $fiHeader: widget.cl,v 1.6 92/01/08 14:58:23 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -143,13 +143,6 @@
   (let* ((window-id (xt_window (object-handle widget))))
     (make-clx-window-from-id display window-id)))
 
-#+xlib
-(defun make-clx-window-from-id (display window-id)
-  (or (xlib::lookup-resource-id display window-id)
-      (let ((x-window (xlib::make-window :id window-id :display display)))
-	(xlib::save-id display window-id x-window)
-	x-window)))
-
 (defun widget-class-of (x)
   (intern-widget-class
    (xtk-widget-widget-class x)))
@@ -178,10 +171,13 @@
 (defforeign 'xt_parent 
     :entry-point "_XtParent")
 
-(defun intern-widget (widget)
-  (intern-object-address 
-   widget 
-   (widget-class-of widget)))
+(defun intern-widget (widget &rest args)
+  (and (not (zerop widget))
+       (apply
+	#'intern-object-address 
+	widget 
+	(widget-class-of widget)
+	args)))
 
 (defmethod widget-parent (widget)
   (let ((x (xt_parent (object-handle widget))))

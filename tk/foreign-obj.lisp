@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.cl,v 1.2 92/01/02 15:08:42 cer Exp Locker: cer $
+;; $fiHeader: foreign-obj.cl,v 1.3 92/01/06 20:43:44 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -88,5 +88,11 @@
 		    initargs)))
 	  ((typep x class) x)
 	  (t
-	   (error "~s has the wrong class: ~s"
-		  x class)))))
+	   (cerror "Make a new one"
+		   "~s has the wrong class: ~s"
+		   x class)
+	   (setf (gethash handle table)
+	     (apply #'make-instance 
+		    class 
+		    :handle handle
+		    initargs))))))

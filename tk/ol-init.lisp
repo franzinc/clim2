@@ -20,26 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: ol-init.cl,v 1.2 92/01/02 15:08:56 cer Exp Locker: cer $
 
 
 (in-package :tk)
 
-(defforeign 'ol_initialize :entry-point "_OlInitialize")
+(defforeign 'ol_toolkit_initialize :entry-point "_OlToolkitInitialize")
 
-(defun ol-initialize (&key (shell-name "foo")
-			   (application-class "foo")
-			   )
-  (with-ref-par ((argc 0)
-		 (argv 0))
-		(ol_initialize
-		 (string-to-char* shell-name)
-		 (string-to-char* application-class)
-		 0 ;; options
-		 0;; num-options
-		 argc ;; argc
-		 argv ;; argv
-		 )))
+(defun ol-initialize ()
+  (ol_toolkit_initialize))
 
 (defun-c-callable ol-error-handler ((message :unsigned-long))
   (error "toolkit error: ~A"
@@ -50,38 +39,81 @@
   (warn "toolkit error: ~A"
 	(char*-to-string message)))
 
+(defun-c-callable ol-error-va-handler ((message :unsigned-long))
+  (error "toolkit error: ~A"
+	 (char*-to-string message)))
+
+
+(defun-c-callable ol-warning-va-handler ((message :unsigned-long))
+  (warn "toolkit error: ~A"
+	(char*-to-string message)))
+
+
 (defforeign 'ol_set_warning_handler 
     :entry-point "_OlSetWarningHandler")
 
 (defforeign 'ol_set_error_handler 
   :entry-point "_OlSetErrorHandler")
 
+(defforeign 'ol_set_va_display_error_msg_handler
+    :entry-point "_OlSetVaDisplayErrorMsgHandler")
+
+(defforeign 'ol_set_va_display_warning_msg_handler
+    :entry-point "_OlSetVaDisplayWarningMsgHandler")
 
 (ol_set_warning_handler (register-function 'ol-warning-handler))
+(ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))
 (ol_set_error_handler (register-function 'ol-error-handler))
-
-(setq shell (ol-initialize))
-
-(defvar *done* nil)
-(defvar *n-classes*)
-
-(unless *done*
-  (setq *n-classes* (insert_classes))
-  (make-classes *n-classes*)
-  (setq *done* t))
+(ol_set_va_display_error_msg_handler (register-function 'ol-error-va-handler))
 
 
-(setq shell (intern-widget shell (widget-class-of shell)))
+(ol-initialize)
+(toolkit-initialize)
 
-(defforeign 'xt_display :entry-point "_XtDisplay")
-(defforeign 'xt_display_to_application_context
-    :entry-point "_XtDisplayToApplicationContext")
+(defvar *ol-done* nil)
 
-(setf (slot-value shell 'display)
-      (let* ((d (xt_display (object-handle shell)))
-	     (c (xt_display_to_application_context d)))
-	(intern-widget d 'display 
-		       :display d
-		       :context 
-		       (make-instance 'application-context :context c))))
+(unless *ol-done*
+  (make-classes *openlook-classes*)
+  (setq *ol-done* t))
+
+(defmethod make-widget ((w event) 
+			&rest args &key parent (managed t) (name "") &allow-other-keys)
+  (remf :managed args)
+  (remf :name args)
+  (remf :parent args)
+  (let ((class (class-of w)))
+    (if managed
+	(apply #'create-managed-widget name class parent args)
+      (apply #'create-widget name class parent args))))
+
+(add-resource-to-class (find-class 'menu-button)
+			   (make-instance 'resource
+					  :name :menu-pane
+					  :type 'widget
+					  :original-name 
+					  (string-to-char*
+					   "menuPane")))
+
+(add-resource-to-class (find-class 'abbrev-menu-button)
+		       (make-instance 'resource
+				      :name :menu-pane
+				      :type 'widget
+				      :original-name 
+				      (string-to-char*
+				       "menuPane")))
+
+
+;(setq shell (intern-widget shell (widget-class-of shell)))
+;
+;(defforeign 'xt_display :entry-point "_XtDisplay")
+;(defforeign 'xt_display_to_application_context
+;    :entry-point "_XtDisplayToApplicationContext")
+;
+;(setf (slot-value shell 'display)
+;      (let* ((d (xt_display (object-handle shell)))
+;	     (c (xt_display_to_application_context d)))
+;	(intern-widget d 'display 
+;		       :display d
+;		       :context 
+;		       (make-instance 'application-context :context c))))
     

@@ -1,6 +1,6 @@
 ;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM; Mode: LISP; Lowercase: T -*-
 
-;; $fiHeader: test-suite.cl,v 1.4 92/01/06 20:44:32 cer Exp Locker: cer $
+;; $fiHeader: test-suite.cl,v 1.5 92/01/08 14:59:16 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -2917,12 +2917,14 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  ("Exit" :command (exit-clim-tests)))))
   (:command-definer nil)
   (:pane (with-slots (caption-pane display-pane) *application-frame*
-	     (silica::vertically ()
+	   (silica::vertically ()
+			       (silica::scrolling
+				  ()
 				 (setf caption-pane
 				    (silica::realize-pane
 				     'application-pane
 				     :height 50
-				     ))
+				     )))
 				 (silica::scrolling
 				  ()
 				  (setf display-pane

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.cl,v 1.1 92/01/06 20:36:58 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.cl,v 1.2 92/01/08 14:58:58 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -120,7 +120,7 @@
     (realize-pane 'silica::toggle-button
 		  :client stream
 		  :id query-identifier
-		  :set default)))
+		  :value default)))
 
 
 (define-presentation-method accept-present-default ((type integer)
@@ -253,23 +253,27 @@
   (declare (ignore present-p))
   ;; value-key, test, sequence
   (with-output-as-gadget (:stream stream)
-    (let* ((frame-pane
+    (let* (
+	   #+ignore
+	   (frame-pane
 	    (realize-pane 'silica::frame-pane))
 	   (gadget
 	    (realize-pane 'silica::radio-box 
 			  :client stream
 			  :id query-identifier
-			  :parent frame-pane)))
+			  #+ignore :parent 
+			  #+ignore frame-pane)))
       (dolist (element sequence)
 	(realize-pane 'toggle-button 
-		      :set (and default-supplied-p
+		      :value (and default-supplied-p
 				(funcall test 
 					 (funcall value-key element)
 					 (funcall value-key default)))
 		      :label (princ-to-string element)
 		      :id element
 		      :parent gadget))
-      frame-pane)))
+      gadget
+      #+ignore frame-pane)))
 
 (defmethod silica::value-changed-callback ((gadget silica::radio-box)
 					   (client avv-stream)

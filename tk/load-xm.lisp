@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: load-xm.cl,v 1.2 92/01/02 15:08:49 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -80,36 +80,26 @@ make ucl_xtras='/usr/tech/cer/stuff/clim-2.0/xm-classes.o /usr/motif/usr/lib/lib
 				     "_transientShellWidgetClass"
 				     )))
 
-(flet ((foundp (entry-point)
-	       (let ((x (make-array 1 :initial-contents
-				    (list (ff:convert-to-lang
-					   entry-point))))
-		     (y 
-		 
-		      (make-array 1 :element-type '(unsigned-byte 32))))
-		 (zerop (ff:get-entry-points x y)))))
-      (unless (foundp "insert_classes")
-	(mapc #'foreign-functions:remove-entry-point 
-	      '("__unpack_quadruple" 
-		"__prod_b10000" 
-		"__carry_out_b10000" 
-		"__prod_65536_b10000"))
-	(load "classes.o" 
-	      :unreferenced-lib-names `(
-					"_XCopyGC"
-					,@*motif-classes*
-					)
-	      :foreign-files 
-	      '("/usr/motif/usr/lib/libXm.a"
-		"/usr/motif/usr/lib/libXt.a"
-		"/usr/motif/usr/lib/libX11.a") 
-	      :print t)))
+(defun load-from-xm (&optional (what *motif-classes*))
+  (setq what (remove-if #'ff::get-entry-point
+			`(
+			  "_XCopyGC"
+			  ,@what
+			  )))
+  (when what
+    #+ignore
+    (mapc #'foreign-functions:remove-entry-point 
+	  '("__unpack_quadruple" 
+	    "__prod_b10000" 
+	    "__carry_out_b10000" 
+	    "__prod_65536_b10000"))
+    (load "" 
+	  :unreferenced-lib-names what
+	  :foreign-files 
+	  '("/usr/motif/usr/lib/libXm.a"
+	    "/usr/motif/usr/lib/libXt.a"
+	    "/usr/motif/usr/lib/libX11.a") 
+	  :print t)))
 
-(defun load-from-xm (unref)
-  (load ""
-	:unreferenced-lib-names (if (listp unref) unref (list unref))
-	:foreign-files 
-	'("/usr/motif/usr/lib/libXm.a"
-	  "/usr/motif/usr/lib/libXt.a"
-	  "/usr/motif/usr/lib/libX11.a") 
-	:print t))
+(load-from-xm)
+

@@ -49,6 +49,16 @@
 		(make-text-style
 		 :serif :roman 20)))))
 
+
+(define-application-frame test-frame0 ()
+  (a b c)
+  (:command-table test-frame)
+  (:pane 
+   (silica::scrolling
+    ()
+    (silica::realize-pane
+     'interactor-pane))))
+
 (define-application-frame test-frame2 ()
   (a b c)
   (:command-table test-frame)

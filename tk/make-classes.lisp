@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.cl,v 1.3 92/01/06 20:43:47 cer Exp Locker: cer $
+;; $fiHeader: make-classes.cl,v 1.4 92/01/08 14:58:18 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -33,19 +33,10 @@
       (error "Cannot find the entry-point for: ~S" x))
     (aref xx 0)))
 
-(defvar *class-table-addr*
-  (get-entry-point-value "_classtable"))
-
-
 (def-c-type (class-array :in-foreign-space) 1 :unsigned-long)
 
 (defun get-foreign-variable-value (x)
   (class-array (get-entry-point-value x) 0))
-
-(defun nth-class (n)
-  (class-array *class-table-addr* n))
-
-;;; (char*-to-string (widget-struct-name (nth-class 0)))
 
 (defun get-resource-list-internal (class fn resource-class)
   (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
@@ -175,6 +166,9 @@
   (dolist (r (class-direct-resources class))
     (let* ((rname (resource-name r))
 	   (name (intern (format nil "~A-~A" 'widget rname))))
+      (setq name (case name
+		   (widget-window 'widget-stub-window)
+		   (t name)))
       (add-method
        (ensure-generic-function name)
        (make-instance 'clos::standard-method
@@ -201,7 +195,12 @@
 (defun widget-class-name (h)
   (char*-to-string (xtk-class-name h)))
 
-(defun lispify-class-name (x) (lispify-tk-name x))
+(defun lispify-class-name (x) 
+  (let ((name (lispify-tk-name x)))
+    (case name
+      ;; Openlook
+      (list 'ol-list)
+      (t name))))
   
 (defun lispify-tk-name (string &key 
 			       (start 0)
@@ -247,6 +246,13 @@
   (warn "toolkit warning: ~a" (char*-to-string message)))
 
 
+(defun add-resource-to-class (class resource)
+  (clos::map-over-subclasses
+   #'(lambda (c)
+       (push
+	resource
+	(slot-value c 'resources)))
+   class))
 
 #|
 (make-widget class parent . resources)

@@ -20,21 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: defsys.cl,v 1.2 92/01/02 15:08:37 cer Exp Locker: cer $
+;; $fiHeader: defsys.cl,v 1.3 92/01/06 20:43:43 cer Exp Locker: cer $
 
-
-(defsys::defsystem :xm-tk
-  (:default-pathname (frob-pathname "tk"))
+(defsys::defsystem :basic-tk
+    (:default-pathname (frob-pathname "tk"))
 
   (|pkg|)
   (|foreign-obj|)
   (|macros|)
   
-  ;;; Do the foreign loads
-  
-  (|load-xm|)
-  
-  ;; Clos<->xlib interface
+  ;; Xlib stuff
   
   (|xlib|)
   (|font|)
@@ -53,33 +48,27 @@
   (|resources|)
   (|event|)
   (|callbacks|)
-  (|convenience|)
+  )
 
+(defsys::defsystem :xm-tk
+    (:default-pathname (frob-pathname "tk"))
+  (|load-xm|)
   (|xm-init|)
   (|xm-widgets|)
   (|xm-font-list|)
   (|xm-protocols|)
-  
+  (|convenience|)
   (|examples|)
   )
 
-#+this-is-totally-out-of-date
+
+(defsys::defsystem :hi-tk
+    (:default-pathname (frob-pathname "tk"))
+  (|make-widget|))
+
 (defsys::defsystem :ol-tk
     (:default-pathname (frob-pathname "tk"))
-  (|pkg|)
-  (|foreign-obj|)
   (|load-ol|)
-  (|xlib|)
-  (|xtk|)
-  (|make-classes|)
-  (|foreign|)
-  (|widget|)
-  (|resources|)
-  (|event|)
-  (|callbacks|)
   (|ol-init|)
-  (|graphics|)
-  (|font|)
-  (|gcontext|)
-  (|ol-examples|)
-  )
+  (|ol-callbacks|)
+  (|ol-examples|))

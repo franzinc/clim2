@@ -18,20 +18,42 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: sysdcl.cl,v 1.2 92/01/02 15:09:42 cer Exp Locker: cer $
 
 (in-package :cl-user)
 
 (defsys::defsystem :xm-silica
     (:default-pathname (frob-pathname "xm-silica"))
   ("pkg")
+  ("xt-silica")
   ("xm-silica")
+  ("xt-graphics")
   ("xm-graphics")
   ("image"))
 
+(defsys::defsystem :ol-silica
+    (:default-pathname (frob-pathname "xm-silica"))
+  ("pkg")
+  ("xt-silica")
+  ("ol-silica")
+  ("xt-graphics")
+  ("ol-graphics")
+  ("image"))
+
+
 (defsys::defsystem :xm-ws
-  (:default-pathname (frob-pathname "xm-silica"))
+    (:default-pathname (frob-pathname "xm-silica"))
+  ("xt-frames")
   ("xm-frames")
+  ("xt-gadgets")
   ("xm-gadgets"))
+
+(defsys::defsystem :ol-ws
+    (:default-pathname (frob-pathname "xm-silica"))
+  ("xt-frames")
+  ("ol-frames")
+  ("xt-gadgets")
+  ("ol-gadgets"))
+
 
 

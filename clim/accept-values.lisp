@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: accept-values.lisp,v 1.2 92/01/02 15:11:54 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.3 92/01/06 20:44:10 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -759,7 +759,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
     (cond (avv-stream
-	   (letf-globally (((stream-default-view avv-stream) +dialog-view+))
+	   (letf-globally (((stream-default-view avv-stream) 
+			    (port-dialog-view (port avv-stream))))
 	     (redisplay avv-record avv-stream :check-overlapping check-overlapping)
 	     (when resynchronize-every-pass
 	       (redisplay avv-record avv-stream :check-overlapping check-overlapping))))
@@ -769,7 +770,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (defun accept-values-pane-displayer-1 (frame pane displayer)
   (let ((avv-stream (make-instance 'avv-stream :stream pane))
 	(avv-record nil))
-    (letf-globally (((stream-default-view avv-stream) +dialog-view+))
+    (letf-globally (((stream-default-view avv-stream) 
+		     (port-dialog-view (port avv-stream))))
       (setq avv-record
 	    (updating-output (avv-stream)
 	      (with-new-output-record (avv-stream 'avv-output-record avv-record)

@@ -20,12 +20,18 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: callbacks.cl,v 1.3 92/01/02 15:08:35 cer Exp Locker: cer $
 
 (in-package :tk)
 
 (defforeign 'add_callback
     :entry-point "_XtAddCallback")
+
+(defforeign 'xt_has_callbacks
+    :entry-point "_XtHasCallbacks")
+
+(defun has-callbacks-p (w name)
+  (not (zerop (xt_has_callbacks (object-handle w) name))))
 
 (defun-c-callable callback-handler ((widget :unsigned-long)
 				    (client-data :unsigned-long)
@@ -69,14 +75,15 @@
 (defun new-callback-id ()
   (incf *callback-ids*))
 
+(defun process-callback-alist-component (x)
+  (destructuring-bind (name &optional type) x
+    (list (lispify-tk-name name :package :keyword)
+	  name
+	  nil;; malloc cache
+	  type)))
+
 (defparameter *callback-name-alist* 
-    (mapcar #'(lambda (x)
-		(destructuring-bind (name &optional type) x
-		  (list (lispify-tk-name name :package :keyword)
-		    name
-		    nil;; malloc cache
-		    type
-		    )))
+    (mapcar #'process-callback-alist-component
 	  '(
 	    ("activateCallback" :activate)
 	    ("armCallback")           
@@ -117,6 +124,10 @@
 	    ("destroyCallback")         
 	    ("gainPrimaryCallback")     
 	    ("losePrimaryCallback")
+
+	    ;; OpenLook Callbacks
+	    ("sliderMoved" slider-moved)
+	    
 	    )))
 
 (defun convert-callback-name (x)

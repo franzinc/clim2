@@ -22,6 +22,7 @@
       excl::*load-source-file-info* t)
 
 (without-package-locks
+ (excl::compile-file-if-needed "sys/defsystem")
  (load "sys/defsystem")
  (load "sys/sysdcl"))
 
@@ -46,15 +47,36 @@
 
 
 (load "tk/defsys.cl")
-(defsys::compile-system :xm-tk)
-(defsys::load-system :xm-tk)
+(defsys::compile-system :basic-tk)
+(defsys::load-system :basic-tk)
 
-(load "xm-silica/sysdcl.cl")
-(defsys::compile-system :xm-silica)
-(defsys::load-system :xm-silica)
+(let ((which (or (and (boundp 'which)
+		      which)
+		 :motif)))
+  (let ((sys
+	 (ecase which
+	   (:motif :xm-tk)
+	   (:openlook :ol-tk))))
+    (defsys::compile-system sys)
+    (defsys::load-system sys))
 
-(defsys::compile-system :xm-ws)
-(defsys::load-system :xm-ws)
+  (defsys::compile-system :hi-tk)
+  (defsys::load-system :hi-tk)
+
+  (load "xm-silica/sysdcl.cl")
+  
+  (let ((sys (ecase which
+	       (:motif :xm-silica)
+	       (:openlook :ol-silica))))
+    (defsys::compile-system sys)
+    (defsys::load-system sys))
+
+  
+  (let ((sys (ecase which
+	       (:motif :xm-ws)
+	       (:openlook :ol-ws))))
+    (defsys::compile-system sys)
+    (defsys::load-system sys)))
 
 #+:composer
 (progn
@@ -62,6 +84,7 @@
   (load "draw-sheets")
   )
 
+(excl::compile-file-if-needed "test/test")
 (load "test/test")
 
 (excl::compile-file-if-needed "test/test-suite")

@@ -18,184 +18,22 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.cl,v 1.2 92/01/02 15:09:43 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.cl,v 1.3 92/01/06 20:43:59 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
+;; Motif stuff
 
-(defclass motif-frame-manager (frame-manager) 
+(defclass motif-frame-manager (xt-frame-manager)
 	  ())
 
 (defmethod make-frame-manager ((port motif-port))
   (make-instance ' motif-frame-manager :port port))
 
-(defmethod adopt-frame ((framem motif-frame-manager) (frame application-frame))
-  (call-next-method)
-  (when (frame-panes frame)
-    (let* ((top-pane (frame-panes frame))
-	   (sheet (make-instance 'motif-top-level-sheet 
-				 :region (make-bounding-rectangle
-					  0 0 (sheet-width
-					       top-pane) 
-					  (sheet-height top-pane))
-				 :parent (find-graft))))
-      (setf (frame-top-level-sheet frame) sheet
-	    (frame-shell frame) (sheet-shell sheet))
-      (adopt-child sheet (frame-panes frame))
-      (establish-wm-protocol-callbacks frame))))
+(defmethod adopt-frame :after ((framem motif-frame-manager) (frame application-frame))
+  (establish-wm-protocol-callbacks framem frame))
 
-(defmethod note-frame-enabled :after ((framem motif-frame-manager) frame)
-  ;; Perhaps we want to resize the top leve sheet if there is one
-  (when (frame-top-level-sheet frame)
-    (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)))
-
-(defmethod note-frame-disabled :after ((framem motif-frame-manager) frame)
-  (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
-
-;;; Definitions of the individual classes
-
-;;; Main window
-
-(defclass motif-main-window (motif-composite-pane)
-  (
-   (contents :accessor main-window-contents :initform nil)
-   (command-window :initform nil :accessor main-window-command-window)
-   command-window-location
-   menu-bar
-   message-window
-   ))
-
-(defmethod initialize-instance :after ((mw motif-main-window)
-				       &key
-				       command-window
-				       command-window-location
-				       menu-bar
-				       message-window
-				       contents)
-  (when contents
-    (setf (main-window-contents mw) contents))
-  (when command-window
-    (setf (main-window-command-window mw) command-window))
-  (when message-window
-    (setf (main-window-message-window mw) message-window)))
-
-(defmethod (setf main-window-contents) :after (nv (mw motif-main-window))
-  (unless (sheet-parent nv)
-    (adopt-child mw nv)))
-
-(defmethod (setf main-window-command-window) :after (nv (mw motif-main-window))
-  (unless (sheet-parent nv)
-    (adopt-child mw nv)))
-
-#+ignore
-(defmethod realize-mirror :around (port (motif-main-window))
-  (let ((m (call-next-method)))
-    (tk::xm_set_main_window_areas
-     (object-handle m)
-     .. 
-     (and command-window (realize-mirror port command-window))
-     ..
-     (and message-window (realize-mirror port message-window))
-     ...)))
-
-;;; Drawing area
-
-#+ignore
-(defclass motif-drawing-area (motif-composite-pane) ())
-
-;;; Row colum
-
-(defclass motif-row-colum (motif-composite-pane) ())
-
-;;; Push button
-
-#+ignore
-(defclass motif-push-button (motif-leaf-pane) ())
-
-;;; Menu bar
-
-(defclass motif-menu-bar (motif-composite-pane) ())
-(defclass motif-pulldown-menu (motif-composite-pane) ())
-
-(defclass motif-cascade-button (motif-composite-pane)
-  ((submenu :accessor cascade-button-submenu :initform nil))
-  )
-
-(defmethod realize-mirror :around ((port motif-port) (sheet motif-cascade-button))
-  (let ((m (call-next-method)))
-    (when (cascade-button-submenu sheet)
-      (tk::set-values m :sub-menu-id 
-		      (realize-mirror port (cascade-button-submenu sheet))))
-    m))
-
-  
-
-#+ignore
-(define-application-frame motif-example-frame ()
-  :pane (make-instance 'motif-main-window
-		       ))
-
-#|
-
-(defmethod compose-space ((sheet motif-pane))
-  (multiple-value-bind
-      (width height)
-      (tk::get-values (sheet-mirror sheet) :width :height)
-    (make-instance 'space-req
-		   :width width
-		   :height height)))
-
-(make-instance 'motif-main-window
-	       :parent ..
-	       :contents ...)
-
-;; What about all the readers/writers that are applicable?
-;; We have to trampoline those?
-
-(setf (sheet-resource sheet :x) value)
-
-Can the basic motif stuff support lazy realization?
-
-|#
-
-#+ignore
-(define-motif-sheet motif-menu-bar tk::xm-menu-bar)
-
-
-;; Leaf panes
-
-
-
-;;; definition of the composite pane stuff
-
-;;; So once we have done all this we will be able to
-;;; define-application-frames using motif widgets
-;;; Still need a stream pane though
-
-;;; These frames use the Motif layout technology but perhaps we can
-;;; plug in CLIM style stuff too.
-
-;;; Need a pane we can draw on.
-
-;;; Perhaps a :resources initarg to specify resources
-
-;;; Do scrollbars come from the use of the scrolling macro.
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;; How do we interface to motif UIL.
-;;; Perhaps use the name of the widget??
-;;; We can query the UIL file to obtain the widget hiearchy.
-
-;;; Gadget callbacks are not interfaced to the CP.
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Final step is mapping abstract gadgets onto motif gadgets
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
-(defmethod establish-wm-protocol-callbacks (frame)
+(defmethod establish-wm-protocol-callbacks ((framem motif-frame-manager) frame)
   (let ((shell (frame-shell frame)))
     (tk::set-values shell 
 		    :icon-name (frame-name frame)
@@ -207,6 +45,82 @@ Can the basic motif stuff support lazy realization?
      :wm-delete-window
      'frame-wm-protocol-callback
      frame)))
+
+;;; Definitions of the individual classes
+
+;; This looks like garbage??
+
+;(defclass motif-main-window (motif-composite-pane)
+;  (
+;   (contents :accessor main-window-contents :initform nil)
+;   (command-window :initform nil :accessor main-window-command-window)
+;   command-window-location
+;   menu-bar
+;   message-window
+;   ))
+;
+;(defmethod initialize-instance :after ((mw motif-main-window)
+;				       &key
+;				       command-window
+;				       command-window-location
+;				       menu-bar
+;				       message-window
+;				       contents)
+;  (when contents
+;    (setf (main-window-contents mw) contents))
+;  (when command-window
+;    (setf (main-window-command-window mw) command-window))
+;  (when message-window
+;    (setf (main-window-message-window mw) message-window)))
+;
+;(defmethod (setf main-window-contents) :after (nv (mw motif-main-window))
+;  (unless (sheet-parent nv)
+;    (adopt-child mw nv)))
+;
+;(defmethod (setf main-window-command-window) :after (nv (mw motif-main-window))
+;  (unless (sheet-parent nv)
+;    (adopt-child mw nv)))
+;
+;#+ignore
+;(defmethod realize-mirror :around (port (motif-main-window))
+;  (let ((m (call-next-method)))
+;    (tk::xm_set_main_window_areas
+;     (object-handle m)
+;     .. 
+;     (and command-window (realize-mirror port command-window))
+;     ..
+;     (and message-window (realize-mirror port message-window))
+;     ...)))
+
+;;;; Drawing area
+;
+;#+ignore
+;(defclass motif-drawing-area (motif-composite-pane) ())
+;
+;;;; Row colum
+;
+;(defclass motif-row-colum (motif-composite-pane) ())
+;
+;;;; Push button
+
+;#+ignore
+;(defclass motif-push-button (motif-leaf-pane) ())
+
+;;; Menu bar
+
+;(defclass motif-menu-bar (motif-composite-pane) ())
+;(defclass motif-pulldown-menu (motif-composite-pane) ())
+;
+;(defclass motif-cascade-button (motif-composite-pane)
+;  ((submenu :accessor cascade-button-submenu :initform nil))
+;  )
+;
+;(defmethod realize-mirror :around ((port motif-port) (sheet motif-cascade-button))
+;  (let ((m (call-next-method)))
+;    (when (cascade-button-submenu sheet)
+;      (tk::set-values m :sub-menu-id 
+;		      (realize-mirror port (cascade-button-submenu sheet))))
+;    m))
 
 (defclass window-manager-event (event)
 	  ())
@@ -238,8 +152,7 @@ Can the basic motif stuff support lazy realization?
 					      (clim-internals::frame-command-table frame))
 			pane)))
 
-(defclass motif-menubar (motif-leaf-pane
-			 sheet-permanently-enabled-mixin) 
+(defclass motif-menubar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-menubar))
