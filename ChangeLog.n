@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.20.5
+
+2000-08-08 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-prel.lisp, aclpc/winwidgh.lisp: changes to cope
+	  with failure of CreateDIBitmap, this time hopefully really
+	  fixing the problem.  This is spr21068, still.
+
+*******************************************************************************
 2.2.2.20.4 
 
 2000-07-17 tfb@cley.com (Tim Bradshaw)
