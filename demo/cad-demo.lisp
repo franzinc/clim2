@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: cad-demo.lisp,v 1.25.22.2 1998/07/06 23:09:24 layer Exp $
+;; $Id: cad-demo.lisp,v 1.25.22.3 1999/01/28 03:16:37 layer Exp $
 
 (in-package :clim-demo)
 
@@ -207,14 +207,16 @@
 
 ;;; An input connection's logic value is determined by the value of the output
 ;;; connection that is feeding it.
-(defmethod connection-value ((conn input))
+(defmethod connection-value ((conn input) &rest recursion-chain)
   (with-slots (other-connections) conn
     (assert (<= (length other-connections) 1)
-	    nil
-	    "Don't know how to handle multiple inputs to one connection.")
+	nil
+      "Don't know how to handle multiple inputs to one connection.")
     ;; Floating inputs default to "off"
     (when other-connections
-      (connection-value (first other-connections)))))
+      (let ((other (first other-connections)))
+	(unless (member other recursion-chain)
+	  (apply #'connection-value other conn recursion-chain))))))
 
 #-allegro
 (defclass output (connection) ())
@@ -228,8 +230,10 @@
 
 ;;; An output connection's logic value is computed from the inputs by the
 ;;; component.
-(defmethod connection-value ((conn output))
-  (connection-value (slot-value conn 'component)))
+(defmethod connection-value ((conn output) &rest recursion-chain)
+  (let ((component (slot-value conn 'component)))
+    (unless (member component recursion-chain)
+      (apply #'connection-value component conn recursion-chain))))
 
 ;;;****************************************************************
 
@@ -440,8 +444,14 @@
      ()
   (:default-initargs :n-inputs 2))
 
-(defmethod connection-value ((ag and-gate))
-  (every #'connection-value (slot-value ag 'inputs)))
+(defmethod connection-value ((ag and-gate) &rest recursion-chain)
+  (let ((result nil))
+    (dolist (input (slot-value ag 'inputs))
+      (setq result
+	(unless (member input recursion-chain)
+	  (apply #'connection-value input ag recursion-chain)))
+      (unless result (return result)))
+    result))
 
 (defmethod equation-part ((ag and-gate))
   (let ((equation nil))
@@ -459,8 +469,11 @@
      ()
   (:default-initargs :n-inputs 2))
 
-(defmethod connection-value ((og or-gate))
-  (some #'connection-value (slot-value og 'inputs)))
+(defmethod connection-value ((og or-gate) &rest recursion-chain)
+  (dolist (input (slot-value og 'inputs))
+    (unless (member input recursion-chain)
+      (let ((value (apply #'connection-value input og recursion-chain)))
+	(when value (return value))))))
 
 (defmethod equation-part ((og or-gate))
   (let ((equation nil))
@@ -502,7 +515,8 @@
 	     (setf (slot-value lc 'name)
 		   (string (code-char (incf *name-code*))))))
 
-(defmethod connection-value ((component logic-constant))
+(defmethod connection-value ((component logic-constant) &rest recursion-chain)
+  (declare (ignore recursion-chain))
   (slot-value component 'value))
 
 (defmethod equation-part ((lc logic-constant))

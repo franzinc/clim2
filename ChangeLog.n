@@ -11,6 +11,17 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.41
+
+1999-01-27  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+Possible candidate for Release 5.0.1 beta.
+
+* demo/cad-demo: prevent infinite recursion due to circular diagrams
+* tk-silica/xt-silica: reinstate lost double-click patch
+* aclpc/acl-widget: toggle buttons should not inherit from button-pane-mixin
+
+*******************************************************************************
 2.2.1.40
 
 1999-01-25  Jeff Morrill  <jmorrill@pointnclick.com> 

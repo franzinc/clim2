@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.108.22.9 1999/01/23 00:44:21 duane Exp $
+;; $Id: xt-silica.lisp,v 1.108.22.10 1999/01/28 03:16:38 layer Exp $
 
 (in-package :xm-silica)
 
@@ -327,6 +327,9 @@
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
   (declare (ignore sheet)))
 
+(defvar *last-click-time* 0)
+(defvar *double-click-time* 300) ;; .3 seconds
+
 (defmethod sheet-mirror-event-handler (widget event sheet)
   #+ignore
   (format excl:*initial-terminal-io* "Got event ~s~%" (tk::event-type event))
@@ -371,8 +374,8 @@
 			       :character character
 			       :modifier-state
 			       (logior
-				  (state->modifiers (x11::xkeyevent-state event))
-				  keysym-shift-mask)))))
+				(state->modifiers (x11::xkeyevent-state event))
+				keysym-shift-mask)))))
 	  (:key-release
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
@@ -392,12 +395,24 @@
 			       :character character
 			       :modifier-state
 			       (logandc2
-				  (state->modifiers (x11::xkeyevent-state event))
-				  keysym-shift-mask)))))
+				(state->modifiers (x11::xkeyevent-state event))
+				keysym-shift-mask)))))
 	  (:button-press
+	   ;; It would appear this code never runs.  See sheet-mirror-input-handler.
 	   (let ((button (x-button->silica-button
 			  (x11::xbuttonevent-button event)))
-		 (pointer (port-pointer port)))
+		 (pointer (port-pointer port))
+		 (then *last-click-time*)
+		 (now (get-internal-real-time))
+		 (state (state->modifiers
+			 (x11::xbuttonevent-state event))))
+	     (setq *last-click-time* now)
+	     (when (<= (- now then) *double-click-time*)
+	       ;; A double-click is actually four events:
+	       ;; press, release, press, release.  Unlike Windows,
+	       ;; in X there is no explicit double-click event.
+	       ;; So we do it ourselves, here.
+	       (setq state (logior state (make-modifier-state :double))))
 	     (allocate-event 'pointer-button-press-event
 			     :sheet sheet
 			     :pointer pointer
@@ -405,9 +420,7 @@
 			     :native-x (x11::xbuttonevent-x event)
 			     :native-y (x11::xbuttonevent-y event)
 			     :x :?? :y :??
-			     :modifier-state
-			     (state->modifiers
-				(x11::xbuttonevent-state event)))))
+			     :modifier-state state)))
 	  (:button-release
 	   (let ((button (x-button->silica-button
 			  (x11::xbuttonevent-button event)))
@@ -421,7 +434,7 @@
 			     :x :?? :y :??
 			     :modifier-state
 			     (state->modifiers
-				(x11::xkeyevent-state event)))))
+			      (x11::xkeyevent-state event)))))
 	  (:leave-notify
 	   (allocate-event 'pointer-exit-event
 			   :sheet sheet
@@ -592,7 +605,19 @@
       (:button-press
        (let ((button (x-button->silica-button
 		      (x11::xbuttonevent-button event)))
-	     (pointer (port-pointer port)))
+	     (pointer (port-pointer port))
+	     (then *last-click-time*)
+	     (now (get-internal-real-time))
+	     (state (state->modifiers
+		     (x11::xbuttonevent-state event))))
+	 (setq *last-click-time* now)
+	 (when (<= (- now then) *double-click-time*)
+	   ;; A double-click is actually four events:
+	   ;; press, release, press, release.  Unlike Windows,
+	   ;; in X there is no explicit double-click event.
+	   ;; So we do it ourselves, here.
+	   (setq state (logior state (make-modifier-state :double))))
+
 	 #+debug
 	 (format excl:*initial-terminal-io*
 		 "~%event ~s type: ~s button: ~s x: ~s y: ~s"
@@ -611,8 +636,7 @@
 			  :native-y (x11::xbuttonevent-y event)
 			  ;;-- Filled in by distributor
 			  :x :?? :y :??
-			  :modifier-state (state->modifiers
-					     (x11::xbuttonevent-state event))))))
+			  :modifier-state state))))
       (:button-release
        (let ((button (x-button->silica-button
 		      (x11::xbuttonevent-button event)))
@@ -628,7 +652,7 @@
 			  :native-y (x11::xbuttonevent-y event)
 			  :x :?? :y :??
 			  :modifier-state (state->modifiers
-					     (x11::xbuttonevent-state event))))))
+					   (x11::xbuttonevent-state event))))))
       )))
 
 (defmethod sheet-mirror-map-callback (event sheet)

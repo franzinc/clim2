@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.12 1999/01/14 21:33:01 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.13 1999/01/28 03:16:35 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -471,7 +471,16 @@
 (defclass hpbutton-pane (acl-gadget-id-mixin 
 			 mirrored-sheet-mixin 
 			 push-button 
-			 button-pane-mixin
+			 ;; JPM: button-pane-mixin is for push buttons,
+			 ;; not toggle buttons, because it applies 
+			 ;; ACTIVATE-CALLBACK to the object.  Toggle buttons
+			 ;; do not and should not support that function,
+			 ;; they use VALUE-CHANGED-CALLBACK instead.
+			 ;; I hope we aren't losing some useful behavior
+			 ;; by turning this off...
+			 ;;button-pane-mixin
+			 space-requirement-mixin
+			 leaf-pane
 			 )
   ((external-label :initarg :external-label)
    (depth :initarg :depth)
