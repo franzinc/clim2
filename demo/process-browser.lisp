@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: process-browser.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
+;; $Id: process-browser.lisp,v 2.5 2004/01/01 21:31:41 layer Exp $
 
 (in-package :clim-demo)
 
@@ -93,25 +93,36 @@
 	;;--- snarfed from toplevel.cl
 	(let* ((processes (clim-sys:all-processes))
 	       (processes
-		 (sort (clim-sys:without-scheduling	;assure consistent data
-			 (mapcar #'(lambda (p)
-				     (let* ((times  (mp::process-times-resumed p))
-					    (dtimes (- times (mp::process-times-resumed-1 p)))
-					    (msec   (mp::process-cpu-msec-used p))
-					    (dmsec  (- msec (mp::process-cpu-msec-used-1 p))))
-				       (prog1 (list* dtimes msec dmsec p)
-					      (setf (mp::process-times-resumed-1 p) times
-						    (mp::process-cpu-msec-used-1 p) msec))))
-				 processes))
-		       #'>= :key #'caddr)))
+		(sort
+		 (clim-sys:without-scheduling ;assure consistent data
+		   (mapcar
+		    (lambda (p)
+		      (let* (#-process7 (times  (mp::process-times-resumed p))
+			     (dtimes
+			      #-process7
+			      (- times (mp::process-times-resumed-1 p))
+			      #+process7
+			      (mp::process-times-resumed-delta p))
+			     (msec   (mp::process-cpu-msec-used p))
+			     (dmsec
+			      #-process7
+			      (- msec (mp::process-cpu-msec-used-1 p))
+			      #+process7
+			      (mp::process-cpu-msec-used-delta p)))
+			(prog1 (list* dtimes msec dmsec p)
+			  #-process7
+			  (setf (mp::process-times-resumed-1 p) times
+				(mp::process-cpu-msec-used-1 p) msec))))
+		    processes))
+		 #'>= :key #'caddr)))
 	  (dolist (p processes)
 	    (destructuring-bind (times-resumed msec-used msec-used-d . process) p
 	      (let ((profilep
-		     #-os-threads
+		     #+(and (not os-threads) (not process7))
 		     (let ((stack-group (mp::process-stack-group process)))
 		       (and stack-group
 			    (mp::profile-stack-group-p stack-group)))
-		     #+os-threads
+		     #+(or os-threads process7)
 		     (mp:profile-process-p process)))
 		(updating-output (t :unique-id process
 				    :cache-test #'equal

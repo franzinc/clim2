@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: listener.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
+;; $Id: listener.lisp,v 2.5 2004/01/01 21:31:41 layer Exp $
 
 (in-package :clim-demo)
 
@@ -120,9 +120,14 @@
 	     (/// nil) (// nil) (/ nil)
 	     (+++ nil) (++ nil) (+ nil)
 	     (- nil)
-	     #+allegro (*tpl-current-stack-group* sys::*current-stack-group*)
+	     #+allegro (*tpl-current-stack-group*
+			#-process7 sys::*current-stack-group*
+			#+process7 sys::*current-thread*)
 	     #+allegro (*top-top-frame-pointer*
-			 (excl::int-newest-frame si::*current-stack-group* :visible-only-p nil))
+			(excl::int-newest-frame
+			 #-process7 sys::*current-stack-group*
+			 #+process7 sys::*current-thread*
+			 :visible-only-p nil))
 	     #+allegro (*top-frame-pointer*
 			 (or (db::find-interesting-frame *top-top-frame-pointer*)
 			     *top-top-frame-pointer*))

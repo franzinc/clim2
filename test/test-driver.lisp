@@ -99,9 +99,9 @@
       (when port #-acl86win32 (xm-silica::port-finish-output port)))
     (mp:process-allow-schedule)
     (flet ((input-state-p (process)
-	     (or #-os-threads
+	     (or #+(and (not os-threads) (not process7))
 		 (not (mp::process-stack-group process))
-		 #+os-threads
+		 #+(or os-threads process7)
 		 (not (mp:process-thread process))
 		 (member  (mp::process-whostate process)
 			  '("Returned value"
@@ -128,9 +128,9 @@
   (with-slots (process) invocation
     (write-line "Terminating frame")
     (unless (progn
-	      #-os-threads
+	      #+(and (not os-threads) (not process7))
 	      (mp::process-stack-group process)
-	      #+os-threads
+	      #+(or os-threads process7)
 	      (mp::process-thread process))
       (error "Frame terminated abnormally"))
     (execute-one-command invocation exit-command)
@@ -145,8 +145,10 @@
      #'(lambda ()
 	 (setq done
 	   (not
-	    #-os-threads (mp::process-stack-group process)
-	    #+os-threads (mp::process-thread process)))))
+	    #+(and (not os-threads) (not process7))
+	    (mp::process-stack-group process)
+	    #+(or os-threads process7)
+	    (mp::process-thread process)))))
     done))
 
 (defvar *execute-one-command-hook* nil)

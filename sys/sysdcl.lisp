@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 2.4 2003/12/15 18:35:16 layer Exp $
+;; $Id: sysdcl.lisp,v 2.5 2004/01/01 21:31:41 layer Exp $
 
 (in-package :cl-user)
 
@@ -345,7 +345,12 @@
    "load-wnn"
    "jl-defs"
    "jl-funs"
-   "jserver"))
+   ;; This module gets the same module class as "japanese-input-editor"
+   ;; because this module has definitions that the other module uses, and
+   ;; without also compiling this we get warnings about undefined functions
+   ;; during the compile.  Gross.
+   ("jserver" (:module-class #-ics compile-once
+			     #+ics compile-always))))
 
 #+(and allegro (not acl86win32))
 (macrolet ((define-xt-system (name file &rest modules)
