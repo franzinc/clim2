@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 2.7 2004/03/21 15:59:48 layer Exp $
+;; $Id: acl-port.lisp,v 2.7.8.1 2004/08/16 22:58:44 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -576,14 +576,14 @@ or (:style . (family face size))")
        :face name))))
 
 (defun make-font-width-table (dc last-character first-character default-width)
-  (let* ((tepsize (ct:ccallocate win:size))
+  (let* ((tepsize (ct:ccallocate win:win-size))
 	 (string (make-string 1) )
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
 	  (setf (char string 0) (code-char i))
 	  (cond ((excl:with-native-string (string string)
 		   (win:GetTextExtentPoint dc string 1 tepsize))
-		 (setf (aref array i) (ct:cref win:size tepsize cx)))
+		 (setf (aref array i) (ct:cref win:win-size tepsize cx)))
 		(t
 		 ;; Why does this clause ever run?  getlasterror=10035.
 		 (check-last-error "GetTextExtentPoint" :action :warn)

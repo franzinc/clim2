@@ -1,3 +1,7 @@
+2004-08-16    <layer@HOBART>
+
+	* aclpc/acl-port.lisp: win:size -> win:win-size
+
 Thu Jul 22 23:17:23 PDT 2004  Duane Rettig  <duane@gemini>
 
 	* aclpc/acl-prel.lisp: win:handle -> win:win-handle
@@ -5942,4 +5946,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.2 $
+$Revision: 2.10.4.3 $
