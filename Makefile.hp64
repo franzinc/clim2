@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.hp64,v 1.1.2.1 2000/09/23 21:40:03 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.hp64,v 1.1.2.1.10.1 2001/05/22 23:06:22 layer Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
@@ -21,6 +21,7 @@ XLIB=/usr/lib/pa20_64/libX11.3
 
 XINCLUDES= 
 
+CC= /usr/bin/cc
 CFLAGS= -O -Ae +DA2.0W -DAcl64Bit
 MOTIFXTRAS=-lc
 PICFLAGS = +Z

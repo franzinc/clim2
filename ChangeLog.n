@@ -11,6 +11,17 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.14.3
+
+2001-05-22  Kevin Layer  <layer@crikey>
+
+	* Makefile.hp64,
+	* Makefile.hpprism: set CC so we are independent of PATH
+	* Makefile.linux,
+	* Makefile.linuxppc,
+	* Makefile.sun4-svr4: use Motif 2.1
+
+*******************************************************************************
 2.2.2.21.14.2
 
 16May2000 Nichael Cramer <ncramer@pointnclick.com>
