@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-funs.lisp,v 1.1 92/03/30 17:58:42 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -34,3 +34,6 @@
 
 (defforeign 'get_pixmap
     :entry-point "_XmGetPixmap")
+
+(defforeign 'xm-message-box-get-child
+    :entry-point "_XmMessageBoxGetChild")

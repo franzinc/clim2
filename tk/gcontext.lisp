@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.9 92/03/30 17:51:35 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.10 92/04/15 11:44:44 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -44,8 +44,8 @@
 	       (font x-font)
 	       (subwindow-mode :int)
 	       (exposures :boolean)
-	       (clip-x :int)
-	       (clip-y :int)
+	       (clip-x-origin :int)
+	       (clip-y-origin :int)
 	       (clip-mask :pixmap)
 	       (dash-offset :int)
 	       (dashes :char)))
@@ -54,7 +54,7 @@
 	     '(function plane-mask foreground background
 			line-width line-style cap-style join-style fill-style
 			fill-rule tile stipple ts-x-origin ts-y-origin font subwindow-mode
-			exposures clip-x clip-y clip-mask dash-offset dashes
+			exposures clip-x-origin clip-y-origin clip-mask dash-offset dashes
 			arc-mode)))
 
 
@@ -89,7 +89,7 @@
 				       cap-style join-style fill-style fill-rule 
 				       arc-mode tile stipple ts-x ts-y
 				       font subwindow-mode 
-				       exposures clip-x clip-y
+				       exposures clip-x-origin clip-y-origin
 				       clip-mask clip-ordering 
 				       dash-offset dashes)
 
@@ -119,8 +119,8 @@
   (when font (setf (gcontext-font gcontext) font))
   (when subwindow-mode (setf (gcontext-subwindow-mode gcontext) subwindow-mode))
   (when exposures (setf (gcontext-exposures gcontext) exposures))
-  (when clip-x (setf (gcontext-clip-x gcontext) clip-x))
-  (when clip-y (setf (gcontext-clip-y gcontext) clip-y))
+  (when clip-x-origin (setf (gcontext-clip-x-origin gcontext) clip-x-origin))
+  (when clip-y-origin (setf (gcontext-clip-y-origin gcontext) clip-y-origin))
   (when clip-mask (setf (gcontext-clip-mask gcontext clip-ordering) clip-mask))
   (when dash-offset (setf (gcontext-dash-offset gcontext) dash-offset))
   (when dashes (setf (gcontext-dashes gcontext) dashes))
@@ -244,8 +244,8 @@
 (define-gc-accessor subwindow-mode (encode-enum decode-enum)
 		  '(:clip-by-children :include-inferiors))
 (define-gc-accessor exposures (encode-enum decode-enum) '(:off :on))
-(define-gc-accessor clip-x (encode-int16 decode-int16))
-(define-gc-accessor clip-y (encode-int16 decode-int16))
+(define-gc-accessor clip-x-origin (encode-int16 decode-int16))
+(define-gc-accessor clip-y-origin (encode-int16 decode-int16))
 
 (define-gc-accessor dash-offset (encode-card16 decode-card16))
 (define-gc-accessor arc-mode (encode-enum decode-enum)  '(:chord :pie-slice))

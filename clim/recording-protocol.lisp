@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.7 92/04/14 15:29:55 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.8 92/04/15 11:47:13 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -665,10 +665,17 @@
 		   (map-over-output-records-overlapping-region 
 		     #'replay-1 record region 
 		     (- x-offset) (- y-offset)
-		     (+ x-offset xoff) (+ y-offset yoff)))
+		     (+ x-offset xoff) (+ y-offset yoff))
+		   ;;--- Nasty hack to get around nasty bug
+		   (note-output-record-replayed record stream region x-offset y-offset))
 		 (replay-output-record record stream region x-offset y-offset))))
     (declare (dynamic-extent #'replay-1))
     (replay-1 record x-offset y-offset)))
+
+(defmethod note-output-record-replayed ((record output-record-mixin) stream
+					&optional region x-offset y-offset)
+  (declare (ignore stream region x-offset y-offset))
+  nil)
 
 (defun move-cursor-beyond-output-record (stream record)
   (multiple-value-bind (x-offset y-offset)

@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.15 92/04/10 14:27:58 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.16 92/04/15 11:48:57 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -116,6 +116,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	(setf (tk::gcontext-foreground foreground-gcontext) foreground-pixel
 	      (tk::gcontext-background foreground-gcontext) background-pixel
 	      (tk::gcontext-foreground background-gcontext) background-pixel
+	      (tk::gcontext-background background-gcontext) background-pixel
 	      (tk::gcontext-foreground flipping-gcontext)
 	      (logxor foreground-pixel background-pixel))))))
       
@@ -286,11 +287,13 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 		 (multiple-value-bind (red green blue)
 		     (color-rgb ink)
 		   (tk::allocate-color
-		     (tk::default-colormap (port-display (port (medium-sheet medium))))
-		     (make-instance 'tk::color
-				    :red (truncate (* 65356 red))
-				    :green (truncate (* 65356 green))
-				    :blue (truncate (* 65356 blue))))))
+		    (tk::default-colormap (port-display (port
+							 (medium-sheet medium))))
+		    (let ((x #.(1- (ash 1 16))))
+		      (make-instance 'tk::color
+				    :red (truncate (* x red))
+				    :green (truncate (* x green))
+				    :blue (truncate (* x blue)))))))
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
 		   ;; The luminance formula isn't really right.  XXX
@@ -556,8 +559,9 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 			    ;; towards-point towards-x towards-y
 			    ;; transform-glyphs
 			    )
-  (let ((transform (sheet-device-transformation sheet))
-	(font (text-style-mapping port (medium-text-style medium))))
+  (let* ((transform (sheet-device-transformation sheet))
+	 (font (text-style-mapping port (medium-text-style medium)))
+	 (ascent (tk::font-ascent font)))
     (convert-to-device-coordinates transform x y)
     (when (typep string-or-char 'character)
       (setq string-or-char (string string-or-char)))
@@ -573,9 +577,15 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 		   (floor (text-style-height (medium-text-style medium) port) 2))))
       (:baseline nil)
       (:top
-	(incf y (tk::font-ascent font)))) 
+	(incf y ascent))) 
     (when (medium-drawable medium)
-      (let ((gc (decode-ink (medium-ink medium) medium)))
+      (let ((gc (adjust-ink
+		 medium
+		 (decode-ink (medium-ink medium) medium)
+		 (medium-ink medium)
+		 (medium-line-style medium)
+		 x 
+		 (- y ascent))))
 	(setf (tk::gcontext-font gc) font)
 	(tk::draw-string
 	  (medium-drawable medium)
@@ -587,6 +597,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 (defmethod port-write-string-1 ((port xt-port) medium
 				glyph-buffer start end 
 				x-font color x y)
+  (break "is this used anymore")
   (unless (= start end)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.10 92/03/30 17:52:30 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.11 92/04/15 11:46:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -425,7 +425,14 @@
 (defmethod receive-gesture ((stream input-protocol-mixin) (gesture event))
   (process-event-locally stream gesture)
   nil)
-  
+
+;;;--- This is horrible
+
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture pointer-button-release-event))
+  ;; don't translate it
+  gesture)
+
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) gesture)
   ;; don't translate it

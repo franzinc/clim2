@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.14 92/04/10 14:26:17 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.15 92/04/15 11:44:49 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -157,8 +157,15 @@
   (check-type value integer)
   value)
 
+(defmethod convert-resource-out ((parent t) (type (eql 'horizontal-int)) value)
+  (check-type value integer)
+  value)
+
 
 (defmethod convert-resource-out ((parent t) (type (eql 'vertical-dimension)) value)
+  value)
+
+(defmethod convert-resource-out ((parent t) (type (eql 'vertical-int)) value)
   value)
 
 (defmethod convert-resource-out ((parent t) (type (eql 'visual-policy)) value)
@@ -201,15 +208,22 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'gadget-pixmap)) value)
   (convert-pixmap-out parent value))
 
+(defmethod convert-resource-out ((parent t) (type (eql 'pixmap)) value)
+  (convert-pixmap-out parent value))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'bitmap)) value)
+  (convert-pixmap-out parent value))
+
+
 (defun convert-pixmap-out (parent value)
   (etypecase value
     (pixmap value)
     (string
      (let* ((display (widget-display parent))
 	    (screen (x11:xdefaultscreenofdisplay display))
-	    (white (screen_white_pixel screen))
-	    (black (screen_black_pixel screen)))
-       (get_pixmap screen (string-to-char* value) white black)))))
+	    (white (x11::xwhitepixel display 0))
+	    (black (x11::xblackpixel display 0)))
+       (get_pixmap screen (string-to-char* value) black white)))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
   (if value 1 0))
@@ -542,3 +556,19 @@
 (defmethod convert-resource-out (parent (type (eql 'xt::accelerator-table))
 				(value (eql nil)))
   0)
+
+(define-enumerated-resource visual-policy (:variable :constant))
+(define-enumerated-resource scroll-bar-display-policy (:static :as-needed))
+
+(defmethod convert-resource-out (parent (type (eql 'xm-string-table)) value)
+  (if value
+      (do* ((n (length value))
+	    ;;--- Malloc alert
+	    (r (excl::malloc (* n 4)))
+	    (v value (cdr v))
+	    (i 0 (1+ i)))
+	  ((null v)
+	   r)
+	(setf (x-arglist r i)
+	  (convert-resource-out parent 'xm-string (car v))))
+    0))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.19 92/04/10 14:27:21 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.20 92/04/15 11:47:45 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -49,7 +49,17 @@
   (:command-table test-frame)
   (:pane 
     (scrolling ()
-	       (make-pane 'interactor-pane))))
+	       (make-pane 'interactor-pane)))
+  
+  (:icon :name "foo" 
+	 :pixmap (make-pattern 
+		  (let ((x (make-array '(48 48))))
+		    (dotimes (i 48)
+		      (dotimes (j 48)
+			(setf (aref x i j) (random 2))))
+		    x)
+		  (list +red+ +green+)))
+  (:geometry :width 100 :height 200))
 
 
 (define-application-frame test-frame01 () ()
@@ -401,12 +411,14 @@
 			:activate-callback 'push-button-callback)
 	  (make-pane 'push-button 
 			:label "B2"
-			:activate-callback 'push-button-callback)))
+			:activate-callback 'push-button-callback)
+	  :fill))
       (outlining ()
 	(horizontally ()
 	  (make-pane 'toggle-button
 			:label "T1" 
 			:value-changed-callback 'toggle-button-callback)
+	  :fill
 	  (make-pane 'toggle-button 
 			:label "T2"
 			:value-changed-callback
@@ -435,47 +447,50 @@
 
 
 (define-application-frame tf98 () ()
-  (:command-table test-frame)
-  (:pane 
-   (vertically ()
-      (outlining ()
-	(horizontally ()
-	  (make-pane 'push-button 
-			:label "B1"
-			:activate-callback 'push-button-callback)
-	  (make-pane 'push-button 
-			:label "B2"
-			:activate-callback 'push-button-callback)))
-      (outlining ()
-	(horizontally ()
-	  (make-pane 'toggle-button
-			:label "T1" 
-			:value-changed-callback 'toggle-button-callback)
-	  (make-pane 'toggle-button 
-			:label "T2"
-			:value-changed-callback
-			'toggle-button-callback)))
-      (outlining ()
-       (horizontally ()
-		     (scrolling ()
-				(make-pane 'text-editor 
-					   :value "lucid sucks"
-					   :value-changed-callback 'text-field-changed
-					   :ncolumns 30
-					   :nlines 10))
-		     (scrolling ()
-				(make-pane 'text-editor 
-					   :value "harlqn sucks more"
-					   :value-changed-callback 'text-field-changed
-					   :ncolumns 30
-					   :nlines 10))))
-      (outlining ()
-	(spacing ()
-	  (make-pane 'slider
-		     :label "Slider"
-		     :show-value-p t
-		     :value-changed-callback 'slider-changed-callback
-		     :drag-callback 'slider-dragged-callback))))))
+			  (:command-table test-frame)
+			  (:pane 
+			   (outlining ()
+				      (horizontally ()
+						    (make-pane
+						     'xm-silica::motif-scrolling-window
+						     :contents
+						     (make-pane 'text-editor 
+								:value "lucid sucks"
+								:value-changed-callback 'text-field-changed
+								:ncolumns 30
+								:nlines 10))
+						    (make-pane
+						     'xm-silica::motif-scrolling-window
+						     :contents (make-pane 'text-editor 
+									  :value "harlqn sucks more"
+									  :value-changed-callback 'text-field-changed
+									  :ncolumns 30
+									  :nlines 10))))))
+
+
+(define-application-frame tf97 
+    () ()
+    (:command-table test-frame)
+    (:pane 
+     (vertically ()
+		 (scrolling ()
+			    (make-pane
+			     'xm-silica::motif-list-pane
+			     :items '("Franz" "Lucid"
+				      "Harlqn" "Symbolics")))
+		 (make-pane 'xm-silica::motif-option-pane
+			    :items '("eenie" "meanie" "minie")
+			    :label "moo")
+		 (outlining ()
+			    (make-pane
+			     'xm-silica::motif-scrolling-window
+			     :contents
+			     (make-pane 'text-editor 
+					:value
+					"lucid are nice guys "
+					:value-changed-callback 'text-field-changed
+					:ncolumns 30
+					:nlines 10))))))
 
 
 

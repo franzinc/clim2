@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.18 92/04/10 14:27:59 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.19 92/04/15 11:49:06 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -368,18 +368,18 @@
 		       :native-y (x11::xbuttonevent-y event))))))
 
 (defmethod find-widget-class-and-initargs-for-sheet
-	   ((port xt-port) (parent t) (sheet sheet))
-  (values 'xm-drawing-area (list :resize-policy :grow)))
+    ((port xt-port) (parent t) (sheet sheet))
+  (error "we should not be here"))
 
 (defmethod find-widget-class-and-initargs-for-sheet :around 
 	   ((port xt-port) (parent t) (sheet sheet))
   (multiple-value-bind (class initargs)
       (call-next-method)
-    (setq initargs (set-mirror-geometry parent sheet initargs))
+    (setq initargs (compute-initial-mirror-geometry parent sheet initargs))
     (values class initargs)))
 
 
-(defmethod set-mirror-geometry (parent sheet initargs)
+(defmethod compute-initial-mirror-geometry (parent sheet initargs)
   ;;--- Should we pass in the size of the sheet even though it is
   ;; liable to be quite stupid
   ;; We really want to just create the gadgets and then let the layout
@@ -392,6 +392,8 @@
       (unless (typep parent 'tk::shell)
 	(setf (getf initargs :x) (fix-coordinate left)
 	      (getf initargs :y) (fix-coordinate top)))
+      ;;--- We should not do this, see realize-mirror :around in mirror
+      #+ignore
       (setf (getf initargs :width)  (fix-coordinate (- right left))
 	    (getf initargs :height) (fix-coordinate (- bottom top)))))
   initargs)
@@ -829,3 +831,39 @@
     (if (logtest x x11:mod1mask) +meta-key+ 0)
     (if (logtest x x11:mod2mask) +super-key+ 0)
     (if (logtest x x11:mod3mask) +hyper-key+ 0)))
+
+;;;---- This is just an experiment
+
+(defmethod engraft-medium :before ((medium t) (port xt-port) (pane clim-stream-pane))
+  (default-from-mirror-resources port pane))
+
+(defmethod engraft-medium :before ((medium t) (port xt-port) (pane top-level-sheet))
+  (default-from-mirror-resources port pane))
+
+;;-- What do we do about pixmap streams. I guess they should inherit
+;;-- properties from the parent.
+
+;;--- Unless the foreground, background and default-text-style have
+;;--- been set we want to query the resource database for the values
+;; Either (a) ask a widget or (b) Do it directly.
+;; Well it looks like we have to use a widget
+;; If we wanted to get a font then we are in trouble because
+
+(defun default-from-mirror-resources (port pane)
+  (let ((w (sheet-mirror pane)))
+    (multiple-value-bind
+	(foreground background)
+	;;-- What about the case when there is a pixmap
+	(tk::get-values w :foreground :background)
+      ;; Now we have to convert into CLIM colors.
+      (flet ((ccm (x)
+	       (multiple-value-bind
+		   (r g b)
+		   (tk::query-color (tk::default-colormap (port-display port)) x)
+		 (let ((x #.(1- (ash 1 16))))
+		   (make-rgb-color 
+		    (/ r x)
+		    (/ g x)
+		    (/ b x))))))
+	(setf (medium-foreground pane) (ccm foreground)
+	      (medium-background pane) (ccm background))))))

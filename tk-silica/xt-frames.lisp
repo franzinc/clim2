@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.7 92/04/10 14:27:56 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.8 92/04/15 11:48:47 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -87,8 +87,9 @@
 		   :sheet (frame-top-level-sheet frame)
 		   :value (second item))))
 
-(defmethod clim-internals::port-notify-user ((port xt-port) 
-					     frame format-string &rest format-arguments)
+(defmethod port-notify-user ((port xt-port)
+			     message-string
+			     &key)
   (format excl::*initial-terminal-io* 
 	  "Notify ~a~%" 
-	  (list frame format-string format-arguments)))
+	  message-string))

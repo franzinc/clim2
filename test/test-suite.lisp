@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.15 92/04/10 14:27:18 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.16 92/04/15 11:47:40 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -780,7 +780,7 @@ people, shall not perish from the earth.
     (circle 100  50 40 1)
     (circle  75 100 40 2)
     (circle 125 100 40 3))
-  (stream-set-cursor-position* stream 0 150)
+  (stream-set-cursor-position stream 0 150)
   (format stream "~S" (accept 'integer :stream stream)))
 
 (define-test (ordering-test-2a output-recording) (stream)
@@ -791,7 +791,7 @@ people, shall not perish from the earth.
     (rect  50  50 150 150 1)
     (rect   0   0 100 100 2)
     (rect  25  25 125 125 3))
-  (stream-set-cursor-position* stream 0 160)
+  (stream-set-cursor-position stream 0 160)
   (format stream "~S" (accept 'integer :stream stream)))
 
 (define-test (ordering-test-2b output-recording) (stream)
@@ -802,7 +802,7 @@ people, shall not perish from the earth.
     (rect 125 125 225 225 1)
     (rect   0   0 100 100 2)
     (rect  50  50 150 150 3))
-  (stream-set-cursor-position* stream 0 240)
+  (stream-set-cursor-position stream 0 240)
   (format stream "~S" (accept 'integer :stream stream)))
 
 (define-test (cursorpos-table output-recording) (stream)
@@ -814,7 +814,7 @@ people, shall not perish from the earth.
     (multiple-value-bind (x y)
 	(stream-cursor-position stream)
       (dotimes (i 11)
-	(stream-set-cursor-position* stream x y)
+	(stream-set-cursor-position stream x y)
 	(write-string (format nil "~1$" (float (/ i 10))) stream)
 	(incf x (+ rect-width spacing))))
     (terpri stream)
@@ -941,7 +941,7 @@ people, shall not perish from the earth.
 
 (define-test (checkerboard formatted-output) (stream)
   "This should produce a checkerboard pattern."
-  (stream-set-cursor-position* stream 10 10)
+  (stream-set-cursor-position stream 10 10)
   (surrounding-output-with-border (stream)
     (formatting-table (stream :y-spacing 0 :x-spacing 0)
       (dotimes (i 8)
@@ -965,13 +965,13 @@ people, shall not perish from the earth.
 
 (define-test (simple-borders formatted-output) (stream)
   "Show the three types of canned borders."
-  (stream-set-cursor-position* stream 10 10)
+  (stream-set-cursor-position stream 10 10)
   (surrounding-output-with-border (stream :shape :rectangle)
     (write-string "a rectangle" stream))
-  (stream-set-cursor-position* stream 10 30)
+  (stream-set-cursor-position stream 10 30)
   (surrounding-output-with-border (stream :shape :drop-shadow)
     (write-string "a dropshadow" stream))
-  (stream-set-cursor-position* stream 10 50)
+  (stream-set-cursor-position stream 10 50)
   (surrounding-output-with-border (stream :shape :underline)
     (write-string "an underline" stream)))
 
@@ -1018,7 +1018,7 @@ people, shall not perish from the earth.
 
 (define-test (offset-table formatted-output) (stream)
   "Draw a table offset in the window.  After refreshing, it should look the same."
-  (stream-set-cursor-position* stream 20 20)
+  (stream-set-cursor-position stream 20 20)
   (formatting-table (stream)
     (dotimes (i 10)
       (formatting-row (stream)
@@ -1034,7 +1034,7 @@ people, shall not perish from the earth.
 (define-test (offset-graph formatted-output) (stream)
   "Draw a graph offset in the window.  After refreshing, it should look the same."
   (let ((orientation :horizontal))
-    (stream-set-cursor-position* stream 20 20)
+    (stream-set-cursor-position stream 20 20)
     (macrolet ((make-node (&key name children)
 		 `(list* ,name ,children)))
       (flet ((node-name (node)
@@ -1128,7 +1128,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(write-string doc-string documentation)
 	(write-string caption documentation)
 	(force-output documentation))
-      (stream-set-cursor-position* stream 30 30)
+      (stream-set-cursor-position stream 30 30)
       (funcall continuation stream)
       (draw-line* stream 30 15 30 45 :ink +green+)
       (draw-line* stream 15 30 45 30 :ink +green+)
@@ -1248,7 +1248,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (draw-rectangle* stream left top right bottom :filled nil :ink +cyan+))))
 
 (define-table-cell-test set-cursor-position* "move the cursor, output some text"
-  (stream-set-cursor-position* stream 50 50)
+  (stream-set-cursor-position stream 50 50)
   (write-string ">Wally<" stream))
 
 (define-test (comprehensive-table-tests formatted-output) (stream)
@@ -1366,7 +1366,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	   (updating-output (stream)
 	     (updating-output (stream :unique-id 'test
 				      :cache-value tick)
-	       (stream-set-cursor-position* stream 10 10)
+	       (stream-set-cursor-position stream 10 10)
 	       (surrounding-output-with-border (stream)
 		 (format stream "Tick ~A" value))))))
     (repeat 5
@@ -1474,7 +1474,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		      (draw-line* stream 0 0 20 20 :line-thickness 0)
 		      (draw-circle* stream 50 10 10)))
 	(incf delta-y 30))
-      (stream-set-cursor-position* stream 0 delta-y)))
+      (stream-set-cursor-position stream 0 delta-y)))
   (loop
     (accept 'integer :stream stream)
     (fresh-line stream)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.16 92/04/14 15:29:37 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.17 92/04/15 11:45:10 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -148,10 +148,11 @@
 
 
 ;; Scroll bar
+
 (defclass scroll-bar
 	  (value-gadget range-gadget-mixin oriented-gadget)
-    ((current-value :initform nil)
-     (current-size :initform nil)
+    ((current-value :initform nil :accessor scroll-bar-current-value)
+     (current-size :initform nil :accessor scroll-bar-current-size)
      (drag-callback :initarg :drag-callback :initform nil
 		    :reader scroll-bar-drag-callback)))
 
@@ -278,51 +279,34 @@
 
 ;;--- Work on this
 
-
-(defmethod note-sheet-region-changed :around ((viewport viewport) &key port-did-it)
-  (declare (ignore port-did-it))
-  (multiple-value-bind
-      (changedp 
-       hscroll-bar hscroll-bar-enabled-p
-       vscroll-bar vscroll-bar-enabled-p)
-      (compute-dynamic-scroll-bar-values viewport)
-    (if changedp
-	(update-dynamic-scroll-bars 
-	 viewport
-	 changedp
-	 hscroll-bar hscroll-bar-enabled-p
-	 vscroll-bar vscroll-bar-enabled-p)
-      (call-next-method))))
-
-
-(defun update-dynamic-scroll-bars (viewport
-				  changedp
-				  hscroll-bar hscroll-bar-enabled-p
-				  vscroll-bar vscroll-bar-enabled-p)
+(defun update-dynamic-scroll-bars (sp 
+				   changedp
+				   hscroll-bar hscroll-bar-enabled-p
+				   vscroll-bar vscroll-bar-enabled-p
+				   &optional relayout)
   (when changedp
     (when hscroll-bar
       (setf (sheet-enabled-p hscroll-bar) hscroll-bar-enabled-p))
     (when vscroll-bar
       (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
-    (let ((table (sheet-parent viewport)))
-      (clear-space-requirement-caches-in-tree table)
-      (multiple-value-call
-	  #'allocate-space
-	table
-	(bounding-rectangle-size table)))))
+    (clear-space-requirement-caches-in-tree sp)
+    (when relayout
+      (multiple-value-bind
+	  (w h)
+	  (bounding-rectangle-size sp)
+	  (allocate-space sp w h)))))
 
-(defun compute-dynamic-scroll-bar-values (viewport)
-  (with-slots ((hscroll-bar horizontal-scroll-bar )
-	       (vscroll-bar vertical-scroll-bar)
-	       (scroll-bar-policy scroll-bars))
-      (sheet-parent (sheet-parent viewport))
+(defun compute-dynamic-scroll-bar-values (sp)
+  (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar sp))
+	 (vscroll-bar (scroller-pane-vertical-scroll-bar sp))
+	 (scroll-bar-policy (scroller-pane-scroll-bar-policy sp)))
     (if (eq scroll-bar-policy :dynamic)
 	(multiple-value-bind
-	    (vwidth vheight) (bounding-rectangle-size viewport)
+	    (vwidth vheight) (bounding-rectangle-size sp)
 	  (multiple-value-bind
 	      (cwidth cheight) 
 	      (bounding-rectangle-size 
-	       (viewport-contents-extent viewport))
+	       (viewport-contents-extent (slot-value sp 'viewport)))
 	    (let ((ohenp (sheet-enabled-p hscroll-bar))
 		  (ovenp (sheet-enabled-p vscroll-bar))
 		  (nhenp (> cwidth vwidth))
@@ -338,12 +322,10 @@
 
 (defun viewport-contents-extent (viewport)
   (let ((c (sheet-child viewport)))
-    (if (typep c 'clim-internals::output-recording-mixin)
-	(stream-output-history c)
-      c)))
+    (stream-output-history c)))
 
 ;;--- Need something in update-scroll-bars also.
-	    
+l	    
 ;;; Then there is the layout stuff and scrolling macros
 
 (defmacro scrolling (options &body contents)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.13 92/04/10 14:27:53 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.14 92/04/15 11:48:43 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -80,7 +80,9 @@ about their children"))
 
 (defmethod update-geo-manager-sheet-children (geo-manager)
   (dolist (child (sheet-children geo-manager))
-    (mirror-region-updated (port geo-manager) child)))
+    ;;--- Yuck!
+    (when (typep child 'mirrored-sheet-mixin)
+      (mirror-region-updated (port geo-manager) child))))
 
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
   (declare (ignore port))

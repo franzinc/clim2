@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.11 92/03/30 17:52:01 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.12 92/04/15 11:45:02 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -463,6 +463,9 @@ provided elsewhere"))
 
 ;;; Generally useful layout function
 ;;; Used all over to satisfy constraints
+;;--- I think that since coordinates are ultimately integers we loose
+;;---- along the way, calling fix-coor on alloc helps a little but we
+;;---- still end up with a gap along the bottom-right edges.
 
 (defun allocate-space-to-items (given wanted items min-size
 				desired-size max-size item-size)
@@ -475,30 +478,43 @@ provided elsewhere"))
       (if stretch-p
 	  (setq give (- (max-size wanted) (desired-size wanted))
 		extra (min (- given (desired-size wanted)) give))
-	  (setq give (- (desired-size wanted) (min-size wanted))
-		extra (min (- (desired-size wanted) given) give)))
+	(setq give (- (desired-size wanted) (min-size wanted))
+	      extra (min (- (desired-size wanted) given) give)))
       (dolist (item items)
-	(let* ((item-size (item-size item))
-	       (alloc (desired-size item-size)))
-	  (when (> give 0)
-	    (if stretch-p
-		(progn
-		  (setq used (/ (* (- (max-size item-size)
-				      (desired-size item-size))
-				   extra)
-				give))
-		  (incf alloc used)
-		  (decf give (- (max-size item-size)
-				(desired-size item-size))))
-		(progn
-		  (setq used (/ (* (- (desired-size item-size)
-				      (min-size item-size))
-				   extra)
-				give))
-		  (decf alloc used)
-		  (decf give (- (desired-size item-size)
-				(min-size item-size)))))
-	    (decf extra used))
+	(let (alloc)
+	  (typecase item
+	    ((member :fill)
+	     (if stretch-p
+		 (progn
+		   (setq alloc (/ (* +fill+ extra) give))
+		   (setq alloc (ceiling alloc))
+		   (fix-coordinates alloc)
+		   (decf give +fill+))
+	       (setq alloc 0)))
+	    (t
+	     (let* ((item-size (item-size item)))
+	       (setq alloc (desired-size item-size))
+	       (when (> give 0)
+		 (if stretch-p
+		     (progn
+		       (setq used (/ (* (- (max-size item-size)
+					   (desired-size item-size))
+					extra)
+				     give))
+		       (incf alloc used)
+		       (fix-coordinates alloc)
+		       (decf give (- (max-size item-size)
+				     (desired-size item-size))))
+		   (progn
+		     (setq used (/ (* (- (desired-size item-size)
+					 (min-size item-size))
+				      extra)
+				   give))
+		     (decf alloc used)
+		     (fix-coordinates alloc)
+		     (decf give (- (desired-size item-size)
+				   (min-size item-size)))))
+		 (decf extra used)))))
 	  (push alloc sizes)))
       (nreverse sizes))))
 	
@@ -524,3 +540,4 @@ provided elsewhere"))
       (resize-sheet* child 
 		     (space-requirement-width space-req)
 		     (space-requirement-height space-req)))))
+

@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.10 92/04/10 14:26:25 cer Exp Locker: cer $
+;; $fiHeader: db-box.lisp,v 1.11 92/04/15 11:44:59 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -81,7 +81,7 @@
 	(setq minor- (max 0 (- minor minor-min)))
 	(setq minor+ (max 0 (- minor-max minor)))
 	(apply #'make-space-requirement
-	       (mapcan #'(lambda (key val) (list key val))
+	       (mapcan #'list
 		       keys 
 		       (list major major+ major- minor minor+ minor-)))))))
 
@@ -115,9 +115,10 @@
 	      #'(lambda (x) (compose-space x :height height))))
 	  (x 0))
       (mapc #'(lambda (sheet size)
-		(move-and-resize-sheet* sheet 
-					x 0
-					(frob-size size width x) height)
+		(when (panep sheet)
+		  (move-and-resize-sheet* sheet 
+					  x 0
+					  (frob-size size width x) height))
 		(incf x size))
 	    contents sizes))))
 
@@ -151,9 +152,10 @@
 	      #'(lambda (x) (compose-space x :width width))))
 	  (y 0))
       (mapc #'(lambda (sheet size)
-		(move-and-resize-sheet* sheet 
-					0 y
-					width (frob-size size height y))
+		(when (panep sheet)
+		  (move-and-resize-sheet* sheet 
+					  0 y
+					  width (frob-size size height y)))
 		(incf y size))
 	    contents sizes))))
 

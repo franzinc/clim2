@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.21 92/04/14 15:30:10 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.22 92/04/15 11:48:40 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -109,7 +109,7 @@
 						     (parent t)
 						     (sheet motif-label-pane))
   (with-accessors ((label gadget-label)
-		   (alignment gadget-alignment)) sheet
+		   (alignment silica::gadget-alignment)) sheet
     (values 'tk::xm-label
 	    (append
 	     (list :alignment 
@@ -182,19 +182,6 @@
   ;; Now does nothing
   )
 
-(defmethod gadget-value ((gadget motif-value-pane))
-  ;;--- We should use the scale functions to get the value
-  (let ((mirror (sheet-direct-mirror gadget)))
-    (if mirror 
-	(tk::get-values mirror :value)
-      (call-next-method))))
-
-(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key)
-  (let ((gadget (sheet-mirror gadget)))
-    (when gadget
-      (tk::set-values gadget
-		      :value nv))))
-
 ;;; range pane mixin
 
 (defclass motif-range-pane (motif-value-pane) ())
@@ -248,32 +235,57 @@
 	     (and value (list :value value))))))
 
 
+;;;--- It seems that motif-sliders will actually tell you how big they
+;;;--- want to be. Mostly
+
+;(defmethod compose-space ((m motif-slider) &key width height)
+;  (declare (ignore width height))
+;  (destructuring-bind
+;      (label scroll-bar) (tk::widget-children (sheet-direct-mirror m))
+;    (declare (ignore scroll-bar))
+;    (multiple-value-bind
+;	(label-x label-y label-width label-height)
+;	(if (gadget-label m)
+;	    (tk::widget-best-geometry label)
+;	  (values nil nil 0 0))
+;      (declare (ignore label-x label-y))
+;      ;;-- We need to estimate the space requirements for the value if
+;      ;;-- that is shown.
+;      ;;-- Life sucks and then you die.  We need to determine the
+;      ;;-- text-extent of the biggest value we can show and incf that
+;      ;;-- Plus some scale margin.
+;      (let ((fudge 16))
+;	(ecase (gadget-orientation m)
+;	  (:vertical
+;	   (make-space-requirement :width (+ fudge label-width)
+;				   :min-height fudge
+;				   :height (max (* 2 fudge) label-height)
+;				   :max-height +fill+))
+;	  (:horizontal
+;	   (make-space-requirement :height (+ fudge label-height)
+;				   :min-width fudge
+;				   :width (max (* 2 fudge) label-width)
+;				   :max-width +fill+)))))))
+
 (defmethod compose-space ((m motif-slider) &key width height)
   (declare (ignore width height))
-  (destructuring-bind
-      (label scroll-bar) (tk::widget-children (sheet-direct-mirror m))
-    (declare (ignore scroll-bar))
-    (multiple-value-bind
-	(label-x label-y label-width label-height)
-	(if (gadget-label m)
-	    (tk::widget-best-geometry label)
-	  (values nil nil 0 0))
-      (declare (ignore label-x label-y))
-      ;;-- We need to estimate the space requirements for the value if
-      ;;-- that is shown
-      (let ((fudge 16))
-	(ecase (gadget-orientation m)
-	  (:vertical
-	   (make-space-requirement :width (+ fudge label-width)
-				   :min-height fudge
-				   :height (max (* 2 fudge) label-height)
-				   :max-height +fill+))
-	  (:horizontal
-	   (make-space-requirement :height (+ fudge label-height)
-				   :min-width fudge
-				   :width (max (* 2 fudge) label-width)
-				   :max-width +fill+)))))))
-
+  (multiple-value-bind
+      (sx sy swidth sheight)
+      (tk::widget-best-geometry (sheet-direct-mirror m))
+    (declare (ignore sx sy))
+    (let ((fudge 16))
+      (ecase (gadget-orientation m)
+	(:vertical
+	 (make-space-requirement :width swidth
+				 :min-height fudge
+				 :height (* 2 fudge)
+				 :max-height +fill+))
+	(:horizontal
+	 (make-space-requirement :height sheight
+				 :min-width fudge
+				 :width (max (* 2 fudge) swidth)
+				 :max-width +fill+))))))
+	 
 ;;; Scroll-Bar
 
 
@@ -455,21 +467,34 @@
 	     (and nlines (list :rows nlines))
 	     (and value `(:value ,value))))))
 
-(defmethod set-mirror-geometry (parent (sheet motif-text-editor) initargs)
-  (multiple-value-bind (left top right bottom)
-      (sheet-actual-native-edges* sheet)
-      (setf (getf initargs :x) (floor left)
-	    (getf initargs :y) (floor top))
-    initargs))
+;(defmethod compute-initial-mirror-geometry (parent (sheet motif-text-editor) initargs)
+;  (multiple-value-bind (left top right bottom)
+;      (sheet-actual-native-edges* sheet)
+;      (setf (getf initargs :x) (floor left)
+;	    (getf initargs :y) (floor top))
+;      initargs))
+;
+;(defmethod compute-initial-mirror-geometry (parent (sheet motif-scrolling-window) initargs)
+;  (multiple-value-bind (left top right bottom)
+;      (sheet-actual-native-edges* sheet)
+;      (setf (getf initargs :x) (floor left)
+;	    (getf initargs :y) (floor top))
+;    initargs))
 
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
     (setq sr (silica::copy-space-requirement sr))
+    ;;-- What it the correct thing to do???
     (setf (space-requirement-max-width sr) +fill+
 	  (space-requirement-max-height sr) +fill+)
     sr))
 
+
+(defmethod silica::gadget-supplied-scrolling (frame-manager frame (contents motif-text-editor) &rest ignore)
+  (declare (ignore ignore))
+  (with-look-and-feel-realization (frame-manager frame)
+    (make-pane 'motif-scrolling-window :contents contents)))
 
 ;;; Toggle button
 
@@ -598,11 +623,10 @@
 			    (gadget-id client) 
 			    id)))
 
-;;; Lets have a frame so that it can be nice and pretty
-
+;; Frame-viewport that we need because a sheet can have
 
 (defclass xm-frame-viewport
-	  (sheet-single-child-mixin
+    (sheet-single-child-mixin
 	   sheet-permanently-enabled-mixin
 	   silica::wrapping-space-mixin
 	   pane
@@ -610,7 +634,25 @@
     ())
 
 
+(defmethod find-widget-class-and-initargs-for-sheet
+    ((port xt-port) (parent t) (sheet xm-frame-viewport))
+  (values 'xm-drawing-area 
+	  ;;---  These are duplicated
+	  (list :margin-width 0 
+		:resize-policy :none
+		:margin-height 0)))
 
+;(defmethod allocate-space ((fr xm-frame-viewport) width height)
+;  ;;-- Is this what wrapping space mixin should do???
+;  (move-and-resize-sheet* (sheet-child fr) 0 0 width height))
+
+(defmethod add-sheet-callbacks :after ((port motif-port) 
+				       (sheet xm-frame-viewport)
+				       (widget tk::xm-drawing-area))
+  (tk::add-callback widget 
+		    :resize-callback 
+		    'sheet-mirror-resized-callback
+		    sheet))
 
 (defclass motif-frame-pane (motif-geometry-manager
 			    mirrored-sheet-mixin
@@ -623,10 +665,12 @@
 (defmethod initialize-instance :after ((pane motif-frame-pane) &key
 							       frame-manager frame
 							       contents)
-  (let ((viewport (with-look-and-feel-realization (frame-manager frame)
-		    (make-pane 'xm-frame-viewport))))
-    (sheet-adopt-child pane viewport)
-    (sheet-adopt-child viewport contents)))
+  (if (typep contents 'mirrored-sheet-mixin)
+      (sheet-adopt-child pane contents)
+    (let ((viewport (with-look-and-feel-realization (frame-manager frame)
+		      (make-pane 'xm-frame-viewport))))
+      (sheet-adopt-child pane viewport)
+      (sheet-adopt-child viewport contents))))
 
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -644,3 +688,230 @@
   ;;-- We do not need to do anything here because
   ;;-- the pane should resize its child
   )
+
+;;; Scrolling Window
+
+(defclass motif-scrolling-window (motif-geometry-manager
+				  ask-widget-for-size-mixin
+				  mirrored-sheet-mixin
+				  sheet-single-child-mixin
+				  sheet-permanently-enabled-mixin
+				  pane)
+	  ;;-- probably one of the options is whether to have vertical
+	  ;;-- and/or horizontal scrollbars
+	  ())
+
+(defmethod initialize-instance :after ((pane motif-scrolling-window) &key contents)
+  (sheet-adopt-child pane contents))
+
+(defmethod compose-space ((fr motif-scrolling-window) &key width height)
+  (declare (ignore width height))
+  ;;--- This is not quite right because I think scrollbars are a bit
+  ;;--- bigger than this. But atleast its a start
+  (let ((fudge-factor (+ 16
+			 (tk::get-values (sheet-mirror fr)
+					 :spacing)))
+	(sr (silica::copy-space-requirement (compose-space
+					     (sheet-child fr)))))
+    (incf (space-requirement-width sr) fudge-factor)
+    (incf (space-requirement-height sr) fudge-factor)
+    ;;--- Is this the correct thing to do???
+    (setf (space-requirement-min-width sr) fudge-factor
+	  (space-requirement-min-height sr) fudge-factor)
+    sr))
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-scrolling-window))
+  (values 'xt::xm-scrolled-window nil))
+
+;;-- This needs work but we are getting there
+;;-- We should make it abstract and define the interface
+;;-- List of items and a unique string to appear.
+
+(defclass motif-list-pane (xt-leaf-pane)
+	  ((items :initarg :items :accessor list-pane-items))
+  (:default-initargs :items nil))
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet
+						      motif-list-pane))
+  (with-accessors ((items list-pane-items)) sheet
+    (values 'xt::xm-list 
+	    `(
+	      :items ,items :item-count ,(length items)))))
+
+(defmethod silica::gadget-supplied-scrolling (frame-manager frame (contents motif-list-pane) &rest ignore)
+  (declare (ignore ignore))
+  (with-look-and-feel-realization (frame-manager frame)
+    (make-pane 'motif-scrolling-window :contents contents)))
+
+(defmethod gadget-value ((l motif-list-pane))
+  )
+
+(defmethod (setf gadget-value) (nv (l motif-list-pane) &key)
+  )
+
+;;; Option buttons
+
+(defclass motif-option-pane (xt-leaf-pane silica::labelled-gadget)
+	  ((items :initarg :items :accessor option-pane-items))
+  (:default-initargs :items nil))
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-option-pane))
+  (with-accessors ((label gadget-label)
+		   (items option-pane-items)) sheet
+    (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
+      (dolist (item items)
+	(make-instance 'tk::xm-push-button :label-string item :parent pdm))
+      (values 'xt::xm-option-menu
+	      (append
+	       (and label `(:label-string ,label))
+	       `(:sub-menu-id ,pdm))))))
+
+;;--- What is the interface to this? It seems to represent one of a
+;; set of N items. Does that set have a key and test and (setf)
+;; gadget-value changes/returns which is the current one?
+
+;; There seems to be a need for various types of dialog boxes.
+
+;;;; Inform-user
+;
+;(defmethod port-inform-user ((port motif-port) message 
+;			     &rest args
+;			     &key (title "Not some information")
+;			     &allow-other-keys)
+;  (apply #'question-user-1 ' message :title title  args))
+;
+;
+;(defmethod port-error-user ((port motif-port) message 
+;			    &rest args
+;			    &key (title "Not an error")
+;			     &allow-other-keys)
+;  (apply #'question-user-1  message :title
+;	 title  args))
+;
+;(defmethod port-question-user ((port motif-port) message 
+;			       &rest args
+;			       &key (title "Not A Question")
+;			     &allow-other-keys)
+;  (apply #'question-user-1 ' message :title title  args))
+;
+;(defmethod port-warn-user ((port motif-port) message 
+;			   &rest args
+;			   &key (title "Not A Warning")
+;			   &allow-other-keys)
+;  (apply #'question-user-1  message  :title title args))
+
+;;-- Guess we want to specify text of ok,cancel and help buttons
+;;-- and whether there is any help for the help-button
+
+(defmethod port-notify-user ((port motif-port)
+			     message-string 
+			     &key 
+			     (style :inform)
+			     (frame *application-frame*)
+			     (associated-window
+			      (frame-top-level-sheet frame))
+			     (title "Notify user")
+			     documentation
+			     (name title))
+  (let ((dialog (make-instance (ecase style
+				 (:inform 'tk::xm-information-dialog)
+				 (:error 'tk::xm-error-dialog)
+				 (:question 'tk::xm-question-dialog)
+				 (:warning 'tk::xm-warning-dialog))
+			       :parent (sheet-mirror associated-window)
+			       :name name
+			       :dialog-title title
+			       :message-string message-string
+			       ))
+	(result nil))
+    (multiple-value-bind
+	(help-button)
+	(get-message-box-child dialog :help)
+      (flet ((set-it (widget r)
+	       (declare (ignore widget))
+	       (setq result (list r)))
+	     (display-help (widget ignore)
+	       (declare (ignore widget ignore))
+	       (port-notif-user 
+		port
+		documentation
+		:associated-window associated-window)))
+	(tk::add-callback dialog :ok-callback #'set-it t)
+	(tk::add-callback dialog :cancel-callback #'set-it nil)
+	(if documentation
+	    (tk::add-callback help-button :activate-callback #'display-help)
+	  (xt::set-sensitive help-button nil))
+	(unwind-protect
+	    (progn
+	      (tk::manage-child dialog)
+	      (wait-for-callback-invocation
+	       (port associated-window)
+	       #'(lambda () result)
+	       "Waiting for dialog"))
+	  (tk::destroy-widget dialog))
+	(car result)))))
+
+
+(defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
+  ;;-- Funnily enough if we are in the mouse process then we
+  ;;-- are hosed. We should process events until the
+  ;;-- predicate is true
+  ;;-- and exit sometime
+  (if (eq mp:*current-process* (silica::port-process port))
+      (progn
+	(loop 
+	  (when (funcall predicate) (return nil))
+	  (process-next-event port)))
+      (mp:process-wait whostate predicate)))
+
+(defun get-message-box-child (widget &rest children)
+  (values-list
+   (mapcar #'(lambda (child)
+	       (tk::convert-resource-in
+		widget
+		'tk::widget
+		(tk::xm-message-box-get-child 
+		 widget
+		 (encode-box-child child))))
+	   children)))
+
+(defun encode-box-child (child)
+  (let ((x (getf '(
+		   :none	          0 
+		   :apply	  1
+		   :cancel    2
+		   :default   3
+		   :ok        4
+		   :filter-label     5
+		   :filter-text      6
+		   :help      7
+		   :list		  8
+		   :history-list     :list
+		   :list-label	  9
+		   :message-label    10
+		   :selection-label  11
+		   :prompt-label     :selection-label
+		   :symbol-label     12
+		   :text	    	  13
+		   :value-text       :text
+		   :command-text     :text
+		   :separator    	  14
+		   :dir-list         15
+		   :dir-list-label   16
+		   :file-list        :list
+		   :file-list-label  :list-label
+		   ) 
+		 child)))
+    (cond ((null x)
+	   (error "cannot encode child ~S" child))
+	  ((symbolp x)
+	   (encode-box-child x))
+	  (t x))))
+
+;;;; Working

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.7 92/03/09 17:40:41 cer Exp Locker: cer $
+;; $fiHeader: foreign-obj.lisp,v 1.8 92/04/10 14:26:15 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -53,6 +53,10 @@
 
 (defun register-xid (object &optional (handle (foreign-pointer-address object)))
   (setf (gethash handle *xid->object-mapping*) object)
+  object)
+
+(defun unregister-xid (object &optional (handle (foreign-pointer-address object)))
+  (remhash handle *xid->object-mapping*)
   object)
 
 (defun intern-object-address (handle class &rest initargs)

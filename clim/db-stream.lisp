@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.11 92/04/10 14:26:58 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.12 92/04/15 11:46:23 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -102,7 +102,16 @@
        :reader pane-display-time
        :initarg :display-time :initform :command-loop		
        :type (member nil :command-loop t))))
-	   
+
+(defmethod pane-needs-redisplay ((pane clim-stream-pane))
+  (with-slots (display-time) pane
+    (ecase display-time
+      ((t) (setq display-time nil) t)
+      ((nil) nil)
+      (:command-loop t))))
+
+(defmethod pane-needs-redisplay ((pane pane)) nil)
+
 (defmethod initialize-instance :after 
 	   ((pane clim-stream-pane) &key &allow-other-keys)
   (setf (sheet-transformation pane) +identity-transformation+))

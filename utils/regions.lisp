@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.5 92/03/04 16:20:23 cer Exp $
+;; $fiHeader: regions.lisp,v 1.6 92/04/15 11:45:37 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -444,17 +444,6 @@
 	(y1 (coordinate y1))
 	(x2 (coordinate x2))
 	(y2 (coordinate y2)))
-    (declare (type coordinate x1 y1 x2 y2))
-    (when (> x1 x2) (rotatef x1 x2))
-    (when (> y1 y2) (rotatef y1 y2))
-    (make-bounding-rectangle-1 x1 y1 x2 y2)))
-
-#+Silica
-(defun make-bounding-rectangle (x1 y1 x2 y2)
-  (let ((x1 (float x1 0f0))
-	(y1 (float y1 0f0))
-	(x2 (float x2 0f0))
-	(y2 (float y2 0f0)))
     (declare (type coordinate x1 y1 x2 y2))
     (when (> x1 x2) (rotatef x1 x2))
     (when (> y1 y2) (rotatef y1 y2))

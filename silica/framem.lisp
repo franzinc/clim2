@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.4 92/04/10 14:26:31 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.5 92/04/15 11:45:09 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -75,9 +75,13 @@
 	(delete frame (frame-manager-frames framem))))
 
 (defmethod note-frame-enabled :after ((framem standard-frame-manager) frame)
-  ;; Perhaps we want to resize the top level sheet if there is one
+  (update-frame-settings framem frame)
+  ;;--- Perhaps we want to resize the top level sheet if there is one
   (when (frame-top-level-sheet frame)
     (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)))
+
+(defmethod update-frame-settings ((framem standard-frame-manager) (frame t))
+  nil)
 
 (defmethod note-frame-disabled :after ((framem standard-frame-manager) frame)
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))

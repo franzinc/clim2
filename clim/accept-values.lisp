@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.14 92/04/14 15:29:50 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.15 92/04/15 11:46:02 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -187,7 +187,7 @@
     (with-slots (stream own-window  exit-button-stream) *application-frame*
       (vertically ()
 	  (outlining ()
-	(scrolling (:scroll-bars :dynamic)
+	(scrolling  (:scroll-bars :dynamic)
 	  (progn
 	    (setq stream
 		  (make-instance 'accept-values-stream

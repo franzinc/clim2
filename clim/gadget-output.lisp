@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.9 92/04/10 14:27:02 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.10 92/04/15 11:46:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -226,13 +226,16 @@
   (declare (ignore present-p))
   ;; value-key, test, sequence
   (with-output-as-gadget (stream)
-    (let* ((gadget
-	     (make-pane 'radio-box 
-			:label (and (stringp prompt) prompt)
-			:client stream :id query-identifier
-			:value-changed-callback
-			  (make-accept-values-value-changed-callback
-			    stream query-identifier))))
+    (let* (gadget frame-pane)
+      (setq frame-pane
+	(outlining ()
+		   (setq gadget
+		     (make-pane 'radio-box 
+				:label (and (stringp prompt) prompt)
+				:client stream :id query-identifier
+				:value-changed-callback
+				(make-accept-values-value-changed-callback
+				 stream query-identifier)))))
       (dolist (element sequence)
 	(make-pane 'toggle-button 
 		   :label (princ-to-string element)
@@ -242,7 +245,7 @@
 					(funcall value-key default)))
 		   :id element
 		   :parent gadget))
-      gadget)))
+      frame-pane)))
 
 
 ;;; Boolean gadget
@@ -257,8 +260,10 @@
 						    present-p query-identifier
 						    &key (prompt t))
   (declare (ignore default-supplied-p present-p))
-  (let ((gadget
-	  (with-output-as-gadget (stream)
+  (let (gadget)
+    (with-output-as-gadget (stream)
+      (outlining ()
+	  (setq gadget
 	    (make-pane 'toggle-button
 		       :label (and (stringp prompt) prompt)
 		       :value default
@@ -269,6 +274,9 @@
     ;;--- We end up not making a new gadget sometimes, I think because
     ;;--- we find a gadget already in the record so we need to modify
     ;;--- the value!
+    ;;--- I am no longer sure that this is true cos the graphics
+    ;;--- dialog seems to work fine.
+    #+ignore
     (setf (gadget-value gadget) default)))
 
 ;;; Integer gadget
@@ -284,13 +292,14 @@
 						    &key (prompt t))
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
-    (make-pane 'slider
-	       :label (and (stringp prompt) prompt)
-	       :value (if default-supplied-p default 0)
-	       :client stream :id query-identifier
-	       :value-changed-callback
+    (outlining ()
+      (make-pane 'slider
+		 :label (and (stringp prompt) prompt)
+		 :value (if default-supplied-p default 0)
+		 :client stream :id query-identifier
+		 :value-changed-callback
 	         (make-accept-values-value-changed-callback
-		   stream query-identifier))))
+		  stream query-identifier)))))
 
 
 

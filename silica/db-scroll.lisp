@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.13 92/04/14 15:29:31 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.14 92/04/15 11:45:04 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -15,9 +15,12 @@
 (defclass scroller-pane (client-space-requirement-mixin
 			 wrapping-space-mixin
 			 layout-pane)
-	  ((scroll-bars :initarg :scroll-bars)
-	   vertical-scroll-bar
-	   horizontal-scroll-bar
+	  ((scroll-bars :initarg :scroll-bars :reader scroller-pane-scroll-bar-policy)
+	   (vertical-scroll-bar :initform nil :accessor scroller-pane-vertical-scroll-bar)
+	   (horizontal-scroll-bar :accessor 
+				  scroller-pane-horizontal-scroll-bar
+				  :initform nil)
+	   (scrolling-supplied-by-gadget :initform nil)
 	   contents
 	   viewport)
   (:default-initargs :scroll-bars :both))
@@ -38,93 +41,128 @@
 	      'scroller-pane)
        (sheet-parent (sheet-parent (sheet-parent x)))))
 
-(defmethod gadget-supplies-scroll-bars-p ((gadget t))
+(defmethod gadget-supplied-scrolling (frame-manager frame contents &rest ignore)
+  (declare (ignore frame-manager frame ignore contents))
   nil)
+
+(defmethod allocate-space :before ((sp scroller-pane) width height)
+  (declare (ignore width height))
+  ;; Adjust the status of the scrollbars
+  (multiple-value-bind
+      (changedp 
+       hscroll-bar hscroll-bar-enabled-p
+       vscroll-bar vscroll-bar-enabled-p)
+      (compute-dynamic-scroll-bar-values sp)
+    (if changedp
+	(update-dynamic-scroll-bars 
+	 sp
+	 changedp
+	 hscroll-bar hscroll-bar-enabled-p
+	 vscroll-bar vscroll-bar-enabled-p))))
+
+(defmethod compose-space ((sp scroller-pane) &key width height)
+  (declare (ignore width height))
+  (let ((sr (copy-space-requirement (call-next-method))))
+    (maxf (space-requirement-width sr) 50)
+    (maxf (space-requirement-height sr) 50)
+    sr))
 
 ;;--- Ideally we should use a toolkit scrolling window. This will look
 ;;--- exactly right and will deal with user specified placement of scroll-bars.
 ;;--- However the geometry management problems are quite huge.
 
+
 (defmethod initialize-instance :after ((pane scroller-pane) 
 				       &key contents frame-manager frame
 					    scroll-bars)
-  (if (gadget-supplies-scroll-bars-p contents)
-      (sheet-adopt-child pane contents)
-    (progn
-      (check-type scroll-bars
-	  (member :both :dynamic :vertical :horizontal))
-      (with-slots (vertical-scroll-bar horizontal-scroll-bar (c contents) viewport) pane
-	(with-look-and-feel-realization (frame-manager frame)
-	  (let ((verticalp
-		 (member scroll-bars '(:both :dynamic :vertical)))
-		(horizontalp
-		 (member scroll-bars '(:both :dynamic :horizontal))))
-	    (setf vertical-scroll-bar 
-	      (and verticalp
-		   (make-pane 'scroll-bar 
-			      :orientation :vertical
-			      :client pane
-			      :id :vertical))
-	      horizontal-scroll-bar 	    
-	      (and horizontalp
-		   (make-pane 'scroll-bar 
-			      :id :horizontal
-			      :client pane
-			      :orientation :horizontal))
-	      c contents
-	      viewport (make-pane 'viewport))
-	    (sheet-adopt-child pane
-			       (cond ((and horizontalp verticalp)
-				      (tabling ()
-					       (viewport vertical-scroll-bar)
-					       (horizontal-scroll-bar
-						nil)))
-				     (verticalp
-				      (horizontally ()
+  (let ((x (gadget-supplied-scrolling frame-manager frame contents :scroll-bars scroll-bars)))
+    (if x
+	(progn
+	  (sheet-adopt-child pane x)
+	  (setf (slot-value pane 'scrolling-supplied-by-gadget) t)
+	  x)
+      (progn
+	(check-type scroll-bars
+	    (member :both :dynamic :vertical :horizontal))
+	(with-slots (vertical-scroll-bar horizontal-scroll-bar (c contents) viewport) pane
+	  (with-look-and-feel-realization (frame-manager frame)
+	    (let ((verticalp
+		   (member scroll-bars '(:both :dynamic :vertical)))
+		  (horizontalp
+		   (member scroll-bars '(:both :dynamic :horizontal))))
+	      (setf vertical-scroll-bar 
+		(and verticalp
+		     (make-pane 'scroll-bar 
+				:orientation :vertical
+				:client pane
+				:id :vertical))
+		horizontal-scroll-bar 	    
+		(and horizontalp
+		     (make-pane 'scroll-bar 
+				:id :horizontal
+				:client pane
+				:orientation :horizontal))
+		c contents
+		viewport (make-pane 'viewport))
+	      (sheet-adopt-child pane
+				 (cond ((and horizontalp verticalp)
+					(tabling ()
+						 (viewport vertical-scroll-bar)
+						 (horizontal-scroll-bar
+						  nil)))
+				       (verticalp
+					(horizontally ()
+						      viewport
+						      vertical-scroll-bar))
+				       (horizontalp
+					(vertically ()
 						    viewport
-						    vertical-scroll-bar))
-				     (horizontalp
-				      (vertically ()
-						  viewport
-						  horizontal-scroll-bar))
-				     (t
-				      (error "Should not have got here"))))
+						    horizontal-scroll-bar))
+				       (t
+					(error "Should not have got here"))))
 
-	    (sheet-adopt-child viewport c)
-	    ;;-- Add callbacks
-	    ))))))
+	      (sheet-adopt-child viewport c)
+	      ;;-- Add callbacks
+	      )))))))
 
 (defun update-scroll-bars (vp)
   ;;-- This is not the most efficient thing in the world
-  (multiple-value-call
-      #'update-dynamic-scroll-bars
-    vp (compute-dynamic-scroll-bar-values vp))
+  (multiple-value-bind
+      (changedp hscroll-bar hscroll-bar-enabled-p vscroll-bar
+       vscroll-bar-enabled-p)
+      (compute-dynamic-scroll-bar-values (sheet-parent (sheet-parent vp)))
+    (update-dynamic-scroll-bars
+     (sheet-parent (sheet-parent vp))
+     changedp hscroll-bar hscroll-bar-enabled-p vscroll-bar
+     vscroll-bar-enabled-p t))
+    ;;;
   (with-bounding-rectangle* (minx miny maxx maxy)
-      (let ((c (sheet-child vp)))
-	;;--- This is a major kludge
-	(if (typep c 'clim-internals::output-recording-mixin)
-	    (stream-output-history c)
-	    c))
+    (viewport-contents-extent vp)
     (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
-	(viewport-viewport-region vp)
-      (with-slots (horizontal-scroll-bar vertical-scroll-bar)
-		  (sheet-parent (sheet-parent vp))
+      (viewport-viewport-region vp)
+      (with-accessors ((horizontal-scroll-bar scroller-pane-horizontal-scroll-bar)
+		       (vertical-scroll-bar scroller-pane-vertical-scroll-bar))
+	  (sheet-parent (sheet-parent vp))
 	(update-scroll-bar vertical-scroll-bar
-			  miny maxy vminy vmaxy)
+			   miny maxy vminy vmaxy)
 	(update-scroll-bar horizontal-scroll-bar
-			  minx maxx vminx vmaxx)))))
+			   minx maxx vminx vmaxx)))))
 
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong. Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
+
 (defun update-scroll-bar (scroll-bar min max vmin vmax)
   (declare (optimize (safety 0) (speed 3)))
-  (with-slots (current-size current-value) scroll-bar
+    (let ((current-size (scroll-bar-current-size scroll-bar))
+	  (current-value (scroll-bar-current-value scroll-bar)))
     ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
     ;; before, and the viewport is bigger than the extent, don't bother with
     ;; the fancy math.
-    (let ((range (float (gadget-range scroll-bar) 0.0s0)))
-      (declare (type single-float range))
+      (let* ((gmin (float (gadget-min-value scroll-bar) 0s0))
+	     (gmax (float (gadget-max-value scroll-bar) 0s0))
+	     (range (- gmax gmin)))
+      (declare (type single-float range gmin gmax))
       (if (and (and current-size (= (the single-float current-size) range))
 	       (> (- vmax vmin) (- max min)))
 	  (return-from update-scroll-bar))
@@ -153,8 +191,8 @@
 		     current-value
 		     (= current-size size)
 		     (= current-value value))
-	  (setf current-size size
-		current-value value)
+	  (setf (scroll-bar-current-size scroll-bar) size
+		(scroll-bar-current-value scroll-bar) value)
 	  (change-scroll-bar-values scroll-bar 
 				   :slider-size size
 				   :value value))))))
@@ -176,9 +214,7 @@
 					      size)
   (with-slots (viewport contents) client
     ;;--- This TYPEP stuff is a major kludge
-    (let* ((extent (if (typep contents 'clim-internals::output-recording-mixin)
- 		       (stream-output-history contents)
- 		       contents))
+    (let* ((extent (viewport-contents-extent viewport))
 	   (vp viewport)
 	   (viewport (viewport-viewport-region vp)))
       (case id

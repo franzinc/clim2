@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.11 92/03/09 17:41:25 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.12 92/04/10 14:27:49 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -140,10 +140,26 @@
 	  ((command-table :initarg :command-table)))
 
 (defmethod find-widget-class-and-initargs-for-sheet 
-	   ((port motif-port) (parent t) (sheet motif-menu-bar))
-  (values 'tk::xm-menu-bar 
-	  (list :resize-height t
-		:resize-width t)))
+    ((port motif-port) (parent t) (sheet motif-menu-bar))
+  (if (flat-command-table-menu-p (slot-value sheet 'command-table))
+      (values 'xt::xm-row-column 
+	      ;;--- It makes sense to be able to specify the orientation
+	      ;;--- of the command menu
+	      (list :orientation :horizontal))
+    (values 
+     'tk::xm-menu-bar 
+     (list :resize-height t
+	   :resize-width t))))
+
+(defun flat-command-table-menu-p (ct)
+  (map-over-command-table-menu-items
+   #'(lambda (menu keystroke item)
+       (declare (ignore keystroke menu))
+       (let ((type (command-menu-item-type item)))
+	 (when (eq type :menu) (return-from flat-command-table-menu-p nil))))
+   ct)
+  t)
+		      
 
 ;;; If would be nice if we could abstract this and use it for the OLIT
 ;;; port
@@ -188,20 +204,20 @@
 		 (let* ((ct (find-command-table (second item)))
 			(tick (slot-value ct 'clim-internals::menu-tick)))
 		   (tk::add-callback (tk::widget-parent submenu)
-				 :popup-callback
-				 #'(lambda (ignore)
-				     (declare (ignore ignore))
-				     (let ((children
-					    (tk::widget-children submenu)))
-				       (when (or (null children)
-						 (/= tick
-						     (setq tick
-						       (slot-value ct 'clim-internals::menu-tick))))
-					 (mapc #'tk::destroy-widget children)
-					 (make-menu-for-command-table
-					  ct
-					  submenu
-					  nil))))))))
+				     :popup-callback
+				     #'(lambda (ignore)
+					 (declare (ignore ignore))
+					 (let ((children
+						(tk::widget-children submenu)))
+					   (when (or (null children)
+						     (/= tick
+							 (setq tick
+							   (slot-value ct 'clim-internals::menu-tick))))
+					     (mapc #'tk::destroy-widget children)
+					     (make-menu-for-command-table
+					      ct
+					      submenu
+					      nil))))))))
 	     (make-menu-for-command-table-1 (command-table parent top)
 	       ;; Unless we are at the top level we want to have a
 	       ;; map-before callback that sets the sensitivity of
@@ -248,19 +264,57 @@
 			  
 		  command-table)
 		 commands-and-buttons)))
-      (make-menu-for-command-table
-       (slot-value sheet 'command-table)
-       mirror
-       t))
+      (let ((ct (slot-value sheet 'command-table)))
+	(make-menu-for-command-table
+	 ct mirror (not (flat-command-table-menu-p ct)))))
     mirror))
 
 (defmethod port-dialog-view ((port motif-port))
   +gadget-dialog-view+)
   
 ;;--- Should "ungray" the command button, if there is one
+;;--- If the command button is visible, right now since everything is
+;;--- in a menu we do not have a problem with this.
+
 (defmethod note-command-enabled ((framem motif-frame-manager) frame command)
   (declare (ignore frame command)))
 
 ;;--- Should "gray" the command button, if there is one
 (defmethod note-command-disabled ((framem motif-frame-manager) frame command)
   (declare (ignore frame command)))
+
+(defmethod silica::update-frame-settings ((framem motif-frame-manager) (frame t))
+  ;;--- Lets see how this works out
+  (let ((shell (sheet-shell (frame-top-level-sheet frame))))
+    (let ((sr (compose-space (frame-top-level-sheet frame))))
+      (tk::set-values shell
+		      :min-width (fix-coordinate (space-requirement-min-width sr))
+		      :min-height
+		      (fix-coordinate (space-requirement-min-height sr))))
+    (let ((geo (clim-internals::frame-geometry frame)))
+      (destructuring-bind
+	  (&key x y width height &allow-other-keys) geo
+	;;-- what about width and height
+	(when (and width height)
+	  (tk::set-values shell :width width :height height))
+	(when (and x y)
+	  (tk::set-values shell 
+			  :x (fix-coordinate x)
+			  :y (fix-coordinate y)))))
+    (let ((icon (clim-internals::frame-icon frame)))
+      (flet ((decode-pixmap (x)
+	       (etypecase x
+		 (string x)
+		 (pattern 
+		  (let ((sheet (frame-top-level-sheet frame)))
+		    (with-sheet-medium (medium sheet)
+		      (second 
+		       (decode-gadget-background medium sheet x))))))))
+	(destructuring-bind
+	    (&key name pixmap clip-mask) icon
+	  (when name
+	    (tk::set-values shell :icon-name name))
+	  (when pixmap
+	    (tk::set-values shell :icon-pixmap (decode-pixmap pixmap)))
+	  (when mask-pixmap
+	    (tk::set-values shell :clip-mask (decode-pixmap mask-pixmap))))))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.12 92/04/03 12:04:03 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.13 92/04/15 11:44:47 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -76,8 +76,13 @@
 (defclass xt-root-class (display-object)
   ((events :initform nil :accessor widget-event-handler-data)
    (callbacks :initform nil :accessor widget-callback-data)
-   (window-cache :initform nil))
+   (window-cache :initform nil)
+   (cleanups :initform nil :accessor widget-cleanup-functions))
   (:metaclass xt-class))
+
+(defmethod add-widget-cleanup-function ((widget xt-root-class) fn &rest args)
+  (push (list* fn args)
+	(widget-cleanup-functions widget)))
 
 (defmethod widget-display ((object xt-root-class))
   (object-display object))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.11 92/04/10 14:26:34 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.12 92/04/15 11:45:13 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -105,8 +105,9 @@
 	      ,@options))
 
 
+;;;---- Should force be T
 
-(defmethod resize-sheet* ((sheet sheet) width height &key force)
+(defmethod resize-sheet* ((sheet sheet) width height &key (force t))
   (when (or width height)
     (with-bounding-rectangle* (minx miny maxx maxy) sheet
       (when (or force

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.14 92/03/30 17:52:06 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.15 92/04/15 11:45:16 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -66,9 +66,11 @@
 (defgeneric sheet-device-transformation (sheet))
 
 (defmethod sheet-device-transformation ((sheet sheet))
-  (compose-transformations
-    (sheet-transformation sheet)
-    (sheet-device-transformation (sheet-parent sheet))))
+  (or (sheet-cached-device-transformation sheet)
+      (setf (sheet-cached-device-transformation sheet)
+	(compose-transformations
+	 (sheet-transformation sheet)
+	 (sheet-device-transformation (sheet-parent sheet))))))
 
 (defmethod sheet-device-transformation :around ((sheet mirrored-sheet-mixin))
   (if (sheet-direct-mirror sheet)
@@ -95,12 +97,15 @@
   (sheet-native-region sheet))
 
 ;;--- This assumes that sheet siblings do not overlap...
+
 (defmethod sheet-device-region (sheet)
-  (region-intersection
-    (transform-region 
-      (sheet-device-transformation sheet)
-      (sheet-region sheet))
-    (sheet-device-region (sheet-parent sheet))))
+  (or (sheet-cached-device-region sheet)
+      (setf (sheet-cached-device-region sheet)
+	(region-intersection
+	 (transform-region 
+	  (sheet-device-transformation sheet)
+	  (sheet-region sheet))
+	 (sheet-device-region (sheet-parent sheet))))))
 
 ;;;; Mirror region stuff
 
@@ -157,7 +162,14 @@
 	      (setf (sheet-direct-mirror sheet)
 		    (call-next-method)))))
     (setf (gethash mirror (port-mirror->sheet-table port)) sheet)
+    ;;--- What is the right thing do here.
+    ;;--- In the motif port we note specify the width and height of
+    ;;--- widgets when we make them. We rely on the layout protocol -
+    ;;--- ???  to take care of all of that, ie. to go in and change
+    ;;--- the size
+    #+ignore
     (update-mirror-transformation port sheet)
+    (setf (sheet-native-transformation sheet) +identity-transformation+)
     mirror))
 
 (defmethod destroy-mirror :around ((port port) (sheet mirrored-sheet-mixin))

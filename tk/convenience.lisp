@@ -20,52 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.5 92/03/09 17:40:34 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.6 92/03/30 17:51:29 cer Exp Locker: cer $
 
 (in-package :tk)
 
 					;
-;
-;
-;(defmacro define-convenience-function (name entry-point class)
-;  (let ((c-function-name (intern (substitute #\_ #\- (symbol-name name)))))
-;    `(progn
-;       (defforeign ',c-function-name
-;	 :entry-point ,entry-point)
-;       (defun ,name (parent name &rest arglist)
-;	 (let ((arglist (make-arglist-for-class
-;			 (find-class ',class)
-;			 parent
-;			 arglist)))
-;	   (register-handle
-;	    (make-instance
-;	     ',class
-;	     :display display
-;	     :foreign-address
-;	     (,c-function-name
-;	      parent
-;	      (string-to-char* name)
-;	      arglist
-;	      (truncate (length arglist) 2)))))))))
-;	
-;
-;(define-convenience-function create-menu-bar 
-;			     "_XmCreateMenuBar"
-;			     xm-row-column)
-;
-;(define-convenience-function create-pulldown-menu 
-;			     "_XmCreatePulldownMenu" 
-;			     xm-row-column)
-;
-;(define-convenience-function create-row-column
-;			     "_XmCreateRowColumn"
-;			     xm-row-column)
-;
-;
-;(define-convenience-function create-radio-box
-;			     "_XmCreateRadioBox"
-;			     xm-row-column)
-
 (defmacro define-convenience-class (class superclasses entry-point)
   (let ((c-function-name
 	 (intern (substitute #\_ #\- 
@@ -99,3 +58,10 @@
 (define-convenience-class xm-pulldown-menu (xm-row-column) "_XmCreatePulldownMenu")
 (define-convenience-class xm-radio-box (xm-row-column) "_XmCreateRadioBox")
 (define-convenience-class xm-popup-menu (xm-row-column) "_XmCreatePopupMenu")
+
+(define-convenience-class xm-option-menu (xm-row-column) "_XmCreateOptionMenu")
+
+(define-convenience-class xm-question-dialog (xm-message-box) "_XmCreateQuestionDialog")
+(define-convenience-class xm-warning-dialog (xm-message-box) "_XmCreateWarningDialog")
+(define-convenience-class xm-information-dialog (xm-message-box) "_XmCreateInformationDialog")
+(define-convenience-class xm-error-dialog (xm-message-box) "_XmCreateErrorDialog")

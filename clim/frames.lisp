@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.11 92/03/24 19:37:49 cer Exp $
+;; $fiHeader: frames.lisp,v 1.14 92/04/15 11:46:30 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -39,7 +39,8 @@
      (top-level :initarg :top-level  :accessor frame-top-level)
      (current-layout :initarg :default-layout :initform nil
 		     :reader frame-current-layout)
-     (default-size :initform nil :initarg :default-size)
+     (geometry :initform nil :initarg :geometry :reader frame-geometry)
+     (icon :initform nil :initarg :icon :reader frame-icon)
      (shell :accessor frame-shell)
      (pointer-documentation-p :initarg :pointer-documentation
 			      :reader frame-pointer-documentation-p)
@@ -63,8 +64,16 @@
 (defmethod initialize-instance :after ((frame standard-application-frame) 
 				       &rest args
 				       &key frame-manager
+					    geometry
+					    icon
 					    (parent frame-manager))
   (declare (ignore args))
+  
+  (destructuring-bind (&key x y width height) geometry
+    (declare (ignore x y width height)))
+  (destructuring-bind (&key name pixmap clip-mask) icon
+    (declare (ignore name pixmap clip-mask)))
+  
   (let ((frame-manager
 	  (etypecase parent
 	    (null (find-frame-manager))
@@ -97,7 +106,8 @@
   #+Genera (declare (zwei:indentation 1 25 2 3 3 1))
   (with-warnings-for-definition name define-application-frame
     (let (pane panes layout top-level menu-bar pointer-documentation
-	  command-definer command-table disabled-commands)
+	  command-definer command-table disabled-commands
+	  icon geometry default-initargs)
       (macrolet ((extract (name keyword default &optional (pair t))
 		   `(let ((entry (assoc ',keyword options)))
 		      (cond ((null entry)
@@ -120,7 +130,10 @@
 	(extract pointer-documentation :pointer-documentation nil)
 	(extract command-definer :command-definer t)
 	(extract command-table :command-table t)
-	(extract disabled-commands :disabled-commands nil))
+	(extract disabled-commands :disabled-commands nil)
+	(extract default-initargs :default-initargs nil nil)
+	(extract icon :icon nil nil)
+	(extract geometry :geometry nil nil))
       (check-type name symbol)
       (check-type superclasses list)
       (check-type slots list)
@@ -171,7 +184,10 @@
 	       ,@(and command-table `(:command-table ',(car command-table)))
 	       ,@(and top-level `(:top-level ',top-level))
 	       ,@(and panes `(:pane-constructors ,pane-constructors))
-	       ,@(and layout `(:default-layout ',(caar layout)))))
+	       ,@(and layout `(:default-layout ',(caar layout)))
+	       ,@(and icon `(:icon (list ,@icon)))
+	       ,@(and geometry `(:geometry (list ,@geometry)))
+	       ,@default-initargs))
 	   ,@(when command-definer
 	       `((defmacro ,command-definer (command-name arguments &body body)
 		   #+Genera (declare (zwei:indentation 1 3 2 1))
@@ -402,22 +418,30 @@
 (defun make-application-frame (frame-name &rest options 
 			       &key frame-class
 				    enable pretty-name
-			            width height
+			            x y width height
 				    save-under
 			       &allow-other-keys)
   (declare (dynamic-extent options))
   (check-type pretty-name (or null string))
   (when (null frame-class)
     (setq frame-class frame-name))
+  (when (or x y width height)
+    (when (getf options :geometry)
+      (error "Cannot specify :geometry and :x,:y,:width or :height at ~
+the same time " options))
+    (setf (getf options :geometry)
+      (append (and x `(:x ,x))
+	      (and y `(:y ,y))
+	      (and width `(:width ,width))
+	      (and height `(:height ,height)))))
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name
-			    :enable :width :height :save-under))
+			    :enable :x :y :width :height :save-under))
       (let ((frame (apply #'make-instance frame-class
 			  :name frame-name
+			  ;;-- Perhaps this should be a default-initarg?
 			  :pretty-name (or pretty-name
 					   (title-capitalize (string frame-name)))
-			  :default-size (when (or width height)
-					  (list width height))
 			  :properties `(:save-under ,save-under)
 			  options)))
 	(when enable 
@@ -431,7 +455,8 @@
     (nstring-capitalize new-string)))
 
 (defmethod enable-frame ((frame standard-application-frame))
-  (with-slots (default-size) frame
+  (destructuring-bind
+      (&key width height &allow-other-keys) (frame-geometry frame)
     (ecase (frame-state frame)
       (:enabled)
       ((:disabled :disowned)
@@ -445,8 +470,8 @@
 	   frame
 	   (ecase old
 	     (:disowned 
-	       (if default-size 
-		   (values (first default-size) (second default-size))
+	       (if (and width height)
+		   (values width height)
 		   (values)))
 	     (:disabled
 	       (bounding-rectangle-size
@@ -644,6 +669,7 @@
 
 ;;--- What about CLIM 0.9's PANE-NEEDS-REDISPLAY, etc?
 ;;--- What about CLIM 1.0's :DISPLAY-AFTER-COMMANDS :NO-CLEAR?
+
 (defun redisplay-frame-pane (frame pane &key force-p)
   (when (symbolp pane)
     (setq pane (get-frame-pane frame pane)))
@@ -675,7 +701,7 @@
 			   (redisplay-p
 			    (redisplay redisplay-record pane 
 				       :check-overlapping check-overlapping))
-			   (t
+			   ((pane-needs-redisplay pane)
 			    (invoke-pane-display-function frame pane))))))))))
 	(force-p
 	 ;;-- Is there anything else we need to do?
@@ -822,9 +848,9 @@
 (defmethod frame-maintain-presentation-histories ((frame standard-application-frame))
   (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 
-(defmethod notify-user (frame format-string &rest format-arguments) 
+(defmethod notify-user (frame message &rest options) 
   (declare (dynamic-extent format-arguments))
-  (apply #'port-notify-user (port frame) frame format-string format-arguments))
+  (apply #'port-notify-user (port frame) message :frame frame options))
 
 
 ;;; Pointer documentation

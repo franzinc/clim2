@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.9 92/03/30 17:52:08 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.10 92/04/15 11:45:19 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -264,14 +264,18 @@
    nil))
 
 (defgeneric invalidate-cached-transformations (sheet)
-  (:method ((sheet t)) nil)
+  (:method ((sheet t)) 
+	   (setf (sheet-cached-device-region sheet) nil)
+	   (setf (sheet-cached-device-transformation sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
     (mapc #'invalidate-cached-transformations (sheet-children sheet))))
 	     
 (defgeneric invalidate-cached-regions (sheet)
-  (:method ((sheet t)) nil)
+  (:method ((sheet t)) 
+	   (setf (sheet-cached-device-region sheet) nil)
+	   (setf (sheet-cached-device-transformation sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
-    (mapc #'invalidate-cached-regions (sheet-children sheet))))
+	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
 (defmethod note-sheet-region-changed :before (sheet &key port-did-it)
   (declare (ignore port-did-it))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.15 92/04/10 14:26:19 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.16 92/04/15 11:44:53 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -109,18 +109,19 @@
   (if (typep x 'clos::class) x
     (find-class x)))
 
-(defmethod widget-window (widget &optional (errorp t))
+(defmethod widget-window (widget &optional (errorp t) peek)
   (with-slots (window-cache) widget
     (or window-cache
-	(setf window-cache
-	  (let ((id (xt_window widget)))
-	    (if (zerop id)
-		(and errorp
-		     (error "Invalid window id ~D for ~S" id widget))
-	      (intern-object-xid
-	       id
-	       'window 
-	       :display (widget-display widget))))))))
+	(and (not peek)
+	     (setf window-cache
+	       (let ((id (xt_window widget)))
+		 (if (zerop id)
+		     (and errorp
+			  (error "Invalid window id ~D for ~S" id widget))
+		   (intern-object-xid
+		    id
+		    'window 
+		    :display (widget-display widget)))))))))
 
 (defun make-clx-window (display widget)
   (let* ((window-id (xt_window widget)))
@@ -151,6 +152,14 @@
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w args))))))
 
+(defmethod destroy-widget-cleanup ((widget xt-root-class))
+  (dolist (cleanup (widget-cleanup-functions widget))
+    (apply (car cleanup) (cdr cleanup)))
+  ;;--- When we start using gadgets things will be fun!
+  (let ((w (widget-window widget nil t)))
+    (when w (unregister-xid w)))
+  (unintern-widget widget))
+
 (defun intern-widget (widget-address &rest args)
   (unless (zerop widget-address)
     (multiple-value-bind
@@ -161,12 +170,12 @@
 	 (widget-class-of widget-address)
 	 args)
       (when newp
-	(add-callback widget :destroy-callback #'unintern-widget))
+	(add-callback widget :destroy-callback #'destroy-widget-cleanup))
       widget)))
 
 (defun register-widget (widget &optional (handle (foreign-pointer-address widget)))
   (register-address widget handle)
-  (add-callback widget :destroy-callback #'unintern-widget))
+  (add-callback widget :destroy-callback #'destroy-widget-cleanup))
 
 (defun unintern-widget (widget)
   (unintern-object-address (foreign-pointer-address widget)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.13 92/03/30 17:51:52 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.14 92/04/15 11:44:54 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -91,6 +91,10 @@
    (height :initarg :height :reader pixmap-height)
    (depth :initarg :depth :reader drawable-depth)))
 
+(defun destroy-pixmap (pixmap)
+  (unregister-xid pixmap)
+  (x11:xfreepixmap (object-display pixmap) pixmap))
+  
 (defmethod initialize-instance :after
 	   ((p pixmap) &key foreign-address width height depth drawable)
   (with-slots (display) p
@@ -195,6 +199,18 @@
 	      (make-instance 'color :foreign-address y)))))
 
 
+(defun query-color (colormap x)
+  ;;--- Resource time
+  (let ((y (x11::make-xcolor)))
+    (setf (x11:xcolor-pixel y) x)
+    (x11:xquerycolor
+     (object-display colormap)
+     colormap
+     y)
+    (values 
+     (x11:xcolor-red y)
+     (x11:xcolor-green y)
+     (x11:xcolor-blue y))))
 
 (defun default-screen (display)
   (intern-object-address

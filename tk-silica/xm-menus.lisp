@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.8 92/04/03 12:04:53 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.9 92/04/10 14:27:51 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -51,7 +51,7 @@
 	      (progn
 		(setf (port-menu-cache port)
 		  (delete x (port-menu-cache port)))
-		(tk::destroy-widget amenu)))))))
+		(tk::destroy-widget (tk::widget-parent amenu))))))))
       
     (unless menu
       (multiple-value-setq
@@ -81,16 +81,19 @@
 	(tk::manage-child menu)
 	;; Now we have to wait
 	(port-force-output port)
-	(mp::process-wait "Returned value" #'(lambda () 
-					       ;;-- This is to deal
-					       ;;-- with the race
-					       ;;-- condition where
-					       ;;-- the menu go down
-					       ;;-- to quick
-					       (or (funcall closure)
-						   (not (tk::is-managed-p menu))))))
+	(wait-for-callback-invocation
+	 port
+	 #'(lambda () 
+	     ;;-- This is to deal
+	     ;;-- with the race
+	     ;;-- condition where
+	     ;;-- the menu go down
+	     ;;-- to quick
+	     (or (funcall closure)
+		 (not (tk::is-managed-p menu)))) 
+	 "Returned value"))
       (unless cache
-	(tk::destroy-widget menu))
+	(tk::destroy-widget (tk::widget-parent menu)))
       
       (values-list (nth-value 1 (funcall closure))))))
 
@@ -121,9 +124,7 @@
 		     :managed nil
 		     :separator-type :double-line
 		     :parent menu))
-    (labels ((destroy-menu-pixmap (widget)
-	       (tk::destroy-pixmap (tk:get-values widget :label-pixmap)))
-	     (make-menu-button (item class parent &rest options)
+    (labels ((make-menu-button (item class parent &rest options)
 	       (if simplep
 		   (apply #'make-instance
 			  class 
@@ -145,7 +146,9 @@
 				:label-type :pixmap
 				:label-pixmap pixmap
 				options)))
-		   (tk::add-callback button :destroy-callback #'destroy-menu-pixmap)
+		   (xt::add-widget-cleanup-function
+		    button
+		    #'tk::destroy-pixmap pixmap)
 		   button)))
 	     (construct-menu-from-items (menu items)
 	       (map nil #'(lambda (item)
