@@ -345,3 +345,4 @@ XrmStringToBindingQuarkList
 XrmStringToQuark
 XrmStringToQuarkList
 XrmUniqueQuark
+XIconifyWindow

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.25 92/12/16 16:46:58 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.26 93/03/04 19:00:04 colin Exp $
 
 (in-package :clim-internals)
 
@@ -361,7 +361,7 @@
 	(write object :stream stream :escape t))
       (write-string object stream)))
 
-(define-presentation-method present (object (type string) stream (view textual-dialog-view)
+(define-presentation-method present (object (type string) stream (view dialog-view-mixin)
 				     &key acceptably)
   (if (or acceptably (zerop (length object)))
       (with-standard-io-syntax
@@ -947,7 +947,7 @@
   (declare (dynamic-extent options))
   (apply #'present-sequence sequence type stream view options))
 
-(define-presentation-method present (sequence (type sequence) stream (view textual-dialog-view)
+(define-presentation-method present (sequence (type sequence) stream (view dialog-view-mixin)
 				     &rest options)
   (declare (dynamic-extent options))
   ;; Give the user a target to click on when the sequence is empty

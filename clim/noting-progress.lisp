@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: noting-progress.lisp,v 1.4 92/07/08 16:30:44 cer Exp $
+;; $fiHeader: noting-progress.lisp,v 1.5 93/02/08 15:56:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -40,7 +40,6 @@
     note))
 
 (defun remove-progress-note (note)
-  (frame-manager-clear-progress-note (frame-manager (slot-value note 'frame)) note)
   (without-scheduling
     (setq *progress-notes* (delete note *progress-notes*))))
 
@@ -56,14 +55,16 @@
 
 (defun invoke-with-noting-progress (stream name continuation)
   (let ((note (add-progress-note name stream)))
-    (unwind-protect
-	(frame-manager-invoke-with-noting-progress 
-	 (frame-manager *application-frame*) note continuation)
-      (remove-progress-note note))))
+    (frame-manager-invoke-with-noting-progress 
+     (frame-manager (if stream (pane-frame stream) *application-frame*))
+     note continuation)))
 
 (defmethod frame-manager-invoke-with-noting-progress ((framem standard-frame-manager)
 						      note continuation)
-  (funcall continuation note))
+  (unwind-protect (funcall continuation note)
+    (with-slots (stream) note
+      (when stream
+	(window-clear stream)))))
 
 (defun note-progress (numerator &optional (denominator 1) (note *current-progress-note*))
   (when note
@@ -113,35 +114,16 @@
 	   ;; even though DOTIMES is zero-based, so add one to the numerator.
 	   (note-progress (1+ ,var) ,count-var))))))
 
-
-(defmethod frame-manager-clear-progress-note 
-	   ((framem standard-frame-manager) (note progress-note))
-  (with-slots (stream) note
-    (when stream
-      (window-clear stream))))
-
 (defmethod frame-manager-display-progress-note
-	   ((framem standard-frame-manager) (note progress-note))
+    ((framem standard-frame-manager) (note progress-note))
   (with-slots (name stream numerator denominator name-displayed bar-length) note
     (when stream
       (let* ((stream-width (bounding-rectangle-width stream))
 	     (line-height  (stream-line-height stream))
 	     (new-bar-length (floor (* stream-width numerator) denominator)))
-	(unless name-displayed
-	  (window-clear stream))
+	(window-clear stream)
 	(with-output-recording-options (stream :record nil)
 	  (with-end-of-line-action (stream :allow)
 	    (with-end-of-page-action (stream :allow)
-	      (unless name-displayed
-		(stream-set-cursor-position stream 0 0)
-		(write-string name stream)
-		(setq name-displayed t))
-	      (when (< new-bar-length bar-length)
-		(draw-line* stream 
-			    0 (+ line-height 2) bar-length (+ line-height 2)
-			    :line-thickness 2 :ink +background-ink+))
-	      (draw-line* stream
-			  0 (+ line-height 2) new-bar-length (+ line-height 2)
-			  :line-thickness 2)
-	      (setq bar-length new-bar-length)
-	      (force-output stream))))))))
+	      (format stream "~A: ~3d%" name (round (* 100 numerator) denominator)))))
+	(force-output stream)))))

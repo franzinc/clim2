@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: peek-frame.lisp,v 1.2 92/10/02 15:20:41 cer Exp $
+;; $fiHeader: peek-frame.lisp,v 1.3 92/10/07 14:43:45 cer Exp $
 
 (in-package :clim-user)
 
@@ -218,7 +218,8 @@ Revised and stripped down by Scott McKay (SWM@Symbolics.COM) for CLIM 2.0.
     (presentation frame window x y)
   (call-presentation-menu presentation *input-context*
 			  frame window x y
-			  :for-menu t))
+			  :for-menu t
+			  :gesture :select))
 
 (define-peek-command (com-activate-process)
     ((thing 'process :gesture nil))

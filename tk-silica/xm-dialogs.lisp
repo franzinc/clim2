@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.3 92/11/20 08:46:39 cer Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.4 92/12/01 09:47:07 cer Exp $
 
 
 (in-package :clim-internals)
@@ -31,11 +31,12 @@
 (define-application-frame motif-accept-values-own-window (accept-values-own-window)
 			  ()
   (:pane 
-   (with-slots (stream own-window exit-button-stream scroll-bars) *application-frame*
+   (with-slots (stream own-window exit-button-stream scroll-bars align-prompts) *application-frame*
      (vertically ()
 	 (progn
 	   (setq stream
 	     (make-instance 'accept-values-stream
+			    :align-prompts align-prompts
 			    :stream (setf own-window 
 				      (make-pane 'clim-stream-pane
 						 :initial-cursor-visibility :off))))

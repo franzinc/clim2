@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.37 92/12/16 16:46:36 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.38 93/01/21 14:58:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -159,8 +159,8 @@
     (cond ((and (member event *asynchronous-abort-gestures*
 			:test #'keyboard-event-matches-gesture-name-p)
 		(setq temp (pane-frame stream))
-		(setq temp (slot-value temp 'top-level-process)))
-	   (process-interrupt temp #'abort))
+		(setq temp (frame-top-level-process temp)))
+	   (process-interrupt temp #'(lambda () (process-abort-gesture stream event))))
 	  ((and (characterp char)
 		(or (ordinary-char-p char)
 		    (diacritic-char-p char)))
@@ -388,34 +388,37 @@
 		 :numeric-argument (or *accelerator-numeric-argument* 1)))
 	((member gesture *abort-gestures*
 		 :test #'keyboard-event-matches-gesture-name-p)
-	 (let* ((frame (pane-frame stream))
-		;; When dealing with an application frame, prefer an
-		;; interactor pane to any other stream
-		(stream (cond ((typep stream 'interactor-pane)
-			       stream)
-			      ((typep *standard-input* 'interactor-pane)
-			       *standard-input*)
-			      (t
-			       (or (and frame
-					(find-frame-pane-of-type frame 'interactor-pane))
-				   (and (typep stream 'application-pane)
-					stream)))))
-		(cursor (and stream (stream-text-cursor stream))))
-	   (when (and cursor
-		      (cursor-active cursor))
-	     ;; OK, this is wierd.  Try to find an input editing stream
-	     ;; to do the output on, but only if that input editing stream
-	     ;; encapsulates the stream we chose above
-	     (let ((istream (encapsulated-stream stream)))
-	       (if (and (input-editing-stream-p istream)
-			(eq (encapsulating-stream-stream istream) stream))
-		   (progn
-		     (input-editor-format istream "[Abort]")
-		     (force-output istream))
-		   (progn
-		     (write-string "[Abort]" stream) 
-		     (force-output stream))))))
-	 (error 'abort-gesture :event gesture))))
+	 (process-abort-gesture stream gesture))))
+
+(defun process-abort-gesture (stream gesture)
+  (let* ((frame (pane-frame stream))
+	 ;; When dealing with an application frame, prefer an
+	 ;; interactor pane to any other stream
+	 (stream (cond ((typep stream 'interactor-pane)
+			stream)
+		       ((typep *standard-input* 'interactor-pane)
+			*standard-input*)
+		       (t
+			(or (and frame
+				 (find-frame-pane-of-type frame 'interactor-pane))
+			    (and (typep stream 'application-pane)
+				 stream)))))
+	 (cursor (and stream (stream-text-cursor stream))))
+    (when (and cursor
+	       (cursor-active cursor))
+      ;; OK, this is wierd.  Try to find an input editing stream
+      ;; to do the output on, but only if that input editing stream
+      ;; encapsulates the stream we chose above
+      (let ((istream (encapsulated-stream stream)))
+	(if (and (input-editing-stream-p istream)
+		 (eq (encapsulating-stream-stream istream) stream))
+	    (progn
+	      (input-editor-format istream "[Abort]")
+	      (force-output istream))
+	  (progn
+	    (write-string "[Abort]" stream) 
+	    (force-output stream))))))
+  (error 'abort-gesture :event gesture))
 
 ;;; This function is just a convenience for the programmer, defaulting the
 ;;; keyword :STREAM argument to *standard-input*.  The application can call

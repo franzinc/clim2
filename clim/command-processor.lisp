@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.19 92/11/19 14:17:10 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.20 92/12/03 10:26:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -469,8 +469,14 @@
 					     :numeric-argument numeric-arg)))
 				     (when (presentation-typep command command-type)
 				       (return-from menu-command-parser
-					 (values command command-type)))))
-				 (beep stream)))
+					 (values command
+						 command-type)))))
+				 (beep stream)
+				 ;;--- Nasty hack
+				 (when (typep stream 'input-editing-stream-mixin)
+				   (let ((input-buffer
+					  (input-editor-buffer stream)))
+				     (ie-rub-del stream input-buffer -1)))))
 			     (let ((token (read-token stream :click-only t :timeout timeout)))
 			       (if (eq token :timeout)
 				   (return-from menu-command-parser nil)
@@ -523,11 +529,12 @@
 
 (define-presentation-method accept ((type command-name) stream (view textual-view) &key)
   (setq command-table (find-command-table command-table))
-  (complete-input stream
-		  #'(lambda (string action)
-		      (command-table-complete-input command-table string action
-						    :frame *application-frame*))
-		  :partial-completers *command-name-delimiters*))
+  (values
+   (complete-input stream
+		   #'(lambda (string action)
+		       (command-table-complete-input command-table string action
+						     :frame *application-frame*))
+		   :partial-completers *command-name-delimiters*)))
 
 (define-presentation-method present (symbol (type command-name) stream (view textual-view)
 				     &key for-context-type)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.26 92/12/03 10:29:21 cer Exp $
+;; $fiHeader: framem.lisp,v 1.27 93/02/08 15:57:28 cer Exp $
 
 (in-package :silica)
 
@@ -39,7 +39,7 @@
 			   &key port palette (server-path *default-server-path*)
 			   &allow-other-keys)
   (declare (dynamic-extent options))
-  (with-keywords-removed (options options '(:port :palette :server-path))
+  (with-keywords-removed (new-options options '(:port :palette :server-path))
     (unless port 
       (setq port (find-port :server-path server-path)))
     (unless palette
@@ -47,19 +47,19 @@
     (cond 
       ;; (find-frame-manager) -> default one
       ((and (null options) *default-frame-manager*))
-      ;; We specified a port, so make sure the default framem matches it
+      ;; We specified a port and perhaps other options so make sure the default framem matches it
       ((and *default-frame-manager*
 	    (apply #'frame-manager-matches-options-p
-		   *default-frame-manager* port options))
+		   *default-frame-manager* port :palette palette new-options))
        *default-frame-manager*)
       ;; No default, look for one in the port, or create a new one
       (t
        (dolist (framem (port-frame-managers port))
 	 (when (apply #'frame-manager-matches-options-p 
-		      framem port :palette palette options)
+		      framem port :palette palette new-options)
 	   (return-from find-frame-manager framem)))
        (let ((framem (apply #'make-frame-manager 
-			    port :palette palette options)))
+			    port :palette palette new-options)))
 	 (setf (port-frame-managers port)
 	       (nconc (port-frame-managers port) (list framem)))
 	 framem)))))
@@ -76,8 +76,8 @@
 (defmethod frame-manager-matches-options-p
 	   ((framem standard-frame-manager) port &key palette &allow-other-keys)
   (declare (ignore palette))
-  (eq (port framem) port))
-
+  (and (eq (port framem) port)
+       (eq (frame-manager-palette framem) palette)))
 
 (defun map-over-frames (function &key port frame-manager)
   (cond (frame-manager
@@ -106,13 +106,13 @@
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet
-		      :event-queue (frame-input-buffer frame)
-		      :user-specified-position-p (frame-user-specified-position-p frame)
-		      :user-specified-size-p (frame-user-specified-size-p frame)
-		      :region (multiple-value-bind (width height)
-				  (bounding-rectangle-size top-pane)
-				(make-bounding-rectangle 0 0 width height))
-		      :parent (find-graft :port (port frame))))))
+			       :event-queue (frame-input-buffer frame)
+			       :user-specified-position-p (frame-user-specified-position-p frame)
+			       :user-specified-size-p (frame-user-specified-size-p frame)
+			       :region (multiple-value-bind (width height)
+					   (bounding-rectangle-size top-pane)
+					 (make-bounding-rectangle 0 0 width height))
+			       :parent (find-graft :port (port frame))))))
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))

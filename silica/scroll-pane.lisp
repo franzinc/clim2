@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: scroll-pane.lisp,v 1.2 92/12/16 16:49:44 cer Exp $
+;; $fiHeader: scroll-pane.lisp,v 1.3 93/03/18 14:38:16 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,7 +11,7 @@
 
 ;; An implementation of a scroller pane
 (defclass generic-scroller-pane (scroller-pane 
-				 client-space-requirement-mixin
+				 client-overridability-mixin
 				 wrapping-space-mixin
 				 permanent-medium-sheet-output-mixin
 				 pane-repaint-background-mixin

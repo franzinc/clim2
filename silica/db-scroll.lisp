@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.41 93/01/21 14:58:57 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.42 93/03/18 14:37:54 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -174,35 +174,9 @@
 			    (- (gadget-range sheet) size)))))
 	    (bounding-rectangle-min-y region)))))))
 
-(defun update-region (sheet nleft ntop nright nbottom &key no-repaint)
-  ;;--- I suspect that we should pass in mins and maxs since this does
-  ;;--- assume that the window origin is 0,0 and I think that this
-  ;;--- causes the compass menu test to fail since there are graphics at
-  ;;--- negative coordinates.
-  #---ignore
-  (with-bounding-rectangle* (left top right bottom) sheet
-    (when (or (< nleft left)
-	      (< ntop  top)
-	      (> nright  right)
-	      (> nbottom bottom))
-      ;; It should be safe to modify the sheet's region
-      (let ((region (sheet-region sheet)))
-	(setf (slot-value region 'left) (min nleft left)
-	      (slot-value region 'top)  (min ntop  top)
-	      (slot-value region 'right)  (max nright  right)
-	      (slot-value region 'bottom) (max nbottom bottom))
-	(note-sheet-region-changed sheet))))
-  #+++ignore
-  (let ((width  (- nright  nleft))
-	(height (- nbottom ntop)))
-    (when (or (> width  (bounding-rectangle-width  sheet))
-	      (> height (bounding-rectangle-height sheet)))
-      ;; It should be safe to modify the sheet's region
-      (let ((region (sheet-region sheet)))
-	(setf (slot-value region 'left) 0
-	      (slot-value region 'top)  0
-	      (slot-value region 'right)  (max (bounding-rectangle-width  sheet) width)
-	      (slot-value region 'bottom) (max (bounding-rectangle-height sheet) height))))))
+(defmethod update-region ((sheet basic-sheet) nleft ntop nright nbottom &key no-repaint)
+  (declare (ignore nleft ntop nright nbottom no-repaint))
+  nil)
 
 (defun scroll-extent (sheet x y)
   ;;--- CER says that this really isn't right...
@@ -223,7 +197,8 @@
 	  (update-scroll-bars viewport)
 	  (with-bounding-rectangle* (nleft ntop nright nbottom) 
 	      (pane-viewport-region sheet)
-	    ;;--- Do we really want to do this here??
+	    ;; If we are scrolling programatically then this might
+	    ;; reveal more of the sheet than currently exists
 	    (update-region sheet nleft ntop nright nbottom)
 	    (cond
 	      ;; If some of the stuff that was previously on display is still on

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.14 92/10/02 15:20:08 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.15 92/12/03 10:28:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -32,15 +32,18 @@
 (register-tracking-pointer-clause :presentation (presentation window x y))
 (register-tracking-pointer-clause :presentation-button-press (presentation event x y))
 (register-tracking-pointer-clause :presentation-button-release (presentation event x y))
+(register-tracking-pointer-clause :timeout ())
 
 (defvar *tracking-pointer-presentation-clauses*
-	'(:presentation :presentation-button-press :presentation-button-release))
+	'(:presentation :presentation-button-press
+	  :presentation-button-release))
 
 )	;eval-when
 
 (defmacro tracking-pointer ((&optional stream
 			     &key pointer multiple-window transformp 
-				  (context-type t) (highlight nil highlight-p))
+				  (context-type t) (highlight nil
+						    highlight-p) timeout)
 			    &body clauses)
   (default-output-stream stream tracking-pointer)
   (let ((do-highlighting highlight)
@@ -84,11 +87,12 @@
 				      :multiple-window ,multiple-window
 				      :transformp ,transformp
 				      :context-type ,context-type
-				      :highlight ,do-highlighting))))))
+				      :highlight ,do-highlighting
+				      :timeout ,timeout))))))
 
 (defun tracking-pointer-1 (stream pointer generator
 			   &key multiple-window transformp 
-				context-type highlight)
+				context-type highlight timeout)
   (unless pointer
     (setq pointer (stream-primary-pointer stream)))
   (let* ((moved-p nil)
@@ -96,6 +100,7 @@
 	 (last-window nil)
 	 (last-x nil) (last-y nil)
 	 (input-happened nil)
+	 (timed-out nil)
 	 ;; Grab these up front.  The closures will share the same environment.
 	 (motion-function (funcall generator :pointer-motion))
 	 (button-press-function (funcall generator :pointer-button-press))
@@ -104,6 +109,7 @@
 	 (presentation-press-function (funcall generator :presentation-button-press))
 	 (presentation-release-function (funcall generator :presentation-button-release))
 	 (keyboard-function (funcall generator :keyboard))
+	 (timeout-function (funcall generator :timeout))
 	 ;; Tell the input streams not to discard pointer release events
 	 (*discard-pointer-release-events* nil)
 	 (highlighted-presentation nil)
@@ -194,9 +200,10 @@
 		  ;; when all the windows share the same I/O buffer.  Same
 		  ;; deal with the READ-GESTURE below, too.
 		  ;;--- It's a bug that multiple-window has that restriction...
-		  (setq input-happened
-			(stream-input-wait stream
-					   :input-wait-test #'pointer-motion-pending)))
+		  (multiple-value-setq (input-happened timed-out)
+		    (stream-input-wait stream
+				       :timeout timeout
+				       :input-wait-test #'pointer-motion-pending)))
 		;; Don't call READ-GESTURE if there is no gesture to read
 		;;--- If we called READ-GESTURE on CURRENT-WINDOW, we would
 		;;--- get the (possibly undesirable) side-effect that the
@@ -207,6 +214,9 @@
 			     (read-gesture :stream stream :timeout 0))))
 		  (block process-gesture
 		    (cond ((null gesture)
+			   (if (and (eq timed-out :timeout)
+				    timeout-function)
+			       (funcall timeout-function))
 			   (return-from input-wait))
 			  ((keyboard-event-p gesture)
 			   (when keyboard-function

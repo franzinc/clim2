@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-table.lisp,v 1.15 92/09/08 10:34:22 cer Exp $
+;; $fiHeader: db-table.lisp,v 1.16 92/09/24 09:37:36 cer Exp $
 
 (in-package :silica)
 
@@ -138,7 +138,7 @@
 			 (sheet-enabled-p item))
 		(move-and-resize-sheet
 		  item x y 
-		  (min column-width (1- (- width x)))
-		  (min row-height (1- (- height y)))))
+		  column-width
+		  row-height))
 	      (incf x column-width)))
 	  (incf y row-height))))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.12 92/08/18 17:53:30 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.13 92/12/14 15:03:50 cer Exp $
 
 (in-package :tk)
 
@@ -75,3 +75,6 @@
 (define-convenience-class xm-file-selection-dialog
     (xm-file-selection-box) 
   "XmCreateFileSelectionDialog")
+
+
+(define-convenience-class xm-working-dialog (xm-message-box) "XmCreateWorkingDialog")

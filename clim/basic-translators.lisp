@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.14 92/12/16 16:46:02 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.15 93/01/21 14:57:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -62,7 +62,7 @@
       (find-presentation-translator 'presentation-menu 'presentation-menu-command-table))
 
 (defun call-presentation-menu (presentation input-context frame window x y
-			       &key (for-menu t) label)
+			       &key (for-menu t) label (gesture :menu))
   (let* ((translators (find-applicable-translators presentation input-context 
 						   frame window x y
 						   :event nil :for-menu for-menu))
@@ -89,7 +89,8 @@
 	(let ((chosen (menu-choose item-list
 				   :associated-window window
 				   :label label
-				   :printer #'translator-documentation)))
+				   :printer #'translator-documentation
+				   :gesture gesture)))
 	  (when chosen
 	    ;; Anticipate the day when we can move the mouse off the menu
 	    (let* ((translator (pop chosen))

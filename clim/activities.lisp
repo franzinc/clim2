@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.9 92/12/03 10:26:01 cer Exp $
+;; $fiHeader: activities.lisp,v 1.10 92/12/16 16:45:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -147,6 +147,10 @@
 (defclass activity-frame (standard-application-frame)
     ((activity :initform nil :accessor frame-activity :initarg :activity)))
 
+(defmethod frame-top-level-process ((frame activity-frame))
+  (let ((act (frame-activity frame)))
+    (and act (slot-value act 'top-level-process))))
+
 (defmethod initialize-instance :after ((frame activity-frame) &key activity)
   (assert activity () "The activity frame ~S requires an activity" frame))
 
@@ -273,3 +277,8 @@
       ;;--- We should set flag in frame so that the default top level
       ;;--- notices this and exits or throws
       )))
+
+
+(defmethod destroy-activity ((activity activity))
+  ;;-- Need it do anything else?
+  (mapc #'destroy-frame (frame-manager-frames activity)))
