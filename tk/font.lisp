@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.21.22.5 1999/01/11 17:57:56 layer Exp $
+;; $Id: font.lisp,v 1.21.22.6 1999/01/14 21:33:04 layer Exp $
 
 (in-package :tk)
 
@@ -221,6 +221,7 @@
 				:initialize t
 				:number number))
 
+#+ignore
 (defun text-extents (font-set string)
   (let* ((euc (excl:string-to-euc string))
 	 (length (1- (length euc)))

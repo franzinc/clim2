@@ -11,6 +11,20 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.38
+
+1999-01-14  Kevin Layer  <layer@ultra> (this is really from Jeff)
+
+	* aclpc/acl-widget.lisp: remove default-window-procedure slot from
+	mswin-text-edit class
+	* demo/browser.lisp: take care of warnings
+	* demo/peek-frame.lisp: take care of warnings
+	* demo/plot.lisp: take care of warnings
+	* demo/printer.lisp: take care of warnings
+	* tk/font.lisp: #+ignore text-extents
+	* tk/resources.lisp: fix for ics
+
+*******************************************************************************
 2.2.1.37
 
 1999-01-14  Jeff Morrill <jmorrill@pointnclick.com>

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.11 1999/01/14 19:04:08 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.12 1999/01/14 21:33:01 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -202,7 +202,6 @@
    (depth :initarg :depth)
    (x-margin :initarg :x-margin)
    (y-margin :initarg :y-margin)
-   (default-window-procedure :initform (ct:callocate (:void *)))
    ;; needed for text-editor
    (ncolumns :initarg :ncolumns
 	     :accessor gadget-columns)

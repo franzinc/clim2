@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.60.22.4 1999/01/14 19:04:14 layer Exp $
+;; $Id: resources.lisp,v 1.60.22.5 1999/01/14 21:33:04 layer Exp $
 
 (in-package :tk)
 
@@ -601,8 +601,21 @@
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
   (note-malloced-object
    (excl:ics-target-case
-    (:+ics (let ((euc (excl:string-to-euc value)))
-	     (ff:euc-to-char* euc)))
+    (:+ics 
+     ;; JPM 1/99. We know this EUC stuff is wrong for two reasons: 
+     ;; 1.  We free everything with SYSTEM-FREE, which can't free
+     ;;     things created via excl:aclmalloc.  Therefore, 
+     ;;     EUC-TO-CHAR* is not viable in CLIM.  You'll get SEGV on Linux.
+     ;; 2.  It doesn't handle Japanese character sets correctly anyway.
+     ;;     Contrast with the convert-resource-out method for
+     ;;     type xm-string, which works.
+     ;; If you make a change here, you can test it by creating
+     ;; a text-field pane whose :value is an international string.
+     #+ignore
+     (let ((euc (excl:string-to-euc value)))
+       (ff:euc-to-char* euc))
+     (clim-utils:string-to-foreign value); sorry
+     )
     (:-ics (clim-utils:string-to-foreign value)))))
 
 (defvar *font-counter* 0)

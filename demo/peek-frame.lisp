@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: peek-frame.lisp,v 1.7.22.3 1999/01/14 19:04:11 layer Exp $
+;; $Id: peek-frame.lisp,v 1.7.22.4 1999/01/14 21:33:02 layer Exp $
 
 
 (in-package :clim-user)
@@ -310,6 +310,7 @@ Revised and stripped down by Scott McKay (SWM@Symbolics.COM) for CLIM 2.0.
 ;;    {if ($3 != "0.0") print $0}'
 
 (defun check-OS (stream program)
+  #-unix (declare (ignore program))
   (fresh-line stream)
   #+unix
   (let ((pipe ()))
