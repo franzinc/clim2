@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.47 93/04/26 20:17:32 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.48 1993/05/05 01:38:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -286,8 +286,13 @@
     +radio-box-view+))
 
 (define-presentation-method gadget-includes-prompt-p 
-			    ((type completion) (stream t) (view radio-box-view))
+    ((type completion) (stream t) (view radio-box-view))
   (not (null (getf (view-gadget-initargs view) :label))))
+
+(define-presentation-method gadget-includes-prompt-p :around 
+  ((type t) (stream t) (view actual-gadget-view))
+  (or (not (getf (view-gadget-initargs view) :prompt t))
+      (call-next-method)))
 
 (define-presentation-method accept-present-default 
 			    ((type completion) stream (view radio-box-view)
@@ -377,7 +382,7 @@
       +check-box-view+))
 
 (define-presentation-method gadget-includes-prompt-p 
-			    ((type subset-completion) (stream t) (view check-box-view))
+    ((type subset-completion) (stream t) (view check-box-view))
   (not (null (getf (view-gadget-initargs view) :label))))
 
 (define-presentation-method accept-present-default 
@@ -470,7 +475,7 @@
       +toggle-button-view+))
 
 (define-presentation-method gadget-includes-prompt-p 
-			    ((type boolean) (stream t) (view toggle-button-view))
+    ((type boolean) (stream t) (view toggle-button-view))
   t)
 
 (define-presentation-method accept-present-default 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.31 93/04/23 09:18:30 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.33 93/04/28 17:19:25 layer Exp $
 
 (in-package :tk)
 
@@ -287,3 +287,4 @@
 	 (clrhash set-values-cache)
 	 (clrhash cached-constraint-resources)))
    class))
+

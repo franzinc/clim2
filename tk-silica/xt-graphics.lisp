@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.70 93/04/08 13:19:15 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.71 93/04/12 21:22:25 colin Exp $
 
 (in-package :tk-silica)
 
@@ -581,7 +581,7 @@
   (multiple-value-bind (array designs)
       (decode-pattern pattern)
     (let* ((height (array-dimension array 0))
-	   (width (array-dimension array 0))
+	   (width (array-dimension array 1))
 	   (image-data (make-array (list height width)))
 	   (design-pixels (make-array (length designs)))
 	   (two-color-p (eql (length designs) 2))

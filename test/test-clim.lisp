@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.4 93/04/23 09:18:12 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.5 1993/05/05 01:40:05 cer Exp $
 
 
 (in-package :clim-user)
@@ -465,6 +465,10 @@
   ()
   (com-quit))
 
+(define-frame-test test-tf112 (tf112)
+  ()
+  (com-quit))
+
 ;;; Disable/enable command stuff.
 
 (define-application-frame enable-disable-frame ()
@@ -501,3 +505,18 @@
    (:sleep 1))
   (com-enable-disable-quit))
 
+(push 'find-frame-manager-test *frame-tests*)
+
+(defun find-frame-manager-test ()
+  (handler-case (let ((fm (find-frame-manager)))
+		  (with-frame-manager (fm)
+		    (let ((*default-server-path* 
+			   `(,(if (excl::featurep :clim-motif)
+				  :motif :openlook)
+				:display "mysparc10:0")))
+		      (assert (eq fm (find-frame-manager))))))
+    (error (c)
+      (note-test-failed 'find-frame-manager-test c))
+    (:no-error (&rest ignore)
+      (declare (ignore ignore))
+      (note-test-succeeded 'find-frame-manager-test))))

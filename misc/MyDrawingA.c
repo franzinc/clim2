@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: MyDrawingA.c,v 1.2 92/06/16 15:02:16 cer Exp Locker: cer $
+ * $fiHeader: MyDrawingA.c,v 1.3 92/06/23 08:20:05 cer Exp $
  */
 
 
@@ -151,3 +151,4 @@ XmCreateMyDrawingArea(
     return( XtCreateWidget( name, xmMyDrawingAreaWidgetClass, p, args, n)) ;
 }
 
+#include "climgccursor.c"

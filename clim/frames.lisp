@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.65 93/04/23 09:17:23 cer Exp $
+;; $fiHeader: frames.lisp,v 1.66 1993/05/05 01:38:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1001,7 +1001,7 @@
 (defun position-sheet-near-pointer (sheet &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      (pointer-native-position (port-pointer (port sheet)))))
+      (pointer-position (port-pointer (port sheet)))))
   (position-sheet-carefully sheet x y))
 
 
@@ -1064,6 +1064,15 @@
 			 (second pane)))
       (when errorp
 	(error "There is no CLIM stream pane named ~S in frame ~S" pane-name frame)))))
+
+#+ignore
+(defmethod pane-name ((pane basic-pane))
+  (let ((frame (pane-frame pane)))
+    (and frame
+	 (dolist (name-and-pane (slot-value frame 'all-panes))
+	   (destructuring-bind (name apane) name-and-pane
+	     (when (sheet-ancestor-p pane apane)
+	       (return name)))))))
 
 (defmethod frame-current-panes ((frame standard-application-frame))
   (let ((panes nil)

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.50 93/04/16 09:45:24 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.51 1993/05/05 01:39:49 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -492,9 +492,18 @@
 	    (resize-sheet
 	     child (max width cwidth) (max height cheight))))
       (progn
-	(let ((sr (compose-space child :width width :height height)))
-	  (resize-sheet child (space-requirement-width sr)
-			(space-requirement-height sr)))))))
+	(let* ((sr (compose-space child :width width :height height))
+	       (max-width (space-requirement-max-width sr))
+	       (max-height (space-requirement-max-height sr))
+	       (desired-width (space-requirement-width sr))
+	       (desired-height (space-requirement-height sr)))
+	  (resize-sheet child 
+			(if (>= max-width +fill+)
+			    (max width desired-width)
+			  (max desired-width max-width))
+			(if (>= max-height +fill+)
+			    (max height desired-height)
+			  (max desired-height max-height))))))))
 
 (defmethod allocate-space :after ((viewport viewport) width height)
   (let ((vr (viewport-viewport-region viewport)))

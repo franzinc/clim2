@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.72 93/04/16 09:45:59 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.73 1993/05/05 01:40:32 cer Exp $
 
 (in-package :xm-silica)
 
@@ -327,7 +327,7 @@
         (values 'tk::xm-scale 
                 (append
                  (and show-value-p (list :show-value show-value-p ))
-                 (and label (list :title-string label))
+                 (and (stringp label) (list :title-string label))
                  (list :minimum mmin
                        :maximum mmax
                        :decimal-points decimal-points)

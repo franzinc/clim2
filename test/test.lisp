@@ -19,11 +19,16 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.47 93/04/16 09:45:44 cer Exp $
+;; $fiHeader: test.lisp,v 1.48 93/04/23 09:18:21 cer Exp $
 
 (in-package :clim-user)
 
 ;;; Simple little frame
+
+(defun make-graphical-label ()
+  (with-output-to-pixmap (stream (graft *application-frame*) :width 100 :height 100)
+    (draw-rectangle* stream 0 0 100 100 :ink +background-ink+)
+    (draw-rectangle* stream 10 10 90 90 :ink +red+)))
 
 (define-application-frame test-frame () ()
   (:pane 
@@ -32,9 +37,7 @@
       :foreground +green+
       :background +red+)
      (make-pane 'push-button
-		:label (with-output-to-pixmap (stream (graft *application-frame*) :width 100 :height 100)
-			   (draw-rectangle* stream 0 0 100 100 :ink +background-ink+)
-			   (draw-rectangle* stream 10 10 90 90 :ink +red+)))
+		:label (make-graphical-label))
      (make-pane 'push-button
 		:label "press me"
 		:activate-callback (command-callback #'(lambda (gadget) (print :hello)))
@@ -1026,11 +1029,11 @@
     (b label-pane :label "hello")
     (c text-field :width '(50 :character))
     (d text-editor :height '(10 :line))
-    (e label-pane :label "goodbye" :width '(50 :character))
+    (e label-pane :label "goodbye" :width '(50 :character)  :max-width +fill+)
     (f push-button :label "goodbye" :width '(50 :character)))
    (:layouts
     (default (scrolling (:max-height +fill+) 
-	       (vertically (:y-spacing 20) z a b c d e f)))))
+	       (vertically (:max-width +fill+ :y-spacing 20) z a b c d e f)))))
 
 (define-application-frame tf109 ()
    ()
@@ -1102,8 +1105,45 @@
 	 (with-radio-box (:type :some-of :orientation :vertical :rows 1) "Common Lisp" "Smalltalk" "Fortran" "Cobol"))))))
 
 
+(define-application-frame tf112 ()
+  ()
+  (:menu-bar nil)
+  (:command-table test-frame)
+  (:pane
+   (vertically ()
+     (make-pane 'label-pane :label (make-graphical-label))
+     (make-pane 'slider :label (make-graphical-label))
+     (make-pane 'option-pane :label (make-graphical-label)))))
 
+(define-application-frame tf113 ()
+  ()
+  (:menu-bar t)
+  (:panes
+   (a :application :scroll-bars nil)
+   (b :application :scroll-bars nil)
+   (i :interactor))
+  (:layouts
+   (default (vertically () a b i))))
 
+(define-tf113-command (com-whacky-cursor-1 :name t :menu t)
+    ()
+  (dolist (pane-and-ink `((a ,+green+) (b ,+blue+) (i ,+red+)))
+    (destructuring-bind (pane ink) pane-and-ink
+      (setf (sheet-pointer-cursor 
+	     (get-frame-pane *application-frame* pane))
+	(make-pattern-from-bitmap-file
+	 "/usr/include/X11/bitmaps/tie_fighter"
+	 :designs (list +nowhere+ ink))))))
+
+(define-tf113-command (com-whacky-cursor-2 :name t :menu t)
+    ()
+  (dolist (pane-and-ink `((a ,+green+) (b ,+blue+) (i ,+red+)))
+    (destructuring-bind (pane ink) pane-and-ink
+      (setf (sheet-pointer-cursor 
+	     (get-frame-pane *application-frame* pane))
+	(make-pattern-from-bitmap-file
+	 "/usr/include/X11/bitmaps/tie_fighter"
+	 :designs (list +black+ ink))))))
 
 	      
 			    

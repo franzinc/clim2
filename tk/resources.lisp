@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.43 93/04/16 09:26:38 layer Exp $
+;; $fiHeader: resources.lisp,v 1.44 93/04/16 09:45:49 cer Exp $
 
 (in-package :tk)
 
@@ -666,7 +666,7 @@
   (char-int value))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'char)) value)
-  (cltl1:int-char value))
+  (cltl1:int-char (ash value -24)))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'font-struct)) value)
   (make-instance 'font

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.80 93/04/23 09:18:53 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.81 1993/05/05 01:40:38 cer Exp $
 
 (in-package :xm-silica)
 
@@ -781,14 +781,14 @@
 	  w (fix-coordinate w)
 	  h (fix-coordinate h))
     (change-widget-geometry
-     ;;--- For top level sheets the sheet-parent is the graft whose
-     ;; mirror is the application shell
-     (tk::widget-parent mirror)
-     mirror
-     :x target-left
-     :y target-top
-     :width w
-     :height h)
+	 ;;--- For top level sheets the sheet-parent is the graft whose
+	 ;; mirror is the application shell
+	 (tk::widget-parent mirror)
+	 mirror
+	 :x target-left
+	 :y target-top
+	 :width w
+	 :height h)
     (when *compare-widget-geometry-with-intention*
       (multiple-value-bind
 	  (nx ny nw nh)
@@ -902,10 +902,15 @@
 (defvar *clim-keysym->xt-keysym-table* (make-hash-table))
 
 (defmacro define-xt-keysym (xt-keysym clim-keysym)
-  `(progn 
-     (setf (gethash ,xt-keysym *xt-keysym->clim-keysym-table*) ,clim-keysym)
-     (unless (gethash ,clim-keysym *clim-keysym->xt-keysym-table*)
-       (setf (gethash ,clim-keysym *clim-keysym->xt-keysym-table*) ,xt-keysym))))
+  `(ensure-xt-keysym ,xt-keysym ,clim-keysym))
+
+(defun ensure-xt-keysym (xt-keysym clim-keysym)
+  (let ((x (gethash xt-keysym *xt-keysym->clim-keysym-table*)))
+    (when (and x (not (eq x clim-keysym)))
+      (warn "Redefining keysym ~S from ~S to ~S" xt-keysym x clim-keysym)))
+  (setf (gethash xt-keysym *xt-keysym->clim-keysym-table*) clim-keysym)
+  (unless (gethash clim-keysym *clim-keysym->xt-keysym-table*)
+    (setf (gethash clim-keysym *clim-keysym->xt-keysym-table*) xt-keysym)))
 
 (defun-inline xt-keysym->keysym (xt-keysym)
   (gethash xt-keysym *xt-keysym->clim-keysym-table*))
@@ -1030,11 +1035,11 @@
 (define-xt-keysym (keysym 255 #x6a) :help)
 (define-xt-keysym (keysym 255 #xde) :end)
 
-(define-xt-keysym (keysym 255 #x68) :complete)
-(define-xt-keysym (keysym 255 #x69) :abort)
-(define-xt-keysym (keysym 255 #x56) :scroll)
-(define-xt-keysym (keysym 255 #x61) :refresh)
-(define-xt-keysym (keysym 255 #x0b) :clear-input)
+(define-xt-keysym (keysym 255 #x68) :complete) ; Not on my keyboard
+(define-xt-keysym (keysym 255 #x69) :abort) ; Not on my keyboard
+(define-xt-keysym (keysym 255 #x56) :scroll) ; not on my keyboard
+(define-xt-keysym (keysym 255 #x61) :refresh) ; ditto
+(define-xt-keysym (keysym 255 #x0b) :clear-input) ; ditto
 
 (define-xt-keysym (keysym 255 #x51) :left-arrow)
 (define-xt-keysym (keysym 255 #x52) :up-arrow)
@@ -1081,7 +1086,8 @@
 (define-xt-keysym (keysym 255 #xdb) :r10)
 (define-xt-keysym (keysym 255 #xdc) :r11)
 (define-xt-keysym (keysym 255 #xdd) :r12)
-(define-xt-keysym (keysym 255 #xde) :r13)
+;; This is end
+;; (define-xt-keysym (keysym 255 #xde) :r13)
 (define-xt-keysym (keysym 255 #xdf) :r14)
 (define-xt-keysym (keysym 255 #xe0) :r15)
 
@@ -1118,7 +1124,7 @@
 
 ;;;
 (defun lookup-character-and-keysym (sheet mirror event)
-  (declare (ignore sheet mirror)
+  (declare (ignore mirror)
 	   (optimize (speed 3) (safety 0)))
   (multiple-value-bind (character keysym)
       (tk::lookup-string event (port-compose-status (port sheet)))
@@ -1213,7 +1219,6 @@
 (defun get-xt-resources (port names classes)
   (let* ((display (silica::port-display port))
 	 (db (tk::display-database display))
-	 (palette (port-default-palette port))
 	 (background (xt::get-resource db names "background"
 				       classes "Background"))
 	 (foreground (xt::get-resource db names "foreground" 
@@ -1523,7 +1528,7 @@ the geometry of the children. Instead the parent has control. "))
 
 (defmethod port-set-pointer-cursor ((port xt-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
-    (let* ((cursor (and cursor (realize-cursor port cursor)))
+    (let* ((cursor (and cursor (realize-cursor port nil cursor)))
 	   (widget (sheet-direct-mirror 
 		     (let ((frame (pane-frame (pointer-sheet pointer))))
 		       (if frame
@@ -1542,7 +1547,7 @@ the geometry of the children. Instead the parent has control. "))
 
 (defmethod port-set-sheet-pointer-cursor ((port xt-port) sheet cursor)
   (unless (eq (sheet-pointer-cursor sheet)  cursor)
-    (let* ((cursor (and cursor (realize-cursor port cursor)))
+    (let* ((cursor (and cursor (realize-cursor port sheet cursor)))
 	   (widget (sheet-mirror sheet))
 	   (window (tk::widget-window widget nil)))
       (when window
@@ -1554,22 +1559,134 @@ the geometry of the children. Instead the parent has control. "))
 	(port-force-output port))))
   cursor)
 
-(defmethod realize-cursor :around ((port xt-port) cursor)
+(defmethod realize-cursor :around ((port xt-port) sheet cursor)
   (with-slots (cursor-cache) port
     (or (getf cursor-cache cursor)
 	(setf (getf cursor-cache cursor)
 	      (call-next-method)))))
 
-(defmethod realize-cursor ((port xt-port) (cursor symbol))
+(defmethod realize-cursor ((port xt-port) sheet (cursor symbol))
   (let ((cursor (or (second (assoc cursor *xt-cursor-type-alist*))
 		    132)))
-    (realize-cursor port cursor)))
+    (realize-cursor port sheet cursor)))
 
-(defmethod realize-cursor ((port xt-port) (cursor number))
+(defmethod realize-cursor ((port xt-port) sheet (cursor number))
+  (declare (ignore sheet))
   (x11:xcreatefontcursor
    (port-display port)
    cursor))
 
+(defmethod realize-cursor ((port xt-port) sheet (cursor pattern))
+  (multiple-value-bind (array designs)
+      (decode-pattern cursor)
+    ;; Three cases:
+    ;; (ink1 ink2)
+    ;; (nowhere ink1)
+    ;; (nowhere ink1 ink2)
+    (multiple-value-bind (offset maskp ink1 ink2)
+	(cond
+	 ((= (length designs) 3)
+	  (assert (eq (elt designs 0) +nowhere+))
+	  (values 0 t (elt designs 1) (elt designs 2)))
+	 ((= (length designs) 2)
+	  (if (eq (elt designs 0) +nowhere+)
+	      (values 0 t (elt designs 1) (elt designs 1))
+	    (values 1 nil (elt designs 0) (elt designs 1))))
+	 (t (error "Cannot handle this cursor pattern ~S" cursor)))
+      (let* ((height (array-dimension array 0))
+	     (width (array-dimension array 1))
+	     (pixmap-data (make-array (list height width)))
+	     (mask-data (and maskp (make-array (list height width))))
+	     (design-pixels (make-array (length designs))))
+	  
+	(flet ((doit (sheet)
+		 (with-sheet-medium (medium sheet)
+		   (dotimes (n (length designs))
+		     (let ((design (elt designs n)))
+		       (setf (svref design-pixels n)
+			 (and (not (eql design +nowhere+))
+			      (decode-color design medium))))))))
+	  (if sheet
+	      (doit sheet)
+	    (with-menu (sheet (find-graft :port port))
+	      (doit sheet))))
+	  
+	(dotimes (w width)
+	  (dotimes (h height)
+	    (let ((pixel (+ offset (aref array h w))))
+	      (setf (aref pixmap-data h w)
+		(ecase pixel
+		  (0 0)
+		  (1 0)
+		  (2 1)))
+	      (when maskp
+		(setf (aref mask-data h w)
+		  (if (eq pixel 0) 0 1))))))
+	  
+	  
+	(let* ((drawable (tk::display-root-window
+			  (port-display port))) 
+	       (depth 1)
+	       (pixmap-image (make-instance 'tk::image
+					    :width width
+					    :height height
+					    :data pixmap-data
+					    :depth depth))
+	       (mask-image (and maskp
+				(make-instance 'tk::image
+					       :width width
+					       :height height
+					       :data mask-data
+					       :depth depth)))
+	       (pixmap 
+		(make-instance 'tk::pixmap
+			       :drawable drawable
+			       :width width
+			       :height height
+			       :depth depth))
+	       (mask
+		(and maskp
+		     (make-instance 'tk::pixmap
+				    :drawable drawable
+				    :width width
+				    :height height
+				    :depth depth))))
+	  (tk::put-image pixmap 
+			 (port-copy-gc-depth-1 port) 
+			 pixmap-image)
+	  (tk::destroy-image pixmap-image)
+	  (when maskp
+	    (tk::put-image mask 
+			   (port-copy-gc-depth-1 port) 
+			   mask-image)
+	    (tk::destroy-image mask-image))
+	  (prog1
+	      (x11:xcreatepixmapcursor
+	       (port-display port)
+	       pixmap 
+	       (or mask 0)
+	       (multiple-value-bind (red green blue)
+		   (color-rgb ink1)
+		 (let* ((x #.(1- (ash 1 16))))
+
+		   (make-instance 'tk::color
+				  :red (truncate (* x red))
+				  :green (truncate (* x green))
+				  :blue (truncate (* x blue)))))
+	       (multiple-value-bind (red green blue)
+		   (color-rgb ink2)
+		 (let* ((x #.(1- (ash 1 16))))
+		   (make-instance 'tk::color
+				  :red (truncate (* x red))
+				  :green (truncate (* x green))
+				  :blue (truncate (* x blue)))))
+	       0
+	       0)
+	    (tk::destroy-pixmap pixmap)
+	    (when mask (tk::destroy-pixmap mask))))))))
+
+
+      
 
 (defvar *pointer-grabbed* nil)
 

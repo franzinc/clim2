@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.61 93/04/16 09:45:40 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.62 93/04/23 09:18:17 cer Exp $
 
 (in-package :clim-user)
 
@@ -2037,7 +2037,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (slider-dialog menus-and-dialogs) (stream)
   "Various sliders"
   (let ((d 0.5)
-	(e 5))
+	(e 5)
+	(f 5)
+	(g 5))
     (accepting-values (stream :own-window nil :label "sliders dialog")
       (macrolet ((accepts (&rest accepts)
 		   `(progn
@@ -2054,7 +2056,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 				accepts))))
 	(accepts 
 	 (d (float 0 1) :view '(slider-view :show-value-p t :decimal-places 2))
-	 (e (integer 0 10) :view +slider-view+))
+	 (e (integer 0 10) :view +slider-view+)
+	 (f (float 0 100) :view '(slider-view :orientation :vertical :show-value-p t))
+	 (g (integer 0 10) :view '(slider-view :orientation :vertical)))
 	(terpri stream)))))
 
 (define-test (readonly-gadget-dialog menus-and-dialogs) (stream)

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.cobjs,v 1.1 93/04/16 09:26:08 layer Exp $
+# $fiHeader: Makefile.cobjs,v 1.2 93/04/23 09:17:10 cer Exp $
 #
 #  Makefile.cobj for CLIM 2.0, containing non-svr4 C rules
 #
@@ -33,15 +33,14 @@ stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_xt_stub ()"  $(XT_UNDEFS)  > stub-xt.c 
 
 xlibsupport.o	: xlib/xlibsupport.c 
-	$(CC) -c $(CFLAGS) -o xlibsupport.o xlib/xlibsupport.c
+	$(CC) -c $(CFLAGS) $(XINCLUDES) -o xlibsupport.o xlib/xlibsupport.c
 
 xtsupport.o: misc/xtsupport.c
-	$(CC) -c $(CFLAGS) $(XTSUPPORTINCLUDES) -o xtsupport.o \
+	$(CC) -c $(CFLAGS) $(XINCLUDES) $(XTSUPPORTINCLUDES) -o xtsupport.o \
 		misc/xtsupport.c
 
-MyDrawingA.o: misc/MyDrawingA.c
-	$(CC) -c $(CFLAGS) -o MyDrawingA.o misc/MyDrawingA.c
+MyDrawingA.o: misc/MyDrawingA.c misc/climgccursor.c
+	$(CC) -c $(CFLAGS) $(XMINCLUDES) -o MyDrawingA.o misc/MyDrawingA.c
 
-olsupport.o: misc/olsupport.c
-	$(CC) -c $(CFLAGS) -o olsupport.o misc/olsupport.c
-
+olsupport.o: misc/olsupport.c misc/climgccursor.c
+	$(CC) -c $(CFLAGS) $(OLINCLUDES) -o olsupport.o misc/olsupport.c

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.39 93/03/19 09:43:38 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.40 1993/05/05 01:38:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -200,6 +200,9 @@
   (let ((text-cursor (stream-text-cursor stream)))
     (when text-cursor
       (setf (cursor-focus text-cursor) nil))))
+
+(defmethod queue-event ((stream input-protocol-mixin) (event pointer-exit-event))
+  (queue-put (stream-input-buffer stream) (copy-event event)))
 
 (defmethod sheet-transformation-changed :after ((stream input-protocol-mixin) &key)
   (let ((pointer (stream-primary-pointer stream)))

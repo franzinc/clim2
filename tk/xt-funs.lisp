@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.15 92/12/14 15:04:17 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.16 93/01/11 15:46:02 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -368,3 +368,25 @@
 		 )
     :arg-checking nil
     :return-type :unsigned-integer)
+
+
+(ff:defforeign 'init_clim_gc_cursor_stuff
+    :call-direct t
+    :arguments '(fixnum)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "init_clim_gc_cursor_stuff")
+    :return-type :unsigned-integer)
+
+(ff:defforeign 'set_clim_gc_cursor_widget
+    :call-direct t
+    :arguments '(foreign-address integer)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "set_clim_gc_cursor_widget")
+    :return-type :unsigned-integer)
+
+;(ff:defforeign 'xt_get_multi_click_time
+;    :call-direct t
+;    :arguments '(foreign-address)
+;    :arg-checking nil
+;    :entry-point (ff:convert-to-lang "XtGetMultiClickTime")
+;    :return-type :unsigned-integer)

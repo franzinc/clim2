@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.47 93/04/27 14:36:04 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.48 1993/05/05 01:40:28 cer Exp $
 
 
 (in-package :xm-silica)
@@ -116,7 +116,7 @@
        (gadget-client sheet)
        (gadget-id sheet)
        (compute-symmetric-value
-	mmin mmax value smin smax)
+	mmin (- mmax size) value smin smax)
        (compute-symmetric-value
 	mmin mmax size smin smax)))))
 
@@ -484,8 +484,26 @@
 		     (:center :center)
 		     (:right :right)))
 	     ;;-- icon label
-	     (and label (list :string label))))))
-  
+	     (make-label-initarg label :string)))))
+
+(defmethod compose-space ((sheet openlook-label-pane) &key width height)
+  (declare (ignore width height))
+  (let ((label (gadget-label sheet)))
+    (if (typep label 'xt::pixmap)
+	(make-space-requirement :width (xt::pixmap-width label)
+				:height (xt::pixmap-height label))
+      (call-next-method))))
+
+(defun make-label-initarg (label initarg)
+  (etypecase label
+    (null)
+    (string (list initarg label))
+    (xt::pixmap (list :background-pixmap label))))
+
+(defmethod (setf gadget-label) :after (new-value (sheet openlook-label-pane))
+  (let ((m (sheet-direct-mirror sheet)))
+    (when m
+      (tk::set-values m :string new-value))))
 ;;; Push button
 
 (defclass openlook-push-button (push-button
@@ -933,7 +951,7 @@
 	  (list :show-value-p show-value-p)
 	  (list :drag-c-b-type :release)
 	  ;;-- icon label
-	  (and label (list :label label))
+	  (make-label-initarg label :label)
 	  (list :slider-min mmin
 		:slider-max mmax)
 	  (and value 
@@ -946,35 +964,52 @@
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-slider))
   (let ((control-area (call-next-method))
 	(initargs (openlook-slider-initargs sheet)))
-    (with-accessors ((slider-mirror openlook-slider-mirror)
-		     (label-mirror openlook-slider-label-mirror )
-		     (value-mirror openlook-slider-value-mirror)) sheet
-      (destructuring-bind (&key label slider-class show-value-p &allow-other-keys) initargs
-	(setf label-mirror
-	  (make-instance 'tk::static-text 
-			 :string (or label "")
-			 :managed (and label t)
-			 :parent control-area))
-	(setf slider-mirror
-	  (with-keywords-removed (bashed-initargs initargs '(:label 
-							     :show-value-p
-							     :slider-class))
-	    (apply #'make-instance slider-class :parent control-area
-		   bashed-initargs)))
+    (multiple-value-bind
+        (smin smax) (gadget-range* sheet)
+      (with-accessors ((slider-mirror openlook-slider-mirror)
+		       (label-mirror openlook-slider-label-mirror )
+		       (value-mirror openlook-slider-value-mirror)
+		       (value gadget-value)
+		       (decimal-places slider-decimal-places)) sheet
+	(destructuring-bind (&key label slider-class show-value-p &allow-other-keys) initargs
+	  (setf label-mirror
+	    (make-instance 'tk::static-text 
+			   :string (or label "")
+			   :managed (and label t)
+			   :parent control-area))
+	  (setf slider-mirror
+	    (with-keywords-removed (bashed-initargs initargs '(:label 
+							       :show-value-p
+							       :slider-class))
+	      (apply #'make-instance slider-class :parent control-area
+		     bashed-initargs)))
 	
-	(when (gadget-editable-p sheet)
-	  ;;--- Do we need to do this?
-	  #+ignore
-	  (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
-	  (tk::add-callback slider-mirror :slider-moved
-			    'slider-changed-callback-1 sheet))
+	  (when (gadget-editable-p sheet)
+	    ;;--- Do we need to do this?
+	    #+ignore
+	    (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
+	    (tk::add-callback slider-mirror :slider-moved
+			      'slider-changed-callback-1 sheet))
 	
-	(setf value-mirror
-	  (make-instance 'tk::static-text 
-			 :string "XXXXX"
-			 :managed (and show-value-p t)
-			 :parent control-area)))
-      control-area)))
+	  (setf value-mirror
+	    (make-instance 'tk::static-text 
+			   :strip nil
+			   :string (print-slider-value
+				    decimal-places
+				    value  smin smax)
+			   :managed (and show-value-p t)
+			   :parent control-area)))
+	control-area))))
+
+(defun print-slider-value (decimal-places value smin smax)
+  (let ((n (+ decimal-places
+	      (if (> decimal-places 0) 1 0)
+	      (if (minusp smin) 1 0)
+	      (1+ (ceiling (max (log (abs smax) 10)
+				(log (abs smin) 10)))))))
+    (if (> decimal-places 0)
+	(format nil "~v,vf " n decimal-places value)
+      (format nil "~vD " n (round value)))))
 
 (defmethod gadget-value ((slider openlook-slider))
   (if (sheet-direct-mirror slider)
@@ -992,10 +1027,10 @@
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (multiple-value-bind
-	  (current-value mmin mmax size)
-	  (tk::get-values widget :slider-value :slider-min :slider-max :proportion-length)
+	  (current-value mmin mmax)
+	  (tk::get-values widget :slider-value :slider-min :slider-max)
 	(compute-symmetric-value
-			 mmin (- mmax size) (or current-value value) smin smax)))))
+			 mmin mmax (or value current-value) smin smax)))))
 
 
 (defun set-slider-value (sheet nv)
@@ -1014,33 +1049,100 @@
 
 
 (defmethod slider-changed-callback-1 ((widget t) value (sheet openlook-slider))
-  (queue-value-changed-event widget sheet
-			     (compute-slider-value sheet value)))
+  (let ((real-value (compute-slider-value sheet value)))
+    (queue-value-changed-event widget sheet real-value)
+    (let ((text (openlook-slider-value-mirror sheet)))
+      (when (xt::is-managed-p text)
+	(multiple-value-bind
+	    (smin smax) (gadget-range* sheet)
+	  (tk::set-values text 
+			  :string
+			  (print-slider-value
+			   (slider-decimal-places sheet)
+			   real-value  smin smax)))))))
 
-(defmethod compose-space ((m openlook-slider) &key width height)
+(defmethod compose-space ((sheet openlook-slider) &key width height)
   (declare (ignore width height))
-  (let ((sr (multiple-value-bind (max-width height)
-		(map-over-menubar m nil)
-	      (make-space-requirement :width max-width :height height))))
-    (multiple-value-bind (width min-width max-width
-			  height min-height max-height)
-	(space-requirement-components sr)
-      (ecase (gadget-orientation m)
-	(:vertical
-	 (maxf height 120)
-	 (maxf min-height 120)
-	 (maxf max-height 120)
-	 (setq max-height +fill+))
-	(:horizontal
-	 (let ((fudge (max 0 (- 100 (tk::get-values 
-				     (openlook-slider-mirror m)
-				     :width)))))      
-	   (incf width fudge)
-	   (incf min-width fudge)
-	   (setq max-width +fill+))))
-      (make-space-requirement
-       :width width :min-width min-width :max-width max-width
-       :height height :min-height min-height :max-height max-height))))
+  
+  (with-accessors ((slider-mirror openlook-slider-mirror)
+		   (label-mirror openlook-slider-label-mirror)
+		   (value-mirror openlook-slider-value-mirror)
+		   (orientation gadget-orientation)) sheet
+    
+    (let ((h-pad 4) 
+	  (v-pad 4)
+	  (h-space 4)
+	  (v-space 4)
+	  (height 0)
+	  (max-height 0)
+	  (width 0)
+	  (max-width 0))
+
+      (flet ((do-child (child &optional (min-width 0) (min-height 0))
+	       (when (xt::is-managed-p child)
+		 (multiple-value-bind
+		     (ignore-x igore-y w h)
+		     (xt::widget-best-geometry child)
+		   (declare (ignore ignore-x igore-y))
+
+		   (incf w h-space)
+		   (incf h v-space)
+		   (maxf h min-height)
+		   (maxf w min-width)
+		   
+		   (incf height h)
+		   (maxf max-height h)
+		   (incf width w)
+		   (maxf max-width w)))))
+
+	(do-child label-mirror)
+	(do-child value-mirror)
+	(ecase orientation
+	  (:horizontal (do-child slider-mirror 100 0))
+	  (:vertical (do-child slider-mirror 0 100)))
+	
+	(incf width (* 2 h-pad))
+	(incf max-width (* 2 h-pad))
+	
+	(incf height (* 2 v-pad))
+	(incf max-height (* 2 v-pad))
+
+	(make-space-requirement :width width :height max-height)))))
+
+(defmethod allocate-space ((sheet openlook-slider) width height)
+  (declare (ignore width height))
+  (with-accessors ((slider-mirror openlook-slider-mirror)
+		   (label-mirror openlook-slider-label-mirror)
+		   (value-mirror openlook-slider-value-mirror)
+		   (orientation gadget-orientation)) sheet
+    
+    (let* ((h-pad 4) 
+	  (v-pad 4)
+	  (h-space 4)
+	  (v-space 4)
+	  (x h-pad)
+	  (y v-pad))
+
+      (flet ((do-child (child &optional (min-width 0) (min-height 0))
+	       (when (xt::is-managed-p child)
+		 
+		 (multiple-value-bind
+		     (ignore-x igore-y w h)
+		     (xt::widget-best-geometry child)
+		   (declare (ignore ignore-x igore-y))
+
+		   (incf w h-space)
+		   (incf h v-space)
+		   (maxf h min-height)
+		   (maxf w min-width)
+		   (tk::set-values child :x x :y y :width w :height h)
+		   (incf x (+ w h-space))))))
+
+	(do-child label-mirror)
+	(do-child value-mirror)
+	(ecase orientation
+	  (:horizontal (do-child slider-mirror 100 0))
+	  (:vertical (do-child slider-mirror 0 100)))))))
 
 #+dunno
 (defmethod (setf gadget-show-value-p) :after (nv (sheet openlook-slider)) 
@@ -1593,7 +1695,7 @@
 	   (label (apply #'make-instance 'tk::static-text
 			 :parent control
 			 (append 
-			  (and label `(:string ,label)))))
+			  (make-label-initarg label :string))))
 	   (widget (apply #'make-instance 
 			  'xt::abbrev-menu-button
 			  :parent control nil))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.4 92/12/01 09:47:07 cer Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.5 93/03/19 09:46:57 cer Exp $
 
 
 (in-package :clim-internals)
@@ -39,6 +39,9 @@
 			    :align-prompts align-prompts
 			    :stream (setf own-window 
 				      (make-pane 'clim-stream-pane
+						 
+						 :output-record
+						 (make-instance 'standard-sequence-output-history)
 						 :initial-cursor-visibility :off))))
 	   (if scroll-bars
 	       (scrolling (:scroll-bars scroll-bars) own-window)

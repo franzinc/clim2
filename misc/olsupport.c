@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: olsupport.c,v 1.1 92/06/23 08:27:32 cer Exp $
+ * $fiHeader: olsupport.c,v 1.2 93/03/31 10:39:10 cer Exp $
  */
 
 /************************************************************************/
@@ -56,3 +56,4 @@ int token;
     (*fn)(widget, token);
 }
 
+#include "climgccursor.c"

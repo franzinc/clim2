@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.49 93/04/23 09:17:20 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.50 1993/05/05 01:38:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -551,7 +551,7 @@
   (bounding-rectangle-width (window-viewport stream)))
 
 (defmethod window-inside-height ((stream clim-stream-sheet))
-  (bounding-rectangle-width (window-viewport stream)))
+  (bounding-rectangle-height (window-viewport stream)))
 
 (defmethod window-margins ((stream clim-stream-sheet))
   (values (coordinate 0) (coordinate 0)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.21 92/12/03 10:27:10 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.22 93/04/07 09:06:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -148,6 +148,8 @@
 			  :timeout (and click-only timeout)))
 	  (cond ((eq gesture-type :timeout)
 		 (return-from read-token :timeout))
+		((and click-only (eq gesture :eof))
+		 (error "Got an EOF when waiting for mouse input"))
 		((and click-only
 		      (not (typep gesture 'pointer-button-event)))
 		 (beep stream))

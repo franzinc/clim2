@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.17 93/04/23 09:18:43 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.18 93/04/27 14:36:07 cer Exp $
 
 (in-package :xm-silica)
 
@@ -71,20 +71,33 @@
   (declare (ignore x y width height))
   (apply #'tk::configure-widget child args))
 
+(defmethod change-widget-geometry ((parent tk::shell) child
+						      &rest args
+						      &key x y width height)
+  (declare (ignore x y args))
+  ;;-- shells decide where windows are positioned!
+  (unless (multiple-value-bind (w h)
+	      (tk::get-values child :width :height)
+	    (and (= w width)
+		 (= h height)))
+    (tk::set-values child :width width :height height)))
+
 ;;;--- Why have this class
 
 (defclass openlook-geometry-manager (xt-geometry-manager) ())
 
 ;;--- This looks kinda like to motif-port method.
 (defmethod find-shell-class-and-initargs ((port openlook-port) sheet)
-  (declare (ignore port))
   (cond ( ;;--- hack alert
 	 (popup-frame-p sheet)
 	 (values 'tk::transient-shell
 		 (append
 		  (let ((x (find-shell-of-calling-frame sheet)))
 		    (and x `(:transient-for ,x)))
-		  '(:keyboard-focus-policy :pointer))))
+		  '(:keyboard-focus-policy :pointer)
+		  (and (typep (pane-frame sheet)
+			   'clim-internals::menu-frame)
+		    '(:override-redirect t)))))
 	(t
 	 (call-next-method))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.17 93/03/31 10:39:21 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.18 93/04/02 13:36:40 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -561,8 +561,10 @@ end } def
 (defmethod postscript-epilogue ((medium postscript-medium))
   (let* ((printer-stream (slot-value medium 'printer-stream))
 	 (port (port medium))
+	 (destination (slot-value port 'destination))
 	 (font-map (slot-value port 'font-map)))
-    (format printer-stream "showpage~%")
+    (unless (eq destination :document)
+      (format printer-stream "showpage~%"))
     (postscript-device-epilogue port printer-stream)
     (format printer-stream "%%Trailer~%")
     (let ((font-names-used nil))
@@ -723,9 +725,10 @@ end } def
 
 
 (defclass postscript-port (basic-port)
-    ;; 72 points per inch on PostScript devices
-    ((font-map :initform (make-array 30 :initial-element nil))
-     (device-units-per-inch :initform 72)))
+  ;; 72 points per inch on PostScript devices
+  ((font-map :initform (make-array 30 :initial-element nil))
+   (device-units-per-inch :initform 72)
+   (destination :initarg :destination :initform :printer)))
 
 (defmethod port-type ((port postscript-port))
   ':postscript)
@@ -951,10 +954,12 @@ end } def
 						&key (device-type 'apple-laser-writer)
 						     multi-page scale-to-fit
 						     header-comments
-						     (orientation :portrait))
+						     (orientation
+						      :portrait)
+						     (destination :printer))
   (assert (not (and multi-page scale-to-fit)) (multi-page scale-to-fit)
     "You may not use both ~S and ~S" ':multi-page ':scale-to-fit)
-  (let* ((port (make-instance device-type))
+  (let* ((port (make-instance device-type :destination destination))
 	 (stream (make-instance 'postscript-stream
 				:multi-page multi-page))
 	 (abort-p t))

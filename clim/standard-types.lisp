@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.26 93/03/04 19:00:04 colin Exp $
+;; $fiHeader: standard-types.lisp,v 1.27 93/03/19 09:43:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1516,9 +1516,12 @@
   (loop
     (with-input-context ('expression)
 			(object type)
-	 (let ((char (read-char stream))
+	 (let ((char (read-char stream (not auto-activate) :eof))
 	       (other-delimiter nil))
-	   (cond ((and (activation-gesture-p char) (not desired-delimiter))
+	   (cond ((eq char :eof)
+		  ;;-- what is the right thing?
+		  (return))
+		 ((and (activation-gesture-p char) (not desired-delimiter))
 		  (unread-char char stream)
 		  (return))
 		 ((and (delimiter-gesture-p char) (not desired-delimiter)

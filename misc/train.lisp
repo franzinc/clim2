@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.6 93/04/16 09:45:14 cer Exp $
+;; $fiHeader: train.lisp,v 1.7 93/04/23 09:18:03 cer Exp $
 
 (defun train-clim (&key (train-times 2) 
 			(psview nil)
@@ -48,7 +48,9 @@
       (load "test/hpgl-tests.lisp")
       (clim-user::run-hpgl-tests :output hpglview)))
   
-  (with-open-file (*standard-output* "coverage-report.lisp" 
+  (with-open-file (*standard-output* (if (excl::featurep :clim-motif) 
+					     "coverage-reportxm.lisp"
+					   "coverage-reportol.lisp")
 		   :if-exists :supersede :direction :output)
     (generate-coverage-report))
   (compile-file "misc/clos-preload.cl" 

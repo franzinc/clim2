@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.24 93/04/07 09:06:47 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.25 1993/05/05 01:38:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1019,8 +1019,16 @@
   (loop (read-gesture :stream stream)))
 
 (defmethod frame-manager-display-help 
-	   (framem frame (stream standard-input-editing-stream) continuation)
+    (framem frame (stream standard-input-editing-stream) continuation)
   (declare (dynamic-extent continuation))
   (declare (ignore framem frame))
-  (with-input-editor-typeout (stream :erase t)	;don't scribble over previous output
-    (funcall continuation stream)))
+  ;;-- Yuck but think of a better way
+  (let ((old-help *accept-help*))
+    (if (typep (encapsulating-stream-stream stream) 'accept-values-pane)
+	(accepting-values (stream :exit-boxes '(:exit)
+				  :label "Input editor help"
+				  :own-window t)
+	  (let ((*accept-help* old-help))
+	    (funcall continuation stream)))
+      (with-input-editor-typeout (stream :erase t) ;don't scribble over previous output
+	(funcall continuation stream)))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.15 92/11/20 08:46:06 cer Exp $
+;; $fiHeader: event.lisp,v 1.16 93/02/08 15:57:53 cer Exp $
 
 (in-package :tk)
 
@@ -77,7 +77,11 @@
 	      (mp:wait-for-input-available fds :wait-function #'wait-function
 					   :timeout new-timeout)
 	    (setq mask (xt_app_pending context))))))
+
+    
     (values mask reason)))
+
+
 
 (defun process-one-event (context mask reason)
   (cond ((plusp mask)

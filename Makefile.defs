@@ -1,9 +1,9 @@
-# $fiHeader: Makefile.defs,v 1.7 93/04/16 09:44:41 cer Exp $
+# $fiHeader: Makefile.defs,v 1.8 93/04/27 14:34:06 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= /net/vapor/scm2/4.2.beta/src/dcl
+CL	= /usr/fi/dcl-4.2.beta2.0
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
@@ -59,7 +59,7 @@ CLIMOL= $(CLIM)
 CLIMXM= $(CLIM)
 
 
-CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD $(XINCLUDES)
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD
 LDFLAGS=
 OLDSPACE = 15000000
 NEWSPACE = 5000000
@@ -76,7 +76,7 @@ SRC_FILES = */*.lisp *.lisp Makefile Makefile.* misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.colit \
 	    misc/undefinedsymbols.motif misc/undefinedsymbols.cmotif misc/undefinedsymbols.xt \
 	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c \
-	    misc/clos-preload.cl misc/xtsupport.c
+	    misc/clos-preload.cl misc/xtsupport.c misc/climgccursor.c
 
 DEST=/dev/null
 
@@ -326,6 +326,7 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/xm-gadgets.fasl \
                    tk-silica/xt-pixmaps.fasl \
                    tk-silica/xt-cursor.fasl \
+		   tk-silica/gc-cursor.fasl \
                    tk-silica/last.fasl
 
 
@@ -341,6 +342,7 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/ol-gadgets.fasl \
 		      tk-silica/xt-cursor.fasl \
                       tk-silica/xt-pixmaps.fasl \
+		      tk-silica/gc-cursor.fasl \
 		      tk-silica/last.fasl
 
 POSTSCRIPT_CLIM= postscript/postscript-port.fasl \

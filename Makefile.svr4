@@ -1,4 +1,4 @@
-# $fiHeader: $
+# $fiHeader: Makefile.svr4,v 1.2 93/04/28 17:19:00 layer Exp $
 
 include Makefile.defs
 
@@ -16,7 +16,11 @@ MOTIFLIB=/usr/lib/libXm$(DEBUGLIB).a
 MOTIFLIB_d=/usr/lib/libXm.a
 XLIB= /usr/lib/libX11$(DEBUGLIB).a 
 XTLIB=/usr/lib/libXt$(DEBUGLIB).a
+
 XINCLUDES=-I/usr/include
+XMINCLUDES=-I/usr/include
+OLINCLUDES=-I/usr/openwin/include
+
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 MOTIFXTRAOS=
 

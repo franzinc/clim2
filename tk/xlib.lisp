@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.43 93/04/07 09:07:17 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.44 1993/05/05 01:40:19 cer Exp $
 
 (in-package :tk)
 
@@ -337,9 +337,11 @@
 (defclass color (ff:foreign-pointer) ())
 
 (defmethod initialize-instance :after 
-	   ((x color) &key foreign-address red green blue (pixel 0))
+	   ((x color) &key foreign-address (in-foreign-space t) red green blue (pixel 0))
   (unless foreign-address
-    (setq foreign-address (x11::make-xcolor :in-foreign-space t))
+    (setq foreign-address (if in-foreign-space
+			      (x11::make-xcolor :in-foreign-space t)
+			    (x11::make-xcolor :in-foreign-space nil)))
     (setf (x11::xcolor-red foreign-address) red
 	  (x11:xcolor-green foreign-address) green
 	  (x11:xcolor-blue foreign-address) blue

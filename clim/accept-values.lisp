@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.60 93/04/16 09:44:46 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.61 1993/05/05 01:38:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -265,7 +265,9 @@
      (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
      (check-overlapping :initform t :initarg :check-overlapping)
      (own-window :initform nil :initarg :own-window)
-     (own-window-properties :initform nil :initarg :own-window-properties))
+     (own-window-properties :initform nil :initarg :own-window-properties)
+     (view :initarg :view))
+
   (:top-level (accept-values-top-level))
   (:command-definer t))
 
@@ -322,7 +324,8 @@
 				      (modify-initial-query nil) align-prompts
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position
-				      width height (right-margin 10) (bottom-margin 10))
+				      width height (right-margin 10) (bottom-margin 10)
+				      view)
    (incf *accept-values-tick*)
    (setq align-prompts (ecase align-prompts
 			 ((t :right) :right)
@@ -337,8 +340,9 @@
 	 (let ((frame (make-application-frame 
 			(or frame-class 
 			    (frame-manager-accepting-values-frame-class
-			      frame-manager))
-			:calling-frame *application-frame*
+			     frame-manager))
+			;;--- What is the correct thing here?
+			:calling-frame (or (pane-frame stream) *application-frame*)
 			:frame-manager frame-manager
 			:pretty-name label
 			:continuation continuation
@@ -354,7 +358,8 @@
 			:check-overlapping check-overlapping
 			:resize-frame resize-frame
 			:scroll-bars scroll-bars
-			:align-prompts align-prompts)))
+			:align-prompts align-prompts
+			:view view)))
 	   (when command-table
 	     (setf (frame-command-table frame) command-table))
 	   (unwind-protect
@@ -377,7 +382,9 @@
 			  ;; This frame won't necessarily be adopted, so make
 			  ;; sure that we share the sheet with the parent frame
 			  ;; in the case of "inlined" dialogs
-			  :top-level-sheet (frame-top-level-sheet *application-frame*))))
+			  :top-level-sheet (frame-top-level-sheet
+					    *application-frame*)
+			  :view view)))
 	     (when command-table
 	       (setf (frame-command-table frame) command-table))
 	     (unwind-protect
@@ -395,7 +402,7 @@
   (declare (ignore args))
   (with-slots (stream continuation resynchronize-every-pass check-overlapping
 	       selected-item initially-select-query-identifier
-	       own-window own-window-properties exit-button-stream) frame
+	       own-window own-window-properties exit-button-stream view) frame
     (let* ((original-view (stream-default-view stream))
 	   (return-values nil)
 	   (initial-query nil)
@@ -408,9 +415,11 @@
 	   (own-window-width  (pop properties))
 	   (own-window-height (pop properties))
 	   (own-window-right-margin  (pop properties))
-	   (own-window-bottom-margin (pop properties)))
-      (letf-globally (((stream-default-view stream) 
-		       (frame-manager-dialog-view (frame-manager frame)))
+	   (own-window-bottom-margin (pop properties))
+	   (view 
+	    (or view
+		(frame-manager-dialog-view (frame-manager frame)))))
+      (letf-globally (((stream-default-view stream) view)
 		      ((stream-read-gesture-cursor-state stream) nil))
 	(labels ((run-continuation (stream avv-record)
 		   (setf (slot-value stream 'avv-record) avv-record)
@@ -425,10 +434,13 @@
 			   (formatting-table (stream)
 			     (setq return-values
 				   (multiple-value-list
-				     (funcall continuation stream))))
+				       (funcall continuation
+						stream))))
+			 (progn
+			   (display-view-background stream view)
 			   (setq return-values
 				 (multiple-value-list
-				   (funcall continuation stream)))))
+				   (funcall continuation stream))))))
 		     (unless own-window
 		       (display-exit-boxes frame stream
 					   (stream-default-view stream)))))
@@ -548,6 +560,9 @@
 		(deactivate-all-gadgets avv-record)
 		(move-cursor-beyond-output-record 
 		  (encapsulating-stream-stream stream) avv)))))))))
+
+(defmethod display-view-background (stream (view view))
+  nil)
 
 (defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
 					&key (align-prompts t))
@@ -764,30 +779,31 @@
       (with-stream-cursor-position-saved (stream)
 	(multiple-value-bind (xoff yoff)
 	    (convert-from-relative-to-absolute-coordinates
-	      stream (output-record-parent presentation))
+	     stream (output-record-parent presentation))
 	  (multiple-value-bind (x y) (output-record-position presentation)
 	    (stream-set-cursor-position stream (+ x xoff) (+ y yoff))))
-	(erase-output-record presentation stream)
-	(catch-abort-gestures ("Abort editing the current field")
-	  (let ((new-value nil)
-		(record nil))
-	    (setq record
-		  (with-new-output-record (stream)
-		    (setq new-value
-		      ;; The text cursor should be visible while this ACCEPT is
-		      ;; waiting for input to be typed into this field
-		      (letf-globally (((stream-read-gesture-cursor-state stream) t))
-			(accept presentation-type
-				:stream stream :prompt nil :default value
-				:insert-default modify)))))
-	    ;; This so that the input editor's typing gets erased properly.
-	    (erase-output-record record stream)
-	    ;;--- Kludge until Bill can explain the whole "leave the delimiter" vs
-	    ;;--- "process the delimiter" scheme to me
-	    (when (read-gesture :stream stream :peek-p t :timeout 0)
-	      (process-delimiter stream))
-	    (setf value new-value
-		  changed-p t)))))))
+	(unwind-protect
+	    (progn (erase-output-record presentation stream)
+		   (catch-abort-gestures ("Abort editing the current field")
+		     (let ((new-value nil)
+			   (record nil))
+		       (setq record
+			 (with-new-output-record (stream)
+			   (setq new-value
+			     ;; The text cursor should be visible while this ACCEPT is
+			     ;; waiting for input to be typed into this field
+			     (letf-globally (((stream-read-gesture-cursor-state stream) t))
+			       (accept presentation-type
+				       :stream stream :prompt nil :default value
+				       :insert-default modify)))))
+		       ;; This so that the input editor's typing gets erased properly.
+		       (erase-output-record record stream)
+		       ;;--- Kludge until Bill can explain the whole "leave the delimiter" vs
+		       ;;--- "process the delimiter" scheme to me
+		       (when (read-gesture :stream stream :peek-p t :timeout 0)
+			 (process-delimiter stream))
+		       (setf value new-value))))
+	  (setf changed-p t))))))
 
 (defun map-over-accept-values-queries (avv-record continuation)
   (declare (dynamic-extent continuation))
@@ -1355,37 +1371,44 @@
   (declare (dynamic-extent prompt))
   (updating-output (stream :unique-id query-identifier :id-test #'equal
 			   :cache-value cache-value :cache-test cache-test)
-    (with-output-as-gadget (stream)
-      (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
-	    (client (make-instance 'accept-values-command-button
-				   :continuation continuation
-				   :documentation documentation
-				   :resynchronize resynchronize)))
-	(make-pane 'push-button
-		   :id record :client client
-		   :activate-callback
-		   #'(lambda (button)
-		       (when (accept-values-query-valid-p nil record) ;---can't be right
-			 (let ((sheet (sheet-parent button)))
-			   (process-command-event
-			    sheet
-			    (allocate-event 'presentation-event
-					    :sheet sheet
-					    :echo nil
-					    :presentation-type 'command
-					    :value `(com-avv-command-button ,client ,record)
-					    :frame *application-frame*)))))
+    (flet ((doit (stream)
+	     (with-output-as-gadget (stream)
+	       (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
+		     (client (make-instance 'accept-values-command-button
+					    :continuation continuation
+					    :documentation documentation
+					    :resynchronize resynchronize)))
+		 (make-pane 'push-button
+			    :id record :client client
+			    :activate-callback
+			    #'(lambda (button)
+				(when (accept-values-query-valid-p nil record) ;---can't be right
+				  (let ((sheet (sheet-parent button)))
+				    (process-command-event
+				     sheet
+				     (allocate-event 'presentation-event
+						     :sheet sheet
+						     :echo nil
+						     :presentation-type 'command
+						     :value `(com-avv-command-button ,client ,record)
+						     :frame *application-frame*)))))
 		   
-		   :label (if (stringp prompt)
-			      prompt
-			    ;;-- Does this suck or what???
-			    ;;-- If you do a
-			    ;;surrounding-output-with-border without
-			    ;;this write-string output does not get bordered.
-			    (let ((*original-stream* nil))
-			      (pixmap-from-menu-item stream 
-						     prompt
-						     #'funcall
-						     nil))))))))
+			    :label (if (stringp prompt)
+				       prompt
+				     ;;-- Does this suck or what???
+				     ;;-- If you do a
+				     ;;surrounding-output-with-border without
+				     ;;this write-string output does not get bordered.
+				     (let ((*original-stream* nil))
+				       (pixmap-from-menu-item stream 
+							      prompt
+							      #'funcall
+							      nil))))))))
+      (let ((align-prompts (slot-value stream 'align-prompts)) query)
+	(if align-prompts
+	    (formatting-row (stream)
+	      (formatting-cell (stream) stream)
+	      (formatting-cell (stream) (doit stream)))
+	  (doit stream))))))
 
 

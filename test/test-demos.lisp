@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.5 92/12/07 12:14:53 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.1 93/03/19 09:46:37 cer Exp $
 
 (define-frame-test test-puzzle-demo (clim-demo::puzzle)
   (
@@ -210,3 +210,17 @@
    
    )
   (clim-demo::com-bitmap-editor-quit))
+
+(pushnew 'run-all-demos *frame-tests*)
+
+(defun run-all-demos ()
+  (dolist (demo clim-demo::*demos*)
+    (let ((fn (cdr demo)))
+      (unless (functionp fn)
+	(handler-case (mp::with-timeout (20)
+			(funcall fn :force t))
+	  (error (c)
+	    (note-test-failed fn c))
+	  (:no-error (&rest ignore)
+	    (declare (ignore ignore))
+	    (note-test-succeeded fn)))))))

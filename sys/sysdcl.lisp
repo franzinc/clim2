@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.38 93/04/16 09:26:26 layer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.39 93/04/16 09:45:31 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -430,6 +430,7 @@
   ("xm-gadgets")
   ("xt-cursor")
   ("xt-pixmaps")
+  ("gc-cursor")
   ("last"))
 
 #+Allegro
@@ -452,6 +453,7 @@
   ("ol-gadgets")
   ("xt-cursor")
   ("xt-pixmaps")
+  ("gc-cursor")
   ("last"))
 
 

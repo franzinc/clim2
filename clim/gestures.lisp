@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.19 92/11/20 08:44:35 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.20 92/12/03 10:26:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -477,10 +477,10 @@
 					    #+Cloe-Runtime (:escape)
 					    #-(or Genera Cloe-Runtime) (:z :control))
 (define-gesture-name :help        :keyboard (:help))
-(define-gesture-name :complete    :keyboard (:complete))
-(define-gesture-name :scroll      :keyboard (:scroll))
-(define-gesture-name :refresh     :keyboard (:refresh))
-(define-gesture-name :clear-input :keyboard (:clear-input))
+(define-gesture-name :complete    :keyboard (:complete)) ; not X
+(define-gesture-name :scroll      :keyboard (:scroll)) ; not X
+(define-gesture-name :refresh     :keyboard (:refresh)) ; not X
+(define-gesture-name :clear-input :keyboard (:clear-input)) ; not X
 
 #-Genera
 (define-gesture-name :asynchronous-abort :keyboard #+Cloe-Runtime (:escape :control)

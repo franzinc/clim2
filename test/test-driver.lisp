@@ -80,6 +80,7 @@
 
 
 (defun handler-invocation-debugger-hook (invocation condition)
+  (declare (ignore invocation))
   (format excl:*initial-terminal-io* "The following error occurred: ~A~%" condition))
 
 (defvar *default-input-state-timeout* 300)
@@ -227,6 +228,7 @@
     (push test (cdr *test-successes*))))
 
 (defmacro with-test-reporting ((&rest options &key file) &body body)
+  (declare (ignore file))
   `(invoke-with-test-reporting #'(lambda () ,@body) ,@options))
 
 (defun invoke-with-test-reporting (continuation &rest options)
@@ -360,9 +362,15 @@
 	      (format excl:*initial-terminal-io*
 		      "selecting ~d of ~d = ~s @ ~d,~d~%"
 		      i len record left top)
-	      (stream-set-pointer-position pane (+ left x-offset)
-					      (+ top y-offset))
-	      (wait-for-clim-input-state invocation)
+	      ;;-- Exit event problem
+	      (dotimes (i 2)
+		(stream-set-pointer-position pane (+ left x-offset)
+					     (+ top y-offset))
+		(wait-for-clim-input-state invocation)
+		(when (clim-internals::stream-highlighted-presentation pane) 
+		  (return))
+		(stream-set-pointer-position pane (+ left 1 x-offset) (+ top 1 y-offset))
+		(sleep 1))
 	      (assert (clim-internals::stream-highlighted-presentation pane))
 	      ;;-- this is bypassing the distribution mechanism
 	      ;;-- Perhaps we should have a send-event that interfaces to
@@ -461,6 +469,7 @@
   ;; We a choice.
   ;; 1. Send the characters or
   ;; 2. Click on a presentation
+  (declare (ignore provide-default default stream))
   (assert (click-on-presentation invocation pane-name
 				 presentation-type 
 				 :x-offset x-offset
@@ -489,7 +498,7 @@
 	 (if (atom command) command (car command))
 	 (frame-command-table (invocation-frame invocation))
 	 stream
-	 command
+	 (substitute *unsupplied-argument-marker* :unsupplied  (if (atom command) (list command) command))
 	 #'accept-function
 	 #'send-it-function)
 	;;--- Need to send a newline now
@@ -581,9 +590,13 @@
 		   (cond ((not (clim-internals::unsupplied-argument-p default))
 			  (cond ((eq type-name 'keyword-argument-name) 
 				 default)
-				(t (apply #'parse-normal-arg
-					  stream presentation-type
-					  :default default args))))
+				(t (handler-case (apply #'parse-normal-arg
+							stream presentation-type
+							:default default args)
+				     ;;-- The condition should be no presentations
+				     (error (c)
+				       (declare (ignore c))
+				       default)))))
 			 ((eq type-name 'keyword-argument-name)
 			  (let ((name (intern (symbol-name (caar parameters)) clim-internals::*keyword-package*)))
 			    (send-it name)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-activity.lisp,v 1.4 92/10/07 14:43:26 cer Exp $
+;; $fiHeader: demo-activity.lisp,v 1.5 92/10/28 11:32:54 cer Exp $
 
 (in-package :clim-demo)
 
@@ -31,7 +31,6 @@
 (defmethod start-initial-application-frame ((activity demo-activity))
   (start-application-frame activity
                            'demo-app 
-                           :width 300 :height 250
                            :pretty-name "Initial"))
 
 (define-demo-app-command (com-new :menu t :name t)
