@@ -20,9 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.10 92/04/03 12:04:00 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.11 92/05/07 13:10:51 cer Exp Locker: cer $
 
 (in-package :tk)
+
+
 
 ;;;; 
 (defvar *libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")
@@ -30,6 +32,11 @@
 (defvar *libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
 
 (defun load-from-xm ()
+  (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+    (load "MyDrawingA.o"
+	  :system-libraries (list *libxm-pathname* *libxt-pathname*
+				  x11::*libx11-pathname*)
+	  :print t))
   (x11::load-undefined-symbols-from-library
    "stub-motif.o"
    (x11::symbols-from-file 

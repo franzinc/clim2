@@ -1,8 +1,8 @@
-# $fiHeader: Makefile,v 1.26 92/05/06 15:37:50 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.27 92/05/07 13:13:41 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
-CL	= /vapor/usr/tech/cer/cl/src/dcl
+CL	= /usr/tech/cer/cl/src/dcl
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
 
@@ -27,6 +27,11 @@ LOAD_XREF_INFO=nil
 SPEED	= 3
 SAFETY	= 1
 
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -I/x11/motif-1.1/lib
+
+OLDSPACE = 15000000
+NEWSPACE = 5000000
+
 # Name of dumped lisp
 CLIM	= ./slim
 CLIM-SMALL	= ./slim-small
@@ -43,13 +48,14 @@ ECHO	= /bin/echo
 MV	= /usr/fi/mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
+
 SRC_FILES = */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit \
 	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt
 
 DEST=/dev/null
 
-CL_SRC=/vapor/usr/tech/cer/cl/src
+CL_SRC=/usr/tech/cer/cl/src
 OPENWINHOME=/usr/openwin-3.0
 
 #MOTIFHOME=/usr/motif
@@ -82,8 +88,8 @@ XM_UNDEFS=misc/undefinedsymbols.motif
 OL_UNDEFS=misc/undefinedsymbols.olit
 
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl
-CLIMOBJS= stub-x.o stub-xt.o stub-motif.o stub-olit.o
-FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o
+CLIMOBJS= stub-x.o stub-xt.o stub-motif.o stub-olit.o xlibsupport.o MyDrawingA.o
+FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o `pwd`/xlibsupport.o `pwd`/MyDrawingA.o
 
 
 #
@@ -424,13 +430,13 @@ makeclimobjs	: $(CLIMOBJS)
 ################## Lower level Makefile stuff
 
 
-ol-dcl	:  stub-x.o stub-xt.o stub-olit.o
+ol-dcl	:  stub-x.o stub-xt.o stub-olit.o xlibsupport.o MyDrawingA.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	 make ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-olit.o $(LIBXOL) $(OLXLIBS)' dcl
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-olit.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(LIBXOL) $(OLXLIBS)' dcl
 
-xm-dcl	: stub-x.o stub-xt.o stub-motif.o
+xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o MyDrawingA.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(MOTIFLIB) $(XTLIB) $(XLIB)' dcl	
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(MOTIFLIB) $(XTLIB) $(XLIB)' dcl	
 
 dcl	: 
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
@@ -448,6 +454,12 @@ stub-x.c	:  $(UNDEFS) $(OL_UNDEFS) misc/make-stub-file
 
 stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_xt_stub ()"  $(XT_UNDEFS)  > stub-xt.c 
+
+xlibsupport.o	: xlib/xlibsupport.c
+	$(CC) -c $(CFLAGS) -o xlibsupport.o xlib/xlibsupport.c
+
+MyDrawingA.o: misc/MyDrawingA.c
+	$(CC) -c $(CFLAGS) -o MyDrawingA.o misc/MyDrawingA.c
 
 FRC	: 
 

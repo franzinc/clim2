@@ -20,80 +20,131 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.15 92/04/21 16:12:27 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.16 92/04/21 20:27:43 cer Exp $
 
 (in-package :tk)
 
 ;;; Pathetic clos interface to Xlib
 
+(defclass display-object (ff:foreign-pointer)
+  ((display :initarg :display
+	    :fixed-index 0)))
+
 (defclass screen (display-object) ())
-
-#+obsolete
-(defun screen-gcontext (screen)
-  (let ((gc (x-screen-gc screen)))
-    (or (find-object-from-address gc nil)
-	(register-address
-	 (make-instance 'gcontext
-			:display (object-display screen)
-			:foreign-address gc)))))
-
-
-
 
 (defclass drawable (display-object) ())
 	  
 (defclass window (drawable) ())
 
-;; Ugh.  This should be part of a general purpose mechanism
-(defmethod drawable-depth ((window window))
+(eval-when (compile load eval)
+  (defconstant *window-set-attributes-bit-mask*
+      '(background-pixmap background-pixel border-pixmap border-pixel
+	bit-gravity win-gravity backing-store backing-planes backing-pixel
+	override-redirect save-under event-mask do-not-propogate-mask
+	colormap cursor))
+  ;; Not really supported yet:
+  (defconstant *window-configure-bit-mask*
+      '(x y width height border-width sibling stacking-mode)))
+
+(eval-when (compile eval)
+  (defmacro define-window-reader (name &optional decoder &rest args)
+    `(defmethod ,(intern (format nil "~A-~A" 'window name)) ((window window))
+       ,(let ((body
+	       `(let ((attrs (x11:make-xwindowattributes)))
+		  (x11:xgetwindowattributes (object-display window)
+					    window
+					    attrs)
+		  (,(intern (format nil "~a-~a" 'xwindowattributes name) :x11)
+		   attrs))))
+	  (if decoder
+	      `(,decoder ,body ,@args)
+	    body))))
+  (defmacro define-window-writer (name &optional encoder &rest args)
+    `(progn
+       (defmethod (setf ,(intern (format nil "~A-~A" 'window name)))
+	   (nv (window window))
+	 (let ((attrs (x11::make-xsetwindowattributes)))
+	   (setf (,(intern (format nil "~a-~a" 'xsetwindowattributes name) :x11)
+		  attrs)
+	     ,(if encoder
+		  `(,encoder nv ,@args)
+		`nv))
+	   (x11:xchangewindowattributes
+	    (object-display window)
+	    window
+	    ,(ash 1 (or (position name *window-set-attributes-bit-mask*)
+			(error "Cannot find ~S in window attributes" name)))
+	    attrs)
+	   nv))))
+  (defmacro define-window-accessor (name (&optional encoder decoder) &rest args)
+    `(progn
+       (define-window-reader ,name ,decoder ,@args)
+       (define-window-writer ,name ,encoder ,@args)
+       ',name)))
+
+(define-window-accessor backing-store (encode-backing-store decode-backing-store))
+
+(defun encode-backing-store (x)
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    ((t :always) 2)
+    (:when-mapped 1)
+    ((nil :not-useful) 0)))
+    
+(defun decode-backing-store (x)
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    (2 :always)
+    (1 :when-mapped)
+    (0 :not-useful)))
+    
+(defun encode-save-under (x)
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    ((t :on) 1)
+    ((nil :off) 0)))
+    
+(defun decode-save-under (x)
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    (1 t)
+    (0 nil)))
+
+(define-window-accessor save-under (encode-save-under decode-save-under))
+
+;;--- Something else should be here.
+
+(defmethod window-depth ((window window))
   (let ((attrs (x11:make-xwindowattributes)))
     (x11:xgetwindowattributes (object-display window)
 			      window
 			      attrs)
     (x11:xwindowattributes-depth attrs)))
-    
-(defmethod (setf drawable-save-under) (nv (window window))
-  (let ((attrs (x11:make-xsetwindowattributes)))
-    (setf (x11:xsetwindowattributes-save-under attrs) (if nv 1 0))
-    (x11:xchangewindowattributes (object-display window)
-				 window
-				 x11::cwsaveunder ;; 
-				 attrs)
-    nv))
 
-(defmethod drawable-save-under ((window window))
-  (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (object-display window)
-			      window
-			      attrs)
-    (not (zerop (x11:xwindowattributes-save-under attrs)))))
-
-
-(defmethod (setf drawable-backing-store) (nv (window window))
-  (let ((attrs (x11:make-xsetwindowattributes)))
-    (setf (x11:xsetwindowattributes-backing-store attrs) (if nv 1 0))
-    (x11:xchangewindowattributes (object-display window)
-				 window
-				 x11::cwbackingstore ;; 
-				 attrs)
-    nv))
-
-(defmethod drawable-backing-store ((window window))
-  (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (object-display window)
-			      window
-			      attrs)
-    (not (zerop (x11:xwindowattributes-backing-store attrs)))))
+(defmethod drawable-width ((window window))
+  (window-width window))
+(defmethod drawable-height ((window window))
+  (window-height window))
+(defmethod drawable-depth ((window window))
+  (window-depth window))
 
   
 (defclass pixmap (drawable)
   ((width :initarg :width :reader pixmap-width)
    (height :initarg :height :reader pixmap-height)
-   (depth :initarg :depth :reader drawable-depth)))
+   (depth :initarg :depth :reader pixmap-depth)))
+
+(defmethod drawable-width ((pixmap pixmap))
+  (pixmap-width pixmap))
+(defmethod drawable-height ((pixmap pixmap))
+  (pixmap-height pixmap))
+(defmethod drawable-depth ((pixmap pixmap))
+  (pixmap-depth pixmap))
 
 (defun destroy-pixmap (pixmap)
-  (unregister-xid pixmap)
-  (x11:xfreepixmap (object-display pixmap) pixmap))
+  (let ((display (object-display pixmap)))
+    (unregister-xid pixmap display)
+    (x11:xfreepixmap display pixmap)))
   
 (defmethod initialize-instance :after
 	   ((p pixmap) &key foreign-address width height depth drawable)
@@ -107,7 +158,7 @@
 	 width
 	 height
 	 depth))
-      (register-xid p))))
+      (register-xid p display))))
 
 (defun-c-callable x-error-handler ((display :unsigned-long) (x :unsigned-long))
   (error "x-error:~S" 
@@ -119,9 +170,9 @@
 
 
 (defun get-error-text (code display-handle)
-  (let ((s (string-to-char* (make-string 1000))))
+  (let ((s (make-string 1000)))
     (x11::xgeterrortext display-handle code s 1000)
-    (char*-to-string s)))
+    s))
       
 (defun setup-error-handlers ()
   (x11:xseterrorhandler (register-function 'x-error-handler))
@@ -135,6 +186,7 @@
   (intern-object-xid
    (x11:xdefaultrootwindow display)
    'window
+   display
    :display display))
 
 (defmethod display-screen-number (display)
@@ -148,6 +200,7 @@
    (x11:xdefaultcolormap display
 			 screen)
    'colormap
+   display
    :display 
    display))
 
@@ -177,7 +230,7 @@
     (if (zerop (x11:xlookupcolor
 		(object-display colormap)
 		colormap
-		(string-to-char* color-name)
+		color-name
 		exact
 		closest))
 	(error "Could not find ~S in colormap ~S" color-name colormap)
@@ -245,10 +298,12 @@
 	   (intern-object-xid
 	    (aref root 0) 
 	    'window
+	    display
 	    :display display)
 	   (intern-object-xid
 	    (aref child 0) 
 	    'window
+	    display
 	    :display display)
 	   (aref root-x 0)
 	   (aref root-y 0)

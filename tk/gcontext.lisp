@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.13 92/04/28 09:25:02 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.14 92/05/12 18:24:17 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -114,9 +114,8 @@
        (define-gc-writer ,name ,encoder ,@args)
        ',name)))
 
-
 (defclass gcontext (display-object)
-  ())
+  ((cached-clip-mask :initform nil)))
 
 (defmethod initialize-instance :after ((gcontext gcontext)
 				       &key
@@ -216,8 +215,12 @@
   (nth x '(:solid :tiled :stippled :opaque-stippled)))
 
 (defun encode-fill-style (x)
-  (or (position x '(:solid :tiled :stippled :opaque-stippled))
-      (error "~s is not a fill style" x)))
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    (:solid 0)
+    (:tiled 1)
+    (:stippled 2)
+    (:opaque-stippled 3)))
 
 (defmethod (setf gcontext-fill-style) (nv (gc gcontext))
   (x11:xsetfillstyle
@@ -241,14 +244,21 @@
 (define-gc-accessor cap-style (encode-cap-style decode-cap-style))
 
 (defun encode-cap-style (x)
-  (or (position x '(:not-last :butt :round :projecting))
-      (error "~s is not a cap style" x)))
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    (:not-last 0)
+    (:butt 1)
+    (:round 2)
+    (:projecting 3)))
 
 (define-gc-accessor join-style (encode-join-style decode-join-style))
 
 (defun encode-join-style (x)
-  (or (position x '(:miter :round :bevel))
-      (error "~s is not a join-style" x)))
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    (:miter 0)
+    (:round 1)
+    (:bevel 2)))
 
 (define-gc-accessor subwindow-mode (encode-enum decode-enum)
 		  '(:clip-by-children :include-inferiors))
@@ -306,21 +316,19 @@
 
 
 (defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
-  (destructuring-bind
-   (x y width height) nv
-   (let ((r (x11:make-xrectangle)))
-     (setf (x11:xrectangle-x r) x
-	   (x11:xrectangle-y r) y
-	   (x11:xrectangle-width r) width
-	   (x11:xrectangle-height r) height)
-     (x11:xsetcliprectangles
-      (object-display gc)
-      gc
-      0					; clip-x-origin
-      0					; clip-y-origin
-      r
-      1
-      x11:unsorted))))
+  (let ((r (x11:make-xrectangle)))
+    (setf (x11:xrectangle-x r) (first nv)
+	  (x11:xrectangle-y r) (second nv)
+	  (x11:xrectangle-width r) (third nv)
+	  (x11:xrectangle-height r) (fourth nv))
+    (x11:xsetcliprectangles
+     (object-display gc)
+     gc
+     0					; clip-x-origin
+     0					; clip-y-origin
+     r
+     1
+     x11:unsorted)))
 
 (defmethod (setf gcontext-clip-mask) ((nv (eql :nowhere)) (gc gcontext))
   (x11:xsetcliprectangles
@@ -332,11 +340,21 @@
    0
    x11:unsorted))
 
+(defmethod (setf gcontext-clip-mask) :around (nv (gc gcontext))
+  (with-slots (cached-clip-mask) gc
+    (unless (or (eq cached-clip-mask nv)
+		(equal cached-clip-mask nv))
+      (call-next-method)
+      (setf cached-clip-mask nv))))
+  
 (define-gc-accessor line-style  (encode-line-style decode-style))
 
 (defun encode-line-style (x)
-  (or (position x '(:solid :dash :double-dash))
-      (error "~S is not a valid line-style" x)))
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase x
+    (:solid 0)
+    (:dash 1)
+    (:double-dash 2)))
 
 (defmethod (setf gcontext-dashes) (nv (gc gcontext))
   (multiple-value-bind (n v)
@@ -352,7 +370,7 @@
 (defun encode-dashes (nv)
   (declare (optimize (speed 3) (safety 0)))
   (let* ((n (length nv))
-	 (v (make-array n :element-type '(unsigned-byte 8))))
+	 (v (excl:make-static-array n :element-type '(unsigned-byte 8))))
     (declare (fixnum n)
 	     (type (simple-array (unsigned-byte 8) (*)) v))
     (etypecase nv
@@ -386,15 +404,18 @@
   (declare (special gc))
   (if (= x #16rffffffff)
       (error "cannot decode font")
-    (let ((font (find-object-from-xid x nil)))
+    (let* ((display (object-display gc))
+	   (font (find-object-from-xid x display nil)))
       (or font
-	  (query-font (object-display gc) x)))))
+	  (query-font display x)))))
 
-(defun decode-pixmap (x) 
+(defun decode-pixmap (x)
+  (declare (special gc))
   (and (/= #16rffffffff x)
        (intern-object-xid
 	x
-	'pixmap)))
+	'pixmap
+	(object-display gc))))
 
 (defun decode-clip-mask (x) x)
 (defun decode-enum (x y)

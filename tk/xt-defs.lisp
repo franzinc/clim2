@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.1 92/04/21 16:40:03 cer Exp Locker: cer $
+;; $fiHeader: xt-defs.lisp,v 1.2 92/04/21 20:27:50 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -139,7 +139,13 @@
 
 (def-c-type (class-array :no-defuns) 1 :unsigned-long)
 
-(def-c-type (x-arglist :in-foreign-space :no-defuns) 1 :unsigned-long)
+(def-c-type (xt-arg-val :no-defuns) * :void)
+
+(def-c-type (xt-arg :in-foreign-space :no-defuns) :struct
+  (name  * :char)
+  (value xt-arg-val))
+
+(def-c-type (xt-arglist :in-foreign-space :no-defuns) 1 xt-arg)
 
 (def-c-type (xt-widget-list :no-defuns) 1 * xt-widget)
 

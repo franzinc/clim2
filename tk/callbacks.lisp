@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.11 92/05/06 15:37:07 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.12 92/05/07 13:10:47 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -63,7 +63,7 @@
      *callback-handler-address*
      (caar (push
 	    (list (new-callback-id) (cons function args) type)
-	    (widget-callback-data widget ))))))
+	    (widget-callback-data widget))))))
 
 (defvar *callback-ids* 0)
 (defun new-callback-id ()
@@ -128,7 +128,7 @@
   (let ((z (assoc x *callback-name-alist*)))
     (unless z (error "No such Callback: ~S" x))
     (values (or (third z)
-		(setf (third z) (string-to-char* (second z))))
+		(setf (third z) (second z)))
 	    (fourth z))))
 
 (defmethod spread-callback-data (widget data (type (eql :activate)))

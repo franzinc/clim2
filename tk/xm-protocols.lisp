@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.6 92/04/21 20:27:48 cer Exp Locker: cer $
+;; $fiHeader: xm-protocols.lisp,v 1.7 92/04/28 09:25:10 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -83,7 +83,7 @@
 (defun xm-intern-atom (shell name &optional only-if-exists)
   (xm_intern_atom
    (object-display shell)
-   (string-to-char* (string name))
+   (string name)
    (if only-if-exists 1 0)))
 
 

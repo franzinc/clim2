@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.17 92/04/21 16:12:25 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.18 92/04/21 20:27:42 cer Exp $
 
 (in-package :tk)
 
@@ -61,7 +61,7 @@
   (let* ((class (find-class-maybe widget-class))
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class parent args)))
-    (funcall fn (string-to-char* name )
+    (funcall fn name
 	     handle
 	     parent
 	     arglist
@@ -74,14 +74,10 @@
   (xt_manage_child child))
 
 (defun unmanage-child (child)
-  (unmanage_child child))
+  (xt_unmanage_child child))
 
 (defun is-managed-p (widget)
     (not (zerop (xt_is_managed widget))))
-
-
-(defun unmanage-child (child)
-  (xt_unmanage_child child))
 
 (defun manage-children (children)
   (xt_manage_children (map '(simple-array (signed-byte 32))
@@ -126,7 +122,8 @@
 			  (error "Invalid window id ~D for ~S" id widget))
 		   (intern-object-xid
 		    id
-		    'window 
+		    'window
+		    (widget-display widget)
 		    :display (widget-display widget)))))))))
 
 (defun make-clx-window (display widget)
@@ -163,7 +160,7 @@
     (apply (car cleanup) (cdr cleanup)))
   ;;--- When we start using gadgets things will be fun!
   (let ((w (widget-window widget nil t)))
-    (when w (unregister-xid w)))
+    (when w (unregister-xid w (object-display widget))))
   (unintern-widget widget))
 
 (defun intern-widget (widget-address &rest args)
@@ -247,3 +244,19 @@
 
 (defun set-sensitive (widget value)
   (xtsetsensitive widget (if value 1 0)))
+
+
+;; Could not think of anywhere better!
+
+(defun setup (&optional (hostspec "localhost:0"))
+  (let* ((context (create-application-context))
+	 (display (make-instance 'display 
+		    :host hostspec
+		    :context context))
+	 (app (app-create-shell :display display
+				:widget-class 'application-shell)))
+    (values context display app)))
+
+(defun initialize-motif-toolkit (hostspec)
+  (setup hostspec))
+

@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.3 92/03/30 17:52:19 cer Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.5 92/04/21 20:28:07 cer Exp $
 
 (in-package :x11)
 
@@ -805,6 +805,7 @@
 (def-exported-foreign-function (xrefreshkeyboardmapping (:return-type int) (:name "_XRefreshKeyboardMapping")) 
    (event (:pointer xmappingevent)))
 
+#+ignore
 (def-exported-foreign-function (xusekeymap (:return-type int) (:name "_XUseKeymap")) 
    (filename (:pointer char)))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.9 92/04/10 14:26:37 cer Exp $
+;; $fiHeader: medium.lisp,v 1.10 92/05/07 13:11:25 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -15,12 +15,14 @@
   (declare (ignore sheet port))
   nil)
 
+
 (defmethod invoke-with-sheet-medium ((sheet sheet) continuation)
-  (if (sheet-medium sheet)
-      (funcall continuation (sheet-medium sheet))
+  (let ((medium (sheet-medium sheet)))
+    (if medium
+	(funcall continuation medium)
       (with-temporary-medium (medium sheet)
 	(with-sheet-medium-bound (sheet medium)
-	  (funcall continuation medium)))))
+	  (funcall continuation medium))))))
 
 ;; Special-case the one we know is going to work all the time
 (defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)

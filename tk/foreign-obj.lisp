@@ -20,22 +20,26 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.9 92/04/21 16:12:19 cer Exp Locker: cer $
+;; $fiHeader: foreign-obj.lisp,v 1.10 92/05/07 13:10:48 cer Exp Locker: cer $
 
 (in-package :tk)
 
-;;; There should be multiple mappings:
-;;; Xid -> object
-;;; Address -> object
-
 (defvar *address->object-mapping* (make-hash-table :test 'equal))
-(defvar *xid->object-mapping* (make-hash-table :test 'equal))
+
+(defclass display (ff:foreign-pointer)
+  ((context :initarg :context :reader display-context)
+   (xid->object-mapping :initform (make-hash-table :test #'equal)
+			:fixed-index 0)))
+
+(defmacro display-xid->object-mapping (object)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (excl::slot-value-using-class-name 'display ,object 'xid->object-mapping)))
+
+(defun find-object-from-xid (handle display &optional (errorp t))
+  (find-object-from-handle handle (display-xid->object-mapping display) errorp))
 
 (defun find-object-from-address (handle &optional (errorp t))
   (find-object-from-handle handle *address->object-mapping* errorp))
-
-(defun find-object-from-xid (handle &optional (errorp t))
-  (find-object-from-handle handle *xid->object-mapping* errorp))
 
 (defun find-object-from-handle (handle table errorp)
   (cond ((gethash handle table))
@@ -50,12 +54,12 @@
   (remhash handle *address->object-mapping*)
   (setf (ff:foreign-pointer-address object) 0))
 
-(defun register-xid (object &optional (handle (foreign-pointer-address object)))
-  (setf (gethash handle *xid->object-mapping*) object)
+(defun register-xid (object display &optional (handle (foreign-pointer-address object)))
+  (setf (gethash handle (display-xid->object-mapping display)) object)
   object)
 
-(defun unregister-xid (object &optional (handle (foreign-pointer-address object)))
-  (remhash handle *xid->object-mapping*)
+(defun unregister-xid (object display &optional (handle (foreign-pointer-address object)))
+  (remhash handle (display-xid->object-mapping display))
   object)
 
 (defun intern-object-address (handle class &rest initargs)
@@ -70,9 +74,9 @@
 	 *address->object-mapping*
 	 handle))
 
-(defun intern-object-xid (handle class &rest initargs)
+(defun intern-object-xid (handle class display &rest initargs)
   (apply #'intern-object-1 
-	 *xid->object-mapping*
+	 (display-xid->object-mapping display)
 	 handle 
 	 class 
 	 initargs))

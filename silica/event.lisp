@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.9 92/04/15 11:45:08 cer Exp $
+;; $fiHeader: event.lisp,v 1.10 92/05/07 13:11:17 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -31,6 +31,12 @@
 (defgeneric handle-event (client event))
 
 (defgeneric port-keyboard-input-focus (port))
+
+(defmethod print-object ((event window-repaint-event) stream)
+  (with-slots (region) event
+    (with-bounding-rectangle* (left top right bottom) region
+      (print-unreadable-object (event stream :type t)
+	(format stream "/x ~A:~A y ~A:~A/" left right top bottom)))))
 
 (defmethod handle-event (client (event window-repaint-event))
   (handle-repaint client nil 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.28 92/05/07 13:13:52 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.29 92/05/12 18:25:22 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -175,7 +175,7 @@
 						     (sheet motif-push-button))
   (values 'tk::xm-push-button nil))
 
-(defmethod add-sheet-callbacks ((port motif-port) (sheet t) (widget tk::xm-drawing-area))
+(defmethod add-sheet-callbacks ((port motif-port) (sheet t) (widget tk::xm-my-drawing-area))
   (tk::add-callback widget 
 		    :expose-callback 
 		    'sheet-mirror-exposed-callback
@@ -195,7 +195,6 @@
 			   :button4-motion
 			   :button5-motion
 			   :button-motion
-			   :exposure
 			   )
 			 1
 			 'sheet-mirror-event-handler
@@ -212,7 +211,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-drawing-area))
-  (values 'tk::xm-drawing-area (list :margin-width 0 
+  (values 'tk::xm-my-drawing-area (list :margin-width 0 
 				     :resize-policy :none
 				     :margin-height 0)))
 
@@ -416,7 +415,7 @@
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet motif-top-level-sheet)
-				       (widget tk::xm-drawing-area))
+				       (widget tk::xm-my-drawing-area))
   (tk::add-callback widget 
 		    :resize-callback 'sheet-mirror-resized-callback
 		    sheet))
@@ -438,7 +437,7 @@
 		  :resize-policy :none
 		  :name (string (frame-name (pane-frame sheet))))))
    (t
-    (values 'tk::xm-drawing-area 
+    (values 'tk::xm-my-drawing-area 
 	    (list :resize-policy :none
 		  :name (string (frame-name (pane-frame sheet)))
 		  :margin-width 0 :margin-height 0)))))
@@ -570,7 +569,7 @@
 #+ignore
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet clim-stream-sheet)
-				       (widget tk::xm-drawing-area))
+				       (widget tk::xm-my-drawing-area))
   ;;---- It would suprise me if we needed this.
   (tk::add-callback widget 
 		    :resize-callback 
@@ -617,7 +616,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet xm-viewport))
-  (values 'tk::xm-drawing-area
+  (values 'tk::xm-my-drawing-area
 	  '(:scrolling-policy :application-defined
 	    :margin-width 0 :margin-height 0
 	    :resize-policy :none
@@ -626,7 +625,7 @@
 #+ignore
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet xm-viewport)
-				       (widget tk::xm-drawing-area))
+				       (widget tk::xm-my-drawing-area))
   ;;--- I wonder whether this is needed since it should not be resized by
   ;; the toolkit and only as part of the goe management code that will
   ;; recurse to children anyway
@@ -709,7 +708,7 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet
     ((port xt-port) (parent t) (sheet xm-frame-viewport))
-  (values 'xm-drawing-area 
+  (values 'tk::xm-my-drawing-area 
 	  ;;---  These are duplicated
 	  (list :margin-width 0 
 		:resize-policy :none
@@ -722,7 +721,7 @@
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet xm-frame-viewport)
-				       (widget tk::xm-drawing-area))
+				       (widget tk::xm-my-drawing-area))
   (tk::add-callback widget 
 		    :resize-callback 
 		    'sheet-mirror-resized-callback

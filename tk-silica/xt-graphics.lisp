@@ -1,4 +1,4 @@
-U;; -*- mode: common-lisp; package: tk-silica -*-
+;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: tk-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.19 92/04/28 09:26:35 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.20 92/05/07 13:13:58 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -29,6 +29,7 @@ U;; -*- mode: common-lisp; package: tk-silica -*-
    (background-gcontext :reader medium-background-gcontext :initform nil)
    (flipping-gcontext :reader medium-flipping-gcontext :initform nil)
    (drawable :initform nil)
+   (clip-mask :initform nil)		; A cache.
    (color-p)
    (ink-table :initform (make-hash-table :test #'equal))
    (tile-gcontext :initform nil)	; The following don't belong here.
@@ -41,6 +42,56 @@ U;; -*- mode: common-lisp; package: tk-silica -*-
 	(setf drawable (fetch-medium-drawable 
 			sheet
 			(sheet-mirror sheet))))))
+
+
+;;
+;; Clip mask is invalidated when:
+;;   1. medium's sheet's device region changes
+;;   2. medium's clipping region changes
+;;   3. medium's sheet's device transformation changes
+(defmethod medium-clip-mask ((medium xt-medium))
+  (with-slots (sheet clip-mask) medium
+    (or clip-mask
+	(setf clip-mask
+	  (let* ((dr (sheet-device-region sheet))
+		 (mcr (medium-clipping-region medium)))
+	    (unless (eq mcr +everywhere+)
+	      (setq mcr (transform-region (sheet-device-transformation sheet) mcr))
+	      (setq dr (region-intersection dr (bounding-rectangle mcr))))
+	    (cond ((eq dr +everywhere+)
+		   :none)
+		  ((eq dr +nowhere+)
+		   :nowhere)
+		  (t
+		   (with-bounding-rectangle* (left top right bottom) dr
+		     (list (fix-coordinate left) (fix-coordinate top) 
+			   (fix-coordinate (- right left))
+			   (fix-coordinate (- bottom top)))))))))))
+
+(defmethod (setf medium-clipping-region) :after (cr (medium xt-medium))
+  (declare (ignore cr))
+  (with-slots (clip-mask) medium
+    (setf clip-mask nil)))
+
+;;;---------------------- You cannot have such a class since sheet-with-medium.
+;;; Probably we need a method that gets invoked on the medium to
+;;; invalidate any cached state.
+
+(warn "These should be specialized on an 'xt' subclass of sheet-with-medium!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+(defmethod invalidate-cached-regions :after ((sheet silica::sheet-with-medium-mixin))
+  (let ((medium (sheet-medium sheet)))
+    (when medium
+      (with-slots (clip-mask) medium
+	(setf clip-mask nil)))))
+
+(defmethod invalidate-cached-transformations :after ((sheet silica::sheet-with-medium-mixin))
+  (let ((medium (sheet-medium sheet)))
+    (when medium
+      (with-slots (clip-mask) medium
+	(setf clip-mask nil)))))
+
+
 
 (defmethod deallocate-medium :after (port (medium xt-medium))
   (declare (ignore port))
@@ -326,14 +377,12 @@ and on color servers, unless using white or black")
 			 white-pixel
 			 black-pixel)))))))))
 
+(defvar *default-dashes* '(4 4))
 
 (defmethod adjust-ink ((medium xt-medium) gc ink line-style x-origin y-origin)
   (declare (ignore ink))
   (let* ((dashes (line-style-dashes line-style))
-	 (gc-line-style
-	  (etypecase dashes
-	    ((member nil t) :solid)
-	    (sequence :dash))))
+	 (gc-line-style (if dashes :dash :solid)))
 	
     (tk::set-line-attributes 
      gc
@@ -345,7 +394,8 @@ and on color servers, unless using white or black")
 			     thickness))))
        (when (< thickness 2)
 	 (setq thickness 0))
-       (round thickness))
+       (setq thickness (the fixnum (round thickness)))
+       thickness)
      gc-line-style
      (ecase (line-style-cap-shape line-style)
        (:butt :butt)
@@ -358,23 +408,12 @@ and on color servers, unless using white or black")
        (:round :round)))
     
     (when (eq gc-line-style :dash)
-      (setf (tk::gcontext-dashes gc) dashes))
+      (setf (tk::gcontext-dashes gc)
+	(if (excl::sequencep dashes) dashes *default-dashes*))
+      ;; The following isn't really right, but it's better than nothing.
+      (setf (tk::gcontext-dash-offset gc) (1- y-origin)))
     
-    (let* ((sheet (medium-sheet medium))
-	   (dr (sheet-device-region sheet))
-	   (mcr (medium-clipping-region medium)))
-      (unless (eq mcr +everywhere+)
-	(setq mcr (transform-region (sheet-device-transformation sheet) mcr))
-	(setq dr (region-intersection dr (bounding-rectangle mcr))))
-      (cond ((eq dr +everywhere+)
-	     (setf (tk::gcontext-clip-mask gc) :none))
-	    ((eq dr +nowhere+)
-	     (setf (tk::gcontext-clip-mask gc) :nowhere))
-	    (t
-	     (with-bounding-rectangle* (a b c d) dr
-	       (with-stack-list (x (fix-coordinate a) (fix-coordinate b) 
-				   (fix-coordinate (- c a)) (fix-coordinate (- d b)))
-		 (setf (tk::gcontext-clip-mask gc) x))))))
+    (setf (tk::gcontext-clip-mask gc) (medium-clip-mask medium))
     
     (when (member (tk::gcontext-fill-style gc) '(:tiled :stippled) :test #'eq)
       (setf (tk::gcontext-ts-x-origin gc) x-origin
@@ -432,69 +471,83 @@ and on color servers, unless using white or black")
 
 
 (defmethod port-draw-point* ((port xt-port) sheet medium x y)
-  (let ((transform (sheet-device-transformation sheet)))
-    (convert-to-device-coordinates transform x y))
-  (when (medium-drawable medium)
-    (let ((thickness (line-style-thickness (medium-line-style medium))))
-      (if (< thickness 2)
-	  (tk::draw-point
-	   (medium-drawable medium)
-	   (adjust-ink medium
-		       (decode-ink (medium-ink medium) medium)
-		       (medium-ink medium)
-		       (medium-line-style medium)
-		       x y)
-	   x y)
-	(let ((thickness (round thickness)))
-	  (tk::draw-ellipse (medium-drawable medium) 
-			    (adjust-ink medium
-					(decode-ink (medium-ink medium) medium)
-					(medium-ink medium)
-					(medium-line-style medium)
-					(- x thickness)
-					(- y thickness))
-			    x y 
-			    0
-			    thickness 
-			    0
-			    thickness 0 2pi
-			    t))))))
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((ink (medium-ink medium))
+	     (line-style (medium-line-style medium))
+	     (thickness (line-style-thickness line-style))
+	     (transform (sheet-device-transformation sheet)))
+	(convert-to-device-coordinates transform x y)
+	(cond ((< thickness 1.5)
+	       (tk::draw-point
+		drawable
+		(adjust-ink medium
+			    (decode-ink ink medium)
+			    ink
+			    line-style
+			    x y)
+		x y))
+	      (t
+	       (setq thickness (round thickness))
+	       (tk::draw-ellipse
+		drawable
+		(adjust-ink medium
+			    (decode-ink ink medium)
+			    ink
+			    line-style
+			    (the fixnum (- (the fixnum x) (the fixnum thickness)))
+			    (the fixnum (- (the fixnum y) (the fixnum thickness))))
+		x y 
+		0
+		thickness 
+		0
+		thickness 0 2pi
+		t)))))))
 
 (defmethod port-draw-line* ((port xt-port) sheet medium
 			    x1 y1 x2 y2)
-  (let ((transform (sheet-device-transformation sheet)))
-    (convert-to-device-coordinates transform
-      x1 y1 x2 y2))
-  (when (medium-drawable medium)
-    (tk::draw-line
-      (medium-drawable medium)
-      (adjust-ink medium
-		  (decode-ink (medium-ink medium) medium)
-		  (medium-ink medium)
-		  (medium-line-style medium)
-		  (min x1 x2) (min y1 y2))
-      x1 y1 x2 y2)))
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let ((ink (medium-ink medium))
+	    (transform (sheet-device-transformation sheet)))
+	(convert-to-device-coordinates transform
+				       x1 y1 x2 y2)
+	(tk::draw-line
+	 drawable
+	 (adjust-ink medium
+		     (decode-ink ink medium)
+		     ink
+		     (medium-line-style medium)
+		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
+		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
+	 x1 y1 x2 y2)))))
 
 (defmethod port-draw-rectangle* ((port xt-port) sheet medium
 				 x1 y1 x2 y2 filled)
-  (let ((transform (sheet-device-transformation sheet)))
-    (if (rectilinear-transformation-p transform)
-	(progn
-	  (convert-to-device-coordinates transform
-	    x1 y1 x2 y2) 
-	  (when (medium-drawable medium)
-	    (tk::draw-rectangle
-	      (medium-drawable medium)
-	      (adjust-ink medium
-			  (decode-ink (medium-ink medium) medium)
-			  (medium-ink medium)
-			  (medium-line-style medium)
-			  (min x1 x2) (min y1 y2))
-	      (min x1 x2) (min y1 y2)
-	      (abs (- x2 x1)) (abs (- y2 y1))
-	      filled)))
-      (port-draw-transformed-rectangle*
-	port sheet medium x1 y1 x2 y2 filled))))
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let ((ink (medium-ink medium))
+	    (transform (sheet-device-transformation sheet)))
+	(cond ((rectilinear-transformation-p transform)
+	       (convert-to-device-coordinates transform
+					      x1 y1 x2 y2)
+	       (let ((min-x (min (the fixnum x1) (the fixnum x2)))
+		     (min-y (min (the fixnum y1) (the fixnum y2))))
+		 (declare (fixnum min-x min-y))
+		 (tk::draw-rectangle
+		  drawable
+		  (adjust-ink medium
+			      (decode-ink ink medium)
+			      ink
+			      (medium-line-style medium)
+			      min-x min-y)
+		  min-x min-y
+		  (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
+		  (fast-abs (the fixnum (- (the fixnum y2) (the fixnum y1))))
+		  filled)))
+	      (t
+	       (port-draw-transformed-rectangle*
+		port sheet medium x1 y1 x2 y2 filled)))))))
 
 (defmethod port-draw-polygon* ((port xt-port) sheet medium
 			       list-of-x-and-ys

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.14 92/05/06 15:37:27 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.15 92/05/07 13:11:40 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3082,6 +3082,7 @@
     doseq
     dovector
     evacuate-list
+    fast-abs
     find-class-that-works
     fintern
     flatten-arglist

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.16 92/04/21 20:28:33 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.17 92/04/30 09:09:53 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -32,7 +32,7 @@
   'motif-port)
 
 
-(defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
+(defmethod change-widget-geometry ((parent tk::xm-my-drawing-area) child
 				   &rest args
 				   &key x y width height)
   (declare (ignore x y width height))
@@ -89,7 +89,7 @@ about their children"))
   (declare (ignore port))
   (cond ( ;;--- hack alert
 	 (popup-frame-p sheet)
-	 (values 'xm-dialog-shell
+	 (values 'tk::xm-dialog-shell
 		 (append
 		  (let ((x (find-shell-of-calling-frame sheet)))
 		    (and x `(:transient-for ,x)))
@@ -98,7 +98,7 @@ about their children"))
 	 (call-next-method))))
 
 (defmethod make-cursor-widget-for-port ((port motif-port) parent)
-  (make-instance 'tk::xm-drawing-area
+  (make-instance 'tk::xm-my-drawing-area
 		 :parent parent
 		 :background (tk::get-values parent :foreground)
 		 :width 2

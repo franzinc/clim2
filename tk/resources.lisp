@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: tk -*-
+; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,112 +20,27 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.19 92/05/06 15:37:08 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.20 92/05/07 13:10:59 cer Exp Locker: cer $
 
 (in-package :tk)
 
 (defmacro define-enumerated-resource (type elements)
   `(progn
-     (defmethod convert-resource-out ((parent t) (type (eql ',type)) value)
+     (defmethod convert-resource-out (parent (type (eql ',type)) value)
+       (declare (ignore parent))
        (or (position value ',elements)
 	   (error "cannot convert ~S to type ~S" value ',type)))
-     (defmethod convert-resource-in ((parent t) (type (eql ',type)) value)
-       (declare (ignorable parent))
-       (setq value (ash value -24))
+     (defmethod resource-type-get-memref-type ((type (eql ',type)))
+       :unsigned-byte)
+     (defmethod convert-resource-in (parent (type (eql ',type)) value)
+       (declare (ignore parent))
        (elt ',elements value))))
-
-
-
-(defun set-values (widget &rest values)
-  (let ((arglist (make-arglist-for-class (class-of widget) widget values)))
-    (xt_set_values widget
-		arglist
-		(truncate (length arglist) 2))))
-
-
-(defun make-arglist-for-class (class parent args)
-  (do ((new-args nil)
-       (resources-1 (class-resources class))
-       (resources-2 (and parent (class-constraint-resources
-				    (class-of parent))))
-       keyword
-       value)
-      ((null args)
-       (make-array (length new-args)
-		   :element-type '(signed-byte 32)
-		   :initial-contents (nreverse new-args)))
-    (setq keyword (pop args)
-	  value (pop args))
-    (let ((resource (or (find keyword resources-1 :key #'resource-name)
-			(find keyword resources-2 :key #'resource-name))))
-      (when resource
-	(push (resource-original-name resource) new-args)
-	(push (convert-resource-out parent (resource-type resource) value)
-	      new-args)))))
-
-
-(defmethod convert-resource-out (parent type value)
-  (cerror "Try again" "cannot convert-out resource for ~S,~S,~S" parent type value)
-  (convert-resource-out parent type value))
-
-(defmethod convert-resource-out :around (parent type value)
-  (declare (optimize (speed 3))
-	   (ignore parent type value))
-  (let ((result (call-next-method)))
-    (if (integerp result)
-	result
-      (ff:foreign-pointer-address result))))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
-  (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'orientation)) value)
-  (ecase value
-    (:vertical 1)
-    (:horizontal 2)))
-
-(defun get-values (widget &rest resources)
-  (let* ((class (class-of widget))
-	 (class-resources (class-resources class))
-	 (arglist nil)
-	 rds)
-    
-    ;;-- This class resource
-    ;;-- Accumulate resources into a resource allocated vector
-    (dolist (r resources)
-      (let ((resource (find r class-resources :key #'resource-name)))
-	(unless resource
-	  (error "No such resource ~S for class ~S widget ~S"
-		 r class widget))
-	;;--- Need to resource allocate this
-	(push resource rds)
-	(push (resource-original-name resource) arglist)
-	(push (make-x-arglist) arglist)))
-    
-    ;;-- We ought to be ashamed of ourselves for using coerce
-    ;;-- This also ought to be resource allocated
-    (setq arglist (coerce (nreverse arglist) '(vector (signed-byte 32))))
-    (xt_get_values widget
-		arglist
-		(truncate (length arglist) 2))
-    ;;--- Perhaps this list should be a vector that is resource
-    ;;-- allocated.
-    (do ((rs (nreverse rds) (cdr rs))
-	 (i 1 (+ i 2))
-	 values)
-	((null rs)
-	 (values-list (nreverse values)))
-      (push
-       (convert-resource-in
-	widget
-	(resource-type (car rs))
-	(x-arglist (aref arglist i) 0))
-       values))))
-
 
 (defmethod convert-resource-in (class type value)
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
   (convert-resource-in class type value))
+
+
 
 (defconstant xm_string_default_char_set "")
 
@@ -138,6 +53,7 @@
 	 (xm_string_get_l_to_r value xm_string_default_char_set string)
 	 (char*-to-string (aref string 0)))))
 
+
 (define-enumerated-resource separator-type (:no-line 
 					    :single-line
 					    :double-line 
@@ -145,230 +61,36 @@
 					    :double-dashed-line
 					    :shadow-etched-in
 					    :shadow-etched-out))
-      
-(defmethod convert-resource-out ((parent t) (type (eql 'menu-widget)) value)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'horizontal-dimension)) value)
-  (check-type value integer)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'horizontal-int)) value)
-  (check-type value integer)
-  value)
-
-
-(defmethod convert-resource-out ((parent t) (type (eql 'vertical-dimension)) value)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'vertical-int)) value)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'visual-policy)) value)
-  (ecase value
-    (:constant 1)))
-
 
 (define-enumerated-resource scrolling-policy (:automatic :application-defined))
-
-
-
-(defmethod convert-resource-out ((parent t) (type (eql 'scroll-bar-display-policy)) value)
-  (ecase value
-    (:static 0)))
-
-
-#+ignore
-(defmethod convert-resource-out ((parent t) (type (eql 'packing)) value)
-  (ecase value
-    (:pack-column 2)))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'short)) value)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'label-type)) value)
-  (ecase value
-    (:pixmap 1)
-    (:string 2)))
-
-
-(defmethod convert-resource-out ((parent t) (type (eql 'alignment)) value)
-  (ecase value
-    (:center 1)
-    (:beginning 0)
-    (:end 2)))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'prim-foreground-pixmap)) value)
-  (convert-pixmap-out parent value))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'gadget-pixmap)) value)
-  (convert-pixmap-out parent value))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'pixmap)) value)
-  (convert-pixmap-out parent value))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'bitmap)) value)
-  (convert-pixmap-out parent value))
-
-
-(defun convert-pixmap-out (parent value)
-  (etypecase value
-    (pixmap value)
-    (string
-     (let* ((display (widget-display parent))
-	    (screen (x11:xdefaultscreenofdisplay display))
-	    (white (x11::xwhitepixel display 0))
-	    (black (x11::xblackpixel display 0)))
-       (xm_get_pixmap screen (string-to-char* value) white black)))))
-
-
-(defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
-  (if value 1 0))
-
-(defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
-  (string-to-char* value))
 
 (define-enumerated-resource dialog-style (:modeless
 					  :primary-application-modal
 					  :full-application-modal
 					  :system-modal))
 
-(defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
-  (make-instance 'font
-    :display (widget-display parent)
-    :name value))
-
-
-(defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
-  (unless (zerop value)
-    (char*-to-string value)))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'boolean))
-				value)
-  (not (zerop (ash value -24))))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'cardinal)) value)
-  value)
-
-;; We have to do this because we pass a pointer to :unsigned-long but
-;; the actual type is :short
-(defmethod convert-resource-in ((parent t) (type (eql 'vertical-dimension)) value)
-  (ash value -16))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'horizontal-dimension)) value)
-  (ash value -16))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'horizontal-position)) value)
-  (convert-16bit-resource-in value))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'vertical-position)) value)
-  (convert-16bit-resource-in value))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'pixel)) value)
-  (etypecase value
-	     (integer value)
-	     (color (allocate-color (default-colormap (widget-display parent))
-				    value))))
-			   
-
-(defmethod convert-resource-in ((parent t) (type (eql 'pixel)) value)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'horizontal-position))  value)
-  value)
-
-(defmethod convert-resource-out ((parent t) (type (eql 'vertical-position))  value)
-  value)
-
 (define-enumerated-resource resize-policy (:none :grow :any))
-
-(defmethod convert-resource-in ((parent t) (type (eql 'int)) value) value)
-(defmethod convert-resource-out ((parent t) (type (eql 'int)) value) value)
-
 
 (define-enumerated-resource indicator-type (nil :n-of-many :one-of-many))
 
-
-(defmethod convert-resource-out ((parent t) (type (eql 'shell-vert-dim)) x) x)
-(defmethod convert-resource-out ((parent t) (type (eql 'shell-vert-pos)) x) x)
-(defmethod convert-resource-out ((parent t) (type (eql 'shell-horiz-dim)) x) x)
-(defmethod convert-resource-out ((parent t) (type (eql 'shell-horiz-pos)) x) x)
-
-(defmethod convert-resource-in ((parent t) (type (eql 'shell-vert-dim)) x) x)
-(defmethod convert-resource-in ((parent t) (type (eql 'shell-vert-pos)) x) x)
-(defmethod convert-resource-in ((parent t) (type (eql 'shell-horiz-dim)) x) x)
-(defmethod convert-resource-in ((parent t) (type (eql 'shell-horiz-pos)) x) x)
-
-
 (define-enumerated-resource delete-response (:destroy :unmap :do-nothing))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'window)) x)
-  x)
-
 
 (define-enumerated-resource keyboard-focus-policy (:explicit :pointer))
   
+(define-enumerated-resource packing (:no-packing
+				     :tight
+				     :column
+				     :none))
 
+(define-enumerated-resource edit-mode (:multi-line :single-line))
 
-(defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
-  (etypecase value
-    (pixmap
-     (encode-pixmap value))))
+(define-enumerated-resource visual-policy (:variable :constant))
 
+(define-enumerated-resource scroll-bar-display-policy (:static :as-needed))
 
-
-(defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
-  (let ((r nil))
-    (dotimes (i (widget-num-children widget))
-      (push (convert-resource-in 
-	     widget 'widget (xt-widget-list x i))
-	    r))
-    (nreverse r)))
-
-
-(defmethod convert-resource-in ((widget t) (type (eql 'widget)) x)
-  (intern-widget x :display (widget-display widget)))
-
-(defmethod convert-resource-out ((widget t) (type (eql 'widget)) x)
-  x)
-
-;; Could not think of anywhere better!
-
-
-(defun setup (&optional (hostspec "localhost:0"))
-  (let* ((context (create-application-context))
-	 (display (make-instance 'display 
-		    :host hostspec
-		    :context context))
-	 (app (app-create-shell :display display
-				:widget-class 'application-shell)))
-    (values context display app)))
-
-(defun initialize-motif-toolkit (hostspec)
-  (setup hostspec))
-
-
-;;; ol resource
-
-(defmethod convert-resource-out ((parent t) (type (eql 'position)) value)
-  value)
-
-(defmethod convert-resource-in ((parent t) (type (eql 'position)) value)
-  (convert-16bit-resource-in value))
-
-(defun convert-16bit-resource-in (value)
-  (let ((x (ash value -16)))
-    ;; 16bit signed value!
-    (if (>= x (ash 1 15))
-	(- x (ash 1 16))
-      x)))
-
-(defmethod convert-resource-out ((parent t) (type (eql 'dimension)) value)
-  value)
-
-(defmethod convert-resource-in ((parent t) (type (eql 'dimension)) value)
-  (ash value -16))
-
+(define-enumerated-resource selection-policy (:single-select 
+					      :multiple-select 
+					      :extended-select :browse-select))
 ;; from OpenLook.h
 
 (defparameter *ol-defines* '(
@@ -524,38 +246,308 @@
 		       ))
 
 (defmethod convert-resource-in (parent (type (eql 'ol-define)) value)
-  (setq value (ash value -16))
+  (declare (ignore parent))
   (or (car (find value *ol-defines* :key #'second))
       (call-next-method)))
 
 
 (defmethod convert-resource-out (parent (type (eql 'ol-define)) value)
+  (declare (ignore parent))
   (or (second (find value *ol-defines* :key #'first))
       (call-next-method)))
+
+
+
+;; Note that the current set-values implemenation only works for resources
+;; that fit in a 32bit word.  You were warned!
+
+(defun fill-sv-cache (class resources)
+  (let* ((len (length resources))
+	 (class-resources (class-resources class))
+	 (arglist (make-xt-arglist :number len))
+	 (rds nil)
+	 (i 0))
+    (dolist (r resources)
+      (let ((resource (find r class-resources :key #'resource-name :test #'eq)))
+	(unless resource
+	  (error "No such resource ~S for widget of class ~S "
+		 r class))
+	(let ((type (resource-type resource)))
+	  (push (list (resource-type-set-conversion-p type)
+		      type)
+		rds))
+	(setf (xt-arglist-name arglist i) (resource-original-name resource))
+	(incf i)))
+    (setf (gethash resources (class-set-values-cache class))
+      (list* arglist len (nreverse rds)))))
+
+(defun set-values (widget &rest resources-and-values)
+  (declare (optimize (speed 3))
+	   (dynamic-extent resources-and-values))
+  (let ((resources nil)
+	(values nil))
+    (do ((rvs resources-and-values (cddr rvs)))
+	((null rvs))
+      (push (car rvs) resources)
+      (push (cadr rvs) values))
+    (setq resources (nreverse resources))
+    (setq values (nreverse values))
+    (excl::without-interrupts
+      ;; We don't really want anyone else to grab the same cache entry.
+      (let* ((class (class-of widget))
+	     (entry (gethash resources (class-set-values-cache class))))
+	(declare (optimize (safety 0)))
+	(unless entry
+	  (setf entry (fill-sv-cache class resources)))
+    
+	(destructuring-bind (arglist length &rest resource-descriptions)
+	    entry
+	  (do ((resdess resource-descriptions (cdr resdess))
+	       (i 0 (1+ i))
+	       (values values (cdr values)))
+	      ((null resdess))
+	    (destructuring-bind (convert-p type)
+		(car resdess)
+	      ;; Yuck -- the following should be handled somehow by cstructs...
+	      (setf (sys:memref-int (xt-arglist arglist i) 4 0 :signed-long)
+		(if convert-p
+		    (convert-resource-out widget type (car values))
+		  (car values)))))
+	  (xt_set_values widget arglist length))))))
+
+;; This is used by initialize-instance methods for widgets...
+(defun make-arglist-for-class (class parent args)
+  (declare (optimize (speed 3) (safety 0)))
+  (do ((new-args nil)
+       (resources-1 (class-resources class))
+       (resources-2 (and parent (class-constraint-resources
+				    (class-of parent))))
+       keyword
+       value)
+      ((null args)
+       (make-array (length new-args)
+		   :element-type '(signed-byte 32)
+		   :initial-contents (nreverse new-args)))
+    (setq keyword (pop args)
+	  value (pop args))
+    (let ((resource (or (find keyword resources-1 :key #'resource-name)
+			(find keyword resources-2 :key #'resource-name))))
+      (when resource
+	(push (resource-original-name resource) new-args)
+	(let ((type (resource-type resource)))
+	  (push
+	   (if (resource-type-set-conversion-p type)
+	       (convert-resource-out parent type value)
+	     value)
+	   new-args))))))
+
+
+
+
+
+;; I would really prefer to define these as separate methods.  However
+;; that leads to a lot of code!
+(defmethod resource-type-get-conversion-p (type)
+  (case type
+    (position nil)
+    (vertical-position nil)
+    (horizontal-position nil)
+    (shell-vert-pos nil)
+    (shell-horiz-pos nil)
+    (dimension nil)
+    (vertical-dimension nil)
+    (horizontal-dimension nil)
+    (shell-vert-dim nil)
+    (shell-horiz-dim nil)
+    (cardinal nil)
+    (pixel nil)
+    (int nil)
+    (t t)))
+
+(defmethod resource-type-set-conversion-p (type)
+  (case type
+    (position nil)
+    (vertical-position nil)
+    (horizontal-position nil)
+    (shell-vert-pos nil)
+    (shell-horiz-pos nil)
+    (dimension nil)
+    (vertical-dimension nil)
+    (vertical-int nil)
+    (horizontal-dimension nil)
+    (horizontal-int nil)
+    (shell-vert-dim nil)
+    (shell-horiz-dim nil)
+    (cardinal nil)
+    (pixel nil)
+    (short nil)
+    (int nil)
+   (t t)))
   
+(defmethod resource-type-get-memref-type (type)
+  (case type
+    (position :signed-word)
+    (vertical-position :signed-word)
+    (horizontal-position :signed-word)
+    (shell-vert-pos :signed-word)
+    (shell-horiz-pos :signed-word)
+    (dimension :signed-word)
+    (vertical-dimension :signed-word)
+    (horizontal-dimension :signed-word)
+    (shell-vert-dim :signed-word)
+    (shell-horiz-dim :signed-word)
+    (int :signed-long)
+    (boolean :unsigned-byte)
+    (ol-define :unsigned-word)
+   (t :unsigned-long)))
 
-(define-enumerated-resource packing (:no-packing
-				     :tight
-				     :column
-				     :none))
+
 
+(defun fill-gv-cache (class resources)
+  (setq resources (copy-list resources)) ; So get-values can declare dynamic-extent
+  (let* ((len (length resources))
+	 (class-resources (class-resources class))
+	 (arglist (make-xt-arglist :number len))
+	 (rds nil)
+	 (i 0))
+    (dotimes (j len)
+      (setf (xt-arglist-value arglist j) (excl::malloc 8))) ; A crock...
+    (dolist (r resources)
+      (let ((resource (find r class-resources :key #'resource-name :test #'eq)))
+	(unless resource
+	  (error "No such resource ~S for widget of class ~S "
+		 r class))
+	(let ((type (resource-type resource)))
+	  (push (list (resource-type-get-memref-type type)
+		      (resource-type-get-conversion-p type)
+		      type)
+		rds))
+	(setf (xt-arglist-name arglist i) (resource-original-name resource))
+	(incf i)))
+    (setf (gethash resources (class-get-values-cache class))
+      (list* arglist len (nreverse rds)))))
+    
+(defun get-values (widget &rest resources)
+  (declare (optimize (speed 3))
+	   (dynamic-extent resources))
+  (excl::without-interrupts
+    ;; We don't really want anyone else to grab the same cache entry.
+    (let* ((class (class-of widget))
+	   (entry (gethash resources (class-get-values-cache class))))
+      (declare (optimize (safety 0)))
+      (unless entry
+	(setf entry (fill-gv-cache class resources)))
+    
+      (destructuring-bind (arglist length &rest resource-descriptions)
+	  entry
+	(xt_get_values widget arglist length)
 
-(define-enumerated-resource edit-mode (:multi-line :single-line))
+	(let ((i 0)
+	      (values nil))
+	  (dolist (resource-desc resource-descriptions)
+	    (destructuring-bind (get-memref-type convert-p type)
+		resource-desc
+	      (let ((value (sys:memref-int (xt-arglist-value arglist i) 0 0
+					   get-memref-type)))
+		(incf i)
+		(if convert-p
+		    (setq value (convert-resource-in widget type value)))
+		(push value values))))
+	  (values-list (nreverse values)))))))
 
+
+
+(defmethod convert-resource-out (parent type value)
+  (cerror "Try again" "cannot convert-out resource for ~S,~S,~S" parent type value)
+  (convert-resource-out parent type value))
+
+(defmethod convert-resource-out :around (parent type value)
+  (declare (optimize (speed 3))
+	   (ignore parent type value))
+  (let ((result (call-next-method)))
+    (if (integerp result)
+	result
+      (ff:foreign-pointer-address result))))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
+  (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'orientation)) value)
+  (ecase value
+    (:vertical 1)
+    (:horizontal 2)))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'menu-widget)) value)
+  value)
+
+(defmethod convert-resource-out ((parent t) (type (eql 'label-type)) value)
+  (ecase value
+    (:pixmap 1)
+    (:string 2)))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'alignment)) value)
+  (ecase value
+    (:center 1)
+    (:beginning 0)
+    (:end 2)))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'prim-foreground-pixmap)) value)
+  (convert-pixmap-out parent value))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'gadget-pixmap)) value)
+  (convert-pixmap-out parent value))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'pixmap)) value)
+  (convert-pixmap-out parent value))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'bitmap)) value)
+  (convert-pixmap-out parent value))
+
+(defun convert-pixmap-out (parent value)
+  (etypecase value
+    (pixmap value)
+    (string
+     (let* ((display (widget-display parent))
+	    (screen (x11:xdefaultscreenofdisplay display))
+	    (white (x11::xwhitepixel display 0))
+	    (black (x11::xblackpixel display 0)))
+       (xm_get_pixmap screen value white black)))))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
+  (if value 1 0))
+
+(defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
+  (string-to-char* value))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
+  (make-instance 'font
+    :display (widget-display parent)
+    :name value))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'pixel)) value)
+  (etypecase value
+	     (integer value)
+	     (color (allocate-color (default-colormap (widget-display parent))
+				    value))))
+			   
+(defmethod convert-resource-out ((parent t) (type (eql 'window)) x)
+  x)
+
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
+  (etypecase value
+    (pixmap
+     (encode-pixmap value))))
+
+(defmethod convert-resource-out ((widget t) (type (eql 'widget)) x)
+  x)
 
 ;;; Accelerator table stuff
-
-(defmethod convert-resource-in (parent (type (eql 'xt::accelerator-table))
-				(value (eql 0)))
-  nil)
-
 (defmethod convert-resource-out (parent (type (eql 'xt::accelerator-table))
 				(value (eql nil)))
+  (declare (ignore parent))
   0)
 
-(define-enumerated-resource visual-policy (:variable :constant))
-(define-enumerated-resource scroll-bar-display-policy (:static :as-needed))
-(define-enumerated-resource selection-policy (:single-select :multiple-select :extended-select :browse-select))
+
 
 (defmethod convert-resource-out (parent (type (eql 'xm-string-table)) value)
   (if value
@@ -566,9 +558,37 @@
 	    (i 0 (1+ i)))
 	  ((null v)
 	   r)
-	(setf (x-arglist r i)
+	(setf (xt-arglist r i)
 	  (convert-resource-out parent 'xm-string (car v))))
     0))
+
+
+
+(defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
+  (let ((r nil))
+    (dotimes (i (widget-num-children widget))
+      (push (convert-resource-in 
+	     widget 'widget (xt-widget-list x i))
+	    r))
+    (nreverse r)))
+
+(defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
+  (unless (zerop value)
+    (char*-to-string value)))
+
+(defmethod convert-resource-in ((parent t) (type (eql 'boolean)) value)
+  (not (zerop value)))
+
+(defmethod convert-resource-in ((widget t) (type (eql 'widget)) x)
+  (intern-widget x :display (widget-display widget)))
+
+;;; Accelerator table stuff
+(defmethod convert-resource-in (parent (type (eql 'xt::accelerator-table))
+				(value (eql 0)))
+  (declare (ignore parent))
+  nil)
+
+
 
 ;;-- This is a problem cos we dont know the number of items
 
@@ -585,3 +605,4 @@
   (etypecase value
     ;;-- Should check to see if its registered
     (integer value)))
+

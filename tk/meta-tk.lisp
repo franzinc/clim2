@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: meta-tk.lisp,v 1.6 92/03/09 17:40:49 cer Exp $
+;; $fiHeader: meta-tk.lisp,v 1.7 92/03/30 17:51:45 cer Exp $
 
 
 (in-package :tk)
@@ -40,7 +40,13 @@
 		     :reader class-direct-resources)
    (constraint-resources :initform nil
 			 :initarg :direct-constraints
-			 :reader class-direct-constraint-resources)))
+			 :reader class-direct-constraint-resources)
+   (get-values-cache :initform (make-hash-table :test #'equal)
+		     :type hash-table
+		     :reader class-get-values-cache)
+   (set-values-cache :initform (make-hash-table :test #'equal)
+		     :type hash-table
+		     :reader class-set-values-cache)))
 
 (defmethod class-handle ((class xt-class))
   (unless (clos::class-finalized-p class)

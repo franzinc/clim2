@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.25 92/05/07 13:14:02 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.26 92/05/12 18:25:31 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -306,7 +306,11 @@
 		(sheet-mirror-resized-callback
 		 widget nil event sheet)
 		nil)
+	       ;; This is handled by the expose callback.
 	       (:expose
+		nil)
+	       (:expose
+		;; This gets called only for an XmBulletinBoard widget.
 		(sheet-mirror-exposed-callback
 		 widget 
 		 nil ; window
@@ -1002,26 +1006,30 @@
 (defun default-from-mirror-resources (port pane)
   (unless (and (medium-foreground pane)
 	       (medium-background pane))
-    (let ((w (sheet-mirror pane)))
+    (let* ((w (sheet-mirror pane))
+	   (dap (typep w 'tk::xm-drawing-area)))
+
       ;;-- What about the case when there is a pixmap
-      (when (typep w 'xm-drawing-area)
-	(multiple-value-bind
-	    (foreground background)
-	    (tk::get-values w :foreground :background)
-	  ;; Now we have to convert into CLIM colors.
-	  (flet ((ccm (x)
-		   (multiple-value-bind
-		       (r g b)
-		       (tk::query-color (tk::default-colormap (port-display port)) x)
-		     (let ((x #.(1- (ash 1 16))))
-		       (make-rgb-color 
-			(/ r x)
-			(/ g x)
-			(/ b x))))))
+      (multiple-value-bind
+	  (foreground background)
+	  (if dap
+	      (tk::get-values w :foreground :background)
+	    (values nil (tk::get-values w :background)))
+	;; Now we have to convert into CLIM colors.
+	(flet ((ccm (x)
+		 (multiple-value-bind
+		     (r g b)
+		     (tk::query-color (tk::default-colormap (port-display port)) x)
+		   (let ((x #.(1- (ash 1 16))))
+		     (make-rgb-color 
+		      (/ r x)
+		      (/ g x)
+		      (/ b x))))))
+	  (when foreground
 	    (unless (medium-foreground pane)
-	      (setf (medium-foreground pane) (ccm foreground)))
-	    (unless (medium-background pane)
-	      (setf (medium-background pane) (ccm background)))))))))
+	      (setf (medium-foreground pane) (ccm foreground))))
+	  (unless (medium-background pane)
+	    (setf (medium-background pane) (ccm background))))))))
 
 ;;;--- Gadget activation deactivate
 

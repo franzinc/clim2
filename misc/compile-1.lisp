@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.4 92/04/28 09:26:19 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.5 92/05/07 13:13:46 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -47,8 +47,10 @@
   (let ((*enable-package-locked-errors* nil))
     (load "sys/defsystem")))
 
+
+
 (defun compile-it (sys)
-  (unless (ignore-errors (defsys::find-system sys))
+  (unless (ignore-errors (clim-defsys::find-system sys))
     (load "sys/sysdcl"))
   (clim-defsys::compile-system sys :propagate t)
   (tenuring

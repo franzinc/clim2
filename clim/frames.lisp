@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.19 92/05/07 13:12:14 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.20 92/05/12 18:24:58 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -359,7 +359,7 @@
 	 (error "Invalid pane specification: ~S"
 		(list* name code rest)))))
 
-(defmethod find-pane-class-constructor ((typep t) &rest options)
+(defmethod find-pane-class-constructor ((type t) &rest options)
   (error "Unknown pane type ~S with options ~S" type options))
 
 (defmacro define-pane-type (type lambda-list &body body)

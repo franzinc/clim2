@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.8 92/04/15 11:45:31 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.9 92/05/07 13:11:38 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -123,6 +123,14 @@
      ,@(mapcar #'(lambda (x) `(setq ,x (fix-coordinate ,x)))
 	       coords)))
 
+;; Assume that the value is a fixnum and that the result is a fixnum.
+(defmacro fast-abs (int)
+  (let ((val (gensym)))
+    `(let ((,val ,int))
+       (declare (fixnum ,val))
+       (the fixnum (if (< ,val 0) (the fixnum (- 0 ,val)) ,val)))))
+    
+
 ;; COORDINATE-PAIRS is a list of pairs of coordinates.
 ;; The coordinates must be of type COORDINATE
 (defmacro translate-coordinates (x-delta y-delta &body coordinate-pairs)
@@ -136,34 +144,44 @@
 			  (the coordinate (+ ,(second pts) ,y-delta))) forms))
 	   (nreverse forms)))))
 
+;;
+;; Note that this macro evaluates its arguments multiple times.
+;;
 (defmacro convert-to-device-coordinates (transform &body positions)
   (assert (evenp (length positions)) (positions)
-	  "There must be an even number of elements in ~S" positions)
-  (let ((forms nil))
+    "There must be an even number of elements in ~S" positions)
+  (let ((forms nil)
+	(nx (gensym))
+	(ny (gensym)))
     (loop
       (when (null positions)
 	(return `(progn ,@(nreverse forms))))
       (let* ((x (pop positions))
 	     (y (pop positions)))
-	(push `(multiple-value-setq (,x ,y)
-		 (multiple-value-bind (nx ny) 
-		     (transform-position ,transform ,x ,y)
-		   (values (fix-coordinate nx) (fix-coordinate ny))))
+	(push `(multiple-value-bind (,nx ,ny) 
+		   (transform-position ,transform ,x ,y)
+		 (setq ,x (fix-coordinate ,nx)
+		       ,y (fix-coordinate ,ny)))
 	      forms)))))
 
+;;
+;; Note that this macro evaluates its arguments multiple times.
+;;
 (defmacro convert-to-device-distances (transform &body positions)
   (assert (evenp (length positions)) (positions)
 	  "There must be an even number of elements in ~S" positions)
-  (let ((forms nil))
+  (let ((forms nil)
+	(nx (gensym))
+	(ny (gensym)))
     (loop
       (when (null positions)
 	(return `(progn ,@(nreverse forms))))
       (let* ((x (pop positions))
 	     (y (pop positions)))
-	(push `(multiple-value-setq (,x ,y)
-		 (multiple-value-bind (nx ny) 
-		     (transform-distance ,transform ,x ,y)
-		   (values (fix-coordinate nx) (fix-coordinate ny))))
+	(push `(multiple-value-bind (,nx ,ny) 
+		   (transform-distance ,transform ,x ,y)
+		 (setq ,x (fix-coordinate ,nx)
+		       ,y (fix-coordinate ,ny)))
 	      forms)))))
 
 

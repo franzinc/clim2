@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.3 92/04/28 09:25:07 cer Exp Locker: cer $
+;; $fiHeader: xm-defs.lisp,v 1.4 92/05/06 15:37:10 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -28,7 +28,7 @@
 
 (in-package :tk)
 
-(def-c-type (xm-proto-callback-info :no-defuns) :struct
+(def-c-type (xm-proto-callback-info :no-defuns :in-foreign-space) :struct
 	     (handle :int)
 	     (data :int))
 

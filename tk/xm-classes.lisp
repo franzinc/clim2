@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-classes.lisp,v 1.3 92/03/30 17:51:54 cer Exp $
+;; $fiHeader: xm-classes.lisp,v 1.4 92/04/15 11:44:56 cer Exp $
 
 
 (provide :climxm)
@@ -76,4 +76,7 @@
 				"_xmTextFieldWidgetClass"
 				"_xmTextWidgetClass"
 				"_xmToggleButtonGadgetClass"
-				"_xmToggleButtonWidgetClass"))
+				"_xmToggleButtonWidgetClass"
+				
+				"_xmMyDrawingAreaWidgetClass"
+				))

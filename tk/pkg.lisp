@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.7 92/03/30 17:51:47 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.8 92/04/21 20:27:39 cer Exp $
 
 (defpackage :tk
   ;;-- No we really need
@@ -30,11 +30,9 @@
   (:import-from :excl #:if*)
   (:export
    #:initialize-motif-toolkit
-   #:xm-drawing-area
    #:widget-parent
    #:manage-child
    #:get-values
-   #:xm-dialog-shell
    #:top-level-shell
    #:popup
    #:manage-child

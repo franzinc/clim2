@@ -20,9 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.4 92/04/21 20:28:22 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.5 92/05/07 13:13:47 cer Exp Locker: cer $
 
-(excl::free (excl::malloc 131072))
+(excl::free (excl::malloc 262145))
 
 (setq *ignore-package-name-case* t)
 (set-case-mode :case-insensitive-lower)
@@ -51,10 +51,10 @@
 	(load "climol.fasl")
 	(load "clim-debug.fasl")))
      #+ignore
-     (defsys::load-system sys)))
+     (clim-defsys:load-system sys)))
 
   #+ignore
-  (defsys:update-system sys)
+  (clim-defsys:update-system sys)
 
   ;;-- What would be good is to mark the files in the system as having
   ;;-- been loaded

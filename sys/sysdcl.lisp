@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.14 92/04/21 20:28:13 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.15 92/05/07 13:13:14 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -431,9 +431,9 @@
      :load-before-compile (xlib))
   ;; General stuff
   ("pkg")
+  ("macros")
   ("xt-defs")				; Used to be 'xtk'.
   ("foreign-obj")
-  ("macros")
   ;; Xlib stuff
   ("xlib")
   ("font")

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.15 92/04/21 20:27:34 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.16 92/05/07 13:10:52 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -61,11 +61,6 @@
 			      'constraint-resource))
 
 
-
-(defclass display-object (ff:foreign-pointer)
-  ((display :initarg :display
-	    :reader object-display
-	    :fixed-index 0)))
 
 (defclass xt-root-class (display-object)
   ((events :initform nil :accessor widget-event-handler-data)

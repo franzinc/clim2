@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.6 92/03/24 19:36:10 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.7 92/04/15 11:44:45 cer Exp $
 
 (in-package :tk)
 
@@ -127,6 +127,7 @@
      y
      width height)))
 
+#+ignore
 (defun text-extents (font sequence &key (start 0) end translate)
   (unless end (setq end (length sequence)))
   (with-ref-par ((direction 0)
@@ -153,10 +154,7 @@
 					; something-else
 		   ))))
 		   
-
-
-
-
+#+ignore
 (defun text-width (font sequence &key (start 0) end translate)
   (unless end (setq end (length sequence)))
   (x11:xtextwidth font
@@ -189,14 +187,6 @@
 (defun draw-string (drawable gc x y string &optional (start 0) end)
   (unless start (setq start 0))
   (unless end (setq end (length string)))
-  (x11::xdrawstring
-   (object-display drawable)
-   drawable
-   gc
-   x y 
-   (+ start (string-to-char* string))
-   (- end start))
-  #+ignore
   (x11:lisp-xdrawstring
    (object-display drawable)
    drawable

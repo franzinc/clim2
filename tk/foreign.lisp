@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.9 92/04/15 11:44:43 cer Exp Locker: cer $
+;; $fiHeader: foreign.lisp,v 1.10 92/04/21 20:27:30 cer Exp $
 
 (in-package :tk)
 
@@ -74,10 +74,6 @@
     (if (zerop d)
 	(error "cannot open the display: ~A" host)
       d)))
-
-(defclass display (ff:foreign-pointer)
-  ((context :initarg :context :reader display-context)))
-
 
 (defmethod initialize-instance :after ((d display) &rest args
 				       &key display

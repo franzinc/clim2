@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.15 92/04/28 09:26:24 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.16 92/05/06 15:37:53 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -37,10 +37,7 @@
 
 (defmethod establish-wm-protocol-callbacks ((framem motif-frame-manager) frame)
   (let ((shell (frame-shell frame)))
-    (tk::set-values shell 
-		    :icon-name (frame-pretty-name frame)
-		    :title (frame-pretty-name frame)
-		    :delete-response :do-nothing)
+    (tk::set-values shell :delete-response :do-nothing)
     (tk::add-wm-protocol-callback
       shell 
       :wm-delete-window
@@ -319,6 +316,8 @@
 	  (tk::set-values shell 
 			  :x (fix-coordinate x)
 			  :y (fix-coordinate y)))))
+    
+    (tk::set-values shell :title (frame-pretty-name frame))
     (let ((icon (clim-internals::frame-icon frame)))
       (flet ((decode-pixmap (x)
 	       (etypecase x
@@ -330,9 +329,12 @@
 		       (decode-gadget-background medium sheet x))))))))
 	(destructuring-bind
 	    (&key name pixmap clipping-mask) icon
-	  (when name
+	  ;;-- Dialog shells do not have :icon-name resource
+	  (when (and name (typep shell 'tk::top-level-shell))
 	    (tk::set-values shell :icon-name name))
 	  (when pixmap
 	    (tk::set-values shell :icon-pixmap (decode-pixmap pixmap)))
 	  (when clipping-mask
 	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))
+
+
