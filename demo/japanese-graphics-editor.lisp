@@ -16,12 +16,19 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: japanese-graphics-editor.lisp,v 1.7 1998/08/06 23:16:27 layer Exp $
+;; $Id: japanese-graphics-editor.lisp,v 1.7.54.1 2001/05/17 17:32:08 layer Exp $
 
 (in-package :japanese-graphics-editor)
 
 ;;;"Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
+
+
+;;; Ensure that the japanese characters are compiled
+;;; with the correct external-format.
+(eval-when (compile)
+  (when (streamp comp::*compile-file-stream*)
+    (setf (stream-external-format comp::*compile-file-stream*) :euc)))
 
 #-ics
 (eval-when (compile)
@@ -682,3 +689,4 @@
   :left 100 :top 100 :width 800 :height 500)
 
 )) ;; ics-target-case
+

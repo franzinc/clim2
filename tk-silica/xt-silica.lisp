@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.3 2000/10/05 18:02:11 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.3.2.1 2001/05/17 17:32:09 layer Exp $
 
 (in-package :xm-silica)
 
@@ -981,17 +981,29 @@ setup."
 		      (:+ics our-font nil)
 		      (:-ics our-font))
 		     (text-style-mapping port text-style
-					 (char-character-set-and-index character))))
-	 (escapement-x (tk::char-width x-font index))
-	 (escapement-y 0)
-	 (origin-x 0)
-	 (origin-y (tk::font-ascent x-font))
-	 (bb-x escapement-x)
-	 (bb-y (+ origin-y (tk::font-descent x-font))))
-    (when (zerop escapement-x)
-      (setq escapement-x (tk::font-width x-font)))
-    (values index x-font escapement-x escapement-y
-	    origin-x origin-y bb-x bb-y)))
+					 (char-character-set-and-index character)))))
+    (when (null x-font)
+      ;; Throw a more meaningful error-message
+      ;; when the x-font is not found.
+      ;; This will happen, for example, when
+      ;; a Japanese/foreign is not set up correctly.
+      (let ((character-set (char-character-set-and-index character)))
+	(error "X-Font not found for text-style: ~S on port:~S~% (character-set: ~A, character:~C, char-index:~S)"
+	       text-style
+	       port
+	       character-set
+	       character
+	       index)))
+    (let* ((escapement-x (tk::char-width x-font index))
+	   (escapement-y 0)
+	   (origin-x 0)
+	   (origin-y (tk::font-ascent x-font))
+	   (bb-x escapement-x)
+	   (bb-y (+ origin-y (tk::font-descent x-font))))
+      (when (zerop escapement-x)
+	(setq escapement-x (tk::font-width x-font)))
+      (values index x-font escapement-x escapement-y
+	      origin-x origin-y bb-x bb-y))))
 
 (defvar *trying-fallback* nil)
 

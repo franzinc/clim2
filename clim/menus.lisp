@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: menus.lisp,v 1.54 2000/05/01 21:43:24 layer Exp $
+;; $Id: menus.lisp,v 1.54.50.1 2001/05/17 17:32:08 layer Exp $
 
 (in-package :clim-internals)
 
@@ -199,6 +199,7 @@
                                 (cell-align-x ':left) (cell-align-y ':top)
                            &aux default-presentation)
   (formatting-item-list (menu :max-width max-width :max-height max-height
+			      :initial-spacing 1
                               :n-rows n-rows :n-columns n-columns
                               :x-spacing x-spacing :y-spacing y-spacing
                               :row-wise row-wise :move-cursor nil)
@@ -211,28 +212,28 @@
                  (declare (dynamic-extent #'print-item))
                  (ecase type
                    (:item
-                     (if (menu-item-active item)
-                         (let ((presentation
-                                 (with-output-as-presentation (menu item presentation-type
-                                                               :single-box t)
-                                   (print-item))))
-                           (when (and default-item
-                                      (eq item default-item))
-                             (setf default-presentation presentation)))
-                         (with-drawing-options (menu :ink *command-table-menu-gray*
-                                                     :text-face :bold)
-                           (print-item))))
+		    (if (menu-item-active item)
+			(let ((presentation
+			       (with-output-as-presentation (menu item presentation-type
+								  :single-box t)
+				 (print-item))))
+			  (when (and default-item
+				     (eq item default-item))
+			    (setf default-presentation presentation)))
+		      (with-drawing-options (menu :ink *command-table-menu-gray*
+						  :text-face :bold)
+			(print-item))))
                    (:label
-                     (print-item))
+		    (print-item))
                    (:divider
-                     (let* ((width (menu-item-getf item :width 50))
-                            (thickness (menu-item-getf item :thickness 2))
-                            (ink (menu-item-getf item :ink *command-table-menu-gray*)))
-                       (formatting-cell (menu :align-x cell-align-x
-                                              :align-y :center)
-                         (with-local-coordinates (menu)
-                           (draw-line* menu 0 0 width 0
-                                       :line-thickness thickness :ink ink))))))))))
+		    (let* ((width (menu-item-getf item :width 50))
+			   (thickness (menu-item-getf item :thickness 2))
+			   (ink (menu-item-getf item :ink *command-table-menu-gray*)))
+		      (formatting-cell (menu :align-x cell-align-x
+					     :align-y :center)
+			(with-local-coordinates (menu)
+			  (draw-line* menu 0 0 width 0
+				      :line-thickness thickness :ink ink))))))))))
       (declare (dynamic-extent #'format-item))
       (map nil #'format-item items)))
   default-presentation)

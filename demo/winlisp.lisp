@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winlisp.lisp,v 1.6 2000/05/01 21:43:26 layer Exp $
+;; $Id: winlisp.lisp,v 1.6.50.1 2001/05/17 17:32:09 layer Exp $
 
 (in-package :clim-demo)
 
@@ -41,7 +41,7 @@
   (clim:frame-exit clim:*application-frame*))
 
 (define-command-table wlistener-file
-  :inherit-from (acl-clim::mswin-file-commands)
+  :inherit-from (mswin-file-commands)
   :inherit-menu t)
 
 (define-command-table wlistener-edit)

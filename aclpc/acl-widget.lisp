@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.15.6.1 2000/10/05 18:02:10 layer Exp $
+;; $Id: acl-widget.lisp,v 1.15.6.1.2.1 2001/05/17 17:32:07 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -435,6 +435,62 @@
 	(incf pos)))
     cstr))
 
+;;; Set the selection in a mswin-text-edit gadget.
+;;; For endpos = -1 means the end;
+;;; as a result, startpos = 0 and endpos = -1 means "select all".
+(defmethod set-selection ((pane mswin-text-edit) startpos endpos)
+  (let ((mirror (sheet-direct-mirror pane)))
+    (when mirror
+      (let* ((val (slot-value pane 'value))
+	     (val-len (if val (length val) 0)))
+	;; For endpos = -1, means the end.
+	(when (= endpos -1)
+	  (setq endpos val-len))
+	;; Ensure the correct order.
+	(when (< endpos startpos)
+	  (let ((temp endpos))
+	    (setf endpos startpos
+		  startpos temp)))
+	;; Otherwise, trim to fit.
+	(when (< val-len endpos)
+	  (setq endpos val-len))
+	(when (< startpos 0) 
+	  (setq startpos 0))
+	(acl-clim::frame-send-message (pane-frame pane)
+				      mirror
+				      win:EM_SETSEL
+				      startpos endpos)))))
+
+;;; Retreive the start and end position of the
+;;; selection in a mswin-text-edit gadget.
+(defmethod get-selection ((pane mswin-text-edit)) 
+  (declare (values startpos endpos))
+  (let ((mirror (sheet-direct-mirror pane)))
+    (cond (mirror
+	   (let ((startptr (make-array 1 
+				       :element-type '(unsigned-byte 32)
+				       :initial-element 0))
+		 (endptr (make-array 1 
+				     :element-type '(unsigned-byte 32)
+				     :initial-element 0))) 
+	     (acl-clim::frame-send-message (pane-frame pane)
+					   mirror
+					   win:EM_GETSEL
+					   startptr endptr)
+	     (values (aref startptr 0)
+		     (aref endptr 0)))
+	   )
+	  (t
+	   (values 0 0)))))
+
+;;; Set the postion of the caret in the mswin-text-edit gadget.
+;;; NOTE:  This uses set-selection, which in turn uses the
+;;; mechanism for setting the selected-text (with startpos and 
+;;; endpos the same).  This is how the caret is set on MS 
+;;; text-gadgets.
+(defmethod set-caret-pos ((pane mswin-text-edit) pos)
+  (set-selection pane pos pos))
+
 (defmethod (setf gadget-value) :before (new (pane mswin-text-edit) 
 					&key invoke-callback)
   (declare (ignore invoke-callback))
@@ -452,11 +508,33 @@
 	;; Disable redraw to avoid flicker.
 	(acl-clim::frame-send-message
 	 (pane-frame pane) mirror win:WM_SETREDRAW 0 0)
-	;; Here's the text:
-	#+broken			; dies when string contains newline/return
-	(excl:with-native-string (s1 (xlat-newline-return new))
-	  (win:SetWindowText mirror s1))
-	(win:SetWindowText mirror (xlat-newline-return new))
+
+	;; Try to preserve the caret's position, if
+	;; it is currently at the end of the text.
+	
+	;; First, record the info before setting the new value...
+	(multiple-value-bind (startpos endpos)
+	    (get-selection pane)
+	  (let ((oldval-length (if old (length old) 0))
+		(newval-length (if new (length new) 0)))
+
+	    ;; ...set the new-value...
+	    (excl:with-native-string (s1 (xlat-newline-return new))
+	      (win:SetWindowText mirror s1))
+
+	    ;; ...then try to set the caret's position.
+	    (cond ((and (= startpos endpos)
+			(= startpos oldval-length))
+		   ;; If it is at the end, keep it there,
+		   ;; even if the length is different.
+		   (set-caret-pos pane newval-length))
+		  ((= startpos endpos)
+		   ;; Otherwise, maintain the old position.
+		   (cond ((< startpos newval-length) 
+			  (set-caret-pos pane startpos))
+			 (t
+			  (set-caret-pos pane newval-length)))))))
+
 	;; Try to preserve the scroll position:
 	(acl-clim::frame-send-message
 	 (pane-frame pane) mirror win:EM_LINESCROLL leftchar topline)
@@ -465,7 +543,9 @@
 	 (pane-frame pane) mirror win:WM_SETREDRAW 1 0)
 	;; Force redraw
 	(win:InvalidateRect mirror 0 win:TRUE)
+
 	(acl-clim::frame-update-window (pane-frame pane) mirror)
+	
 	))))
 
 (defmethod gadget-value ((pane mswin-text-edit))
@@ -563,6 +643,27 @@
       ;; after the layout has been processed, but where?
       (win:ShowWindow window win:SW_SHOW)
       window)))
+
+;;; The EN_KILLFOCUS and EN_SETFOCUS messages are how the text-gadgets
+;;; are told they have lost/gained focus.  They are sent as part of
+;;; the WM_COMMAND message.
+(defmethod acl-clim::command-event :around ((gadget mswin-text-edit) 
+					    port sheet wparam lparam)
+  (let ((notifycode (acl-clim::hiword wparam)))
+    (cond ((= notifycode win:EN_KILLFOCUS) 
+	   (handle-event
+	    gadget
+	    (allocate-event 
+	     'focus-out-gadget-event
+	     :gadget gadget)))
+	  ((= notifycode win:EN_SETFOCUS)
+	   (handle-event
+	    gadget
+	    (allocate-event 
+	     'focus-in-gadget-event
+	     :gadget gadget)))
+	  (t
+	   (call-next-method gadget port sheet wparam lparam)))))
 
 (defclass mswin-text-field (mswin-text-edit)
   ()
@@ -684,6 +785,10 @@
    (deactivated-pane-foreground :initarg :deactivated-pane-foreground
 				:initform nil 
 				:accessor deactivated-pane-foreground)
+   ;; Slot to hold "grayed-out" pattern for a pattern-label.
+   (deactivated-label-pixmap :initarg :deactivated-label-pixmap
+			     :initform nil 
+			     :accessor deactivated-label-pixmap)
    )
   (:default-initargs :label nil
     :text-style nil
@@ -695,6 +800,45 @@
 
 (defvar *hbutton-width* 21)
 (defvar *hbutton-height* 21)
+
+(defvar +hpbutton-deactivate-light-gray+ (clim-utils::make-gray-color-1 0.8))
+(defvar +hpbutton-deactivate-dark-gray+ (clim-utils::make-gray-color-1 0.3))
+
+(defun guess-deactivated-color (orig-color) 
+  (cond ((and (typep orig-color 'clim-utils::gray-color)
+	      (< 0.6 (color-rgb orig-color)))
+	 +hpbutton-deactivate-dark-gray+)
+	(t
+	 +hpbutton-deactivate-light-gray+)))
+
+(defun make-deactivated-label-pixmap (label deactivated-pane-foreground)
+  (cond ((acl-clim::isa-pattern label)
+	 (let ((orig-array (clim-utils::pattern-array label))
+	       (orig-designs (clim-utils::pattern-designs label)))
+	   (let ((num-designs (length orig-designs)))
+	     (cond ((= num-designs 0)
+		    ;; What does it mean to have no designs?
+		    ;; Just return the original label
+		    label)
+		   (t
+		    (let ((orig-background (aref orig-designs 0)) 
+			  (new-designs (make-array num-designs)))
+		      ;; Copy the original designs...
+		      (loop for iii below num-designs
+			  do (setf (aref new-designs iii)
+			       (aref orig-designs iii)))
+		      ;; ...assume the first color is the background, 
+		      ;; and try to replace it...
+		      (setf (aref new-designs 0) 
+			(or deactivated-pane-foreground 
+			    (guess-deactivated-color orig-background)))
+		      ;; ...and return the new pattern.
+		      (make-pattern orig-array
+				    new-designs)))))))
+	(t
+	 ;; Can't do anything with a pixmap,
+	 ;; So just use it.
+	 label)))
 
 (defmethod realize-mirror ((port acl-clim::acl-port) (sheet hpbutton-pane))
   (multiple-value-bind (left top right bottom)
@@ -734,6 +878,26 @@
 				:height (pattern-height label))
 		      (draw-pattern* stream label 0 0)))
 		label))
+	    ;; If we have pixmap-label, try to setup a "grayed-out" pixmap.
+	    ;; 1] Use the deactivated-label-pixmap if it is already defined.
+	    ;; 2] If not, try to make a "best-guess" pixmap from
+	    ;;    the current label-pixmap
+	    (let ((alt-pixmap (or (deactivated-label-pixmap sheet)
+				  (make-deactivated-label-pixmap
+				   label
+				   (deactivated-pane-foreground sheet)))))
+	      (when alt-pixmap
+		(setf (deactivated-label-pixmap sheet)
+		  (if (acl-clim::isa-pattern alt-pixmap)
+		      (with-sheet-medium (medium sheet)
+			(with-output-to-pixmap 
+			    (stream medium
+				    :width (pattern-width alt-pixmap)
+				    :height (pattern-height alt-pixmap))
+			  (draw-pattern* stream alt-pixmap 0 0)))
+		    alt-pixmap))
+		  ))
+	    
 	    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
 		  label nil))
 	  (unless (eq (pane-background sheet) 
@@ -825,16 +989,21 @@
 	(let ((pixmap (slot-value pane 'pixmap))
 	      (label (gadget-label pane)))
 	  (cond (pixmap
-		 (let* ((op (slot-value pane 'raster-op))
-			(width (pixmap-width pixmap))
-			(height (pixmap-height pixmap))
-			(x (floor (- bwidth width) 2))
-			(y (floor (- bheight height) 2)))
-		   (when (logtest state win:ODS_SELECTED)
-		     (incf x)
-		     (incf y))
-		   (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-			       (acl-clim::bop->winop op))))
+		 (let ((pixmap2 (if (gadget-active-p pane)
+				    pixmap 
+				  (or (deactivated-label-pixmap pane)
+				      (slot-value pane 'pixmap)))))
+		   (let* ((op (slot-value pane 'raster-op))
+			  (width (pixmap-width pixmap2))
+			  (height (pixmap-height pixmap2))
+			  (x (floor (- bwidth width) 2))
+			  (y (floor (- bheight height) 2)))
+		     (when (logtest state win:ODS_SELECTED)
+		       (incf x)
+		       (incf y))
+		     (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap2) 0 0
+				 (acl-clim::bop->winop op)))))
+			
 		(label
 		 (acl-clim::adjust-gadget-colors pane hdc)
 		 (with-sheet-medium (medium pane)
@@ -849,8 +1018,9 @@
 			   (text-size medium label :text-style text-style)
 			 (let ((x (floor (- bwidth width) 2))
 			       (y (floor (- bheight height) 2)))
-			   (or (win:TextOut hdc x y cstr len) 
-			       (acl-clim::check-last-error "TextOut" :action :warn)))
+			   (excl:with-native-string (cstr cstr)
+			     (or (win:TextOut hdc x y cstr len) 
+				 (acl-clim::check-last-error "TextOut" :action :warn))))
 			 )))))))
 	))))
 
@@ -908,6 +1078,14 @@
       ;;; Work-around to force button to refresh.
       (win:SetWindowText mirror (or (gadget-label pane) "")))))
 
+(defmethod reload-label-string ((gadget hpbutton-pane))
+  (with-slots (mirror) gadget
+    (when mirror
+      (let ((str (gadget-label gadget)))
+	(when (stringp str)
+	  (excl:with-native-string (str str)
+	    (win:SetWindowText mirror str)))))))
+
 (defmethod note-gadget-activated :after ((client t)
 					 (gadget hpbutton-pane))
   (when (or (pane-foreground gadget)
@@ -918,10 +1096,10 @@
 	    (getf (acl-clim::port-default-resources port)
 		  :background))
 	  clim:+black+)))
+  ;; Refresh the label after activation.
+  (reload-label-string gadget)
   )
 
-(defvar +hpbutton-deactivate-light-gray+ (clim-utils::make-gray-color-1 0.8))
-(defvar +hpbutton-deactivate-dark-gray+ (clim-utils::make-gray-color-1 0.3))
 (defmethod note-gadget-deactivated :after ((client t)
 					   (gadget hpbutton-pane))
   (when (or (pane-foreground gadget)
@@ -938,7 +1116,10 @@
 		 (setq dpf +hpbutton-deactivate-light-gray+))))	
 	(setf (deactivated-pane-foreground gadget) dpf)) 
 
-      (setf (pane-foreground gadget) dpf))))
+      (setf (pane-foreground gadget) dpf)))
+  ;; Refresh the label after activation.
+  (reload-label-string gadget)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; hbutton-pane
