@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.31 93/04/23 09:18:30 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.33.2.1 1993/05/11 23:56:57 cer Exp $
 
 (in-package :tk)
 
@@ -291,16 +291,19 @@
 
 #+:svr4
 (defun fixup-class-entry-points ()
-  (clos::map-over-subclasses
-   #'(lambda (class)
-       (let* ((old-addr (and (typep class 'xt-class)
-			     (ff::foreign-pointer-address class)))
-	      (entry-point (and (typep class 'xt-class)
-				(slot-boundp class 'entry-point)
-				(slot-value class 'entry-point)))
-	      (new-addr (and entry-point
-			     (get-foreign-variable-value entry-point))))
-	 (if entry-point
-	     (unless (equal old-addr new-addr)
-	       (setf (ff::foreign-pointer-address class) new-addr)))))
-   (find-class 'xt-root-class)))
+  (let ((root (find-class 'xt-root-class)))
+    (clos::map-over-subclasses #'tk::unregister-address root)
+    (clos::map-over-subclasses
+     #'(lambda (class)
+	 (let* ((old-addr (and (typep class 'xt-class)
+			       (ff::foreign-pointer-address class)))
+		(entry-point (and (typep class 'xt-class)
+				  (slot-boundp class 'entry-point)
+				  (slot-value class 'entry-point)))
+		(new-addr (and entry-point
+			       (get-foreign-variable-value entry-point))))
+	   (when entry-point
+	       (unless (equal old-addr new-addr)
+		 (setf (ff::foreign-pointer-address class) new-addr))
+	       (register-address class ))))
+     root)))
