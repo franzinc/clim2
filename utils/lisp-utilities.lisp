@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.45 2000/07/08 04:56:33 duane Exp $
+;; $Id: lisp-utilities.lisp,v 1.45.36.1 2001/08/27 15:53:08 layer Exp $
 
 (in-package :clim-utils)
 
@@ -398,8 +398,13 @@
   (declare (dynamic-extent format-args))
   (intern (let ((pkg *package*))
 	    (with-standard-io-environment
-	      (let ((*package* pkg))
-		(apply #'lisp:format () format-string format-args))))
+		(let ((*package* pkg))
+		  (apply #'lisp:format () format-string
+			 (mapcar #'(lambda (x)
+				     (excl::if* (symbolp x)
+					then (symbol-name x)
+					else x))
+				 format-args)))))
 	  package))
 
 (defun fintern (format-string &rest format-args)

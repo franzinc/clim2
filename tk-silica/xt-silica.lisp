@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.3.2.1 2001/05/17 17:32:09 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.3.2.2 2001/08/27 15:53:08 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1717,9 +1717,37 @@ the geometry of the children. Instead the parent has control. "))
       (cons (xt-keysym->keysym x-keysym) shifts))))
 
 
+;;; spr24597
+;;; Change port-set-pointer-position-1 to 
+;;; port-set-pointer-position-root so as not to worry
+;;; incorrectly about what sheet we are over.
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
   (let* ((sheet (pointer-sheet pointer)))
-    (port-set-pointer-position-1 port sheet x y)))
+    (port-set-pointer-position-root port sheet x y)))
+
+;;; New function.  Put near port-set-pointer-position-1 in tk-silica/xt-silica.lisp
+;;; On motif, port-set-pointer-position used to
+;;; call port-set-pointer-position-1, which sets the pointer
+;;; based on the underlying sheet.  
+;;; We need a function which sets it explicitly relatibe
+;;; to the root.
+(defun port-set-pointer-position-root (port sheet x y)
+  (let ((m (and
+	    sheet
+	    (port sheet)
+	    (sheet-mirror sheet))))
+    (when m
+      (let ((display (port-display port)))
+	(x11:xwarppointer
+	 display
+	 0				; src
+	 (tk::display-root-window display) ; dest
+	 0				; src-x
+	 0				; src-y
+	 0				; src-width
+	 0				; src-height
+	 (fix-coordinate x)
+	 (fix-coordinate y))))))
 
 (defun port-set-pointer-position-1 (port sheet x y)
   (let ((m (and (port sheet) (sheet-mirror sheet))))

@@ -13,6 +13,42 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 post release patches:
 
+2001-08-27  Kevin Layer  <layer@crikey>
+
+    from pnc (obviously!):
+	* tk/xm-widgets.lisp
+	  spr24576 - fix select-file
+		  
+	* tk-silica/xm-frames.lisp
+          spr24205 - "Changing an item on the menu-bar on a motif frame
+	  caused a seg-fault."
+          [Rewrite method realize-mirror :around (motif-port motif-menu-bar)
+          to remove use of labels.]
+
+        * silica/layout.lisp
+          spr24242 - "Add several documented methods to top-level-sheet."
+          window-expose
+          (setf window-visibility)
+          window-visibility
+          window-stack-on-top
+          window-stack-on-bottom
+          window-inside-edges
+          window-inside-size
+
+        * utils/lisp-utilities.lisp
+          demo/graphics-demos.lisp
+          test/test-suite.lisp
+          spr24505 - "Better support for running in case modes. Ensure
+	  symbols are interned properly."
+          [Modify package-fintern to better handle symbol vs strings.]
+
+        * clim/input-defs.lisp
+          clim/frames.lisp
+          tk-silica/xt-silica.lisp [Motif only.]
+          spr24597  "Make pointer-position, pointer-set-position,
+                     pointer-native-position, and pointer-set-native-position
+                     behave as specified in their documentation."
+
 2001-08-08  Kevin Layer  <layer@crikey>
 
 	* clim/presentations.lisp: fix for bug10917/spr24231

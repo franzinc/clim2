@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.96 2000/06/26 17:42:07 layer Exp $
+;; $Id: frames.lisp,v 1.96.40.1 2001/08/27 15:53:05 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1039,10 +1039,13 @@
 
 ;; Moves the sheet to be near where the pointer is.  It's safest to use this
 ;; on a top-level sheet.
+;;; spr24597
+;;; Change pointer-position to pointer-native-position to reflect
+;;; the new (corrected) meaning of those methods.
 (defun position-sheet-near-pointer (sheet &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      (pointer-position (port-pointer (port sheet)))))
+      (pointer-native-position (port-pointer (port sheet)))))
   (position-sheet-carefully sheet x y))
 
 
