@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.23
+
+2000-07-27  Kevin Layer  <layer@ultra>
+
+	* Makefile.rs6000: work in progress to get it to work on loveshaq
+
+*******************************************************************************
 2.2.2.22 -- join from cley4 branch
 next merge tag: cley4_merge1
 
