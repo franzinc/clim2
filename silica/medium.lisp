@@ -249,7 +249,8 @@
 
 (defvar +highlighting-line-style+ (make-line-style :thickness 1))
 
-(defmethod make-load-form ((line-style standard-line-style))
+(defmethod make-load-form ((line-style standard-line-style) &optional environment)
+  (declare (ignore environment))
   (with-slots (unit thickness joint-shape cap-shape dashes) line-style
     `(make-line-style ,@(unless (eq unit :normal) `(:unit ,unit))
 		      ,@(unless (= thickness 1) `(:thickness ,thickness))

@@ -33,7 +33,8 @@
   (make-line*-1 (coordinate start-x) (coordinate start-y)
 		(coordinate end-x) (coordinate end-y)))
 
-(defmethod make-load-form ((line standard-line))
+(defmethod make-load-form ((line standard-line) &optional environment)
+  (declare (ignore environment))
   `(make-line ',(line-start-point line) ',(line-end-point line)))
 
 (defmethod line-start-point* ((line standard-line))
@@ -224,7 +225,8 @@
 (define-constructor make-polyline* standard-polyline (coord-seq &key closed)
   :coords (coerce coord-seq 'vector) :closed closed)
 
-(defmethod make-load-form ((polyline standard-polyline))
+(defmethod make-load-form ((polyline standard-polyline) &optional environment)
+  (declare (ignore environment))
   (with-slots (closed) polyline
     `(make-polyline ',(polygon-points polyline) :closed ,closed)))
 
@@ -248,7 +250,8 @@
 (define-constructor make-polygon* standard-polygon (coord-seq)
   :coords (coerce coord-seq 'vector))
 
-(defmethod make-load-form ((polygon standard-polygon))
+(defmethod make-load-form ((polygon standard-polygon) &optional environment)
+  (declare (ignore environment))
   `(make-polygon ',(polygon-points polygon)))
 
 (defmethod polyline-closed ((polygon standard-polygon))
@@ -321,7 +324,8 @@
 		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
-(defmethod make-load-form ((ellipse standard-elliptical-arc))
+(defmethod make-load-form ((ellipse standard-elliptical-arc) &optional environment)
+  (declare (ignore environment))
   (with-slots (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	       start-angle end-angle) ellipse
     `(make-elliptical-arc ',center-point
@@ -377,7 +381,8 @@
 		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
-(defmethod make-load-form ((ellipse standard-ellipse))
+(defmethod make-load-form ((ellipse standard-ellipse) &optional environment)
+  (declare (ignore environment))
   (with-slots (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			    start-angle end-angle) ellipse
     `(make-ellipse ',center-point

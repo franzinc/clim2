@@ -1,3 +1,17 @@
+Mon Aug 16 15:15:00 1993  Steven Haflich
+
+	* clim/ptypes1.lisp:
+	* pre-silica/drawing-state-mixin.lisp:
+	* silica/medium.lisp:
+	* silica/text-style.lisp:
+	* utils/base-designs.lisp:
+	* utils/extended-regions.lisp:
+	* utils/regions.lisp:
+	* transformations/regions.lisp:
+	Added &optional enviuronment arg to make-load-form lambda list.
+
+-------------------------------------------------------------------------------
+
 from cer: Thu Aug 12 09:01:17 PDT 1993
 
 Makefile.defs		Added definition of climdemo.fasl
@@ -46,6 +60,7 @@ tk-silica/xt-silica.lisp	with-toolkit-dialog-component needs a better name
 utils/packages.lisp		exported gadget-current-selection
 				
 -------------------------------------------------------------------------------
+
 from colin: Fri Jul 30 16:18:10 PDT 1993
 
 clim/pixmap-streams.lisp

@@ -290,7 +290,8 @@
   t)
 
 ;;; These classes get into compiled files as method parameter specializers
-(defmethod make-load-form ((object presentation-type-class))
+ (defmethod make-load-form ((object presentation-type-class) &optional environment)
+  (declare (ignore environment))
   ;; The following would be "the right thing," but it doesn't work because some compilers
   ;; evaluate the MAKE-LOAD-FORM forms out of order with the top-level forms, so the
   ;; presentation type class might not be defined yet when this is evaluated.

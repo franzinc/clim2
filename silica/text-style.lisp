@@ -32,7 +32,8 @@
   (with-slots (family face size) style
     (and family face size)))
 
-(defmethod make-load-form ((object standard-text-style))
+(defmethod make-load-form ((object standard-text-style) &optional environment)
+  (declare (ignore environment))
   (with-slots (family face size) object
     `(make-text-style ,family ,face ,size)))
 

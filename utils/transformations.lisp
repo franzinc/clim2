@@ -50,7 +50,8 @@
 ;;; It exists because EQL specializers are slow in PCL.
 (defclass identity-transformation (transformation) ())
 
-(defmethod make-load-form ((transform identity-transformation))
+(defmethod make-load-form ((transform identity-transformation) &optional environment)
+  (declare (ignore environment))
   '+identity-transformation+)
 
 (defvar +identity-transformation+ (make-instance 'identity-transformation))
@@ -73,7 +74,8 @@
       (declare (type single-float tx ty))
       (format stream "(~D,~D)" tx ty))))
 
-(defmethod make-load-form ((transform translation-transformation))
+(defmethod make-load-form ((transform translation-transformation) &optional environment)
+  (declare (ignore environment))
   (with-slots (tx ty) transform
     (declare (type single-float tx ty))
     `(make-translation-transformation-1 ,tx ,ty)))
@@ -94,7 +96,8 @@
 		    (mxx mxy myx myy tx ty)
   :mxx mxx :mxy mxy :myx myx :myy myy :tx tx :ty ty)
 
-(defmethod make-load-form ((transform standard-transformation))
+(defmethod make-load-form ((transform standard-transformation) &optional environment)
+  (declare (ignore environment))
   (with-slots (mxx mxy myx myy tx ty) transform
     (declare (type single-float mxx mxy myx myy tx ty))
     `(make-standard-transformation-1 ,mxx ,mxy ,myx ,myy ,tx ,ty)))

@@ -31,7 +31,8 @@
 (define-constructor make-standard-opacity-1 standard-opacity (value)
   :value value)
 
-(defmethod make-load-form ((design standard-opacity))
+(defmethod make-load-form ((design standard-opacity) &optional environment)
+  (declare (ignore environment))
   (with-slots (value) design
     `(make-opacity ,value)))
 
@@ -45,7 +46,8 @@
 (define-constructor make-gray-color-1 gray-color (luminosity)
   :luminosity luminosity)
 
-(defmethod make-load-form ((color gray-color))
+(defmethod make-load-form ((color gray-color) &optional environment)
+  (declare (ignore environment))
   (with-slots (luminosity) color
     `(make-gray-color ,luminosity)))
 
@@ -60,7 +62,8 @@
 (define-constructor make-rgb-color-1 rgb-color (red green blue)
   :red red :green green :blue blue)
 
-(defmethod make-load-form ((color rgb-color))
+(defmethod make-load-form ((color rgb-color) &optional environment)
+  (declare (ignore environment))
   (with-slots (red green blue) color
     `(make-rgb-color ,red ,green ,blue)))
 
@@ -73,7 +76,8 @@
 (define-constructor make-ihs-color-1 ihs-color (intensity hue saturation)
   :intensity intensity :hue hue :saturation saturation)
 
-(defmethod make-load-form ((color ihs-color))
+(defmethod make-load-form ((color ihs-color) &optional environment)
+  (declare (ignore environment))
   (with-slots (intensity hue saturation) color
     `(make-ihs-color ,intensity ,hue ,saturation)))
 
@@ -119,7 +123,8 @@
 (define-constructor make-dynamic-color dynamic-color (color) 
   :color color)
 
-(defmethod make-load-form ((color dynamic-color))
+(defmethod make-load-form ((color dynamic-color) &optional environment)
+  (declare (ignore environment))
   (with-slots (color) color
     `(make-dynamic-color ,color)))
 
@@ -153,13 +158,15 @@
 
 (defconstant +foreground-ink+ (make-instance 'design))
 
-(defmethod make-load-form ((design (eql (symbol-value '+foreground-ink+))))
+(defmethod make-load-form ((design (eql (symbol-value '+foreground-ink+))) &optional environment)
+  (declare (ignore environment))
   '+foreground-ink+)
 
 
 (defconstant +background-ink+ (make-instance 'design))
 
-(defmethod make-load-form ((design (eql (symbol-value '+background-ink+))))
+(defmethod make-load-form ((design (eql (symbol-value '+background-ink+))) &optional environment)
+  (declare (ignore environment))
   '+background-ink+)
 
 
@@ -172,7 +179,8 @@
 (define-constructor make-flipping-ink-1 flipping-ink (design1 design2)
   :design1 design1 :design2 design2)
 
-(defmethod make-load-form ((design flipping-ink))
+(defmethod make-load-form ((design flipping-ink) &optional environment)
+  (declare (ignore environment))
   (with-slots (design1 design2) design
     `(make-flipping-ink ',design1 ',design2)))
 
@@ -186,7 +194,8 @@
 (define-constructor make-contrasting-ink-1 contrasting-ink (which-one how-many)
   :which-one which-one :how-many how-many)
 
-(defmethod make-load-form ((design contrasting-ink))
+(defmethod make-load-form ((design contrasting-ink) &optional environment)
+  (declare (ignore environment))
   (with-slots (which-one how-many) design
     `(make-contrasting-inks ,how-many ,which-one)))
 
@@ -202,7 +211,8 @@
   (check-type array (array * (* *)))
   (make-instance 'pattern :array array :designs (coerce designs 'vector)))
 
-(defmethod make-load-form ((design pattern))
+(defmethod make-load-form ((design pattern) &optional environment)
+  (declare (ignore environment))
   (with-slots (array designs) design
     (values `(make-instance 'pattern :array ',array)
 	    `(setf (slot-value ',design 'designs) ',designs))))
@@ -218,7 +228,8 @@
   (check-type array (array * (* *)))
   (make-instance 'stencil :array array))
 
-(defmethod make-load-form ((design stencil))
+(defmethod make-load-form ((design stencil) &optional environment)
+  (declare (ignore environment))
   (with-slots (array) design
     `(make-stencil ',array)))
 
@@ -236,7 +247,8 @@
   (check-type height fixnum)
   (make-instance 'rectangular-tile :design design :width width :height height))
 
-(defmethod make-load-form ((tile rectangular-tile))
+(defmethod make-load-form ((tile rectangular-tile) &optional environment)
+  (declare (ignore environment))
   (with-slots (design width height) tile
     (values `(make-instance 'rectangular-tile :width ,width :height ,height)
 	    `(setf (slot-value ',tile 'design) ',design))))
@@ -247,7 +259,8 @@
 (defclass composite-over (design)
     ((designs :type vector :initarg :designs)))
 
-(defmethod make-load-form ((design composite-over))
+(defmethod make-load-form ((design composite-over) &optional environment)
+  (declare (ignore environment))
   (with-slots (designs) design
     (values '(make-instance 'composite-over)
 	    `(setf (slot-value ',design 'designs) ',designs))))
@@ -256,7 +269,8 @@
 (defclass composite-in (design)
     ((designs :type vector :initarg :designs)))
 
-(defmethod make-load-form ((design composite-in))
+(defmethod make-load-form ((design composite-in) &optional environment)
+  (declare (ignore environment))
   (with-slots (designs) design
     (values '(make-instance 'composite-in)
 	    `(setf (slot-value ',design 'designs) ',designs))))
@@ -265,7 +279,8 @@
 (defclass composite-out (design)
     ((designs :type vector :initarg :designs)))
 
-(defmethod make-load-form ((design composite-out))
+(defmethod make-load-form ((design composite-out) &optional environment)
+  (declare (ignore environment))
   (with-slots (designs) design
     (values '(make-instance 'composite-out)
 	    `(setf (slot-value ',design 'designs) ',designs))))

@@ -121,7 +121,8 @@
 
 (defclass nowhere (opacity region) ())
 
-(defmethod make-load-form ((nowhere nowhere))
+(defmethod make-load-form ((nowhere nowhere) &optional environment)
+  (declare (ignore environment))
   '+nowhere+)
 
 (defmethod region-equal ((nowhere1 nowhere) (nowhere2 nowhere)) t)
@@ -151,7 +152,8 @@
 
 (defclass everywhere (opacity region) ())
 
-(defmethod make-load-form ((everywhere everywhere))
+(defmethod make-load-form ((everywhere everywhere) &optional environment)
+  (declare (ignore environment))
   '+everywhere+)
 
 (defmethod region-equal ((everywhere1 everywhere) (everywhere2 everywhere)) t)
@@ -199,7 +201,8 @@
   (declare (type real x y))
   (make-point-1 (coordinate x) (coordinate y)))
 
-(defmethod make-load-form ((point standard-point))
+(defmethod make-load-form ((point standard-point) &optional environment)
+  (declare (ignore environment))
   (with-slots (x y) point
     `(make-point ,x ,y)))
 
@@ -334,7 +337,8 @@
     (when (> y1 y2) (rotatef y1 y2))
     (make-rectangle*-1 x1 y1 x2 y2)))
 
-(defmethod make-load-form ((rectangle standard-rectangle))
+(defmethod make-load-form ((rectangle standard-rectangle) &optional environment)
+  (declare (ignore environment))
   `(make-rectangle* ,(rectangle-min-x rectangle) ,(rectangle-min-y rectangle)
 		    ,(rectangle-max-x rectangle) ,(rectangle-max-y rectangle)))
 
@@ -477,7 +481,8 @@
     (when (> y1 y2) (rotatef y1 y2))
     (make-bounding-rectangle-1 x1 y1 x2 y2)))
 
-(defmethod make-load-form ((rectangle standard-bounding-rectangle))
+(defmethod make-load-form ((rectangle standard-bounding-rectangle) &optional environment)
+  (declare (ignore environment))
   (with-slots (left top right bottom) rectangle
     `(make-bounding-rectangle ,left ,top ,right ,bottom)))
 
