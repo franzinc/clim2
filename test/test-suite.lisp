@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.45 92/11/13 14:46:50 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.46 92/11/20 08:45:55 cer Exp $
 
 (in-package :clim-user)
 
@@ -673,7 +673,24 @@ people, shall not perish from the earth.
     (format-graphics-sample stream "Large Point" '(draw-point* 0 0 :line-thickness 5)))
   (formatting-graphics-samples (stream "Some Lines")
     (format-graphics-sample stream "Some Lines"
-      '(draw-lines* (0 0 10 100 50 50 90 100 100 10 40 50))))
+	'(draw-lines* (0 0 10 100 50 50 90 100 100 10 40 50))))
+  (formatting-graphics-samples (stream "Some Rectangles")
+    (format-graphics-sample stream "Some Rectangles"
+			    '(draw-rectangles* (0 0 10 100 50 50 90
+						100 100 10 40 50)))
+    
+    (format-graphics-sample stream "A rectangle" '(draw-rectangle* 0 0 10 100))
+    (format-graphics-sample stream "A rectangles" '(draw-rectangle* 50 50 90 100 ))
+    (format-graphics-sample stream "A rectangle" '(draw-rectangle*  100 10 40 50)))
+  (with-rotation (stream .5)
+      (formatting-graphics-samples (stream "Some rotated rectangles")
+	 (format-graphics-sample stream "Some Rectangles"
+				 '(draw-rectangles* (0 0 10 100 50 50 90
+						     100 100 10 40
+						     50)))
+	 (format-graphics-sample stream "A rectangle" '(draw-rectangle* 0 0 10 100))
+	 (format-graphics-sample stream "A rectangle" '(draw-rectangle* 50 50 90 100 ))
+	 (format-graphics-sample stream "A rectangle" '(draw-rectangle*  100 10 40 50))))
   (formatting-graphics-samples (stream "Many Points")
     (format-graphics-sample stream "Many Small Points"
       '(draw-points* (0 0 10 110 50 50 90 110 100 10 50 40)))
@@ -706,6 +723,17 @@ people, shall not perish from the earth.
 	(draw-text* stream "Dont be silly in the City." x 200
 		    :towards-x x :towards-y 0)))))
 
+(define-test (negative-extent graphics) (stream)
+  "Draw things at -ve values. You should be able to scroll and see all of it"
+  (let ((x 400)
+	(y 400))
+    (draw-point* stream (- x) 0 :ink +red+ :line-thickness 3)
+    (draw-point* stream x 0 :ink +red+ :line-thickness 3)
+    (draw-point* stream 0  (- y) :ink +red+ :line-thickness 3)
+    (draw-point* stream 0 y :ink +red+ :line-thickness 3)
+    (draw-line* stream (- x) 0 x 0)
+    (draw-line* stream 0 (- y) 0 y)))
+
 (define-test (pixmap-test graphics) (stream)
   "Test pixmap code"
   (with-sheet-medium (medium stream)
@@ -721,7 +749,39 @@ people, shall not perish from the earth.
 	(dotimes (i 5)
 	  (unless (= i j)
 	    (sleep 0.25)
-	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i 100))))))))
+	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i
+								     100))))))))
+
+#+allegro
+(define-test (read-image-test graphics) (stream)
+  "Test image reading code"
+  (formatting-table (stream)
+      (dolist (name '("woman" "escherknot" "tie_fighter" "mensetmanus"))
+	(formatting-row (stream)
+	    (formatting-cell (stream)
+		(write-string name stream))
+	  (formatting-cell (stream)
+	      (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
+		(if (probe-file filename)
+		    (let ((pattern (xm-silica::make-pattern-from-file
+				    filename 
+				    (list +background-ink+ +foreground-ink+))))
+		      (draw-rectangle* stream 0 0 (pattern-width pattern) (pattern-height pattern) :ink pattern))
+		  (write-string "not found" stream))))))))
+
+#+Allegro
+(define-test (draw-some-bezier-curves graphics) (stream)
+  "Draw bezier curve"
+  (let ((points (list 0 0 100 300 300 300 400 0 200 200 150 30 0 0)))
+    (formatting-item-list (stream)
+	(dolist (filled '(nil t))
+	  (formatting-cell (stream)
+	      (with-scaling (stream 0.5)
+		(draw-bezier-polygon* stream points :filled filled)
+		(do ((points points (cddr points)))
+		    ((null points))
+		  (draw-point* stream (car points) (cadr points) :line-thickness 2
+			       :ink +red+))))))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -1405,6 +1465,8 @@ Luke Luck licks the lakes Luke's duck likes."))
       (read-gesture :stream stream)
       (table-graphics-test-column i))))
 
+
+
 
 ;;; Redisplay tests
 
@@ -1616,6 +1678,32 @@ Luke Luck licks the lakes Luke's duck likes."))
     (accept 'integer :stream stream)
     (fresh-line stream)))
 
+(define-presentation-type drag-source ()
+  :inherit-from 'integer)
+
+(define-presentation-type drop-target ()
+  :inherit-from 'integer)
+
+(define-drag-and-drop-translator test-suite-dnd
+    (drag-source string drop-target presentations)
+  (presentation destination-presentation)
+  (princ-to-string (list (presentation-object presentation) (presentation-object destination-presentation))))
+
+
+(define-test (drag-and-drop-tests presentations) (stream)
+  "Try drag and drop"
+  (formatting-table (stream)
+      (dotimes (i 3)
+	(formatting-row (stream)
+	    (formatting-cell (stream)
+		(with-output-as-presentation (stream i 'drag-source)
+		  (format stream "Drag source ~D" i)))
+	  (formatting-cell (stream)
+	      (with-output-as-presentation (stream i 'drop-target)
+		(format stream "drop target ~D" i))))))
+  (loop
+    (terpri stream)
+    (accept 'string :stream stream)))
 
 ;;; Menus
 
@@ -1701,12 +1789,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 			   :text-style '(:sans-serif :roman :large))))
 	   (draw-compass (stream ptype)
 	     #+Genera (declare (sys:downward-function))
-	     (draw-line* stream 0 25 0 -25 :line-thickness 2)
-	     (draw-line* stream 25 0 -25 0 :line-thickness 2)
-	     (dolist (point '((n 0 -30) (s 0 30) (e 30 0) (w -30 0)))
-	       (apply #'draw-compass-point stream ptype point))))
+	     (with-room-for-graphics (stream :first-quadrant nil)
+	       (draw-line* stream 0 25 0 -25 :line-thickness 2)
+	       (draw-line* stream 25 0 -25 0 :line-thickness 2)
+	       (dolist (point '((n 0 -30) (s 0 30) (e 30 0) (w -30 0)))
+		 (apply #'draw-compass-point stream ptype point)))))
     #+ignore (declare (dynamic-extent #'draw-compass-point #'draw-compass))
-    (with-menu (menu stream)
+    (with-menu (menu stream :scroll-bars nil)
       #-silica (setf (window-label menu) "Compass point")
       (format stream "~S" (menu-choose-from-drawer menu 'menu-item #'draw-compass)))))
 
@@ -1971,6 +2060,12 @@ Luke Luck licks the lakes Luke's duck likes."))
 		   (l (member :red :blue :green) :view +option-pane-view+))))))
 
 
+(define-test (input-editor-tests menus-and-dialogs) (stream)
+  "Type lots of input editor commands"
+  (loop
+    (fresh-line stream)
+    (accept 'string :stream stream)))
+
 
 ;;;; Benchmarks
 
@@ -2103,7 +2198,8 @@ Luke Luck licks the lakes Luke's duck likes."))
     (run-benchmarks-internal pathname comment)))
 
 (define-command (run-benchmarks-to-dummy-file :command-table benchmarks :menu t)
-    ((file 'pathname))
+    (&key 
+     (file '(null-or-type pathname) :default nil))
   (run-benchmarks-internal file "no comment"))
 
 (defun run-benchmarks-internal (pathname comment)
@@ -2114,13 +2210,14 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(let ((time (funcall function :careful t)))
 	  (push (list (first benchmark) time) data))))
     (setq data (reverse data))
-    (let ((*package* (or (find-package :common-lisp-user)
-			 (error "Package COMMON-LISP-USER not found"))))
-      (with-open-file (s pathname :direction :output)
-	(format s ";Speed of ~A ~A" (lisp-implementation-type) (lisp-implementation-version))
-	(format s "~%;on ~A ~A.~%" (machine-type) (machine-instance))
-	(when comment (format s ";~A~%" comment))
-	(print data s)))))
+    (when pathname
+      (let ((*package* (or (find-package :common-lisp-user)
+			   (error "Package COMMON-LISP-USER not found"))))
+	(with-open-file (s pathname :direction :output)
+	  (format s ";Speed of ~A ~A" (lisp-implementation-type) (lisp-implementation-version))
+	  (format s "~%;on ~A ~A.~%" (machine-type) (machine-instance))
+	  (when comment (format s ";~A~%" comment))
+	  (print data s))))))
 
 (define-command (generate-report :command-table benchmarks :menu t)
     ()
@@ -2995,7 +3092,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 (define-application-frame clim-tests ()
-    ()
+			  ((history-class :initarg :history-class 
+					  :initform 'standard-tree-output-history
+					  :reader clim-tests-history-class))
   (:command-table (clim-tests
 		   :inherit-from (graphics
 				  output-recording
@@ -3014,17 +3113,19 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  ("Exit" :command (exit-clim-tests)))))
   (:command-definer nil)
   (:panes 
-    (caption-pane
+   (caption-pane
       (outlining ()
 	(scrolling (:scroll-bars :vertical)
-	  (make-pane 'application-pane :height 50))))
-    (display-pane 
-      (outlining ()
-	(scrolling ()
-	  (make-pane 'application-pane)))))
+		   (make-pane 'application-pane 
+			      :height 50
+			      :output-record
+			      (make-instance (clim-tests-history-class *application-frame*))))))
+    (display-pane :application
+		  :output-record
+		  (make-instance (clim-tests-history-class *application-frame*))))
   (:layouts
     (:default
-      (vertically () caption-pane display-pane))))
+	(vertically () caption-pane display-pane))))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.30 92/10/28 11:30:54 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.31 92/11/06 19:03:59 cer Exp $
 
 (in-package :silica)
 
@@ -481,6 +481,11 @@
 (defun invoke-with-pointer-grabbed (sheet continuation &rest options)
   (declare (dynamic-extent options))
   (apply #'port-invoke-with-pointer-grabbed (port sheet) sheet continuation options))
+
+(defmethod port-invoke-with-pointer-grabbed :around
+    ((port basic-port) (sheet basic-sheet) continuation &key)
+  (letf-globally (((port-grabbing-sheet port) sheet))
+    (call-next-method)))
 
 (defmethod port-invoke-with-pointer-grabbed 
 	   ((port basic-port) (sheet basic-sheet) continuation &key)

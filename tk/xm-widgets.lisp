@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.9 92/09/08 10:34:10 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.10 92/09/24 09:37:19 cer Exp $
 
 (in-package :tk)
 
@@ -35,6 +35,12 @@
       (apply #'create-widget name class parent args))))
 
 (defmethod make-widget ((w xm-dialog-shell) &rest args &key parent (name "") &allow-other-keys)
+  (remf args :parent)
+  (remf args :name)
+  (apply #'create-popup-shell name (class-of w) parent args))
+
+#+ignore
+(defmethod make-widget ((w override-shell) &rest args &key parent (name "") &allow-other-keys)
   (remf args :parent)
   (remf args :name)
   (apply #'create-popup-shell name (class-of w) parent args))

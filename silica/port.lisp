@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.24 92/11/06 19:03:56 cer Exp $
+;; $fiHeader: port.lisp,v 1.25 92/11/19 14:25:03 cer Exp $
 
 (in-package :silica)
 
@@ -31,7 +31,8 @@
   (map-over-ports #'(lambda (port)
 		      (when (port-match port server-path) 
 			(return-from find-port port))))
-  (apply #'make-port initargs))
+  (with-keywords-removed (initargs initargs '(:server-path))
+    (apply #'make-port :server-path server-path initargs)))
 
 #+Genera
 (scl:add-initialization "Reset ports"

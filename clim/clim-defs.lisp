@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.17 92/11/19 14:17:07 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.18 92/11/20 08:44:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -274,13 +274,15 @@
 
 ;;; From MENUS.LISP
 ;;; For now, MENU-CHOOSE requires that you pass in a parent.
-(defmacro with-menu ((menu &optional (associated-window nil aw-p) &key label) &body body)
+(defmacro with-menu ((menu &optional (associated-window nil aw-p)
+				     &rest options &key label scroll-bars) &body body)
+  (declare (ignore label scroll-bars))
   (let ((window '#:associated-window))
     `(let ((,window ,(if aw-p
 			 associated-window
 			 `(frame-top-level-sheet *application-frame*))))	;once-only
        (using-resource (,menu menu (window-top-level-window ,window) (window-root ,window)
-			:label ,label)
+			      ,@options)
 	 (letf-globally (((stream-default-view ,menu) +textual-menu-view+))
 	   ,@body)))))
 
@@ -324,6 +326,7 @@
 (defvar *application-frame*)
 (defvar *pointer-documentation-output* nil)
 (defvar *assume-all-commands-enabled* nil)
+(defvar *click-outside-menu-handler* nil)
 
 ;; Bound to T when the frame is being layed out
 (defvar *sizing-application-frame* nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.34 92/11/06 19:03:40 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.35 92/11/19 14:24:50 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -262,12 +262,13 @@
 	(:horizontal
 	  (scroll-extent
 	    contents
-	    :x (* (max 0 (- (bounding-rectangle-width extent)
-			    (bounding-rectangle-width region)))
-		  (if (= size (gadget-range sheet))
-		      0
-		      (/ (- value (gadget-min-value sheet))
-			 (- (gadget-range sheet) size))))
+	    :x (+ (bounding-rectangle-min-x extent)
+		  (* (max 0 (- (bounding-rectangle-width extent)
+			       (bounding-rectangle-width region)))
+		     (if (= size (gadget-range sheet))
+			 0
+		       (/ (- value (gadget-min-value sheet))
+			  (- (gadget-range sheet) size)))))
 	    :y (bounding-rectangle-min-y region)))))))
 
 (defun update-region (sheet nleft ntop nright nbottom &key no-repaint)

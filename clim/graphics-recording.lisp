@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.16 92/11/19 14:17:48 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.17 92/11/20 08:44:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -376,7 +376,13 @@
 (define-graphics-recording draw-rectangles (ink line-style clipping-region)
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
-      position-seq line-style)
+     position-seq line-style)
+  :recording-hook
+  (unless (rectilinear-transformation-p (medium-transformation stream))
+    ;; Not too inefficient, since we're about to create an output record anyway
+    (silica::medium-draw-transformed-rectangles*
+     stream position-seq filled)
+    (return-from medium-draw-rectangles* nil))
   :refined-position-test
     ((x y)
      (let ((position-seq (slot-value record 'position-seq))

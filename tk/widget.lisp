@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.24 92/08/18 17:53:46 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.25 92/09/08 10:34:07 cer Exp $
 
 (in-package :tk)
 
@@ -130,10 +130,6 @@
 		    'window
 		    (widget-display widget)
 		    :display (widget-display widget)))))))))
-
-(defun make-clx-window (display widget)
-  (let* ((window-id (xt_window widget)))
-    (make-clx-window-from-id display window-id)))
 
 (defun widget-class-of (x)
   (intern-widget-class

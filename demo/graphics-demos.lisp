@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.10 92/07/20 16:01:20 cer Exp $
+;; $fiHeader: graphics-demos.lisp,v 1.11 92/10/07 14:43:30 cer Exp $
 
 (in-package :clim-demo)
 
@@ -19,19 +19,19 @@
     (:default
       (vertically () demo explanation))))
 
-(define-graphics-demo-command (com-Exit-Graphics-Demo :menu "Exit")
+(define-graphics-demo-command (com-exit-graphics-demo :menu "Exit")
     ()
   (frame-exit *application-frame*))
 
 (defmacro define-gdemo (name explanation (window) &body body)
   `(define-graphics-demo-command (,(intern (format nil "~A-~A-~A" 'com name 'graphics-demo))
-				  :menu ,name) ()
+				  :menu ,(nstring-capitalize (substitute #\space #\- (string name)))) ()
      (explain ,explanation)
      (let ((,window (get-frame-pane *application-frame* 'demo)))
        (window-clear ,window)
        ,@body)))
 
-(define-gdemo "Spin" "A simple example of the use of affine transforms.
+(define-gdemo spin "A simple example of the use of affine transforms.
 Take a simple function that draws a picture and invoke it
 repeatedly under various rotations."
 	      (stream)
@@ -49,7 +49,7 @@ repeatedly under various rotations."
 		(with-translation (stream 100 0)
 		  (draw stream))))))))))
 
-(define-gdemo "Big Spin" "A more complex example using both
+(define-gdemo big-spin "A more complex example using both
 rotation and scaling."
 	      (stream)
   (multiple-value-bind (w h) (window-inside-size stream)
@@ -101,7 +101,7 @@ rotation and scaling."
 	  (draw-line* ws x2 y3 x2 y4 :ink ink))))
     ))
 
-(define-gdemo "CBS Logo" ""
+(define-gdemo cbs-logo ""
 	      (stream)
   (multiple-value-bind (w h) (window-inside-size stream)
     (with-translation (stream (round w 2) (round h 2))
@@ -162,7 +162,7 @@ rotation and scaling."
     ((= i 10))
   (setf (aref *polygons* i) (compute-regular-polygon 0 1 0 -1 i)))
 
-(define-gdemo "Polygons" ""
+(define-gdemo polygons ""
 	      (stream)
   (multiple-value-bind (w h) (window-inside-size stream)
     (with-translation (stream (- (round w 2) 200) (round h 2))
@@ -184,7 +184,7 @@ rotation and scaling."
 (defun random-ink ()
   (nth (random (length *random-ink-list*)) *random-ink-list*))
 
-(define-gdemo "Circles" "A lot of circles in a variety of colors.
+(define-gdemo circles "A lot of circles in a variety of colors.
 On a monochrome display, stipples are used to simulate the colors."
 	      (stream)
   (let* ((radius 20)
@@ -197,7 +197,7 @@ On a monochrome display, stipples are used to simulate the colors."
 	    ((> x (- wid separation)) nil)
 	  (draw-circle* stream x y radius :filled nil :ink (random-ink)))))))
 
-(define-gdemo "Maze" "This simple maze drawer uses the graphics
+(define-gdemo maze "This simple maze drawer uses the graphics
 scaling feature to adjust the maze size
 to the window in which it is displayed."
 	      (stream)

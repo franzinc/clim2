@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.27 92/10/29 16:55:43 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.28 92/11/20 08:46:48 cer Exp $
 
 (in-package :xm-silica)
 
@@ -45,6 +45,9 @@
   (declare (ignore x y width height))
   (apply #'tk::configure-widget child args))
 
+;;--- Why is this here???
+;;--- It should be in xt-silica
+
 (defmethod change-widget-geometry ((parent tk::shell) child
 				   &rest args
 				   &key x y width height)
@@ -52,17 +55,35 @@
   ;;-- shells decide where windows are positioned!
   (tk::set-values child :width width :height height))
 
+(defmethod change-widget-geometry ((parent tk::xm-dialog-shell) child
+				   &rest args
+				   &key x y width height)
+  (declare (ignore x y args))
+  (tk::set-values child :width width :height height :x x :y y))
+
+
 (defclass motif-geometry-manager (xt-geometry-manager) ())
 
 
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
-  (cond ( ;;--- hack alert
+  (cond 
+   #+ignore
+   ((typep (pane-frame sheet) 'clim-internals::menu-frame)
+    (values 'xt::override-shell
+	    '(:width 1
+	    :height 1)))
+   
+   ( ;;--- hack alert
 	 (popup-frame-p sheet)
 	 (values 'tk::xm-dialog-shell
 		 (append
 		  (let ((x (find-shell-of-calling-frame sheet)))
 		    (and x `(:transient-for ,x)))
-		  '(:keyboard-focus-policy :pointer))))
+		  '(:keyboard-focus-policy :pointer)
+		  (and (typep (pane-frame sheet)
+			      'clim-internals::menu-frame)
+		       '(:override-redirect t)))))
+	 
 	(t
 	 (call-next-method))))
 

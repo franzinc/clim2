@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.22 92/11/19 14:25:00 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.23 92/11/20 08:45:50 cer Exp $
 
 (in-package :silica)
 
@@ -576,7 +576,36 @@
 (define-graphics-generic draw-rectangles ((points point-sequence position-seq)
 					  &key (filled t))
   :drawing-options :line-joint
-  :position-sequences-to-transform (position-seq))
+  :position-sequences-to-transform (position-seq)
+  :medium-method-body
+  (let ((transform (medium-transformation medium)))
+    (cond ((rectilinear-transformation-p transform)
+	   (setq position-seq (transform-position-sequence transform position-seq))
+	   (call-next-method medium position-seq filled))
+	  (t
+	   (medium-draw-transformed-rectangles* medium position-seq filled)))))
+
+(defun medium-draw-transformed-rectangles* (stream position-seq filled)
+  (let ((len (length position-seq)))
+    (assert (zerop (mod len 4)))
+    (macrolet ((guts (x1 y1 x2 y2)
+		 `(let ((x1 ,x1) 
+			(y1 ,y1) 
+			(x2 ,x2) 
+			(y2 ,y2))
+		    (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
+		      (medium-draw-polygon* stream list t filled)))))
+      (if (listp position-seq)
+	  (do ((position-seq position-seq))
+	      ((null position-seq))
+	    (guts (pop position-seq) (pop position-seq) 
+		  (pop position-seq) (pop position-seq)))
+	(do ((i 0 (+ i 4)))
+	    ((= i len))
+	  (guts (aref position-seq i)
+		(aref position-seq (+ 1 i))
+		(aref position-seq (+ 2 i))
+		(aref position-seq (+ 3 i))))))))
 
 ;; DRAW-PATTERN* is a special case of DRAW-RECTANGLE*, believe it or not...
 (defun draw-pattern* (medium pattern x y &key clipping-region transformation)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.2 92/11/06 19:04:28 cer Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.3 92/11/20 08:46:39 cer Exp $
 
 
 (in-package :clim-internals)
@@ -266,3 +266,5 @@
 ;	      (unless own-window
 ;		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
 ;	  (values-list return-values))))))
+
+

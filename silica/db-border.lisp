@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.12 92/09/24 09:37:27 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.13 92/10/02 15:18:07 cer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -88,6 +88,19 @@
 		     ;; Supplying a text style here defeats the resource
 		     ;; mechanism for the Motif/OpenLook ports
 		     :text-style nil))
+
+(defmacro labelling ((&rest options 
+		       &key (label-alignment #+Genera :bottom #-Genera :top) 
+		       &allow-other-keys) 
+		      &body contents)
+   (setq options (remove-keywords options '(:label-alignment)))
+   `(ecase label-alignment
+      (:bottom
+	(vertically () 
+	  ,@contents (make-pane 'label-pane ,@options)))
+      (:top
+	(vertically ()
+	    (make-pane 'label-pane ,@options) ,@contents))))
 
 (defclass generic-label-pane 
 	  (label-pane

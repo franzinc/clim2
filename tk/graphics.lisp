@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.9 92/06/16 19:10:49 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.10 92/11/20 08:46:08 cer Exp $
 
 (in-package :tk)
 
@@ -31,10 +31,6 @@
    gcontext
    x
    y))
-
-(defmacro defstub (name arglist)
-  `(defun ,name ,arglist
-     (error "~S not done yet" ',name)))
 
 (defun draw-line (drawable gcontext x1 y1 x2 y2)
   (x11:xdrawline
@@ -116,6 +112,19 @@
      x
      y
      width height)))
+
+
+(defun draw-rectangles (drawable gcontext rects nrects &optional
+				  fill-p)
+  (if fill-p
+      (x11::xfillrectangles
+       (object-display drawable)
+       drawable
+       gcontext rects nrects)
+    (x11::xdrawrectangles
+     (object-display drawable)
+     drawable
+     gcontext rects nrects)))
 
 #+ignore
 (defun text-extents (font sequence &key (start 0) end translate)

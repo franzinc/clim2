@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.1 92/10/02 15:17:39 cer Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.2 92/10/28 11:32:17 cer Exp $
 
 (in-package :clim-user)
 
@@ -96,6 +96,11 @@
 		       :name ,command-name-string)
 	  ,args
 	(ecase output
+	  (:file
+	   (with-open-file
+	       (file-stream "postscript.output" :direction :output :if-exists :supersede)
+	     (with-output-to-postscript-stream (*standard-output* file-stream)
+	       ,command-body-form)))
 	  (:view
 	    (with-drawing-display-window (*standard-output*)
 	      ,command-body-form))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.53 92/11/19 14:25:30 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.54 92/11/20 08:46:56 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1152,38 +1152,89 @@ and on color servers, unless using white or black")
 	   points
 	   npoints))))))
 
+(defmethod medium-draw-rectangles* ((medium xt-medium) rectangles filled) 
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((ink (medium-ink medium))
+	     (sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet))
+	     (len (length rectangles))
+	     (nrects (/ len 4))
+	     (rects (xt::make-xrectangle-array :number nrects))
+	     (overall-min-x #.(1- (ash 1 16)))
+	     (overall-min-y #.(1- (ash 1 16))))
+	(assert (zerop (mod len 4)) () "Must be a multiple of 4")
+	(assert (rectilinear-transformation-p transform))
+	(macrolet ((guts (x1 y1 x2 y2)
+		     `(let ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
+			(convert-to-device-coordinates transform x1 y1 x2 y2)
+			;; Clipping a rectangle is ridiculously easy.
+			(unless (valid-point-p x1 y1)
+			  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
+			  (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
+			(unless (valid-point-p x2 y2)
+			  (setq x2 (min (max -32000 (the fixnum x2)) 32000))
+			  (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
+			(let ((min-x (min (the fixnum x1) (the fixnum x2)))
+			      (min-y (min (the fixnum y1) (the fixnum y2)))
+			      (max-x (max (the fixnum x1) (the fixnum x2)))
+			      (max-y (max (the fixnum y1) (the fixnum y2))))
+			  (declare (fixnum min-x min-y max-x max-y))
+			  (minf overall-min-x min-x)
+			  (minf overall-min-y min-y)
+			  (setf (tk::xrectangle-array-x rects i) min-x 
+				(tk::xrectangle-array-y rects i) min-y
+				(tk::xrectangle-array-width rects i) (- max-x min-x)
+				(tk::xrectangle-array-height rects i) (- max-y min-y))
+			  (incf i)))))
+	  (let ((i 0))
+	    (if (listp rectangles)
+		(loop
+		  (when (null rectangles) (return nil))
+		  (guts (pop rectangles) (pop rectangles) (pop rectangles) (pop rectangles)))
+	      (do ((j 0 (+ j 4)))
+		  ((= j len))
+		(guts (aref rectangles j) (aref rectangles (+ 1 j)) (aref rectangles (+ 2 j)) (aref rectangles (+ 3 j))))))
+	  (tk::draw-rectangles
+	   drawable
+	   (adjust-ink (decode-ink ink medium)
+		       medium
+		       (medium-line-style medium)
+		       overall-min-x overall-min-y)
+	   rects
+	   nrects
+	   filled))))))
+
 (defmethod medium-draw-rectangle* ((medium xt-medium) x1 y1 x2 y2 filled)
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
-	(cond ((rectilinear-transformation-p transform)
-	       (convert-to-device-coordinates transform
-					      x1 y1 x2 y2)
-	       ;; Clipping a rectangle is ridiculously easy.
-	       (unless (valid-point-p x1 y1)
-		 (setq x1 (min (max -32000 (the fixnum x1)) 32000))
-		 (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
-	       (unless (valid-point-p x2 y2)
-		 (setq x2 (min (max -32000 (the fixnum x2)) 32000))
-		 (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
-	       (let ((min-x (min (the fixnum x1) (the fixnum x2)))
-		     (min-y (min (the fixnum y1) (the fixnum y2))))
-		 (declare (fixnum min-x min-y))
-		 (tk::draw-rectangle
-		  drawable
-		  (adjust-ink (decode-ink ink medium)
-			      medium
-			      (medium-line-style medium)
-			      min-x min-y)
-		  min-x min-y
-		  (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
-		  (fast-abs (the fixnum (- (the fixnum y2) (the fixnum y1))))
-		  filled)))
-	      (t
-	       (port-draw-transformed-rectangle*
-		(port sheet) sheet medium x1 y1 x2 y2 filled)))))))
+	(assert (rectilinear-transformation-p transform))
+	(convert-to-device-coordinates transform
+				       x1 y1 x2 y2)
+	;; Clipping a rectangle is ridiculously easy.
+	(unless (valid-point-p x1 y1)
+	  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
+	  (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
+	(unless (valid-point-p x2 y2)
+	  (setq x2 (min (max -32000 (the fixnum x2)) 32000))
+	  (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
+	(let ((min-x (min (the fixnum x1) (the fixnum x2)))
+	      (min-y (min (the fixnum y1) (the fixnum y2))))
+	  (declare (fixnum min-x min-y))
+	  (tk::draw-rectangle
+	   drawable
+	   (adjust-ink (decode-ink ink medium)
+		       medium
+		       (medium-line-style medium)
+		       min-x min-y)
+	   min-x min-y
+	   (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
+	   (fast-abs (the fixnum (- (the fixnum y2) (the fixnum y1))))
+	   filled))))))
+
 
 (defmethod medium-draw-polygon* ((medium xt-medium) position-seq closed filled)
   (medium-draw-polygon-1 medium  position-seq closed filled))
@@ -1691,11 +1742,9 @@ and on color servers, unless using white or black")
 		       (elt points (+ 5 i))
 		       (elt points (+ 6 i))
 		       (elt points (+ 7 i))
-		       distance))
-      
-      (collect (elt points (1- last)) (elt points last)))
+		       distance)
+	(collect (elt points (+ 6 i)) (elt points (+ 7 i)))))
     
-    (print (length (cdr head)) excl:*initial-terminal-io*)
     (medium-draw-polygon-1 medium (cdr head) nil filled)))
 
 

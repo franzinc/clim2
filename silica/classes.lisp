@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.23 92/10/28 11:30:42 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.24 92/10/28 13:17:04 cer Exp $
 
 (in-package :silica)
 
@@ -53,7 +53,9 @@
      (allow-loose-text-style-size-mapping 
        :initform nil :initarg :allow-loose-text-style-size-mapping)
      (canonical-gesture-specs :reader port-canonical-gesture-specs
-			      :initform (make-hash-table :test #'equal))))
+			      :initform (make-hash-table :test #'equal))
+     (grabbing-sheet :initform nil :accessor port-grabbing-sheet)))
+
 
 )	;locally
 

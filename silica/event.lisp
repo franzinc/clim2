@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.28 92/11/06 19:03:44 cer Exp $
+;; $fiHeader: event.lisp,v 1.29 92/11/19 14:24:54 cer Exp $
 
 (in-package :silica)
 
@@ -514,6 +514,11 @@
     (let ((sheet (let ((v (port-trace-thing port)))
 		   (and (not (zerop (fill-pointer v)))
 			(aref v (1- (fill-pointer v)))))))
+      ;;--- This is not quite right. We need to transform the
+      ;;--- coordinates better. Also it should probably override 
+      ;;--- the sheet in the trace-thing.
+      (unless sheet 
+	(setq sheet (port-grabbing-sheet port)))
       (when (and sheet (port sheet))
 	(multiple-value-bind (tx ty)
 	    (untransform-position (sheet-device-transformation sheet) x y)

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.67 92/11/11 17:46:21 cer Exp $
+# $fiHeader: Makefile,v 1.68 92/11/20 08:44:11 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -11,17 +11,12 @@ CLOPTS	= -qq
 # Training
 
 TRAIN_TIMES=2
+# view, file, print
+PSVIEW=file
 
 TRAIN_LISP= \
-	(progn \
-	(load \"test/test.lisp\") \
-	(clim-user::train-clim-2  $(TRAIN_TIMES)) \
-	(clim-user::do-frame-tests) \
-	(compile-file \"misc/clos-preload.cl\" \
-	:output-file \
-	(if (excl::featurep :clim-motif) \"misc/clos-preloadxm.fasl\" \
-	    \"misc/clos-preloadol.fasl\") \
-	)) \
+	(load \"misc/train.lisp\") \
+	(train-clim :train-times $(TRAIN_TIMES) :psview :$(PSVIEW)) \
 	(exit 0)
 
 TRAIN_TEXT = \
@@ -677,9 +672,6 @@ benchmark:
 	(load \"climtoys/test-clim.lisp\") \
 	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
 "  | $(CLIM) $(CLOPTS) -batch
-
-
-PSVIEW=view
 
 testps :
 	$(ECHO) "\

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.50 92/11/09 10:54:28 cer Exp $
+;; $fiHeader: frames.lisp,v 1.51 92/11/19 14:17:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -927,7 +927,10 @@
 	  (setq left (- graft-width width)))
 	(when (> bottom graft-height)
 	  (setq top (- graft-height height)))
-	(move-sheet sheet (max 0 left) (max 0 top))))))
+	(port-move-frame (port sheet) (pane-frame sheet) (max 0 left) (max 0 top))))))
+
+(defmethod port-move-frame ((port basic-port) frame x y)
+  (move-sheet (frame-top-level-sheet frame) x y))
 
 ;; Moves the sheet to be near where the pointer is.  It's safest to use this
 ;; on a top-level sheet.
@@ -1113,8 +1116,6 @@
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))
-
-(defvar *click-outside-menu-handler* nil)
 
 (defmethod command-enabled (command-name (frame standard-application-frame))
   (with-slots (disabled-commands) frame

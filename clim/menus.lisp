@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.34 92/10/28 13:17:24 cer Exp $
+;; $fiHeader: menus.lisp,v 1.35 92/11/06 19:00:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,18 +13,24 @@
 (defparameter *default-menu-label-text-style* (make-text-style :fix :italic :normal))
 
 (define-application-frame menu-frame ()
-    (menu label)
+			  (menu 
+			   label 
+			   (scroll-bars :initarg :scroll-bars 
+					:initform t
+					:reader menu-frame-scroll-bars))
   (:pane
-    (with-slots (menu label) *application-frame*
-      (outlining ()
-	(vertically ()
-	  (setq label (make-pane 'label-pane 
-			:label ""
-			:text-style *default-menu-label-text-style*))
-	  (scrolling ()
-	    (setq menu (make-pane 'clim-stream-pane
-			 :initial-cursor-visibility nil)))))))
-
+   (with-slots (menu label scroll-bars) *application-frame*
+     (outlining ()
+		(vertically ()
+		    (setq label (make-pane 'label-pane 
+					   :label ""
+					   :text-style *default-menu-label-text-style*))
+		  (if scroll-bars
+		      (scrolling (:scroll-bars  scroll-bars )
+				 (setq menu (make-pane 'clim-stream-pane
+						       :initial-cursor-visibility nil)))
+		    (setq menu (make-pane 'clim-stream-pane
+					  :initial-cursor-visibility nil)))))))
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -32,22 +38,24 @@
        *application-frame*))
 
 ;; Returns a stream that corresponds to the pane holding the menu
-(defun get-menu (&key port)
+(defmethod frame-manager-get-menu ((framem standard-frame-manager) &key scroll-bars)
   (let ((frame (make-application-frame 'menu-frame
-				       :parent port
+				       :scroll-bars scroll-bars
+				       :parent framem
 				       :save-under t)))
     ;; This so that ports can do something interesting with popped-up
     ;; menu frames, such as implemented "click off menu to abort".
     (setf (getf (frame-properties frame) :menu-frame) t)
     (values (slot-value frame 'menu) frame)))
 
-(defresource menu (associated-window root &key label)
-  :constructor (let* ((port (if (null root) (find-port) (port root))))
-		 (get-menu :port port))
+(defresource menu (associated-window root &key label (scroll-bars t))
+  :constructor (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
+		 (frame-manager-get-menu framem :scroll-bars scroll-bars))
   :deinitializer (window-clear menu)
   :initializer (initialize-menu (port menu) menu :label label)
   ;; Horrible kludge in the case where no associated window is passed in.
-  :matcher (eq (port menu) (port root)))
+  :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
+		(eq (frame-manager menu) (frame-manager root))))
 
 (defmethod initialize-menu ((port basic-port) menu &key label)
   ;;--- Should this flush the menu's event queue?
@@ -308,21 +316,27 @@
 
 
 (defmacro with-mouse-grabbed-in-window ((window &rest options) &body body)
-  `(flet ((with-mouse-grabbed-in-window-body () ,@body))
-     (declare (dynamic-extent #'with-mouse-grabbed-in-window-body))
-     (invoke-with-mouse-grabbed-in-window
-       ,window #'with-mouse-grabbed-in-window-body ,@options)))
+  (let ((m (gensym)))
+    `(flet ((with-mouse-grabbed-in-window-body () ,@body))
+       (declare (dynamic-extent #'with-mouse-grabbed-in-window-body))
+       (let ((,m ,window))
+	 (invoke-with-mouse-grabbed-in-window
+	  (frame-manager ,m)
+	  ,m #'with-mouse-grabbed-in-window-body ,@options)))))
 
-(defmethod invoke-with-mouse-grabbed-in-window ((window t) continuation &key)
+(defmethod invoke-with-mouse-grabbed-in-window ((framem standard-frame-manager) (window t) continuation &key)
   (funcall continuation))
 
 (defmacro with-menu-as-popup ((menu) &body body)
-  `(flet ((with-menu-as-popup-body () ,@body))
-     (declare (dynamic-extent #'with-menu-as-popup-body))
-     (invoke-with-menu-as-popup
-       ,menu #'with-menu-as-popup-body)))
+  (let ((m (gensym)))
+    `(flet ((with-menu-as-popup-body () ,@body))
+       (declare (dynamic-extent #'with-menu-as-popup-body))
+       (let ((,m ,menu))
+	 (invoke-with-menu-as-popup
+	  (frame-manager ,m)
+	  ,m #'with-menu-as-popup-body)))))
 
-(defmethod invoke-with-menu-as-popup ((window t) continuation)
+(defmethod invoke-with-menu-as-popup ((framem standard-frame-manager) (window t) continuation)
   (funcall continuation))
 
 ;; The drawer gets called with (stream presentation-type &rest drawer-args).

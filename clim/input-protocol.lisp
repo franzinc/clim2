@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.32 92/11/19 14:18:01 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.33 92/11/20 08:44:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -45,11 +45,11 @@
       (if (and gesture
 	       pointer-button-press-handler
 	       (typep gesture 'pointer-button-press-event))
-	  ;; If we call a normal translator, we'll throw to a tag outside of
-	  ;; this function that was established by WITH-INPUT-CONTEXT.  If we
-	  ;; call an action, it will throw to NO-TRANSLATION, and return here
-	  ;; In that case, we want to loop through this again.
-	  (funcall pointer-button-press-handler stream gesture)
+	    ;; If we call a normal translator, we'll throw to a tag outside of
+	    ;; this function that was established by WITH-INPUT-CONTEXT.  If we
+	    ;; call an action, it will throw to NO-TRANSLATION, and return here
+	    ;; In that case, we want to loop through this again.
+	    (funcall pointer-button-press-handler stream gesture)
 	;; A "normal" gesture
 	(return-from stream-read-gesture
 	  (values gesture flag)))
@@ -277,7 +277,17 @@
   (if *pointer-button-press-handler*
       ;; This may throw or something, but otherwise we will return NIL
       ;; which will cause the gesture to be eaten
-      (progn (funcall *pointer-button-press-handler* stream gesture)
+      (progn 
+	#+allegro
+	(when (and *click-outside-menu-handler*
+		   (output-recording-stream-p stream)
+		   (not 
+		    (region-contains-position-p
+		     (stream-output-history stream)
+		     (pointer-event-x gesture)
+		     (pointer-event-y gesture))))
+	  (funcall *click-outside-menu-handler*))
+	(funcall *pointer-button-press-handler* stream gesture)
 	     nil)
       ;; No button press handler, just return the gesture
       gesture))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.7 92/07/01 15:45:28 cer Exp $
+;; $fiHeader: clos.lisp,v 1.8 92/11/06 19:04:58 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -101,51 +101,51 @@
 ;;; Dynamic Class Creation
 ;;;
 
-(defvar *dynamic-classes* (make-hash-table :test #'equal))
-
-(eval-when (compile load eval) (proclaim '(inline %make-standard-class)))
-(defun %make-standard-class (name supers)
-  
-  #+Lucid
-  ;; Jonl thinks this is okay, but I personally find it pretty gross. -- RR
-  (eval `(defclass ,name ,supers ()))
-  
-  #-Lucid
-  ;; by which we mean PCL and Genera CLOS, at this point
-  (let ((class (make-instance 'standard-class :direct-superclasses supers)))
-    ;; Note that this does NOT make it so that you can find this
-    ;; class with (find-class name)
-    (setf (class-name class) name)
-    class))
-
-(defun find-dynamic-class (name-fn &rest supers)
-  (declare (dynamic-extent supers))
-  (when supers
-    (do ((tail supers (cdr tail)))
-	((null tail))
-      (when (not #-PCL (typep (car tail) 'standard-class)
-		 #+PCL (classp (car tail)))
-	(setf (car tail) (find-class (car tail))))))
-      
-  (or (gethash supers *dynamic-classes*)
-      ;;
-      ;;  If there is no entry for a dynamic class with these supers
-      ;;  then we have to create one.  This involves creating the class,
-      ;;  setting its supers and adding the entry to *dynamic-classes*.
-      ;;  
-      (let ((supers (copy-list supers)))
-	(setf (gethash supers *dynamic-classes*)
-	      (%make-standard-class
-		(intern (funcall name-fn) (find-package :silica))
-		supers)))))
-
-(defun add-mixin (object mixin-class)
-  (let ((class (class-of object)))
-    (if (member mixin-class (class-precedence-list class) :test #'eq)
-	(error "The class of ~S already includes ~S." object mixin-class)
-	(change-class object
-		      (find-dynamic-class #'(lambda () "???")
-					  mixin-class class)))))
+;(defvar *dynamic-classes* (make-hash-table :test #'equal))
+;
+;(eval-when (compile load eval) (proclaim '(inline %make-standard-class)))
+;(defun %make-standard-class (name supers)
+;  
+;  #+Lucid
+;  ;; Jonl thinks this is okay, but I personally find it pretty gross. -- RR
+;  (eval `(defclass ,name ,supers ()))
+;  
+;  #-Lucid
+;  ;; by which we mean PCL and Genera CLOS, at this point
+;  (let ((class (make-instance 'standard-class :direct-superclasses supers)))
+;    ;; Note that this does NOT make it so that you can find this
+;    ;; class with (find-class name)
+;    (setf (class-name class) name)
+;    class))
+;
+;(defun find-dynamic-class (name-fn &rest supers)
+;  (declare (dynamic-extent supers))
+;  (when supers
+;    (do ((tail supers (cdr tail)))
+;	((null tail))
+;      (when (not #-PCL (typep (car tail) 'standard-class)
+;		 #+PCL (classp (car tail)))
+;	(setf (car tail) (find-class (car tail))))))
+;      
+;  (or (gethash supers *dynamic-classes*)
+;      ;;
+;      ;;  If there is no entry for a dynamic class with these supers
+;      ;;  then we have to create one.  This involves creating the class,
+;      ;;  setting its supers and adding the entry to *dynamic-classes*.
+;      ;;  
+;      (let ((supers (copy-list supers)))
+;	(setf (gethash supers *dynamic-classes*)
+;	      (%make-standard-class
+;		(intern (funcall name-fn) (find-package :silica))
+;		supers)))))
+;
+;(defun add-mixin (object mixin-class)
+;  (let ((class (class-of object)))
+;    (if (member mixin-class (class-precedence-list class) :test #'eq)
+;	(error "The class of ~S already includes ~S." object mixin-class)
+;	(change-class object
+;		      (find-dynamic-class #'(lambda () "???")
+;					  mixin-class class)))))
 
 ;;;
 ;;; DEFGENERIC ... because it isn't there.

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.27 92/11/06 19:00:08 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.28 92/11/20 08:44:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -181,6 +181,7 @@
     (values cursor-x cursor-y)))
 
 (defmethod stream-set-cursor-position ((stream output-protocol-mixin) x y)
+  
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
     (when x 
       (setf cursor-x (coordinate x)))

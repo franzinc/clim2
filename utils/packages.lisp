@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.39 92/11/19 14:25:49 cer Exp $
+;; $fiHeader: packages.lisp,v 1.40 92/11/20 08:47:13 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3593,3 +3593,12 @@
 ;; A package for casual use...
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-user
   (:use clim-lisp clim))
+
+;;;; Nasty hack to improve debugability
+;;;; Dont need it right now.
+;#+allegro
+;(let ((package (find-package :compiler))
+;      (symbol (and package (intern :bad-to-tailpos package))))
+;  (when (boundp symbol)
+;    (dolist (sym '(clim:beep))
+;      (push sym (symbol-value symbol)))))
