@@ -13,3 +13,5 @@ Files in this release:
 To use CLIM on Windows evaluate this:
 
 	(require :climnt)
+
+This version of CLIM only works in a case insensitive Lisp.

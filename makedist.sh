@@ -1,5 +1,5 @@
 
-set -x
+set -xe
 
 make clean
 make RECORD_XREF_INFO=nil RECORD_SOURCE_FILE_INFO=nil
