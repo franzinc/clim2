@@ -11,6 +11,11 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.19 (from pnc)
+
+...changelog from pnc pending...
+
+*******************************************************************************
 Fri May 29 08:58:03 1998  Kevin Layer  <layer@ultra>
 
     new files:

@@ -23,23 +23,22 @@
   ;; In another engraft-medium method, the medium background/foreground
   ;; is initialized from the pane background/foreground.
   (with-slots (background-dc-image foreground-dc-image) medium
-    (setf background-dc-image 
-      (dc-image-for-ink medium (medium-background medium)))
-    (setf foreground-dc-image 
-      (dc-image-for-ink medium (medium-foreground medium)))))
-
-#+probably-unnecessary
-(defmethod medium-background ((medium t)) +white+)
-#+probably-unnecessary
-(defmethod medium-foreground ((medium t)) +black+)
+    (let ((bink 
+	   (dc-image-for-ink medium (medium-background medium)))
+	  (fink 
+	   (dc-image-for-ink medium (medium-foreground medium))))
+      (setf background-dc-image bink)
+      (setf foreground-dc-image fink))))
 
 (defmethod (setf medium-background) :after (new-background (medium acl-medium))
   (with-slots (background-dc-image) medium
-    (setf background-dc-image (dc-image-for-ink medium new-background))))
+    (let ((bink (dc-image-for-ink medium new-background)))
+      (setf background-dc-image bink))))
 
 (defmethod (setf medium-foreground) :after (new-foreground (medium acl-medium))
   (with-slots (foreground-dc-image) medium
-    (setf foreground-dc-image (dc-image-for-ink medium new-foreground))))
+    (let ((fink (dc-image-for-ink medium new-foreground)))
+      (setf foreground-dc-image fink))))
 
 (defclass acl-window-medium (acl-medium)
     ((window :initform nil :reader medium-drawable)))
@@ -87,16 +86,15 @@
 	(with-bounding-rectangle* (mleft mtop mright mbottom) medium-region
 	  (multiple-value-setq (valid cleft ctop cright cbottom)
 	    (multiple-value-call #'ltrb-overlaps-ltrb-p
-				 cleft ctop cright cbottom
-				 (transform-rectangle* 
-				   (sheet-device-transformation sheet)
-				   mleft mtop mright mbottom))))))
+	      cleft ctop cright cbottom
+	      (transform-rectangle* 
+	       (sheet-device-transformation sheet)
+	       mleft mtop mright mbottom))))))
     (when valid
       (fix-coordinates cleft ctop cright cbottom)
       (setq winrgn (win:createRectRgn cleft ctop cright cbottom))
-      (win:selectObject dc winrgn)
-      (setf *created-region* winrgn)) 
-    valid))
+      (setf *created-region* winrgn)
+      (win:selectObject dc winrgn))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +ltgray+)))
   ;; This is not supposed to be just ANY light gray.
@@ -106,15 +104,20 @@
   ;; gray in the current color scheme"
   *ltgray-image*)
 
+(defmethod color-rgb ((color (eql +ltgray+)))
+  (color-rgb (wincolor->color (win:getSysColor win:COLOR_BTNFACE))))
+
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +foreground-ink+)))
   (slot-value medium 'foreground-dc-image))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +background-ink+)))
   (slot-value medium 'background-dc-image))
 
+#+obsolete
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +black+)))
   *black-image*)
 
+#+obsolete
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +white+)))
   *white-image*)
 
@@ -157,20 +160,19 @@
 		      (convert blue)))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink color))
-  (let ((color (color->wincolor ink medium)))
-    (declare (fixnum color))
-    (let ((pen (note-created 'pen (win:createPen win:ps_solid 1 color)))
-	  (brush (note-created 'brush (win:createSolidBrush color))))
-      (when *created-pen*
-	;;(note-destroyed *created-pen*)
-	;;(win:selectObject dc *white-pen*)
-	;;(win:deleteObject dc *created-pen*)
-	(push *created-pen* *extra-objects*))
-      (setf *created-pen* pen *created-brush* brush)
-      (make-dc-image :solid-1-pen pen
-		     :brush brush
-		     :text-color color 
-		     :background-color nil))))
+  (let ((cache (port-dc-cache (port medium))))
+    (or (gethash ink cache)
+	(setf (gethash ink cache)
+	  (let ((color (color->wincolor ink medium)))
+	    (declare (fixnum color))
+	    (let ((pen (win:createPen win:ps_solid 1 color))
+		  (brush (win:createSolidBrush color)))
+	      (make-dc-image :solid-1-pen pen
+			     :brush brush
+			     :text-color color 
+			     :background-color nil
+			     :rop2 win:r2_copypen
+			     )))))))
 
 ;;; ink for opacities, regions, etc
 
@@ -201,8 +203,8 @@
 (defun dc-image-for-multi-color-pattern (medium array designs)
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
-	 (tink (aref designs 0))
-	 (bink (aref designs 1))
+	 (tink (aref designs 1))
+	 (bink (aref designs 0))
 	 (tcolor (color->wincolor tink medium))
 	 (bcolor (color->wincolor bink medium))
 	 (width (array-dimension array 1))
@@ -231,18 +233,16 @@
 	 (height (array-dimension array 0))
 	 (into (byte-align-bits array)))
     (setf *bitmap-array* into)
-    (let ((bitmap
-	   (note-created 'bitmap (win:createBitmap width height 1 1 into))))
-      (setf (dc-image-bitmap dc-image) bitmap
-	    *created-bitmap* bitmap)
+    (let ((bitmap (win:createBitmap width height 1 1 into)))
+      (setf (dc-image-bitmap dc-image) bitmap)
       (setf (dc-image-background-color dc-image) bcolor)
       (setf (dc-image-text-color dc-image) tcolor))
     dc-image)
 
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
-	 (tink (aref designs 0))
-	 (bink (aref designs 1))
+	 (tink (aref designs 1))
+	 (bink (aref designs 0))
 	 (tcolor (color->wincolor tink medium))
 	 (bcolor (color->wincolor bink medium))
 	 (width (array-dimension array 1))
@@ -297,7 +297,8 @@
 	   (dc-image-for-two-color-pattern
 	    medium array designs))
 	  ((find +transparent-ink+ designs)
-	   (error "Multicolor patterns must not use +transparent-ink+"))
+	   (error 
+	    "Multicolor patterns must not use +transparent-ink+"))
 	  (t
 	   (setq array (byte-align-pixmap array))
 	   (dc-image-for-multi-color-pattern
@@ -306,69 +307,64 @@
 (defmethod dc-image-for-ink ((medium acl-medium) (ink rectangular-tile))
   ;; The only case we handle right now is stipples
   (multiple-value-bind (array width height)
-    (decode-tile-as-stipple ink)
+      (decode-tile-as-stipple ink)
     (unless array
-      (error "Rectangular tiles other than stipples are not supported yet."))
+      (error 
+       "Rectangular tiles other than stipples are not supported yet."))
     ;; I don't know why width and height are wrong, but they are. JPM 8/25/97
     (setq width (array-dimension array 1))
     (setq height (array-dimension array 0))
     (let* ((into (make-array `(,bmdim ,bmdim) :element-type 'bit
-		  	           :initial-element 0))
-           (pattern (decode-rectangular-tile ink))
-           (designs (pattern-designs pattern))
-           dc-image background-dc foreground-dc)
+			     :initial-element 0))
+	   (pattern (decode-rectangular-tile ink))
+	   (designs (pattern-designs pattern))
+	   dc-image background-dc foreground-dc)
       (unless (= (length designs) 2)
-        (error "Only 2-color stipples are currently supported."))
+	(error "Only 2-color stipples are currently supported."))
       (setq background-dc (dc-image-for-ink medium (svref designs 0)))
       (setq foreground-dc (dc-image-for-ink medium (svref designs 1)))
       (setq dc-image (copy-dc-image foreground-dc))
       (dotimes (i bmdim)
-	  (dotimes (j bmdim)
-	    (setf (aref into i j)
-		(logand 1 (lognot (aref array (mod i height)
-			                        (mod j width)))))))
-      (let* ((bitmap (note-created 'bitmap (win:createBitmap bmdim bmdim 1 1
-							      into)))
-	       (brush (note-created 'brush (win:createPatternBrush bitmap))))
-	  (setf (dc-image-brush dc-image) brush)
-        (setf *created-brush* brush)
-	  (setf *created-tile* bitmap)
-        ;; Setting ROP2 helps when +transparent-ink+ is the background ink.
-        (setf (dc-image-rop2 dc-image) (dc-image-rop2 background-dc))
-        (setf (dc-image-background-color dc-image)
-              (dc-image-text-color background-dc))
-        (setf (dc-image-text-color dc-image) 
-              (dc-image-text-color foreground-dc))
-        dc-image))))
+	(dotimes (j bmdim)
+	  (setf (aref into i j)
+	    (logand 1 (lognot (aref array (mod i height)
+				    (mod j width)))))))
+      (let* ((bitmap (win:createBitmap bmdim bmdim 1 1 into))
+	     (brush (win:createPatternBrush bitmap)))
+	(setf (dc-image-brush dc-image) brush)
+	;; Setting ROP2 helps when +transparent-ink+ is the background ink.
+	(setf (dc-image-rop2 dc-image) (dc-image-rop2 background-dc))
+	(setf (dc-image-background-color dc-image)
+	  (dc-image-text-color background-dc))
+	(setf (dc-image-text-color dc-image) 
+	  (dc-image-text-color foreground-dc))
+	dc-image))))
 
 (defun nyi ()
   (error "This NT CLIM operation is NYI (Not Yet Implemented)."))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink flipping-ink))
-  (multiple-value-bind (ink1 ink2)
-      (decode-flipping-ink ink)
-    (let* ((image1 (dc-image-for-ink medium ink1))
-	   (image2 (dc-image-for-ink medium ink2))
-	   (color (logxor (dc-image-text-color image1)
-			  (dc-image-text-color image2))))
-      (unless (and (eql (dc-image-rop2 image1) win:r2_copypen)
-		   (eql (dc-image-rop2 image2) win:r2_copypen)
-		   (null (dc-image-bitmap image1))
-		   (null (dc-image-bitmap image2)))
-	(nyi))
-      (let ((pen (note-created 'pen (win:createPen win:ps_solid 1 color)))
-	    (brush (note-created 'brush (win:createSolidBrush color))))
-	(when *created-pen*
-	  ;;(note-destroyed *created-pen*)
-	  ;;(win:selectObject dc *white-pen*)
-	  ;;(win:deleteObject dc *created-pen*)
-	  (push *created-pen* *extra-objects*))
-	(setf *created-pen* pen *created-brush* brush)
-	(make-dc-image :solid-1-pen pen
-		       :brush brush
-		       :rop2 win:r2_xorpen
-		       :text-color color 
-		       :background-color nil)))))
+  (let ((cache (port-dc-cache (port medium))))
+    (or (gethash ink cache)
+	(setf (gethash ink cache)
+	  (multiple-value-bind (ink1 ink2)
+	      (decode-flipping-ink ink)
+	    (let* ((image1 (dc-image-for-ink medium ink1))
+		   (image2 (dc-image-for-ink medium ink2))
+		   (color (logxor (dc-image-text-color image1)
+				  (dc-image-text-color image2))))
+	      (unless (and (eql (dc-image-rop2 image1) win:r2_copypen)
+			   (eql (dc-image-rop2 image2) win:r2_copypen)
+			   (null (dc-image-bitmap image1))
+			   (null (dc-image-bitmap image2)))
+		(nyi))
+	      (let ((pen (win:createPen win:ps_solid 1 color))
+		    (brush (win:createSolidBrush color)))
+		(make-dc-image :solid-1-pen pen
+			       :brush brush
+			       :rop2 win:r2_xorpen
+			       :text-color color 
+			       :background-color nil))))))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink contrasting-ink))
   (dc-image-for-ink medium (make-color-for-contrasting-ink ink)))
@@ -379,26 +375,30 @@
 (defmethod dc-image-for-ink ((medium acl-medium) (ink composite-in))
   (error "Compositing is not supported."))
 
-
 (defmethod medium-draw-point* ((medium acl-medium) x y)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
         (let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
 	       (line-style (medium-line-style medium)))
           (convert-to-device-coordinates transform x y)
           (set-dc-for-ink dc medium ink line-style)
-          ;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
+	  ;;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
 	  (win:moveToEx dc x y null)
 	  (win:lineTo dc (+ x 1) (+ y 1))
+	  (win:selectobject dc old)
 	  )))))
 
 (defmethod medium-draw-points* ((medium acl-medium) position-seq)
- (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
         (let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
@@ -412,12 +412,15 @@
 	      (convert-to-device-coordinates transform x y)
               ;(win:rectangle dc x y x y)
 	      (win:moveToEx dc x y null)
-	      (win:lineTo dc (+ x 1) (+ y 1)))))))))
+	      (win:lineTo dc (+ x 1) (+ y 1))))
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-line* ((medium acl-medium) x1 y1 x2 y2)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
         (let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
@@ -425,12 +428,15 @@
           (convert-to-device-coordinates transform x1 y1 x2 y2)
           (set-dc-for-ink dc medium ink line-style)
           (win:moveToEx dc x1 y1 null)
-          (win:lineTo dc x2 y2))))))
+          (win:lineTo dc x2 y2)
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
         (let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
@@ -447,13 +453,16 @@
 	          (y2 (elt position-seq l)))
 	      (convert-to-device-coordinates transform x1 y1 x2 y2)
               (win:moveToEx dc x1 y1 null)
-              (win:lineTo dc x2 y2))))))))
+              (win:lineTo dc x2 y2)))
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-rectangle* ((medium acl-medium)
 				   left top right bottom filled)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc)) 
+      (when old
         (let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
@@ -462,31 +471,33 @@
 					 left top right bottom)
           (when (< right left) (rotatef right left))
           (when (< bottom top) (rotatef bottom top))
-          (if (typep ink 'pattern)
-	    (with-compatible-dc (dc cdc)
-	      (let ((width (- right left))
-		    (height (- bottom top))
-		    (*the-dc* dc)
-		    pat)
-                (set-dc-for-ink dc medium +foreground-ink+ nil) ; avoid pattern
-	        (setf pat (set-cdc-for-pattern cdc medium ink nil))
-	        (win:bitblt dc left top width height
-			    cdc 0 0 pat) ; cause 0 is foreground
-	      ))
-	    (progn
-	      (let ((*the-dc* dc))
-		(set-dc-for-ink dc medium ink line-style))
-	      #+ignore
-	      (if (typep ink 'rectangular-tile)
-		(cerror "Go" "Stop ~S" ink))
-	      (if filled
-		(win:rectangle dc left top (1+ right) (1+ bottom))
-		(win:rectangle dc left top right bottom)))))))))
+          (cond ((typep ink 'pattern)
+		 ;; DRAW-PATTERN* ultimately does its drawing here.
+		 ;; BUG: Transparent bits aren't transparent.
+		 (with-compatible-dc (dc cdc)
+		   (let ((width (- right left))
+			 (height (- bottom top))
+			 (*the-dc* dc))
+		     (set-cdc-for-pattern cdc medium ink nil)
+		     (win:bitblt dc left top width height
+				 cdc 0 0 win:srccopy))))
+		(t
+		 (let ((*the-dc* dc))
+		   (set-dc-for-ink dc medium ink line-style))
+		 #+ignore
+		 (if (typep ink 'rectangular-tile)
+		     (cerror "Go" "Stop ~S" ink))
+		 (if filled
+		     (win:rectangle dc left top (1+ right) (1+ bottom))
+		   (win:rectangle dc left top right bottom))))
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-rectangles* ((medium acl-medium) position-seq filled)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
         (let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
@@ -499,19 +510,22 @@
 		  (top (elt position-seq (incf rect)))
 		  (right (elt position-seq (incf rect)))
 		  (bottom (elt position-seq (incf rect))))
-            (convert-to-device-coordinates transform
-					   left top right bottom)
-            (when (< right left) (rotatef right left))
-            (when (< bottom top) (rotatef bottom top))
-	    (if filled
-	      (win:rectangle dc left top (1+ right) (1+ bottom))
-	      (win:rectangle dc left top right bottom)))))))))
+	      (convert-to-device-coordinates transform
+					     left top right bottom)
+	      (when (< right left) (rotatef right left))
+	      (when (< bottom top) (rotatef bottom top))
+	      (if filled
+		  (win:rectangle dc left top (1+ right) (1+ bottom))
+		(win:rectangle dc left top right bottom))))
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-polygon* ((medium acl-medium)
 				 position-seq closed filled)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
 	(let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
@@ -519,53 +533,44 @@
 	       (length (length position-seq))
 	       (numpoints (floor length 2))
 	       (extra (and closed line-style))
-	       #-acl86win32 (point-vector (ct::ccallocate (win:point 256)))
-           #+acl86win32 (point-vector (ct::callocate (:long *) :size 512))) ;  limit?
+	       #-acl86win32 (point-vector (ct:ccallocate (win:point 256)))
+	       #+acl86win32 (point-vector (ct:callocate (:long *) :size 512))) ;  limit?
 	  ;; These really are fixnums, since we're fixing coordinates below
-	  ; (declare (type fixnum minx miny))
+	  ;; (declare (type fixnum minx miny))
 	  (with-stack-array (points (if extra (+ length 2) length))
 	    (declare (type simple-vector points))
-	    (replace points position-seq)	;set up the initial contents
+	    (replace points position-seq) ;set up the initial contents
 	    (do ((i 0 (+ i 2))
 		 (j 0 (+ j 1)))
 		((>= i length))
 	      (let ((x (svref points i))
-		    (y (svref points (1+ i)))
-		    #-acl86win32 (pstruct (ct::callocate win:point)))
+		    (y (svref points (1+ i))))
 		(convert-to-device-coordinates transform x y)
-		#-acl86win32 (ct::csets win:point pstruct win:x x win:y y)
-		#-acl86win32 (ct::cset (win:point 256)
-			 point-vector ((fixnum j)) pstruct)
-        #+acl86win32 
-        (ct::cset (:long 512) point-vector ((fixnum (* j 2))) x)
-        #+acl86win32 
-        (ct::cset (:long 512) point-vector ((fixnum (+ 1 (* j 2)))) y)
+		(ct:cset (:long 512) point-vector ((fixnum (* j 2))) x)
+		(ct:cset (:long 512) point-vector ((fixnum (+ 1 (* j 2)))) y)
 		(when (and (= j 0) extra)
-		  #-acl86win32 (ct::cset (win:point 256) 
-			   point-vector ((fixnum numpoints)) pstruct)
-          #+acl86win32 
-          (ct::cset (:long 512) point-vector ((fixnum (* numpoints 2))) x)
-          #+acl86win32 
-          (ct::cset (:long 512) point-vector ((fixnum (+ 1 (* numpoints 2)))) y)
-        ))))
+		  (ct:cset (:long 512) point-vector ((fixnum (* numpoints 2))) x)
+		  (ct:cset (:long 512) point-vector ((fixnum (+ 1 (* numpoints 2)))) y)
+		  ))))
 	  (if (or (typep ink 'pattern) (typep ink 'rectangular-tile))
-	    (if (null line-style)
-	      (let ((*the-dc* dc)
-		    (nink ink
-			  #+ignore
-			  (if (typep ink 'pattern)
-			    (make-rectangular-tile ink  8 8)
-			    ink)))
-		(set-dc-for-ink dc medium nink line-style))
-	      (set-dc-for-ink dc medium +foreground-ink+ line-style))	    
+	      (if (null line-style)
+		  (let ((*the-dc* dc)
+			(nink ink
+			      #+ignore
+			      (if (typep ink 'pattern)
+				  (make-rectangular-tile ink  8 8)
+				ink)))
+		    (set-dc-for-ink dc medium nink line-style))
+		(set-dc-for-ink dc medium +foreground-ink+ line-style))	    
 	    (set-dc-for-ink dc medium ink line-style))
 	  (if (null line-style)
-	    (win:polygon dc point-vector numpoints)
+	      (win:polygon dc point-vector numpoints)
 	    (win:polyline dc
 			  point-vector
 			  (if (and closed line-style)
-			    (+ numpoints 1)
-			    numpoints))))))))
+			      (+ numpoints 1)
+			    numpoints)))
+	  (win:selectobject dc old))))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))
@@ -574,44 +579,46 @@
 				 center-x center-y
 				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 				 start-angle end-angle filled)
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-      (when (select-acl-dc medium window dc)
+      (setq old (select-acl-dc medium window dc))
+      (when old
 	(let* ((sheet (medium-sheet medium))
 	       (transform (sheet-device-transformation sheet))
 	       (ink (medium-ink medium))
 	       (line-style (and (not filled) (medium-line-style medium))))
 	  (convert-to-device-coordinates transform center-x center-y)
 	  (convert-to-device-distances
-	    transform radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+	   transform radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
 	  (when (null start-angle)
 	    (setq start-angle 0.0
 		  end-angle 2pi))
 	  (if (or (typep ink 'pattern) (typep ink 'rectangular-tile))
-	    (if (null line-style)
-	      (let ((*the-dc* dc)
-		    (nink ink
-			  #+ignore
-			  (if (typep ink 'pattern)
-			    (make-rectangular-tile ink  8 8)
-			    ink)))
-		(set-dc-for-ink dc medium nink line-style))
-	      (set-dc-for-ink dc medium +foreground-ink+ line-style))	    
+	      (if (null line-style)
+		  (let ((*the-dc* dc)
+			(nink ink
+			      #+ignore
+			      (if (typep ink 'pattern)
+				  (make-rectangular-tile ink  8 8)
+				ink)))
+		    (set-dc-for-ink dc medium nink line-style))
+		(set-dc-for-ink dc medium +foreground-ink+ line-style))	    
 	    (set-dc-for-ink dc medium ink line-style))
 	  (multiple-value-bind (x-radius y-radius)
-	    (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-		   (values (abs radius-2-dx) (abs radius-1-dy)))
-		  ((and (= radius-2-dx 0) (= radius-1-dy 0))
-		   (values (abs radius-1-dx) (abs radius-2-dy)))
-		  (t
-		    (let ((s-1 (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy)))
-			  (s-2 (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy))))
-		      (if (= s-1 s-2)
-			(let ((r (truncate (sqrt s-1))))
-			  (values r r))
-			;; Degrade to drawing a rectilinear ellipse
-			(values (truncate (sqrt s-1)) 
-				(truncate (sqrt s-2)))))))
+	      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+		     (values (abs radius-2-dx) (abs radius-1-dy)))
+		    ((and (= radius-2-dx 0) (= radius-1-dy 0))
+		     (values (abs radius-1-dx) (abs radius-2-dy)))
+		    (t
+		     (let ((s-1 (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy)))
+			   (s-2 (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy))))
+		       (if (= s-1 s-2)
+			   (let ((r (truncate (sqrt s-1))))
+			     (values r r))
+			 ;; Degrade to drawing a rectilinear ellipse
+			 (values (truncate (sqrt s-1)) 
+				 (truncate (sqrt s-2)))))))
 	    (let (left top right bottom)
 	      (setq left (- center-x x-radius)
 		    right (+ center-x x-radius)
@@ -627,119 +634,126 @@
 		    ((null line-style)
 		     ;; drawing a pie slice
 		     (win:pie
-		       dc left top right bottom
-		       (round (1- (+ center-x (* (cos start-angle) x-radius))))
-		       (round (1- (- center-y (* (sin start-angle) y-radius))))
-		       (round (1- (+ center-x (* (cos end-angle) x-radius))))
-		       (round (1- (- center-y (* (sin end-angle) y-radius))))))
+		      dc left top right bottom
+		      (round (1- (+ center-x (* (cos start-angle) x-radius))))
+		      (round (1- (- center-y (* (sin start-angle) y-radius))))
+		      (round (1- (+ center-x (* (cos end-angle) x-radius))))
+		      (round (1- (- center-y (* (sin end-angle) y-radius))))))
 		    (t
-		      ;; drawing an arc
-		      (win:arc
-			dc left top right bottom
-			(round (1- (+ center-x (* (cos start-angle) x-radius))))
-			(round (1- (- center-y (* (sin start-angle) y-radius))))
-			(round (1- (+ center-x (* (cos end-angle) x-radius))))
-			(round (1- (- center-y (* (sin end-angle) y-radius)))))))
-	      )))))))
+		     ;; drawing an arc
+		     (win:arc
+		      dc left top right bottom
+		      (round (1- (+ center-x (* (cos start-angle) x-radius))))
+		      (round (1- (- center-y (* (sin start-angle) y-radius))))
+		      (round (1- (+ center-x (* (cos end-angle) x-radius))))
+		      (round (1- (- center-y (* (sin end-angle) y-radius)))))))
+	      ))
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-string* ((medium acl-medium)
 				string x y start end align-x align-y
 				towards-x towards-y transform-glyphs)
   (declare (ignore transform-glyphs))
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-  (when (select-acl-dc medium window dc)
-    (let* ((sheet (medium-sheet medium))
-	   (transform (sheet-device-transformation sheet))
-	   (ink (medium-ink medium))
-	   (text-style (medium-merged-text-style medium)))
-      (convert-to-device-coordinates transform x y)
-      (when towards-x
-	(convert-to-device-coordinates transform towards-x towards-y))
-      (unless end
-	(setq end (length string)))
-      (with-temporary-substring (substring string start end)
-	(let* ((font (text-style-mapping (port medium) text-style))
-	       (height (acl-font-height font))
-	       (descent (acl-font-descent font))
-	       (ascent (acl-font-ascent font)))
-	  (let ((x-adjust 
-		  (compute-text-x-adjustment align-x medium string text-style start end))
-		(y-adjust
-		  (compute-text-y-adjustment align-y descent ascent height)))
-	    (incf x x-adjust)
-	    (incf y y-adjust)
-	    (when towards-x
-	      (incf towards-x x-adjust)
-	      (incf towards-y y-adjust)))
-	  (decf y ascent)	;text is positioned by its top left on acl
-	  (set-dc-for-text dc medium ink (acl-font-index font))
-          (let ((cstr (ct::callocate (:char *) :size 256))
-		(subsize (length substring)))
-	    (dotimes (i subsize)
-	      (ct::cset (:char 256) cstr ((fixnum i))
-		       (char-int (char substring i))))
-	    (win:textOut dc x y cstr (length substring))))))))))
+      (setq old (select-acl-dc medium window dc))
+      (when old
+	(let* ((sheet (medium-sheet medium))
+	       (transform (sheet-device-transformation sheet))
+	       (ink (medium-ink medium))
+	       (text-style (medium-merged-text-style medium)))
+	  (convert-to-device-coordinates transform x y)
+	  (when towards-x
+	    (convert-to-device-coordinates transform towards-x towards-y))
+	  (unless end
+	    (setq end (length string)))
+	  (with-temporary-substring (substring string start end)
+	    (let* ((font (text-style-mapping (port medium) text-style))
+		   (height (acl-font-height font))
+		   (descent (acl-font-descent font))
+		   (ascent (acl-font-ascent font)))
+	      (let ((x-adjust 
+		     (compute-text-x-adjustment align-x medium string text-style start end))
+		    (y-adjust
+		     (compute-text-y-adjustment align-y descent ascent height)))
+		(incf x x-adjust)
+		(incf y y-adjust)
+		(when towards-x
+		  (incf towards-x x-adjust)
+		  (incf towards-y y-adjust)))
+	      (decf y ascent)		;text is positioned by its top left on acl
+	      (set-dc-for-text dc medium ink (acl-font-index font))
+	      (win:textOut dc x y 
+			   substring
+			   (length substring))))
+	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-character* ((medium acl-medium)
 				   char x y align-x align-y
 				   towards-x towards-y transform-glyphs)
   (declare (ignore transform-glyphs))
-  (let ((window (medium-drawable medium)))
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-  (when (select-acl-dc medium window dc)
-    (let* ((sheet (medium-sheet medium))
-	   (transform (sheet-device-transformation sheet))
-	   (ink (medium-ink medium))
-	   (text-style (medium-merged-text-style medium)))
-      (convert-to-device-coordinates transform x y)
-      (when towards-x
-	(convert-to-device-coordinates transform towards-x towards-y))
-      (let* ((font (text-style-mapping (port medium) text-style))
-	     (height (acl-font-height font))
-	     (descent (acl-font-descent font))
-	     (ascent (acl-font-ascent font)))
-	(let ((x-adjust 
-		(compute-text-x-adjustment align-x medium char text-style))
-	      (y-adjust
-		(compute-text-y-adjustment align-y descent ascent height)))
-	  (incf x x-adjust)
-	  (incf y y-adjust)
+      (setq old (select-acl-dc medium window dc))
+      (when old
+	(let* ((sheet (medium-sheet medium))
+	       (transform (sheet-device-transformation sheet))
+	       (ink (medium-ink medium))
+	       (text-style (medium-merged-text-style medium)))
+	  (convert-to-device-coordinates transform x y)
 	  (when towards-x
-	    (incf towards-x x-adjust)
-	    (incf towards-y y-adjust)))
-	(decf y ascent)				;text is positioned by its top left on acl
-	(set-dc-for-text dc medium ink (acl-font-index font))
-        (let ((cstr (ct::callocate (:char *) :size 2)))
-	  (ct::cset (:char 2) cstr 0 (char-int char))
-	  (win:textOut dc x y cstr 1))))))))
+	    (convert-to-device-coordinates transform towards-x towards-y))
+	  (let* ((font (text-style-mapping (port medium) text-style))
+		 (height (acl-font-height font))
+		 (descent (acl-font-descent font))
+		 (ascent (acl-font-ascent font)))
+	    (let ((x-adjust 
+		   (compute-text-x-adjustment align-x medium char text-style))
+		  (y-adjust
+		   (compute-text-y-adjustment align-y descent ascent height)))
+	      (incf x x-adjust)
+	      (incf y y-adjust)
+	      (when towards-x
+		(incf towards-x x-adjust)
+		(incf towards-y y-adjust)))
+	    (decf y ascent)		;text is positioned by its top left on acl
+	    (set-dc-for-text dc medium ink (acl-font-index font))
+	    (let ((cstr (ct:callocate (:char *) :size 2)))
+	      (ct:cset (:char 2) cstr 0 (char-int char))
+	      (win:textOut dc x y cstr 1))))
+	(win:selectobject dc old)))))
 
 (defmethod medium-draw-text* ((medium acl-medium)
 			      string-or-char x y start end
 			      align-x align-y
 			      towards-x towards-y transform-glyphs)
-  (let ((window (medium-drawable medium)))
-    (with-dc (window dc)
-      dc
-      (if (characterp string-or-char)
-	  (medium-draw-character* medium string-or-char x y align-x align-y
-				  towards-x towards-y transform-glyphs)
-	(medium-draw-string* medium string-or-char x y start end align-x align-y
-			     towards-x towards-y transform-glyphs)))))
+  (if (characterp string-or-char)
+      (medium-draw-character* medium string-or-char x y align-x align-y
+			      towards-x towards-y transform-glyphs)
+    (medium-draw-string* medium string-or-char x y start end align-x align-y
+			 towards-x towards-y transform-glyphs)))
 
 (defmethod medium-clear-area ((medium acl-medium) left top right bottom)
-  (let ((window (medium-drawable medium)))
+  #+old
+  (let ((window (medium-drawable medium))
+	(old nil))
     (with-dc (window dc)
-  (when (select-acl-dc medium window dc)
-    (with-slots (background-dc-image) medium
-      (let* ((sheet (medium-sheet medium))
-	     (transform (sheet-device-transformation sheet)))
-	(convert-to-device-coordinates transform
-	  left top right bottom)
-	(when (< right left) (rotatef right left))
-	(when (< bottom top) (rotatef bottom top))
-	(set-dc-for-filling dc background-dc-image)
-	(win:rectangle dc left top (1+ right) (1+ bottom))))))))
+      (setq old (select-acl-dc medium window dc))
+      (when old
+	(with-slots (background-dc-image) medium
+	  (let* ((sheet (medium-sheet medium))
+		 (transform (sheet-device-transformation sheet)))
+	    (convert-to-device-coordinates transform
+					   left top right bottom)
+	    (when (< right left) (rotatef right left))
+	    (when (< bottom top) (rotatef bottom top))
+	    (set-dc-for-filling dc background-dc-image)
+	    (win:rectangle dc left top (1+ right) (1+ bottom))))
+	(win:selectobject dc old))))
+  (with-drawing-options (medium :ink (medium-background medium))
+    (medium-draw-rectangle* medium left top right bottom t)))
 
 (defmethod text-style-width (text-style (medium acl-medium))
   (let ((font (text-style-mapping (port medium) text-style)))

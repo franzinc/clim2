@@ -81,19 +81,29 @@
   (setf *ltgray-brush* 
     (win:createSolidBrush (win:getSysColor win:COLOR_BTNFACE)))
   ;;
+  #+obsolete
   (setf *black-image*
-    (make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
-		   :text-color #x000000 :background-color nil))
+    (make-dc-image :solid-1-pen *black-pen*
+		   :brush *black-brush*
+		   :text-color #x000000
+		   :background-color nil
+		   :rop2 win:r2_copypen))
+  #+obsolete
   (setf *white-image*
-    (make-dc-image :solid-1-pen *white-pen* :brush *white-brush*
-		   :text-color #xffffff :background-color nil))
+    (make-dc-image :solid-1-pen *white-pen*
+		   :brush *white-brush*
+		   :text-color #xffffff
+		   :background-color nil
+		   :rop2 win:r2_copypen))
   (setf *blank-image*
     #+possibly
-    (make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
+    (make-dc-image :solid-1-pen *black-pen* 
+		   :brush *black-brush*
 		   :text-color #xffffffff ; see CLR_NONE
                    :background-color nil
 		   :rop2 win:r2_mergepen )
-    (make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
+    (make-dc-image :solid-1-pen *black-pen*
+		   :brush *black-brush*
 		   :text-color #x000000 
 		   :background-color nil
 		   :rop2 win:r2_nop ))
@@ -102,7 +112,8 @@
     (make-dc-image :solid-1-pen *ltgray-pen* 
                    :brush *ltgray-brush*
                    :text-color (win:getSysColor win:COLOR_BTNFACE)
-                   :background-color nil))
+                   :background-color nil
+		   :rop2 win:r2_copypen))
   ;;
   (setq *dc-initialized* t)
   )
@@ -207,28 +218,24 @@
 
 (defmacro with-compatible-dc ((dc cdc) &rest body)
   `(let ((,cdc nil))
-    (unwind-protect
-     (progn
-       (setf ,cdc (win:createCompatibleDC ,dc))
-       ,@body)
-     (win:selectObject ,cdc *original-bitmap*)
-     (when (and *created-bitmap*
-		(not (ct::null-handle-p win:hbitmap *created-bitmap*)))
-       (win:deleteObject *created-bitmap*)
-       )
-     (setf *created-bitmap* nil)
-     (win:deleteDc ,cdc))))
-
-;;;
-
-#+ignore
-(defconstant CLR_NONE #xffffffff) ;; jpm Aug97
+     (unwind-protect
+	 (progn
+	   (setf ,cdc (win:createCompatibleDC ,dc))
+	   ,@body)
+       (win:selectObject ,cdc *original-bitmap*)
+       (when (and *created-bitmap*
+		  (not (ct::null-handle-p win:hbitmap *created-bitmap*)))
+	 (win:deleteObject *created-bitmap*))
+       (setf *created-bitmap* nil)
+       (win:deleteDc ,cdc))))
 
 (defun set-dc-for-drawing (dc image line-style)
   (let* ((dashes (line-style-dashes line-style))
-         (thickness (max 1 (round (line-style-thickness line-style))))
+	 (thickness (max 1 (round (line-style-thickness line-style))))
 	 (code (if dashes (- thickness) thickness))
-	 (pen (when (= code 1) (dc-image-solid-1-pen image))))
+	 (brush *null-brush*)
+	 (pen (when (= code 1) (dc-image-solid-1-pen image)))
+	 (rop2 (dc-image-rop2 image)))
     (declare (fixnum thickness code))
     (unless pen
       (when *created-pen*
@@ -240,25 +247,30 @@
 				       thickness
 				       (dc-image-text-color image))))))
     (win:selectObject dc pen)
-    #+ignore (when dashes (win:setBkColor dc CLR_NONE)) ;; jpm Aug97
-    (when dashes (win:setBkMode dc win:TRANSPARENT))) ;; tjm Aug97
-  (win:selectObject dc *null-brush*)
-  (win:setRop2 dc (dc-image-rop2 image))
-  image)
+    (if dashes
+	(win:setBkMode dc win:TRANSPARENT)
+      (win:setBkMode dc win:OPAQUE))
+    (win:selectObject dc brush)
+    (when rop2 (win:setRop2 dc rop2))
+    t))
 
 (defun set-dc-for-filling (dc image)
   (let ((background-color (dc-image-background-color image))
-        (text-color (dc-image-text-color image)))
-    (win:selectObject dc *null-pen*)
-    (cond ((not background-color))
-	  ((minusp background-color)
-	   (win:setBkMode dc win:TRANSPARENT))
-	  (t
-	   (win:setBkColor dc background-color)))
-    (when text-color
-      (win:setTextColor dc text-color))
-    (win:selectObject dc (dc-image-brush image))
-    (win:setRop2 dc (dc-image-rop2 image))))
+        (text-color (dc-image-text-color image))
+	(brush (dc-image-brush image))
+	(pen *null-pen*)
+	(rop2 (dc-image-rop2 image)))
+    (win:selectObject dc pen)
+    (when background-color
+      (cond ((minusp background-color)
+	     (win:setBkMode dc win:TRANSPARENT))
+	    (t
+	     (win:setBkMode dc win:OPAQUE)
+	     (win:setBkColor dc background-color))))
+    (when text-color (win:setTextColor dc text-color))
+    (when brush (win:selectObject dc brush))
+    (when rop2  (win:setRop2 dc rop2))
+    t))
 
 (defun set-dc-for-ink (dc medium ink line-style)
   (let ((image (dc-image-for-ink medium ink)))
@@ -269,8 +281,10 @@
 (defun set-cdc-for-pattern (dc medium ink line-style)
   (declare (ignore line-style))
   (let ((image (dc-image-for-ink medium ink))
+	#+ign
 	size)
     (when (typep ink 'pattern)
+      #+ign
       (multiple-value-bind (array designs) (decode-pattern ink)
 	(declare (ignore array))
 	(setf size (length designs)))
@@ -282,6 +296,7 @@
 	     (format *terminal-io* "No DC (~s) ~%" dc))
 	    (t
 	     (setf *original-bitmap* (win:selectObject dc *created-bitmap*))))
+      #+ign
       (unless (> size 2)
 	(let ((background-color (dc-image-background-color image))
 	      (text-color (dc-image-text-color image)))
@@ -289,22 +304,25 @@
 		((minusp background-color)
 		 (win:setbkmode dc win:TRANSPARENT))
 		(t
+		 (win:setbkmode dc win:OPAQUE)
 		 (win:setBkColor dc background-color)))
 	  (when text-color
 	    (win:setTextColor dc text-color)))
 	(win:setRop2 dc (dc-image-rop2 image))))
-    (if (> size 2) win:srccopy win:notsrccopy)))
+    win:srccopy))
 
 (defun set-dc-for-text (dc medium ink font)
   (let* ((image (dc-image-for-ink medium ink))
 	 (text-color (dc-image-text-color image))
 	 (background-color (dc-image-background-color image))
-	 (oldfont (win:selectObject dc font)))
+	 (oldfont nil))
+    (setq oldfont (win:selectObject dc font))
     (cond ((not background-color)
 	   (win:setBkMode dc win:transparent))
 	  ((minusp background-color)
 	   (win:setBkMode dc win:transparent))
 	  (t
+	   (win:setbkmode dc win:OPAQUE)
 	   (win:setBkColor dc background-color)))
     (win:setTextColor dc text-color)
     (unless *original-font* (setf *original-font* oldfont))

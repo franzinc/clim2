@@ -33,40 +33,39 @@
 	(native *use-native-menubar* #+ignore (slot-value frame 'msmenubart))
 	(pointer-doc-pane nil)
 	(pointer-options
-	  (clim-internals::frame-pointer-documentation-p frame)))
-    (when ;mm: was: (eq menu-bar 't)
+	 (clim-internals::frame-pointer-documentation-p frame)))
+    (when				;mm: was: (eq menu-bar 't)
         (silica::default-command-table-p menu-bar)
       (setq menu-bar (frame-command-table frame)))
     (when native (setf (getf (frame-properties frame) :native-menu) t))
     (when pointer-options
       (setq pointer-doc-pane
-	    (with-look-and-feel-realization (framem frame)
-	      (apply #'make-pane
-		   'clim-internals::pointer-documentation-pane
-		   :name :pointer-documentation
-		   (append (and (listp pointer-options) pointer-options)
-			   `(:max-width ,+fill+
-					;; commented out hard-wired
-					;; white background (cim 10/9/96)
-					#| :background ,+white+ |#
-					:min-height (1 :line)
-					:max-height (1 :line)
-					:height (1 :line)))))))
+	(with-look-and-feel-realization (framem frame)
+	  (apply #'make-pane
+		 'clim-internals::pointer-documentation-pane
+		 :name :pointer-documentation
+		 (append (and (listp pointer-options) pointer-options)
+			 `(:max-width ,+fill+
+				      ;; commented out hard-wired
+				      ;; white background (cim 10/9/96)
+				      #| :background ,+white+ |#
+				      :min-height (1 :line)
+				      :max-height (1 :line)
+				      :height (1 :line)))))))
     #+ignore ;; rl: wanted to do the menu bar here, but can't
     (when (and native menu-bar)
       (compute-msmenu-bar-pane frame menu-bar))
     (with-look-and-feel-realization (framem frame)
-      (outlining ()
-	(cond ((and (not native) menu-bar pointer-doc-pane)
-	       (vertically ()
-		 (compute-menu-bar-pane frame menu-bar)
-		 pane
-		 pointer-doc-pane))
-	      ((and (not native) menu-bar)
-	       (vertically () (compute-menu-bar-pane frame menu-bar) pane))
-	      (pointer-doc-pane
-	       (vertically () pane pointer-doc-pane))
-	      (t pane))))))
+      (cond ((and (not native) menu-bar pointer-doc-pane)
+	     (vertically ()
+	       (compute-menu-bar-pane frame menu-bar)
+	       pane
+	       pointer-doc-pane))
+	    ((and (not native) menu-bar)
+	     (vertically () (compute-menu-bar-pane frame menu-bar) pane))
+	    (pointer-doc-pane
+	     (vertically () pane pointer-doc-pane))
+	    (t pane)))))
 
 (defclass acl-top-level-sheet (top-level-sheet)
   ((min-width :accessor acl-top-min-width :initform nil)
@@ -1040,6 +1039,163 @@ to be run from another."
 		    multiple-select
 		    warn-if-exists-p))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Progress notification code.
+
+(define-application-frame nt-working-dialog ()
+  ((note :initform "" :accessor work-note :initarg :note)
+   (fraction :initform 0.0 :accessor fraction
+	     :initarg :fraction)
+   (cancellable :initform t :accessor cancellable
+		:initarg :cancellable)
+   (cancel-button :accessor cancel-button)
+   (thermopane :initform nil :accessor thermopane)
+   (notepane :initform nil :accessor notepane)
+   (process :accessor work-process))
+  (:panes
+   (display 
+    (setf (notepane *application-frame*)
+      (make-pane 'application-pane
+		 :text-style '(:sans-serif :roman :small)
+		 :display-function 'display-note
+		 :initial-cursor-visibility nil
+		 )))
+   (thermometer
+    (setf (thermopane *application-frame*)
+      (make-pane 'application-pane
+		 :min-width 250 :width 250
+		 :foreground #+ignore +blue+
+		 (make-device-color 
+		  (port-default-palette (port *application-frame*))
+		  (win:getSysColor win:color_activecaption))
+		 :display-function 'display-thermometer
+		 :initial-cursor-visibility nil
+		 :record-p nil		;performance hack
+		 )))
+   (cancel
+    (setf (cancel-button *application-frame*)
+      (make-pane 'push-button
+		 :label "Cancel"
+		 :align-x :center
+		 :align-y :center
+		 :show-as-default (cancellable *application-frame*)
+		 :active (cancellable *application-frame*)
+		 :activate-callback
+		 #'(lambda (button)
+		     (let ((frame (pane-frame button))
+			   (process nil))
+		       (when (and frame (cancellable frame))
+			 (setq process (work-process frame))
+			 (if process 
+			     (mp:process-interrupt process 'abort)
+			   (beep)))))))))
+  (:menu-bar nil)
+  (:layouts (main 
+	     (spacing (:thickness 10)
+	       (vertically () 
+		 display
+		 (25 (horizontally ()
+		       (vertically ()
+			 (15 (outlining () thermometer))
+			 :fill)
+		       :fill
+		       cancel)))))))
+
+(defmethod modal-frame-p ((frame nt-working-dialog)) t)
+
+(defmethod display-note ((frame nt-working-dialog) stream)
+  "The pane display function for the DISPLAY pane."
+  (window-clear stream)
+  (draw-text* stream (work-note frame) 0 40)
+  (force-output stream))
+
+(defmethod display-thermometer ((frame nt-working-dialog) stream)
+  (let ((fraction (fraction frame)))
+    (with-bounding-rectangle* (left top right bottom) (sheet-region stream)
+      (medium-draw-rectangle* stream left top 
+			      (+ left (* (- right left) fraction)) bottom
+			      t))))
+
+(defvar *working-dialog* nil)
+
+(defmethod clim-internals::frame-manager-invoke-with-noting-progress
+    ((framem acl-frame-manager)
+     note
+     continuation)
+  (if *working-dialog*
+      (let ((old-string (work-note *working-dialog*))
+	    (old-value (fraction *working-dialog*)))
+	(unwind-protect
+	    (progn
+	      (clim-internals::frame-manager-display-progress-note
+	       framem note)
+	      (funcall continuation note))
+	  (setf (work-note *working-dialog*) old-string)
+	  (setf (fraction *working-dialog*) old-value)
+	  (redisplay-frame-panes *working-dialog*)))
+    (let ((frame nil)
+	  (parent-frame *application-frame*)
+	  (*working-dialog* nil)
+	  (worker (current-process))
+	  (waiter nil))
+      (unwind-protect
+	  (progn
+	    (setq waiter
+	      (mp:process-run-function
+	       "Progress Note"
+	       #'(lambda ()
+		   (let ((*application-frame* parent-frame)) ; for application-modal
+		     (setq frame (make-application-frame
+				  'nt-working-dialog
+				  :cancellable t
+				  :note (string (progress-note-name note))
+				  :pretty-name ""
+				  :left 200 :top 200
+				  :width 400
+				  :height 125))
+		     (setf (work-process frame) worker)
+		     (run-frame-top-level frame)))))
+	    (mp:process-wait
+	     "Synchronize"
+	     #'(lambda () 
+		 (and frame 
+		      (eq (frame-state frame) :enabled))))
+	    (setq *working-dialog* frame)
+	    (clim-internals::frame-manager-invoke-with-noting-progress
+	     framem note continuation))
+	(when waiter
+	  (mp:process-kill waiter)
+	  (setq *working-dialog* nil))))))
+
+(defmethod clim-internals::frame-manager-display-progress-note
+    ((framem acl-frame-manager) note)
+  (when *working-dialog*
+    (let ((old (fraction *working-dialog*))
+	  (new (/ (float (slot-value note 'clim-internals::numerator))
+		  (float (slot-value note 'clim-internals::denominator)))))
+      (unless (= old new)
+	(setf (fraction *working-dialog*) new)
+	(display-thermometer *working-dialog* (thermopane *working-dialog*))))
+    (let ((old (work-note *working-dialog*))
+	  (new (string (progress-note-name note))))
+      (unless (string= old new)
+	(setf (work-note *working-dialog*) new)
+	(display-note *working-dialog* (notepane *working-dialog*))))))
+
+(defun wait-demo (&key (time 10.0) (N 100))
+  (let ((*application-frame* (car (frame-manager-frames 
+				   (find-frame-manager))))
+	(wtime (/ time N)))
+    (with-simple-restart (abort "Abort Wait Demo")
+      (clim-internals::frame-manager-invoke-with-noting-progress
+       (find-frame-manager)
+       (clim-internals::add-progress-note "Men at work. Please wait." t)
+       #'(lambda (note)
+	   (let ((*current-progress-note* note))
+	     (dotimes (i N)
+	       (sleep wtime)
+	       (note-progress i N))))))))
+
 ;;; ms-windows style command menu support
 
 (define-command-table mswin-file-commands
@@ -1081,55 +1237,36 @@ to be run from another."
   (with-slots (mirrored-sheet) event
     (dispatch-event mirrored-sheet event)))
 
+(defparameter *mswin-pane-classes*
+    '((scroll-bar mswin-scroll-bar)
+      (scroller-pane silica::mswin-scroller-pane)
+      (viewport viewport)
+      (menu-bar mswin-menu-bar-pane)
+      (menu-bar-button-logic mswin-menu-bar-button)
+      (pull-down-button-logic mswin-pull-down-menu-button)
+      (push-button hpbutton-pane)
+      (toggle-button hbutton-pane)
+      (radio-box radio-box-pane)
+      (check-box check-box-pane)
+      (slider slider-pane)
+      (top-level-sheet acl-clim::acl-top-level-sheet)
+      (frame-pane frame-pane)
+      (label-pane generic-label-pane)
+      (text-field mswin-text-field)
+      ;;mm: interpose a pane class to manipulate initargs
+      (text-editor acl-clim::acl-text-editor-pane)
+      (list-pane hlist-pane)
+      (option-pane mswin-combo-box-pane)
+      (outlined-pane acl-clim::mswin-outlined-pane)
+      ;;--- Need to do these
+      (horizontal-divider-pane)
+      (vertical-divider-pane)
+      ))
+
 (defmethod make-pane-class ((framem acl-clim::acl-frame-manager) class
 			    &rest options)
   (declare (ignore options))
-  (if acl-clim::*generic-gadgets*
-    (second (assoc class '((scroll-bar scroll-bar-pane)
-			 (scroller-pane generic-scroller-pane)
-			 (viewport viewport)
-			 (menu-bar menu-bar-pane)
-			 (menu-bar-button-logic menu-bar-button)
-			 (pull-down-button-logic pull-down-menu-button)
-			 (push-button push-button-pane)
-			 (toggle-button toggle-button-pane)
-			 (radio-box radio-box-pane)
-			 (check-box check-box-pane)
-			 (slider slider-pane)
-			 (top-level-sheet top-level-sheet)
-			 (frame-pane frame-pane)
-			 (label-pane generic-label-pane)
-			 (text-field text-field-pane)
-			 (text-editor text-editor-pane)
-			 (list-pane generic-list-pane)
-			 (option-pane generic-option-pane)
-			 ;;--- Need to do these
-			 (horizontal-divider-pane)
-			 (vertical-divider-pane)
-			 )))
-    (second (assoc class '((scroll-bar mswin-scroll-bar)
-			 (scroller-pane silica::mswin-scroller-pane)
-			 (viewport viewport)
-			 (menu-bar mswin-menu-bar-pane)
-			 (menu-bar-button-logic mswin-menu-bar-button)
-			 (pull-down-button-logic mswin-pull-down-menu-button)
-			 (push-button hpbutton-pane)
-			 (toggle-button hbutton-pane)
-			 (radio-box radio-box-pane)
-			 (check-box check-box-pane)
-			 (slider slider-pane)
-			 (top-level-sheet acl-clim::acl-top-level-sheet)
-			 (frame-pane frame-pane)
-			 (label-pane generic-label-pane)
-                         (text-field mswin-text-field)
-                           ;;mm: interpose a pane class to manipulate initargs
-			 (text-editor acl-clim::acl-text-editor-pane)
-			 (list-pane hlist-pane)
-			 (option-pane mswin-combo-box-pane)
-			 ;;--- Need to do these
-			 (horizontal-divider-pane)
-			 (vertical-divider-pane)
-			 )))))
+  (second (assoc class *mswin-pane-classes*)))
 
 ;; modulor the frame-background/foreground hacks this is identical to
 ;; the default method for standard-frame-manager in silica/framem -
@@ -1263,3 +1400,4 @@ in a second Lisp process.  This frame cannot be reused."
      (logior win:swp_noactivate
 	     win:swp_nozorder
 	     win:swp_nosize)))
+

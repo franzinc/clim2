@@ -122,9 +122,11 @@
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
 	     (setf buttonstyle
-		   (logior (if (push-button-show-as-default sheet)
-			     win:BS_DEFPUSHBUTTON
-			     win:BS_PUSHBUTTON))))
+	       (logior
+		0			; win:BS_TEXT
+		(if (push-button-show-as-default sheet)
+		    win:BS_DEFPUSHBUTTON
+		  win:BS_PUSHBUTTON))))
 	    ((typep sheet 'silica::mswin-text-edit)
 	     (setq control :hedit)
 	     ;;mm: allocate gadget-id per parent

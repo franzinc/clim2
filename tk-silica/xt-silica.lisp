@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108.22.1 1998/05/19 01:05:18 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108.22.2 1998/06/01 22:27:14 layer Exp $
 
 (in-package :xm-silica)
 
@@ -637,20 +637,27 @@
       )))
 
 (defmethod sheet-mirror-map-callback (event sheet)
+  (declare (special *suppress-xevents*))
   (let ((frame (pane-frame sheet)))
     (when frame
-      (let ((state (frame-state frame)))
+      (let ((state (frame-state frame))
+	    ;; Inform lisp but don't feed event back to X.
+	    (*suppress-xevents* t))
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)
-	     (setf (frame-state frame) :enabled)
-	     #+ignore
-	     (note-frame-deiconified (frame-manager frame) frame)))
+	     (setf (frame-state frame) :enabled)))
 	  (:unmap-notify
+	   ;; spr17465
+	   ;; On Sparc in CDE (common desktop environment),
+	   ;; switching out of a workspace will send an UnmapNotify
+	   ;; message.  Iconifying a window also sends an UnmapNotify
+	   ;; message.  There is apparently no way to tell the difference.
+	   ;; The right thing to do is to stop calling XIconifyWindow in
+	   ;; response, since it is not only unnecessary, it is detrimental.  
+	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
-	     (setf (frame-state frame) :shrunk)
-	     #+ignore
-	     (note-frame-iconified (frame-manager frame) frame))))))))
+	     (setf (frame-state frame) :shrunk))))))))
 
 (defmethod find-widget-class-and-name-for-sheet
     ((port xt-port) (parent t) (sheet basic-sheet))

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-frames.lisp,v 1.47.22.1 1998/05/19 01:05:16 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-frames.lisp,v 1.47.22.2 1998/06/01 22:27:14 layer Exp $
 
 
 (in-package :xm-silica)
@@ -214,14 +214,18 @@
 (defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))
   '((:exit) (:abort)))
 
+(defvar *suppress-xevents* nil)
+
 (defmethod note-frame-iconified ((framem xt-frame-manager) frame)
-  (let ((display (port-display (port framem))))
-    (x11:xiconifywindow display (tk::widget-window (frame-shell frame))
-		    (xt::display-screen-number display))))
+  (unless *suppress-xevents*
+    (let ((display (port-display (port framem))))
+      (x11:xiconifywindow display (tk::widget-window (frame-shell frame))
+			  (xt::display-screen-number display)))))
 
 (defmethod note-frame-deiconified ((framem xt-frame-manager) frame)
-  (x11:xmapwindow (port-display (port framem))
-		  (tk::widget-window (frame-shell frame))))
+  (unless *suppress-xevents*
+    (x11:xmapwindow (port-display (port framem))
+		    (tk::widget-window (frame-shell frame)))))
 
 ;;;
 

@@ -129,21 +129,20 @@
 ;; was suspect. (cim 10/14/96)
 
 (defclass acl-port (basic-port)
-    ((text-style->acl-font-mapping :initform (make-hash-table)) 
-     #+ignore (font-cache-style :initform nil)
-     #+ignore (font-cache-font :initform nil)
-     (vk->keysym :initform (make-hash-table))
-     (keysym->keysym :initform (make-hash-table))
-     logpixelsy
-     (event-queue :initform (make-acl-event-queue))
-     (mirror-with-focus :initform nil :accessor acl-port-mirror-with-focus)
-     (pointer-sheet :initform nil)
-     (motion-pending :initform nil)
-     (cursor-cache :initform nil)
-     (grab-cursor :initform nil :accessor port-grab-cursor)
-     (resources :initform nil :accessor port-default-resources)
-     pointer-x
-     pointer-y))
+  ((dc-cache :initform (make-hash-table) :accessor port-dc-cache)
+   (text-style->acl-font-mapping :initform (make-hash-table)) 
+   (vk->keysym :initform (make-hash-table))
+   (keysym->keysym :initform (make-hash-table))
+   logpixelsy
+   (event-queue :initform (make-acl-event-queue))
+   (mirror-with-focus :initform nil :accessor acl-port-mirror-with-focus)
+   (pointer-sheet :initform nil)
+   (motion-pending :initform nil)
+   (cursor-cache :initform nil)
+   (grab-cursor :initform nil :accessor port-grab-cursor)
+   (resources :initform nil :accessor port-default-resources)
+   (pointer-x :initform 0)
+   (pointer-y :initform 0)))
 
 (defmethod restart-port ((port acl-port))
   ;; No need to devote a thread to receiving messages
@@ -186,15 +185,18 @@
     :color-p color-p
     :dynamic-p dynamic-p))
 
-(defclass acl-device-color (device-color) ())
+(defclass acl-device-color (device-color) 
+  ((color :initform nil)))
 
 (defmethod make-device-color ((palette acl-palette) pixel)
   (make-instance 'acl-device-color 
     :palette palette
     :pixel pixel))
 
-(defmethod device-color-color ((color acl-device-color))
-  (wincolor->color (device-color-pixel color)))
+(defmethod device-color-color ((device-color acl-device-color))
+  (with-slots (color) device-color
+    (or color
+	(setq color (wincolor->color (device-color-pixel device-color))))))
 
 (defmethod silica::port-set-pane-background ((port acl-port) pane medium ink)
   (declare (ignore pane))
@@ -594,11 +596,24 @@
 
 
 (defmethod note-pointer-motion ((port acl-port) sheet x y)
+  ;; X and Y come straight from WM_MOUSEMOVE.
+  ;; Take care not to declare motion-pending in the case where there
+  ;; was no motion, WM_MOUSEMOVE gives you more than you need.
   (with-slots (pointer-sheet motion-pending pointer-x pointer-y) port
-    (setf pointer-sheet sheet)
-    (setf pointer-x x)
-    (setf pointer-y y)
-    (setf motion-pending t)))
+    (cond ((and (eq x pointer-x)
+		(eq y pointer-y))
+	   nil)
+	  (t
+	   #+debug
+	   (format *trace-output* 
+		   "~% Was ~A ~A ~A IS ~A ~A ~A~%"
+		   pointer-sheet pointer-x pointer-y
+		   sheet x y)
+	   (setf pointer-sheet sheet)
+	   (setf pointer-x x)
+	   (setf pointer-y y)
+	   (setf motion-pending t)
+	   t))))
 
 (defmethod flush-pointer-motion ((port acl-port))
   (with-slots (event-queue motion-pending pointer-sheet pointer-x pointer-y)
@@ -654,43 +669,12 @@
 (defvar *l-counter* 0)
 (defvar *nowait* nil)
 
-;;--- event-processing is horribly wrong on aclwin; fix me!!!
-#+aclpc
-(defmethod process-next-event ((port acl-port)
-			       &key (timeout nil) (wait-function nil)
-			       (state "Windows Event"))
-  (setq *l-counter* 0)
-  ; (if (and timeout (= timeout 0)) (cerror "timeout" "zero"))
-  (with-slots (event-queue) port ;  nil to disable timeout
-    (let ((end-time (and timeout (+ (get-internal-real-time)
-				     (* internal-time-units-per-second
-				        timeout)))))
-      ;; dispatch one pending message, if one is pending
-      (await-response nil)
-      (loop
-        (incf *l-counter*)
-	(flush-pointer-motion port)	; adds mouse-moved event to port's
-					; queue if necessary
-	(let ((event (queue-get event-queue)))
-	  (when event
-	    (distribute-event port event)
-	    (return t)))
-	(when (and wait-function
-		   (funcall wait-function))
-	  (return nil))
-	(when (and end-time (>= (get-internal-real-time) end-time))
-	  (return nil))
-	(loop
-	  ;; dispatches all pending messages
-	  (unless (await-response nil) (return nil)))
-	))))
+(defvar *clim-pulse-rate* 1.0)		; seconds.
 
-#+acl86win32
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
 				    (wait-function nil)
 				    (state "Windows Event"))
-  (declare (ignore state))
   (with-slots (event-queue motion-pending) port
     (let ((event (queue-get event-queue))
 	  (reason nil))
@@ -707,9 +691,19 @@
 			  (funcall wait-function)
 			  (setq reason :wait-function)))))
 	  (if timeout
-	      (mp:process-wait-with-timeout "Windows Event" timeout
+	      (mp:process-wait-with-timeout state timeout
 					    #'wait-for-event)
-	    (mp:process-wait "Windows Event" #'wait-for-event))))
+	    (loop
+	      ;; 5/28/98 JPM ACL 5.0.beta
+	      ;; There seems to be a bug in process-wait that
+	      ;; it does not run the test function often enough.
+	      ;; The workaround is to wake up every so often and
+	      ;; run the test function.
+	      (when (mp:process-wait-with-timeout 
+		     state *clim-pulse-rate* #'wait-for-event)
+		(return)))
+	    #+someday
+	    (mp:process-wait state #'wait-for-event))))
       (cond (event
 	     (distribute-event port event)
 	     t)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/command-processor.lisp,v 1.26.22.1 1998/05/19 01:04:26 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/command-processor.lisp,v 1.26.22.2 1998/06/01 22:27:12 layer Exp $
 
 (in-package :clim-internals)
 
@@ -766,6 +766,13 @@
       (let ((*command-parser* command-parser)
             (*command-unparser* command-unparser)
             (*partial-command-parser* partial-command-parser))
+	;; spr16572: Due to the identity translator, it is possible to
+	;; click on anything that has been presented as a command, including
+	;; disabled commands, commands from other command tables, and lists
+	;; that aren't even funcallable.  This problem may be rooted in the 
+	;; design of the identity translator and all the cures I have tried
+	;; create much bigger problems.
+	;; JPM 5/27/98.
         (values (accept `(command :command-table ,command-table)
                         :stream stream :prompt nil)))))
 
