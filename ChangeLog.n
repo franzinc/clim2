@@ -11,8 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
-merge from acl61 to acl6 branch on 02Mar2002
-cmd:  ../../join.sh acl61 acl61_to_acl6_merge2 acl61_to_acl6_02Mar2002 clim2
+2.3.16
+
+2002-03-20  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc for bug11886:
+        * clim/frames.lisp
+          spr25783 - Make accepting-values handle documented values for
+                     :right-margin and :bottom-margin.
 
 *******************************************************************************
 2.3.15
