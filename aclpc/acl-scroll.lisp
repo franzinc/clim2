@@ -448,4 +448,5 @@
 
 
 (eval-when (compile load eval)
+  (provide :climnt)
   (setq excl::*enable-package-locked-errors* nil))

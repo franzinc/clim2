@@ -164,35 +164,29 @@
 ;;; mswin-text-edit
 
 (defclass mswin-text-edit (acl-gadget-id-mixin 
-                            mirrored-sheet-mixin 
-			    text-field  ;-pane
-                            sheet-permanently-enabled-mixin
-                            space-requirement-mixin
-                            basic-pane)
-    ((external-label :initarg :external-label)
-     (depth :initarg :depth)
-     (x-margin :initarg :x-margin)
-     (y-margin :initarg :y-margin)
-     (default-window-procedure :initform (ct::callocate (:void *)))
-     ;; needed for text-editor
-     (ncolumns :initarg :ncolumns
-	       :accessor gadget-columns)
-     (nlines :initarg :nlines
-	     :accessor gadget-lines)
-     (word-wrap :initarg :word-wrap
-		:accessor gadget-word-wrap))
+			   mirrored-sheet-mixin 
+			   text-field	;-pane
+			   sheet-permanently-enabled-mixin
+			   space-requirement-mixin
+			   basic-pane)
+  ((external-label :initarg :external-label)
+   (depth :initarg :depth)
+   (x-margin :initarg :x-margin)
+   (y-margin :initarg :y-margin)
+   (default-window-procedure :initform (ct::callocate (:void *)))
+   ;; needed for text-editor
+   (ncolumns :initarg :ncolumns
+	     :accessor gadget-columns)
+   (nlines :initarg :nlines
+	   :accessor gadget-lines)
+   (word-wrap :initarg :word-wrap
+	      :accessor gadget-word-wrap))
   (:default-initargs 
-      ;; We no longer want this as it overrides the the
-      ;; system font returned by get-sheet-resources
-      ;; in acl-medi.lisp (cim 10/12/96)
-      :text-style
-      #+ignore *default-button-label-text-style*
-      #-ignore nil
-					;:show-as-default nil
-      :external-label nil
-      :x-margin 2 :y-margin 0
-      ;; needed for text-editor
-      :ncolumns nil :nlines nil :editable-p t :word-wrap nil))
+      :text-style nil
+    :external-label nil
+    :x-margin 2 :y-margin 0
+    ;; needed for text-editor
+    :ncolumns nil :nlines nil :editable-p t :word-wrap nil))
 
 
 (defmethod handle-repaint ((pane mswin-text-edit) region)
@@ -203,14 +197,7 @@
 (defclass mswin-text-field (mswin-text-edit)
   ()
   (:default-initargs 
-      ;; We no longer want this as it overrides the the
-      ;; system font returned by get-sheet-resources
-      ;; in acl-medi.lisp (cim 10/12/96)
-      :text-style
-      #+ignore *default-button-label-text-style*
-      #-ignore nil
-
-					;:show-as-default nil
+      :text-style nil
       :external-label nil
       :x-margin 2 :y-margin 0))
 
@@ -425,18 +412,9 @@
    (pixmap :initform nil)
    (raster-op :initform *default-picture-button-op* :initarg :raster-op))
   (:default-initargs :label nil
-    ;; We no longer want this as it overrides the the
-    ;; system font returned by get-sheet-resources
-    ;; in acl-medi.lisp (cim 10/12/96)
-    :text-style
-    #-ignore nil
-    #+ignore *default-button-label-text-style*
+    :text-style nil
     :show-as-default nil
     :external-label nil
-					; :depth 2
-					; :pattern *square-button-pattern*
-					; :icon-pattern nil
-					; :normal-pattern nil
     ;; changed default-margins to make
     ;; picture-buttons look better (cim 10/4/96)
     :x-margin 2 :y-margin 2))
@@ -581,9 +559,7 @@
 		     ;; We no longer want this as it overrides the the
 		     ;; system font returned by get-sheet-resources
 		     ;; in acl-medi.lisp (cim 10/12/96)
-		     :text-style
-		     #+ignore *default-button-label-text-style*
-		     #-ignore nil
+		     :text-style nil
 		     ))
 
 (defmethod compose-space ((pane hbutton-pane) &key width height)
@@ -1366,13 +1342,10 @@
 
 (defmethod get-sheet-resources ((port acl-port) sheet)
   (declare (ignore sheet))
-  `(:background 
-    ,(wincolor->color (win::getSysColor win::color_window))
-    :foreground
-    ,(wincolor->color (win::getSysColor win::color_windowtext))))
+  (port-default-resources port))
 
-(defparameter *windows-system-text-style* 
-    (make-text-style :sans-serif :bold :normal))
+(defparameter *windows-system-text-style* nil)
+(defparameter *gadget-default-resources* nil)
 
 ;; specializing the following method on acl-gadget-id-mixin causes
 ;; the text-style to be specified for those sheets that are mirrored
@@ -1382,22 +1355,26 @@
 
 (defmethod get-sheet-resources :around ((port acl-port)
 					(sheet silica::acl-gadget-id-mixin))
-  (let ((resources (call-next-method)))
-    `(:text-style 
-      ;; this should get the real system font but I device fonts don't
-      ;; seem to work as expected - for the moment though the above
-      ;; looks pretty good (cim 10/12/96) 
-      #+ignore ,(make-device-font (win::getstockobject win::system_font))
-      #-ignore ,*windows-system-text-style*
-      ,@resources)))
+  (or *windows-system-text-style*
+      (setq *windows-system-text-style* 
+	#+ignore
+	(make-device-font-text-style *acl-port* win:system_font)
+	#-ignore
+	(make-text-style :sans-serif :roman :small)
+	;; this should get the real system font but I device fonts don't
+	;; seem to work as expected - for the moment though the above
+	;; looks pretty good (cim 10/12/96) 
+	))	
+  (or *gadget-default-resources*
+      (setq *gadget-default-resources*
+	(let ((resources (call-next-method)))
+	  `(:text-style ,*windows-system-text-style* ,@resources)))))
 
 (in-package :silica)
 
-#+(or aclpc acl86win32)
 (defmethod standardize-text-style ((port basic-port) style 
 				   &optional (character-set 
 					      *standard-character-set*))
-  #-(or aclpc acl86win32) (declare (ignore character-set))
   (standardize-text-style-1 port style character-set 
 			    acl-clim::*acl-logical-size-alist*))
 

@@ -212,24 +212,17 @@
 				       win:WS_CLIPSIBLINGS) ; style
 			       0 0 0 0
 			       parent
-			       #+acl86win32 (ct::null-handle win::hmenu)
-			       #-acl86win32 (let ((hmenu (ccallocate hmenu)))
-					      (setf (handle-value hmenu hmenu) id)
-					; (or id (next-child-id parent))
-					      hmenu)
+			       (ct::null-handle win::hmenu)
 			       *hinst*
-			       #+acl86win32 (symbol-name (gensym))
-			       #+aclpc acl-clim::*win-arg*)))
+			       (symbol-name (gensym)))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
-		      left top width height
-		      #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)
-		      #-acl86win32 :static)
-	#+ignore (showWindow hwnd SW_SHOW)
+			  left top width height
+			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
 	(when value
 	  (win:sendmessage hwnd
 			   win:bm_setcheck
@@ -291,83 +284,68 @@
 
 ;;; bitmap support
 
-(defconstant rgb-bitmapinfo 
-    (ct::callocate win:bitmapinfo :size (+ (ct:sizeof win:bitmapinfoheader)
-					   (* 256 (ct:sizeof win:RgbQuad)))))
+(defconstant +bits-per-pixel+ 8)
+(defconstant +maxcolors+ (expt 2 +bits-per-pixel+))
+(defconstant +bitmapinfosize+ (+ (ct:sizeof win:bitmapinfoheader)
+				 (* +maxcolors+ (ct:sizeof win:RgbQuad))))
 
-(defun acl-clim::acl-bitmapinfo (colors width height)
+;; The use of this prevents bitmap drawing from being reentrant.  JPM 5/98.
+(defconstant +rgb-bitmapinfo+
+    (ct:callocate win:bitmapinfo :size +bitmapinfosize+))
+
+(defun acl-bitmapinfo (colors width height)
+  (assert (< (length colors) +maxcolors+))
   ;; returns the appropriate bitmapinfo and DIB_XXX_COLORS constant
-  (let ((bitcount 8)
-	(bmi rgb-bitmapinfo))
-    ;; update bmi
-    ;;  fixed fields
-    (ct:cset win:bitmapinfo bmi (win::bmiHeader win::bisize) (ct:sizeof win:bitmapinfoheader))
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biPlanes) 1)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biCompression) win:BI_RGB)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biSizeImage) 0)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biClrUsed) 0)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biClrImportant) 0)
-    ;;  width + height
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biWidth) width)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biHeight) height)
-    ;; bitcount
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biBitCount) bitcount)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biXPelsPerMeter) 0)
-    (ct:cset win:bitmapinfo bmi (bmiHeader win::biYPelsPerMeter) 0)
-    ;; colors are a vector of RGB ;; create correct colors
-    (aclwin:for i aclwin:over-vector colors
-	 do
-	 (let ((rgb (aref (the vector colors) i)))
-	   (multiple-value-bind (cred cgreen cblue)
-	       (clim:color-rgb rgb)
-	     (setf cred (floor (* 255 cred))
-		   cgreen (floor (* 255 cgreen))
-		   cblue (floor (* 255 cblue)))
-	     (ct:cset win:bitmapinfo bmi (win::bmiColors (fixnum i) rgbReserved)
+  (let ((bitcount +bits-per-pixel+)
+	(bmi +rgb-bitmapinfo+))
+    (ct:csets win:bitmapinfoheader bmi
+	      bisize (ct:sizeof win:bitmapinfoheader)
+	      biwidth width
+	      biheight (- height)	; if negative, flips image
+	      biplanes 1		; must be 1
+	      bibitcount bitcount
+	      bicompression win:BI_RGB	; no compression
+	      bisizeimage 0		; zero for BI_RGB images
+	      biXPelsPerMeter 0
+	      biYPelsPerMeter 0
+	      biClrUsed (length colors)
+	      biClrImportant 0		; all colors are "important"
+	      )
+    (dotimes (i (length colors))
+      (let ((rgb (aref colors i)))
+	(multiple-value-bind (red green blue) (color-rgb rgb)
+	  (ct:cset windows:bitmapinfo bmi
+		   (windows::bmicolors (fixnum i) rgbreserved) 
 		   0)
-	     (ct:cset win:bitmapinfo bmi (win::bmiColors (fixnum i) win::rgbRed)
-		   cred)
-	     (ct:cset win:bitmapinfo bmi (win::bmiColors (fixnum i) win::rgbBlue)
-		   cblue)
-	     (ct:cset win:bitmapinfo bmi (win::bmiColors (fixnum i) win::rgbGreen)
-		   cgreen))))
+	  (ct:cset windows:bitmapinfo bmi
+		   (windows::bmicolors (fixnum i) rgbred)
+		   (floor (* 255 red)))
+	  (ct:cset windows:bitmapinfo bmi
+		   (windows::bmicolors (fixnum i) rgbblue)
+		   (floor (* 255 blue)))
+	  (ct:cset windows:bitmapinfo bmi
+		   (windows::bmicolors (fixnum i) rgbgreen)
+		   (floor (* 255 green))))))
     ;; return values
     (values bmi win:DIB_RGB_COLORS)))
 
-(eval-when (compile load eval)
-  (require :for))
-
-(defun reflect-pixel-map-in-y (pixel-map)
-  (etypecase pixel-map
-    (pixel-map
-     (aclwin302:for x fixnum 0 aclwin302:below (array-dimension pixel-map 1)
-	  and y-dimension aclwin302:bound (array-dimension pixel-map 0)
-	  and inverted-map aclwin302:bound (aclwin302:copy-array pixel-map) 
-	  aclwin302:result
-	  (ACLWIN302:FOR y1 fixnum 0 ACLWIN302:to (1- (/ y-dimension 2))
-			 and y2 fixnum (1- y-dimension) step -1 do
-			 (let ((y1-pixel (aref inverted-map y1 x))
-			       (y2-pixel (aref inverted-map y2 x)))
-			   (setf
-			       (aref inverted-map y2 x) y1-pixel
-			       (aref inverted-map y1 x) y2-pixel)))
-	  inverted-map))))
-
-(defmethod acl-clim::get-texture (device-context pixel-map colors)
-   (let ((rpixmap (reflect-pixel-map-in-y pixel-map)) ; slow? use stretchblt?
+(defmethod get-texture (device-context pixel-map colors)
+  (let* ((width (array-dimension pixel-map 1))
+	 (height (array-dimension pixel-map 0))
 	 texture-handle)
-      (multiple-value-bind (bitmapinfo dib-mode)
-          (acl-clim::acl-bitmapinfo colors
-				    (array-dimension pixel-map 1)
-				    (array-dimension pixel-map 0))
-         (setq texture-handle
-            (win:CreateDIBitmap
-	      device-context
-	      (ct:cref win:bitmapinfo bitmapinfo win::bmiHeader :static) 
-	      win:CBM_INIT
-	      rpixmap
-	      bitmapinfo dib-mode))
-         texture-handle)))
+    (multiple-value-bind (bitmapinfo dib-mode)
+	(acl-bitmapinfo colors width height)
+      (setq texture-handle
+	(win:CreateDIBitmap
+	 device-context
+	 bitmapinfo 
+	 win:CBM_INIT			; initialize bitmap bits
+	 pixel-map
+	 bitmapinfo 
+	 dib-mode))
+      (when (zerop texture-handle)
+	(error "CreateDIBitmap: error"))
+      texture-handle)))
 
 
 ;;; clipboard support
@@ -376,14 +354,14 @@
 (defconstant clppdata (ct::callocate (:void *)))
 
 
-(defun acl-clim::lisp->clipboard (object)
+(defun lisp->clipboard (object)
   (let ((*inside-convert-clipboard-from-lisp* t))
     (when (OpenClipboard (ct:null-handle hwnd))
       (unwind-protect
 	(add-string-to-clipboard object)
 	(CloseClipboard))))) 
 
-(defmethod acl-clim::clipboard->lisp ()
+(defmethod clipboard->lisp ()
   (when (OpenClipboard (ct:null-handle hwnd))
     (unwind-protect
       (progn
@@ -399,7 +377,7 @@
 		   (string (make-string clpsize)))
 	      (far-peek string clppdata 0 clpsize)
 	      (GlobalUnlock clphdata)
-	      (shorten-vector string (acl-clim::strlen string))
+	      (shorten-vector string (strlen string))
 	      string))))
       (CloseClipboard))))
 ||#

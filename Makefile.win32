@@ -13,7 +13,7 @@ Makefile=Makefile.win32
 
 CAT = type
 HOST = win32
-LISP = e:\acl50b\lisp -I e:\acl50b\lisp.dxl
+LISP = "e:\acl50b\lisp" -I "e:\acl50b\lisp.dxl"
 
 all: compile cat
 

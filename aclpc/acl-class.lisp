@@ -172,12 +172,14 @@
 (defun maybe-set-cursor (window)
   (let* ((sheet (mirror->sheet *acl-port* window))
 	 (cursor (or (port-grab-cursor *acl-port*)
-		     (innermost-sheet-pointer-cursor sheet)
-		     (pointer-cursor (port-pointer *acl-port*)))))
+		     (sheet-pointer-cursor sheet)
+		     ;;(innermost-sheet-pointer-cursor sheet)
+		     ;;(pointer-cursor (port-pointer *acl-port*))
+		     )))
     (when (and cursor
 	       (not (eq cursor :default))
 	       (not (eq cursor *cursor-cache*)))
-      (setq *cursor-cache* cursor)
+      (setq *cursor-cache* cursor) ; not sure the cache works
       (win:setcursor (realize-cursor *acl-port* cursor))
       t)))
 
@@ -212,27 +214,25 @@
 	(sheet (mirror->sheet *acl-port* window)))
     (declare (ignore keys))
     (note-pointer-motion *acl-port* sheet mx my)
-    (setq *win-result* (win::defwindowproc window msg wparam lparam))
-    ))
+    (setq *win-result*
+      (win::defwindowproc window msg wparam lparam))))
 
 ;; Process WM_SETCURSOR
 (defun message-setcursor (window msg wparam lparam)
-  ;; The MFC doc says DefWindowProc sends a wm_setcursor message
-  ;; to the parent window, which may explain why we are getting 
-  ;; so many of these, and suggests to me that this response to 
-  ;; the message may be misguided. jpm.
-  #+ignore
-  (let ((hit-code (pc::loword lparam)))
-    (unless (and (eql hit-code win::htclient)
-		 (maybe-set-cursor window))
-      (setq *cursor-cache* nil)
-      (setf (pointer-cursor (port-pointer *acl-port*)) :default)
-      (setq *win-result* (win::defwindowproc window msg wparam lparam))))
-  #-ignore
-  (let ((cursor (sheet-pointer-cursor (mirror->sheet *acl-port* window))))
-    (if (and cursor (not (eq cursor :default)))
-        (win::setcursor (realize-cursor *acl-port* cursor))
-        (message-default window msg wparam lparam))))
+  ;; There is a bug that you get these messages even
+  ;; when the cursor is not moving.  JPM 5/98.
+  (let* ((hit-code (loword lparam)))
+    (cond ((and (eql hit-code win:htclient) (maybe-set-cursor window))
+	   (setq *win-result* win:true))
+	  (t 
+	   (setq *cursor-cache* nil)
+	   (setf (pointer-cursor (port-pointer *acl-port*)) :default)
+	   ;; If the hit-code is not HTCLIENT, then its not CLIM's problem.
+	   ;; If it is in the client area, then DefWindowProc is supposed
+	   ;; to (1) send WM_SETCURSOR to the parent window to see if it
+	   ;; wants to set the cursor, and if not, (2) sets the cursor
+	   ;; to the arrow.
+	   (message-default window msg wparam lparam)))))
 
 ;; Process WM_PAINT
 (defun message-paint (window msg wparam lparam)
@@ -697,16 +697,17 @@
 (defun message-killfocus (window msg wparam lparam)
   (declare (ignore lparam wparam))
   (let* ((sheet (mirror->sheet *acl-port* window))
-	 (frame (pane-frame sheet))
-	 (menup (getf (frame-properties frame) :menu-frame)))
-    (if (and frame menup)
-	(let ((menu (slot-value frame 'clim-internals::menu)))
-	  (setf (window-visibility menu) nil))
-      (when (eql msg win:wm_close)
-	(with-slots (event-queue) *acl-port*
-	  (queue-put event-queue
-		     (allocate-event 'silica::window-close-event
-				     :sheet sheet)))))
+	 (frame (when sheet (pane-frame sheet)))
+	 (menup (when frame (getf (frame-properties frame) :menu-frame))))
+    (cond ((not sheet))			; should this happen?
+	  ((and frame menup)
+	   (let ((menu (slot-value frame 'clim-internals::menu)))
+	     (setf (window-visibility menu) nil)))
+	  ((eql msg win:wm_close)
+	   (with-slots (event-queue) *acl-port*
+	     (queue-put event-queue
+			(allocate-event 'silica::window-close-event
+					:sheet sheet)))))
     ;; set return value to 0
     (clear-winproc-result *win-result*)
     *win-result*))

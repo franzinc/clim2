@@ -11,6 +11,21 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.14.3 (on acl50pnc branch)
+
+From PNC on 5/15/98
+
+        * silica/medium.lisp - Cleanup dead aclpc code
+        * clim/tracking-pointer.lisp - Patched for spr17056
+        * aclpc/pkgdcl.lisp - Improve required modules
+        * aclpc/acl-class.lisp - Tweak processing of WM_SETCURSOR
+        * aclpc/acl-frames.lisp - Fix select-file for spr17465
+        * aclpc/acl-medium.lisp - A portion of spr17487
+          aclpc/acl-prel.lisp
+        * aclpc/acl-port.lisp - Better fonts and background colors
+          aclpc/acl-widget.lisp
+        * aclpc/acl-scroll.lisp - (provide :climnt) 
+*******************************************************************************
 2.2.1.14.2 (on acl50pnc branch)
 
 Fri May  8 14:20:32 1998  Kevin Layer  <layer@ultra>

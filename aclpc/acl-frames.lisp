@@ -709,7 +709,8 @@ to be run from another."
 		   id-test unique-id label))
   ;; What we oughta do here is implement a real Win32 menu.
   ;; Think about calling CreatePopupMenu
-  (if (or presentation-type foreground background cache row-wise n-columns n-rows scroll-bars)
+  (if (or presentation-type foreground background cache row-wise 
+	  n-columns n-rows scroll-bars)
       (call-next-method)
     #+simple-but-sure
     (apply #'call-next-method framem items :scroll-bars nil keys)
@@ -722,10 +723,13 @@ to be run from another."
 	  (code 0))
       (when (zerop popmenu)
 	(error "CreatePopupMenu -- system error ~A" (win:getlasterror)))
-      ;; These are probably the wrong coordinates.
       (unless (and x-position y-position)
-	(multiple-value-setq (x-position y-position)
-	  (stream-pointer-position associated-window)))
+	;; Get screen coordinates of pointer.
+	(let ((point (ct:ccallocate win:point)))
+	  (or (win:getCursorPos point)
+	      (error "GetCursorPos: system error ~s" (win:getlasterror)))
+	  (setq x-position (ct:cref win:point point x))
+	  (setq y-position (ct:cref win:point point y))))
       (setq x-position (truncate x-position))
       (setq y-position (truncate y-position))
       (map nil #'(lambda (item)
@@ -785,9 +789,7 @@ to be run from another."
       filename-list
     (let ((directory (car filename-list)))
       ;; Windows doesn't stick a backslash on the end of the dir.
-      #+(or (not aclmerge) (and 386 (not UNIX)))
-      (unless (eql (aref directory (1- (length directory)))
-		   #\\)
+      (unless (eql (aref directory (1- (length directory))) #\\)
 	(setf directory (concatenate 'string directory "\\")))
       (mapcar #'(lambda (filename)
 		  ;; cac removed call to namestring to have this function
@@ -859,10 +861,8 @@ to be run from another."
    (#x5000 . ccerr_choosecolorcodes)
    ))
 
-(defun get-pathname
-    (prompt host stream allowed-types initial-name
-     save-p multiple-p change-current-directory-p
-     warn-if-exists-p)
+(defun get-pathname (prompt directory stream allowed-types initial-name
+		     save-p multiple-p warn-if-exists-p)
   (flet ((fill-c-string (string)
 	   (let ((c-string (ff::allocate-fobject-c '(:array :char 256)))
 		 (length (length string)))
@@ -876,43 +876,46 @@ to be run from another."
 	   (file-filter-string (fill-c-string
 				(apply #'concatenate 'string
 				       (mapcar #'make-filter-string allowed-types))))
-	   (initial-dir-string (fill-c-string
-				(or host (namestring *default-pathname-defaults*))))
+	   (initial-dir-string 
+	    (ff:string-to-char* directory)
+	    #+ignore
+	    (fill-c-string 
+	     (or directory (namestring *default-pathname-defaults*))))
 	   (prompt-string (fill-c-string prompt)))
-      (ct:csets win:fi-openfilename open-file-struct
-	     struct-size (ct:sizeof win:openfilename)
-	     owner (clim::sheet-mirror stream)
-	     hinst *hinst*
-	     file-filter file-filter-string
-	     custom-filter (ct:ccallocate (:void *) :initial-value 0)
-	     max-custom-filter 0 ;; length of custom filter string
-	     filter-index 0		; zero means use custom-filter if supplied
+      (ct:csets win:openfilename open-file-struct
+		lstructsize (ct:sizeof win:openfilename)
+		hwndowner (or (and stream 
+				   (clim::sheet-mirror stream))
+			      0)
+		hinstance 0		; no custom dialog
+		lpstrfilter file-filter-string
+		lpstrcustomfilter 0 
+		nmaxcustfilter 0 ;; length of custom filter string
+		nfilterindex 0		; zero means use custom-filter if supplied
 					; otherwise the first filter in the list
-	     selected-file (lisp-string-to-scratch-c-string (or initial-name ""))
-	     max-file 256
-	     file-title (ct:ccallocate (:void *) :initial-value 0)
-	     max-file-title 0
-	     initial-dir initial-dir-string
-	     window-title prompt-string
-	     flags (logior
-		    (if multiple-p win:ofn_allowmultiselect 0)
-		    (if save-p 0 win:ofn_filemustexist)
-		    (if warn-if-exists-p win:ofn_overwriteprompt 0)
-		    (if change-current-directory-p
-			0 win:ofn_nochangedir)
-		    win:ofn_hidereadonly
-		    )
-	     default-extension (ct:ccallocate (:void *) :initial-value 0)
-	     custom-data 0 ;; would be passed to the callback
-	     ;; callback ;; ignored since we don't pass that flag
-	     ;; template-name ;; ignored
-	     )
-      (let* ((error-code (if save-p
-			     (win:GetSaveFileName open-file-struct)
-			   (win:GetOpenFileName open-file-struct))))
+		lpstrfile (lisp-string-to-scratch-c-string (or initial-name ""))
+		nmaxfile 256
+		lpstrfiletitle 0 
+		nmaxfiletitle 0
+		lpstrinitialdir initial-dir-string
+		lpstrtitle prompt-string
+		flags (logior
+		       (if multiple-p win:ofn_allowmultiselect 0)
+		       (if save-p 0 win:ofn_filemustexist)
+		       ;; This is only relevant if save-p:
+		       (if warn-if-exists-p win:ofn_overwriteprompt 0)
+		       win:ofn_nochangedir
+		       win:ofn_hidereadonly
+		       )
+		nfileextension 0 
+		)
+      (let* ((result 
+	      (if save-p
+		  (win:GetSaveFileName open-file-struct)
+		(win:GetOpenFileName open-file-struct))))
 	(dolist (c-string (list file-filter-string initial-dir-string prompt-string))
 	  (ff::free-fobject-c c-string))
-	(if error-code ;; t means it worked
+	(if result ;; t means no errors and user said "OK"
 	    (if multiple-p
 		(pathnames-from-directory-and-filenames
 		 (spaced-string-to-list
@@ -929,6 +932,37 @@ to be run from another."
 						common-dialog-errors))
 				    error-code))))))))))
 
+(ff:def-foreign-type browseinfo
+    (:struct (hwndOwner win:hwnd)
+	     (pidlRoot win:long #+ig win:lpcitemidlist)
+	     (pszDisplayName win:lpstr)
+	     (lpszTitle win:lpcstr)
+	     (ulflags win:uint)
+	     (lpfn (* :void) #+ig win:bffcallback)
+	     (lparam win:lparam)
+	     (iImage :int)))
+
+(ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
+    ((info browseinfo))
+  :returning :int
+  :release-heap :when-ok)
+
+(defun get-directory (sheet title)
+  (let* ((info (ct:ccallocate browseinfo)))
+    (ct:csets browseinfo info
+	      hwndowner (or (and sheet (sheet-mirror sheet)) 0)
+	      pidlroot 0
+	      pszDisplayName 0
+	      lpszTitle (ff:string-to-char* title)
+	      ulflags 0
+	      lpfn 0
+	      lparam 0
+	      iImage 0)
+    (let ((result (SHBrowseForFolder info)))
+      (when (plusp result)
+	;; To do: parse the result.
+	result))))  
+
 (defmethod frame-manager-select-file
     ((framem acl-frame-manager)
      &key (default nil default-p)
@@ -936,7 +970,7 @@ to be run from another."
 	  (associated-window
 	   (if frame-p
 	       (frame-top-level-sheet frame)
-	     (graft framem)))
+	     nil))
 	  (title "Select a file")
 	  documentation
 	  file-search-proc
@@ -946,18 +980,51 @@ to be run from another."
 	  (name title)
 	  directory
 	  pattern
+	  ;; These are all peculiar to this frame manager
+	  (dialog-type :open)
+	  (file-types '(("All Files" . "*.*")))
+	  (multiple-select nil)
+	  (warn-if-exists-p t)
      &allow-other-keys)
   (declare (ignore name exit-boxes file-list-label directory-list-label
-		   file-search-proc documentation default-p))
+		   file-search-proc documentation))
+  (unless pattern 
+    (setq pattern ""))
+  (unless directory 
+    (setq directory (namestring (excl:current-directory))))
+  (when default-p
+    (let ((name (pathname-name default))
+	  (type (pathname-type default))
+	  (dir (pathname-directory default))
+	  (device (pathname-device default)))
+      (cond ((and name type)
+	     (setq pattern (format nil "~A.~A" name type)))
+	    (name
+	     (setq pattern name))
+	    (type
+	     (setq pattern (format nil "*.~A" type))))
+      (when (or directory device)
+	(setq directory 
+	  (namestring (make-pathname :name nil
+				     :directory dir
+				     :device device))))))
   (let* ((stream associated-window)
-	 (path-string (or pattern (and default (namestring default))))
-	 (dir (or directory
-		  (and path-string
-		       (subseq path-string 0
-			       (position #\\ path-string :from-end t)))
-		  (namestring *default-pathname-defaults*))))
-    (get-pathname title dir stream '(("All Files" . "*.*")) path-string nil nil nil nil)
-    ))
+	 (save-p nil)
+	 (directory-p nil))
+    (ecase dialog-type 
+      (:open (setq save-p nil))
+      (:save (setq save-p t))
+      (:directory (setq directory-p t)))
+    (if directory-p
+	(get-directory stream title)
+      (get-pathname title 
+		    directory 
+		    stream
+		    file-types
+		    pattern
+		    save-p
+		    multiple-select
+		    warn-if-exists-p))))
 
 ;;; ms-windows style command menu support
 

@@ -12,16 +12,16 @@
 
 (in-package :acl-clim)
 
-#+acl86win32 (defvar null 0)
+(defvar null 0)
 
 (defclass acl-medium (basic-medium)
   ((background-dc-image)
-   (foreground-dc-image)
-   (background :initform +ltgray+	; Windows SPECIFIES this must be the default
-	       :accessor medium-background)))
+   (foreground-dc-image)))
 
 (defmethod engraft-medium :after ((medium acl-medium) port sheet)
   (declare (ignore port sheet))
+  ;; In another engraft-medium method, the medium background/foreground
+  ;; is initialized from the pane background/foreground.
   (with-slots (background-dc-image foreground-dc-image) medium
     (setf background-dc-image (dc-image-for-ink medium (medium-background medium)))
     (setf foreground-dc-image (dc-image-for-ink medium (medium-foreground medium)))))
@@ -239,9 +239,7 @@
       (dotimes (j width)
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
-    (let ((bitmap (acl-clim::get-texture
-		    *the-dc*
-		    into designs)))	
+    (let ((bitmap (get-texture *the-dc* into designs)))	
       (setf (dc-image-bitmap dc-image) bitmap
 	    *created-bitmap* bitmap)
       (setf (dc-image-background-color dc-image)
@@ -253,74 +251,64 @@
       )
     dc-image))
 
-;; Paul, this hack was done by sdj for the BBN code because of byte
-;; ordering bugs in the pattern decoding code. There are a number of
-;; other bugs to look into in the pattern code and when these are
-;; looked at this hack should be removed (cim 10/14/96)
-
-(defun re-order-hack (a)
+(defun byte-align-pixmap (a)
+  ;; Pad the pixmap so that the y dimension is a multiple of 8.
+  ;; This copies the array, so you oughta cache the result.
   (let* ((x-dim (array-dimension a 0))
          (y-dim (array-dimension a 1))
-         (y-dim-floor (* 8 (floor (/ y-dim 8))))
          (new-y-dim (* 8 (floor (/ (+ y-dim 7) 8))))
-         (offset (- new-y-dim y-dim))
-         (b (make-array (list x-dim new-y-dim) :initial-element 0)))
-    (dotimes (i x-dim b)
-      (dotimes (j (/ y-dim-floor 8))
-        (dotimes (k 4)
-          (setf (aref b i (+ (* j 8) k))
-                (aref a i (- (* (1+ j) 8) (1+ k))))
-          (setf (aref b i (- (* (1+ j) 8) (1+ k)))
-                (aref a i (+ (* j 8) k)))))
-      (when (> offset 0)
-        (dotimes (j 4)
-          (when (< (+ j offset) 8)
-            (setf (aref b i (+ y-dim-floor offset j))
-                  (aref a i (- y-dim (+ j 1)))))
-          (when (< j (- 4 offset))
-            (setf (aref b i (- new-y-dim (+ j 1)))
-                  (aref a i (+ y-dim-floor j)))))))))  
+         (b nil))
+    (cond ((= y-dim new-y-dim) a)	; already aligned
+	  (t
+	   (setq b (make-array (list x-dim new-y-dim) :initial-element 0))
+	   (dotimes (y new-y-dim)
+	     (dotimes (x x-dim)
+	       (setf (aref b x y)
+		 (if (>= y y-dim) 0 (aref a x y)))))
+	   b))))
+
+(defun byte-align-bits (a)
+  ;; Pad the pixmap so that the y dimension is a multiple of 8.
+  ;; This copies the array, so you oughta cache the result.
+  (let* ((x-dim (array-dimension a 0))
+         (y-dim (array-dimension a 1))
+         (new-y-dim (* 8 (floor (/ (+ y-dim 7) 8))))
+         (b (make-array (list x-dim new-y-dim) 
+			:element-type 'bit
+			:initial-element 0)))
+    (dotimes (col new-y-dim)
+      (dotimes (row x-dim)
+	(setf (aref b row col)
+	  (if (>= col y-dim) 0 (if (zerop (aref a row col)) 0 1)))))
+    b))
 
 (defmethod dc-image-for-ink (medium (ink pattern))
   (multiple-value-bind (array designs) (decode-pattern ink)
-    (setq array (re-order-hack array))
+    ;; Not two colors.
     (unless (= (length designs) 2)
+      (setq array (byte-align-pixmap array))
       (return-from dc-image-for-ink
 	(dc-image-for-multi-color-pattern
 	 medium array designs)))
+    ;; Two colors.
+    ;; This seems to ignore the colors, using black and white. 
+    ;; The byte alignment seems to be off as well.  JPM 5/98.
     (let* ((dc-image (copy-dc-image
 		      (slot-value medium 'foreground-dc-image)))
-	   ;; let's no try and use the color stuff yet because it
-	   ;; shows up bugs requiring hacks in the bbn code (cim 9/13/96)
-	   (nocolor t
-		    #+notyet
-		    (and (eq (aref designs 0) +background-ink+)
-			 (eq (aref designs 1) +foreground-ink+)))
-	   (tcolor (unless nocolor
-		     (color->wincolor (aref designs 1))))
-	   (bcolor (unless nocolor 
-		     (color->wincolor (aref designs 0))))
+	   (bink (aref designs 0))
+	   (tink (aref designs 1))
+	   (tcolor (color->wincolor tink))
+	   (bcolor (color->wincolor bink))
 	   (width (array-dimension array 1))
 	   (height (array-dimension array 0))
-	   (dim1 (* (ceiling width 32) 32)) 
-	   (into (make-array (list height dim1)
-			     :element-type 'bit
-			     :initial-element 0)))
-      (dotimes (i height)
-	(dotimes (j width)
-	  (setf (aref into i j)	 ;;; vector: (+ (* i dim1) j)
-	    (if (zerop (aref array i j)) 0 1))))
+	   (into (byte-align-bits array)))
       (setf *bitmap-array* into)
       (let ((bitmap
-	     (note-created 'bitmap (win:createBitmap dim1 height 1 1 into))))
+	     (note-created 'bitmap (win:createBitmap width height 1 1 into))))
 	(setf (dc-image-bitmap dc-image) bitmap
 	      *created-bitmap* bitmap)
-	(setf (dc-image-background-color dc-image)
-	  (if nocolor
-	      (dc-image-text-color
-	       (slot-value medium 'background-dc-image))
-	    bcolor))
-	(if tcolor (setf (dc-image-text-color dc-image) tcolor)))
+	(setf (dc-image-background-color dc-image) bcolor)
+	(setf (dc-image-text-color dc-image) tcolor))
       dc-image)))
 
 (defmethod dc-image-for-ink (medium (ink rectangular-tile))
@@ -813,13 +801,11 @@
   (declare (ignore format port))
   (load-pixmap-1 path 0))
 
-(defun load-pixmap-1 (filename index) ;; <18>
-  #-runtime-system
+(defun load-pixmap-1 (filename index) 
   (format *trace-output* "~&Loading pixmap from file ~a ..." filename)
-  (multiple-value-prog1 ;; <5>
+  (multiple-value-prog1 
       (with-open-file (s filename :element-type '(unsigned-byte 8))
-	(read-pixmap s index)) ;; <18>
-    #-runtime-system
+	(read-pixmap s index)) 
     (format *trace-output* "LOADED pixmap~%")))
 
 (defstruct (texture-info #+ig (:include faslable-structure) (:constructor make-texture-info))
@@ -1055,24 +1041,215 @@ device-independent bitmap, an icon, nor a cursor."))
        (values pixmap texture-info mask width
 	       )))))
 
+(defun rotate-and-mirror-bitmap (a)
+  (let* ((x-dim (array-dimension a 0))
+         (y-dim (array-dimension a 1))
+         (b (make-array (list y-dim x-dim) :initial-element 0)))
+    (dotimes (x x-dim)
+      (dotimes (y y-dim)
+	(setf (aref b y x) (aref a x y))))
+    b))
+
 (defun make-pattern-from-bitmap-file
     (path &key designs (format :bitmap) (port (find-port)))
-  (declare (ignore format))
-  (multiple-value-bind (array texture-info)
-      (read-bitmap-file path :port port)
-    (let (colors numcolors climcolors color)
-      (unless designs
-	(setf colors (texture-info-colors texture-info))
-	(setf numcolors (length colors))
-	(setf climcolors (make-array numcolors))
-	(dotimes (i numcolors)
-	  (setf color (aref colors i))
-	  (setf (aref climcolors i)
-		(make-rgb-color
-		  (/ (rgb-red color) 256.0)
-		  (/ (rgb-green color) 256.0)
-		  (/ (rgb-blue color) 256.0)))))
-      (make-pattern array (or designs climcolors)))))
+  (if (member format '(:xbm :xpm))
+      (multiple-value-bind (array designs)
+	  (read-xbitmap-file path :format format :port port)
+	(make-pattern array designs))
+    (multiple-value-bind (array texture-info)
+	(read-bitmap-file path :format format :port port)
+      (setq array (rotate-and-mirror-bitmap array))
+      (let (colors numcolors climcolors color)
+	(unless designs
+	  (setf colors (texture-info-colors texture-info))
+	  (setf numcolors (length colors))
+	  (setf climcolors (make-array numcolors))
+	  (dotimes (i numcolors)
+	    (setf color (aref colors i))
+	    (setf (aref climcolors i)
+	      (make-rgb-color
+	       (/ (rgb-red color) 256.0)
+	       (/ (rgb-green color) 256.0)
+	       (/ (rgb-blue color) 256.0)))))
+	(make-pattern array (or designs climcolors))))))
+
+;;;*******************
+;;;
+;;; Support for X bitmaps (xbm and xpm). [spr17488]
+;;; Mostly just copied this stuff from the unix code...jpm 5/98.
+;;;
+
+(defun get-bitmap-file-properties (fstream)
+  (let ((line "")
+	(properties nil)
+	(name nil)
+	(name-end nil))
+    (loop
+      (setq line (read-line fstream))
+      (when  (> (length line) 0)
+	(when (char= (aref line 0) #\#)
+	  (return))))
+
+    (loop
+      (when  (> (length line) 0)
+	(unless (char= (aref line 0) #\#)
+	  (return))
+	(flet ((read-keyword (line start end)
+		 (cdr (find-if #'(lambda (pair)
+				   (string= (car pair)
+					    line :start2 start
+					    :end2 end))
+			       '(("image" . :image)
+				 ("width" . :width)
+				 ("height". :height)
+				 ("depth" . :depth)
+				 ("format" . :format)
+				 ;;---
+				 ("pixel" . :chars-per-pixel)
+				 ("left_pad" . :left-pad))))))
+	  ;; Get the name of the bitmaps
+	  ;; #define THENANME_some_attribute
+	  (when (null name)
+	    (setq name-end (position #\_ line :test #'char= :from-end t)
+		  name (read-keyword line 8 name-end))
+	    (unless (eq name :image)
+	      (setf (getf properties :name) name)))
+	  ;; Get the name of the attribute.
+	  (let* ((ind-start (1+ name-end))
+		 (ind-end (position #\Space line :test #'char=
+				    :start ind-start))
+		 (ind (read-keyword line ind-start ind-end))
+		 (val-start (1+ ind-end))
+		 (val (parse-integer line :start val-start)))
+	    (when ind
+	      (setf (getf properties ind) val)))))
+      (setq line (read-line fstream)))
+
+    (flet ((extract-property (ind &rest default)
+	     (prog1 (apply #'getf properties ind default)
+	       (remf properties ind))))
+      (values (extract-property :width)
+	      (extract-property :height)
+	      (extract-property :depth 1)
+	      (extract-property :left-pad 0)
+	      (extract-property :format nil)
+	      (extract-property :chars-per-pixel nil)
+	      line))))
+
+(defun read-x11-bitmap-file (fstream)
+  (multiple-value-bind (width height depth left-pad format chars-per-pixel line)
+      (get-bitmap-file-properties fstream)
+    (declare (ignore format  chars-per-pixel line left-pad))
+    (unless (and width height) (error "Not a BITMAP file"))
+    (let* ((bits-per-pixel
+	    (cond ((> depth 24) 32)
+		  ((> depth 16) 24)
+		  ((> depth 8)  16)
+		  ((> depth 4)   8)
+		  ((> depth 2)   4)
+		  ((> depth 1)   2)
+		  (t 1)))
+	   (data (make-array (list height width)))
+	   (bits-per-line (* width bits-per-pixel))
+	   (bytes-per-line (ceiling bits-per-line 8)))
+
+      (labels ((read-a-byte ()
+		 (peek-char #\x fstream)
+		 (read-char fstream)
+		 (+ (* 16 (digit-char-p (read-char fstream) 16))
+		    (digit-char-p (read-char fstream) 16))))
+
+	(dotimes (i height)
+	  (dotimes (j bytes-per-line)
+	    (let* ((byte (read-a-byte))
+		   (bit-index (* j 8)))
+	      (multiple-value-bind (pixel-offset offset-in-pixel)
+		  (truncate bit-index bits-per-pixel)
+		(if (<= bits-per-pixel 8)
+		    (dotimes (bit (/ 8 bits-per-pixel))
+		      (let ((zz (+ pixel-offset bit)))
+			(when (< zz width)
+			  (setf (aref data i zz)
+			    (ldb (byte bits-per-pixel (* bits-per-pixel bit)) 
+				 byte)))))
+		  (progn
+		    (assert (zerop (mod bits-per-pixel 8)))
+		    (when (< pixel-offset width)
+		      (setf (aref data i pixel-offset)
+			(dpb byte
+			     (byte 8 offset-in-pixel)
+			     (aref data i pixel-offset)))))))))))
+      (values data (list +black+ +white+)))))
+
+(defun read-xpm-file (fstream palette)
+  (multiple-value-bind (width height depth left-pad format
+			chars-per-pixel line)
+      (get-bitmap-file-properties fstream)
+    (declare (ignore line depth left-pad))
+    (assert (= format 1))
+    (flet ((read-strings ()
+	     (let ((strings nil))
+	       (loop
+		 (peek-char #\" fstream)
+		 (push (read fstream) strings)
+		 (let ((next (peek-char t fstream)))
+		   (if (eq next #\,) (read-char fstream)
+		     (return (nreverse strings)))))))
+	   (convert-color (x)
+	     (if palette
+		 (find-named-color x palette)
+	       x)))
+      (let* ((codes (make-array (expt char-code-limit chars-per-pixel)))
+	     (designs
+	      (do ((color-specs (read-strings) (cddr color-specs))
+		   (designs nil)
+		   (index 0 (1+ index)))
+		  ((null color-specs) (nreverse designs))
+		(let ((code (first color-specs))
+		      (color (convert-color (second color-specs)))
+		      (key 0))
+		  (dotimes (i chars-per-pixel)
+		    (setq key (+ (char-code (schar code i))
+				 (* key char-code-limit))))
+		  (setf (svref codes key) index)
+		  (push color designs))))
+	     (array (make-array (list height width)))
+	     (pixels (read-strings))
+	     (i 0))
+	(declare (type (simple-array t (* *)) array)
+		 (string row))
+	(excl::fast
+	 (dolist (row pixels)
+	   (let ((index 0))
+	     (dotimes (j width)
+	       (let ((key 0))
+		 (dotimes (i chars-per-pixel)
+		   (setq key (+ (char-code (schar row index))
+				(* key char-code-limit)))
+		   (incf index))
+		 (setf (aref array i j) (svref codes key)))))
+	   (incf i)))
+	(values array designs)))))
+
+(defmethod read-image-file ((format (eql :xbm)) pathname palette)
+  (declare (ignore palette))
+  (if (streamp pathname)
+      (read-x11-bitmap-file pathname)
+    (with-open-file (fstream pathname :direction :input)
+      (read-x11-bitmap-file fstream))))
+
+(defmethod read-image-file ((format (eql :xpm)) pathname palette)
+  (if (streamp pathname)
+      (read-xpm-file pathname palette)
+    (with-open-file (fstream pathname :direction :input)
+      (read-xpm-file fstream palette))))
+
+(defun read-xbitmap-file (pathname &key (format :xbm) (port (find-port)))
+  (declare (type (or pathname string stream) pathname))
+  (let ((palette (and port (port-default-palette port))))
+    (read-image-file format pathname palette)))
+
+ ;;;*******************
 
 (defparameter silica::*clim-icon-pattern* nil)
 (defparameter *clim-icon-pathname* (pathname "sys:code;clim.ico"))
