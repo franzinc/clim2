@@ -11,6 +11,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.27
+
+Sat Jul 11 08:42:42 1998  Kevin Layer  <layer@ultra>
+
+	* utils/last.lisp: patch loading fix
+
+*******************************************************************************
 2.2.1.26
 
 Wed Jul 08 16:21:38 1998    <layer@HOBART>
