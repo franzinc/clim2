@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.16
+
+Tue May  1 15:25:21 PDT 2001  Duane Rettig  <duane@beta>
+
+	* Makefile.sun4-svr4: Add 64-bit conditionalizations
+	* utils/packages.cl: increment version
+
+*******************************************************************************
 2.2.2.21.15
 
 2001-04-24  Kevin Layer  <layer@crikey>
