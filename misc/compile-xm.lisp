@@ -20,20 +20,19 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-xm.lisp,v 1.3 92/02/26 10:24:00 cer Exp Locker: cer $
+;; $fiHeader: compile-xm.lisp,v 1.4 92/03/04 16:23:11 cer Exp Locker: cer $
 
 (in-package :user)
 
 (setq *ignore-package-name-case* t)
 (set-case-mode :case-insensitive-lower)
-
-;;(load "/misc/jdi/4.1/src/code/defctype.fasl")
 (setf *load-source-file-info* t)
 (setf *record-source-file-info* t)
-(setf *load-xref-info* t)
-(setf *record-xref-info* t)
+(setf *load-xref-info* nil)
+(setf *record-xref-info* nil)
 (setf (sys:gsgc-switch :print) nil)
 (setf (sys:gsgc-switch :stats) nil)
+
 (setq *compile-print* nil)
 (unless (find-package 'excl-defsystem)
   (compile-file-if-needed "sys/defsystem")

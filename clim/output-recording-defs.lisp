@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: output-recording-defs.cl,v 1.3 92/01/02 15:33:26 cer Exp $
+;; $fiHeader: output-recording-defs.lisp,v 1.4 92/01/31 14:58:27 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -185,7 +185,41 @@
     :bounding-rectangle
     silica::(point-sequence-bounding-rectangle list-of-x-and-ys))
 
+(define-output-recorder text-output-record
+    draw-text (text-style ink)
+    :bounding-rectangle
+    (text-bounding-box medium string-or-char x y start end align-x
+			       align-y text-style))
 
+(defun text-bounding-box (stream string x y start end align-x
+				  align-y text-style)
+  (let ((width (stream-string-width stream string
+				    :start start
+				    :end end
+				    :text-style text-style))
+	;;-- The height really depends on the text in the string
+	;;rather than just the text-style
+	(height (stream-line-height stream text-style))
+	vx vt vr vb)
+    (ecase align-x
+      (:left (setq vx x
+		   vr (+ x width)))
+      (:right (setq vx (- x width)
+		    vr x))
+      (:center (setq vx (- x (round width 2))
+		     vr (+ x (round width 2)))))
+    (ecase align-y
+      ;;--- Using STREAM-LINE-HEIGHT for baseline isn't right.
+      (:baseline (setq vt (- y height)
+		       vb y))
+      (:top (setq vt y
+		  vb (+ y height)))
+      (:bottom (setq vt (- y height)
+		     vb y))
+      ;;--- Use FLOOR and CEILING, no?
+      (:center (setq vt (- y (round height 2))
+		     vb (+ y (round height 2)))))
+    (values vx vt vr vb)))
 
 ;; etc etc
 

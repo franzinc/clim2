@@ -20,10 +20,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.4 92/02/16 20:55:05 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.5 92/02/24 13:03:44 cer Exp Locker: cer $
 
 (defpackage :tk
-  (:use common-lisp ff)
+  (:use :common-lisp :ff :x11)
   (:nicknames :xt)
   (:export
    #:initialize-motif-toolkit

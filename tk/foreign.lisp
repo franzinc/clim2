@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.4 92/01/31 14:54:37 cer Exp $
+;; $fiHeader: foreign.lisp,v 1.5 92/02/24 13:03:01 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -30,8 +30,9 @@
 
 
 
-(defclass application-context (handle-class)
-  ((displays :initform nil :accessor application-context-displays)))
+(defclass application-context ()
+  ((displays :initform nil :accessor application-context-displays))
+  (:metaclass ff:standard-class-wrapping-foreign-address))
 
 (defparameter *error-handler-function-address*
   (register-function 'toolkit-error-handler))
@@ -41,8 +42,7 @@
 
 (defmethod initialize-instance :after ((c application-context) &key context)
   (let ((context (or context (create_application_context))))
-    (setf (slot-value c 'handle)
-      context)
+    (setf (foreign-pointer-address c) context)
     (app_set_error_handler 
      context
      *error-handler-function-address*)
@@ -62,12 +62,12 @@
 			  (argc 0)
 			  (argv 0))
   (let ((d (with-ref-par ((argc argc))
-	     (open_display (object-handle context)
+	     (open_display context
 			   (if host 
-			       (string-to-char* host)
+			       host
 			     0)
-			   (string-to-char* name)
-			   (string-to-char* class)
+			   name
+			   class
 			   options 
 			   num-options
 			   argc
@@ -77,18 +77,15 @@
       d)))
 
 (defclass display ()
-  ((handle :reader display-handle)
-   (context :initarg :context :reader display-context)))
-  
+  ((context :initarg :context :reader display-context))
+  (:metaclass ff:standard-class-wrapping-foreign-address))
 
 
-(defmethod initialize-instance :after ((d display) &rest args &key
-							      host display)
+(defmethod initialize-instance :after ((d display) &rest args &key display)
   (push d (application-context-displays (slot-value d 'context)))
-  (setf (slot-value d 'handle)
-	(or display
-	    (apply #'open-display args)) ))
-
+  (setf (foreign-pointer-address d)
+    (or display
+	(apply #'open-display args))))
 
 
 (defforeign 'string_create_l_to_r
@@ -101,17 +98,3 @@
 
 (defforeign 'get_pixmap
     :entry-point "_XmGetPixmap")
-
-(defforeign 'display_default_screen
-    :entry-point "_XDefaultScreenOfDisplay")
-
-(defforeign 'screen_white_pixel
-    :entry-point "_XWhitePixelOfScreen")
-
-(defforeign 'screen_black_pixel
-  :entry-point "_XBlackPixelOfScreen")
-
-(defun display-default-screen (display)
-  (display_default_screen (display-handle display)))
-
-

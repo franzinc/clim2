@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.4 92/02/14 18:57:31 cer Exp $
+;; $fiHeader: event.lisp,v 1.5 92/02/24 13:02:56 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -43,7 +43,7 @@
 (defun process-one-event (context &key timeout wait-function)
   (let (mask
 	(fds (mapcar #'(lambda (display)
-			 (x11::display-fd (display-handle display)))
+			 (x11::display-fd display))
 		     (application-context-displays context)))
 	reason)
     
@@ -75,10 +75,10 @@
 
 
 (defun app-pending (context)
-  (app_pending (object-handle context)))
+  (app_pending context))
 
 (defun app-process-event (context mask)
-  (app_process_event (object-handle context) mask))
+  (app_process_event context mask))
 
 (defforeign 'add_event_handler
     :entry-point "_XtAddEventHandler")
@@ -104,7 +104,7 @@
 
 (defun add-event-handler (widget events maskable function &rest args)
   (add_event_handler
-   (object-handle widget)
+   widget
    (encode-event-mask events)
    maskable
    *event-handler-address*
@@ -116,6 +116,6 @@
     :entry-point "_XtBuildEventMask")
 
 (defun build-event-mask (widget)
-  (xt_build_event_mask (object-handle widget)))
+  (xt_build_event_mask widget))
 
 

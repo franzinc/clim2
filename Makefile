@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.13 92/02/28 09:18:01 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.14 92/03/02 18:38:46 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -30,7 +30,7 @@ TMP	= /usr/tmp
 #
 # "Compile time objects" -- these go into clim-debug.fasl
 #
-DEBUG-OBJS = xlib/xlib.fasl
+DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl xlib/x11-keysyms.fasl xlib/last.fasl
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -128,10 +128,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/pixmap-streams.fasl \
                         clim/stream-trampolines.fasl
 
-XLIB-CLIM-OBJS = xlib/pkg.fasl \
-                  xlib/ffi.fasl \
-                  xlib/x11-keysyms.fasl \
-                  xlib/last.fasl
+XLIB-CLIM-OBJS = xlib/pkg.fasl
 
 XT-CLIM-OBJS = tk/pkg.fasl \
                 tk/foreign-obj.fasl \
@@ -218,9 +215,11 @@ clim.fasl:	$(MOTIF-OBJS)
 echo-fasls:
 	ls -lt $(MOTIF-OBJS) > /tmp/foo
 
-clim-debug.fasl:	$(MOTIF-OBJS)
+clim-debug.fasl:	$(DEBUG-OBJS)
 	$(CAT) $(DEBUG-OBJS) > $(TMP)/clim-debug.fasl_`whoami`
-	($(MV) $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
+	$(MV) $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
+	ls -lt clim-debug.fasl >> Clim-sizes.n
+	ls -lt clim-debug.fasl
 
 cat:	clim.fasl clim-debug.fasl
 

@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.10 92/02/28 09:17:27 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.11 92/03/04 16:20:43 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -73,8 +73,8 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  :drawable drawable
 	  :function boole-xor))
       (setf color-p (color-medium-p medium))
-      (setf white-pixel (x11:xwhitepixel (tk::display-handle display) screen))
-      (setf black-pixel (x11:xblackpixel (tk::display-handle display) screen))
+      (setf white-pixel (x11:xwhitepixel display screen))
+      (setf black-pixel (x11:xblackpixel display screen))
       (setf stipple-gcontext (make-instance 'tk::gcontext
 				 :drawable drawable
 				 :foreground black-pixel
@@ -102,7 +102,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 (defun color-medium-p (medium)
   (and *use-color*
        (let ((display (port-display (port (medium-sheet medium)))))
-	 (> (x11:xdefaultdepth (tk::display-handle display)
+	 (> (x11:xdefaultdepth display
 			       (tk::display-screen-number display)) 2))))
 
 (defun recompute-gcs (medium)
@@ -365,7 +365,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  (compute-gcontext-clip-mask medium))
     gc))
 
-(defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
+l(defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
   (let* ((ink-table (slot-value medium 'ink-table))
 	 (drawable (or (slot-value medium 'drawable)
 		       (tk::display-root-window
@@ -516,25 +516,25 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
     (when (medium-drawable medium)
       (if filled
 	  (x11:xfillpolygon
-	   (tk::display-handle (tk::object-display window))
-	   (tk::object-handle window)
-	   (tk::object-handle (adjust-ink medium
+	   (tk::object-display window)
+	   window
+	   (adjust-ink medium
 					      (decode-ink (medium-ink medium) medium)
 					      (medium-ink medium)
 					      (medium-line-style medium)
-					      minx miny))
+					      minx miny)
 	   points
 	   npoints
 	   x11:complex
 	   x11:coordmodeorigin)
 	(x11:xdrawlines
-	  (tk::display-handle (tk::object-display window))
-	  (tk::object-handle window)
-	  (tk::object-handle (adjust-ink medium
+	  (tk::object-display window)
+	  window
+	  (adjust-ink medium
 					 (decode-ink (medium-ink medium) medium)
 					 (medium-ink medium)
 					 (medium-line-style medium)
-					 minx miny))
+					 minx miny)
 	  points
 	  npoints
 	  x11:coordmodeorigin)))))
@@ -615,15 +615,15 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  (etypecase glyph-buffer
 	    ((simple-array (unsigned-byte 16))
 	     (x11::xdrawstring16
-	       (tk::display-handle (tk::object-display window))
-	       (tk::object-handle window)
-	       (tk::object-handle gc)
+	       (tk::object-display window)
+	       window
+	       gc
 	       x y
 	       glyph-buffer (- end start)))))))))
 
 
 (defmethod port-beep ((port xt-port) (sheet t))
-  (x11:xbell (tk::display-handle (port-display port)) 100))
+  (x11:xbell (port-display port) 100))
 
    
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.7 92/02/24 13:08:07 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.8 92/03/04 16:22:03 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -416,7 +416,11 @@
 	;; If the cursor moves outside the current region, expand
 	;; it to include the new cursor position.
 	(when (> cy (bounding-rectangle-height stream))
-	  (update-region stream cx cy :no-repaint t))
+	  (update-region stream 
+			 (bounding-rectangle-min-x stream)
+			 (bounding-rectangle-min-y stream)
+			 cx 
+			 cy :no-repaint t))
 	(when (or new-x new-y)
 	  (scroll-extent stream :x (or new-x vleft) :y (or new-y vtop)))))))
 

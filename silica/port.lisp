@@ -19,14 +19,14 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.5 92/02/24 13:04:53 cer Exp $
+;; $fiHeader: port.lisp,v 1.6 92/03/04 16:19:51 cer Exp Locker: cer $
 
 (in-package :silica)
 
 
 ;; Ports and grafts
 
-(defvar *default-server-path* '(:motif :display "localhost:0"))
+(defvar *default-server-path* '(:motif))
 (defvar *ports* nil)
 (defvar *port-type-mapping* nil)
 

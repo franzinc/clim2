@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.9 92/02/24 13:06:23 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.10 92/03/04 16:20:39 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -38,16 +38,15 @@
 				    cursor stream type old new)
   (declare (ignore old type cursor))
   (call-next-method)
+  ;;--- This probably is bogus because of the current focus policy
   (when new
-    (xmprocesstraversal (tk::object-handle (sheet-mirror stream)) 0)
-    #+ignore
-    (xtsetkeyboardfocus #+ignore
-			(tk::object-handle (sheet-mirror (sheet-top-level-mirror stream)))
-			(tk::object-handle (sheet-mirror stream))
-			(tk::object-handle (sheet-mirror stream))))
+    (xmprocesstraversal (sheet-mirror stream) 0))
   ;;--- Where should this be, really?
   (setf (port-keyboard-input-focus port) 
-	(and new stream)))
+    (and new stream)))
+
+
+
 
 (defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
 				   &rest args

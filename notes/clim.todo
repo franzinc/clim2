@@ -1,4 +1,4 @@
-%%  $fiHeader: clim.todo,v 1.8 92/03/06 09:08:36 cer Exp Locker: cer $
+%%  $fiHeader: clim.todo,v 1.9 92/03/06 14:17:40 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -75,7 +75,6 @@
   * [swm] Must we really convert all of the code to lowercase?  Do it if we must.
 
 % Bugs to fix
-  * [swm] No output-recording for DRAW-TEXT*.  Hence the compass menu is broken.
   * [swm] Missing graphics operators, to be taken from CLIM 1.0.
     - DRAW-ARROW[*]
     - DRAW-OVAL[*]
@@ -193,6 +192,8 @@
   * [cer] On-demand scrollbars.
   * [cer] Complete layout protocol
   * [cer] Complete set of layout gadgets.
+  * [cer] writers for gadgets
+  * [cer] notify-user
 	
 % Cleanups
   * [cer] Sort out the whole server path mechanism and make sure we can

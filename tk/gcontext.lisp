@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.6 92/02/26 10:23:11 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.7 92/03/04 16:19:12 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -76,16 +76,15 @@
 		 (setf (slot-value gc ',name) nv)))))
 
 
-(defclass gcontext (handle-class display-object) ())
-
-
-
-
+(defclass gcontext (display-object)
+  ()
+  (:metaclass standard-class-wrapping-foreign-address))
+	  
 
 
 (defmethod initialize-instance :after ((gcontext gcontext)
 				       &key
-				       handle
+				       foreign-address
 				       drawable
 				       function plane-mask foreground background
 				       line-width line-style
@@ -95,16 +94,11 @@
 				       exposures clip-x clip-y
 				       clip-mask clip-ordering 
 				       dash-offset dashes)
-
-  (unless handle
-    (setf (slot-value gcontext 'handle)
-	  (x11::xcreategc (display-handle display)
-		       (object-handle drawable)
-		       0
-		       0)
-	  (slot-value gcontext 'display)
-	  (object-display drawable))
-    (register-address gcontext))
+  (unless foreign-address
+    (setf foreign-address (x11::xcreategc display drawable 0 0)
+	  (foreign-pointer-address gcontext) foreign-address
+	  (slot-value gcontext 'display) (object-display drawable))
+    (register-address gcontext foreign-address))
     
     ;;; Set the ones that are specified
     
@@ -137,8 +131,8 @@
 
 (defun free-gcontext (gc)
   (x11:xfreegc 
-   (display-handle (object-display gc))
-   (object-handle gc))
+   (object-display gc)
+   gc)
   (unregister-address gc))
 
 (defun lispify-function-name (name)
@@ -157,8 +151,8 @@
 	       (,encoder nv ,@args))
 	 
 	 (x11:xchangegc
-	  (display-handle (object-display gc))
-	  (object-handle gc)
+	  (object-display gc)
+	  gc
 	  ,(ash 1 (or (position name *gcontext-bit-mask*)
 		      (error "Cannot find ~S in gcontext components" name)))
 	  gc-values)
@@ -168,7 +162,7 @@
   `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
     (,decoder 
      (,(intern (format nil "~A~A" '_xgc-values- name) :x11)
-      (object-handle gc))
+      gc)
      ,@args)))
 
 (defmacro define-gc-accessor (name (encoder decoder) &rest args)
@@ -186,21 +180,21 @@
 ;(define-gc-accessor background  (encode-pixel decode-pixel))
 
 (defmethod gcontext-foreground ((gc gcontext))
-  (decode-pixel (x11::_xgc-values-foreground (object-handle gc))))
+  (decode-pixel (x11::_xgc-values-foreground gc)))
 
 (defmethod gcontext-background ((gc gcontext))
-  (decode-pixel (x11::_xgc-values-background (object-handle gc))))
+  (decode-pixel (x11::_xgc-values-background gc)))
 
 (defmethod (setf gcontext-foreground) (nv (gc gcontext))
   (x11:xsetforeground 
-   (display-handle (object-display gc))
-   (object-handle gc)
+   (object-display gc)
+   gc
    (encode-pixel nv)))
 
 (defmethod (setf gcontext-background) (nv (gc gcontext))
   (x11:xsetbackground 
-   (display-handle (object-display gc))
-   (object-handle gc)
+   (object-display gc)
+   gc
    (encode-pixel nv)))
 
 
@@ -208,7 +202,7 @@
   
 (defmethod gcontext-fill-style ((gc gcontext))
   (decode-fill-style
-   (x11::_xgc-values-fill-style (object-handle gc))))
+   (x11::_xgc-values-fill-style gc)))
 
 (defun decode-fill-style (x)
   (nth x '(:solid :tiled :stippled :opaque-stippled)))
@@ -219,8 +213,8 @@
 
 (defmethod (setf gcontext-fill-style) (nv (gc gcontext))
   (x11:xsetfillstyle
-   (display-handle (object-display gc))
-   (object-handle gc)
+   (object-display gc)
+   gc
    (encode-fill-style nv)))
   
 
@@ -229,7 +223,7 @@
 (define-gc-accessor stipple  (encode-pixmap decode-pixmap))
 
 (defun encode-pixmap (x)
-  (object-handle x))
+  x)
 
 (define-gc-accessor ts-x-origin (encode-int16 decode-int16))
 (define-gc-accessor ts-y-origin (encode-int16  decode-int16))
@@ -282,8 +276,8 @@
 
 (defun set-line-attributes (gc line-width line-style cap-style join-style)
   (x11:xsetlineattributes
-   (display-handle (object-display gc))
-   (object-handle gc)
+   (object-display gc)
+   gc
    line-width
    (encode-line-style line-style)
    (encode-cap-style cap-style)
@@ -291,8 +285,8 @@
 
 (defmethod (setf gcontext-clip-mask) ((nv (eql :none)) (gc gcontext))
   (x11:xsetclipmask
-   (display-handle (object-display gc))
-   (object-handle gc)
+   (object-display gc)
+   gc
    x11::none))
 
 (defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
@@ -304,8 +298,8 @@
 	   (x11:xrectangle-width r) width
 	   (x11:xrectangle-height r) height)
      (x11:xsetcliprectangles
-      (display-handle (object-display gc))
-      (object-handle gc)
+      (object-display gc)
+      gc
       0					; clip-x-origin
       0					; clip-y-origin
       r
@@ -314,8 +308,8 @@
 
 (defmethod (setf gcontext-clip-mask) ((nv (eql :nowhere)) (gc gcontext))
   (x11:xsetcliprectangles
-   (display-handle (object-display gc))
-   (object-handle gc)
+   (object-display gc)
+   gc
    0					; clip-x-origin
    0					; clip-y-origin
    0
@@ -333,8 +327,8 @@
       (n v)
       (encode-dashes nv)
     (x11:xsetdashes
-     (display-handle (object-display gc))
-     (object-handle gc)
+     (object-display gc)
+     gc
      0
      v
      n)
@@ -362,7 +356,7 @@
 (defun encode-int16 (x) x)
 
 
-(defun encode-font (x) (x11:xfontstruct-fid (object-handle x)))
+(defun encode-font (x) (x11:xfontstruct-fid x))
 
 
 
@@ -419,17 +413,17 @@
 					      :test #'string=))
 			       r)))))
     `(let ((,tgc (allocate-temp-gc gc)))
-       (x11:xcopygc (display-handle (object-display gc))
-		  (object-handle gc)
+       (x11:xcopygc (object-display gc)
+		  gc
 		  ,bits
-		  (object-handle ,tgc))
+		  ,tgc)
        (unwind-protect
 	   (progn ,@(nreverse setfs)
 		  ,@body)
-	 (x11:xcopygc (display-handle (object-display gc))
-		    (object-handle ,tgc)
+	 (x11:xcopygc (object-display gc)
+		    ,tgc
 		    ,bits
-		    (object-handle gc))
+		    gc)
 	 (deallocate-temp-gc ,tgc)))))
 
 (defun allocate-temp-gc (gc)

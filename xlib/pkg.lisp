@@ -18,11 +18,17 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.4 92/02/16 20:55:25 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.5 92/02/24 13:06:36 cer Exp Locker: cer $
 
 
 (defpackage :x11
+  ;; These next two import symbols when loading from clim.fasl.
+  (:export #:int #:short)
+  (:export #:screen #:depth #:visual #:colormap
+	   #:pixmap #:window #:display)
+  #+ignore
   (:size 2053)
+  #+ignore
   (:export #:|XK-Down| #:|XK-E| #:|XK-ETH| #:|XK-Eacute| #:|XK-Ecircumflex|
 	   #:|XK-Ediaeresis| #:|XK-Egrave| #:|XK-Eisu-Shift| #:|XK-Eisu-toggle|
 	   #:|XK-End| #:|XK-Escape| #:|XK-Eth| #:|XK-Execute| #:|XK-F|

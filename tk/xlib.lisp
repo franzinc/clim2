@@ -20,53 +20,56 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.9 92/02/26 10:23:13 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.10 92/03/04 16:19:16 cer Exp Locker: cer $
 
 (in-package :tk)
 
 ;;; Pathetic clos interface to Xlib
 
-(defclass screen (handle-class display-object) ())
+(defclass screen (display-object) ()
+	  (:metaclass standard-class-wrapping-foreign-address))
 
 #+obsolete
 (defun screen-gcontext (screen)
-  (let ((gc (x-screen-gc (object-handle screen))))
+  (let ((gc (x-screen-gc screen)))
     (or (find-object-from-address gc nil)
 	(register-address
 	 (make-instance 'gcontext
 			:display (object-display screen)
-			:handle gc)))))
+			:foreign-address gc)))))
 
 
 
 
-(defclass drawable (display-object handle-class)
-	  ())
+(defclass drawable (display-object)
+  ()
+  (:metaclass standard-class-wrapping-foreign-address))
 	  
 (defclass window (drawable)
-	  ())
+  ()
+  (:metaclass standard-class-wrapping-foreign-address))
 
 ;; Ugh.  This should be part of a general purpose mechanism
 (defmethod drawable-depth ((window window))
   (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (display-handle (object-display window))
-			      (object-handle window)
+    (x11:xgetwindowattributes (object-display window)
+			      window
 			      attrs)
     (x11:xwindowattributes-depth attrs)))
     
 (defmethod (setf drawable-save-under) (nv (window window))
   (let ((attrs (x11:make-xsetwindowattributes)))
     (setf (x11:xsetwindowattributes-save-under attrs) (if nv 1 0))
-    (x11:xchangewindowattributes (display-handle (object-display window))
-				 (object-handle window)
+    (x11:xchangewindowattributes (object-display window)
+				 window
 				 x11::cwsaveunder ;; 
 				 attrs)
     nv))
 
 (defmethod drawable-save-under ((window window))
   (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (display-handle (object-display window))
-			      (object-handle window)
+    (x11:xgetwindowattributes (object-display window)
+			      window
 			      attrs)
     (not (zerop (x11:xwindowattributes-save-under attrs)))))
 
@@ -74,8 +77,8 @@
 (defmethod (setf drawable-backing-store) (nv (window window))
   (let ((attrs (x11:make-xsetwindowattributes)))
     (setf (x11:xsetwindowattributes-backing-store attrs) (if nv 1 0))
-    (x11:xchangewindowattributes (display-handle (object-display window))
-				 (object-handle window)
+    (x11:xchangewindowattributes (object-display window)
+				 window
 				 x11::cwbackingstore ;; 
 				 attrs)
     nv))
@@ -91,26 +94,24 @@
 (defclass pixmap (drawable)
   ((width :initarg :width :reader pixmap-width)
    (height :initarg :height :reader pixmap-height)
-   (depth :initarg :depth :reader drawable-depth)))
+   (depth :initarg :depth :reader drawable-depth))
+  (:metaclass standard-class-wrapping-foreign-address))
 
-(defmethod initialize-instance :after ((p pixmap) &key handle 
-						       width 
-						       height
-						       depth 
-						       drawable)
+(defmethod initialize-instance :after
+	   ((p pixmap) &key foreign-address width height depth drawable)
   (with-slots (display) p
     (setf display (object-display drawable))
-    (unless handle
-      (setf (slot-value p 'handle)
+    (unless foreign-address
+      (setf (foreign-pointer-address p)
 	(x11:xcreatepixmap
-	 (display-handle display)
-	 (object-handle drawable)
+	 display
+	 drawable
 	 width
 	 height
 	 depth))
       (register-xid p))))
 
-(defun-c-callable x-error-handler (display (x :unsigned-long))
+(defun-c-callable x-error-handler ((display :unsigned-long) (x :unsigned-long))
   (error "x-error:~S" 
 	 (get-error-text (x11:xerrorevent-error-code x) display)))
 
@@ -123,47 +124,52 @@
   (let ((s (string-to-char* (make-string 1000))))
     (x11::xgeterrortext display-handle code s 1000)
     (char*-to-string s)))
-      
-(x11:xseterrorhandler (register-function 'x-error-handler))
-(x11:xsetioerrorhandler (register-function 'x-io-error-handler))
 
+(defun setup-error-handlers ()
+  (x11:xseterrorhandler (register-function 'x-error-handler))
+  (x11:xsetioerrorhandler (register-function 'x-io-error-handler)))
+
+(eval-when (load)
+  (setup-error-handlers))
 
 (defmethod display-root-window (display)
   (intern-object-xid
-   (x11:xdefaultrootwindow (display-handle display))
+   (x11:xdefaultrootwindow display)
    'window
    :display display))
 
 (defmethod display-screen-number (display)
-  (x11:xdefaultscreen (display-handle display)))
+  (x11:xdefaultscreen display))
 
 
-(defclass colormap (handle-class display-object) ())
+(defclass colormap (display-object) ()
+  (:metaclass standard-class-wrapping-foreign-address))
 
 (defun default-colormap (display &optional (screen 0))
   (intern-object-xid
-   (x11:xdefaultcolormap (display-handle display)
+   (x11:xdefaultcolormap display
 			 screen)
    'colormap
    :display 
    display))
 
-(defclass color (handle-class) ())
+(defclass color () ()
+  (:metaclass standard-class-wrapping-foreign-address))
 
-(defmethod initialize-instance :after ((x color) &key handle red green
+(defmethod initialize-instance :after ((x color) &key foreign-address red green
 				       blue)
-  (unless handle
-    (setq handle (x11::make-xcolor))
-    (setf (x11::xcolor-red handle) red
-	  (x11:xcolor-green handle) green
-	  (x11:xcolor-blue handle) blue
-	  (x11:xcolor-flags handle) 255)
-    (setf (slot-value x 'handle) handle)))
+  (unless foreign-address
+    (setq foreign-address (x11::make-xcolor))
+    (setf (x11::xcolor-red foreign-address) red
+	  (x11:xcolor-green foreign-address) green
+	  (x11:xcolor-blue foreign-address) blue
+	  (x11:xcolor-flags foreign-address) 255)
+    (setf (foreign-pointer-address x) foreign-address)))
 
 (defmethod print-object ((o color) s)
   (print-unreadable-object 
    (o s :type t :identity t)
-   (let ((cm (object-handle o)))
+   (let ((cm o))
      (format s "~D,~D,~D"
 	     (x11:xcolor-red cm)
 	     (x11:xcolor-green  cm)
@@ -173,36 +179,36 @@
   (let ((exact (x11::make-xcolor))
 	(closest (x11::make-xcolor)))
     (if (zerop (x11:xlookupcolor
-		(display-handle (object-display colormap))
-		(object-handle colormap)
+		(object-display colormap)
+		colormap
 		(string-to-char* color-name)
 		exact
 		closest))
 	(error "Could not find ~S in colormap ~S" color-name colormap)
-      (values (make-instance 'color :handle exact)
-	      (make-instance 'color :handle closest)))))
+      (values (make-instance 'color :foreign-address exact)
+	      (make-instance 'color :foreign-address closest)))))
 
 (defun allocate-color (colormap x)
   (let ((y (x11::make-xcolor))
-	(x (object-handle x)))
+	(x x))
     (setf (x11:xcolor-red y) (x11:xcolor-red x)
 	  (x11:xcolor-green y) (x11:xcolor-green x)
 	  (x11:xcolor-blue y) (x11:xcolor-blue x))
     (let ((z (x11:xalloccolor
-	      (display-handle (object-display colormap))
-	      (object-handle colormap)
+	      (object-display colormap)
+	      colormap
 	      y)))
       (when (zerop z)
 	(error "Could not allocate color: ~S" x))
       (values (x11:xcolor-pixel y)
-	      (make-instance 'color :handle y)))))
+	      (make-instance 'color :foreign-address y)))))
 
 
 
 (defun default-screen (display)
   (intern-object-address
    (x11:xdefaultscreenofdisplay
-    (display-handle display))
+    display)
    'screen
    :display display))
 
@@ -217,8 +223,8 @@
        (mask 0))
     (let ((display (object-display window)))
       (if (x11:xquerypointer
-	   (display-handle display)
-	   (object-handle window)
+	   display
+	   window
 	   root
 	   child
 	   root-x
@@ -229,18 +235,18 @@
 	  (values
 	   t
 	   (intern-object-xid
-	    (aref root 0) 
+	    (sys:memref-int (foreign-pointer-address root) 0 0 :signed-long)
 	    'window
 	    :display display)
 	   (intern-object-xid
-	    (aref child 0) 
+	    (sys:memref-int (foreign-pointer-address child) 0 0 :signed-long)
 	    'window
 	    :display display)
-	   (aref root-x 0)
-	   (aref root-y 0)
-	   (aref x 0)
-	   (aref y 0)
-	   (aref mask 0))))))
+	   (sys:memref-int (foreign-pointer-address root-x) 0 0 :signed-long)
+	   (sys:memref-int (foreign-pointer-address root-y) 0 0 :signed-long)
+	   (sys:memref-int (foreign-pointer-address x) 0 0 :signed-long)
+	   (sys:memref-int (foreign-pointer-address y) 0 0 :signed-long)
+	   (sys:memref-int (foreign-pointer-address mask) 0 0 :signed-long))))))
 	
 
 
@@ -345,14 +351,15 @@
 	#+this-is-a-goodway-to-die compose-status
 	0)
        (char*-to-string buffer)
-       (aref keysym 0)))))
+       (sys:memref-int (foreign-pointer-address keysym) 0 0 :signed-long)))))
 
-(defclass image (handle-class)
+(defclass image ()
   ((width :reader image-width :initarg :width)
    (height :reader image-height :initarg :height)
    (data :reader image-data :initarg :data)
    (depth :reader image-depth :initarg :depth)
-   (realized-displays :initform nil :accessor realized-displays)))
+   (realized-displays :initform nil :accessor realized-displays))
+  (:metaclass standard-class-wrapping-foreign-address))
   
 
 (defmethod realize-image (image display)
@@ -379,10 +386,10 @@
 	 (setq bytes-per-line (ceiling (/ width bitmap-pad)))
 	 (setq v (excl::malloc (* bytes-per-line height)))))
       (let* ((visual (x11:screen-root-visual
-		      (display-default-screen display)))
+		      (x11:xdefaultscreenofdisplay display)))
 	     (offset 0)
 	     (x (x11:xcreateimage
-		 (display-handle display)
+		 display
 		 visual
 		 depth
 		 format
@@ -397,7 +404,7 @@
 	   (dotimes (h height)
 	     (dotimes (w width)
 	       (x11:xputpixel x w h (aref data h w))))))
-	(setf (slot-value image 'handle) x)))
+	(setf (foreign-pointer-address image) x)))
     (pushnew display (realized-displays image))))
 
 (defmethod put-image (pixmap gc image
@@ -405,10 +412,10 @@
   (let ((display (object-display pixmap)))
     (realize-image image display)
     (x11:xputimage
-     (display-handle display)
-     (object-handle pixmap)
-     (object-handle gc)
-     (object-handle image)
+     display
+     pixmap
+     gc
+     image
      src-x
      src-y
      dest-x

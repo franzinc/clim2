@@ -18,16 +18,19 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.5 92/02/16 20:55:23 cer Exp $
+;; $fiHeader: ffi.lisp,v 1.6 92/02/24 13:06:33 cer Exp Locker: cer $
 
 (in-package :x11)
 
 ;; Note -- All exports are now done in pkg.lisp, for space/performance
-;;         reasons.  jdi
+;;         reasons.  jdi  (temporarily not true).
 
 (defmacro def-exported-constant (name value)
   ;; define the constant and export it from :x11
-  `(defconstant ,name ,value))
+  `(progn
+     (eval-when (eval load compile)
+       (export ',name))
+     (defconstant ,name ,value)))
 
 (eval-when (compile load eval)
   (defun transmogrify-ff-type (type)
@@ -42,35 +45,50 @@
 
 
 (defmacro def-exported-foreign-synonym-type (new-name old-name)
-  `(ff::def-c-typedef ,new-name ,@(transmogrify-ff-type old-name)))
+  `(progn
+     (eval-when (eval load compile)
+       (export ',new-name))
+     (ff::def-c-typedef ,new-name ,@(transmogrify-ff-type old-name))))
 
 (defun fintern (control &rest args)
   (intern (apply #'format nil control args)))
 
 (defmacro def-exported-foreign-struct (name &rest slots)
-  (flet ((foo-slot (slot)
-	   (destructuring-bind
-	       (name &key type) slot
-	     `(,name ,@(trans-slot-type type)))))
-    (if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
-	`(ff::def-c-type (,name :in-foreign-space :macro) :struct
-			 ,@(mapcar #'foo-slot slots))
-      (destructuring-bind
-	  ((first-slot-name . first-options) . other-slots) slots
-	(if (and (null (member :overlays first-options))
-		 (every #'(lambda (slot)
-			    t
-			    #+ignore
-			    (eq (getf (cdr slot) :overlays)
-				first-slot-name))
-			other-slots))
-	    `(ff::def-c-type (,name :in-foreign-space :macro) :union
-			     ,@(mapcar #'(lambda (slot)
-					   (setq slot (copy-list slot))
-					   (remf (cdr slot) :overlays)
-					   (foo-slot slot))
-				       slots))
-	  (error ":overlays used in a way we cannot handle"))))))
+  `(progn
+     (eval-when (eval load compile)
+       (export '(,name
+		 ,(fintern "~A~A" 'make- name)
+		 ,@(mapcar #'(lambda (x)
+			       (fintern "~A-~A" name (car x)))
+		    slots))))
+     ,(flet ((foo-slot (slot)
+	       (destructuring-bind
+		   (name &key type) slot
+		 `(,name ,@(trans-slot-type type)))))
+	(if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
+	    `(ff::def-c-type (,name :in-foreign-space :no-constructor :no-defuns)
+	       ,@(mapcar #'foo-slot slots))
+	  (destructuring-bind
+	      ((first-slot-name . first-options) . other-slots) slots
+	    (if (and (null (member :overlays first-options))
+		     (every #'(lambda (slot)
+				t
+				#+ignore
+				(eq (getf (cdr slot) :overlays)
+				    first-slot-name))
+			    other-slots))
+		`(ff::def-c-type (,name :in-foreign-space :no-constructor :no-defuns) :union
+				 ,@(mapcar #'(lambda (slot)
+					       (setq slot (copy-list slot))
+					       (remf (cdr slot) :overlays)
+					       (foo-slot slot))
+					   slots))
+	      (error ":overlays used in a way we cannot handle")))))
+     (defmacro ,(fintern "~A~A" 'make- name) ()
+       #+ignore
+       (excl::malloc ,(ff::cstruct-property-length (ff::cstruct-prop name)))
+       #-ignore
+       (ff::make-cstruct ',name))))
 	  
 
 (defun trans-slot-type (type)
@@ -80,9 +98,39 @@
       (:pointer `(* ,(second type)))
       (:array
        (destructuring-bind
-	(ignore type indicies) type
-	`(,@indicies ,type))))))
+	   (ignore type indicies) type
+	 (declare (ignore ignore))
+	 `(,@indicies ,type))))))
 
+(defun trans-arg-type (type)
+  (excl:if* (consp type)
+     then (ecase (car type)
+	    (:pointer 'ff:foreign-address)
+	    (:array 'ff:foreign-address))
+     else (case type
+	    (void (error "void not allowed here"))
+	    ((int unsigned-int :unsigned-32bit :signed-32bit) 'integer)
+	    ((fixnum-int fixnum-unsigned-int) 'fixnum)
+	    (fixnum-drawable 'ff:foreign-address)
+	    (t
+	     (if (get type 'ff::cstruct)
+		 'ff:foreign-address
+	       't)))))
+
+(defun trans-return-type (type)
+  (excl:if* (consp type)
+     then (ecase (car type)
+	    (:pointer :unsigned-integer)
+	    (:array :unsigned-integer))
+     else (case type
+	    (void :void)
+	    ((integer int) :integer)
+	    ((fixnum-int :fixnum) :fixnum)
+	    (fixnum-int :fixnum)
+	    (:unsigned-32bit :integer)
+	    (:signed-32bit :integer)
+	    (t :unsigned-integer))))
+  
 #+ignore
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
   `(foreign-functions:defforeign 
@@ -98,15 +146,21 @@
 ;;; Delay version
 
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
-  `(eval-when (compile eval)
-     (delayed-defforeign
-      ',name 
-      :arguments ',(mapcar #'(lambda (x) (declare (ignore x)) t) args)
-      #|      :call-direct t |#
-      #|      :callback nil  |#
-      :arg-checking nil
-      :return-type :integer
-      :entry-point ,(second (assoc :name options)))))
+  `(progn
+     (eval-when (eval load compile)
+       (export ',name))
+     (eval-when (compile eval)
+       ,(let ((c-name (second (assoc :name options)))
+	      (return-type (or (second (assoc :return-type options))
+			       'integer)))
+	  `(delayed-defforeign
+	    ',name
+	    :arguments ',(mapcar #'trans-arg-type (mapcar #'second args))
+	    :call-direct t
+	    :callback t 
+	    :arg-checking nil
+	    :return-type ,(trans-return-type return-type)
+	    :entry-point ,c-name)))))
 
 (defparameter *defforeigned-functions* nil
   "A list of name and defforeign arguments")
@@ -130,6 +184,7 @@
 (foreign-functions:def-c-typedef :pointer * :char)
 (foreign-functions:def-c-typedef :signed-8bit :char)
 
+;; Create non-keyword versions.
 (def-exported-foreign-synonym-type char :char)
 (def-exported-foreign-synonym-type unsigned-char :unsigned-char)
 (def-exported-foreign-synonym-type short  :short)

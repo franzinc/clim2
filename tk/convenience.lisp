@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.3 92/01/31 14:54:18 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.4 92/02/24 13:02:53 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -41,9 +41,9 @@
 ;	    (make-instance
 ;	     ',class
 ;	     :display display
-;	     :handle
+;	     :foreign-address
 ;	     (,c-function-name
-;	      (object-handle parent)
+;	      parent
 ;	      (string-to-char* name)
 ;	      arglist
 ;	      (truncate (length arglist) 2)))))))))
@@ -87,7 +87,7 @@
 			  args))
 		(o 
 		 (,c-function-name
-		  (object-handle parent)
+		  parent
 		  (string-to-char* name)
 		  arglist
 		  (truncate (length arglist) 2))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.5 92/02/24 13:04:29 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.6 92/03/04 16:19:32 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -146,13 +146,32 @@
 			(/ value (- 100 size)))))
 	    :y (bounding-rectangle-min-y viewport)))))))
 
-(defun update-region (stream width height &key no-repaint)
+(defun update-region (stream nminx nminy nmaxy nmaxx &key no-repaint)
+  ;;-- I suspect that we should pass in mins and maxs since this does
+  ;;-- assume that the window origin is 0,0 and I think that this
+  ;;-- causes the compass menu test to fail since there are graphics at
+  ;;-- -ve coordinates.
+  #-ignore
+  (with-bounding-rectangle* 
+      (l tt r b) stream
+      (when (or (< nminx l)
+		(< nminy tt)
+		(> nmaxx r)
+		(> nmaxy b))
+	(setf (sheet-region stream)
+	  (make-bounding-rectangle  (min nminx (bounding-rectangle-min-x stream))
+				    (min nminy (bounding-rectangle-min-y stream))
+				    (max nmaxx (bounding-rectangle-max-x stream))
+				    (max nmaxy (bounding-rectangle-max-y stream))))))
+  #+ignore
+  (let ((width (- nmaxx nminx))
+	(height (- nmaxy nminy)))
   (when (or (> width (bounding-rectangle-width stream))
 	    (> height (bounding-rectangle-height stream)))
     (setf (sheet-region stream)
       (make-bounding-rectangle  0 0 
 				(max (bounding-rectangle-width stream) width)
-				(max (bounding-rectangle-height stream) height)))))
+				(max (bounding-rectangle-height stream) height))))))
 
 (defun scroll-extent (stream &key (x 0) (y 0))
   (let ((vp (pane-viewport stream)))

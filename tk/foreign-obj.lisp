@@ -20,24 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.5 92/01/31 14:54:32 cer Exp $
+;; $fiHeader: foreign-obj.lisp,v 1.6 92/02/24 13:03:00 cer Exp Locker: cer $
 
 (in-package :tk)
-
-(defclass handle-class ()
-	  ((handle :initarg :handle :reader object-handle)))
-
-(defmethod invalidate-object-handle ((object handle-class) handle)
-  (declare (ignore handle))
-  (slot-makunbound object 'handle))
-
 
 ;;; There should be multiple mappings:
 ;;; Xid -> object
 ;;; Address -> object
 
-(defvar *address->object-mapping* (make-hash-table))
-(defvar *xid->object-mapping* (make-hash-table))
+(defvar *address->object-mapping* (make-hash-table :test 'equal))
+(defvar *xid->object-mapping* (make-hash-table :test 'equal))
 
 (defun find-object-from-address (handle &optional (errorp t))
   (find-object-from-handle handle *address->object-mapping* errorp))
@@ -50,15 +42,15 @@
 	(errorp 
 	 (error "Cannot find object from handle: ~S" handle))))
 
-(defun register-address (object &optional (handle (object-handle object)))
+(defun register-address (object &optional (handle (foreign-pointer-address object)))
   (setf (gethash handle *address->object-mapping*) object)
   object)
 
-(defun unregister-address (object &optional (handle (object-handle object)))
+(defun unregister-address (object &optional (handle (foreign-pointer-address object)))
   (remhash handle *address->object-mapping*)
-  (invalidate-object-handle object handle))
+  (setf (ff:foreign-pointer-address object) 0))
 
-(defun register-xid (object &optional (handle (object-handle object)))
+(defun register-xid (object &optional (handle (foreign-pointer-address object)))
   (setf (gethash handle *xid->object-mapping*) object)
   object)
 
@@ -84,7 +76,7 @@
 	   (setf (gethash handle table)
 	     (apply #'make-instance 
 		    class 
-		    :handle handle
+		    :foreign-address handle
 		    initargs)))
 	  ((typep x class) x)
 	  (t
@@ -94,5 +86,5 @@
 	   (setf (gethash handle table)
 	     (apply #'make-instance 
 		    class 
-		    :handle handle
+		    :foreign-address handle
 		    initargs))))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.3 92/01/31 14:55:18 cer Exp $
+;; $fiHeader: xm-protocols.lisp,v 1.4 92/02/24 13:04:05 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -67,12 +67,12 @@
 (defun add-protocol-callback (shell property protocol function &rest args)
   (let ((type :protocol-callback))
     (xm_add_protocol_callback
-     (object-handle shell)
+     shell
      (if (integerp property) property (xm-intern-atom shell property))
      (if (integerp protocol) protocol (xm-intern-atom shell protocol))
      *protocol-callback-handler-address*
      (let ((x (make-proto-callback-info)))
-       (setf (proto-callback-info-handle x) (object-handle shell)
+       (setf (proto-callback-info-handle x) shell
 	     (proto-callback-info-data x)
 	     (caar (push
 		    (list (new-callback-id) (cons function args) type)
@@ -93,7 +93,7 @@
 
 (defun xm-intern-atom (shell name &optional only-if-exists)
   (xm_intern_atom
-   (display-handle (object-display shell))
+   (object-display shell)
    (string-to-char* (string name))
    (if only-if-exists 1 0)))
 

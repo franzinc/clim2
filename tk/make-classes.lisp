@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.8 92/02/24 13:03:28 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.9 92/03/06 14:17:26 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -69,21 +69,24 @@
 
 
 (defclass display-object ()
-	  ((display :initarg :display :reader object-display)))
+  ((display :initarg :display
+	    :reader object-display
+	    :fixed-index 0)))
 
-(defclass xt-root-class (handle-class display-object)
-	  ((display :initarg :display :reader widget-display)
-	   (events :initform nil :accessor widget-event-handler-data)
-	   (callbacks :initform nil :accessor widget-callback-data)
-	   (window-cache :initform nil))
+(defclass xt-root-class (display-object)
+  ((events :initform nil :accessor widget-event-handler-data)
+   (callbacks :initform nil :accessor widget-callback-data)
+   (window-cache :initform nil))
   (:metaclass xt-class))
+
+(defmethod widget-display ((object xt-root-class))
+  (object-display object))
 
 (defclass rect (xt-root-class) ())
 (defclass un-named-obj (rect) ())
 
 (defclass basic-resource ()
-  (
-   (name :initarg :name :reader resource-name)
+  ((name :initarg :name :reader resource-name)
    (original-name :initarg :original-name :reader resource-original-name)
    (type :initarg :type :reader resource-type)
    (class :initarg :class :reader resource-class)))
@@ -107,8 +110,6 @@
 	  ())
 
 
-(defvar *handle-class-mapping* (make-hash-table :test #'equalp))
-  
 (defun make-classes (classes)
   (let ((direct-resources nil)
 	(all-resources nil))
@@ -158,7 +159,7 @@
 		:resources all-resources
 		:constraints  all-constraints
 		:entry-point class-ep
-		:handle  (get-foreign-variable-value class-ep))))
+		:foreign-address (get-foreign-variable-value class-ep))))
 	  (register-address class)
 	  (add-accessors-for-toolkit-class class)
 	  (push class r)))))))

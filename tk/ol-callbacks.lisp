@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.3 92/02/05 21:45:03 cer Exp $
+;; $fiHeader: ol-callbacks.lisp,v 1.4 92/02/24 13:03:34 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -65,7 +65,7 @@
 				 (type (eql 'drawing-area)))
   (ecase (find-ol-callback-reason call-data)
     (:expose 
-     (values (object-handle (widget-window widget))
+     (values (widget-window widget)
 	     (ol-expose-callback-struct-event call-data)))
     (:resize (values nil nil))))
 

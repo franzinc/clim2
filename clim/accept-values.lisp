@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.8 92/02/24 13:06:51 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.9 92/03/04 16:21:04 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1078,7 +1078,7 @@
 
 (defmethod value-changed-callback ((gadget radio-box)
 				   (client accept-values-stream) id new-value)
-  (do-avv-command (gadget-id new-value) client id))
+  (do-avv-command new-value client id))
 
 (defun do-avv-command (new-value client id)
   (throw-highlighted-presentation

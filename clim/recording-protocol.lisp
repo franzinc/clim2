@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.2 92/02/28 09:17:54 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.3 92/03/04 16:22:13 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1074,7 +1074,14 @@
 	     (vp (pane-viewport stream)))
 	(when vp
 	  (update-scrollbars vp))
-	(update-region stream (- nmaxx nminx) (- nmaxy nminy))))))
+	(update-region stream 
+		       nminx
+		       nminy
+		       nmaxy
+		       nmaxx)
+	#+ignore
+	(update-region stream (- nmaxx nminx) (- nmaxy nminy))
+	))))
 
 ;;; Defclass of OUTPUT-RECORDING-MIXIN, etc. is in STREAM-CLASS-DEFS
 (defmethod initialize-instance :after ((stream output-recording-mixin) &rest args)
@@ -1097,15 +1104,21 @@
 (defmethod stream-add-output-record ((stream output-recording-mixin) record)
   (with-slots (output-record current-output-record-stack) stream
     (let ((the-output-record (or current-output-record-stack output-record)))
-     (add-output-record record the-output-record)
-     #+Silica
-     (let ((width (bounding-rectangle-width stream))
-	   (height (bounding-rectangle-height stream)))
-       (declare (type coordinate width height))
-       (with-bounding-rectangle* (rl rt rr rb) the-output-record
-	 (when (or (< rl 0) (< width rr)
-		   (< rt 0) (< height rb))
-	   (update-region stream (- rr rl) (- rb rt))))))))
+      (add-output-record record the-output-record)
+      ;;--- I suspect that this is totally unncessary since
+      ;;--- adding the record will update the history which will
+      ;;-- do this
+      #+Silica-ignore
+      (let ((width (bounding-rectangle-width stream))
+	    (height (bounding-rectangle-height stream)))
+	(declare (type coordinate width height))
+	(with-bounding-rectangle* (rl rt rr rb) the-output-record
+				  (when (or (< rl 0) (< width rr)
+					    (< rt 0) (< height rb))
+				    #+ignore
+				    (update-region stream rl rt rr rb)
+				    #+ignore
+				    (update-region stream (- rr rl) (- rb rt))))))))
 
 (defmethod stream-replay ((stream output-recording-mixin) &optional region)
   (when (stream-drawing-p stream)

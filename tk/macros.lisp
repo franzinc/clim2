@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.6 92/02/05 21:45:02 cer Exp $
+;; $fiHeader: macros.lisp,v 1.7 92/02/24 13:03:25 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -31,18 +31,14 @@
   (if (null bindings)
       `(progn ,@body)
     (destructuring-bind
-	((var value) &rest more-bindings) bindings
+	((var value &optional (type :signed-long)) &rest more-bindings) bindings
       (let ((val (gensym)))
 	`(let ((,val ,value)
 	       (,var (or (and *temp-with-ref-par-p* (pop *temp-with-ref-par*))
-			 (make-array 1 :element-type '(unsigned-byte
-						       32)))))
-	   (declare (type (simple-array (unsigned-byte 32) (1)) ,var))
-	   (setf (aref ,var 0) ,val)
+			 (make-foreign-pointer :size 4))))
+	   (setf (sys:memref-int (foreign-pointer-address ,var) 0 0 ,type) ,val)
 	   (multiple-value-prog1
 	       (with-ref-par ,more-bindings ,@body)
-	     (unless (typep ,var '(simple-array (unsigned-byte 32) (1)))
-	       (error "blueshithappebs"))
 	     (when *temp-with-ref-par-p*
 	       (push ,var *temp-with-ref-par*))))))))
 

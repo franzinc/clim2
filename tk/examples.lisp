@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: examples.lisp,v 1.5 92/01/31 14:54:26 cer Exp $
+;; $fiHeader: examples.lisp,v 1.6 92/02/24 13:02:57 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -416,7 +416,7 @@
 
 #+xlib
 xlib:(defun try-drawing (display window string)
-  (let* ((screen (display-default-screen display))
+  (let* ((screen (x11:xdefaultscreenofdisplay display))
 	 (black (screen-black-pixel screen))
 	 (white (screen-white-pixel screen))
 	 (font (open-font display "fixed"))

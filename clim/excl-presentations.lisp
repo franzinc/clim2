@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.6 92/03/04 16:21:33 cer Exp Locker: cer $
+;; $fiHeader: excl-presentations.lisp,v 1.7 92/03/06 14:17:45 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -46,7 +46,9 @@
 	 ;;--- but in the lisp thats all we generate to there
 	 ;;--- should be a problem
 	 t)
-    (setf (getf args :type) (presentation-type-of object)))
+    (setf (getf args :type) 
+      #-ignore 'expression
+      #+ignore (presentation-type-of object)))
   (apply #'call-next-method rec args))
 
 (defmethod excl::stream-presentation-record-type ((stream output-recording-mixin))

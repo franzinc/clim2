@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
@@ -19,9 +19,9 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.13 92/02/24 13:09:12 cer Exp $
+;; $fiHeader: test.lisp,v 1.14 92/03/04 16:22:41 cer Exp Locker: cer $
 
-(in-package :clim-internals)
+(in-package :clim-user)
 
 (define-application-frame test-frame () ()
   (:pane 
@@ -175,7 +175,7 @@
 	(c :normal)
 	(d 10))
     (accepting-values (stream :own-window own-window)
-      (letf-globally (((stream-default-view stream)
+      (clim-internals::letf-globally (((stream-default-view stream)
 		       (if textual-view 
 			   +textual-dialog-view+
 			   (stream-default-view stream))))

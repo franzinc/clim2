@@ -1,4 +1,4 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-internals; Base: 10; Lowercase: Yes -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.7 91/08/05 14:29:10 cer Exp $
+;; $fiHeader: standard-tree.lisp,v 1.1 91/11/25 10:00:54 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -222,23 +222,27 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 ;; Top level stuff
 
-(defclass stream-output-history-mixin (standard-tree-output-record)
-	  ((stream :reader stream-output-history-mixin-stream)))
-
-(defmethod bounding-rectangle-set-edges ((r stream-output-history-mixin) 
-					 nminx nminy nmaxx nmaxy)
-  (multiple-value-bind
-      (minx miny maxx maxy)
-      (bounding-rectangle* r)
-    (call-next-method)
-    (unless (and (= minx nminx)
-		 (= miny nminy)
-		 (= maxx nmaxx)
-		 (= maxy nmaxy))
-      ;; This should update the scrollbars etc 
-      (let* ((stream (stream-output-history-mixin-stream r))
-	     (vp (pane-viewport-sheet stream)))
-	(when vp
-	  (update-scrollbars vp))
-	(update-region stream (- nmaxx nminx) (- nmaxy nminy))))))
+;(defclass stream-output-history-mixin (standard-tree-output-record)
+;	  ((stream :reader stream-output-history-mixin-stream)))
+;
+;(defmethod bounding-rectangle-set-edges ((r stream-output-history-mixin) 
+;					 nminx nminy nmaxx nmaxy)
+;  (multiple-value-bind
+;      (minx miny maxx maxy)
+;      (bounding-rectangle* r)
+;    (call-next-method)
+;    (unless (and (= minx nminx)
+;		 (= miny nminy)
+;		 (= maxx nmaxx)
+;		 (= maxy nmaxy))
+;      ;; This should update the scrollbars etc 
+;      (let* ((stream (stream-output-history-mixin-stream r))
+;	     (vp (pane-viewport-sheet stream)))
+;	(when vp
+;	  (update-scrollbars vp))
+;	(update-region stream 
+;		       nminx
+;		       nminy
+;		       nmaxy
+;		       nmaxx)))))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.10 92/02/08 14:51:34 cer Exp $
+;; $fiHeader: widget.lisp,v 1.11 92/02/24 13:03:51 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -36,11 +36,11 @@
     (register-address
      (apply #'make-instance
 	    class
-	    :handle
+	    :foreign-address
 	    (app_create_shell application-name
 			      application-class
 			      handle
-			      (display-handle display)
+			      display
 			      arglist
 			      (truncate (length arglist) 2))
 	    :display display
@@ -65,36 +65,36 @@
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class parent args)))
     (funcall fn (string-to-char* name )
-	      (class-handle class)
-	      (object-handle parent)
-	      arglist
-	      (truncate (length arglist) 2))))
+	     handle
+	     parent
+	     arglist
+	     (truncate (length arglist) 2))))
 
 (defforeign 'realize_widget 
   :entry-point "_XtRealizeWidget")
 
 (defun realize-widget (widget)
-  (realize_widget (object-handle widget)))
+  (realize_widget widget))
 
 (defforeign 'manage_child
     :entry-point "_XtManageChild")
 
 (defun manage-child (child)
-  (manage_child (object-handle child)))
+  (manage_child child))
 
 
 (defforeign 'unmanage_child
     :entry-point "_XtUnmanageChild")
 
 (defun unmanage-child (child)
-  (unmanage_child (object-handle child)))
+  (unmanage_child child))
 
 (defforeign 'manage_children
     :entry-point "_XtManageChildren")
 
 (defun manage-children (children)
   (manage_children (map '(simple-array (signed-byte 32))
-		     #'object-handle 
+		     #'ff:foreign-pointer-address 
 		     children)
 		   (length children)))
 		     
@@ -103,7 +103,7 @@
     :entry-point "_XtDestroyWidget")
 
 (defun destroy-widget (widget)
-  (destroy_widget (object-handle widget)))
+  (destroy_widget widget))
 
 (defforeign 'create_popup_shell 
     :entry-point "_XtCreatePopupShell")
@@ -115,11 +115,11 @@
     :entry-point "_XtPopdown")
 
 (defun popup (shell)
-       (_popup (object-handle shell)
+       (_popup shell
 	       0))
 
 (defun popdown (shell)
-       (_popdown (object-handle shell)))
+       (_popdown shell))
 
 (defun create-popup-shell (name widget-class parent &rest args)
   (let* ((class (find-class-maybe widget-class))
@@ -128,7 +128,7 @@
     (create_popup_shell
 	     (string-to-char* name)
 	     handle
-	     (object-handle parent)
+	     parent
 	     arglist
 	     (truncate (length arglist) 2))))
 
@@ -142,7 +142,7 @@
   (with-slots (window-cache) widget
     (or window-cache
 	(setf window-cache
-	  (let ((id (xt_window (object-handle widget))))
+	  (let ((id (xt_window widget)))
 	    (if (zerop id)
 		(and errorp
 		     (error "Invalid window id ~D for ~S" id widget))
@@ -152,7 +152,7 @@
 	       :display (widget-display widget))))))))
 
 (defun make-clx-window (display widget)
-  (let* ((window-id (xt_window (object-handle widget))))
+  (let* ((window-id (xt_window widget)))
     (make-clx-window-from-id display window-id)))
 
 (defun widget-class-of (x)
@@ -165,19 +165,19 @@
 
 (defmethod initialize-instance :after ((w xt-root-class) 
 				       &rest args 
-				       &key handle 
+				       &key foreign-address
 				       parent display
 				       &allow-other-keys)
   (when (or display parent)
     (setf (slot-value w 'display)
       (or display
 	  (object-display parent))))
-  (unless handle
+  (unless foreign-address
     (register-address
      w
      (progn
-       (remf :handle args)
-       (setf (slot-value w 'handle)
+       (remf :foreign-address args)
+       (setf (foreign-pointer-address w)
 	 (apply #'make-widget w args))))))
 
 (defforeign 'xt_parent 
@@ -192,7 +192,7 @@
 	args)))
 
 (defmethod widget-parent (widget)
-  (let ((x (xt_parent (object-handle widget))))
+  (let ((x (xt_parent widget)))
     (and (not (zerop x)) (intern-widget x))))
 
 (defforeign 'xt_query_geometry :entry-point "_XtQueryGeometry")
@@ -221,7 +221,7 @@
 (defmethod widget-best-geometry (widget &key width height)
   (let ((preferred (make-xt-widget-geometry)))
     (xt_query_geometry
-     (object-handle widget)
+     widget
      (if (or width height)
 	 (let ((x (make-xt-widget-geometry)))
 	   (when width
@@ -255,7 +255,7 @@
 (defun tk::configure-widget (widget &key x y width height 
 					 (border-width 
 					  (get-values widget :border-width)))
-  (xt_configure_widget (object-handle widget) x y width height
+  (xt_configure_widget widget x y width height
 		       border-width))
 
 

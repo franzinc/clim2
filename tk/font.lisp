@@ -20,50 +20,50 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.5 92/02/05 21:45:01 cer Exp $
+;; $fiHeader: font.lisp,v 1.6 92/02/24 13:02:59 cer Exp Locker: cer $
 
 (in-package :tk)
 
-(defclass font (handle-class)
-  ((name :initarg :name :reader font-name)))
+(defclass font ()
+  ((name :initarg :name :reader font-name))
+  (:metaclass standard-class-wrapping-foreign-address))
 
 (defmethod print-object ((x font) stream)
   (print-unreadable-object (x stream :type t :identity t)
-    (format stream "~A ~X" (font-name x) (object-handle x))))
-(defmethod initialize-instance :after ((f font) &key handle display name)
-  (unless handle
-    (let ((x (x11:xloadqueryfont
-	      (display-handle display)
-	      (string-to-char* name))))
+    (format stream "~A ~X" (font-name x) x)))
+
+(defmethod initialize-instance :after ((f font) &key foreign-address display name)
+  (unless foreign-address
+    (let ((x (x11:xloadqueryfont display name)))
       (when (zerop x) (error "Cannot find font: ~S" name))
-      (setf (slot-value f 'handle) x))
-    (register-address f)))
+      (setf (foreign-pointer-address f) x)
+      (register-address f x))))
 
 
 (defun query-font (display font-id)
-  (let ((h (x11:xqueryfont (display-handle display) font-id)))
+  (let ((h (x11:xqueryfont display font-id)))
     (when (zerop h)
       (error "Cannot query font: ~D" font-id))
     (make-instance 'font
 		    :display display
-		    :handle h)))
+		    :foreign-address h)))
 
 (def-c-type (xcharstruct-vector :in-foreign-space) 1 x11:xcharstruct)
 
 (defmethod font-width (font)
-  (x11::xfontstruct-max-bounds-width (object-handle font)))
+  (x11::xfontstruct-max-bounds-width font))
  
 (defmethod font-ascent (font)
-  (x11:xfontstruct-ascent (object-handle font)))
+  (x11:xfontstruct-ascent font))
 
 (defmethod font-descent (font)
-  (x11:xfontstruct-descent (object-handle font)))
+  (x11:xfontstruct-descent font))
 
 (defmethod font-all-chars-exist-p (font)
-  (x11:xfontstruct-all-chars-exist (object-handle font)))
+  (x11:xfontstruct-all-chars-exist font))
 
 (defmethod font-range (font)
-  (let* ((h (object-handle font))
+  (let* ((h font)
 	 (min-byte-1 (x11:xfontstruct-min-byte1 h))
 	 (max-byte-1 (x11:xfontstruct-max-byte1 h)))
     (cond ((and (zerop min-byte-1)
@@ -77,18 +77,18 @@
     (if (and (<= min index)
 	     (<= index max))
 	(xcharstruct-vector-width
-	 (x11:xfontstruct-per-char (object-handle font))
+	 (x11:xfontstruct-per-char font)
 	 (- index min)))))
 
 (def-c-type (xfontname-list :in-foreign-space) 1 * :char)
 
 (defun list-font-names (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0))
-    (let* ((names (x11:xlistfonts (display-handle display)
+    (let* ((names (x11:xlistfonts display
 				  pattern
 				  max-fonts
 				  n))
-	   (n (aref n 0))
+	   (n (sys:memref-int (foreign-pointer-address n) 0 0 :signed-long))
 	   (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
@@ -100,19 +100,19 @@
 (defun list-font-names-with-info (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0)
 		 (fonts 0))
-    (let* ((names (x11:xlistfontswithinfo (display-handle display)
+    (let* ((names (x11:xlistfontswithinfo display
 					  pattern
 					  max-fonts
 					  n
 					  fonts))
-	   (n (aref n 0))
+	   (n (sys:memref-int (foreign-pointer-address n) 0 0 :signed-long))
 	   (fonts (aref fonts 0))
 	   (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
 	    (setf (elt seq i) 
 	      (make-instance 'font
-			     :handle (xfontstruct-array fonts i)
+			     :foreign-address (xfontstruct-array fonts i)
 			     :name (char*-to-string (xfontname-list
 						     names i)))))
 	;;--- Dont free the font info

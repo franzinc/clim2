@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.8 92/02/24 13:03:48 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.9 92/03/06 09:08:25 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -40,7 +40,7 @@
 
 (defun set-values (widget &rest values)
   (let ((arglist (make-arglist-for-class (class-of widget) widget values)))
-    (set_values (object-handle widget)
+    (set_values widget
 		arglist
 		(truncate (length arglist) 2))))
 
@@ -65,6 +65,13 @@
 	(push (convert-resource-out parent (resource-type resource) value)
 	      new-args)))))
 
+(defmethod convert-resource-out :around (parent type value)
+  (declare (optimize (speed 3))
+	   (ignore parent type value))
+  (let ((result (call-next-method)))
+    (if (integerp result)
+	result
+      (ff:foreign-pointer-address result))))
 
 (defmethod convert-resource-out (parent type value)
   (cerror "Try again" "cannot convert-out resource for ~S,~S,~S" parent type value)
@@ -100,7 +107,7 @@
 	(push (make-x-arglist) arglist)))
     
     (setq arglist (coerce (nreverse arglist) '(vector (signed-byte 32))))
-    (get_values (object-handle widget)
+    (get_values widget
 		arglist
 		(truncate (length arglist) 2))
     (do ((rs (nreverse rds) (cdr rs))
@@ -125,14 +132,15 @@
   (and (not (zerop value))
        (with-ref-par ((string 0))
 	 (string_get_l_to_r value xm_string_default_char_set string)
-	 (char*-to-string (aref string 0)))))
+	 (char*-to-string (sys:memref-int (foreign-pointer-address string) 0 0
+					  :signed-long)))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'separator-type)) value)
   (ecase value
     (:single-line 1)))
       
 (defmethod convert-resource-out ((parent t) (type (eql 'menu-widget)) value)
-  (object-handle value))
+  value)
 
 (defmethod convert-resource-out ((parent t) (type (eql 'horizontal-dimension)) value)
   (check-type value integer)
@@ -184,10 +192,10 @@
 
 (defun convert-pixmap-out (parent value)
   (etypecase value
-    (pixmap (object-handle value))
+    (pixmap value)
     (string
      (let* ((display (widget-display parent))
-	    (screen (display-default-screen display))
+	    (screen (x11:xdefaultscreenofdisplay display))
 	    (white (screen_white_pixel screen))
 	    (black (screen_black_pixel screen)))
        (get_pixmap screen (string-to-char* value) white black)))))
@@ -205,10 +213,9 @@
 					  :system-modal))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
-  (object-handle 
-   (make-instance 'font
-		  :display (widget-display parent)
-		  :name value)))
+  (make-instance 'font
+    :display (widget-display parent)
+    :name value))
 
 
 (defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
@@ -280,7 +287,7 @@
 (define-enumerated-resource delete-response (:destroy :unmap :do-nothing))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'window)) x)
-  (object-handle x))
+  x)
 
 
 (define-enumerated-resource keyboard-focus-policy (:explicit :pointer))
@@ -309,7 +316,7 @@
   (intern-widget x :display (widget-display widget)))
 
 (defmethod convert-resource-out ((widget t) (type (eql 'widget)) x)
-  (object-handle x))
+  x)
 
 ;; Could not think of anywhere better!
 

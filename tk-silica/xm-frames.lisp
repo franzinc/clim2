@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.9 92/02/24 13:06:17 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.10 92/03/04 16:20:35 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -86,7 +86,7 @@
 ;(defmethod realize-mirror :around (port (motif-main-window))
 ;  (let ((m (call-next-method)))
 ;    (tk::xm_set_main_window_areas
-;     (object-handle m)
+;     m
 ;     .. 
 ;     (and command-window (realize-mirror port command-window))
 ;     ..

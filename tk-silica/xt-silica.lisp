@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.10 92/03/06 09:08:33 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.11 92/03/06 14:17:37 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -34,8 +34,30 @@
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
+
+(defmethod port-copy-gc ((port xt-port))
+  (with-slots (copy-gc display) port
+    (or copy-gc
+	(setf copy-gc
+	  (make-instance 'tk::gcontext
+			 :display display
+			 :foreign-address (x11:screen-default-gc (x11:xdefaultscreenofdisplay (port-display port))))))))
+
+
+(defmacro destructure-x-server-path ((&key display) path &body body)
+  ;;-- Of course the port ends up with an unspecified server-path.
+  ;;-- Perhaps this is OK or perhaps we have to default the components before
+  ;;-- putting it in the port???
+  (let ((ignore (gensym)))
+    `(destructuring-bind
+	 (,ignore &key ((:display ,display)
+			(or (sys::getenv "DISPLAY")
+			    "localhost:0")))
+	 (declare (ignore ,ignore))
+       ,@body)))
+       
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
-  (destructuring-bind (ignore &key display) server-path
+  (destructure-x-server-path (:display display) server-path
     (declare (ignore ignore))
     (multiple-value-bind (context display application-shell)
 	(initialize-motif-toolkit display)
@@ -44,19 +66,11 @@
 	    (slot-value port 'display) display)
       (initialize-xlib-port port display))))
 
-(defmethod port-copy-gc ((port xt-port))
-  (with-slots (copy-gc display) port
-    (or copy-gc
-	(setf copy-gc
-	      (make-instance 'tk::gcontext
-			     :display display
-			     :handle (x11:screen-default-gc
-				       (tk::display-default-screen (port-display port))))))))
-
-(defvar *clx-font-families* '((:fix "*-courier-*")
-			      (:sans-serif "*-helvetica-*")
-			      (:serif "*-charter-*" "*-new century schoolbook-*"
-			       "*-times-*")))
+(defvar *clx-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+			      (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+			      (:serif "*-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
+			       "*-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+			       "*-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -499,7 +513,7 @@
 
 (defmethod port-force-output ((port xt-port))
   ;;--- move to tk
-  (x11::xflush (tk::display-handle (port-display port))))
+  (x11::xflush (port-display port)))
 
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style 

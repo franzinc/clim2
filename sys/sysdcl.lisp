@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.5 92/02/26 10:23:45 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.6 92/03/04 16:22:34 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -410,12 +410,15 @@
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkg")
-  #+++ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
-					       "xlib/last.lisp")))
-  #---ignore ("ffi")
-  ("xlib")
-  ("x11-keysyms")
-  ("last"))
+  #+ignore
+  ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
+				    "xlib/last.lisp")))
+  ("ffi")
+  ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to compile...
+  ("xlib-funs" :load-before-compile ("ffi"))
+  ("x11-keysyms" :load-before-compile ("ffi"))
+  ("last" :load-before-compile ("xlib-funs")))
+
 
 #+(and Silica Allegro)
 (defsys:defsystem xt-clim
