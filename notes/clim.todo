@@ -1,4 +1,4 @@
-%%  $fiHeader: $
+%%  $fiHeader: clim.todo,v 1.1 92/02/10 17:51:12 cer Exp Locker: cer $
 %%%%%%%%%%%%%%%%%%%%%%%%% CLIM 2.0 plan
 
 
@@ -24,6 +24,7 @@
     - Transformations
 
 % Holes to Fill-in
+  * Rename defsys package to clim-defsys
   * Reinstate clipping regions
   * Complete abstract gadgetsd
   * Gesture stuff
@@ -63,6 +64,8 @@
     - Consider design of distribute-event
     - timestamp
     - native-region
+  * On demand scrollbars
+
 % Bugs to fix.
   * whats the problem with radio-boxes and move-cursor-after. The
     alternative definitions almost work except for exit-buttons. I
