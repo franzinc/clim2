@@ -1,3 +1,11 @@
+Fri Jun 25 08:58:35 1993  Kevin Layer  (layer@sole)
+
+	* Makefile.generic: pass :load-xref-info and
+	:load-source-file-info to si::system-compile-wrapper
+
+	* test/test-driver.lisp: x11:xsync is no longer in the x11
+	package, so #+ignore this call
+
 -------------------------------------------------------------------------------
 from cer: Tue Jun 22 17:12:03 PDT 1993
 

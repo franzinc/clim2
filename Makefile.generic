@@ -28,6 +28,8 @@ compile-xm:	$(MOTIF_OBJS) FORCE
 	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
 	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
 	 :record-xref-info $(RECORD_XREF_INFO) \
+	 :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
+	 :load-xref-info $(LOAD_XREF_INFO) \
 	 :compile-print nil :compile-verbose nil \
 	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
 
@@ -48,6 +50,8 @@ compile-ol:	$(OPENLOOK_OBJS) FORCE
 	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
 	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
 	 :record-xref-info $(RECORD_XREF_INFO) \
+	 :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
+	 :load-xref-info $(LOAD_XREF_INFO) \
 	 :compile-print nil :compile-verbose nil \
 	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
 
@@ -202,10 +206,10 @@ cleanobjs:
 	rm -f $(CLIMOBJS) stub-motif.o stub-olit.o
 
 clean:
-	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f $(CLIMFASLS) \
-	  $(CLIMOBJS) stub-motif.o stub-olit.o stub-xt.o stub-x.o \
-	  stub-motif.c stub-olit.c stub-xt.c stub-x.c slim slim-small
-
+	find $(DIRS) -name '*.fasl' -print | xargs rm -f
+	rm -f $(CLIMFASLS) $(CLIMOBJS) *.o \
+	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c slim slim-small
+	rm -f *.z *.Z *.gz *.ilt
 
 cheapclean:
 	find $(CHEAP_CLEAN) -name "*.fasl" -print | xargs rm -f
