@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-defs.lisp,v 1.28.22.3 1999/04/08 21:25:44 cox Exp $
+;; $Id: interactive-defs.lisp,v 1.28.22.4 1999/11/16 15:09:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -154,14 +154,14 @@
                  (values (evacuate-temporary-string string)))))
         (loop
           (multiple-value-setq (gesture gesture-type)
-            (read-gesture :stream stream
-                          :input-wait-handler
-                            (or input-wait-handler
-                                *input-wait-handler*)
-                          :pointer-button-press-handler
-                            (or pointer-button-press-handler
-                                *pointer-button-press-handler*)
-                          :timeout (and click-only timeout)))
+            (stream-read-gesture stream
+				 :input-wait-handler
+				 (or input-wait-handler
+				     *input-wait-handler*)
+				 :pointer-button-press-handler
+				 (or pointer-button-press-handler
+				     *pointer-button-press-handler*)
+				 :timeout (and click-only timeout)))
           (cond ((eq gesture-type :timeout)
                  (return-from read-token :timeout))
                 ((and click-only (eq gesture :eof))

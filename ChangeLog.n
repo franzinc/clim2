@@ -11,6 +11,20 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.71
+
+1999-10-06  jmorrill@pointnclick.com
+
+* aclpc/acl-dc, acl-frames, acl-mirror, acl-pixmaps, acl-widget: address
+  some Windows resource leaks
+* silica/graphics, macros, medium: change order of definitions to satisfy
+  ACL 6.0 compiler.
+* clim/accept-values, command-processor, formatted-output-defs,
+  graph-formatting, input-editor-commands, interactive-defs,
+  presentations, ptypes2, table-formatting, translators: change order
+  of definitions to satisfy ACL 6.0 compiler.
+
+*******************************************************************************
 2.2.1.70
 
 1999-09-30  jmorrill@pointnclick.com

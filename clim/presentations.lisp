@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: presentations.lisp,v 1.23.22.2 1998/07/06 23:09:04 layer Exp $
+;; $Id: presentations.lisp,v 1.23.22.3 1999/11/16 15:09:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -172,7 +172,10 @@
     *application-frame* stream button))
 
 (defun invoke-with-input-context (type override body-continuation context-continuation)
-  (declare (dynamic-extent body-continuation context-continuation))
+  (declare (dynamic-extent body-continuation context-continuation)
+	   (special *input-wait-handler*
+		    *input-wait-test*
+		    *pointer-button-press-handler*))
   ;; At one time, this used to canonicalize the presentation type by
   ;; calling WITH-PRESENTATION-TYPE-DECODED and then consing just the
   ;; type name and parameters.  That turns out not to be necessary any

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graph-formatting.lisp,v 1.34.22.2 1998/07/06 23:08:58 layer Exp $
+;; $Id: graph-formatting.lisp,v 1.34.22.3 1999/11/16 15:09:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -298,18 +298,6 @@
       (apply #'draw-line* stream x1 y1 (setq x1 (pop path)) (setq y1 (pop path)) drawing-options))
   (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
 
-(defun-inline call-arc-drawer (stream arc-drawer parent-object child-object
-                               parent parent-x parent-y child child-x child-y
-                               arc-drawing-options)
-  (declare (dynamic-extent arc-drawer))
-  (if (or (stream-redisplaying-p stream)
-          (stream-current-redisplay-record stream))
-      (call-arc-drawer-1 stream arc-drawer parent-object child-object
-                         parent parent-x parent-y child child-x child-y
-                         arc-drawing-options)
-      (apply arc-drawer stream parent-object child-object
-             parent-x parent-y child-x child-y
-             arc-drawing-options)))
 
 ;; Split out to avoid consing a closure environment
 (defun call-arc-drawer-1 (stream arc-drawer parent-object child-object
@@ -330,6 +318,19 @@
     (apply arc-drawer stream parent-object child-object
            parent-x parent-y child-x child-y
            arc-drawing-options)))
+
+(defun-inline call-arc-drawer (stream arc-drawer parent-object child-object
+                               parent parent-x parent-y child child-x child-y
+                               arc-drawing-options)
+  (declare (dynamic-extent arc-drawer))
+  (if (or (stream-redisplaying-p stream)
+          (stream-current-redisplay-record stream))
+      (call-arc-drawer-1 stream arc-drawer parent-object child-object
+                         parent parent-x parent-y child child-x child-y
+                         arc-drawing-options)
+      (apply arc-drawer stream parent-object child-object
+             parent-x parent-y child-x child-y
+             arc-drawing-options)))
 
 
 ;;; Tree graphs
@@ -574,7 +575,51 @@ circular graphs without accounting for this case.
 (defclass grapher-fake-object ()
   ((data :initarg :data :reader grapher-fake-object-data)))
 
-
+;; ROOT-OBJECTS is a sequence of the roots of the graph.  
+;; INFERIOR-MAPPER is a function of two arguments, a function and an object
+;; over whose inferiors the function should be applied.
+;; HASH-TABLE is a table that is used to record and detect when an object has
+;; already been included in the graph.
+;; KEY is a function of one argument used to produce the hash table key.
+;; There is no TEST function, since it is already captured in the hash table.
+;; NEW-NODE-FUNCTION is a function of three arguments, the parent object, the
+;; parent object's hash value, and the child object.  Its returned value will
+;; be stored as the hash value of the child object.
+;; OLD-NODE-FUNCTION is a function of four arguments, the parent object, the
+;; parent object's hash value, the child object, and the child object's hash 
+;; value.  Its returned value is ignored.
+;; MAX-DEPTH is the cutoff depth of the tree, or NIL for no cutoff.
+;;--- Potential bug: the cutoff (MAX-DEPTH) may fall short in that you may
+;;--- reach a certain node at the maximum depth, mark that node as seen and
+;;--- decline to descend into its inferiors, then find that node again
+;;--- through a shorter path.  If you really want to fix this, write a
+;;--- breadth-first descent of the graph.
+(defun traverse-graph (root-objects inferior-mapper hash-table key
+                       new-node-function old-node-function &optional max-depth)
+  (declare (dynamic-extent inferior-mapper key new-node-function old-node-function))
+  (check-type max-depth (or null integer))
+  (clear-node-table hash-table)
+  (labels
+    ((traverse (parent-object parent-hashval object max-depth)
+       (let ((object-hashval
+               (funcall new-node-function parent-object parent-hashval object)))
+         (setf (get-node-table (funcall key object) hash-table) object-hashval)
+         (when max-depth (decf max-depth))
+         (unless (eq max-depth 0)
+           (flet ((traverse1 (child-object)
+                    (let ((child-key (funcall key child-object)))
+                      (multiple-value-bind (child-hashval found)
+                          (get-node-table child-key hash-table)
+                        (if found
+                            (funcall old-node-function 
+                                     object object-hashval child-object child-hashval)
+                            (traverse object object-hashval child-object max-depth))))))
+             (declare (dynamic-extent #'traverse1))
+             (funcall inferior-mapper #'traverse1 object))))))
+    (declare (dynamic-extent #'traverse))
+    (map nil #'(lambda (root)
+                 (traverse nil nil root max-depth))
+         root-objects)))
 
 (defmethod generate-graph-nodes ((graph directed-graph-output-record) stream
                                  root-objects object-printer inferior-producer
@@ -991,52 +1036,6 @@ circular graphs without accounting for this case.
                       (traverse-graph root-nodes #'inferior-mapper
                                       hash-table #'identity
                                       #'draw-edge #'draw-edge))))))))))))
-
-;; ROOT-OBJECTS is a sequence of the roots of the graph.  
-;; INFERIOR-MAPPER is a function of two arguments, a function and an object
-;; over whose inferiors the function should be applied.
-;; HASH-TABLE is a table that is used to record and detect when an object has
-;; already been included in the graph.
-;; KEY is a function of one argument used to produce the hash table key.
-;; There is no TEST function, since it is already captured in the hash table.
-;; NEW-NODE-FUNCTION is a function of three arguments, the parent object, the
-;; parent object's hash value, and the child object.  Its returned value will
-;; be stored as the hash value of the child object.
-;; OLD-NODE-FUNCTION is a function of four arguments, the parent object, the
-;; parent object's hash value, the child object, and the child object's hash 
-;; value.  Its returned value is ignored.
-;; MAX-DEPTH is the cutoff depth of the tree, or NIL for no cutoff.
-;;--- Potential bug: the cutoff (MAX-DEPTH) may fall short in that you may
-;;--- reach a certain node at the maximum depth, mark that node as seen and
-;;--- decline to descend into its inferiors, then find that node again
-;;--- through a shorter path.  If you really want to fix this, write a
-;;--- breadth-first descent of the graph.
-(defun traverse-graph (root-objects inferior-mapper hash-table key
-                       new-node-function old-node-function &optional max-depth)
-  (declare (dynamic-extent inferior-mapper key new-node-function old-node-function))
-  (check-type max-depth (or null integer))
-  (clear-node-table hash-table)
-  (labels
-    ((traverse (parent-object parent-hashval object max-depth)
-       (let ((object-hashval
-               (funcall new-node-function parent-object parent-hashval object)))
-         (setf (get-node-table (funcall key object) hash-table) object-hashval)
-         (when max-depth (decf max-depth))
-         (unless (eq max-depth 0)
-           (flet ((traverse1 (child-object)
-                    (let ((child-key (funcall key child-object)))
-                      (multiple-value-bind (child-hashval found)
-                          (get-node-table child-key hash-table)
-                        (if found
-                            (funcall old-node-function 
-                                     object object-hashval child-object child-hashval)
-                            (traverse object object-hashval child-object max-depth))))))
-             (declare (dynamic-extent #'traverse1))
-             (funcall inferior-mapper #'traverse1 object))))))
-    (declare (dynamic-extent #'traverse))
-    (map nil #'(lambda (root)
-                 (traverse nil nil root max-depth))
-         root-objects)))
 
 ;;-- This is a version that searches all of the old children.
 ;;-- Graph-output records can loose reorder children quite easily and

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-pixmaps.lisp,v 1.3.22.6 1999/06/08 16:50:01 layer Exp $
+;; $Id: acl-pixmaps.lisp,v 1.3.22.7 1999/11/16 15:09:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -141,6 +141,7 @@
 		   :pixmap pixmap)))
     (setf (slot-value pixmap 'for-medium) medium)
     (setf (slot-value medium 'drawable) pixmap)
+    (push pixmap (port-pixmaps port))
     medium))
 
 (defmethod medium-copy-area 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-editor-commands.lisp,v 1.35.22.3 1998/12/17 00:19:10 layer Exp $
+;; $Id: input-editor-commands.lisp,v 1.35.22.4 1999/11/16 15:09:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -960,17 +960,6 @@ This may confused the input editor" gestures))
            (redraw-input-buffer stream prev))
           (t (beep stream)))))
 
-
-(define-input-editor-command (com-ie-upcase-word)
-                             (stream input-buffer numeric-argument)
-  "Upcase word"
-  (change-word-case stream input-buffer numeric-argument #'char-upcase))
-
-(define-input-editor-command (com-ie-downcase-word)
-                             (stream input-buffer numeric-argument)
-  "Downcase word"
-  (change-word-case stream input-buffer numeric-argument #'char-downcase))
-
 (defun change-word-case (stream input-buffer numeric-argument function)
   (declare (dynamic-extent function))
   (let* ((start (stream-insertion-pointer stream))
@@ -991,6 +980,16 @@ This may confused the input editor" gestures))
                (when (characterp char)
                  (setf (aref input-buffer i) (funcall function char))))))
           (t (beep stream)))))
+
+(define-input-editor-command (com-ie-upcase-word)
+                             (stream input-buffer numeric-argument)
+  "Upcase word"
+  (change-word-case stream input-buffer numeric-argument #'char-upcase))
+
+(define-input-editor-command (com-ie-downcase-word)
+                             (stream input-buffer numeric-argument)
+  "Downcase word"
+  (change-word-case stream input-buffer numeric-argument #'char-downcase))
 
 (define-input-editor-command (com-ie-capitalize-word)
                              (stream input-buffer numeric-argument)

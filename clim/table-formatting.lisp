@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: table-formatting.lisp,v 1.23.22.3 1999/10/04 18:43:47 layer Exp $
+;; $Id: table-formatting.lisp,v 1.23.22.4 1999/11/16 15:09:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -512,49 +512,6 @@
                          (* (1- number) (stream-vertical-spacing stream))))))))
         (t (error "The ~:[~;~S ~]spacing specification, ~S, to ~S was invalid"
                   clause clause spacing form))))
-
-;; FORMATTING-TABLE macro is in FORMATTED-OUTPUT-DEFS
-(defun invoke-formatting-table (stream continuation
-                                &rest initargs
-                                &key x-spacing y-spacing
-                                     (record-type 'standard-table-output-record)
-                                     multiple-columns multiple-columns-x-spacing
-                                     equalize-column-widths
-                                     (move-cursor t)
-                                &allow-other-keys)
-  (declare (dynamic-extent initargs))
-  (with-keywords-removed (initargs initargs '(:record-type :x-spacing :y-spacing
-                                              :multiple-columns :multiple-columns-x-spacing
-                                              :equalize-column-widths :move-cursor))
-    (let ((table
-            (with-output-recording-options (stream :draw nil :record t)
-              (with-end-of-line-action (stream :allow)
-                (with-end-of-page-action (stream :allow)
-                  (flet ((invoke-formatting-table-1 (record)
-                           (declare (ignore record))
-                           (funcall continuation stream)))
-                    (declare (dynamic-extent #'invoke-formatting-table-1))
-                    (apply #'invoke-with-new-output-record
-                           stream #'invoke-formatting-table-1 record-type nil
-                           :x-spacing
-                             (or (process-spacing-arg stream x-spacing
-                                                      'formatting-table ':x-spacing)
-                                 (stream-string-width stream " "))
-                           :y-spacing
-                             (or (process-spacing-arg stream y-spacing
-                                                      'formatting-table ':y-spacing)
-                                 (stream-vertical-spacing stream))
-                           :equalize-column-widths equalize-column-widths
-                           initargs)))))))
-      (adjust-table-cells table stream)
-      (when multiple-columns
-        (adjust-multiple-columns table stream
-                                 (and (numberp multiple-columns) multiple-columns)
-                                 (and multiple-columns multiple-columns-x-spacing)))
-      (replay table stream)
-      (when move-cursor
-        (move-cursor-beyond-output-record stream table))
-      table)))
 
 ;; FORMATTING-CELL macro is in FORMATTED-OUTPUT-DEFS
 (defmethod invoke-formatting-cell ((stream output-protocol-mixin) continuation

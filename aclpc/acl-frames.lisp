@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.23 1999/10/04 18:43:40 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.24 1999/11/16 15:09:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -392,19 +392,24 @@
 				   (gesture-spec-for-mswin keystroke))
 			 newtext))))
 
+(defun delete-menu-bar (frame menuhandle &optional redraw)
+  (let ((count (win:GetMenuItemCount menuhandle)))
+    (when (plusp count)
+      (dotimes (position count)
+	;; Use position = 0 every time because the menu items get
+	;; renumbered each time through this loop.
+	(win:DeleteMenu menuhandle 0 win:MF_BYPOSITION))
+      (when redraw
+	(win:DrawMenuBar (sheet-mirror (frame-top-level-sheet frame)))
+	))))
+
 (defun make-menu-for-command-table (command-table menuhand frame 
 				    &optional top-level-sheet top-level-p)
   (assert (valid-handle menuhand))
   (unless top-level-sheet
     (setq top-level-sheet (frame-top-level-sheet frame)))
   ;; First, delete any pre-existing menu items.
-  (let ((count (win:GetMenuItemCount menuhand)))
-    (when (plusp count)
-      (dotimes (position count)
-	;; Use position = 0 every time because the menu items get
-	;; renumbered each time through this loop.
-	(win:DeleteMenu menuhand 0 win:MF_BYPOSITION))
-      (win:DrawMenuBar (sheet-mirror (frame-top-level-sheet frame)))))
+  (delete-menu-bar frame menuhand t)
   (setf (gethash menuhand *popup-menu->menu-item-ids*) nil) 
   (setf (gethash menuhand *popup-menu->command-table*) 
     (list command-table 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.15 1999/10/04 18:43:43 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.16 1999/11/16 15:09:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -240,12 +240,18 @@
   ;;
   ;; Called by note-sheet-degrafted, which is
   ;; called by (setf port) which is called by sheet-disown-child.
-  ;; This is applied to frame panes the frame layout changes, or
-  ;; by disown-frame, among other times.  It is apparently never
-  ;; called on a top-level-sheet, presumably in case you want
-  ;; to reuse the associated frame.
+  ;; This is applied to frame panes the frame layout changes and
+  ;; when frame-exit occurs.
+  ;;
+  ;; It is not called on the top-level-sheet upon frame-exit,
+  ;; presumably in case you want to reuse the associated frame.
+  ;; It is called on the top-level-sheet when you call disown-frame
+  ;; or destroy-frame.
   (let ((mirror (sheet-direct-mirror sheet)))
     (when mirror 
+      (let ((menuhand (win:GetMenu mirror)))
+	(when (and menuhand (plusp menuhand))
+	  (delete-menu-bar nil menuhand nil)))
       (win:DestroyWindow mirror)
       ;; DestroyWindow is supposed to destroy everything, including
       ;; the window's menu and the window's child windows.  It is

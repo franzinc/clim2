@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 1.82.22.4 1999/03/31 18:49:30 layer Exp $
+;; $Id: accept-values.lisp,v 1.82.22.5 1999/11/16 15:09:13 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1277,19 +1277,6 @@
     (object)
   (list object))
 
-(defun accept-values-choose-from-sequence (stream sequence key selected-value tester
-                                           type query-identifier
-                                           select-action highlighting-function)
-  (declare (dynamic-extent select-action highlighting-function))
-  (flet ((presenter (thing stream)
-           (present thing type :stream stream)))
-    (declare (dynamic-extent #'presenter))
-    (accept-values-choose-from-sequence-1
-      stream sequence key selected-value tester
-      type query-identifier
-      select-action highlighting-function
-      'accept-values-one-of #'presenter)))
-
 (defun accept-values-choose-from-sequence-1 (stream sequence key selected-value tester
                                              type query-identifier
                                              select-action highlighting-function
@@ -1323,6 +1310,19 @@
                                     :initial-spacing nil)
         (doseq (object sequence)
           (print-choice object stream))))))
+
+(defun accept-values-choose-from-sequence (stream sequence key selected-value tester
+                                           type query-identifier
+                                           select-action highlighting-function)
+  (declare (dynamic-extent select-action highlighting-function))
+  (flet ((presenter (thing stream)
+           (present thing type :stream stream)))
+    (declare (dynamic-extent #'presenter))
+    (accept-values-choose-from-sequence-1
+      stream sequence key selected-value tester
+      type query-identifier
+      select-action highlighting-function
+      'accept-values-one-of #'presenter)))
 
 (define-accept-values-command com-avv-choose-some-of
     ((choice 'accept-values-some-of))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.23 1999/10/04 18:43:44 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.24 1999/11/16 15:09:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -289,7 +289,7 @@
 ;; point, lets try modifying +text-field-view+ and 
 ;; +text-editor-view+ to supply better default sizes than zero.
 (defvar *min-text-field-width* 75)
-(defvar *min-text-field-height* 25)
+(defvar *min-text-field-height* '(1 :line))
 
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
   (declare (ignore width height))
@@ -304,9 +304,11 @@
 	    (min-w (process-width-specification pane '(1 :character)))
 	    (h 0)
 	    (value (gadget-value pane))
-	    (min-h (process-height-specification pane '(1 :line))))
+	    (min-h (process-height-specification pane *min-text-field-height*)))
 	;; WIDTH
-	(cond (initial-space-requirement
+	(cond ((and initial-space-requirement
+		    (plusp (process-width-specification
+			    pane (space-requirement-width initial-space-requirement))))
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
@@ -314,9 +316,10 @@
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
-	       (setq w (process-width-specification pane value)))
+	       (setq w (max (process-width-specification pane value)
+			    *min-text-field-width*)))
 	      (t
-	       (setq w (process-width-specification pane `(20 :character)))))
+	       (setq w *min-text-field-width*)))
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
 	  ;; Allow for the vertical scrollbar
 	  (let ((wsty (win-scroll-thick :y)))
@@ -325,20 +328,23 @@
 	(setq w (max w min-w))
 
 	;; HEIGHT
-	(cond (initial-space-requirement
+	(cond ((and initial-space-requirement
+		    (plusp (process-height-specification
+			    pane (space-requirement-height initial-space-requirement))))
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
 			    (if nlines 
 				(process-height-specification pane `(,nlines :line))
 			      0)
-			    *min-text-field-height*)))
+			    min-h)))
 	      (nlines
 	       (setq h (process-height-specification pane `(,nlines :line))))
 	      ((stringp value)
-	       (setq h (process-height-specification pane value)))
+	       (setq h (max (process-height-specification pane value)
+			    min-h)))
 	      (t
-	       (setq h (process-height-specification pane '(1 :line)))))
+	       (setq h min-h)))
 
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
 	  (let ((wstx (win-scroll-thick :x)))
@@ -591,11 +597,13 @@
 	    (min-w (process-width-specification pane '(1 :character)))
 	    (h 0)
 	    (value (gadget-value pane))
-	    (min-h (process-height-specification pane '(1 :line))))
+	    (min-h (process-height-specification pane *min-text-field-height*)))
 	;; WIDTH
 	(cond (parent-viewport-p
 	       (setq w (process-width-specification pane width)))
-	      (initial-space-requirement
+	      ((and initial-space-requirement
+		    (plusp (process-width-specification
+			    pane (space-requirement-width initial-space-requirement))))
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
@@ -603,7 +611,8 @@
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
-	       (setq w (process-width-specification pane value)))
+	       (setq w (max (process-width-specification pane value)
+			    *min-text-field-width*)))
 	      (t
 	       (setq w (process-width-specification pane `(20 :character)))))
 	(setq w (max w min-w))
@@ -611,17 +620,19 @@
 	;; HEIGHT
 	(cond (parent-viewport-p
 	       (setq h (process-height-specification pane height)))
-	      (initial-space-requirement
+	      ((and initial-space-requirement
+		    (plusp (process-height-specification
+			    pane (space-requirement-height initial-space-requirement))))
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
-			    *min-text-field-height*)))
+			    min-h)))
 	      (nlines
 	       (setq h (process-height-specification pane `(,nlines :line))))
 	      ((stringp value)
 	       (setq h (process-height-specification pane value)))
 	      (t
-	       (setq h (process-height-specification pane '(1 :line))))) 
+	       (setq h min-h))) 
 	(setq h (max h min-h))
 
 	(make-space-requirement
@@ -1627,14 +1638,14 @@
 
 (defmethod adjust-gadget-colors (pane hdc)
   (excl:without-interrupts			; due to global variable
-    (when (acl-clim::valid-handle silica::*background-brush*)
-      (or (win:DeleteObject silica::*background-brush*) 
+    (when (acl-clim::valid-handle *background-brush*)
+      (or (win:DeleteObject *background-brush*) 
 	  (error "DeleteObject")))
     (let* ((bg (color->wincolor (pane-background pane)))
 	   (fg (color->wincolor (pane-foreground pane))))
       (win:SetBkColor hdc bg)
       (win:SetTextColor hdc fg)
-      (setq silica::*background-brush* (win:CreateSolidBrush bg)))))
+      (setq *background-brush* (win:CreateSolidBrush bg)))))
 
 (defmethod get-sheet-resources ((port acl-port) sheet)
   (declare (ignore sheet))

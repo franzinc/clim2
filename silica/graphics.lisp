@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 1.32.22.3 1999/03/31 18:49:36 layer Exp $
+;; $Id: graphics.lisp,v 1.32.22.4 1999/11/16 15:09:16 layer Exp $
 
 (in-package :silica)
 
@@ -515,6 +515,11 @@
       (error "Cannot find description for: ~S" name)))
 
 
+(define-graphics-generic draw-polygon ((points point-sequence position-seq)
+                                       &key (closed t) (filled t))
+  :drawing-options :line-joint-cap
+  :position-sequences-to-transform (position-seq))
+
 (define-graphics-generic draw-point ((point point x y))
   :drawing-options :point
   :positions-to-transform (x y))
@@ -650,11 +655,6 @@
         (with-drawing-options (medium :ink pattern)
           (draw-rectangle* medium x y (+ x width) (+ y height)
                            :filled t)))))
-
-(define-graphics-generic draw-polygon ((points point-sequence position-seq)
-                                       &key (closed t) (filled t))
-  :drawing-options :line-joint-cap
-  :position-sequences-to-transform (position-seq))
 
 (defun draw-regular-polygon* (medium x1 y1 x2 y2 nsides
                               &rest args &key (handedness :left) (closed t) &allow-other-keys)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: medium.lisp,v 1.42.22.3 1999/06/23 15:25:22 layer Exp $
+;; $Id: medium.lisp,v 1.42.22.4 1999/11/16 15:09:16 layer Exp $
 
 (in-package :silica)
 
@@ -82,7 +82,7 @@
 ;; Note that we do not degraft the medium.  This is because we don't
 ;; want to release any of the medium's resource (GCs, etc).  If you want
 ;; the medium degrafted, just do it yourself.
-(defun invoke-with-sheet-medium-bound (sheet medium continuation)
+(defmethod invoke-with-sheet-medium-bound (sheet medium continuation)
   (declare (dynamic-extent continuation))
   (cond ((sheet-medium sheet)
          (funcall continuation))

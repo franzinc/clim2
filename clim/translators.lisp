@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: translators.lisp,v 1.16.22.2 1998/07/06 23:09:08 layer Exp $
+;; $Id: translators.lisp,v 1.16.22.3 1999/11/16 15:09:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -146,6 +146,55 @@
             :translator-class presentation-action)
            ,arglist
          ,@body))))
+
+(defun warn-if-presentation-type-specifier-invalid (enclosing-form form env
+                                                    &optional constant)
+  (labels ((check (type)
+             (warn-if-presentation-type-specifier-invalid-1 type env #'complain))
+           (complain (thing string)
+             (warn "~S is ~A~@[ in ~S~].~%It appears in a call to ~S."
+                   thing string
+                   (unless (and (consp form)
+                                (eq (first form) 'quote)
+                                (eq (second form) thing))
+                     form)
+                   (first enclosing-form))
+             t))
+    (declare (dynamic-extent #'check #'complain))
+    (if constant
+        (check form)
+        (when (constantp form #+(or Genera Minima) env)
+          (check (eval form #+Genera env))))))
+
+(defun warn-if-presentation-type-specifier-invalid-1 (type env complain)
+  (declare (dynamic-extent complain))
+  ;; Don't call expand-presentation-type-abbreviation because it signals an
+  ;; error if the result is not a valid presentation type specifier
+  (loop (multiple-value-bind (expansion expanded)
+            (expand-presentation-type-abbreviation-1 type env)
+          (if expanded
+              (setq type expansion)
+              (return))))
+  (with-presentation-type-decoded (type-name parameters) type
+    (let ((class (cond ((symbolp type-name)
+                        (find-presentation-type-class type-name nil env))
+                       ((acceptable-presentation-type-class type-name)
+                        type-name)
+                       (t nil))))
+      (cond ((null class)
+             (funcall complain type-name "not a defined presentation type name"))
+            ;; Recurse on presentation types that take presentation type arguments
+            ;; so as to give a better error message in the usual case.  If we
+            ;; don't find anything wrong, call presentation-type-specifier-p.
+            ((and (member type-name *presentation-type-parameters-are-types*)
+                  (some #'(lambda (type)
+                            (with-presentation-type-decoded (type-name) type
+                              (unless (member type-name '(not satisfies))
+                                (warn-if-presentation-type-specifier-invalid-1
+                                  type env complain))))
+                        parameters)))
+            ((not (presentation-type-specifier-p type env))
+             (funcall complain type "an invalid presentation type specifier"))))))
 
 #+Genera
 (scl:defprop define-presentation-action define-presentation-translator
@@ -338,7 +387,6 @@
                     (t
                      ;; Already popped above
                      translators)))))))))
-
 
 ;;--- This traverses a lot of very non-local data structures (presentation types,
 ;;--- translators, command tables, etc).  What can we do to localize them?
