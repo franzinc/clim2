@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-activity.lisp,v 1.5 92/10/28 11:32:54 cer Exp $
+;; $fiHeader: demo-activity.lisp,v 1.6 1993/05/13 16:23:38 cer Exp $
 
 (in-package :clim-demo)
 
@@ -41,7 +41,6 @@
 	   :documentation "A Title String"))
   (start-application-frame (frame-activity *application-frame*)
                            'demo-app
-                           :width 300 :height 250
                            :pretty-name name)
   (incf *untitled-count*))
 

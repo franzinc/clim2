@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Fri Apr 16 17:38:25 1993 by layer]-
+;;				-[Wed Apr 28 22:10:25 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.22 92/10/02 15:17:58 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.25 93/04/28 17:19:23 layer Exp $
 
 (in-package :user)
 
@@ -33,9 +33,8 @@
 
 #-svr4
 (progn
-  (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
-  (defvar sys::*clim-motif-pathname*
-      "clim-motif.o")
+  (defvar sys::*libxt-pathname* "/net/vapor/x11/R4/sun4-lib/libXt.a")
+  (defvar sys::*clim-motif-pathname* "clim-motif.o")
 
   (x11::load-undefined-symbols-from-library
    sys::*clim-motif-pathname*

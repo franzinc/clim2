@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.15 92/07/27 19:29:11 cer Exp $
+;; $fiHeader: ol-init.lisp,v 1.16 92/08/18 17:53:42 cer Exp $
 
 
 (in-package :tk)
@@ -47,12 +47,13 @@
     (warn "OLit: ~A" (char*-to-string message))))
 
 
-(ol_set_warning_handler (register-function 'ol-warning-handler))
-(ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))
-(ol_set_error_handler (register-function 'ol-error-handler))
-(ol_set_va_display_error_msg_handler (register-function 'ol-error-va-handler))
+(defun install-ol-error-handlers ()
+  (ol_set_warning_handler (register-function 'ol-warning-handler))
+  (ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))
+  (ol_set_error_handler (register-function 'ol-error-handler))
+  (ol_set_va_display_error_msg_handler (register-function 'ol-error-va-handler)))
 
-
+(install-ol-error-handlers)
 
 (defvar *ol-done* nil)
 
@@ -90,3 +91,13 @@
 				      (string-to-char*
 				       "menuPane")))
 
+#+:svr4
+(progn
+  (defun reinitialize-toolkit ()
+    (ol-initialize)
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (install-ol-error-handlers)
+    (fixup-class-entry-points))
+  (push '(:eval reinitialize-toolkit) excl::*restart-actions*)
+  )

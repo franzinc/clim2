@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.36 93/03/25 15:39:51 colin Exp $
+;; $fiHeader: output-protocol.lisp,v 1.37 1993/05/05 01:38:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -52,7 +52,9 @@
 		     :end-of-page-action :scroll
 		     ;;--- Is this really appropriate?
 		     :default-text-margin +largest-coordinate+
-                     :output-glyph-buffer (make-array 512 :element-type '(unsigned-byte 16)
+                     :output-glyph-buffer 
+		     #-who-needs-it nil
+		     #+who-needs-it (make-array 512 :element-type '(unsigned-byte 16)
 							  :initial-element 0)
 		     :text-margin nil))
 

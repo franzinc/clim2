@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.28 93/01/11 15:45:51 colin Exp $
+;; $fiHeader: widget.lisp,v 1.29 93/03/18 14:38:43 colin Exp $
 
 (in-package :tk)
 
@@ -28,7 +28,7 @@
 			       &key (application-name "clim")
 			       (application-class "Clim")
 			       (widget-class (error "Class not specified"))
-			       (display (error "Display not specifie"))
+			       (display (error "Display not specified"))
 			       &allow-other-keys)
   (let* ((class (find-class widget-class))
 	 (handle (class-handle class))

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Tue Apr 27 16:10:42 1993 by layer]-
+;;				-[Fri May 21 08:43:00 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,13 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.33 93/04/28 17:19:25 layer Exp $
+;; $fiHeader: make-classes.lisp,v 1.34 1993/05/13 16:24:36 cer Exp $
 
 (in-package :tk)
 
 (defun get-foreign-variable-value (x)
-  (let ((ep #+:hpprism (ff:get-extern-data-address x)
-	    #-:hpprism (ff:get-entry-point x)))
+  (let ((ep #+hpprism (ff:get-extern-data-address x)
+	    #-hpprism (ff:get-entry-point
+		       x
+		       #+svr4 :note-shared-library-references #+svr4  nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
 
@@ -154,8 +156,8 @@
   (object-display object))
 
 
-(defclass rect (xt-root-class) ())
-(defclass un-named-obj (rect) ())
+(defclass rect (xt-root-class) () (:metaclass xt-class))
+(defclass un-named-obj (rect) () (:metaclass xt-class))
 
 (defclass basic-resource ()
   ((name :initarg :name :reader resource-name)
@@ -226,13 +228,16 @@
 (defun widget-class-name (h)
   (char*-to-string (xt-class-name h)))
 
+(defvar *widget-name-to-class-name-mapping*
+    '(((list scrolling-list) ol-list)
+      ((event-obj) event)
+      ((control-area) control)))
+
 (defun lispify-class-name (x) 
   (let ((name (lispify-tk-name x)))
-    (case name
-      ;; Openlook
-      ((list scrolling-list) 'ol-list)
-      (event-obj 'event)
-      (t name))))
+    (or (cadr (assoc name *widget-name-to-class-name-mapping*
+		     :test #'member))
+	name)))
   
 (defun lispify-tk-name (string &key 
 			       (start 0)
@@ -287,4 +292,23 @@
 	 (clrhash set-values-cache)
 	 (clrhash cached-constraint-resources)))
    class))
+
+#+:svr4
+(defun fixup-class-entry-points ()
+  (let ((root (find-class 'xt-root-class)))
+    (clos::map-over-subclasses #'tk::unregister-address root)
+    (clos::map-over-subclasses
+     #'(lambda (class)
+	 (let* ((old-addr (and (typep class 'xt-class)
+			       (ff::foreign-pointer-address class)))
+		(entry-point (and (typep class 'xt-class)
+				  (slot-boundp class 'entry-point)
+				  (slot-value class 'entry-point)))
+		(new-addr (and entry-point
+			       (get-foreign-variable-value entry-point))))
+	   (when entry-point
+	       (unless (equal old-addr new-addr)
+		 (setf (ff::foreign-pointer-address class) new-addr))
+	       (register-address class ))))
+     root)))
 

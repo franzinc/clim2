@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.18 92/12/16 16:49:52 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.19 1993/05/13 16:29:57 colin Exp $
 
 (in-package :silica)
 
@@ -347,36 +347,41 @@
 	       (setf no-merge 1)
 	       (return-from parse-face 0))
 	     (if class-number
+		 ;; We already know where to look
 		 (or
-		   (cdr (assoc face (cdr added-mapping-alist)))
-		   (ash 1
-			(or (position face (cdr class-alist))
-			    (return-from face->face-code	;Return an error indication.
-			      (list "Can't parse face ~S in class ~S"
-				    face (car class-alist))))))
-		 (do ((face-cache *face->face-code-cache* (cdr face-cache))
-		      (class-no 0 (1+ class-no)))
-		     ((null face-cache)
-		      (return-from face->face-code (list "Can't parse face ~S" face)))
-		   (let ((value (position face (cdar face-cache))))
-		     (when value
-		       (setf class-number class-no
-			     class-alist (car face-cache)
-			     added-mapping-alist (assoc (car class-alist)
-							*face-added-text-mapping-cache*))
-		       (return (ash 1 value))))
-		   (let* ((added-value-mapping-alist 
-			    (assoc (caar face-cache) *face-added-text-mapping-cache*))
-			  (value (cdr (assoc face (cdr added-value-mapping-alist)))))
-		     (when value
-		       (setf class-number class-no
-			     class-alist (car face-cache)
-			     added-mapping-alist added-value-mapping-alist)
-		       (return value)))))))
+		  (cdr (assoc face (cdr added-mapping-alist)))
+		  (ash 1
+		       (or (position face (cdr class-alist))
+			   (return-from face->face-code ;Return an error indication.
+			     (list "Can't parse face ~S in class ~S"
+				   face (car class-alist))))))
+	       ;; Iterate over the ((family . faces) ...) list 
+	       (do ((face-cache *face->face-code-cache* (cdr face-cache))
+		    (class-no 0 (1+ class-no)))
+		   ((null face-cache)
+		    (return-from face->face-code (list "Can't parse face ~S" face)))
+		 (let ((value (position face (cdar face-cache))))
+		   (when value
+		     ;; If we have found it return
+		     (setf class-number class-no
+			   class-alist (car face-cache)
+			   added-mapping-alist (assoc (car class-alist)
+						      *face-added-text-mapping-cache*))
+		     (return (ash 1 value))))
+		 ;; Otherwise look in the added list
+		 ;; for :bold-italic type stuff
+		 (let* ((added-value-mapping-alist 
+			 (assoc (caar face-cache) *face-added-text-mapping-cache*))
+			(value (cdr (assoc face (cdr added-value-mapping-alist)))))
+		   (when value
+		     (setf class-number class-no
+			   class-alist (car face-cache)
+			   added-mapping-alist added-value-mapping-alist)
+		     (return value)))))))
       (if (listp face)
 	  (dolist (face face)
 	    (setf value (logior value (parse-face face))))
-	  (setf value (parse-face face))))
+	(setf value (parse-face face))))
     (dpb class-number %%face-code-class
 	 (dpb value %%face-code-faces
 	      (dpb no-merge %%face-code-no-merge 0)))))

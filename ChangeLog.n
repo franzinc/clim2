@@ -1,4 +1,30 @@
 --------------------------------------------------------------------------------
+from cer: Fri Jun  4 09:05:19 PDT 1993
+
+Makefile.defs		hacking for 2.0.beta2
+Makefile.generic	hacking for 2.0.beta2
+Makefile.svr4		hacking for 2.0.beta2
+clim/command.lisp	Elimination of typechecking
+clim/output-protocol.lisp	glyph buffer is now nil
+demo/demo-activity.lisp		Elimination of bogus :width/:height
+notes/profiles/.cvsignore		Ignore profiles
+silica/db-scroll.lisp		Elimination of dynamic scrollbar code
+silica/framem.lisp		prevent find-frame-manager from always calling (find-port)
+silica/gadgets.lisp		Elimination of dynamic scrollbar code
+silica/text-style.lisp		Coments and reindentation
+test/test-clim.lisp		Commented out olit test for multiple displays
+test/test-driver.lisp		Put flat/tree profiles in separate files
+tk/load-ol.lisp			svr4 2.0.beta2 stuff
+tk/load-xm.lisp			svr4 2.0.beta2 stuff
+tk/make-classes.lisp		svr4 2.0.beta2 stuff. Refind class entry points on startup
+tk/meta-tk.lisp		Describe method for xt-class
+tk/ol-init.lisp		svr4 shared library reinitializations
+tk/widget.lisp		Fixed typo in message
+tk/xm-init.lisp		svr4 shared library reinitializations
+tk-silica/ol-gadgets.lisp		Comments
+tk-silica/xt-silica.lisp		Comments
+
+--------------------------------------------------------------------------------
 from cer: Wed Jun  2 11:27:19 PDT 1993
 
 

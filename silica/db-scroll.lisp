@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.45 1993/05/25 20:41:53 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.46 1993/06/02 18:41:47 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -79,6 +79,7 @@
   (unless *inhibit-updating-scroll-bars*
     ;;--- This is not the most efficient thing in the world
     (let ((scroller (viewport-scroller-pane viewport)))
+      #+ignore
       (multiple-value-bind (changedp
 			    hscroll-bar hscroll-bar-enabled-p
 			    vscroll-bar vscroll-bar-enabled-p)

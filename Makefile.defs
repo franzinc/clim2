@@ -1,9 +1,10 @@
-# $fiHeader: Makefile.defs,v 1.10 1993/05/13 17:31:32 colin Exp $
+# $fiHeader: Makefile.defs,v 1.11 1993/06/02 18:40:12 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
 CL	= /usr/fi/dcl-4.2.beta2.0
+
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
@@ -129,12 +130,10 @@ OPENLOOK_OBJS= $(GENERIC_PUBLIC_OBJS) $(OL_PUBLIC_OBJS) $(OL_LICENSED_OBJS)
 
 CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 
-INSTALLED_CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
+INSTALLED_CLIMOBJS = $(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 
-CLIM_FASLS_TO_MAKE = makeclimxmfasls makeclimolfasls
-
-# These are linked into the distribution
-# `pwd`/clim-olit_d.o \ `pwd`/clim-olit.o \
+CLIM_OLFASLS_TO_MAKE = makeclimolfasls
+CLIM_FASLS_TO_MAKE = makeclimxmfasls $(CLIM_OLFASLS_TO_MAKE)
 
 #FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-motif.o \
 #	    `pwd`/stub-xt.o `pwd`/stub-x.o \

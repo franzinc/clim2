@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.51 1993/05/25 20:42:31 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.52 1993/06/02 18:42:21 cer Exp $
 
 
 (in-package :xm-silica)
@@ -1562,6 +1562,7 @@
       (setf (list-pane-current-tokens gadget)
 	selected-tokens))))
 
+
 (defmethod (setf set-gadget-items) :after (items (gadget openlook-list-pane))
   (declare (ignore items))
   (let ((widget (sheet-direct-mirror gadget)))
@@ -1674,7 +1675,6 @@
 		  :pref-max-width width
 		  :pref-min-width width))
 
-;;;
 
 (defclass openlook-option-pane (option-pane xt-leaf-pane)
   ((buttons :accessor option-menu-buttons)

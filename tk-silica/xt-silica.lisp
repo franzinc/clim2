@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.83 1993/05/13 16:32:28 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.84 1993/05/25 20:42:50 cer Exp $
 
 (in-package :xm-silica)
 
@@ -262,6 +262,12 @@
 (defmethod realize-widget-mirror ((port xt-port) (parent-sheet t) parent-widget sheet)
   (multiple-value-bind (class initargs)
       (find-widget-class-and-initargs-for-sheet port parent-widget sheet)
+    #+ignore
+    (apply (clos::ensure-autoconstructor class)
+	   :parent parent-widget
+	   :managed nil			; See note below
+	   initargs)
+    #-ignore
     (apply #'make-instance class
 	   :parent parent-widget
 	   :managed nil			; See note below

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.52 1993/05/13 16:24:04 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.53 1993/05/25 20:41:55 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -567,61 +567,62 @@
 	  vscroll-bar vscroll-bar-enabled-p)
         (call-next-method))))
 
-(defun update-dynamic-scroll-bars (scroller changedp
-				   hscroll-bar hscroll-bar-enabled-p
-				   vscroll-bar vscroll-bar-enabled-p
-				   &optional relayout)
-  (when changedp
-    (when hscroll-bar
-      (setf (sheet-enabled-p hscroll-bar) hscroll-bar-enabled-p))
-    (when vscroll-bar
-      (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
-    (when (or (and hscroll-bar (not hscroll-bar-enabled-p))
- 	      (and vscroll-bar (not vscroll-bar-enabled-p)))
-      (let* ((contents (slot-value scroller 'contents))
- 	     (c-extent (viewport-contents-extent
-			 (pane-viewport contents))))
- 	(multiple-value-bind (vx vy) 
-	    (window-viewport-position contents)
- 	  (window-set-viewport-position
-	    contents
-	    (if (and hscroll-bar (not hscroll-bar-enabled-p))
-		(bounding-rectangle-min-x c-extent)
-		vx)
-	    (if (and vscroll-bar (not vscroll-bar-enabled-p))
-		(bounding-rectangle-min-y c-extent)
-		vy)))))
-    (clear-space-requirement-caches-in-tree scroller)
-    (when relayout
-      ;;--- This is kinda bogus.  If this was a generic scroller then
-      ;;--- you want to layout the table.
-      (let ((table (slot-value scroller 'viewport)))
- 	(multiple-value-bind (width height)
- 	    (bounding-rectangle-size table)
- 	  (allocate-space table width height))))))
 
-(defun compute-dynamic-scroll-bar-values (scroller)
-  (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar scroller))
-	 (vscroll-bar (scroller-pane-vertical-scroll-bar scroller))
-	 (scroll-bar-policy (scroller-pane-scroll-bar-policy scroller)))
-    (if (eq scroll-bar-policy :dynamic)
-	(multiple-value-bind (vwidth vheight) 
-	    (bounding-rectangle-size scroller)
-	  (multiple-value-bind (cwidth cheight) 
-	      (bounding-rectangle-size 
-		(viewport-contents-extent (slot-value scroller 'viewport)))
-	    (let ((ohenp (sheet-enabled-p hscroll-bar))
-		  (ovenp (sheet-enabled-p vscroll-bar))
-		  (nhenp (> cwidth vwidth))
-		  (nvenp (> cheight vheight)))
-	      (values
-		(not (and (eq ohenp nhenp)
-			  (eq ovenp nvenp)))
-		(and (not (eq ohenp nhenp)) hscroll-bar)
-		nhenp
-		(and (not (eq ovenp nvenp)) vscroll-bar)
-		nvenp))))
-        (values nil nil nil nil nil))))
+;(defun update-dynamic-scroll-bars (scroller changedp
+;				   hscroll-bar hscroll-bar-enabled-p
+;				   vscroll-bar vscroll-bar-enabled-p
+;				   &optional relayout)
+;  (when changedp
+;    (when hscroll-bar
+;      (setf (sheet-enabled-p hscroll-bar) hscroll-bar-enabled-p))
+;    (when vscroll-bar
+;      (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
+;    (when (or (and hscroll-bar (not hscroll-bar-enabled-p))
+; 	      (and vscroll-bar (not vscroll-bar-enabled-p)))
+;      (let* ((contents (slot-value scroller 'contents))
+; 	     (c-extent (viewport-contents-extent
+;			 (pane-viewport contents))))
+; 	(multiple-value-bind (vx vy) 
+;	    (window-viewport-position contents)
+; 	  (window-set-viewport-position
+;	    contents
+;	    (if (and hscroll-bar (not hscroll-bar-enabled-p))
+;		(bounding-rectangle-min-x c-extent)
+;		vx)
+;	    (if (and vscroll-bar (not vscroll-bar-enabled-p))
+;		(bounding-rectangle-min-y c-extent)
+;		vy)))))
+;    (clear-space-requirement-caches-in-tree scroller)
+;    (when relayout
+;      ;;--- This is kinda bogus.  If this was a generic scroller then
+;      ;;--- you want to layout the table.
+;      (let ((table (slot-value scroller 'viewport)))
+; 	(multiple-value-bind (width height)
+; 	    (bounding-rectangle-size table)
+; 	  (allocate-space table width height))))))
+
+;(defun compute-dynamic-scroll-bar-values (scroller)
+;  (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar scroller))
+;	 (vscroll-bar (scroller-pane-vertical-scroll-bar scroller))
+;	 (scroll-bar-policy (scroller-pane-scroll-bar-policy scroller)))
+;    (if (eq scroll-bar-policy :dynamic)
+;	(multiple-value-bind (vwidth vheight) 
+;	    (bounding-rectangle-size scroller)
+;	  (multiple-value-bind (cwidth cheight) 
+;	      (bounding-rectangle-size 
+;		(viewport-contents-extent (slot-value scroller 'viewport)))
+;	    (let ((ohenp (sheet-enabled-p hscroll-bar))
+;		  (ovenp (sheet-enabled-p vscroll-bar))
+;		  (nhenp (> cwidth vwidth))
+;		  (nvenp (> cheight vheight)))
+;	      (values
+;		(not (and (eq ohenp nhenp)
+;			  (eq ovenp nvenp)))
+;		(and (not (eq ohenp nhenp)) hscroll-bar)
+;		nhenp
+;		(and (not (eq ovenp nvenp)) vscroll-bar)
+;		nvenp))))
+;        (values nil nil nil nil nil))))
 
 (defun viewport-contents-extent (viewport)
   (let ((contents (sheet-child viewport)))

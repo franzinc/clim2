@@ -1,6 +1,6 @@
 s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.23 93/04/27 14:35:31 cer Exp $
+;; $fiHeader: command.lisp,v 1.24 93/04/27 15:49:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -93,17 +93,20 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 (define-condition command-table-already-exists (command-table-error) ())
 
 (defun find-command-table (name &key (errorp t))
-  (check-type name (or command-table symbol))
-  (when (command-table-p name)
-    (return-from find-command-table name))
-  (or (gethash name *all-command-tables*)
-      (ecase errorp
-	((t)
-	 (error 'command-table-not-found
-		:format-string "Command table ~S not found"
-		:format-args (list name)))
-	((nil)
-	 nil))))
+  (cond ((command-table-p name)
+	 name)
+	((symbolp name)
+	 (or (gethash name *all-command-tables*)
+	     (ecase errorp
+	       ((t)
+		(error 'command-table-not-found
+		       :format-string "Command table ~S not found"
+		       :format-args (list name)))
+	       ((nil)
+		nil))))
+	(t
+	 (error "~S is not a symbol or command table"))))
+	
 
 (defun make-command-table (name &key inherit-from menu inherit-menu (errorp t))
   (check-type name symbol)

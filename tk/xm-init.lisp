@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-init.lisp,v 1.7 92/04/03 12:04:08 cer Exp $
+;; $fiHeader: xm-init.lisp,v 1.8 92/05/07 13:11:02 cer Exp $
 
 (in-package :tk)
 
@@ -32,4 +32,16 @@
       *intrinsic-classes*
       *motif-classes*)
   (setq *xm-done* t))
+
+
+#+:svr4
+(progn
+  (defun reinitialize-toolkit ()
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (fixup-class-entry-points))
+  (push '(:eval reinitialize-toolkit) excl::*restart-actions*)
+  )
+
+
 

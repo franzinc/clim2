@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.10 93/04/16 09:26:15 layer Exp $
+# $fiHeader: Makefile.generic,v 1.11 1993/05/05 01:38:00 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -225,6 +225,18 @@ FORCE:
 
 ################## Make-dist stuff
 
+echo_XTLIB:
+	@echo $(XTLIB)
+
+echo_XLIB:
+	@echo $(XLIB)
+
+echo_OLXTLIB:
+	@echo $(OLXTLIB)
+
+echo_OLXLIB:
+	@echo $(OLXLIB)
+
 makeclimfasls	: $(CLIM_FASLS_TO_MAKE)
 makeclimxmfasls	: compile-xm cat-xm
 makeclimolfasls	: compile-ol cat-ol
@@ -235,7 +247,8 @@ install_clim	:
 	cp $(INSTALLED_CLIMOBJS) $(DEST)
 
 # Link in the libraries & distribution object files with standard names
-
+#
+# the following rule is no longer used by sh/make-dist.  4/29/93 -layer
 link-objects	:
 	ln -s $(XTLIB) $(DEST)/libXt.a
 	ln -s $(XLIB) $(DEST)/libX11.a

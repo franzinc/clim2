@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.7 1993/05/25 20:42:04 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.8 1993/06/02 18:42:01 cer Exp $
 
 
 (in-package :clim-user)
@@ -583,8 +583,13 @@
     (filling-output (*standard-output* :fill-width '(20 :character))
       (write-string *gettysburg-address* *standard-output*))))
 
+;;--- This would be nice but the problem occurs in the event handler process
+;;----
+
+#+ignore
 (push 'create-multiple-ports *frame-tests*)
 
+#+ignore
 (defun create-multiple-ports ()
   (with-test-success-expected ('create-multiple-ports)
     (let (port2)
