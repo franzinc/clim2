@@ -178,9 +178,9 @@
   (:command-table test-frame)
   (:panes
    (a (silica::horizontally
-       ()
-       (realize-pane 'silica::push-button :label "Press me")
-       (realize-pane 'silica::push-button :label "Squeeze me")))
+	 ()
+	 (realize-pane 'silica::push-button :label "Press me")
+	 (realize-pane 'silica::push-button :label "Squeeze me")))
    (b (realize-pane 'silica::toggle-button))
    (c (realize-pane 'silica::slider))
    (d (realize-pane 'silica::text-field))
@@ -208,7 +208,97 @@
     (ecase (frame-current-layout *application-frame*)
       (:default :more)
       (:more :default))))
+
+(define-test-frame-command (com-accept :name t :menu t)
+    ()
+  (let ((stream *query-io*)
+	(a t)
+	(b nil)
+	(c :normal)
+	(d 10))
+    (accepting-values 
+     (stream)
+     (setq a (accept 'boolean  
+		     :stream stream
+		     :default a
+		     :prompt "a"))
+     (terpri stream)
+     (unless a
+       (setq b (accept 'boolean  
+		       :stream stream
+		       :default b
+		       :prompt "b"))
+       (terpri stream))
+     (when a
+       (setq c
+	 (accept '(member :normal :point) :stream stream
+		 :prompt "Line style units" :default c))
+       (terpri stream))
+     (setq d (accept '(integer 0 100) 
+		     :stream stream
+		     :prompt "length"
+		     :default d))
+     (terpri stream)
+     (accept-values-command-button (stream)
+				   "Press me"
+				   (setq a t b nil c :normal)))))
+
+
 	 
+
+(define-presentation-type some-kinda-gadget ())
+
+(define-presentation-method present (object (type some-kinda-gadget) stream (view t)
+					    &key acceptably)
+  ;; Kludge!
+  (write-string "gadget" stream))
+
+(define-test-frame-command (com-make-one :name t :menu t)
+    ()
+  (let* ((stream *query-io*))
+    
+    (let ((weird (cons nil nil)))
+      (setf (car weird)
+	(with-output-as-presentation (:object weird :type 'some-kinda-gadget :stream stream)
+	  (surrounding-output-with-border (stream)
+					  (with-output-as-gadget (:stream stream)
+					    (realize-pane 
+					     'silica::slider))))))
+    (let ((weird (cons nil nil)))
+      (setf (car weird)
+	(with-output-as-presentation (:object weird :type 'some-kinda-gadget :stream stream)
+	  (surrounding-output-with-border (stream)
+					  (with-output-as-gadget (:stream stream)
+					    (realize-pane 
+					     'silica::push-button
+					     :label "Amazing"))))))))
+
+(define-presentation-to-command-translator
+    move-gadget-translator
+    (some-kinda-gadget com-move-gadget test-frame)
+  (object)
+  (list object))
+
+(define-test-frame-command (com-move-gadget :name t :menu t)
+    ((weird 'some-kinda-gadget))
+  (dragging-output-record 
+   *query-io*
+   (car weird)
+   :repaint nil
+   :erase #'(lambda (c s)
+	      (with-bounding-rectangle*
+		  (f g h j) c
+		  (draw-rectangle*
+		   s
+		   (1- f) (1- g)
+		   (1+ h) (1+ j)
+		   :ink +background+)))))
+    
+(define-test-frame-command (com-track :name t :menu t)
+    ()
+  (let* ((stream *query-io*))
+    (tracking-pointer-test stream)))
+
 
 (define-test-frame-command (com-make-button :name t :menu t)
     ()
@@ -238,3 +328,17 @@
 
 
 
+
+
+(define-test-frame-command (com-make-radio-box :name t :menu t)
+    ()
+  (let* ((stream *query-io*))
+    (with-output-as-gadget (:stream stream)
+      (let* ((frame-pane
+	     (realize-pane 'silica::frame-pane))
+	    (gadget
+	     (realize-pane 'silica::radio-box :parent frame-pane)))
+	(realize-pane 'toggle-button :label "a" :parent gadget)
+	(realize-pane 'toggle-button :label "b" :parent gadget)
+	(realize-pane 'toggle-button :label "c" :parent gadget)
+	frame-pane))))

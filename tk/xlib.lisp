@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.cl,v 1.2 92/01/02 15:09:01 cer Exp Locker: cer $
+;; $fiHeader: xlib.cl,v 1.3 92/01/06 20:43:50 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -162,39 +162,39 @@
 
 (defun query-pointer (window)
   (with-ref-par 
-   ((root 0)
-    (child 0)
-    (root-x 0)
-    (root-y 0)
-    (x 0)
-    (y 0)
-    (mask 0))
-   (let ((display (object-display window)))
-     (if (x11:xquerypointer
-	  (display-handle display)
-	  (object-handle window)
-	  root
-	  child
-	  root-x
-	  root-y
-	  x
-	  y
-	  mask)
-	 (values
-	  t
-	  (intern-object-xid
-   (aref root 0) 
-	   'window
-	   :display display)
-	  (intern-object-xid
-	   (aref child 0) 
-	   'window
-	   :display display)
-	  (aref root-x 0)
-	  (aref root-y 0)
-	  (aref x 0)
-	  (aref y 0)
-	  (aref mask 0))))))
+      ((root 0)
+       (child 0)
+       (root-x 0)
+       (root-y 0)
+       (x 0)
+       (y 0)
+       (mask 0))
+    (let ((display (object-display window)))
+      (if (x11:xquerypointer
+	   (display-handle display)
+	   (object-handle window)
+	   root
+	   child
+	   root-x
+	   root-y
+	   x
+	   y
+	   mask)
+	  (values
+	   t
+	   (intern-object-xid
+	    (aref root 0) 
+	    'window
+	    :display display)
+	   (intern-object-xid
+	    (aref child 0) 
+	    'window
+	    :display display)
+	   (aref root-x 0)
+	   (aref root-y 0)
+	   (aref x 0)
+	   (aref y 0)
+	   (aref mask 0))))))
 	
 
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadgets.cl,v 1.3 92/01/02 15:33:15 cer Exp Locker: cer $
+;; $fiHeader: gadgets.cl,v 1.4 92/01/06 20:44:20 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -45,6 +45,9 @@
 ;;;;;;;;;;;;;;;;;;;; inherit from these
 
 ;; slider
+
+(defclass slider () ())
+
 ;; push-button
 
 (defclass silica::push-button () ())
@@ -64,6 +67,8 @@
 ;; radio-box [exclusive-choice]
 ;; .. [inclusive-choice]
 
+(defclass silica::radio-box () ())
+
 ;; menu-bar
 
 
@@ -72,11 +77,20 @@
 ;; As well as the callback mechanism
 ;; a we want to specify a binding to commands
 ;; text-field
+
 ;; text-edit
 
-;;; Then there is the layout stuff and scrolling macros
+(defclass text-field () ())
 
-(defmacro form () ())
+;; toggle buttton
+
+(defclass toggle-button () ())
+
+;;; Viewport
+
+(defclass silica::viewport () ())
+
+;;; Then there is the layout stuff and scrolling macros
 
 (defmacro scrolling (options contents)
   `(realize-pane 'scroller-pane
@@ -90,54 +104,6 @@
 	 :frame frame
 	 :frame-manager framem
 	 options))
-
-
-
-;;;;;;;; Whats the interface to different types of window: main, dialog,..
-
-(defclass vertical-pane (sheet
-			 sheet-multiple-child-mixin
-			 sheet-transformation-mixin
-			  
-			 standard-repainting-medium
-			 standard-sheet-input-mixin
-			  
-			 permanent-medium-sheet-output-mixin
-			 mute-repainting-mixin)
-	  ())
-
-(defmethod initialize-instance :after ((x vertical-pane) &key contents)
-  (dolist (y contents)
-    (adopt-child x y)))
-
-
-(defmethod compose-space ((sheet vertical-pane))
-  (let ((x (make-instance 'space-req :width 0 :height 0)))
-    (dolist (child (sheet-children sheet))
-      (let ((s (compose-space child)))
-	(macrolet ((foo (setf accessor)
-			`(,setf (,accessor x) (,accessor s))))
-		  (foo incf space-req-height)
-		  (foo incf space-req-min-height)
-		  (foo incf space-req-max-height)
-		  
-		  (foo maxf space-req-width)
-		  (foo maxf space-req-min-width)
-		  (foo maxf space-req-max-width))))
-    x))
-
-(defmethod allocate-space ((sheet vertical-pane) width height)
-  (let ((av (truncate height (length (sheet-children sheet))))
-	(al 0))
-    (dolist (child (sheet-children sheet))
-          (format t "al = ~D~%" al)
-      (setf (sheet-transformation child)
-	(make-translation-transformation 0 al))
-      
-      (setf (sheet-region child)
-	    (make-bounding-rectangle 0 0 width av))
-      
-      (incf al av))))
 
 ;; Callbacks on widgets generate these events
 
@@ -161,3 +127,5 @@
 	  ((foreground :initform nil :initarg :foreground)
 	   (background :initform nil :initarg :background)
 	   (text-style :initform nil :initarg :text-style)))
+
+;;; Do these have readers and writers?

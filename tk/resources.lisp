@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.cl,v 1.2 92/01/02 15:08:58 cer Exp Locker: cer $
+;; $fiHeader: resources.cl,v 1.3 92/01/06 20:43:48 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -110,7 +110,7 @@
 	 (values-list (nreverse values)))
       (push
        (convert-resource-in
-	class
+	widget
 	(resource-type (car rs))
 	(x-arglist (aref arglist i) 0))
        values))))
@@ -283,3 +283,19 @@
   (etypecase value
     (pixmap
      (encode-pixmap value))))
+
+
+
+(def-c-type (xtk-widget-list :in-foreign-space) 1 * xtk-widget)
+
+(defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
+  (let ((r nil))
+    (dotimes (i (widget-num-children widget))
+      (push (convert-resource-in 
+	     widget 'widget (xtk-widget-list x i))
+	    r))
+    (nreverse r)))
+
+
+(defmethod convert-resource-in ((widget t) (type (eql 'widget)) x)
+  (intern-widget x))

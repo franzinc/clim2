@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: gadget-output.cl,v 1.1 92/01/06 20:36:58 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -123,6 +123,21 @@
 		  :set default)))
 
 
+(define-presentation-method accept-present-default ((type integer)
+						    stream
+						    (view gadget-dialog-view)
+						    default default-supplied-p
+						    present-p query-identifier)
+  (declare (ignore default-supplied-p present-p))
+  (with-output-as-gadget (:stream stream)
+    (realize-pane 'silica::slider
+		  :client stream
+		  :width 100
+		  :value (if default-supplied-p default 0)
+		  :id query-identifier)))
+
+
+
 (defmethod display-exit-boxes ((frame accept-values) stream)
   ;; Do the fresh-line *outside* of the updating-output so that it
   ;; doesn't get repositioned relatively in the X direction if the
@@ -134,17 +149,23 @@
 	  (abort (or (second (assoc :abort exit-boxes)) "<Abort> aborts")))
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
-		       (with-output-as-gadget (:stream stream)
-			 (assert frame)
-			 (realize-pane 'silica::push-button
-				       :client frame
-				       :id :abort
-				       :label abort))
-		       (with-output-as-gadget (:stream stream)
-			 (realize-pane 'silica::push-button
-				       :client frame
-				       :id :exit
-				       :label exit))))))
+		       (formatting-item-list 
+			(stream :n-columns 2)
+			(formatting-cell 
+			 (stream)
+			 (with-output-as-gadget (:stream stream)
+			   (assert frame)
+			   (realize-pane 'silica::push-button
+					 :client frame
+					 :id :abort
+					 :label abort)))
+			(formatting-cell 
+			 (stream)
+			 (with-output-as-gadget (:stream stream)
+			   (realize-pane 'silica::push-button
+					 :client frame
+					 :id :exit
+					 :label exit))))))))
 
 (defmethod silica::pane-frame ((stream encapsulating-stream-mixin))
   (silica::pane-frame (slot-value stream 'stream)))
@@ -174,6 +195,11 @@
 					   (client avv-stream)
 					   id
 					   new-value)
+  (do-avv-command
+      new-value
+    client id))
+
+(defun do-avv-command (new-value client id)
   (throw-highlighted-presentation
    (make-instance 'standard-presentation
 		  :object `(com-change-query ,id ,new-value)
@@ -211,9 +237,92 @@
   ;; Perhaps we should enable the gadget at this point
   nil)
 
-(defmethod note-output-record-attached ((rec gadget-output-record) stream)
+(defmethod note-output-record-attached :after ((rec gadget-output-record) stream)
   (declare (ignore stream))
   (setf (sheet-enabled-p (output-record-gadget rec)) t))
 
-(defmethod note-output-record-detached ((rec gadget-output-record))
+(defmethod note-output-record-detached :after ((rec gadget-output-record))
   (setf (sheet-enabled-p (output-record-gadget rec)) nil))
+
+
+(define-presentation-method accept-present-default ((type completion) 
+						    stream
+						    (view gadget-dialog-view)
+						    default default-supplied-p
+						    present-p query-identifier)
+  (declare (ignore present-p))
+  ;; value-key, test, sequence
+  (with-output-as-gadget (:stream stream)
+    (let* ((frame-pane
+	    (realize-pane 'silica::frame-pane))
+	   (gadget
+	    (realize-pane 'silica::radio-box 
+			  :client stream
+			  :id query-identifier
+			  :parent frame-pane)))
+      (dolist (element sequence)
+	(realize-pane 'toggle-button 
+		      :set (and default-supplied-p
+				(funcall test 
+					 (funcall value-key element)
+					 (funcall value-key default)))
+		      :label (princ-to-string element)
+		      :id element
+		      :parent gadget))
+      frame-pane)))
+
+(defmethod silica::value-changed-callback ((gadget silica::radio-box)
+					   (client avv-stream)
+					   id 
+					   new-value)
+  (do-avv-command
+      (silica::gadget-id new-value)
+    client 
+    id))
+
+
+
+
+;;; Another amusing component
+;;; Some how we need so associate an output-record with the button
+
+(defun accept-values-command-button-1
+    (stream prompt continuation
+     &key (documentation (if (stringp prompt)
+			     prompt
+			   (with-output-to-string (stream)
+			     (funcall prompt stream))))
+	  (query-identifier (list ':button documentation))
+	  (cache-value t) (cache-test #'eql)
+	  resynchronize)
+  (declare (dynamic-extent prompt))
+  (updating-output 
+   (stream :unique-id query-identifier :id-test #'equal
+	   :cache-value cache-value :cache-test
+	   cache-test)
+   (with-output-as-gadget (:stream stream)
+     (realize-pane 
+      'silica::push-button
+      :label prompt
+      :id (output-recording-stream-current-output-record-stack 
+	   (slot-value stream 'stream))
+      :client (make-instance 'accept-values-command-button
+			     :continuation continuation
+			     :documentation documentation
+			     :resynchronize resynchronize)))))
+
+
+(defmethod silica::activate-callback ((pb silica::push-button)
+				      (client accept-values-command-button)
+				      id)
+  (throw-highlighted-presentation
+   (make-instance 'standard-presentation
+		  :object `(com-avv-command-button ,client ,id)
+		  :type 'command)
+   *input-context*
+   (make-instance 'silica::pointer-event
+		  :sheet (sheet-parent pb)
+		  :x 0
+		  :y 0
+		  :modifiers 0
+		  :button 256)))

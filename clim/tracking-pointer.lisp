@@ -1,6 +1,26 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-
-;; $fiHeader: tracking-pointer.lisp,v 1.8 91/08/05 14:35:46 cer Exp $
+;; -*- mode: common-lisp; package: clim -*-
+;;
+;;				-[]-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+;; $fiHeader$
 
 (in-package :clim)
 
@@ -115,16 +135,12 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	   ;; Genera's ancient window system cannot be cajoled into doing this,
 	   ;; so we'll do it by hand right here.
 	   (make-release-event (window pointer)
-	     (multiple-value-bind (px py) (pointer-position* pointer)
+	     (multiple-value-bind (px py) (pointer-position pointer)
 	       (multiple-value-bind (ox oy)
-		   #+Silica (values 0 0)
-		   #-Silica (window-offset window)
+		   (values 0 0)
 		 (let ((wx (- px ox))
 		       (wy (- py oy))
 		       (mask (tv:mouse-chord-shifts genera-mouse)))
-		   #-Silica
-		   (multiple-value-setq (wx wy)
-		     (viewport-to-drawing-surface-coordinates current-window wx wy))
 		   (let ((event (make-button-release-event window wx wy 0 mask)))
 		     (when transformp
 		       (multiple-value-bind (tx ty)
@@ -145,7 +161,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	      (when (or presentation-motion-function motion-function)
 		(when multiple-window
 		  (setq current-window (or (pointer-window pointer) (pointer-root pointer))))
-		(multiple-value-bind (x y) (pointer-position* pointer)
+		(multiple-value-bind (x y) (pointer-position pointer)
 		  (when moved-p
 		    (setq moved-p nil)
 		    (setq last-x x last-y y
@@ -153,15 +169,12 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		    ;; Pointer position is in root coordinates
 		    ;;--- what to do about window offset and drawing-to-surface-coordinates
 		    (multiple-value-bind (ox oy) 
-			#+Silica (values 0 0)
-			#-Silica (window-offset current-window)
+			(values 0 0) 
 		      (declare (fixnum ox oy))
 		      (let ((wx (- x ox))
 			    (wy (- y oy)))
 			(declare (fixnum wx wy))
-			#-Silica
-			(multiple-value-setq (wx wy)
-			  (viewport-to-drawing-surface-coordinates current-window wx wy))
+
 			(when presentation-motion-function
 			  (let ((presentation
 				  (frame-find-innermost-applicable-presentation
@@ -220,8 +233,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			   (when keyboard-function
 			     (funcall keyboard-function gesture)
 			     (return-from process-gesture)))
-			  ((or (typep gesture 'pointer-button-press-event)
-			       (typep gesture 'pointer-button-release-event))
+			  ((or (typep gesture 'pointer-press-event)
+			       (typep gesture 'pointer-release-event))
 			   (let* ((px (pointer-event-x gesture))
 				  (py (pointer-event-y gesture))
 				  (wx px)
@@ -232,7 +245,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 						     px py)
 				 (setq wx (floor tx)
 				       wy (floor ty))))
-			     (cond ((typep gesture 'pointer-button-press-event)
+			     (cond ((typep gesture 'pointer-press-event)
 				    #+Genera (when generate-release-events
 					       (setq genera-mouse-buttons
 						     (pointer-event-button gesture)))

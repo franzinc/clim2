@@ -1,6 +1,6 @@
 ;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM; Mode: LISP; Lowercase: T -*-
 
-;; $fiHeader: test-suite.cl,v 1.3 92/01/02 15:12:25 cer Exp Locker: cer $
+;; $fiHeader: test-suite.cl,v 1.4 92/01/06 20:44:32 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -1740,7 +1740,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 				:prompt "Draw \\ diagonal" :default draw-\\-diagonal))
 		      (terpri stream)
 		      (setq line-thickness
-			(accept 'number :stream stream
+			(accept '(integer 0 100) :stream stream
 				:prompt "Line thickness" :default line-thickness))
 		      (terpri stream)
 		      (setq line-thickness-units

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.cl,v 1.3 92/01/02 15:09:15 cer Exp Locker: cer $
+;; $fiHeader: mirror.cl,v 1.4 92/01/06 20:43:56 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -202,6 +202,10 @@
       (update-mirror-region (port sheet) sheet))))
 
 
+;; I do not think we need to do this because
+;; invalidate-cached-transformations does it anyway.
+
+#+ignore
 (defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) &key port)
   (when (sheet-direct-mirror sheet)
     (unless port

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.cl,v 1.4 92/01/02 15:32:53 cer Exp Locker: cer $
+;; $fiHeader: widget.cl,v 1.5 92/01/06 20:43:49 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -210,11 +210,22 @@
 
 
 
-(defmethod widget-best-geometry (widget)
+(defmethod widget-best-geometry (widget &key width height)
   (let ((preferred (make-xt-widget-geometry)))
     (xt_query_geometry
      (object-handle widget)
-     0
+     (if (or width height)
+	 (let ((x (make-xt-widget-geometry)))
+	   (when width
+	     (setf (xt-widget-geometry-width x) width))
+	   (when height
+	     (setf (xt-widget-geometry-height x) height))
+	   (setf (xt-widget-geometry-request-mode x)
+	     (logior
+	      (if width x11:cwwidth 0)
+	      (if height x11:cwheight 0)))
+	   x)
+	   0)
      preferred)
     (let ((r (xt-widget-geometry-request-mode preferred)))
       (values

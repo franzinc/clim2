@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.cl,v 1.3 92/01/02 15:33:21 cer Exp Locker: cer $
+;; $fiHeader: layout.cl,v 1.4 92/01/06 20:44:25 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -40,6 +40,16 @@
 		min-width width  max-width 
 		min-height height
 		max-height))))
+
+(defmethod copy-space-req ((sr space-req))
+  (with-slots (width height max-width max-height min-width min-height) sr
+      (make-instance 'space-req
+		     :width width
+		     :height height
+		     :max-width max-width
+		     :max-height max-height
+		     :min-width min-width
+		     :min-height min-height)))
 
 (defmethod initialize-instance :after ((s space-req)
 				       &key

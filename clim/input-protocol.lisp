@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: input-protocol.lisp,v 1.3 92/01/02 15:33:18 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -253,7 +253,7 @@
 			(event pointer-release-event))
   ;; --- What to do such that tracking-pointer can really
   ;; --- see these.
-  )
+  (queue-put (stream-input-buffer stream) (copy-instance event)))
 
 ;;; --- Handle "clicks" differently than press and release?
 ;;; so that we can tell when to queue up non-characters into the stream.
@@ -371,7 +371,7 @@
 
 (defmethod receive-gesture ((stream input-protocol-mixin)
 			    ;; any button events that make it into the stream...
-			    (gesture pointer-button-event))
+			    (gesture pointer-press-event))
   ;; --- the around method may have to bind the specials back to the args
   ;; --- to be on the safe side...
   (when *pointer-button-press-handler*

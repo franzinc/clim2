@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: menus.cl,v 1.5 92/01/02 15:33:23 cer Exp Locker: cer $
 
 
 
@@ -467,6 +467,9 @@
 
 (defmethod window-expose ((stream extended-stream-pane))
   (setf (window-visibility stream) t))
+
+(defmethod window-stack-on-bottom ((stream extended-stream-pane))
+  (warn "dunno"))
 
 (defun window-set-visibility (window visibility)
   (setf (window-visibility window) visibility))

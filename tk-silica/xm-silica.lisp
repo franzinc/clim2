@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.cl,v 1.2 92/01/02 15:09:47 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.cl,v 1.3 92/01/06 20:44:03 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -254,12 +254,12 @@
 	  (ignore character keysym)
 	  (tk::lookup-string event)
 	(declare (ignore ignore))
-      (make-instance 'key-press-event
-		     :key-name keysym
-		     :character (and (= (length character) 1)
-				     (aref character 0))
-		     :sheet sheet
-		     :modifiers (x11::xkeyevent-state event)))))
+	(make-instance 'key-press-event
+		       :key-name keysym
+		       :character (and (= (length character) 1)
+				       (aref character 0))
+		       :sheet sheet
+		       :modifiers (x11::xkeyevent-state event)))))
     
     (:key-release
      (distribute-event
@@ -288,7 +288,17 @@
 		     :native-x (x11::xbuttonevent-x event)
 		     :native-y (x11::xbuttonevent-y event))))
     (:button-release
-     )))
+     (distribute-event
+      (port sheet)
+      (make-instance 'pointer-release-event
+		     :sheet sheet
+		     :x :??
+		     :y :??
+		     :modifiers (x11::xkeyevent-state event)
+		     :button (x-button->silica-button 
+			      (x11::xbuttonevent-button event))
+		     :native-x (x11::xbuttonevent-x event)
+		     :native-y (x11::xbuttonevent-y event))))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet sheet))
   (declare (ignore port))

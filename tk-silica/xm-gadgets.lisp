@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.cl,v 1.3 92/01/02 15:32:57 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.cl,v 1.4 92/01/06 20:44:01 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -36,7 +36,8 @@
 					     (toggle-button motif-toggle-button)
 					     (silica::menubar motif-menubar)
 					     (silica::viewport xm-viewport)
-					     
+					     (silica::radio-box motif-radio-box)
+					     (silica::frame-pane motif-frame-pane)
 					     ;; One day
 					     (line-editor-pane)
 					     (label-button-pane)
@@ -68,11 +69,11 @@
 ;;; We now need a lot of classes that mirror the xm classes.
 
 
+(defclass motif-pane (silica::pane) (#+ignore resources))
+
 (defmethod allocate-space ((p motif-pane) width height)
   (when (sheet-mirror p)
     (tk::set-values (sheet-mirror p) :width width :height height)))
-
-(defclass motif-pane (silica::pane) (#+ignoreresources))
 
 
 #+ignore
@@ -143,11 +144,11 @@
 ;;; Push button
 
 (defclass motif-push-button (motif-leaf-pane 
+			     silica::push-button
 			     action-gadget
 			     motif-action-pane
 			     sheet-permanently-enabled-mixin
-			     silica::foreground-background-and-text-style-mixin
-			     silica::push-button) 
+			     silica::foreground-background-and-text-style-mixin) 
 	  ((label-string :initarg :label-string :initform "")))
 
 (defmethod realize-pane-arglist (realizer (type (eql 'push-button))
@@ -214,10 +215,14 @@
 
 ;;; Slider
 
-(defclass motif-slider (motif-leaf-pane 
+(defclass motif-slider (silica::client-overridability
+			motif-leaf-pane 
 			sheet-permanently-enabled-mixin
-			value-gadget motif-value-pane)
-	  ((orientation :initarg :orientation))  
+			value-gadget 
+			motif-value-pane
+			slider)
+	  ((value :initarg :value :initform nil)
+	   (orientation :initarg :orientation)) 
   (:default-initargs :orientation :horizontal))
 
 (defmethod realize-pane-arglist (realizer (type (eql 'slider)) &rest args &key orientation)
@@ -226,7 +231,11 @@
 	    (apply #'call-next-method realizer type args))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-slider))
-  (values 'tk::xm-scale nil))
+  (with-slots (orientation value) sheet
+    (values 'tk::xm-scale 
+	    (append
+	     (list :orientation orientation)
+	     (and value (list :value value))))))
 
 ;; This should suport the drag callback
 
@@ -261,7 +270,8 @@
 			    (apply #'call-next-method realizer type args))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-scrollbar))
-  (values 'tk::xm-scroll-bar nil))
+  (values 'tk::xm-scroll-bar 
+	  (list :orientation (slot-value sheet 'orientation))))
 
 (defmethod (setf silica::scrollbar-size) (nv (sb motif-scrollbar))
   (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
@@ -381,7 +391,9 @@
 
 (defclass motif-text-field (motif-leaf-pane value-gadget
 			    sheet-permanently-enabled-mixin
-			    motif-value-pane motif-action-pane) ())
+			    motif-value-pane motif-action-pane
+			    text-field)
+	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-text-field))
   (values 'tk::xm-text-field nil))
@@ -391,11 +403,21 @@
 (defclass motif-toggle-button (motif-leaf-pane 
 			       sheet-permanently-enabled-mixin
 			       motif-value-pane 
-			       value-gadget) 
-	  ())
+			       value-gadget
+			       toggle-button)
+	  ((set :initarg :set :initform nil)
+	   (indicator-type :initarg :indicator-type :initform :some-of)
+	   (label :initform nil :initarg :label)))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-toggle-button))
-  (values 'tk::xm-toggle-button nil))
+  (with-slots (set label indicator-type) sheet
+    (values 'tk::xm-toggle-button 
+	    (append (list :set set)
+		    (and label (list :label-string label))
+		    (list :indicator-type 
+			  (ecase indicator-type
+			    (:one-of :one-of-many)
+			    (:some-of :n-of-many)))))))
 
 (defmethod gadget-value ((gadget  motif-toggle-button))
   (tk::get-values (sheet-mirror gadget) :set))
@@ -531,21 +553,12 @@
 
 ;;;;;;;;;;;;;;;
 
-(defclass xm-viewport (#+ignore sheet
-		       #+ignore gadget
-
-		       mirrored-sheet-mixin
+(defclass xm-viewport (mirrored-sheet-mixin
 		       silica::sheet-single-child-mixin
 		       sheet-permanently-enabled-mixin
-		       
-		       #+ignore sheet-transformation-mixin
-		       #+ignore standard-repainting-medium
-		       #+ignore standard-sheet-input-mixin
-		       #+ignore permanent-medium-sheet-output-mixin
-		       #+ignore mute-repainting-mixin
-
 		       silica::wrapping-space-mixin
-		       silica::pane)
+		       silica::pane
+		       silica::viewport)
 	  ;; This describes the region that we are displaying
 	  ((viewport :accessor silica::xm-viewport-viewport))
   )
@@ -734,3 +747,55 @@
     (if (tk::gcontext-tile gc)
 	(error "Gadget foreground cannot be pixmap")
       (list :foreground (tk::gcontext-foreground gc)))))
+
+
+;; Implementation of radio box
+;; should this be a composite-motif-pane
+
+;; In some ways this behaves like a leaf since the management of the
+;; children is left to the row column widget
+
+(defclass  motif-radio-box (mirrored-sheet-mixin
+			    sheet-multiple-child-mixin
+			    sheet-permanently-enabled-mixin
+			    silica::radio-box
+			    silica::pane
+			    gadget
+			    ask-widget-for-size-mixin)
+	   ((orientation :initarg :orientation)
+	    (current-selection :accessor radio-box-current-selection))
+  (:default-initargs :orientation :horizontal))
+
+(defmethod adopt-child :after ((gadget motif-radio-box) child)
+  (setf (silica::gadget-client child) gadget))
+
+(defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-radio-box))
+  (with-slots (orientation) sheet
+    (values 'tk::xm-radio-box
+	    (list :orientation orientation))))
+
+(defmethod silica::value-changed-callback :after ((v gadget)
+						  (client motif-radio-box)
+						  (id t)
+						  (value t))
+  (when (eq value t)
+    (setf (radio-box-current-selection client) v)
+    (silica::value-changed-callback client 
+				    (silica::gadget-client client)
+				    (silica::gadget-id client) 
+				    v)))
+
+;; This is an experiment at using a frame but there are problems with
+;; it
+
+(defclass motif-frame-pane (mirrored-sheet-mixin
+			sheet-single-child-mixin
+			sheet-permanently-enabled-mixin
+			silica::pane
+			ask-widget-for-size-mixin)
+	   ())
+
+(defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-frame-pane))
+  (values 'tk::xm-frame nil))
+	  
+	  

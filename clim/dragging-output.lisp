@@ -1,6 +1,26 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-
-;; $fiHeader: dragging-output.lisp,v 1.8 91/08/05 14:29:22 cer Exp $
+;; -*- mode: common-lisp; package: clim -*-
+;;
+;;				-[]-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+;; $fiHeader: dragging-output.cl,v 1.1 92/01/07 11:19:54 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -23,24 +43,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			       &key (repaint t) (erase #'erase-output-record) feedback
 				    (finish-on-release nil))
   (let (last-x last-y
-	(delta-x 0)
-	(delta-y 0)
 	(parent (output-record-parent output-record))
 	;; Clipping region for repainting the damaged region
 	(region (bounding-rectangle output-record)))
     (multiple-value-bind (initial-x initial-y)
 	(stream-pointer-position* stream)
       (declare (fixnum initial-x initial-y))
-      (multiple-value-bind (x-offset y-offset)
-	  (convert-from-relative-to-absolute-coordinates
-	    stream (output-record-parent output-record))
-	(declare (fixnum x-offset y-offset))
-	(with-bounding-rectangle* (record-x record-y) output-record
-	  ;; Deltas are the position of the mouse in the local coordinate
-	  ;; system of the record
-	  (setq delta-x (the fixnum (- initial-x record-x))
-		delta-y (the fixnum (- initial-y record-y))))
-	(flet ((finish (x y)
+      (flet ((finish (x y)
 		 (when last-x
 		   (if feedback
 		       (funcall feedback output-record stream
@@ -51,11 +60,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		   ;; because the user can be moving the pointer really fast,
 		   ;; causing FINISH to be called on coordinates which are
 		   ;; "before" the values of LAST-X/Y.
-		   (output-record-set-position* output-record (- x delta-x) (- y delta-y))
+		   (output-record-set-position* output-record x y)
 		   (when parent
-		     (add-output-record-element parent output-record)
+		     (add-output-record output-record parent)
 		     (tree-recompute-extent output-record))
-		   (replay-1 output-record stream nil x-offset y-offset))
+		   (replay-output-record output-record stream))
 		 (return-from dragging-output-record
 		   (values x y))))
 	  (declare (dynamic-extent #'finish))
@@ -66,8 +75,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		       initial-x initial-y initial-x initial-y :draw)
 	      (setq last-x initial-x last-y initial-y))
 	    (tracking-pointer (stream)
-	      (:pointer-motion (#-Silica window #+Silica sheet x y)
-	       (when (eql #-Silica window #+Silica sheet stream)
+	      (:pointer-motion (window x y)
+	       (when (eql window stream)
 		 (when (or (not (eql x last-x))
 			   (not (eql y last-y)))
 		   (when last-x
@@ -79,7 +88,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		   ;; Remember the space the record used to occupy
 		   (setq region (bounding-rectangle output-record region))
 		   ;; Move the record
-		   (output-record-set-position* output-record (- x delta-x) (- y delta-y))
+		   (output-record-set-position* output-record x y)
 		   ;; Replay the region it used to live in, and then replay
 		   ;; the record in its new home.
 		   (when repaint
@@ -87,15 +96,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		   (if feedback
 		       (funcall feedback output-record stream
 				initial-x initial-y x y :draw)
-		       (replay-1 output-record stream nil x-offset y-offset)))))
-	      #-Silica
+		       (replay-output-record output-record stream)))))
 	      (:pointer-button-press (x y)
 	       (unless finish-on-release
 		 (finish x y)))
-	      #-Silica
 	      (:pointer-button-release (x y)
 	       (when finish-on-release
-		 (finish x y)))
-	      #+Silica
-	      (:button-press (x y)
-	       (finish x y)))))))))
+		 (finish x y)))))))))
