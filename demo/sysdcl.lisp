@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.21 1993/07/27 01:46:08 colin Exp $
+;; $fiHeader: sysdcl.lisp,v 1.23 1994/11/23 23:28:39 smh Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -23,6 +23,7 @@
    ("plot"	     (:load-before-compile "demo-driver" "packages"))
    ("color-editor"    (:load-before-compile "demo-driver" "packages"))
    ("graphics-editor" (:load-before-compile "demo-driver" "packages"))
+   #+ics ("japanese-graphics-editor" (:load-before-compile "demo-driver" "packages"))
    ("bitmap-editor"   (:load-before-compile "demo-driver" "packages"))
    ("ico"	     (:load-before-compile "demo-driver" "packages"))
    ("browser"	     (:load-before-compile "demo-driver" "packages"))
