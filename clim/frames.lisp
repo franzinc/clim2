@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.45 92/10/02 15:19:25 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.46 92/10/04 14:16:23 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1130,26 +1130,31 @@
   (let ((command (presentation-event-value event)))
     (if (partial-command-p command)
 	(throw-highlighted-presentation
-	  (make-instance 'standard-presentation
-	    :object command
-	    :type (event-presentation-type event))
-	  *input-context*
-	  (allocate-event 'pointer-button-press-event
-	    :sheet sheet
-	    :x 0 :y 0
-	    :modifier-state 0
-	    :button +pointer-left-button+))
-	(progn
-	  (when (and *input-buffer-empty*
-		     (eq *application-frame* (event-frame event)))
-	    (signal 'synchronous-command-event
-		    :command command))
-	  ;; Perhaps if this results directly from a user action then either
-	  ;; we should do it right away, ie. lose the input buffer or beep if
-	  ;; it has to be deferred,
-	  (if (slot-value event 'queuep)
-	      (queue-frame-command (event-frame event) (presentation-event-value event))
-	      (beep sheet))))))
+	 (make-instance 'standard-presentation
+			:object command
+			:type (event-presentation-type event))
+	 *input-context*
+	 (allocate-event 'pointer-button-press-event
+			 :sheet sheet
+			 :x 0 :y 0
+			 :modifier-state 0
+			 :button +pointer-left-button+))
+      (let ((frame (event-frame event))
+	    activity)
+	(when (and *input-buffer-empty*
+		   (or (eq *application-frame* frame)
+		       (and (typep frame 'activity-frame)
+			    (eq (frame-activity frame) *activity*)
+			    (setq activity *activity*))))
+	  (signal 'synchronous-command-event
+		  :command command))
+	;; Perhaps if this results directly from a user action then either
+	;; we should do it right away, ie. lose the input buffer or beep if
+	;; it has to be deferred,
+	(if (slot-value event 'queuep)
+	    (queue-frame-command (if activity (activity-active-frame activity) frame)
+				 (presentation-event-value event))
+	  (beep sheet))))))
 
 (defun queue-frame-command (frame command)
   (queue-push (frame-command-queue frame) command))

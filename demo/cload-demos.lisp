@@ -20,7 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: cload-demos.lisp,v 1.3 92/09/30 18:04:08 cer Exp $
+;; $fiHeader: cload-demos.lisp,v 1.4 92/10/07 14:43:20 cer Exp Locker: cer $
+
+(in-package :user)
 
 (defvar *demo-files* 
     '(
