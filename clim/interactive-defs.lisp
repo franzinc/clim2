@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.5 92/03/04 16:21:57 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.6 92/03/10 10:12:41 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -17,7 +17,7 @@
 (define-gesture-name :abort :keyboard 
   #+Genera (:abort)
   #+Cloe-Runtime (:escape)
-  #-(or Genera Cloe-Runtime) (:z :control))
+  #-(or Genera Cloe-Runtime) (:\Z :control))
 
 (defparameter *abort-gestures* '(:abort))
 

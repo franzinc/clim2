@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.6 92/03/04 16:19:32 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.7 92/03/09 17:41:12 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -182,6 +182,8 @@
 	(setf (sheet-transformation stream)
 	      (make-translation-transformation (- x) (- y)))
 	(bounding-rectangle-set-position* (viewport-viewport-region vp) x y)
+	;;--- Is this the correct place
+	(update-scrollbars vp)
 	(with-bounding-rectangle* (nleft ntop nright nbottom) 
 	    (pane-viewport-region stream)
 	  (cond

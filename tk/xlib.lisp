@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.10 92/03/04 16:19:16 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.11 92/03/09 17:41:03 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -338,20 +338,18 @@
 
 
 (defun lookup-string (event)
-  (let ((buffer (string-to-char* (make-string 20 :initial-element #\null))))
-    (with-ref-par 
-	((keysym 0) (compose-status 0))
-      (values
-       (x11:xlookupstring
-	event
-	buffer
-	20
-	keysym
-	;;compose-status is bigger than an int
-	#+this-is-a-goodway-to-die compose-status
-	0)
-       (char*-to-string buffer)
-       (sys:memref-int (foreign-pointer-address keysym) 0 0 :signed-long)))))
+  (with-ref-par 
+      ((keysym 0)
+       (buffer 0))
+    (values
+     (x11:xlookupstring
+      event
+      buffer
+      2 
+      keysym
+      0)
+     (char*-to-string (foreign-pointer-address buffer))
+     (sys:memref-int (foreign-pointer-address keysym) 0 0 :signed-long))))
 
 (defclass image ()
   ((width :reader image-width :initarg :width)

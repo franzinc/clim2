@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.4 92/03/04 16:21:53 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.5 92/03/10 10:12:37 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -64,7 +64,7 @@
 (define-gesture-name :complete :keyboard (:tab))
 (define-gesture-name :complete :keyboard (:complete))
 (define-gesture-name :help     :keyboard (:help))
-(define-gesture-name :possibilities :keyboard (:? :shift :control))
+(define-gesture-name :possibilities :keyboard (:? :control))
 
 ;; These need to be on a per-implementation basis, naturally
 ;;--- If you change these, change *MAGIC-COMPLETION-GESTURES* too
@@ -664,33 +664,33 @@
 	       gestures)))
 
 (define-input-editor-gestures
-  (:ie-abort                :g  :control)
-  (:ie-universal-argument   :u  :control)
-  (:ie-forward-character    :f  :control)
-  (:ie-forward-word	    :f  :meta)
-  (:ie-backward-character   :b  :control)
-  (:ie-backward-word	    :b  :meta)
+  (:ie-abort                :\G  :control)
+  (:ie-universal-argument   :\U  :control)
+  (:ie-forward-character    :\F  :control)
+  (:ie-forward-word	    :\F  :meta)
+  (:ie-backward-character   :\B  :control)
+  (:ie-backward-word	    :\B  :meta)
   (:ie-beginning-of-buffer  :\< :meta)
   (:ie-end-of-buffer	    :\> :meta)
-  (:ie-beginning-of-line    :a  :control)
-  (:ie-end-of-line	    :e  :control)
-  (:ie-next-line	    :n  :control)
-  (:ie-previous-line	    :p  :control)
-  (:ie-delete-character	    :d  :control)
-  (:ie-delete-word	    :d  :meta)
+  (:ie-beginning-of-line    :\A  :control)
+  (:ie-end-of-line	    :\E  :control)
+  (:ie-next-line	    :\N  :control)
+  (:ie-previous-line	    :\P  :control)
+  (:ie-delete-character	    :\D  :control)
+  (:ie-delete-word	    :\D  :meta)
   (:ie-rubout-character     :rubout)
   (:ie-rubout-word	    :rubout :meta)
-  (:ie-kill-line	    :k  :control)
+  (:ie-kill-line	    :\K  :control)
   (:ie-clear-input	    :clear-input)
-  (:ie-make-room	    :o  :control)
-  (:ie-transpose-characters :t  :control)
-  (:ie-show-arglist	    :a  :control :shift)
-  (:ie-show-value	    :v  :control :shift)
-  (:ie-kill-ring-yank	    :y  :control)
-  (:ie-history-yank	    :y  :control :meta)
-  (:ie-yank-next	    :y  :meta)
-  (:ie-scroll-forward	    :v  :control)
-  (:ie-scroll-backward	    :v  :meta)
+  (:ie-make-room	    :\O  :control)
+  (:ie-transpose-characters :\T  :control)
+  (:ie-show-arglist	    :\A  :control :shift)
+  (:ie-show-value	    :\V  :control :shift)
+  (:ie-kill-ring-yank	    :\Y  :control)
+  (:ie-history-yank	    :\Y  :control :meta)
+  (:ie-yank-next	    :\Y  :meta)
+  (:ie-scroll-forward	    :\V  :control)
+  (:ie-scroll-backward	    :\V  :meta)
   (:ie-scroll-forward	    :scroll)
   (:ie-scroll-backward	    :scroll :meta))
 

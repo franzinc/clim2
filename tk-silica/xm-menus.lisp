@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.4 92/02/24 13:06:21 cer Exp $
+;; $fiHeader: xm-menus.lisp,v 1.5 92/03/04 16:20:38 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -96,7 +96,14 @@
 	(tk::manage-child menu)
 	;; Now we have to wait
 	(port-force-output port)
-	(mp::process-wait "Returned value" #'(lambda () value-returned))
+	(mp::process-wait "Returned value" #'(lambda () 
+					       ;;-- This is to deal
+					       ;;-- with the race
+					       ;;-- condition where
+					       ;;-- the menu go down
+					       ;;-- to quick
+					       (or (not (tk::is-managed-p menu))
+						   value-returned)))
 	;; destroy the menu
 	(tk::unmanage-child menu)
 	(values-list return-value)))))

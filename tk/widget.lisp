@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.11 92/02/24 13:03:51 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.12 92/03/09 17:41:01 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -82,6 +82,11 @@
 (defun manage-child (child)
   (manage_child child))
 
+
+(defforeign 'xt_is_managed :entry-point "_XtIsManaged")
+
+(defun is-managed-p (widget)
+    (not (zerop (xt_is_managed widget))))
 
 (defforeign 'unmanage_child
     :entry-point "_XtUnmanageChild")
