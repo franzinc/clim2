@@ -1,0 +1,28 @@
+We need a way of define frames
+
+define-application-frame name supers options
+
+
+(:panes (name type . options)+)
+
+name -> a symbol
+type -> one of the abstract-gadget panes or
+	:application
+	:accept-values
+	???
+
+(:layouts (name layout-spec)+)
+
+layout-spec -> (:pane name  layout-options) |
+	       (vertically  layout-spec*) |
+	       (scrolling  layout-spec) |
+	       ....
+
+First layout in the list is the default.
+
+Various accessors
+
+frame-layouts, (setf frame-layouts)
+frame-current-layout, (setf (frame-current-layout)
+generate-panes frame framem layout
+ 

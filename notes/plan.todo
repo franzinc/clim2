@@ -1,0 +1,167 @@
+%%% Part One
+
+% Xlib
+  * Support for CLIM [2w]
+
+% Xtk
+  * Support for CLIM [1w]
+
+
+% Xm
+  * Tidy up [2w]
+
+% Silica
+  * Complete [2w]
+  * Finish motif [1w]
+  
+% Clim
+  * Application frames [2w]
+    - Command menus
+    - multiple layout support
+    - Support for all the incremental redisplay stuff, determing size
+      of frames by running display function etc etc.
+  * Implement widget layout macros [1w]
+  * output-recording-defs [2d]
+    - Need to implement output-recording for all the different types
+      of output
+  * Menus [1w]
+  * General tidying up [2w]
+    - Spec conformance - names etc
+
+== 14weeks
+
+%%% Part 2
+
+% Xlib
+  * CLX level support [4w]
+
+% Xtk
+  * Full interface [2w]
+
+
+% OLIT
+  * Implement for CLIM [1w]
+  * Full Interface [2w]
+
+% Silica
+  * OLIT [1w]
+
+== 10weeks
+
+
+% CLIM the next generation
+  * Accept <-> gadget interface
+
+  * Interface to UIL
+  * Interface to devGuide
+
+  * Support for programming in motif
+  * Support for programming in OpenLook
+
+--------------------------------------------------
+% CLIM issues
+  * Output protocol
+
+  * Mirror geometry protocol
+
+  * Scroller, viewport protocol
+
+  * Keyboard events
+    - Keyboard focus in widgets.
+    - Keysym translation
+    - NEED to look at sources
+
+  * Repaint
+    - clipping region and redrawing the background
+    - weird ensure-cursor-visible-behavior
+
+  * application frames
+    - Just take the 0.9 layout stuff
+    - + some mechanism for defining
+    - command-menus.
+      + We can create a menu bar and generate items for it. One
+        problem is that they will always be sensitive even when the
+        input context is not for a command. There seems no easy way of
+        doing this. I guess they generate a command-event that gets
+        executed at some point.
+    - clim-interactor has a display-function slot? and when that is
+      non NIL we invoke it after a command?
+    - Perhaps CLIM panes do a compose-space by running 
+  * menus
+  * accepting-values and gadgets
+
+% ff issues
+  * templates for def-c-type accessors
+  * templates for foreign function stuff
+  * specify arg-names for the foreign function arglist
+  * Efficient generation of CLOS <-> address mapping
+    - We want to have type checking
+    - we want stub code to be compact.
+    - How about doing inline stuff.
+  * Arg checking.
+    - I really want to specify the names of the arguments but I do not
+      want to do any checking.
+
+% Xlib interface
+  * generate xlib.h.lisp
+  * provide CLOS wrappers for Objects
+  * implement function interface
+  * Silica need not use the wrappers
+
+% Xt interface
+  * generate intrinsics.h.lisp
+  * provide CLOS wrappers for objects
+  * implement function interface
+
+  * issues
+    - graphics
+    - events
+    - font accessors
+    - images
+    - cursors
+    - misc accessors for displays, screens etc
+    - window operations
+    - graphics
+      + finished encode/decode
+    - initialization
+    - type checking in convertors
+    - implement CLX functionality.
+
+% xtk
+  * Event Handlers
+  * Finish callbacks
+  * Convenience functions
+  * timers and mp
+  * alternative input
+  * initialization
+  * type checking in resources convertors
+
+% xm 
+  * Generate class definitions
+  * Interface to Xmu/UIL
+
+% ol
+  * Generate class definitions
+  * Interface to devGuide UIL
+
+% Extensive implementation of silica
+  * graphics
+    - perhaps we can steal the code from clx-implementation
+
+% Windshield
+  * Frames, generic gadget protocol
+
+% Motif specific application frame level
+  * Perhaps we just define all of the gadgets and start using them
+
+% Adaptive toolkit level
+  * This bit seems OK except for the lack of integration between
+    gadgets and commands etc.  However, it is important for windows to
+    be designed with a GUI-BUILDER and used from within CLIM
+
+  * The notion of callbacks just being generic functions seems bad.
+
+% Rest is up to swm
+
+
+

@@ -1,0 +1,16 @@
+mirror-inside-region port sheet
+
+Returns x y width height.
+Calls below 
+
+sheet-actual-native-edges port sheet
+
+returns the edges in coordinate space of the parent mirror
+
+set-sheet-actual-native-edges* port sheet x1 y1 x2 y2
+
+Opposite of above
+
+mirror-region* port sheet
+
+This seems like mirror-inside-region* but slightly different.

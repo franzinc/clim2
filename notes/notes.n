@@ -1,0 +1,40 @@
+Parts of CLIM
+
+Xlib
+----
+
+Low level, primitive interface to X windows.
+
+Q: Choice:
+- CLX like
+- Xlib like
+
+Xt
+--
+
+Direct interface to the toolkit intrinsics
+
+Xm
+--
+
+Motif widgets interface
+
+Xol
+--
+
+Open look widget interface
+
+Silica/Windshield
+-----------------
+
+Sheets, widgets, event handling, 
+generic gadget protocol etc etc
+
+Q: Can you program directly in Xol/Xm directly at this level?
+
+CLIM
+----
+
+Presentations, output recording and all the high level shit.
+--------------------------------------------------
+
