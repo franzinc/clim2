@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.29 92/07/20 16:00:52 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.30 92/08/19 10:24:06 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -43,12 +43,15 @@ What about environment issue?
 (defmacro define-test ((name command-table) (stream) caption &body body)
   #+Genera (declare (zwei:indentation 2 1))
   (check-type caption (or null string))
+  (let ((command-name (clim-utils:fintern "~A-~A" 'com name)))
   `(progn
     (pushnew ',name *all-the-tests*)
-    (define-command (,name :command-table ,command-table :menu t) ()
+    (define-command (,command-name :command-table ,command-table :menu t) ()
        (write-test-caption ,caption)
        (with-display-pane (,stream)
-	 ,@body))))
+         (,name ,stream)))
+    (defun ,name (,stream)
+      ,@body))))
 
 (defun write-test-caption (caption)
   (let ((stream (get-frame-pane *application-frame* 'caption-pane)))
@@ -633,12 +636,27 @@ people, shall not perish from the earth.
     (format-graphics-sample stream "Large Point" '(draw-point* 0 0 :line-thickness 5)))
   (formatting-graphics-samples (stream "Some Lines")
     (format-graphics-sample stream "Some Lines"
-      '(draw-lines* (0 0 10 100 50 50 90 100 100 10))))
+      '(draw-lines* (0 0 10 100 50 50 90 100 100 10 40 50))))
   (formatting-graphics-samples (stream "Many Points")
     (format-graphics-sample stream "Many Small Points"
-      '(draw-points* (0 0 10 110 50 50 90 110 100 10)))
+      '(draw-points* (0 0 10 110 50 50 90 110 100 10 50 40)))
     (format-graphics-sample stream "Many Large Points"
-      '(draw-points* (0 0 10 100 50 50 90 100 100 10) :line-thickness 5))))
+			    '(draw-points* (0 0 10 100 50 50 90 100
+					    100 10 60 80) :line-thickness 5))))
+
+(define-test (rotated-text graphics) (stream)
+  "Test rotated text"
+  ;;--- Need to do this otherwise we get problems with replay because
+  ;;--- of overlapping output records.
+  (with-new-output-record (stream 'standard-sequence-output-record)
+    (with-output-as-presentation (stream 1 'form)
+      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 400 :towards-y 200))
+    (with-output-as-presentation (stream 2 'form) 
+      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 200 :towards-y 400))
+    (with-output-as-presentation (stream 3 'form) 
+      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 0 :towards-y 200))
+    (with-output-as-presentation (stream 4 'form) 
+      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 200 :towards-y 0))))
 
 
 (defparameter *named-colors*
@@ -1860,7 +1878,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (let ((data
 	  (clim-utils:with-standard-io-environment
 	    (let ((data nil)
-		  (*package* (or (find-package "COMMON-LISP-USER")
+		  (*package* (or (find-package :common-lisp-user)
 				 (error "Package COMMON-LISP-USER not found"))))
 	      (dolist (name-and-pathname specs)
 		(let* ((short-name (pop name-and-pathname))

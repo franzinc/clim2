@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.10 92/07/27 11:02:44 cer Exp Locker: cer $
+;; $fiHeader: pixmap-streams.lisp,v 1.11 92/08/18 17:25:19 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -24,10 +24,10 @@
 ;;--- the wrong stream
 #-Allegro	;--- SWM is willing to live with this, but not CER
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
-					 &key width height)
+									&key width height)
   (let ((record
-	  (with-output-to-output-record (stream)
-	    (funcall continuation stream))))
+	 (with-output-to-output-record (stream)
+	   (funcall continuation stream))))
     (unless (and width height)
       (output-record-set-position record 0 0)
       (multiple-value-setq (width height) (bounding-rectangle-size record)))
@@ -38,6 +38,8 @@
 			    :port (port stream)
 			    :medium pixmap-medium
 			    :width width :height height)))
+      (setf (medium-foreground pixmap-medium) (medium-foreground stream)
+	    (medium-background pixmap-medium) (medium-background stream))
       (replay record pixmap-stream)
       (slot-value pixmap-medium 'silica::pixmap))))
 
@@ -47,9 +49,31 @@
   (let* ((pixmap-medium (make-pixmap-medium (port stream) stream
 					    :width width :height height))
 	 (pixmap-stream (make-instance 'pixmap-stream 
-				       :default-text-margin width
-				       :port (port stream)
-				       :medium pixmap-medium
-				       :width width :height height)))
+			  :default-text-margin width
+			  :port (port stream)
+			  :medium pixmap-medium
+			  :width width :height height)))
+    (setf (medium-foreground pixmap-medium) (medium-foreground stream)
+	  (medium-background pixmap-medium) (medium-background stream))
     (funcall continuation pixmap-stream)
     (slot-value pixmap-medium 'silica::pixmap)))
+
+(defun pixmap-from-menu-item (associated-window menu-item printer presentation-type)
+  (with-menu (menu associated-window)
+    (setf (stream-text-margin menu) 1000)
+    (let ((rec (with-output-recording-options (menu :draw nil :record t)
+		 (with-output-to-output-record (menu)
+		   (handler-case
+		       (if presentation-type
+			   (present menu-item presentation-type :stream menu)
+			   (funcall printer menu-item menu))
+		     (error ()
+		       (write-string "Error in printer" menu)))))))
+      (multiple-value-bind (width height)
+	  (bounding-rectangle-size rec)
+	(with-output-to-pixmap (s associated-window :width width :height height)
+	  (draw-rectangle* s 0 0 width height :ink +background-ink+ :filled t)
+	  (replay-output-record 
+	    rec s +everywhere+
+	    (- (bounding-rectangle-min-x rec))
+	    (- (bounding-rectangle-min-y rec))))))))

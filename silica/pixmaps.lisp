@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.5 92/08/18 17:23:52 cer Exp Locker: cer $
+;; $fiHeader: pixmaps.lisp,v 1.6 92/08/19 10:23:43 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -105,14 +105,21 @@
   (invoke-with-output-to-pixmap (medium-sheet medium) continuation
 				:width width :height height))
 
-(defmethod invoke-with-output-to-pixmap ((sheet sheet) continuation 
+(defmethod invoke-with-output-to-pixmap ((stream standard-encapsulating-stream) continuation 
 					 &key width height)
+  (invoke-with-output-to-pixmap (encapsulating-stream-stream stream) continuation
+				:width width :height height))
+
+(defmethod invoke-with-output-to-pixmap ((sheet sheet) continuation 
+						       &key width height)
   (let* ((pixmap-medium (make-pixmap-medium (port sheet) sheet
 					    :width width :height height))
 	 (pixmap-sheet (make-instance 'pixmap-sheet 
 			 :port (port sheet)
 			 :medium pixmap-medium
 			 :width width :height height)))
+    (setf (medium-foreground pixmap-medium) (medium-foreground stream)
+	  (medium-background pixmap-medium) (medium-background stream))
     (funcall continuation pixmap-sheet)
     (slot-value pixmap-medium 'pixmap)))
 

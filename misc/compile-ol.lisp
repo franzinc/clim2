@@ -20,9 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-xm.lisp,v 1.6 92/03/10 10:13:13 cer Exp Locker: cer $
+;; $fiHeader: compile-ol.lisp,v 1.1 92/03/24 19:45:41 cer Exp $
 
 (in-package :user)
+
+(pushnew :clim-openlook *features*)
 
 (load "misc/compile-1")
 (compile-it 'openlook-clim)

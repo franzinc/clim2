@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.42 92/08/18 17:54:29 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.43 92/08/19 10:24:22 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -83,9 +83,15 @@
       (call-next-method)
     (with-accessors ((alignment gadget-alignment)
 		     (label gadget-label)) sheet
-      (when label
+      (cond 
+       ((stringp label)
 	(unless (getf initargs :label-string)
 	  (setf (getf initargs :label-string) label)))
+       ((typep label 'tk::pixmap)
+	(unless (getf initargs :label-pixmap)
+	  (setf (getf initargs :label-pixmap) label)
+	  (setf (getf initargs :label-type) :pixmap))))
+      
       (unless (getf initargs :alignment)
 	(setf (getf initargs :alignment) 
 	  (ecase alignment

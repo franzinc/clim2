@@ -20,7 +20,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimxm.lisp,v 1.3 92/06/02 13:31:20 cer Exp $
+;; $fiHeader: instclimxm.lisp,v 1.4 92/08/18 17:54:21 cer Exp Locker: cer $
 
 ;;
 ;; Load CLIM
@@ -31,14 +31,7 @@
 (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
 (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
-(load-application (progn 
-		    (require :climxm)
-		    (load-patches
-		     "patch"
-		     (namestring
-		      (merge-pathnames "update-clim-2.0"
-				       excl::*library-pathname*))))
-		  :devel system::*devel*)
+(load-application (require :climxm) :devel system::*devel*)
 
 (format t "~&; Finished loading CLIM~%")
 (force-output)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.14 92/07/27 11:02:31 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.15 92/08/18 17:25:07 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -318,28 +318,48 @@
 
 (define-input-editor-command (com-ie-scroll-forward :rescan nil)
 			     (stream numeric-argument)
-  (ie-scroll-window numeric-argument +1))
+  (ie-scroll-window numeric-argument :up))
 
 (define-input-editor-command (com-ie-scroll-backward :rescan nil)
 			     (stream numeric-argument)
-  (ie-scroll-window numeric-argument -1))
+  (ie-scroll-window numeric-argument :down))
 
-;; Scroll the frame's standard output stream vertically by some amount, 
+(define-input-editor-command (com-ie-scroll-left :rescan nil)
+			     (stream numeric-argument)
+  (ie-scroll-window numeric-argument :left))
+
+(define-input-editor-command (com-ie-scroll-right :rescan nil)
+			     (stream numeric-argument)
+  (ie-scroll-window numeric-argument :right))
+
+;; Scroll the frame's standard output stream in some direction by some amount, 
 ;; one screenful being the default.
 (defun ie-scroll-window (distance direction)
   (let* ((window (frame-standard-output *application-frame*))
 	 (history (and window
 		       (output-recording-stream-p window)
-		       (stream-output-history window))))
+		       (stream-output-history window)))
+	 (x-direction (case direction
+			(:left +1)
+			(:right -1)
+			(otherwise 0)))
+	 (y-direction (case direction
+			(:up +1)
+			(:down -1)
+			(otherwise 0))))
     (when (and window
 	       (pane-viewport window))
       (multiple-value-bind (x y) (window-viewport-position window)
+	(incf x (* (if (= distance 1)
+		       (bounding-rectangle-width (window-viewport window))
+		       (* distance (stream-character-width window #\0)))
+		   x-direction))
 	(incf y (* (if (= distance 1)
 		       (bounding-rectangle-height (window-viewport window))
 		       (* distance (stream-line-height window)))
-		   direction))
+		   y-direction))
 	(with-bounding-rectangle* (hleft htop hright hbottom) history
-	  (declare (ignore hleft hright))
+	  (setq x (min (max hleft x) hright))
 	  (setq y (min (max htop y) hbottom)))
 	(window-set-viewport-position window x y)))))
 
@@ -843,7 +863,17 @@
   (:ie-scroll-forward	    :v   :control)
   (:ie-scroll-backward	    :v   :meta)
   (:ie-scroll-forward	    :scroll)
-  (:ie-scroll-backward	    :scroll :meta))
+  (:ie-scroll-backward	    :scroll :meta)
+  (:ie-scroll-left	    :v   :super)
+  (:ie-scroll-right	    :v   :super :meta)
+  (:ie-scroll-left	    :scroll :super)
+  (:ie-scroll-right	    :scroll :super :meta))
+
+#+Allegro
+(define-input-editor-gestures
+  (:ie-show-arglist	    :a   :meta :shift)
+  (:ie-show-value	    :v   :meta :shift))
+
 
 (defmacro assign-input-editor-key-bindings (&body functions-and-gestures)
   (let ((forms nil))
@@ -888,7 +918,9 @@
   com-ie-yank-next	       :ie-yank-next
   com-ie-refresh	       :ie-refresh
   com-ie-scroll-forward	       :ie-scroll-forward
-  com-ie-scroll-backward       :ie-scroll-backward)
+  com-ie-scroll-backward       :ie-scroll-backward
+  com-ie-scroll-left	       :ie-scroll-left
+  com-ie-scroll-right          :ie-scroll-right)
 
 #+(or Allegro Lucid)
 (define-input-editor-gestures

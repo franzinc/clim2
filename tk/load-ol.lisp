@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.14 92/08/18 17:53:35 cer Exp Locker: cer $
+;; $fiHeader: load-ol.lisp,v 1.15 92/08/19 10:23:33 cer Exp $
 
 (in-package :user)
 
@@ -30,7 +30,7 @@
 (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
 (x11::load-undefined-symbols-from-library
- "clim-olit"
+ "clim-olit.o"
  (x11::symbols-from-file "misc/undefinedsymbols.olit")
  (list sys::*libxt-pathname* sys::*libx11-pathname*))
 

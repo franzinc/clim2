@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.21 92/08/18 17:25:53 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.22 92/08/18 17:54:12 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -340,6 +340,10 @@
 			      #-Genera (frob-pathname "tk")
      :needed-systems (xlib)
      :load-before-compile (xlib))
+  ;; Motif and Openlook specific foreign loading.
+  ;; Must be done early so defforeigns can be opencoded.
+  ("load-xm" :features clim-motif)
+  ("load-ol" :features clim-openlook)
   ;; General stuff
   ("pkg")
   ("macros")
@@ -364,37 +368,13 @@
   ("xt-init"))
 
 #+Allegro
-(clim-defsys:defsystem xm-load
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-		       #-Genera (frob-pathname "tk")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-			      #-Genera (frob-pathname "tk")
-     :needed-systems (xlib)
-     :load-before-compile (xlib))
-  ;; Motif specific foriegn loading.  Must be done early so defforeigns can
-  ;; be opencoded.
-  ("load-xm"))
-  
-#+Allegro
-(clim-defsys:defsystem ol-load
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-		       #-Genera (frob-pathname "tk")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-			      #-Genera (frob-pathname "tk")
-     :needed-systems (xlib)
-     :load-before-compile (xlib))
-  ;; Motif specific foriegn loading.  Must be done early so defforeigns can
-  ;; be opencoded.
-  ("load-ol"))
-  
-#+Allegro
 (clim-defsys:defsystem xm-tk
     (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-		       #-Genera (frob-pathname "tk")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-			      #-Genera (frob-pathname "tk")
-     :needed-systems (xm-load xt-tk)
-     :load-before-compile (xm-load xt-tk))
+      #-Genera (frob-pathname "tk")
+      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+      #-Genera (frob-pathname "tk")
+      :needed-systems (xt-tk)
+      :load-before-compile (xt-tk))
   ;; Motif specific stuff
   ("xm-defs")
   ("xm-funs")
@@ -414,8 +394,8 @@
 		       #-Genera (frob-pathname "tk")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
 			      #-Genera (frob-pathname "tk")
-     :needed-systems (ol-load xt-tk)
-     :load-before-compile (ol-load xt-tk))
+     :needed-systems (xt-tk)
+     :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
   ("ol-defs")
   ("ol-funs")
@@ -445,7 +425,8 @@
   ("xm-gadgets")
   ("xm-menus")
   ("xt-cursor")
-  ("xt-pixmaps"))
+  ("xt-pixmaps")
+  ("last"))
 
 #+Allegro
 (clim-defsys:defsystem openlook-clim
@@ -465,7 +446,8 @@
   ("ol-frames")
   ("xt-gadgets")
   ("ol-gadgets")
-  ("xt-pixmaps"))
+  ("xt-pixmaps")
+  ("last"))
 
 
 #+CCL-2

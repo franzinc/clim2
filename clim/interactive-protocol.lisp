@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.13 92/07/27 11:02:37 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.14 92/08/18 17:25:13 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -875,6 +875,8 @@
 		       (handler-bind 
 			   ((parse-error
 			      #'(lambda (error)
+				  ;;--- Resignal the error so the user can handle it
+				  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
 				  (beep stream)
 				  (remove-activation-gesture stream)
 				  (with-input-editor-typeout (stream :erase t)
@@ -919,12 +921,12 @@
 	(multiple-value-prog1
 	  (handler-bind ((sys:parse-error
 			   #'(lambda (error)
+			       ;;--- Resignal the error so the user can handle it
+			       ;;--- (in lieu of HANDLER-BIND-DEFAULT)
 			       (beep stream)
 			       (remove-activation-gesture stream)
 			       (with-input-editor-typeout (stream :erase t)
 				 (format stream "~A~%Please edit your input." error))
-			       ;;--- Using WITH-INPUT-EDITOR-typeout doesn't behave as
-			       ;;--- nicely as DW, but it's what CLIM has right now
 			       ;; Now wait until the user forces a rescan by typing
 			       ;; an input editing command
 			       (loop (read-gesture :stream stream)))))
@@ -948,12 +950,12 @@
     (with-delimiter-gestures (delimiter-gesture-p)
       (handler-bind ((sys:parse-error
 		       #'(lambda (error)
+			   ;;--- Resignal the error so the user can handle it
+			   ;;--- (in lieu of HANDLER-BIND-DEFAULT)
 			   (beep stream)
 			   (remove-activation-gesture stream)
 			   (with-input-editor-typeout (stream :erase t)
 			     (format stream "~A~%Please edit your input." error))
-			   ;;--- Using WITH-INPUT-EDITOR-TYPEOUT doesn't behave as
-			   ;;--- nicely as DW, but it's what CLIM has right now
 			   ;; Now wait until the user forces a rescan by typing
 			   ;; an input editing command
 			   (loop (read-gesture :stream stream)))))

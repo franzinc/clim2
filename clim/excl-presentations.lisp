@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.8 92/03/09 17:41:46 cer Exp $
+;; $fiHeader: excl-presentations.lisp,v 1.9 92/04/15 11:46:29 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -33,22 +33,26 @@
   nil)
 
 (defclass standard-excl-presentation (standard-presentation) 
-    ()
-  (:default-initargs :single-box nil))
+	  ()
+  (:default-initargs :single-box nil
+    :type 'expression))
 
-(defmethod initialize-instance :around ((rec standard-excl-presentation)
-					&rest args
-					&key (type nil type-p)
-					     object)
+(defmethod initialize-instance :after ((rec standard-excl-presentation)
+				       &rest args
+				       &key (type nil type-p)
+				       object)
+  (setf (slot-value rec 'type) 'expression)
+  #+ignore
   (when (and 
-	  ;; (null type-p)
-	  ;;--- If its a lisp kind of object then we want to generate expressions
-	  ;;--- but in the lisp thats all we generate to there
-	  ;;--- should be a problem
-	  t)
+	 ;; (null type-p)
+	 ;;--- If its a lisp kind of object then we want to generate expressions
+	 ;;--- but in the lisp thats all we generate to there
+	 ;;--- should be a problem
+	 t)
     (setf (getf args :type) 
-	  #-ignore 'expression
-	  #+ignore (presentation-type-of object)))
+      #-ignore 'expression
+      #+ignore (presentation-type-of object)))
+  #+ignore
   (apply #'call-next-method rec args))
 
 (defmethod excl::stream-presentation-record-type ((stream output-recording-mixin))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.29 92/08/19 10:23:51 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.30 92/08/19 18:04:40 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -590,34 +590,35 @@
   (list object))
 
 (defmethod accept-values-query-edit-value ((query accept-values-query) stream &key modify)
-  (let ((stream (slot-value stream 'stream)))
-    (with-slots (presentation-type value changed-p prompt presentation) query
-      (multiple-value-bind (xoff yoff)
-	  (convert-from-relative-to-absolute-coordinates
-	    stream (output-record-parent presentation))
-	(multiple-value-bind (x y) (output-record-position presentation)
-	  (stream-set-cursor-position stream (+ x xoff) (+ y yoff))))
-      (erase-output-record presentation stream)
-      (catch-abort-gestures ("Abort editing the current field")
-	(let ((new-value nil)
-	      (record nil))
-	  (setq record
-		(with-new-output-record (stream)
-		  (setq new-value
-			;; The text cursor should be visible while this ACCEPT is
-			;; waiting for input to be typed into this field
-		        (with-cursor-state (t stream)
-			  (accept presentation-type
-				  :stream stream :prompt nil :default value
-				  :insert-default modify)))))
-	  ;; This so that the input editor's typing gets erased properly.
-	  (erase-output-record record stream)
-	  ;;--- Kludge until Bill can explain the whole "leave the delimiter" vs
-	  ;;--- "process the delimiter" scheme to me
-	  (when (read-gesture :stream stream :peek-p t :timeout 0)
-	    (process-delimiter stream))
-	  (setf value new-value
-		changed-p t))))))
+  (with-slots (presentation-type value changed-p prompt presentation) query
+    (let ((stream (slot-value stream 'stream)))
+      (with-stream-cursor-position-saved (stream)
+	(multiple-value-bind (xoff yoff)
+	    (convert-from-relative-to-absolute-coordinates
+	      stream (output-record-parent presentation))
+	  (multiple-value-bind (x y) (output-record-position presentation)
+	    (stream-set-cursor-position stream (+ x xoff) (+ y yoff))))
+	(erase-output-record presentation stream)
+	(catch-abort-gestures ("Abort editing the current field")
+	  (let ((new-value nil)
+		(record nil))
+	    (setq record
+		  (with-new-output-record (stream)
+		    (setq new-value
+			  ;; The text cursor should be visible while this ACCEPT is
+			  ;; waiting for input to be typed into this field
+			  (with-cursor-state (t stream)
+			    (accept presentation-type
+				    :stream stream :prompt nil :default value
+				    :insert-default modify)))))
+	    ;; This so that the input editor's typing gets erased properly.
+	    (erase-output-record record stream)
+	    ;;--- Kludge until Bill can explain the whole "leave the delimiter" vs
+	    ;;--- "process the delimiter" scheme to me
+	    (when (read-gesture :stream stream :peek-p t :timeout 0)
+	      (process-delimiter stream))
+	    (setf value new-value
+		  changed-p t)))))))
 
 ;;--- This should be somewhere else.
 

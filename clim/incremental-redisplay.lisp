@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.10 92/07/20 16:00:22 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.11 92/08/18 17:25:03 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -797,7 +797,8 @@
 (defmethod cache-output-record ((output-record standard-updating-output-record)
 				child uid id-test)
   (with-slots (cache) output-record
-    ;; check for duplicates
+    ;; Check for duplicates.  It costs some time, but ensures against
+    ;; bugs that can be quite hard to fix.
     (when (find-with-test uid cache #'output-record-unique-id id-test)
       (cerror "Ignore the duplication.  Incremental redisplay will produce incorrect results."
 	      "The unique-id ~S was used in more than one ~S at the same level."

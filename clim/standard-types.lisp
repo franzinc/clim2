@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.10 92/07/27 11:02:56 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.11 92/08/18 17:25:34 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -498,7 +498,10 @@
 				      &key (test 'eql) (value-key 'identity))
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
-	    (partial-completers '(#\Space))))
+	    (partial-completers '(#\Space))
+	    ;; These are here so that they can be specialized in dialogs
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 (defun completion-default-name-key (item)
   (typecase item
@@ -526,8 +529,9 @@
 
 (define-presentation-method present (object (type completion) stream (view textual-view)
 				     &key acceptably)
-  (write-token (funcall name-key (find object sequence :key value-key :test test))
-		stream :acceptably acceptably))
+  (funcall printer
+	   (funcall name-key (find object sequence :key value-key :test test))
+	   stream :acceptably acceptably))
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (values
@@ -550,9 +554,11 @@
 				      #'(lambda (choice-value query-value)
 					  (declare (ignore query-value))
 					  choice-value)
-				      #'(lambda (continuation object stream)
-					  (with-text-face (stream :bold)
-					    (funcall continuation object stream)))))
+				      highlighter))
+
+(defun highlight-completion-choice (continuation object stream)
+  (with-text-face (stream :bold)
+    (funcall continuation object stream)))
 
 ;;--- Limit output if length is too long?
 (define-presentation-method describe-presentation-type ((type completion) stream plural-count)
@@ -625,20 +631,28 @@
   (make-presentation-type-specifier `(completion ,elements)
 				    :name-key name-key
 				    :documentation-key documentation-key
-				    :partial-completers partial-completers)
+				    :partial-completers partial-completers
+				    :printer printer
+				    :highlighter highlighter)
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
-	    (partial-completers '(#\Space))))
+	    (partial-completers '(#\Space))
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 
 (define-presentation-type-abbreviation member-sequence (sequence &key (test 'eql))
   (make-presentation-type-specifier `(completion ,sequence :test ,test)
 				    :name-key name-key
 				    :documentation-key documentation-key
-				    :partial-completers partial-completers)
+				    :partial-completers partial-completers
+				    :printer printer
+				    :highlighter highlighter)
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
-	    (partial-completers '(#\Space))))
+	    (partial-completers '(#\Space))
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 
 (define-presentation-type-abbreviation member-alist (alist &key (test 'eql))
@@ -647,10 +661,14 @@
 						 :value-key completion-alist-value-key)
 				    :name-key name-key
 				    :documentation-key documentation-key
-				    :partial-completers partial-completers)
+				    :partial-completers partial-completers
+				    :printer printer
+				    :highlighter highlighter)
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-alist-default-doc-key)
-	    (partial-completers '(#\Space))))
+	    (partial-completers '(#\Space))
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 
 ;;;; "Some-of" Presentation Types
@@ -661,7 +679,10 @@
 	    (documentation-key 'completion-default-doc-key)
 	    (partial-completers '(#\Space))
 	    (separator #\,)
-	    (echo-space t)))
+	    (echo-space t)
+	    ;; These are here so that they can be specialized in dialogs
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 ;;--- Is there supposed to be a way to input and output the empty list?
 ;;--- In DW there is "no tokens selected" on output and blank on input
@@ -670,9 +691,10 @@
 				     &key acceptably)
   (let ((length (length object)))
     (dotimes (i length)
-      (write-token (funcall name-key (find (elt object i) sequence
-					    :key value-key :test test))
-		    stream :acceptably acceptably)
+      (funcall printer
+	       (funcall name-key (find (elt object i) sequence
+				       :key value-key :test test))
+	       stream :acceptably acceptably)
       (unless (= i (1- length))
 	(write-char separator stream)
 	(when (and echo-space (not (eql separator #\space)))
@@ -760,9 +782,7 @@
 				    #'(lambda (choice-value query-value)
 					(declare (ignore query-value))
 					choice-value)
-				    #'(lambda (continuation object stream)
-					(with-text-face (stream :bold)
-					  (funcall continuation object stream)))))
+				    highlighter))
 
 ;;--- Limit output if length is too long?
 (define-presentation-method describe-presentation-type ((type subset-completion) stream
@@ -804,12 +824,16 @@
 				    :documentation-key documentation-key
 				    :partial-completers partial-completers
 				    :separator separator
-				    :echo-space echo-space)
+				    :echo-space echo-space
+				    :printer printer
+				    :highlighter highlighter)
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
 	    (partial-completers '(#\Space))
 	    (separator #\,)
-	    (echo-space t)))
+	    (echo-space t)
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 
 (define-presentation-type-abbreviation subset-sequence (sequence &key (test 'eql))
@@ -818,12 +842,16 @@
 				    :documentation-key documentation-key
 				    :partial-completers partial-completers
 				    :separator separator
-				    :echo-space echo-space)
+				    :echo-space echo-space
+				    :printer printer
+				    :highlighter highlighter)
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-default-doc-key)
 	    (partial-completers '(#\Space))
 	    (separator #\,)
-	    (echo-space t)))
+	    (echo-space t)
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 
 (define-presentation-type-abbreviation subset-alist (alist &key (test 'eql))
@@ -834,12 +862,16 @@
 				    :documentation-key documentation-key
 				    :partial-completers partial-completers
 				    :separator separator
-				    :echo-space echo-space)
+				    :echo-space echo-space
+				    :printer printer
+				    :highlighter highlighter)
   :options ((name-key 'completion-default-name-key)
 	    (documentation-key 'completion-alist-default-doc-key)
 	    (partial-completers '(#\Space))
 	    (separator #\,)
-	    (echo-space t)))
+	    (echo-space t)
+	    (printer #'write-token)
+	    (highlighter #'highlight-completion-choice)))
 
 
 ;;;; Sequence Presentation Types

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.3 92/07/27 11:03:53 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.4 92/08/18 17:26:47 cer Exp Locker: cer $
 
 (in-package :postscript-clim)
 
@@ -32,22 +32,22 @@
 		 (transform-distance ,transform ,x ,y))
 	      forms)))))
 
-(defun use-line-style (stream line-style)
-  (let ((thickness (case (line-style-unit line-style)
+(defun use-line-style (medium line-style)
+  (let ((printer-stream (slot-value medium 'printer-stream))
+	(thickness (case (line-style-unit line-style)
 		     (:normal (normal-line-thickness 
-				(port stream) (line-style-thickness line-style)))
+			        (port medium) (line-style-thickness line-style)))
 		     (:points (line-style-thickness line-style))))
 	(dashes (line-style-dashes line-style)))
-    (with-slots (printer-stream) stream
-      (format printer-stream " ~D setlinewidth~%" thickness)
-      (when dashes
-	(making-ps-array (printer-stream)
-	  (let ((limit (length dashes)))
-	    (dotimes (i limit)
-	      (write (elt dashes i) :stream printer-stream :escape nil)
-	      (unless (>= (1+ i) limit)
-		(write-char #\space printer-stream)))))
-	(format printer-stream "0 setdash~%")))))
+    (format printer-stream " ~D setlinewidth~%" thickness)
+    (when dashes
+      (making-ps-array (printer-stream)
+        (let ((limit (length dashes)))
+	  (dotimes (i limit)
+	    (write (elt dashes i) :stream printer-stream :escape nil)
+	    (unless (>= (1+ i) limit)
+	      (write-char #\space printer-stream)))))
+      (format printer-stream "0 setdash~%"))))
 
 (defun color-equal (c1 c2)
   (or (eq c1 c2)
@@ -58,53 +58,53 @@
 	       (and (= r1 r2) (= g1 g2) (= b1 b2)))))))
 
 (defmethod maybe-set-color
-	   ((stream postscript-medium) (ink (eql +foreground-ink+)))
-  (maybe-set-color stream (or (slot-value stream 'current-color) +black+)))
+	   ((medium postscript-medium) (ink (eql +foreground-ink+)))
+  (maybe-set-color medium (or (slot-value medium 'current-color) +black+)))
 
 (defmethod maybe-set-color
-	   ((stream postscript-medium) (ink (eql +background-ink+)))
-  (maybe-set-color stream +white+))
+	   ((medium postscript-medium) (ink (eql +background-ink+)))
+  (maybe-set-color medium +white+))
 
 (defmethod maybe-set-color
-	   ((stream postscript-medium) (ink flipping-ink))
+	   ((medium postscript-medium) (ink flipping-ink))
   (error "Postscript devices can't draw with flipping inks."))
 
-(defmethod maybe-set-color ((stream postscript-medium) (ink color))
-  (with-slots (current-color printer-stream) stream
+(defmethod maybe-set-color ((medium postscript-medium) (ink color))
+  (with-slots (current-color printer-stream) medium
     (when (or (null current-color)
 	      (not (color-equal current-color ink)))
       (setf current-color ink)
       (multiple-value-bind (r g b) (color-rgb ink)
 	(format printer-stream  " ~,2F ~,2F ~,2F setrgbcolor~%" r g b)))))
 
-(defmethod maybe-set-color ((stream postscript-medium) (ink rectangular-tile))
+(defmethod maybe-set-color ((medium postscript-medium) (ink rectangular-tile))
   ;; Handled in the patterned fill/stroke case
   )
 
 (defmethod maybe-set-color
-	   ((stream postscript-medium) (ink contrasting-ink))
-  (maybe-set-color stream (make-color-for-contrasting-ink ink)))
+	   ((medium postscript-medium) (ink contrasting-ink))
+  (maybe-set-color medium (make-color-for-contrasting-ink ink)))
 
-(defmacro with-postscript-drawing-options ((stream printer-stream-var
+(defmacro with-postscript-drawing-options ((medium printer-stream-var
 					    &key ink (filled nil filled-p) line-style
 						 epilogue (newpath t))
 					   &body body)
-  (let ((printer-stream (or printer-stream-var (make-symbol "printer-stream"))))
-    `(let ((,printer-stream (slot-value ,stream 'printer-stream)))
+  (let ((printer-stream (or printer-stream-var (make-symbol (symbol-name 'printer-stream)))))
+    `(let ((,printer-stream (slot-value ,medium 'printer-stream)))
        (when (and ,@(and filled-p `((not ,filled))) ,line-style)
-	 (use-line-style ,stream ,line-style))
-       (maybe-set-color ,stream ,ink)
+	 (use-line-style ,medium ,line-style))
+       (maybe-set-color ,medium ,ink)
        ,@(when newpath `((format ,printer-stream " newpath~%")))
        ,@body
        ,@(case epilogue
-	   (:default `((if (null ,line-style)
-			   (ps-fill ,stream ,printer-stream ,ink)
-			   (ps-stroke ,stream ,printer-stream ,ink))))
-	   (:fill `((ps-fill ,stream ,printer-stream ,ink)))
-	   (:stroke `((ps-stroke ,stream ,printer-stream ,ink)))))))
+	   (:default `((if ,(if filled-p `,filled `(not ,line-style))
+			   (ps-fill ,medium ,printer-stream ,ink)
+			   (ps-stroke ,medium ,printer-stream ,ink))))
+	   (:fill `((ps-fill ,medium ,printer-stream ,ink)))
+	   (:stroke `((ps-stroke ,medium ,printer-stream ,ink)))))))
 
 (defmethod medium-draw-point* ((medium postscript-medium) x y)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (convert-to-postscript-coordinates transform x y)
@@ -118,7 +118,7 @@
 	x y))))
 
 (defmethod medium-draw-points* ((medium postscript-medium) position-seq)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (with-postscript-drawing-options (medium printer-stream
@@ -132,7 +132,7 @@
 	position-seq))))
 
 (defmethod medium-draw-line* ((medium postscript-medium) x1 y1 x2 y2)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (convert-to-postscript-coordinates transform x1 y1 x2 y2)
@@ -146,7 +146,7 @@
 	x1 y1 x2 y2))))
 
 (defmethod medium-draw-lines* ((medium postscript-medium) position-seq)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (with-postscript-drawing-options (medium printer-stream
@@ -161,7 +161,7 @@
 
 (defmethod medium-draw-rectangle* ((medium postscript-medium)
 				   left top right bottom filled)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (convert-to-postscript-coordinates transform
@@ -179,7 +179,7 @@
 	left top right bottom))))
 
 (defmethod medium-draw-rectangles* ((medium postscript-medium) position-seq filled)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (with-postscript-drawing-options (medium printer-stream
@@ -197,7 +197,7 @@
 	position-seq))))
 
 (defmethod medium-draw-polygon* ((medium postscript-medium) position-seq closed filled)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
 	 (minx most-positive-fixnum)
@@ -220,13 +220,13 @@
 	(let ((start-x (svref points 0))
 	      (start-y (svref points 1)))
 	  (ps-pos-op medium "m" start-x start-y)
-	  (do* ((i 2 (+ i 2))
-		(ex (svref points i) (svref points i))
-		(ey (svref points (1+ i)) (svref points (1+ i))))
+	  (do ((i 2 (+ i 2)))
 	       ((>= i length)
 		(when closed
 		  (format printer-stream " closepath ")))
-	    (ps-pos-op medium "lineto" ex ey))))
+	    (let ((ex (svref points i))
+		  (ey (svref points (1+ i))))
+	      (ps-pos-op medium "lineto" ex ey)))))
       (annotating-postscript (medium printer-stream)
 	(format printer-stream "        (medium-draw-polygon* ~A ...)"
 	  position-seq)))))
@@ -236,7 +236,7 @@
 				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 				 start-angle end-angle filled)
   (maybe-send-feature medium 'ellipse *ps-ellipse-code*)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
     (convert-to-postscript-coordinates transform center-x center-y)
@@ -288,13 +288,13 @@
     (setq start 0))
   (unless end
     (setq end (length string)))
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (text-style (medium-merged-text-style medium)))
     (convert-to-postscript-coordinates transform x y)
     (when towards-x
       (convert-to-postscript-coordinates transform towards-x towards-y))
-    (let* ((fcs (get-font-compat-str medium text-style))
+    (let* ((fcs (get-font-compat-str (port medium) medium text-style))
 	   (height (psfck-clim-height fcs))
 	   (descent (psfck-clim-descent fcs))
 	   (ascent (- height descent)))
@@ -321,7 +321,7 @@
 (defmethod medium-draw-character* ((medium postscript-medium)
 				   character x y align-x align-y
 				   towards-x towards-y transform-glyphs)
-  (let* ((transform +identity-transformation+)
+  (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (text-style (medium-merged-text-style medium)))
     (convert-to-postscript-coordinates transform x y)
@@ -329,7 +329,7 @@
       (convert-to-postscript-coordinates transform towards-x towards-y))
     (with-slots (printer-stream ch1buf) medium
       (setf (aref ch1buf 0) character)
-      (let* ((fcs (get-font-compat-str medium text-style))
+      (let* ((fcs (get-font-compat-str (port medium) medium text-style))
 	     (height (psfck-clim-height fcs))
 	     (descent (psfck-clim-descent fcs))
 	     (ascent (- height descent)))
@@ -364,36 +364,37 @@
 			   align-x align-y towards-x towards-y transform-glyphs)))
 
 #+++ignore
-(defmethod draw-vertical-string-internal ((stream postscript-medium)
+(defmethod draw-vertical-string-internal ((medium postscript-medium)
 					  x-offset y-offset
 					  string x y start end
 					  align-x align-y text-style ink)
   (unless end
     (setq end (length string)))
   (unless text-style
-    (setq text-style (medium-merged-text-style stream)))
+    (setq text-style (medium-merged-text-style medium)))
   (translate-positions x-offset y-offset x y)
-  (let* ((fcs (get-font-compat-str stream text-style))
+  (let* ((fcs (get-font-compat-str (port medium) medium text-style))
 	 (height (psfck-clim-height fcs))
 	 (descent (psfck-clim-descent fcs))
 	 (ascent (- height descent)))
     (let ((x-adjust 
-	    (compute-text-x-adjustment align-x stream string text-style start end))
+	    (compute-text-x-adjustment align-x medium string text-style start end))
 	  (y-adjust 
 	    (compute-text-y-adjustment align-y descent ascent height)))
-      (set-font-if-needed stream fcs)
-      (with-postscript-drawing-options (stream printer-stream
+      (set-font-if-needed medium fcs)
+      (with-postscript-drawing-options (medium printer-stream
 					:epilogue nil :newpath nil
 					:ink ink)
-	(with-postscript-gsave stream 
-	  (ps-pos-op stream "m" x y)
+	(with-postscript-gsave medium 
+	  (ps-pos-op medium "m" x y)
 	  (format printer-stream " currentpoint translate 90 rotate ")
-	  (ps-rel-pos-op stream "rmoveto" x-adjust y-adjust)
+	  (ps-rel-pos-op medium "rmoveto" x-adjust y-adjust)
 	  (carefully-output-ps-showstring printer-stream string start end))))))
 
 ;;; provide a way for the "user" to start a new page.
 ;;; Should this have a different name?
 ;;; Should this functionality be invoked by writing the #\page character?
+;;--- Big stream/medium confusion here!
 (defmethod new-page ((stream postscript-medium))
   (with-slots (printer-stream orientation) stream
     (format printer-stream "new-page~%"))
@@ -414,7 +415,7 @@
 		   ;; For now we are asserting that each string passed to WRITE-STRING will
 		   ;; have no style changes within it.  This is what our-font is all
 		   ;; about.
-		   (let* ((fcs (or ,our-font (get-font-compat-str ,port ,style)))
+		   (let* ((fcs (or ,our-font (get-font-compat-str ,port nil ,style)))
 			  (cwt (psfck-width-table fcs))
 			  (relwidth (if (numberp cwt) 
 					cwt
@@ -444,8 +445,8 @@
     (stream-scan-string-for-writing-1
       stream medium string start end style cursor-x max-x glyph-buffer)))
 
-(defmethod set-font-if-needed ((stream postscript-medium) fcs)
-  (with-slots (printer-stream curfont) stream
+(defmethod set-font-if-needed ((medium postscript-medium) fcs)
+  (with-slots (printer-stream curfont) medium
     (unless (eq curfont fcs)
       (format printer-stream "~D f " (psfck-index fcs))
       (setf curfont fcs))))
@@ -467,8 +468,8 @@
       (setq start (1+ next-special))))
   (format printer-stream ") show~%"))
 
-(defmethod get-font-compat-str ((medium postscript-medium) text-style)
-  (with-slots (font-map printer-stream draw-p) medium 
+(defmethod get-font-compat-str ((port postscript-port) medium text-style)
+  (with-slots (font-map) port
     (let* ((styledesc (parse-text-style text-style))
 	   (al (length font-map))
 	   (fcs
@@ -483,11 +484,15 @@
 		 (when (eq styledesc (psfck-style-descriptor fcs))
 		   (return fcs))))))
       (when (and fcs 
-		 draw-p
+		 medium
+		 (let ((stream (medium-sheet medium)))
+		   (or (not (output-recording-stream-p stream))
+		       (stream-drawing-p stream)))
 		 (not (psfck-established fcs)))
-	(format printer-stream "~D ~D /~A estfont~%"
-	  (psfck-index fcs) (psfck-points fcs) (get-ps-fam-face-name fcs))
-	(setf (psfck-established fcs) t))
+	  (with-slots (printer-stream) medium 
+	    (format printer-stream "~D ~D /~A estfont~%"
+		    (psfck-index fcs) (psfck-points fcs) (get-ps-fam-face-name fcs))
+	    (setf (psfck-established fcs) t)))
       fcs)))
 
 
@@ -526,7 +531,7 @@
     points))
 
 (defmethod text-style-fixed-width-p 
-	   ((text-style standard-text-style) (stream postscript-medium))
+	   ((text-style standard-text-style) (medium postscript-medium))
   (let* ((family (text-style-family text-style))
 	 (face (text-style-face text-style))
 	 (psfam (or (second (assoc family *postscript-font-translate-data*))

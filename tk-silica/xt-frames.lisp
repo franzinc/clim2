@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.14 92/07/20 16:01:55 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.15 92/07/24 10:55:01 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -166,29 +166,6 @@
 	(framem-destroy-menu framem menu))
       
       (values-list (nth-value 1 (funcall closure))))))
-
-
-(defun pixmap-from-menu-item (associated-window menu-item printer presentation-type)
-  (with-menu (menu associated-window)
-    (setf (stream-text-margin menu) 1000)
-    (let ((rec (with-output-recording-options (menu :draw nil :record t)
-		 (with-output-to-output-record (menu)
-		   (handler-case
-		       (if presentation-type
-			   (present menu-item presentation-type :stream menu)
-			 (funcall printer menu-item menu))
-		     (error (c)
-		       (write-string "Error in printer" menu)))))))
-      (multiple-value-bind
-	  (width height)
-	  (bounding-rectangle-size rec)
-	(with-output-to-pixmap (s associated-window :width width :height height)
-	  (multiple-value-call #'draw-rectangle* 
-	    s 0 0 (bounding-rectangle-size s) :ink +background-ink+)
-	  (replay-output-record 
-	    rec s +everywhere+
-	    (- (bounding-rectangle-min-x rec))
-	    (- (bounding-rectangle-min-y rec))))))))
 
 
 ;;;

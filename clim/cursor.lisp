@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.15 92/08/18 17:24:47 cer Exp Locker: cer $
+;; $fiHeader: cursor.lisp,v 1.16 92/08/19 18:04:51 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -70,18 +70,20 @@
   (with-slots (x y flags stream) cursor
     (unless (and (= x (coordinate nx))
 		 (= y (coordinate ny)))
-      (if fastp
+      (if (or fastp (not (cursor-state cursor)))
 	  (setf x (coordinate nx)
 		y (coordinate ny))
-	  (let ((active (cursor-active cursor)))
-	    (unwind-protect
-		(progn
-		  (when active
-		    (setf (cursor-active cursor) nil))
-		  (setf x (coordinate nx)
-			y (coordinate ny)))
-	      (when active
-		(setf (cursor-active cursor) active))))))))
+	(let ((active (cursor-active cursor))) 
+	  ;; Turn it off and
+	  ;; then turn it on to make it move
+	  (unwind-protect
+	      (progn
+		(when active
+		  (setf (cursor-active cursor) nil))
+		(setf x (coordinate nx)
+		      y (coordinate ny)))
+	    (when active
+	      (setf (cursor-active cursor) active))))))))
 
 (defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
   (with-slots (flags) cursor

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.42 92/08/18 17:54:17 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.43 92/08/19 10:24:17 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -93,7 +93,7 @@ XM_UNDEFS=misc/undefinedsymbols.motif
 # This should be the same as load-ol
 OL_UNDEFS=misc/undefinedsymbols.olit
 
-CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl
+CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl climps.fasl
 CLIMOBJS= clim-motif.o clim-olit.o stub-xt.o stub-x.o xlibsupport.o MyDrawingA.o \
 	  olsupport.o xtsupport.o
 
@@ -279,7 +279,8 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/xm-gadgets.fasl \
                    tk-silica/xm-menus.fasl \
                    tk-silica/xt-pixmaps.fasl \
-                   tk-silica/xt-cursor.fasl
+                   tk-silica/xt-cursor.fasl \
+                   tk-silica/last.fasl
 
 
 OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
@@ -293,7 +294,13 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/xt-gadgets.fasl \
                       tk-silica/ol-gadgets.fasl \
 		      tk-silica/xt-cursor.fasl \
-                      tk-silica/xt-pixmaps.fasl
+                      tk-silica/xt-pixmaps.fasl \
+		      tk-silica/last.fasl
+
+POSTSCRIPT_CLIM= postscript/pkgdcl.fasl \
+	postscript/postscript-port.fasl \
+	postscript/postscript-medium.fasl \
+	postscript/laserwriter-metrics.fasl 
 
 # Used for tags
 ALL_SRC =	   utils/excl-verification.lisp \
@@ -496,7 +503,7 @@ compile-ol:	$(CLIMOBJS) FORCE
 # Concatenation
 
 cat:	cat-xm cat-ol
-cat-g:	climg.fasl clim-debug.fasl
+cat-g:	climg.fasl clim-debug.fasl climps.fasl
 cat-xm:	cat-g climxm.fasl
 cat-ol:	cat-g climol.fasl
 
@@ -527,6 +534,10 @@ clim-debug.fasl:	$(DEBUG-OBJS)
 	ls -lt clim-debug.fasl >> Clim-sizes.n
 	ls -lt clim-debug.fasl
 
+climps.fasl: 	$(POSTSCRIPT_CLIM)
+	$(CAT) $(POSTSCRIPT_CLIM) > $(TMP)/climps.fasl_`whoami`
+	$(MV) $(TMP)/climps.fasl_`whoami` climps.fasl
+	
 # We should only run these rules when
 # We do this because we because we might have only compiled one port
 

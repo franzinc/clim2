@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.11 92/07/20 16:01:38 cer Exp Locker: cer $
+;; $fiHeader: puzzle.lisp,v 1.12 92/08/19 18:05:21 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -75,19 +75,19 @@
     ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
     (stream-set-cursor-position stream 0 0)
     (updating-output (stream)
-	(formatting-table (stream)
-	    (dotimes (row 4)
-	      (formatting-row (stream)
-		  (dotimes (column 4)
-		    (let ((value (aref puzzle-array row column)))
-		      (updating-output (stream
-					:unique-id (encode-puzzle-cell row column)
-					:cache-value value)
-			  (formatting-cell (stream :align-x :right)
-			      (unless (zerop value)
-				(with-output-as-presentation 
-				    (stream (encode-puzzle-cell row column) 'puzzle-cell)
-				  (format stream "~2D" value)))))))))))))
+      (formatting-table (stream)
+	(dotimes (row 4)
+	  (formatting-row (stream)
+	    (dotimes (column 4)
+	      (let ((value (aref puzzle-array row column)))
+		(updating-output (stream
+				  :unique-id (encode-puzzle-cell row column)
+				  :cache-value value)
+		  (formatting-cell (stream :align-x :right)
+		    (unless (zerop value)
+		      (with-output-as-presentation 
+			  (stream (encode-puzzle-cell row column) 'puzzle-cell)
+			(format stream "~2D" value)))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)

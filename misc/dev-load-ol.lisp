@@ -20,7 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-ol.lisp,v 1.1 92/03/24 19:45:44 cer Exp $
+;; $fiHeader: dev-load-ol.lisp,v 1.2 92/05/07 13:13:48 cer Exp $
+
+(pushnew :clim-openlook *features*)
 
 (load "misc/dev-load-1")
 (load-it 'openlook-clim)

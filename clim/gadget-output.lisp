@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.23 92/07/27 11:02:23 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.24 92/08/18 17:24:55 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -294,7 +294,10 @@
 		      #'(lambda (element)
 			  (let ((button
 				  (make-pane 'toggle-button 
-				    :label (funcall name-key element)
+					     :label (let ((name (funcall name-key element)))
+						      (if (eq printer #'write-token)
+							  name
+							(pixmap-from-menu-item stream name printer nil)))
 				    :indicator-type :one-of
 				    :value (and default-supplied-p
 						(funcall test 

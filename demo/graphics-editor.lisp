@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.3 92/08/18 17:26:19 cer Exp Locker: cer $
+;; $fiHeader: graphics-editor.lisp,v 1.4 92/08/19 10:24:14 cer Exp Locker: cer $
 
 (in-package :clim-graphics-editor)
 
@@ -246,51 +246,40 @@
 	(1/5 options)
 	(:fill display)))))
 
-(define-presentation-type line-thickness ()
-  :inherit-from `(integer 1 4))
+(define-presentation-type-abbreviation line-thickness ()
+  '((member 1 2 3 4) :name-key identity
+		     :printer present-line-thickness
+		     :highlighter highlight-line-thickness))
 
-;;--- CLIM should provide a better way to do this one function
-(define-presentation-method accept-present-default
-			    ((type line-thickness) stream
-			     (view clim-internals::dialog-view-mixin)
-			     default default-supplied-p
-			     present-p
-			     query-identifier &key)
-  (declare (ignore default-supplied-p present-p))
-  (flet ((presenter (thing stream)
-	   (let ((y (stream-line-height stream)))
-	     (with-room-for-graphics (stream)
-	       (draw-rectangle* stream 0 2 16 (- y 2)
-				:filled nil :ink +background-ink+)
-	       (draw-line* stream 0 (floor y 2) 16 (floor y 2)
-			   :line-thickness thing)))))
-    (declare (dynamic-extent #'presenter))
-    (clim-internals::accept-values-choose-from-sequence-1
-      stream '(("1" 1) ("2" 2) ("3" 3) ("4" 4))
-      #'second default #'eql type query-identifier
-      #'(lambda (choice-value query-value)
-	  (declare (ignore query-value))
-	  choice-value)
-      #'(lambda (continuation object stream)
-	  (surrounding-output-with-border (stream)
-	    (funcall continuation object stream)))
-      'clim-internals::accept-values-one-of #'presenter)))
+(defun present-line-thickness (object stream &key acceptably)
+  (declare (ignore acceptably))
+  (let ((y (stream-line-height stream)))
+    (with-room-for-graphics (stream)
+      (draw-rectangle* stream 0 2 16 (- y 2)
+		       :filled nil :ink +background-ink+)
+      (draw-line* stream 0 (floor y 2) 16 (floor y 2)
+		  :line-thickness object))))
+
+(defun highlight-line-thickness (continuation object stream)
+  (surrounding-output-with-border (stream)
+    (funcall continuation object stream)))
 
 (defmethod accept-graphics-editor-options ((frame graphics-editor) stream)
   (with-slots (style shape) frame
-    (flet ((accept (type default prompt query-id)
+    (flet ((accept (type default prompt query-id 
+		    &optional (view (stream-default-view stream)))
 	     (let (object ignore changed)
-	       (formatting-cell (stream :align-x :center :min-width 200)
+	       (formatting-cell (stream :align-x :center)
 		 (multiple-value-setq (object ignore changed)
 		   (accept type
 			   :stream stream :default default
-			   :query-identifier query-id :prompt
-			   prompt)))
+			   :query-identifier query-id :prompt prompt
+			   :view view)))
 	       (values object changed))))
       (declare (dynamic-extent #'accept))
       (terpri stream)
       (terpri stream)
-      (formatting-table (stream)
+      (formatting-table (stream :x-spacing '(3 :character))
 	(formatting-row (stream)
 	  (let ((thickness (line-style-thickness style))
 		(dashes (line-style-dashes style)))

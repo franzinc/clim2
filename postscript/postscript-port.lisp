@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
+;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.3 92/07/20 16:02:06 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.4 92/08/18 17:26:48 cer Exp Locker: cer $
 
 (in-package :postscript-clim)
 
@@ -40,7 +40,7 @@
 (defmacro points-to-pixels (&rest points)
   (let ((forms nil))
     (dolist (point points)
-      (push `(setq ,point (/ ,point *1-pixel=points*)) forms))
+      (push `(setq ,point (float (/ ,point *1-pixel=points*) 0f0)) forms))
     `(progn ,@(nreverse forms))))
 
 (defvar *annotate-postscript* nil)
@@ -193,8 +193,8 @@
 (defun keywordify-style-face (face)
   (cond ((eq face ':roman) nil)
 	((atom face) face)
-	((equal face '(:bold :italic)) :bold-italic)
-	((equal face '(:italic :bold)) :bold-italic)
+	((or (equal face '(:bold :italic))
+	     (equal face '(:italic :bold))) :bold-italic)
 	(t (list :numeric-code face))))
 
 (defun point-size-for-size-keyword (size-keyword family-data)
@@ -216,7 +216,7 @@
 	(width-table nil))
     (multiple-value-bind (family face size-kludge)
 	(find-family-and-face-for-postscript-font-name name)
-      ;; if the kludgy size element of the font's description in
+      ;; If the kludgy size element of the font's description in
       ;; *ps-font-family-data* is a number, just use it instead of
       ;; building the width table.
       (cond ((numberp size-kludge)
@@ -225,14 +225,14 @@
 	     (setq width-table (make-array 256))
 	     (dolist (char-info char-widths)
 	       (let ((char-code (first char-info))
-		     (char-width (/ (second char-info) scale)))
+		     (char-width (float (/ (second char-info) scale) 0f0)))
 		 (setf (aref width-table char-code) char-width)))))
       (let ((key `(,family ,face)))
 	(when (car key)				;check family to make sure we found the name
 	  (let* ((temp (assoc key *char-width-tables* :test #'equal))
-		 (height (abs (/ (- (fourth box) (second box)) scale)))
-		 (ascent (abs (/ (fourth box) scale)))
-		 (descent (abs (/ (second box) scale)))
+		 (height (abs (float (/ (- (fourth box) (second box)) scale) 0f0)))
+		 (ascent (abs (float (/ (fourth box) scale) 0f0)))
+		 (descent (abs (float (/ (second box) scale) 0f0)))
 		 (data `(,width-table ,height ,ascent ,descent)))
 	    (if temp
 		(setf (cdr temp) data)
@@ -250,30 +250,25 @@
 	      (values family face size-kludge))))))))
 
 
-(defclass postscript-medium ()
+(defclass postscript-medium (basic-medium)
      ((printer-stream :initarg :stream)
       (current-color :initform nil)		;for decoding stippled inks
       (features-sent :initform nil)
       (curfont :initform nil)			;a psfck structure
       (ch1buf :initform (make-array 1 :element-type 'character))	;used for char ops.
-      (font-map :initform (make-array 30 :initial-element nil))
       (header-comments :initform nil :initarg :header-comments)
-      (orientation :initform :portrait :initarg :orientation)
-      ;; For multi-page output, analogous to a window's scroll position
-      (multi-page :initform nil :initarg :multi-page)
-      (viewport-x :initform 0)
-      (viewport-y :initform 0)))
+      (orientation :initform :portrait :initarg :orientation)))
 
 (defmethod implementation-pixels-per-point ((medium postscript-medium))
-  (/ *1-pixel=points*))
+  (float (/ *1-pixel=points*) 0f0))
 
-(defmethod stream-force-output ((medium postscript-medium))
+(defmethod medium-force-output ((medium postscript-medium))
   (force-output (slot-value medium 'printer-stream)))
 
-(defmethod stream-finish-output ((medium postscript-medium))
+(defmethod medium-finish-output ((medium postscript-medium))
   (finish-output (slot-value medium 'printer-stream)))
 
-(defmethod stream-clear-output ((medium postscript-medium))
+(defmethod mediumtream-clear-output ((medium postscript-medium))
   (clear-output (slot-value medium 'printer-stream)))
 
 ;;; Methods that might be needed:
@@ -295,42 +290,43 @@
 	  ,@body
 	  (write-char #\> ,printer-stream)))
 
-(defmacro with-postscript-gsave (stream &body body)
+(defmacro with-postscript-gsave (medium &body body)
   `(flet ((with-gsave-body () ,@body))
      (declare (dynamic-extent #'with-gsave-body))
-     (invoke-with-postscript-gsave ,stream #'with-gsave-body)))
+     (invoke-with-postscript-gsave ,medium #'with-gsave-body)))
 
-(defmethod invoke-with-postscript-gsave ((stream postscript-medium) continuation)
-  (with-slots (printer-stream) stream
+(defmethod invoke-with-postscript-gsave ((medium postscript-medium) continuation)
+  (let ((printer-stream (slot-value medium 'printer-stream)))
     (format printer-stream " gsave~%")
     (funcall continuation)
     (format printer-stream " grestore~%")))
 
-(defmethod maybe-send-feature ((stream postscript-medium) feature-name code)
-  (with-slots (features-sent printer-stream) stream
+(defmethod maybe-send-feature ((medium postscript-medium) feature-name code)
+  (with-slots (features-sent printer-stream) medium
     (unless (member feature-name features-sent)
-      (annotating-postscript (stream printer-stream)
+      (annotating-postscript (medium printer-stream)
 	(format printer-stream "---------------- Feature ~A ----------------"
 	  feature-name))
       (write-string code printer-stream)
-      (annotating-postscript (stream printer-stream)
+      (annotating-postscript (medium printer-stream)
 	(format printer-stream "---------------- End Feature ~A ----------------"
 	  feature-name))
       (push feature-name features-sent))))
 
-(defmethod ps-pos-op ((stream postscript-medium) op x y &rest args)
+(defmethod ps-pos-op ((medium postscript-medium) op x y &rest args)
   (declare (dynamic-extent args))
-  (pixels-to-points x y)
-  (with-slots (printer-stream display-device-type) stream
+  (let ((printer-stream (slot-value medium 'printer-stream))
+	(port (port medium)))
+    (pixels-to-points x y)
     (write-char #\space printer-stream)
     (ps-optimal-flonize
-      (+ (* (slot-value display-device-type 'page-indent)
-	    (slot-value display-device-type 'device-units-per-inch)) x)
+      (+ (* (slot-value port 'page-indent)
+	    (slot-value port 'device-units-per-inch)) x)
       printer-stream)
     (write-char #\space printer-stream)
     (ps-optimal-flonize
-      (- (* (slot-value display-device-type 'page-height)
-	    (slot-value display-device-type 'device-units-per-inch)) y)
+      (- (* (slot-value port 'page-height)
+	    (slot-value port 'device-units-per-inch)) y)
       printer-stream)
     (dolist (arg args)
       (write-char #\space printer-stream)
@@ -342,10 +338,10 @@
 	(write-char #\space printer-stream)
 	(terpri printer-stream))))
 
-(defmethod ps-rel-pos-op ((stream postscript-medium) op x y &rest args)
+(defmethod ps-rel-pos-op ((medium postscript-medium) op x y &rest args)
   (declare (dynamic-extent args))
   (pixels-to-points x y)
-  (with-slots (printer-stream) stream
+  (let ((printer-stream (slot-value medium 'printer-stream)))
     (write-char #\space printer-stream)
     (ps-optimal-flonize x printer-stream)
     (write-char #\space printer-stream)
@@ -488,11 +484,14 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 /m {moveto} def
 ")
 
-(defmethod postscript-prologue ((stream postscript-medium))
-  (with-slots (printer-stream header-comments display-device-type orientation) stream
+(defmethod postscript-prologue ((medium postscript-medium))
+  (let ((printer-stream (slot-value medium 'printer-stream))
+	(header-comments (slot-value medium 'header-comments))
+	(orientation (slot-value medium 'orientation))
+	(port (port medium)))
     (format printer-stream "%!PS-Adobe-2.0 EPSF-2.0~%")
     (multiple-value-bind (left top right bottom)
-	(postscript-bounding-box-edges stream)
+	(postscript-bounding-box-edges (medium-sheet medium))
       (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
 	left top right bottom))
     (format printer-stream "%%Creator: CLIM 2.0~%")
@@ -518,20 +517,22 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
       (:landscape
         (format printer-stream
             "/format-rotation -90 def ~%/format-y-translation ~D def~%" 
-          (* (slot-value display-device-type 'page-width)
-             (slot-value display-device-type 'device-units-per-inch)))))
+          (* (slot-value port 'page-width)
+             (slot-value port 'device-units-per-inch)))))
     (format printer-stream
         "/new-matrix {0 format-y-translation translate
 		      format-rotation rotate} def
 	 /new-page {showpage new-matrix} def~%")
-    (postscript-device-prologue display-device-type printer-stream)
+    (postscript-device-prologue port printer-stream)
     (format printer-stream "%%EndProlog~%")
     (format printer-stream "~%new-matrix~%")))
 
-(defmethod postscript-epilogue ((stream postscript-medium))
-  (with-slots (printer-stream display-device-type font-map) stream
+(defmethod postscript-epilogue ((medium postscript-medium))
+  (let* ((printer-stream (slot-value medium 'printer-stream))
+	 (port (port medium))
+	 (font-map (slot-value port 'font-map)))
     (format printer-stream "showpage~%")
-    (postscript-device-epilogue display-device-type printer-stream)
+    (postscript-device-epilogue port printer-stream)
     (format printer-stream "%%Trailer~%")
     (let ((font-names-used nil))
       (dotimes (index (length font-map))
@@ -540,8 +541,8 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
             (pushnew (get-ps-fam-face-name fcs) font-names-used :test #'string-equal))))
       (format printer-stream "%%DocumentFonts:~{~^ ~A~}~%" (nreverse font-names-used)))))
 
-(defun send-pattern (stream printer-stream pattern)
-  (maybe-send-feature stream 'pattern-program *pattern-code*)
+(defun send-pattern (medium printer-stream pattern)
+  (maybe-send-feature medium 'pattern-program *pattern-code*)
   (making-ps-array (printer-stream)
     (let ((height (array-dimension pattern 0))
 	  (width (array-dimension pattern 1)))
@@ -587,7 +588,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 		  (when (> j 80) (force-buf)))))
 	    (when (> j 0) (force-buf))))))))
 
-(defun ps-fill (stream printer-stream ink)
+(defun ps-fill (medium printer-stream ink)
   (cond ((typep ink 'rectangular-tile)
 	 ;;--- Kludgy way to determine whether to use patterned drawing
 	 (multiple-value-bind (array width height)
@@ -595,12 +596,12 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	   (declare (ignore width height))
 	   (unless array
 	     (error "Rectangular tiles other than stipples are not supported yet."))
-	   (send-pattern stream printer-stream array)
+	   (send-pattern medium printer-stream array)
 	   (format printer-stream " patfill~%")))
 	(t
 	 (format printer-stream " fill~%"))))
 
-(defun ps-stroke (stream printer-stream ink)
+(defun ps-stroke (medium printer-stream ink)
   (cond ((typep ink 'rectangular-tile)
 	 ;;--- Kludgy way to determine whether to use patterned drawing
 	 (multiple-value-bind (array width height)
@@ -608,7 +609,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	   (declare (ignore width height))
 	   (unless array
 	     (error "Rectangular tiles other than stipples are not supported yet."))
-	   (send-pattern stream printer-stream array)
+	   (send-pattern medium printer-stream array)
 	   (format printer-stream " patstroke~%")))
 	(t
 	 (format printer-stream " stroke~%"))))
@@ -616,7 +617,20 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 
 (defclass postscript-port (basic-port)
     ;; 72 points per inch on PostScript devices
-    ((device-units-per-inch :initform 72 :allocation :class)))
+    ((font-map :initform (make-array 30 :initial-element nil))
+     (device-units-per-inch :initform 72 :allocation :class)))
+
+(defmethod port-type ((port postscript-port))
+  ':postscript)
+
+(defmethod make-medium ((port postscript-port) sheet)
+  (make-instance 'postscript-medium
+    :port port
+    :sheet sheet))
+
+(defmethod restart-port ((port postscript-port))
+  ;; We don't need no stinking events...
+  )
 
 (defmethod standardize-text-style ((port postscript-port) style &optional character-set)
   (declare (ignore character-set))
@@ -660,27 +674,32 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 (defmethod normal-line-thickness ((port apple-laser-writer) thickness)
   (if (= thickness 1)
       0
-      (* 0.5 thickness (/ (slot-value port 'device-units-per-inch)
-			  (slot-value port 'x-resolution)))))
+      (* 0.5f0 thickness (/ (slot-value port 'device-units-per-inch)
+			    (slot-value port 'x-resolution)))))
 
-#+++ignore
-(define-display-device *postscript-device* apple-laser-writer
-  :font-for-undefined-style "Courier")
+(defmethod initialize-instance :after ((port apple-laser-writer) &key server-path)
+  (declare (ignore server-path))
+  ;;--- Set the "undefined" text style mapping to "Courier"
+  )
+
 
 (defclass postscript-stream
-	  (graphics-output-recording
-	   output-recording-mixin
-	   output-protocol-mixin)
-    ()
-  (:default-initargs :display-device-type *postscript-device*
-		     :default-text-margin 1000))
-
-(defun make-postscript-stream (stream)
-  (make-instance 'postscript-stream :stream stream))
+	  (sheet-permanently-enabled-mixin
+	   permanent-medium-sheet-output-mixin
+	   sheet-transformation-mixin
+	   clim-internals::graphics-output-recording
+	   clim-internals::output-recording-mixin
+	   clim-internals::output-protocol-mixin
+	   sheet)
+	  ((multi-page :initform nil :initarg :multi-page)
+	   ;; Need this for hacking "scrolling" of multi-page output
+	   (device-transformation :accessor sheet-device-transformation
+				  :initform +identity-transformation+))
+  (:default-initargs :default-text-margin 1000))
 
 (defmethod close ((stream postscript-stream) &key abort)
   (unless abort
-    (postscript-epilogue stream)))
+    (postscript-epilogue (sheet-medium stream))))
 
 (defmethod postscript-bounding-box-edges ((stream postscript-stream))
   (with-bounding-rectangle* (left top right bottom)
@@ -690,10 +709,10 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	    (ceiling right) (ceiling bottom))))
 
 (defmethod window-inside-width ((stream postscript-stream))
-  (with-slots (display-device-type) stream
-    (/ (* (slot-value display-device-type 'page-width)
-	  (slot-value display-device-type 'device-units-per-inch))
-       *1-pixel=points*)))
+  (let ((port (port stream)))
+    (float (/ (* (slot-value port 'page-width)
+		 (slot-value port 'device-units-per-inch))
+	      *1-pixel=points*) 0f0)))
 
 (defmethod stream-ensure-cursor-visible ((stream postscript-stream)
 					 &optional cx cy)
@@ -706,45 +725,52 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 
 ;; Replay some PostScript output, breaking it into multiple pages
 (defmethod stream-replay ((stream postscript-stream) &optional region)
-  (with-slots (output-record record-p draw-p display-device-type 
-	       printer-stream orientation multi-page viewport-x viewport-y) stream
-    (when draw-p
+  (let* ((port (port stream))
+	 (medium (sheet-medium stream))
+	 (printer-stream (slot-value medium 'printer-stream))
+	 (multi-page (slot-value stream 'multi-page))
+	 (output-record (stream-output-history stream))
+	 (viewport-x 0)
+	 (viewport-y 0))
+    (when (stream-drawing-p stream)
       (when output-record
-	(letf-globally ((record-p nil))
+	(letf-globally (((stream-recording-p stream) nil))
 	  (if (or region (not multi-page))
 	      (replay output-record stream region)
-	      (with-bounding-rectangle* (left top right bottom) output-record
-		(let* ((page-width
-			 (floor (* (slot-value display-device-type 'page-width)
-				   (slot-value display-device-type 'device-units-per-inch))
-				*1-pixel=points*))
-		       (page-height
-			 (floor (* (slot-value display-device-type 'page-height)
-				   (slot-value display-device-type 'device-units-per-inch))
-				*1-pixel=points*))
-		       (first-page t))
-		  (setq viewport-x 0 viewport-y 0)
-		  ;; Draw each chunk of output on its own page
-		  (unwind-protect
-		      (do ((y top (+ y page-height)))
-			  ((> y bottom))
-			(do ((x left (+ x page-width)))
-			    ((> x right))
-			  (if first-page
-			      (setq first-page nil)
-			      (format printer-stream "gsave new-page grestore~%"))
-			  (let ((region (make-bounding-rectangle
-					  x y (+ x page-width) (+ y page-height))))
-			    (replay output-record stream region))
-			  (incf viewport-x page-width))
-			(setf viewport-x 0)
-			(incf viewport-y page-height))
-		    (setq viewport-x 0 viewport-y 0))))))))))
+	    (with-bounding-rectangle* (left top right bottom) output-record
+	      (let* ((page-width
+		      (floor (* (slot-value port 'page-width)
+				(slot-value port 'device-units-per-inch))
+			     *1-pixel=points*))
+		     (page-height
+		      (floor (* (slot-value port 'page-height)
+				(slot-value port 'device-units-per-inch))
+			     *1-pixel=points*))
+		     (first-page t))
+		(setq viewport-x 0 viewport-y 0)
+		;; Draw each chunk of output on its own page
+		(unwind-protect
+		    (do ((y top (+ y page-height)))
+			((> y bottom))
+		      (do ((x left (+ x page-width)))
+			  ((> x right))
+			(if first-page
+			    (setq first-page nil)
+			  (format printer-stream "gsave new-page grestore~%"))
+			(let ((region (make-bounding-rectangle
+				       x y (+ x page-width) (+ y page-height))))
+			  (setf (sheet-device-transformation stream)
+			        (make-translation-transformation (- viewport-x) (- viewport-y)))
+			  (replay output-record stream region))
+			(incf viewport-x page-width))
+		      (setf viewport-x 0)
+		      (incf viewport-y page-height))
+		  (setq viewport-x 0 viewport-y 0))))))))))
 		
 
 (defmacro with-output-to-postscript-stream ((stream-var file-stream &rest args) &body body)
   (declare (arglist (stream-var file-stream
-		     &key (display-device *postscript-device*)
+		     &key (device-type 'apple-laser-writer)
 			  header-comments multi-page 
 			  (orientation :portrait))
 		    &body body))
@@ -755,24 +781,29 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 ;; This could really be WITH-OPEN-STREAM, but that isn't going to call CLIM:CLOSE.
 ;; Fixed in the CLOS stream system.
 (defun invoke-with-output-to-postscript-stream (file-stream continuation
-						&key (display-device *postscript-device*)
+						&key (device-type 'apple-laser-writer)
 						     header-comments multi-page
 						     (orientation :portrait))
-  (let ((postscript-stream (make-instance 'postscript-stream
-			     :stream file-stream
-			     :display-device-type display-device
-			     :header-comments header-comments
-			     :orientation orientation
-			     :multi-page multi-page))
-	(abort-p t))
-    (with-output-recording-options (postscript-stream :record t :draw nil)
-      (unwind-protect
-	  (multiple-value-prog1
-	    (funcall continuation postscript-stream)
-	    (postscript-prologue postscript-stream)
-	    ;; Now do the output to the printer, breaking up the output into
-	    ;; multiple pages if that was requested
-	    (with-output-recording-options (postscript-stream :record nil :draw t)
-	      (frame-replay *application-frame* postscript-stream))
-	    (setq abort-p nil))
-	(close postscript-stream :abort abort-p)))))
+  ;;--- How do we get the port and medium created?
+  (let* ((port (make-instance device-type))
+	 (stream (make-instance 'postscript-stream
+		   :stream file-stream
+		   :header-comments header-comments
+		   :orientation orientation
+		   :multi-page multi-page))
+	 (abort-p t))
+    (setf (port stream) port)
+    (let ((medium (sheet-medium stream)))
+      (setf (slot-value medium 'printer-stream) file-stream)
+      (with-output-recording-options (stream :record t :draw nil)
+	(unwind-protect
+	    (multiple-value-prog1
+		(funcall continuation stream)
+	      (postscript-prologue medium)
+	      ;; Now do the output to the printer, breaking up the output into
+	      ;; multiple pages if that was requested
+	      (with-output-recording-options (stream :record nil :draw t)
+		(frame-replay *application-frame* stream))
+	      (setq abort-p nil))
+	  (close stream :abort abort-p)
+	  (destroy-port port))))))
