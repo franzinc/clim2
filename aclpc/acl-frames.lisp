@@ -1280,7 +1280,7 @@ to be run from another."
 			  (logior win:swp_noactivate
 				  win:swp_nozorder
 				  win:swp_nosize))
-	(check-last-error "SetWindowPos"))))
+	(acl-clim::check-last-error "SetWindowPos"))))
 
 (in-package :clim-internals)
 
@@ -1346,12 +1346,11 @@ in a second Lisp process.  This frame cannot be reused."
 	;;; when the user resizes the frame window
 	#+ignore (win::showWindow handle win::sw_show)
 	(or (win:getClientRect handle wrect)
-	    (check-last-error "GetClientRect"))
+	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
-	    (check-last-error "InvalidateRect"))
+	    (acl-clim::check-last-error "InvalidateRect"))
 	(or (win:UpdateWindow handle)
-	    (check-last-error "UpdateWindow"))
-	))))
+	    (acl-clim::check-last-error "UpdateWindow"))))))
 
 (defun clean-frame (frame)
   (declare (ignore frame))

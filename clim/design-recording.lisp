@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/design-recording.lisp,v 1.5.22.1 1998/05/19 01:04:29 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/design-recording.lisp,v 1.5.22.2 1998/07/06 21:44:52 layer Exp $
 
 (in-package :clim-internals)
 
@@ -46,6 +46,9 @@
           (design (aref designs 1)))
       ;; Clips INK to the inside of DESIGN.
       (apply #'draw-design design stream :ink ink args))))
+
+(defun nyi ()
+  (error "This internal CLIM operation is NYI (Not Yet Implemented)."))
 
 (defmethod draw-design ((composite composite-out) stream &rest args &key ink &allow-other-keys)
   (declare (dynamic-extent args))

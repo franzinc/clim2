@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.47.10.5 1998/06/01 23:07:19 layer Exp $
+# $Id: Makefile.generic,v 1.47.10.6 1998/07/06 21:44:50 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 ifeq ($(OS_NAME),windows)
@@ -237,8 +237,9 @@ clean:
 clean-notes:
 	cd notes; find . -name '*.lisp' -print | xargs rm -f
 
-tags:
-	$(TAGS) $(ALL_SRC)
+tags:	FORCE
+	rm -f TAGS
+	find . -name '*.lisp' -print | xargs $(TAGS) -a
 
 wc:
 	wc $(ALL_SRC)

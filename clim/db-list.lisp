@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-list.lisp,v 1.6.22.1 1998/05/19 01:04:27 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-list.lisp,v 1.6.22.2 1998/07/06 21:44:52 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -169,6 +169,26 @@
 (defclass generic-option-pane (option-pane push-button-pane)
     ((menu :initform nil))
   (:default-initargs :pattern *right-triangle-button-pattern*))
+
+#+(or aclpc acl86win32)
+(defmacro initialize-pull-down-menu (menu &body buttons)
+  (assert (= (length buttons) 1))
+  `(with-look-and-feel-realization ()
+     (setf (pull-down-menu-buttons ,menu) ,@buttons)
+     (sheet-adopt-child ,menu (make-pane 'vbox-pane
+                                :contents (pull-down-menu-buttons ,menu)
+                                :spacing 0))
+     (layout-frame (pane-frame ,menu))
+     ,menu))
+
+#+(or aclpc acl86win32)
+(defun make-pull-down-menu (&key port)
+  (let ((frame
+	 (make-application-frame
+	  'pull-down-menu-frame
+	  :frame-manager (find-frame-manager :port port)
+	  :save-under t)))
+    (values (slot-value frame 'menu) frame)))
 
 ;;--- The idea is the the option pane itself is a pushbutton which, when
 ;;--- pressed, pops up a menu containing the options.
