@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.cl,v 1.2 92/01/17 17:48:18 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.3 92/01/31 14:56:40 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -145,7 +145,6 @@
 (defmethod clx-adjust-ink ((medium xt-medium) gc ink line-style x-origin y-origin)
   ;; This is used to adjust for the line-style
   (declare (ignore ink))
-
   (let ((thickness (line-style-thickness line-style)))
     (when (< thickness 2)
       (setq thickness 0))

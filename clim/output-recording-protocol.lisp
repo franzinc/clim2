@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-recording-protocol.lisp,v 1.5 91/03/26 12:48:25 cer Exp $
+;; $fiHeader: output-recording-protocol.lisp,v 1.5 92/01/31 14:58:28 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -117,13 +117,6 @@
     (call-next-method)
     (note-output-record-moved record (- nx x1) (- ny y1) (- nx x2) (- ny y2))))
 
-#+Silica
-(defmethod bounding-rectangle-set-position* :around ((record output-record-mixin) nx ny)
-  (multiple-value-bind (ox oy)
-      (output-record-position* record)
-    (call-next-method)
-    (when (or (/= ox nx) (/= oy ny))
-      (note-output-record-moved record 1 1 1 1))))
 
 #+ignore
 (defmethod bounding-rectangle-set-edges :around ((record output-record-element-mixin) 
@@ -132,17 +125,6 @@
     (call-next-method)
     (note-output-record-moved record (- left x1) (- top y1) (- right x2) (- bottom y2))))
 
-#+Silica
-(defmethod bounding-rectangle-set-edges :around ((record output-record-mixin) 
-						 left top right bottom)
-  (declare (ignore  left top right bottom))
-  (multiple-value-bind (ox oy)
-      (output-record-position* record)
-    (call-next-method)
-    (multiple-value-bind (nx ny)
-	(output-record-position* record)
-      (when (or (/= ox nx) (/= oy ny))
-	(note-output-record-moved record 1 1 1 1)))))
 
 #+Silica
 (defmethod note-output-record-moved ((record output-record-element-mixin) dx1 dy1 dx2 dy2)
@@ -525,6 +507,26 @@
      #'(lambda (child)
 	 (note-output-record-moved child dx1 dy1 dx2 dy2))
      record)))
+
+#+Silica
+(defmethod bounding-rectangle-set-position* :around ((record output-record-mixin) nx ny)
+  (multiple-value-bind (ox oy)
+      (output-record-position* record)
+    (call-next-method)
+    (when (or (/= ox nx) (/= oy ny))
+      (note-output-record-moved record 1 1 1 1))))
+
+#+Silica
+(defmethod bounding-rectangle-set-edges :around ((record output-record-mixin) 
+						 left top right bottom)
+  (declare (ignore  left top right bottom))
+  (multiple-value-bind (ox oy)
+      (output-record-position* record)
+    (call-next-method)
+    (multiple-value-bind (nx ny)
+	(output-record-position* record)
+      (when (or (/= ox nx) (/= oy ny))
+	(note-output-record-moved record 1 1 1 1)))))
 
 (defun with-output-record-1 (continuation stream record &optional abs-x abs-y)
   ;; Close the text record before and after, 
