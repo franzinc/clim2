@@ -1,0 +1,16 @@
+Release notes entries for the next release.
+
+Instructions:
+
+1. Please provide a short summary below of your user-visible changes
+   to the product.
+2. Include a bug or rfe id (component should be `documentation') that
+   contains the information the documentation group needs to document
+   the new feature or change.
+
+Remember, the audience for the summary you write is the customer, not
+developers or documentation.
+
+************* add new entries below this line *********************************
+
+1. [bug/rfe#] ...summary...
