@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14.24.4 2002/02/08 19:11:20 layer Exp $
+;; $Id: acl-class.lisp,v 1.14.24.4.6.1 2002/06/03 15:51:33 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -560,6 +560,10 @@
     *win-result*))
 
 ;; Process WM_KEYDOWN
+;;; SPR25900 --pnc
+;;; The variable *modstate* is used to specify the alt/meta
+;;; key on mouse-gestures.  See the functions onbuttondown
+;;; and windows-mask->modifier-state+ (in aclpc/acl-port.lisp).
 (defun onkeydown (window msg wparam lparam)
   (flush-pointer-motion *acl-port*)
   (let* ((code wparam)
@@ -703,7 +707,9 @@
   (win:SetFocus (win:GetActiveWindow))
   (let* ((pointer (port-pointer *acl-port*))
 	 (sheet (mirror->sheet *acl-port* window))
-	 (modifier-state (windows-mask->modifier-state wparam)))
+	 ;; SPR25900--
+	 ;; Make modifier deal with windows Alt key.
+	 (modifier-state (windows-mask->modifier-state+ wparam)))
     (when pointer
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
@@ -746,7 +752,9 @@
   (win:SetFocus (win:GetActiveWindow))
   (let* ((pointer (port-pointer *acl-port*))
 	 (sheet (mirror->sheet *acl-port* window))
-	 (modifier-state (windows-mask->modifier-state wparam t)))
+	 ;; SPR25900--
+	 ;; Make modifier deal with windows Alt key.
+	 (modifier-state (windows-mask->modifier-state+ wparam t)))
     (when pointer
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
@@ -1391,3 +1399,106 @@
 	     (win:DispatchMessage msg)))
       (when nonblocking (return t))
       )))
+
+(defvar *current-window*)
+(defvar *dc-initialized* nil)
+
+;;; Stock objects
+(defvar *null-pen*)
+(defvar *black-pen*)
+(defvar *ltgray-pen*)
+(defvar *null-brush*)
+(defvar *black-brush*)
+(defvar *ltgray-brush*)
+(defvar *blank-image*)
+(defvar *ltgray-image*)
+
+(defvar *background-brush* nil)
+
+;;; spr25546
+;;; Re-initialize a number of state-variables/pointers associated
+;;; with the acl-port.
+;;; In short, this is a collection of all the defvars and defparameters
+;;; defined in the file aclpc/acl-class.lisp.
+;;; This is here mainly to be called by (destroy-port :after) on acl-port.
+(defun reset-aclpc-clim (&key (destroy-frames t) (destroy-port t))
+  
+  (when (and destroy-frames acl-clim::*acl-port*)
+    (clim:map-over-frames #'(lambda (x) (clim:destroy-frame x))))
+  (when (and destroy-port acl-clim::*acl-port*)
+    (clim:destroy-port acl-clim::*acl-port*))
+
+
+  (setq *acl-port* nil)
+  (setq *menu-id->command-table*
+    (make-array 256 
+                :element-type t :adjustable t 
+                :fill-pointer 0 :initial-element nil))
+  (setq *popup-menu->menu-item-ids* (make-hash-table))
+  (setq *popup-menu->command-table* (make-hash-table))
+  (setq *maybe-format* nil)
+  (setq *msg-names* nil)
+  (setq *modstate* (make-modstate))
+  (setq *ctlmodstate* (make-modstate))
+  (setq *win-result* 0)
+  (setq *window-proc-return-reason* nil)
+  (setq *window-proc-return-tag* nil)
+  (setq *window-proc-return-value* nil)
+  (setq *window-proc-return-other-values* nil)
+  (setq *hwnd* 0)
+  (setq *msg* win:WM_NULL)
+  (setq *wparam* 0)
+  (setq *lparam* (ct:callocate :long))
+  (setq *window-proc-result* 0)
+  (setq *window-proc-args-queue* nil)
+  (setq *clim-wproc-arg-struct* nil)
+  (setq *clim-ctrl-arg-struct* nil)
+  (setq *tooltip-relay-struct* nil)
+  (setq *level* 0)
+  (setq *realtime-scrollbar-tracking* t)
+  (setq *win-scroll-grain* 1000)
+  (setq wres  (ct:callocate :long))
+  (setq wmsg  (ct:ccallocate win:msg))
+  (setq *windows-message-trace-output* excl:*initial-terminal-io*)
+  (setq *clim-class* "ClimClass")
+  (setq *win-name* "CLIM")
+  (setq *menu-name* "ClimMenu")
+  (setq *win-x* "x")
+  (setq *wndclass-registered* nil)
+  (setq clim-window-proc-address nil)
+  (setq clim-ctrl-proc-address nil)
+  (setq std-ctrl-proc-address nil)
+  (setq tooltip-relay-address nil)
+  (setq *next-windows-hook* nil)
+  (setq *clim-initialized* nil)
+  (setq lpcmdline "")
+  (setq *hinst* 0)
+  (setq *hprevinst* 0)
+  (setq *screen-device* nil)
+  (setq msg (ct:ccallocate win:msg))
+  (setq res (ct:callocate :long))
+
+
+  (setq arrow-cursor 
+    (ff:allocate-fobject 'win:hcursor :foreign-static-gc nil))
+  (setq application-icon 
+    (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil))
+
+
+  (setq *current-window* nil)
+  (setq *dc-initialized* nil)
+
+
+  (setq *null-pen* nil)
+  (setq *black-pen* nil)
+  (setq *ltgray-pen* nil)
+  (setq *null-brush* nil)
+  (setq *black-brush* nil)
+  (setq *ltgray-brush* nil)
+  (setq *blank-image* nil)
+  (setq *ltgray-image* nil)
+
+
+  (setq *background-brush* nil)
+  )
+

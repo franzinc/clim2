@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept.lisp,v 1.30.10.1 2002/02/08 19:11:20 layer Exp $
+;; $Id: accept.lisp,v 1.30.10.1.6.1 2002/06/03 15:51:33 layer Exp $
 
 (in-package :clim-internals)
 
@@ -258,7 +258,22 @@
 			   (getf the-options :echo t))
 		   (presentation-replace-input stream the-object the-type view
 					       :buffer-start start-position
-					       :query-identifier query-identifier))))))))
+					       :query-identifier query-identifier)
+		   		  ;; spr25912 --PnC
+		  ;; Windows seems to handle this slightly differently.
+		  ;; As a result, when processing a command, if the user
+		  ;; does a command-completion (from a menu), the focus
+		  ;; doesn't come back to the window.  Furthermore, 
+		  ;; trying to read the gesture goes into an infinite loop,
+		  ;; because there's nothing there to read.		
+		  #+mswindows
+		  (when (eql (if (listp the-type)
+				 (first the-type)
+			       the-type) 
+			     'clim:command-name)
+		    (clim:stream-set-input-focus (encapsulating-stream-stream stream))
+		    (stream-unread-gesture stream #\space))
+		  )))))))
 
     ;; The input has been parsed, moused, or defaulted.
     ;; If we are still inside a WITH-INPUT-EDITING at an outer level, leave the
@@ -448,10 +463,14 @@
   ;; avoid using STREAM-x functions to reduce Gray stream dependence,
   ;; tfb 13-jun-2000
   (let ((char (if (eq timeout 0)
-
-		  (read-char-no-hang stream nil ':eof)
-		  (read-char stream nil ':eof))))
-    (when (and char peek-p)
+		  (read-char-no-hang stream nil *end-of-file-marker*)
+		(read-char stream nil *end-of-file-marker*))))
+    (when (and char peek-p 
+	       ;; spr26071 -pnc
+	       ;; As noted above, this used to call stream-unread-char,
+	       ;; which could handle the case where char was :eof.
+	       ;; unread-char breaks, so mimic what it used to do.
+	       (not (eq char *end-of-file-marker*)))
       (unread-char char stream))
     char))
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: command.lisp,v 1.33.36.1 2002/02/08 19:11:20 layer Exp $
+;; $Id: command.lisp,v 1.33.36.1.6.1 2002/06/03 15:51:33 layer Exp $
 
 (in-package :clim-internals)
 
@@ -121,7 +121,7 @@
                ((nil)
                 nil))))
         (t
-         (error "~S is not a symbol or command table"))))
+	 (error "~S is not a symbol or command table" name)))) ; spr25469
 
 
 (defun make-command-table (name &key inherit-from menu inherit-menu (errorp t))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.11.24.1 2002/02/08 19:11:20 layer Exp $
+;; $Id: acl-dc.lisp,v 1.11.24.1.6.1 2002/06/03 15:51:33 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -29,21 +29,6 @@
 
 
 (in-package :acl-clim)
-
-(defvar *current-window*)
-(defvar *dc-initialized* nil)
-
-;;; Stock objects
-(defvar *null-pen*)
-(defvar *black-pen*)
-(defvar *ltgray-pen*)
-(defvar *null-brush*)
-(defvar *black-brush*)
-(defvar *ltgray-brush*)
-(defvar *blank-image*)
-(defvar *ltgray-image*)
-
-(defvar *background-brush* nil)
 
 ;; This is not just any 75% gray.  There are
 ;; methods to treat this object specially and
