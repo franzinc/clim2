@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.68 1993/05/25 20:40:43 cer Exp $
+;; $fiHeader: frames.lisp,v 1.69 1993/06/21 20:50:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -112,12 +112,14 @@
 (defun define-application-frame-1 (name state-variables pane-descriptions
 				   &key top-level layouts
 					command-table disabled-commands)
-  (let* ((command-table-name (first command-table)))
-    ;; If we're going to be defining commands for this application frame,
-    ;; make sure there's an command table lying around so that all other
-    ;; code doesn't have to be defensive against its absence.
-    (when command-table
-      (apply #'define-command-table-1 command-table))))
+  (declare (ignore name state-variables pane-descriptions top-level
+		   layouts
+		   disabled-commands))
+  ;; If we're going to be defining commands for this application frame,
+  ;; make sure there's an command table lying around so that all other
+  ;; code doesn't have to be defensive against its absence.
+  (when command-table
+    (apply #'define-command-table-1 command-table)))
 )	;eval-when
 
 (defmacro define-application-frame (name superclasses slots &rest options)
@@ -1438,7 +1440,11 @@
 ;;; Pointer documentation
 
 (defvar *pointer-documentation-interval*
-	(max (floor (* 1/10 internal-time-units-per-second)) 1))
+    #-makes-things-fail 0
+    #+makes-things-fail
+    (max (floor (* 1/10 internal-time-units-per-second)) 1))
+
+(setq *pointer-documentation-interval* 0)
 (defvar *last-pointer-documentation-time* 0)
 
 ;;; Produce pointer documentation

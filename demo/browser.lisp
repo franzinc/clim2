@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.21 93/04/16 09:45:10 cer Exp $
+;; $fiHeader: browser.lisp,v 1.22 93/04/23 09:17:50 cer Exp $
 
 (in-package :clim-browser)
 
@@ -200,7 +200,7 @@
   ((replaced-node :reader ellipsis-node-replaced-node :initarg :replaced-node)))
 )
 
-(proclaim '(inline make-ellipsis-call-node))
+(declaim (inline make-ellipsis-call-node))
 (defun make-ellipsis-call-node (object replaced-node)
   (make-instance 'ellipsis-call-node :object object :replaced-node replaced-node))
 
@@ -253,7 +253,7 @@
 
 (defclass function-call-node (call-node) ())
   
-(proclaim '(inline make-function-call-node))
+(declaim (inline make-function-call-node))
 (defun make-function-call-node (object)
   (make-instance 'function-call-node :object object))
 
@@ -380,7 +380,7 @@
 
 (defclass class-call-node (call-node) ())
 
-(proclaim '(inline make-class-call-node))
+(declaim (inline make-class-call-node))
 (defun make-class-call-node (object)
   (make-instance 'class-call-node :object object))
 
@@ -424,7 +424,7 @@
 
 (defclass clos-slot-call-subnode (call-subnode) ())
 
-(proclaim '(inline make-clos-slot-call-subnode))
+(declaim (inline make-clos-slot-call-subnode))
 (defun make-clos-slot-call-subnode (class-node slots)
   (let ((subnode (make-instance 'clos-slot-call-subnode :object slots)))
     (setf (node-superiors subnode) (list class-node))
@@ -447,7 +447,7 @@
 
 (defclass clos-method-call-subnode (call-subnode) ())
 
-(proclaim '(inline make-clos-method-call-subnode))
+(declaim (inline make-clos-method-call-subnode))
 (defun make-clos-method-call-subnode (class-node method-list)
   (let ((subnode (make-instance 'clos-slot-call-subnode :object method-list)))
     (setf (node-superiors subnode) (list class-node))
@@ -493,7 +493,7 @@
 
 (defclass package-call-node (call-node) ())
   
-(proclaim '(inline make-package-call-node))
+(declaim (inline make-package-call-node))
 (defun make-package-call-node (object)
   (make-instance 'package-call-node :object object))
 
@@ -535,7 +535,7 @@
 
 (defclass package-symbols-subnode (call-subnode) ())
 
-(proclaim '(inline make-package-symbols-subnode))
+(declaim (inline make-package-symbols-subnode))
 (defun make-package-symbols-subnode (package-node symbols)
   (let ((subnode (make-instance 'package-symbols-subnode :object symbols)))
     (setf (node-superiors subnode) (list package-node))
@@ -563,7 +563,7 @@
 	  (call-node)
     ((directory-p :reader filesystem-node-directory-p :initarg :directory-p)))
 
-(proclaim '(inline make-filesystem-call-node))
+(declaim (inline make-filesystem-call-node))
 (defun make-filesystem-call-node (object)
   (destructuring-bind (pathname &rest properties) object
     (let* ((directory-p (getf properties :directory))
@@ -628,7 +628,7 @@
 
 (defclass lisp-object-call-node (call-node) ())
 
-(proclaim '(inline make-lisp-object-call-node))
+(declaim (inline make-lisp-object-call-node))
 (defun make-lisp-object-call-node (object)
   (make-instance 'lisp-object-call-node :object object))
 

@@ -1,3 +1,56 @@
+from cer: Thu Jul 22 08:36:06 PDT 1993
+
+
+Makefile.defs		Now use devel.15
+Makefile.generic	Added rule to print summary of test run
+clim/accept-values.lisp		Eliminate warnings
+clim/db-stream.lisp		Eliminate warnings
+clim/design-recording.lisp	Eliminate warnings
+clim/frames.lisp		Eliminate warnings
+				Eliminate delay in updating pointer documentation
+clim/graph-formatting.lisp	Eliminate warnings
+clim/input-editor-commands.lisp	Eliminate warnings
+clim/input-protocol.lisp	Remove unused code
+clim/noting-progress.lisp	Make work on non-clim streams
+clim/ptypes1.lisp		Move finalize-inheritance inside errorset
+				Added missing call
+climtoys/booch.lisp		Added :toggle-button-options (:indicator-type  nil)
+demo/bitmap-editor.lisp		Added :query-identifier so that it will run interpreted
+demo/browser.lisp		Replaced proclaims by declaims
+demo/cload-demos.lisp		Added browser.lisp to list of files
+demo/custom-records.lisp	Replaced proclaims by declaims
+demo/listener.lisp		Eliminate warnings
+demo/navfun.lisp		Eliminate warnings
+demo/plot.lisp			Eliminate warnings
+misc/dev-load-1.lisp		Just require composer
+silica/classes.lisp		Eliminated alive-p. just check for process now
+silica/db-box.lisp		vertically/horizontally now support fixced size panes
+silica/db-label.lisp		Moved compute-gadget-label-size here
+silica/db-layout.lisp		vertically/horizontally now support fixced size panes
+silica/gadgets.lisp		removed compute-gadget-label-size here
+silica/mirror.lisp		Eliminate warnings
+silica/port.lisp		port-alive-p just checks for process now
+				Eliminate warnings
+sys/defsystem.lisp		Eliminate warnings
+test/test-demos.lisp		new query-id in bitmap editor
+test/test-driver.lisp		Added generate-pretty-test-report
+				Eliminate warnings
+test/test-suite.lisp		Added non-string menu-choose
+tk/xm-funs.lisp			Added XmToggleButtonSetState XmToggleButtonGetState
+tk/xm-widgets.lisp		Removed warning
+tk-silica/image.lisp		Removed warning
+tk-silica/ol-frames.lisp	Implemented multi-column menus
+tk-silica/ol-gadgets.lisp	:scroll-bars t now works
+tk-silica/xm-frames.lisp	Menu-choose uses princ-to-string now
+				noting-progress uses slider
+tk-silica/xm-gadgets.lisp	:scroll-bars t now works
+				Use XmToggleButtonSetState XmToggleButtonGetState
+				Removed warning
+tk-silica/xm-silica.lisp	Removed warning
+utils/defun-utilities.lisp	Removed warning
+xlib/ffi.lisp			Removed warning
+
+-------------------------------------------------------------------------------
 Fri Jun 25 08:58:35 1993  Kevin Layer  (layer@sole)
 
 	* Makefile.generic: pass :load-xref-info and

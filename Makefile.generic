@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.12 1993/06/04 16:06:14 cer Exp $
+# $fiHeader: Makefile.generic,v 1.14 1993/06/25 22:25:27 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -179,6 +179,12 @@ clim-small:	FORCE
 
 train	:	FORCE
 	$(TRAIN_TEXT)
+
+generate_test_report:
+	@$(ECHO) "\
+	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\") \
+	 (exit) \
+" | $(CLIM) $(CLOPTS) -batch 
 
 profile	:	FORCE
 	$(ECHO) "\

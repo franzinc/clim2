@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: custom-records.lisp,v 1.2 92/10/07 14:43:22 cer Exp $
+;; $fiHeader: custom-records.lisp,v 1.3 92/12/03 10:28:36 cer Exp $
 
 (in-package :clim-user)
 
@@ -13,7 +13,7 @@
      (v :initarg :v)			; not the position in the display
      (size :initform 2)))
 
-(proclaim '(inline make-simple-data-point))
+(declaim (inline make-simple-data-point))
 (defun make-simple-data-point (u v)
   (make-instance 'simple-data-point :u u :v v))
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.76 1993/05/25 20:42:37 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.77 1993/06/02 18:42:30 cer Exp $
 
 (in-package :xm-silica)
 
@@ -674,8 +674,8 @@
 		  (silica::scroller-pane-scroll-bar-policy p)))))
       (values 'tk::xm-text
 	      (append
-	       `(:scroll-horizontal ,(and (member scroll-mode '(:both :horizonal :dynamic)) t))
-	       `(:scroll-vertical ,(and (member scroll-mode '(:both :vertical :dynamic)) t))
+	       `(:scroll-horizontal ,(and (member scroll-mode '(t :both :horizonal :dynamic)) t))
+	       `(:scroll-vertical ,(and (member scroll-mode '(t :both :vertical :dynamic)) t))
 	       (and (not editable) '(:cursor-position-visible nil))
 	       (list :edit-mode :multi-line)
 	       (list :editable editable)
@@ -751,16 +751,20 @@
                       (:some-of (list :indicator-type :n-of-many)))))))
 
 (defmethod gadget-value ((gadget motif-toggle-button))
-  (if (sheet-direct-mirror gadget)
-      (tk::get-values (sheet-mirror gadget) :set)
-    (call-next-method)))
+  (let ((m (sheet-direct-mirror gadget)))
+    (if m
+	(plusp (tk::xm_toggle_button_get_state m))
+      (call-next-method))))
 
 (defmethod (setf gadget-value) (nv (gadget motif-toggle-button) &key invoke-callback)
   (declare (ignore invoke-callback))
   (let ((m (sheet-direct-mirror gadget)))
-    (when (and m (not (equal nv (tk::get-values m :set))))
+    (when (and m (not (equal nv (plusp (tk::xm_toggle_button_get_state m)))))
       (with-no-value-changed-callbacks
-          (tk::set-values m :set nv)))))
+	  ;;--- For some reason you loose if 1 is specified for the
+	  ;;-- notify argument. Lisp dies.
+	  (tk::xm_toggle_button_set_state m (if nv 1 0) 0))))
+  nv)
 
 #+ignore
 (defmethod add-sheet-callbacks :after ((port motif-port) 
@@ -1063,7 +1067,7 @@
 		:list-size-policy :constant
 		:scroll-bar-display-policy 
 		,(case scroll-mode
-		   ((:vertical :both) :static)
+		   ((:vertical t :both) :static)
 		   (t :as-needed))
                 ,@(and selected-items
                        `(:selected-item-count ,(length selected-items)
@@ -1654,13 +1658,13 @@
     (with-look-and-feel-realization (frame-manager frame)
       (let ((background (getf (silica::sheet-with-resources-initargs sp)
 			      :background)))
-	(when (member scroll-bars '(:both :dynamic :vertical))
+	(when (member scroll-bars '(t :both :dynamic :vertical))
 	  (let ((sb (make-pane 'scroll-bar
 			       :background background
 			       :orientation :vertical :id :vertical :client sp)))
 	    (setf (scroller-pane-vertical-scroll-bar sp) sb)
 	    (sheet-adopt-child sp sb)))
-	(when (member scroll-bars '(:both :dynamic :horizontal))
+	(when (member scroll-bars '(t :both :dynamic :horizontal))
 	  (let ((sb (make-pane 'scroll-bar 
 			       :background background
 			       :orientation :horizontal :id :horizontal :client sp)))
@@ -1772,5 +1776,6 @@
 
 
 (defmethod silica::port-set-pane-text-style ((port motif-port) pane m text-style)
+  (declare (ignore pane))
   (when (typep m 'xt::xt-root-class)
     (tk::set-values m :font-list (text-style-mapping port text-style))))

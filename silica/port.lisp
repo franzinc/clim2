@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.29 92/12/16 16:49:39 cer Exp $
+;; $fiHeader: port.lisp,v 1.30 93/02/08 15:57:38 cer Exp $
 
 (in-package :silica)
 
@@ -114,12 +114,11 @@
 
 (defgeneric port-event-loop (port))
 (defmethod port-event-loop ((port basic-port))
-  (letf-globally (((port-alive-p port) t))
-    (with-simple-restart (nil "Exit event loop for ~A" port)
+  (with-simple-restart (nil "Exit event loop for ~A" port)
       (loop
 	(with-simple-restart (nil "Restart event loop for ~A" port)
 	  (loop
-	    (process-next-event port)))))))
+	    (process-next-event port))))))
 
 
 (defgeneric destroy-port (port))
@@ -127,6 +126,7 @@
 (defmethod destroy-port (port)
   (when (port-process port)
     (destroy-process (port-process port)))
+  (setf (port-process port) nil)
   (dolist (framem (port-frame-managers port))
     (dolist (frame (frame-manager-frames framem))
       (disown-frame framem frame)))
@@ -139,12 +139,15 @@
 (defmethod port-terminated ((port basic-port) condition)
   ;;--- Should mark it as dead 
   (setq *ports* (delete port *ports*))
-  (setf (port-alive-p port) nil)
   (dolist (graft (port-grafts port))
     (dolist (sheet (sheet-children graft))
       (queue-event sheet (make-instance 'port-terminated 
 			   :condition condition
 			   :sheet sheet)))))
+
+(defmethod port-alive-p ((port basic-port))
+  (or (not *multiprocessing-p*)
+      (port-process port)))
 
 ;;;;;;;;;;;;;;;;
 
@@ -199,6 +202,7 @@
 (defgeneric realize-graft (port graft))
 
 (defmethod graft-matches-spec ((graft standard-graft) orientation units)
+  (declare (ignore orientation units))
   t)
 
 (defmethod initialize-instance :after ((graft standard-graft) &key port)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.53 1993/05/25 20:40:39 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.54 1993/06/02 18:40:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -482,6 +482,7 @@
 
 ;;--- Is there any way to do this?
 (defmethod (setf window-label) (label (stream clim-stream-sheet))
+  (declare (ignore label))
   nil)
 
 (defmethod (setf window-visibility) (visibility (stream clim-stream-sheet))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: mirror.lisp,v 1.29 93/02/08 15:57:34 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.30 93/04/16 09:45:26 cer Exp $
 
 (in-package :silica)
 
@@ -291,11 +291,9 @@
   ;; Coordinates in parent space
   (multiple-value-bind (target-left target-top target-right target-bottom)
       (sheet-actual-native-edges* sheet)
-    (multiple-value-bind (actual-left actual-top actual-right actual-bottom)
-	(mirror-native-edges* (port sheet) sheet)
-      (set-sheet-mirror-edges*
+    (set-sheet-mirror-edges*
 	(port sheet) sheet
-	target-left target-top target-right target-bottom)))
+	target-left target-top target-right target-bottom))
   (update-mirror-transformation port sheet))
 
 (defmethod update-mirror-transformation ((port basic-port) (sheet mirrored-sheet-mixin))

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.22 93/03/19 09:44:14 cer Exp $
+;; $fiHeader: plot.lisp,v 1.23 93/03/31 10:38:57 cer Exp $
 
 (in-package :clim-demo)
 
@@ -229,6 +229,7 @@
 (defun draw-axis (stream type width height
 		  x-min y-min x-max y-max x-labels y-labels 
 		  points transform y-labelling)
+  (declare (ignore y-labels))
   ;; Y Axis
   (unless (eq type :pie)
     (updating-output (stream :unique-id 'y-axis

@@ -343,8 +343,30 @@
     (let ((*package* (find-package :clim-user)))
       (print *test-successes*)
       (print (mapcar #'car *test-failures*)))))
+
+(defun generate-pretty-test-report (&key file)
+  (if (not (probe-file file))
+      (error "Report file ~A does not exist. tests did not run!!!" file)
+    (multiple-value-bind (successes failures)
+	(with-open-file (*standard-input* file)
+	  (values (read) (read)))
+      (let ((expected-failures nil))
+	(let ((unexpected-failures 
+	       (set-difference failures expected-failures))
+	      (unexpected-successes 
+	       (intersection successes expected-failures)))
+	  (format t "~D CLIM 2.0 tests succeeded~%~D CLIM 2.0 tests failed~%"
+		  (length successes) (length failures))
+	  (when unexpected-failures
+	    (format t "~D CLIM 2.0 tests failed unexpectedly:~{~20t~A~%~}~%"
+		    (length unexpected-failures)
+		    unexpected-failures))
 	
-    
+	  (when unexpected-successes
+	    (format t "~D tests succeeded unexpectedly: ~{~20t~A~%~}~%"
+		    (length unexpected-successes)
+		    unexpected-successes)))))))
+
 	  
 	  
 (defun walk-over-presentations (function output-record)
@@ -523,7 +545,7 @@
   ;; We a choice.
   ;; 1. Send the characters or
   ;; 2. Click on a presentation
-  (declare (ignore provide-default default stream))
+  (declare (ignore provide-default default stream invocation))
   (assert (click-on-presentation pane-name
 				 presentation-type 
 				 :x-offset x-offset
@@ -747,6 +769,7 @@
 (defun do-frame-test-with-profiling (test &key (type :time) prefix)
   (flet ((profiling-hook (invocation command continuation)
 	   ;;-- it would be nice to restrict it to the invocation process
+	   (declare (ignore invocation))
 	   (if (or (atom command)
 		   (equal command '(exit-clim-tests)))
 	       (funcall continuation)

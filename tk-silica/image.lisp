@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.11 1993/06/02 18:42:18 cer Exp $
+;; $fiHeader: image.lisp,v 1.12 1993/06/23 00:13:49 cer Exp $
 
 
 (in-package :xm-silica)
@@ -80,7 +80,7 @@
 (defun read-bitmap-file-1 (fstream)
   (multiple-value-bind (width height depth left-pad format chars-per-pixel line)
       (get-bitmap-file-properties fstream)
-    (declare (ignore format  chars-per-pixel line))
+    (declare (ignore format  chars-per-pixel line left-pad))
     (unless (and width height) (error "Not a BITMAP file"))
     (let* ((bits-per-pixel
 	    (cond ((> depth 24) 32)

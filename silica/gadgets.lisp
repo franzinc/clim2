@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.53 1993/05/25 20:41:55 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.54 1993/06/04 16:06:39 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -156,6 +156,22 @@
      (alignment :initarg :align-x
 		:accessor gadget-alignment))
   (:default-initargs :label "" :align-x :center))
+
+(defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
+  (let ((label (gadget-label pane)))
+    (etypecase label
+      (string
+	(let ((text-style (slot-value pane 'text-style)))
+	  (with-sheet-medium (medium pane)
+	    (multiple-value-bind (width height)
+		(text-size medium label :text-style text-style)
+	      (values (+ width (text-style-width text-style medium))
+		      (+ height (floor (text-style-height text-style medium) 2)))))))
+      (null (values 0 0))
+      (pattern
+	(values (pattern-width label) (pattern-height label)))
+      (pixmap
+       (values (pixmap-width label) (pixmap-height label))))))
 
 (defmethod print-object ((object labelled-gadget-mixin) stream)
   (if (and (slot-boundp object 'label)

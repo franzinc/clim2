@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.25 93/03/31 10:39:29 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.26 1993/06/21 20:51:12 cer Exp $
 
 (in-package :silica)
 
@@ -27,9 +27,9 @@
       (pane (sheet-adopt-child pane child))
       (cons
 	;; Handle top-down layout syntax
-	(unless (and (typep (first child) '(or (member :fill) (real 0 1)))
+	(unless (and (typep (first child) '(or (member :fill) (real 0 *)))
 		     (panep (second child)))
-	  (error "Invalid box child: ~S" contents))
+	  (error "Invalid box child: ~S" child))
 	(sheet-adopt-child pane (second child)))))
   (setf (slot-value pane 'contents) contents))
 
@@ -73,7 +73,14 @@
 			    (incf major+ (scale (funcall fn-major+ space-req)))
 			    (incf major (scale (funcall fn-major space-req)))
 			    (incf major- (scale (funcall fn-major- space-req))))
+			   ((> scale 1.0)
+			    (incf major+ scale)
+			    (incf major scale)
+			    (incf major- scale))
 			   (t
+			    ;; It is maxf because we use the scaling
+			    ;; to calculate the desired size of the
+			    ;; overall pane
 			    (maxf major+ (scale (funcall fn-major+ space-req)))
 			    (maxf major (scale (funcall fn-major space-req)))
 			    (maxf major- (scale (funcall fn-major- space-req)))))

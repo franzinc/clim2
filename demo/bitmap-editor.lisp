@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.13 93/01/18 13:55:01 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.14 93/04/02 13:36:14 cer Exp $
 
 (in-package :clim-demo)
 
@@ -72,6 +72,7 @@
 			     :toggle-button-options (:indicator-type nil))
 		     :stream stream
 		     :default (nth current-color colors)
+		     :query-identifier 'colors
 		     :prompt "Colors")
 	     colors)))
 	(formatting-cell (stream)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.22 92/11/20 08:45:30 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.24 93/02/10 10:04:10 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1631,7 +1631,7 @@
 	*aircraft-list* nil)
   (dolist (bits *default-nav-data*)
     (apply #'(lambda (num name type freq longname lat1 lat2 lon1 lon2 dev ew elev)
-	       (declare (ignore num))
+	       (declare (ignore num ew freq))
 	       (add-position 
 		 name 
 		 (case type

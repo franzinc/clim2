@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: noting-progress.lisp,v 1.5 93/02/08 15:56:54 cer Exp $
+;; $fiHeader: noting-progress.lisp,v 1.6 93/03/19 09:43:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -56,7 +56,8 @@
 (defun invoke-with-noting-progress (stream name continuation)
   (let ((note (add-progress-note name stream)))
     (frame-manager-invoke-with-noting-progress 
-     (frame-manager (if stream (pane-frame stream) *application-frame*))
+     (frame-manager (if (typep stream '(or basic-pane standard-encapsulating-stream))
+			(pane-frame stream) *application-frame*))
      note continuation)))
 
 (defmethod frame-manager-invoke-with-noting-progress ((framem standard-frame-manager)
@@ -66,6 +67,10 @@
       (when stream
 	(window-clear stream)))))
 
+(defmethod frame-manager-invoke-with-noting-progress ((framem null)
+						      note continuation)
+  (funcall continuation note))
+
 (defun note-progress (numerator &optional (denominator 1) (note *current-progress-note*))
   (when note
     (when (and (= denominator 1) (rationalp numerator))
@@ -74,8 +79,8 @@
 	(setq numerator   num 
 	      denominator denom)))
     (setf (slot-value note 'numerator) numerator
-	  (slot-value note 'denominator) denominator))
-  (frame-manager-display-progress-note (frame-manager (slot-value note 'frame)) note)
+	  (slot-value note 'denominator) denominator)
+    (frame-manager-display-progress-note (frame-manager (slot-value note 'frame)) note))
   nil)
 
 (defun note-progress-in-phases (numerator
@@ -127,3 +132,7 @@
 	    (with-end-of-page-action (stream :allow)
 	      (format stream "~A: ~3d%" name (round (* 100 numerator) denominator)))))
 	(force-output stream)))))
+
+(defmethod frame-manager-display-progress-note
+    ((framem null) (note progress-note))
+  nil)

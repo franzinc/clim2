@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: design-recording.lisp,v 1.2 92/07/08 16:30:02 cer Exp $
+;; $fiHeader: design-recording.lisp,v 1.3 92/07/20 16:00:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -53,6 +53,7 @@
     (let ((ink (or ink (aref designs 0)))	;should be COMPOSE-OVER
 	  (design (aref designs 1)))
       ;;--- Should clip INK to the outside of DESIGN, but I don't know how
+      design ink args stream
       (nyi))))
 
 (defmethod draw-design ((region standard-region-union) stream &rest args)
@@ -65,13 +66,16 @@
   (declare (dynamic-extent args))
   (with-slots ((regions clim-utils::regions)) region
     ;;--- Should draw just the intersection, but I dunno how to do that in general
+    args stream 
     (nyi)))
 
 (defmethod draw-design ((region standard-region-difference) stream &rest args)
   (declare (dynamic-extent args))
   (with-slots ((region1 clim-utils::region1)
 	       (region2 clim-utils::region2)) region
-    ;;--- Should draw just the difference, but I dunno how to do that in general
+    ;;--- Should draw just the difference, but I dunno how to do that
+    ;;in general
+    args stream
     (nyi)))
 
 

@@ -1,9 +1,9 @@
-# $fiHeader: Makefile.defs,v 1.12 1993/06/04 16:06:12 cer Exp $
+# $fiHeader: Makefile.defs,v 1.13 1993/06/21 20:49:50 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= /usr/fi/dcl-4.2.devel.13
+CL	= /usr/fi/dcl-4.2.devel.15
 
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
@@ -38,6 +38,8 @@ TRAIN_TEXT = \
 	$(TRAIN_LISP) \
 " | $(CLIM) $(CLOPTS) -batch \
 	; echo CLIM trained!!!!	
+
+REPORT_FILE=dunno
 
 # Info
 LOAD_SOURCE_FILE_INFO=t

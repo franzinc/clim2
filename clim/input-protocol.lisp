@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.41 93/05/13 16:23:13 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.42 1993/05/13 16:28:59 colin Exp $
 
 (in-package :clim-internals)
 
@@ -202,14 +202,14 @@
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
 
-(defmethod (setf window-visibility) :after (visibility (stream input-protocol-mixin))
-  (declare (ignore visibility))
-  (ensure-pointer-window stream))
-
-(defun ensure-pointer-window (window)
-  #-Silica
-  (dolist (pointer (stream-pointers window))
-    (set-pointer-sheet-and-location window pointer)))
+;(defmethod (setf window-visibility) :after (visibility (stream input-protocol-mixin))
+;  (declare (ignore visibility))
+;  (ensure-pointer-window stream))
+;
+;(defun ensure-pointer-window (window)
+;  #-Silica
+;  (dolist (pointer (stream-pointers window))
+;    (set-pointer-sheet-and-location window pointer)))
 
 #-Silica
 (defmethod window-set-viewport-position :around ((stream input-protocol-mixin) new-x new-y)

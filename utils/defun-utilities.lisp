@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: defun-utilities.lisp,v 1.7 92/04/15 11:45:28 cer Exp $
+;;; $fiHeader: defun-utilities.lisp,v 1.8 92/10/02 15:18:44 cer Exp $
 
 (in-package :clim-utils)
 
@@ -72,6 +72,7 @@
   `(progn ,@body))
 
 (defmacro with-warnings-for-definition (name type &body body)
+  #-Genera (declare (ignore name type)) ;-- Why?
   #+Genera `(let ((compiler:default-warning-function ,name)
 		  (compiler:default-warning-definition-type ',type))
 	      ,@body)

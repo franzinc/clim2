@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.28 1993/05/25 20:41:41 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.29 1993/06/02 18:41:34 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -72,10 +72,7 @@
 
      (ignore-errors 
       (tenuring 
-       (let ((*default-pathname-defaults* #P"/hyper/qa/4.2.beta2.0/solaris1/lib/code/"))
-	 (require :composer)
-	 (set (intern '#:*clm-binary-directory* :xtk)
-	      #P"/hyper/qa/4.2.beta2.0/solaris1/lib/"))))
+       (require :composer)))
 
      (progn
        (load "test/testdcl")

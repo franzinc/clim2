@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.53 1993/06/04 16:07:10 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.54 1993/06/23 00:13:51 cer Exp $
 
 
 (in-package :xm-silica)
@@ -1370,13 +1370,13 @@
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
       (let ((sb (make-pane 'scroll-bar 
-			   :enabled (and (member scroll-bars '(:both :dynamic :vertical))
+			   :enabled (and (member scroll-bars '(:both t dynamic :vertical))
 					 t)
 			   :orientation :vertical :id :vertical :client sp)))
 	(setf (scroller-pane-vertical-scroll-bar sp) sb)
 	(sheet-adopt-child sp sb))
       (let ((sb (make-pane 'scroll-bar 
-			   :enabled (and (member scroll-bars '(:both :dynamic :horizontal))
+			   :enabled (and (member scroll-bars '(t :both :dynamic :horizontal))
 					 t)
 			   :orientation :horizontal :id :horizontal :client sp)))
 	(setf (scroller-pane-horizontal-scroll-bar sp) sb)
@@ -1488,10 +1488,10 @@
 	       (append 
 		(let ((scroll-bars (silica::scroller-pane-scroll-bar-policy sheet)))
 		  `(:force-vertical-s-b 
-		    ,(and (member scroll-bars '(:both :dynamic :vertical))
+		    ,(and (member scroll-bars '(t :both :dynamic :vertical))
 			  t)
 		    :force-horizontal-s-b
-		    ,(and (member scroll-bars '(:both :dynamic :horizontal))
+		    ,(and (member scroll-bars '(t :both :dynamic :horizontal))
 			  t)))
 		`(:h-auto-scroll nil 
 				 :v-auto-scroll nil

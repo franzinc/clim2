@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: cload-demos.lisp,v 1.5 92/10/12 17:54:30 cer Exp $
+;; $fiHeader: cload-demos.lisp,v 1.6 1993/05/25 20:41:31 cer Exp $
 
 (in-package :clim-user)
 
@@ -45,7 +45,8 @@
       "process-browser"
       "peek-frame"
       "demo-activity"
-      "custom-records"))
+      "custom-records"
+      "browser"))
 
 (defun compile-and-load-demos (&key forcep 
 				    (directory

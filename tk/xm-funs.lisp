@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.9 93/05/05 01:40:21 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.10 1993/05/13 16:31:02 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -201,3 +201,19 @@
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
+
+(defforeign 'xm_toggle_button_set_state
+    :entry-point (ff:convert-to-lang "XmToggleButtonSetState")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address fixnum fixnum)
+    :arg-checking nil
+    :return-type :void)
+
+(defforeign 'xm_toggle_button_get_state
+    :entry-point (ff:convert-to-lang "XmToggleButtonGetState")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :fixnum)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.12 92/12/14 15:04:12 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.13 93/03/31 10:40:04 cer Exp $
 
 (in-package :tk)
 
@@ -90,7 +90,7 @@
 
 (defconstant xm_string_default_char_set "")
 
-(defmethod convert-resource-in (class (type (eql 'xm-string)) value)
+(defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
   (and (not (zerop value))
        (with-ref-par ((string 0))
 	 ;;--- I think we need to read the book about

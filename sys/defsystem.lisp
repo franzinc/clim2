@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.17 92/10/28 11:32:11 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.18 1993/05/05 01:40:00 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -1199,9 +1199,10 @@ pathname fields are evaluated."
 ;; defined by the module.
 (defmacro in-module-env ((module) &body body)
   (let ((mod (gensym))
+	#-Allegro
 	(path (gensym)))
     `(let* ((,mod ,module)
-	    (,path (module-src-path ,mod))
+	    #-Allegro (,path (module-src-path ,mod))
 	    (*package* (in-module-package ,mod))
 	    #-Allegro
 	    (*default-pathname-defaults*

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.26 1993/05/05 01:38:34 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.27 1993/06/02 18:40:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -342,6 +342,7 @@ This may confused the input editor" gestures))
 
 #-Genera
 (defun complete-symbol-name-1 (string)
+  string			;-- fix me
   nil)
 
 
@@ -1066,7 +1067,7 @@ This may confused the input editor" gestures))
 
 (defun symbol-at-position (stream input-buffer delimiters)
   (declare (values symbol package start end))
-  (multiple-value-bind (word-start word-end colon)
+  (multiple-value-bind (word-start word-end)
       (word-start-and-end input-buffer delimiters
 			  (stream-insertion-pointer stream))
 

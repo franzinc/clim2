@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.24 1993/05/13 16:31:25 colin Exp $
+;; $fiHeader: ol-frames.lisp,v 1.25 1993/05/25 20:42:28 cer Exp $
 
 
 (in-package :xm-silica)
@@ -63,7 +63,7 @@
 	    row-wise
 	    n-columns
 	    n-rows)
-  (declare (ignore gesture row-wise n-columns n-rows))
+  (declare (ignore gesture))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)
@@ -79,6 +79,18 @@
 	 (font (and text-style (text-style-mapping (port framem) text-style)))
 	 (font-args (and font (list :font font)))
 	 (frame (pane-frame associated-window)))
+
+    (when (or n-columns n-rows)
+      (let ((n (length items)))
+	(if row-wise
+	    (tk::set-values menu
+			    :layout-type :fixedcols
+			    :measure (or n-columns
+					 (ceiling n n-rows)))
+	  (tk::set-values menu
+			    :layout-type :fixedrows
+			    :measure (or n-rows
+					 (ceiling n n-columns))))))
 
     (let ((title (cond ((null label) "Choose")
 		       ((atom label) label)
@@ -97,7 +109,7 @@
 				 :sensitive (clim-internals::menu-item-active item)
 				 :parent parent 
 				 :managed nil
-				 :label (string (menu-item-display item))
+				 :label (princ-to-string (menu-item-display item))
 				 (if style
 				     (list* :font (text-style-mapping port style) options)
 				   (append font-args options)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: db-label.lisp,v 1.1 93/04/16 09:45:20 cer Exp $
 
 (in-package :silica)
 
@@ -45,22 +45,6 @@
       (declare (ignore right bottom))
       (draw-gadget-label pane medium left top
 			 :align-x (gadget-alignment pane) :align-y :top))))
-
-(defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
-  (let ((label (gadget-label pane)))
-    (etypecase label
-      (string
-	(let ((text-style (slot-value pane 'text-style)))
-	  (with-sheet-medium (medium pane)
-	    (multiple-value-bind (width height)
-		(text-size medium label :text-style text-style)
-	      (values (+ width (text-style-width text-style medium))
-		      (+ height (floor (text-style-height text-style medium) 2)))))))
-      (null (values 0 0))
-      (pattern
-	(values (pattern-width label) (pattern-height label)))
-      (pixmap
-	(values (pixmap-width label) (pixmap-height label))))))
 
 (defmethod draw-gadget-label ((pane labelled-gadget-mixin) medium x y
 			      &key (align-x (gadget-alignment pane))

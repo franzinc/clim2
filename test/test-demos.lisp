@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.2 1993/05/13 16:24:18 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.3 1993/06/21 20:51:25 cer Exp $
 
 (define-frame-test test-puzzle-demo (clim-demo::puzzle)
   (
@@ -203,10 +203,10 @@
   (
    (:presentation-click clim-demo::edit-pane
 			clim-demo::bitmap-editor-cell)
-   (:edit-avv clim-demo::palette "Colors" #.+white+)
+   (:edit-avv clim-demo::palette clim-demo::colors #.+white+)
    (:presentation-click clim-demo::edit-pane
 			clim-demo::bitmap-editor-cell)
-   (:edit-avv clim-demo::palette "Colors" #.+black+)
+   (:edit-avv clim-demo::palette clim-demo::colors #.+black+)
    (:presentation-click clim-demo::edit-pane
 			clim-demo::bitmap-editor-cell)
    

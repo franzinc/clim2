@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.66 1993/06/02 18:42:06 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.67 1993/06/23 00:13:40 cer Exp $
 
 (in-package :clim-user)
 
@@ -1844,7 +1844,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		   :associated-window stream
 		   :label "Select an activity"))
     (doit
-      (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
+     (menu-choose '(1872812 "kdjfkdjf" 908909)
 		   :label "foo" :text-style '(:fix :roman :huge)))
     (doit
       (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")

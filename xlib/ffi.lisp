@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.13 92/09/30 18:03:27 cer Exp $
+;; $fiHeader: ffi.lisp,v 1.14 92/12/14 15:05:12 cer Exp $
 
 (in-package :x11)
 
@@ -75,9 +75,10 @@
 		 ,@(mapcar #'foo-slot slots))
 	    (destructuring-bind
 		((first-slot-name . first-options) . other-slots) slots
+	      (declare (ignore first-slot-name))
 	      (if (and (null (member :overlays first-options))
 		       (every #'(lambda (slot)
-				  t
+				  slot ;- Bug
 				  #+ignore
 				  (eq (getf (cdr slot) :overlays)
 				      first-slot-name))

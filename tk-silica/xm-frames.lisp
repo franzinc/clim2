@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.58 1993/06/02 18:42:27 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.59 1993/06/23 00:13:54 cer Exp $
 
 (in-package :xm-silica)
 
@@ -382,7 +382,7 @@
 				 :sensitive (clim-internals::menu-item-active item)
 				 :parent parent 
 				 :managed nil
-				 :label-string (string (menu-item-display item))
+				 :label-string (princ-to-string (menu-item-display item))
 				 (if style
 				     (list* :font-list (list (text-style-mapping port style))
 					    options)
@@ -492,27 +492,30 @@
 (defvar *working-dialog* nil)
 
 (defmethod clim-internals::frame-manager-invoke-with-noting-progress ((framem motif-frame-manager)
-						      note
-						      continuation)
+								      note
+								      continuation)
   (if *working-dialog*
-      (let ((old-string (tk::get-values *working-dialog* :message-string)))
+      (let ((old-string (tk::get-values (car *working-dialog*) :message-string))
+	    (old-value (tk::get-values (cdr *working-dialog*) :value)))
 	(unwind-protect
 	    (progn
-	      (tk::set-values *working-dialog* :message-string (string (progress-note-name note)))
+	      (tk::set-values (car *working-dialog*) :message-string (string (progress-note-name note)))
+	      (tk::set-values (cdr *working-dialog*) :value 0)
 	      (funcall continuation note))
-	  (tk::set-values *working-dialog* :message-string old-string)))
+	  (tk::set-values (car *working-dialog*) :message-string old-string)
+	  (tk::set-values (cdr *working-dialog*) :value old-value)))
     (let ((dialog (make-instance 'xt::xm-working-dialog
-					   :dialog-style :modeless
-					   :managed nil
-					   :parent (let ((stream (slot-value note 'stream)))
-						     (if stream
-							 (frame-shell (pane-frame stream))
-						       (frame-shell *application-frame*)))
-					   :name "Working"
-					   :dialog-title "Progress Note"
-					   :resize-policy :grow
-					   :message-string 
-					   (format nil "~A      "(progress-note-name note)))))
+				 :dialog-style :modeless
+				 :managed nil
+				 :parent (let ((stream (slot-value note 'stream)))
+					   (if stream
+					       (frame-shell (pane-frame stream))
+					     (frame-shell *application-frame*)))
+				 :name "Working"
+				 :dialog-title "Progress Note"
+				 :resize-policy :grow
+				 :message-string 
+				 (format nil "~A" (progress-note-name note)))))
       (multiple-value-bind
 	  (ok-button cancel-button help-button separator)
 	  (get-message-box-child dialog :ok :cancel :help :separator)
@@ -520,12 +523,17 @@
 	(xt::unmanage-child cancel-button)
 	(tk::unmanage-child ok-button)
 	(tk::unmanage-child separator))
-      (unwind-protect
-	  (progn
-	    (tk::manage-child dialog)
-	    (let ((*working-dialog* dialog))
-	    (funcall continuation note)))
-	(tk::destroy-widget dialog)))))
+      (let ((slider
+	     (make-instance 'xt::xm-scale 
+			    :show-value t
+			    :parent dialog
+			    :orientation :horizontal)))
+	(unwind-protect
+	    (progn
+	      (tk::manage-child dialog)
+	      (let ((*working-dialog* (cons dialog slider)))
+		(funcall continuation note)))
+	  (tk::destroy-widget dialog))))))
 
 (defmethod clim-internals::frame-manager-display-progress-note
     ((framem motif-frame-manager) note)
@@ -533,8 +541,8 @@
 	       (stream clim-internals::stream)
 	       (numerator clim-internals::numerator)
 	       (denominator clim-internals::denominator)) note
-    (tk::set-values *working-dialog* 
-		    :message-string (format nil "~A: ~3D%" name (round (* 100 numerator) denominator)))))
+    (tk::set-values (cdr *working-dialog*)
+		    :value (round (* 100 numerator) denominator))))
 
 ;;
 

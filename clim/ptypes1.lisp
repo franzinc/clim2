@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.22 92/12/14 15:02:14 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.23 1993/06/02 18:40:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -974,7 +974,12 @@
 	  #-Allegro (cdr (class-precedence-list class))
 	  #+Allegro ;; Work around bug in CLOS compilation environments...
 	  (multiple-value-bind (no-errorp result)
-	      (excl:errorset (cdr (class-precedence-list class)) nil)
+	      (excl:errorset (progn
+			       ;; Finalization is necessary according to AMOP. -smh 18may93
+  			       (unless (clos:class-finalized-p class)
+				 (clos:finalize-inheritance class))
+			       (cdr (class-precedence-list class)))
+			     nil)
 	    (if no-errorp
 		result
 		(return-from generate-map-over-presentation-type-supertypes-method-if-needed)))))
@@ -1312,14 +1317,16 @@
 #-CLIM-extends-CLOS
 (defun generate-presentation-type-inheritance-methods
     (name class parameters-var options-var &optional environment)
-  ;; Finalization is necessary according to AMOP. -smh 18may93
-  (unless (clos:class-finalized-p class)
-    (clos:finalize-inheritance class))
   (let ((superclasses 
 	 #-Allegro (cdr (class-precedence-list class))
 	 #+Allegro ;; Work around bug in CLOS compilation environments...
 	 (multiple-value-bind (no-errorp result)
-	     (excl:errorset (cdr (class-precedence-list class)) nil)
+	     (excl:errorset (progn
+			      ;; Finalization is necessary according to AMOP. -smh 18may93
+			      (unless (clos:class-finalized-p class)
+				(clos:finalize-inheritance class))
+			      (cdr (class-precedence-list class)))
+			    nil)
 	   (if no-errorp
 	       result
 	     (return-from generate-presentation-type-inheritance-methods))))

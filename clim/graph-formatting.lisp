@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.29 93/04/16 09:44:49 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.30 93/04/23 09:17:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -300,6 +300,7 @@
 			  parent parent-x parent-y child child-x child-y
 			  arc-drawing-options)
   (declare (dynamic-extent arc-drawer))
+  (declare (ignore child parent))
   #---ignore	;--- this is the wrong thing...
   (apply arc-drawer stream parent-object child-object
 	 parent-x parent-y child-x child-y

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.28 92/12/16 16:47:41 cer Exp $
+;; $fiHeader: listener.lisp,v 1.29 93/01/21 14:58:34 cer Exp $
 
 (in-package :clim-demo)
 
@@ -226,6 +226,7 @@
 
 (defvar *enter-debugger* '#:enter-debugger)
 (defun enter-debugger (stream)
+  #-Genera stream
   #+Genera
   (clim-internals::with-debug-io-selected (stream)
     (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))

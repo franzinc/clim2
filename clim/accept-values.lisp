@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.64 1993/06/02 18:40:21 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.65 1993/06/21 20:49:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -98,7 +98,6 @@
 (defmethod prompt-for-accept ((stream accept-values-stream) type view
 			      &rest accept-args 
 			      &key query-identifier &allow-other-keys)
-  (declare (ignore accept-args))
   ;; This does nothing, the gadget ACCEPT methods should provide a label
   (unless (gadget-includes-prompt-p type stream view)
     (call-next-method))
@@ -610,6 +609,7 @@
 	   (com-modify-avv-choice query)))))
 
 (defmethod display-view-background (stream (view view))
+  (declare (ignore stream))
   nil)
 
 (defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
