@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.11 1999/03/31 18:49:29 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.12 1999/05/26 18:11:36 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -74,6 +74,15 @@
 (defmethod modal-frame-p ((frame clim-internals::accept-values-own-window)) t)
 (defmethod modal-frame-p ((frame clim-internals::menu-frame)) t)
 
+(defmethod scroller-pane-p ((pane t)) nil)
+(defmethod scroller-pane-p ((pane silica::scroller-pane)) t)
+
+(defmethod list-pane-p ((pane t)) nil)
+(defmethod list-pane-p ((pane list-pane)) t)
+
+(defmethod combo-box-p ((pane t)) nil)
+(defmethod combo-box-p ((pane option-pane)) t)
+
 (defmethod realize-mirror ((port acl-port) sheet)
   (multiple-value-bind (left top right bottom)
       (sheet-native-region* sheet)
@@ -90,22 +99,19 @@
 	   (msscrollwin nil)
 	   (childwin nil)
 	   (control nil)
-           (buttonstyle nil)
 	   (value nil)
 	   (items nil)
 	   (width (- right left))
 	   (height (- bottom top))
 	   gadget-id)
-      ;;mm: defined in acl-widg.lsp later
-      (declare (special silica::*hbutton-width* silica::*hbutton-height*))
       (assert (eq parent parent2) () "parents don't match!")
       ;; Wouldn't this COND work better as a pile of methods, or at least a
       ;; typecase? JPM 14Aug97
-      (cond ((typep sheet 'silica::scroller-pane)
+      (cond ((scroller-pane-p sheet)
 	     (setq msscrollwin t)
 	     (setq scroll (and (not (scroller-pane-gadget-supplies-scrolling-p sheet))
 			       (silica::scroller-pane-scroll-bar-policy sheet))))
-	    ((typep sheet 'silica::hlist-pane)
+	    ((list-pane-p sheet)
       	     (setq control :hlist)
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
@@ -119,7 +125,7 @@
 	       (setf value 
 		 (position value items :test #'equal
 			   :key (slot-value sheet 'silica::value-key)))))
-            ((typep sheet 'silica::mswin-combo-box-pane)
+            ((combo-box-p sheet)
       	     (setq control :hcombo)
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
@@ -132,55 +138,9 @@
 	     (setf value 
 	       (position value items 
 			 :key (set-gadget-value-key sheet)
-			 :test (set-gadget-test sheet))))
-	    ((typep sheet 'silica::hpbutton-pane)
-	     
-	     (setq control :hbutt)
-	     ;;mm: allocate gadget-id per parent
-             (setq gadget-id (silica::allocate-gadget-id sheet))
-	     (setf buttonstyle
-	       (if (push-button-show-as-default sheet)
-			     win:BS_DEFPUSHBUTTON
-			     win:BS_PUSHBUTTON)))
-	    ((typep sheet 'silica::hbutton-pane)
-	     (setq control :hbutt)
-	     ;;mm: allocate gadget-id per parent
-             (setq gadget-id (silica::allocate-gadget-id sheet))
-	     (setq value (slot-value sheet 'silica::value))
-	     (setq buttonstyle
-	       (ecase (gadget-indicator-type sheet)
-		 (:one-of win:BS_RADIOBUTTON)
-		 (:some-of win:BS_CHECKBOX)))))
-      (when (eq control :hbutt)
-	(multiple-value-bind (cwidth cheight)
-              (compute-gadget-label-size sheet)
-	  (setq top (+ top (* gadget-id 25)))
-	  (setq left (+ left 50))
-          (setq width (+ cwidth (* 2 silica::*hbutton-width*)))
-	  (setq height (max cheight (* 1 silica::*hbutton-height*)))))
+			 :test (set-gadget-test sheet)))))
       (setq window
-	(cond ((eq control :hbutt)
-	       (setq childwin t)
-	       (let ((label (slot-value sheet 'silica::label)))
-		 (typecase label
-		   ((or acl-pixmap pattern)
-		    (setf (slot-value sheet 'silica::pixmap)
-		      (if (typep label 'pattern)
-			  (with-sheet-medium (medium sheet)
-			    (with-output-to-pixmap 
-				(stream medium
-					:width (pattern-width label)
-					:height (pattern-height label))
-			      (draw-pattern* stream label 0 0)))
-			label))
-		    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
-			  label nil)))
-		 (hbutton-open parent gadget-id
-				   left top width height 
-				   :buttonstyle buttonstyle
-				   :value value
-				   :label label)))
-	      ((eq control :hlist)
+	(cond ((eq control :hlist)
 	       (setq childwin t)
 	       (hlist-open parent gadget-id
 			       0 0 0 0	; resize left top width height 
@@ -196,7 +156,7 @@
 			       :mode (slot-value sheet 'silica::mode)
 			       :scroll-mode 
 			       (let ((p (sheet-parent sheet)))
-				 (and (typep p 'silica::scroller-pane)
+				 (and (scroller-pane-p p)
 				      (silica::scroller-pane-scroll-bar-policy p)))
 			       :horizontal-extent
 			       (silica::compute-set-gadget-dimensions sheet)
@@ -419,6 +379,9 @@
    (sheet-thread :initform nil :accessor clim-internals::sheet-thread)
    (tooltip-control :initform nil :accessor tooltip-control)
    ))
+
+(defmethod istoplevel ((object t)) nil)
+(defmethod istoplevel ((object acl-top-level-sheet)) t)
 
 (defmethod initialize-instance :after ((sheet acl-top-level-sheet) &key background)
   ;; to cause make-instance to accept :background initializer

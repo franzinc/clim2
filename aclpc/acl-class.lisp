@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.14 1999/04/08 21:25:39 cox Exp $
+;; $Id: acl-class.lisp,v 1.7.8.15 1999/05/26 18:11:33 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -317,16 +317,19 @@
 	(silica::draw-picture-button (mirror->sheet *acl-port* hwnd)
 				     state hdc rect)))))
 
+(defmethod isa-pushbutton ((object t)) nil)
+(defmethod isa-pushbutton ((object push-button)) t)
+
 ;; Process WM_CTLCOLOREDIT
 (defun onctlcoloredit (window msg wparam lparam)
-  (setq *win-result* (message-default window msg wparam lparam))
+  (declare (ignore msg window))
   (let ((hwnd (ct:ccallocate win:hwnd))
 	(hdc (ct:ccallocate win:hdc)))
     (setf (ct:handle-value win:hwnd hwnd) lparam
 	  (ct:handle-value win:hdc hdc) wparam)
     (let ((sheet (mirror->sheet *acl-port* hwnd)))
       (when sheet
-         (when (and (typep sheet 'silica::hpbutton-pane)
+         (when (and (isa-pushbutton sheet)
                     (slot-value sheet 'silica::pixmap))
            (let ((rect (ct:ccallocate win:rect)))
 	     (win:GetClientRect hwnd rect)
@@ -505,7 +508,7 @@
 ;; Process WM_GETMINMAXINFO
 (defun ongetminmaxinfo (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))
-    (if (typep sheet 'acl-top-level-sheet)
+    (if (istoplevel sheet)
 	(let ((min-width (acl-top-min-width sheet))
 	      (min-height (acl-top-min-height sheet)))
 	  ;; someone who knows how to use the pc ff interface should get
@@ -639,7 +642,7 @@
     (when (and (consp context-type)
 	       (eq (first context-type) 'command-name))
       (flet ((look (s)
-	       (when (and (typep s 'push-button)
+	       (when (and (isa-pushbutton s)
 			  (push-button-show-as-default s))
 		 (setq gadget s))))
 	(declare (dynamic-extent #'look))
@@ -1014,7 +1017,7 @@
 	      (format *standard-output* "keysym=~a char=~a modstate=~a~%"
 		      keysym char modstate)
 	      (if (and (or (eql keysym :end)
-			   (and (typep sheet 'silica::mswin-text-field)
+			   (and (silica::isa-textfield sheet)
 				(eql keysym :newline)))
 		       (eql modstate 0))
 		  (setq pass nil)) ;;; pass along the end character.
@@ -1083,7 +1086,7 @@
   ((device-handle1 :initarg :device-handle1
 		   :initform 0)
    (device-handle2 :initarg :device-handle1
-		   :initform (excl:with-native-string (d "DISPLAY")
+		   :initform  (excl:with-native-string (d "DISPLAY")
 			       (win:CreateDC d ct:hnull ct:hnull ct:hnull)))))
 
 (defun initialize-cg ()
@@ -1253,7 +1256,7 @@
 			      (or parent 0)
 			      menu
 			      *hinst*
-			      *win-x* ))))
+			      *win-x* )))) 
     (when (zerop window)
       (or (check-last-error "CreateWindowEx")
 	  (error "CreateWindowEx: unknown error")))

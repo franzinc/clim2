@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.12 1999/04/08 21:25:43 cox Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.13 1999/05/26 18:11:37 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -329,15 +329,11 @@
 (defconstant +bitmapinfosize+ (+ (ct:sizeof win:bitmapinfoheader)
 				 (* +maxcolors+ (ct:sizeof win:rgbquad))))
 
-;; The use of this prevents bitmap drawing from being reentrant.  JPM 5/98.
-(defconstant +rgb-bitmapinfo+
-    (ct:callocate win:bitmapinfo :size +bitmapinfosize+))
-
 (defun acl-bitmapinfo (colors width height medium)
   (assert (<= (length colors) +maxcolors+))
   ;; returns the appropriate bitmapinfo and DIB_XXX_COLORS constant
   (let ((bitcount +bits-per-pixel+)
-	(bmi +rgb-bitmapinfo+))
+	(bmi (ct:callocate win:bitmapinfo :size +bitmapinfosize+)))
     (ct:csets win:bitmapinfoheader bmi
 	      biSize (ct:sizeof win:bitmapinfoheader)
 	      biWidth width

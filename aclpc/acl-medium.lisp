@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.14 1999/04/08 21:25:40 cox Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.15 1999/05/26 18:11:34 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -142,7 +142,7 @@
 	 (setq ink (medium-background medium)))
 	((eq ink +foreground-ink+)
 	 (setq ink (medium-foreground medium)))
-	((eq ink +transparent-ink+)
+	((transparent-ink-p ink)
 	 (return-from color->wincolor -1)
 	 ))
   (flet ((convert (x)
@@ -193,6 +193,10 @@
 			     )))))))
 
 ;;; ink for opacities, regions, etc
+(defmethod transparent-ink-p ((ink t)) (eq ink +nowhere+))
+(defmethod transparent-ink-p ((ink standard-opacity))
+  (let ((value (opacity-value ink)))
+    (< value 0.5)))
 
 ;;; +transparent-ink+ is also known as +nowhere+.
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +transparent-ink+)))
@@ -257,31 +261,68 @@
   (declare (ignore ink))
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
-	 (tink (aref designs 1))
-	 (bink (aref designs 0))
-	 (tcolor (color->wincolor tink medium))
-	 (bcolor (color->wincolor bink medium))
+	 (dc-image-mask (copy-dc-image
+			 (slot-value medium 'foreground-dc-image)))
+	 (ink0 (aref designs 0))
+	 (ink1 (aref designs 1))
+	 (color0 (color->wincolor ink0 medium))
+	 (color1 (color->wincolor ink1 medium))
 	 (width (array-dimension array 1))
 	 (height (array-dimension array 0))
 	 (bits-per-pixel 8)
-	 (into (make-pixel-map width height (expt 2 bits-per-pixel))))
-    (when (eq tink +transparent-ink+)
-      (rotatef tink bink)
-      (rotatef tcolor bcolor))
+	 (copy-arr (make-pixel-map width height (expt 2 bits-per-pixel)))
+	 (copy-arr-mask (make-pixel-map width height (expt 2 bits-per-pixel)))
+	 (transindex 0)
+	 (maincolor color1)
+	 (mainink ink1) 
+	 )
+    (when (not (transparent-ink-p ink0))
+      (setq transindex 1
+	    maincolor color0
+	    mainink ink0))
     (dotimes (i height)
       (dotimes (j width)
-	(setf (aref into i j) (aref array i j))))
-    (setf *bitmap-array* into)
-    (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
+	(cond ((= (aref array i j) transindex)
+	       (setf (aref copy-arr i j) 0)
+	       (setf (aref copy-arr-mask i j) 0))
+	      (t
+	       (setf (aref copy-arr i j) 1)
+	       (setf (aref copy-arr-mask i j) 1)))
+	))
+    (setf *bitmap-array* copy-arr)
+    (let* ((bitmapinfo (get-bitmapinfo medium dc-image copy-arr 
+				       (make-array 2 :initial-contents 
+						   (list clim:+white+ 
+							 mainink))
+				       ))
 	   (dc (win:GetDC 0))
-	   (bitmap (get-texture dc into bitmapinfo)))	
-      ;; To Do: replace BITMAP with INTO and just use 
+	   (bitmap (get-texture dc copy-arr bitmapinfo)))
+      ;; To Do: replace BITMAP with COPY-ARR and just use 
       ;; device-independent bitmap operations.
       (setf (dc-image-bitmap dc-image) bitmap
 	    *created-bitmap* bitmap)
-      (setf (dc-image-background-color dc-image) bcolor)
-      (setf (dc-image-text-color dc-image) tcolor))
-    dc-image))
+      (setf (dc-image-background-color dc-image) 
+	(color->wincolor clim:+white+ medium))
+      (setf (dc-image-text-color dc-image) maincolor)
+      (let* ((bitmapinfo-mask (get-bitmapinfo medium dc-image-mask copy-arr-mask
+					      (make-array 2 :initial-contents 
+							  (list clim:+black+ 
+								mainink))
+					      ))
+	     (dc-mask (win:GetDC 0))
+	     (bitmap-mask (get-texture dc-mask copy-arr-mask bitmapinfo-mask)))
+	;; To Do: replace BITMAP with COPY-ARR and just use 
+	;; device-independent bitmap operations.
+	(setf (dc-image-bitmap dc-image-mask) bitmap-mask)
+	(push bitmap-mask *extra-objects*)
+	(setf (dc-image-background-color dc-image-mask) 
+	  (color->wincolor clim:+black+ medium))
+	(setf (dc-image-text-color dc-image-mask) maincolor)
+	;; Windows does not support transparent ink directly.  We have to
+	;; create transparency with two images.
+	(list dc-image
+	      dc-image-mask)
+	))))
 
 (defun byte-align-pixmap (a)
   ;; Pad the pixmap so that the y dimension is a multiple of 4.
@@ -302,7 +343,7 @@
 (defun pattern-to-hatchbrush (pattern)
   (multiple-value-bind (array designs) (decode-pattern pattern)
     (let* ((tcolor (position-if 
-		    #'(lambda (ink) (not (eq ink +transparent-ink+)))
+		    #'(lambda (ink) (not (transparent-ink-p ink)))
 		    designs))
 	   (style nil))
       (unless tcolor (return-from pattern-to-hatchbrush nil))
@@ -319,36 +360,43 @@
 		  ((and a11 a12) win:HS_HORIZONTAL)
 		  ((and a11 a21) win:HS_VERTICAL)))))
       (unless style (setq style win:HS_FDIAGONAL))
-      (win:createhatchbrush
+      (win:CreateHatchBrush
        style
        (color->wincolor (elt designs tcolor))))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink pattern))
   ;; The "pattern" part of the ink is put into the brush.
-  ;; There seems to be a problem with two-color stipples.
+  ;; This will return a list of two DCs if one of the inks is transparent.
   (let ((cache (port-dc-cache (port medium))))
     (or (gethash ink cache)
-	(setf (gethash ink cache)
-	  (multiple-value-bind (array designs) (decode-pattern ink)
-	    (cond ((find +transparent-ink+ designs)
-		   ;; This is a terrible hack.
-		   ;; It avoids blowing out, and gives you a transparent stipple,
-		   ;; but it doesn't use the one you request.
-		   (setq array (byte-align-pixmap array))
-		   (let ((dc-image (dc-image-for-transparent-pattern
-				    medium ink array designs)))
-		     (setf (dc-image-brush dc-image) 
-		       (pattern-to-hatchbrush ink))
-		     dc-image))
-		  (t
-		   (setq array (byte-align-pixmap array))
-		   (let ((dc-image (dc-image-for-multi-color-pattern
-				    medium ink array designs)))
-		     ;; win95: creating brushes from patterns larger than
-		     ;; 8x8 is not supported.
-		     (setf (dc-image-brush dc-image)
-		       (win:createPatternBrush (dc-image-bitmap dc-image)))
-		     dc-image))))))))
+	(multiple-value-bind (array designs) (decode-pattern ink)
+	  (cond ((find-if #'transparent-ink-p designs)
+		 ;; This returns two images, which
+		 ;; are used as masks to support how 
+		 ;; windows draws patterns containing
+		 ;; transparent inks.
+		 ;;
+		 ;; NOTE: Not cached in hashtable.
+		 (setq array (byte-align-pixmap array))
+		 (let ((dc-image (dc-image-for-transparent-pattern
+				  medium ink array designs)))
+		   (loop for DCI in dc-image
+		       do (setf (dc-image-brush dci) 
+			    #+someday
+			    (win:CreatePatternBrush (dc-image-bitmap dci))
+			    (pattern-to-hatchbrush ink)))
+		   dc-image))
+		(t
+		 (setq array (byte-align-pixmap array))
+		 (let ((dc-image (dc-image-for-multi-color-pattern
+				  medium ink array designs)))
+		   ;; win95: creating brushes from patterns larger than
+		   ;; 8x8 is not supported.
+		   (setf (dc-image-brush dc-image)
+		     (win:CreatePatternBrush (dc-image-bitmap dc-image)))
+		   (setf (gethash ink cache) dc-image)
+		   dc-image
+		   )))))))
 
 #|
 does anyone know how to make the bitmaps have transparent
@@ -384,9 +432,13 @@ draw icons and mouse cursors on the screen.
   ;; The only case we handle right now is stipples
   (let ((cache (port-dc-cache (port medium))))
     (or (gethash ink cache)
-	(setf (gethash ink cache)
+	(let ((x (dc-image-for-ink medium (decode-rectangular-tile ink))))
 	  ;; The brush of PATTERN is used as the tile.
-	  (dc-image-for-ink medium (decode-rectangular-tile ink))))))
+	  (when (atom x) (setf (gethash ink cache) x))
+	  ;; It is not cached if it is a cons, to be consistent with
+	  ;; the non-caching behavior of patterns with transparent
+	  ;; inks.
+	  x))))
 
 (defun nyi ()
   (error "This NT CLIM operation is NYI (Not Yet Implemented)."))
@@ -512,6 +564,8 @@ draw icons and mouse cursors on the screen.
 
 (defmethod medium-draw-rectangle* ((medium acl-medium)
 				   left top right bottom filled)
+  (declare (fixnum left top right bottom)
+	   (optimize (speed 3) (safety 0)))
   (let ((window (medium-drawable medium))
 	(old nil))
     (with-medium-dc (medium dc)
@@ -525,32 +579,66 @@ draw icons and mouse cursors on the screen.
 					 left top right bottom)
           (when (< right left) (rotatef right left))
           (when (< bottom top) (rotatef bottom top))
-	  (cond ((typep ink 'pattern)
+	  (cond ((isa-pattern ink)
 		 ;; DRAW-PATTERN* ends up here.  In principle
 		 ;; we could skip this case and rely on the "brush"
 		 ;; to correctly paint the rectangle.  In practice,
 		 ;; this case is needed to correctly render patterns
 		 ;; larger than 8x8, due to limitations of CreatePatternBrush.
-		 (let ((cdc nil)
+		 (let ((cdc nil)		       
 		       (dc-image (dc-image-for-ink medium ink)))
 		   ;; Create compatable memory dc
 		   (setq cdc (win:createcompatibledc dc))
-		   ;; select a (Device-Dependent) bitmap into the dc
-		   (win:selectobject cdc (dc-image-bitmap dc-image))
-		   ;; Copy bitmap from memory dc to screen dc
-		   (win:bitblt dc left top (- right left) (- bottom top)
-			       cdc 0 0 win:srccopy)
+		   (cond ((listp dc-image)
+			  ;; This is the case of a pattern that contains transparent ink.
+			  ;; Windows does not support transparent ink directly.
+			  ;; You can do this by creating two pictures, 
+			  ;; one with white in the transparent area (The Picture)
+			  ;; and the other with black in the transparent area. (The Mask)
+			  ;; Then use the bitblt API to blit the picture with
+			  ;; the SRCAND (&h8800c6) flag.  Then blit the mask in the 
+			  ;; same location with the SRCOR (&hee0086) flag.
+			  (let ((dci-pict (first dc-image))
+				(dci-mask (second dc-image)))
+			    ;; select a (Device-Dependent) bitmap into the dc
+			    (win:selectobject cdc (dc-image-bitmap dci-pict))
+			    ;; Copy bitmap from memory dc to screen dc
+			    (win:bitblt dc left top (- right left) (- bottom top)
+					cdc 0 0 
+					win:SRCAND)
+			    (win:selectobject cdc (dc-image-bitmap dci-mask))
+			    (win:bitblt dc left top (- right left) (- bottom top)
+					cdc 0 0 
+					acl-clim::SRCOR) 
+			    ))
+			 (t
+			  ;; select a (Device-Dependent) bitmap into the dc
+			  (win:selectobject cdc (dc-image-bitmap dc-image))
+			  ;; Copy bitmap from memory dc to screen dc
+			  (win:bitblt dc left top (- right left) (- bottom top)
+				      cdc 0 0 win:SRCCOPY)))
 		   ;; Delete memory dc
 		   (win:deletedc cdc))
 		 t)
+		#+ign
+		((typep ink 'rectangular-tile)
+		 (set-dc-for-ink dc medium ink nil left top)
+		 (let ((dc-image (dc-image-for-ink medium ink))
+		       (udrect (ff:allocate-fobject 'win:rect :foreign-static-gc nil)))
+		   (setf (ct:cref win:rect udrect left) left)
+		   (setf (ct:cref win:rect udrect right) right)
+		   (setf (ct:cref win:rect udrect top) top)
+		   (setf (ct:cref win:rect udrect bottom) bottom)
+		   (when (consp dc-image) (setq dc-image (second dc-image)))
+		   (win:FillRect dc udrect (dc-image-brush dc-image))))
 		(t
 		 (let ((*the-dc* dc))
 		   (set-dc-for-ink dc medium ink 
 				   (if filled nil line-style)
-				   left top))
-		 (if filled
-		     (win:rectangle dc left top (1+ right) (1+ bottom))
-		   (win:rectangle dc left top right bottom))))
+				   left top)
+		   (if filled
+		       (win:rectangle dc left top (1+ right) (1+ bottom))
+		     (win:rectangle dc left top right bottom)))))
 	  (selectobject dc old))))))
 
 (defmethod medium-draw-rectangles* ((medium acl-medium) position-seq filled)
@@ -699,6 +787,9 @@ draw icons and mouse cursors on the screen.
 	      ))
 	  (selectobject dc old))))))
 
+(defmethod flipping-ink-p ((object t)) nil)
+(defmethod flipping-ink-p ((object clim-utils:flipping-ink)) t)
+
 (defmethod medium-draw-string* ((medium acl-medium)
 				string x y start end align-x align-y
 				towards-x towards-y transform-glyphs)
@@ -733,7 +824,7 @@ draw icons and mouse cursors on the screen.
 	  (t
 	   (setq font
 	     (port-find-rotated-font port font font-angle))))
-    (if (typep ink 'clim-utils:flipping-ink)
+    (if (flipping-ink-p ink)
 	(medium-draw-inverted-string* medium string x y start end font text-style)
       (with-medium-dc (medium dc)
 	(setq old (select-acl-dc medium window dc))
@@ -742,10 +833,9 @@ draw icons and mouse cursors on the screen.
 	    (set-dc-for-text dc medium ink (acl-font-index font))
 	    (multiple-value-bind (cstr len)
 		(silica::xlat-newline-return substring)
-	      (or
-	       (excl:with-native-string (cstr cstr)
-		 (win:TextOut dc x y cstr len))
-	       (check-last-error "TextOut" :action :warn))))
+	      (or (excl:with-native-string (cstr cstr)
+		    (win:TextOut dc x y cstr len))
+		  (check-last-error "TextOut" :action :warn))))
 	  (selectobject dc old))))))
 
 (defmethod medium-draw-inverted-string* ((medium acl-medium)
@@ -776,10 +866,9 @@ draw icons and mouse cursors on the screen.
 	    (set-dc-for-text cdc medium +white+ (acl-font-index font))
 	    (multiple-value-bind (cstr len)
 		(silica::xlat-newline-return substring)
-	      (or
-	       (excl:with-native-string (cstr cstr)
-		 (win:TextOut cdc 0 0 cstr len))
-	       (check-last-error "TextOut" :action :warn))
+	      (or (excl:with-native-string (cstr cstr)
+		    (win:TextOut cdc 0 0 cstr len))
+		  (check-last-error "TextOut" :action :warn))
 	      )
 	    ;; Copy bitmap from memory dc to screen dc
 	    (win:BitBlt dc x y width height
@@ -868,14 +957,11 @@ draw icons and mouse cursors on the screen.
 		(incf towards-y y-adjust)))
 	    (decf y ascent)		;text is positioned by its top left on acl
 	    (set-dc-for-text dc medium ink (acl-font-index font))
-	    (let ((cstr (ct:callocate (:char *) :size 2)))
-	      (ct:cset (:char 2) cstr 0 (char-int char))
-	      (or #+removed (win:textOut dc x y cstr 1)
-		  (excl:with-native-string (cstr (make-string
-					     1
-					     :initial-element char))
-		    (win:TextOut dc x y cstr 1))
-		  (check-last-error "TextOut" :action :warn)))))
+	    (or (excl:with-native-string (cstr (make-string
+						1
+						:initial-element char))
+		  (win:TextOut dc x y cstr 1))
+		(check-last-error "TextOut" :action :warn))))
 	(selectobject dc old)))))
 
 (defmethod medium-draw-text* ((medium acl-medium)

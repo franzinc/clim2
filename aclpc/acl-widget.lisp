@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.14 1999/04/08 21:25:43 cox Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.15 1999/05/26 18:11:37 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -29,9 +29,6 @@
 ****************************************************************************|#
 
 (in-package :silica)
-
-(defvar *hbutton-width* 21)
-(defvar *hbutton-height* 21)
 
 ;;mm: Some new mixins
 
@@ -273,31 +270,48 @@
     (otherwise height)))
 
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
-  (with-slots (x-margin y-margin initial-space-requirement) pane
-    ;; WIDTH
-    (unless width
-      ;; width from text-field-view comes in here
-      (setq width (space-requirement-width initial-space-requirement)))
-    (setq width (process-width-specification pane width))
-    (when (and width (< width 1)) (setq width nil))
-    (unless width
-      (let ((twidth (process-width-specification 
-		     pane (or (gadget-value pane) '(20 :character)))))
-	(setq width (max 50 twidth))))
-    ;; HEIGHT
-    (unless height
-      ;; height from text-field-view comes in here
-      (setq height (space-requirement-height initial-space-requirement)))
-    (setq height (process-height-specification pane height))
-    (when (and height (< height 1)) (setq height nil))
-    (unless height
-      (let ((theight (process-height-specification 
-		      pane (or (gadget-value pane) '(1 :line)))))
-	(setq height (max 25 theight))))
-    ;; FINALLY...
-    (make-space-requirement
-     :width  width
-     :height height)))
+  (declare (ignore width height))
+  ;;; Note that text-editors are scrolled by  being given 
+  ;;; a scroller-pane as a parent, but they have their own 
+  ;;; "interior" scrollbars (this is different than text-fields.)
+  (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) pane
+    (let* ((par (sheet-parent pane))
+	   (scroll-mode (and (acl-clim::scroller-pane-p par)
+			     (scroller-pane-scroll-bar-policy par))))
+      (let ((w 0) (min-w 0)
+	    (h 0) (min-h 0))
+	;; WIDTH
+	(setq min-w (process-width-specification pane '(1 :character)))
+	(setq w (process-width-specification 
+		 pane 
+		 (or (and ncolumns `(,ncolumns :character))
+		     (gadget-value pane)
+		     '(20 :character))))
+	(when (member scroll-mode '(:horizontal :both t :dynamic))
+	  ;; Allow for the vertical scrollbar
+	  (let ((wsty (win-scroll-thick :y)))
+	    (setq min-w (+ min-w wsty))
+	    (setq w (+ w wsty))))
+	(setq w (max w min-w))
+
+	;; HEIGHT
+	(setq min-h (process-height-specification pane '(1 :line))) 
+	(setq h (process-height-specification pane 
+					      (or (and nlines `(,nlines :line))
+						  (gadget-value pane)
+						  '(1 :line)))) 
+      
+	(when (member scroll-mode '(:horizontal :both t :dynamic))
+	  (let ((wstx (win-scroll-thick :x)))
+	    ;; Allow for the horizontal scrollbar
+	    (setq min-h (+ min-h wstx)
+		  h (+ h wstx))))
+	(setq h (max h min-h))
+
+	(make-space-requirement
+	 :width  w :min-width min-w
+	 :height h :min-height min-h
+	 )))))
 
 (defmethod initialize-instance :after ((sheet mswin-text-edit) 
 				       &key background label) 
@@ -395,7 +409,7 @@
 		(make-array wl :element-type '(unsigned-byte 8)))
 	       (tlen (win:GetWindowText mirror teb (1+ wl))))
 	  (declare (ignorable tlen))
-	  (setf teb (unxlat-newline-return (excl:mb-to-string teb)))
+	  (setf teb (unxlat-newline-return (excl:mb-to-string teb))) 
 	  (setf value teb)
 	  ;; By the way, does anyone know why 
 	  ;; the second value is returned? -smh
@@ -411,11 +425,12 @@
       (call-next-method gadget port sheet wparam lparam))))
 
 (defmethod text-edit-flags ((sheet mswin-text-edit))
-  (logior win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER
-	  win:ES_MULTILINE win:ES_AUTOVSCROLL))
+  (logior 
+   (if (gadget-editable-p sheet) 0 win:ES_READONLY)
+   win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER
+   win:ES_MULTILINE win:ES_AUTOVSCROLL))
 
 (defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-text-edit))
-  (declare (special *hbutton-width* *hbutton-height*))
   (multiple-value-bind (left top right bottom)
       (sheet-native-region* sheet)
     (fix-coordinates left top right bottom)
@@ -433,7 +448,7 @@
 			      :value (slot-value sheet 'value)
 			      :scroll-mode 
 			      (let ((p (sheet-parent sheet)))
-				(and (typep p 'scroller-pane)
+				(and (acl-clim::scroller-pane-p p)
 				     (scroller-pane-scroll-bar-policy p)))
 			      ))
       (setf (sheet-native-transformation sheet)
@@ -463,11 +478,57 @@
       :external-label nil
       :x-margin 2 :y-margin 2))
 
+(defmethod isa-textfield ((object t)) nil)
+(defmethod isa-textfield ((object mswin-text-field)) t)
+
 (defmethod text-edit-flags ((sheet mswin-text-field))
-  (logior win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER))
+  (logior 
+   (if (gadget-editable-p sheet) 0 win:ES_READONLY)
+   win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER))
+
+(defmethod isa-viewport ((object t)) nil)
+(defmethod isa-viewport ((object viewport)) t)
+
+(defmethod compose-space ((pane mswin-text-field) &key width height)
+  ;;; Note that text-fields are scrolled by
+  ;;; being given a viewport as a parent (this is different
+  ;;; than text-editors.)
+  ;;;
+  ;;; As a result, if the parent is a viewport, and if width/height
+  ;;; is specified, we want to use that value (i.e. in order
+  ;;; to fill the space provided by the viewport).
+  (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) pane
+    (let* ((par (sheet-parent pane))
+	   (par-viewport-p (isa-viewport par)))
+      (let ((w 0) (min-w 0)
+	    (h 0) (min-h 0))
+	;; WIDTH
+	(setq min-w (process-width-specification pane '(1 :character)))
+	(setq w (process-width-specification pane 
+					     (or 
+					      (and par-viewport-p width)
+					      (and ncolumns `(,ncolumns :character))
+					      (gadget-value pane)
+					      '(20 :character))))
+	(setq w (max w min-w))
+
+	;; HEIGHT
+	(setq min-h (process-height-specification pane '(1 :line))) 
+	(setq h (process-height-specification pane
+					      (or 
+					       (and par-viewport-p height)
+					       (and nlines `(,nlines :line))
+					       (gadget-value pane)
+					       '(1 :line)))) 
+	(setq h (max h min-h))
+
+	(make-space-requirement
+	 :width  w :min-width min-w
+	 :height h :min-height min-h
+	 )))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; buttons
+;;; push buttons
 
 (defvar *default-picture-button-op*
     boole-and)
@@ -510,6 +571,74 @@
     ;; picture-buttons look better (cim 10/4/96)
     :x-margin 2 :y-margin 2))
 
+(defvar *hbutton-width* 21)
+(defvar *hbutton-height* 21)
+
+(defmethod realize-mirror ((port acl-clim::acl-port) (sheet hpbutton-pane))
+  (multiple-value-bind (left top right bottom)
+      (sheet-native-region* sheet)
+    (fix-coordinates left top right bottom)
+    (let* ((parent (sheet-mirror sheet))
+	   (parent2 (sheet-mirror (sheet-parent sheet)))
+           (window nil)
+           (buttonstyle nil)
+	   (value nil)
+	   (width (- right left))
+	   (height (- bottom top))
+	   gadget-id)
+      (assert (eq parent parent2) () "parents don't match!")
+      (setq gadget-id (silica::allocate-gadget-id sheet))
+      (setf buttonstyle
+	(if (push-button-show-as-default sheet)
+	    win:BS_DEFPUSHBUTTON
+	  win:BS_PUSHBUTTON))
+      (multiple-value-bind (cwidth cheight)
+	  (compute-gadget-label-size sheet)
+	(setq top (+ top (* gadget-id 25)))
+	(setq left (+ left 50))
+	(setq width (+ cwidth (* 2 *hbutton-width*)))
+	(setq height (max cheight (* 1 *hbutton-height*))))
+      (setq window
+	(let ((label (slot-value sheet 'silica::label))
+	      (resources (acl-clim::port-default-resources port)))
+	  (when (or (acl-clim::isa-pixmap label)
+		    (acl-clim::isa-pattern label))
+	    (setf (slot-value sheet 'silica::pixmap)
+	      (if (acl-clim::isa-pattern label)
+		  (with-sheet-medium (medium sheet)
+		    (with-output-to-pixmap 
+			(stream medium
+				:width (pattern-width label)
+				:height (pattern-height label))
+		      (draw-pattern* stream label 0 0)))
+		label))
+	    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
+		  label nil))
+	  (unless (eq (pane-background sheet) 
+		      (getf resources :background))
+	    (setq buttonstyle win:BS_OWNERDRAW))
+	  (unless (eq (pane-foreground sheet) 
+		      (getf resources :foreground))
+	    (setq buttonstyle win:BS_OWNERDRAW))
+	  (acl-clim::hbutton-open parent gadget-id
+				  left top width height 
+				  :buttonstyle buttonstyle
+				  :value value
+				  :label label)))
+      (setf (sheet-native-transformation sheet)
+	(sheet-native-transformation (sheet-parent sheet)))
+      (setf (silica::gadget-id->window sheet gadget-id) window)
+      (let ((text-style (pane-text-style sheet)))
+	(when text-style
+	  (let ((font (text-style-mapping port text-style)))
+	    (win:SendMessage window win:WM_SETFONT 
+			     (acl-clim::acl-font-index font) 0))))
+      (when (sheet-enabled-p sheet)
+	;; It's too soon for this.  Need to do this later, 
+	;; after the layout has been processed, but where?
+	(win:ShowWindow window win:SW_SHOW))
+      window)))
+
 (defmethod compose-space ((pane hpbutton-pane) &key width height)
   (declare (ignore width height))
   (with-slots (external-label x-margin y-margin initial-space-requirement) pane
@@ -539,27 +668,58 @@
 	    :height h :min-height h)))
       )))
 
+(defvar *background-brush* nil)
+
 (defmethod draw-picture-button ((pane hpbutton-pane) state hdc rect)
-  (multiple-value-bind (bwidth bheight)
-      (bounding-rectangle-size pane)
-    (let* ((pixmap (slot-value pane 'pixmap))
-	   (op (slot-value pane 'raster-op))
-	   (width (pixmap-width pixmap))
-	   (height (pixmap-height pixmap))
-	   (x (floor (- bwidth width) 2))
-	   (y (floor (- bheight height) 2))
-	   (selected (logtest state win:ODS_SELECTED)))
-      (when selected
-	(incf x)
-	(incf y))
+  ;; Handle the drawing part of owner-drawn buttons (BS_OWNERDRAW).
+  (let ((bg (acl-clim::color->wincolor (pane-background pane)))
+	(fg (acl-clim::color->wincolor (pane-foreground pane))))
+    (multiple-value-bind (bwidth bheight)
+	(bounding-rectangle-size pane)
+      (win:SetBkMode hdc win:OPAQUE)
+      (win:SetBkColor hdc bg)
+      (win:SetTextColor hdc fg)
+      (win:SetRop2 hdc win:R2_COPYPEN)
+      (when *background-brush*
+	(win:DeleteObject *background-brush*))
+      (setq *background-brush* (win:CreateSolidBrush bg))
+      (win:SelectObject hdc *background-brush*)
       (win:DrawEdge hdc
-		     rect 
-		     (if selected
-			 win:BDR_SUNKEN
-		       win:BDR_RAISED)
-		     (+ win:BF_RECT win:BF_MIDDLE))
-      (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-		   (acl-clim::bop->winop op)))))
+		    rect 
+		    (if (logtest state win:ODS_SELECTED)
+			win:BDR_SUNKEN
+		      win:BDR_RAISED)
+		    (+ win:BF_RECT win:BF_MIDDLE))
+      (win:rectangle hdc 1 1 (- bwidth 2) (- bheight 2))
+      (let ((pixmap (slot-value pane 'pixmap))
+	    (label (gadget-label pane)))
+	(cond (pixmap
+	       (let* ((op (slot-value pane 'raster-op))
+		      (width (pixmap-width pixmap))
+		      (height (pixmap-height pixmap))
+		      (x (floor (- bwidth width) 2))
+		      (y (floor (- bheight height) 2)))
+		 (when (logtest state win:ODS_SELECTED)
+		   (incf x)
+		   (incf y))
+		 (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+			     (acl-clim::bop->winop op))))
+	      (label
+	       (acl-clim::adjust-gadget-colors pane hdc)
+	       (with-sheet-medium (medium pane)
+		 (let* ((port (port medium))
+			(text-style (medium-merged-text-style medium))
+			(font (text-style-mapping port text-style)))
+		   (win:selectobject hdc (acl-clim::acl-font-index font))
+		   (multiple-value-bind (cstr len)
+		       (silica::xlat-newline-return label)
+		     (multiple-value-bind (width height) 
+			 (text-size medium label :text-style text-style)
+		       (let ((x (floor (- bwidth width) 2))
+			     (y (floor (- bheight height) 2)))
+			 (or (win:TextOut hdc x y cstr len) 
+			     (acl-clim::check-last-error "TextOut" :action :warn)))
+		       ))))))))))
 
 ;; deallocate and pixmap associated with a picture button when it's
 ;; destroyed - this is the only note-sheet-degrafted method in the
@@ -567,23 +727,14 @@
 ;; (if any) need to be deallocated when controls are destroyed
 ;; (cim 10/11/96) 
 
-;; only destroy the pixmap if it was created from a pattern label - if 
-;; the the label was given as a pixmap leave it to the user to destroy 
-;; (cim 10/14/96)
-
 (defmethod note-sheet-degrafted :after ((pane hpbutton-pane))
+  ;; only destroy the pixmap if it was created from a pattern label - if 
+  ;; the the label was given as a pixmap leave it to the user to destroy 
+  ;; (cim 10/14/96)
   (let ((pixmap (slot-value pane 'pixmap))
 	(label (gadget-label pane)))
-    (when (and pixmap (typep label 'pattern))
+    (when (and pixmap (acl-clim::isa-pattern label))
       (port-deallocate-pixmap (port pixmap) pixmap))))
-
-;; This was copied from silica/db-button.lisp and specialized on
-;; hpbutton-pane and then the event class changed to
-;; window-change-event as with all the other fixes in this file. 
-;; silica/db-button.lisp should only be used for using the generic
-;; clim gadgets - when using native windows controls this code
-;; shouldn't be used - the fact that it was, was introducing strange
-;; bugs in the handling of push-button events. (cim 9/17/96)
 
 (defmethod handle-event ((pane hpbutton-pane) 
 			 (event window-change-event))
@@ -595,17 +746,13 @@
   (with-output-recording-options (*standard-input* :record t)
     (activate-callback pane (gadget-client pane) (gadget-id pane))))
 
-;; let's shadow generic db-butto methods (cim 9/18/96) - this needs
-;; some more work
-
 (defmethod handle-event ((pane hpbutton-pane) 
 			 (event pointer-enter-event))
-  nil)
+  (armed-callback pane (gadget-client pane) (gadget-id pane)))
 
 (defmethod handle-event ((pane hpbutton-pane) 
 			 (event pointer-exit-event))
-  nil)
-
+  (disarmed-callback pane (gadget-client pane) (gadget-id pane)))
 
 (defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
   (with-slots (mirror) pane
@@ -613,6 +760,19 @@
       (excl:with-native-string (str str)
 	(win:SetWindowText mirror str)))))
 
+(defmethod (setf pane-background) :after (clr (pane hpbutton-pane))
+  (declare (ignore CLR))
+  (with-slots (mirror) pane
+    (when mirror
+      ;;; Work-around to force button to refresh.
+      (win:SetWindowText mirror (or (gadget-label PANE) "")))))
+
+(defmethod (setf pane-foreground) :after (clr (pane hpbutton-pane))
+  (declare (ignore CLR))
+  (with-slots (mirror) pane
+    (when mirror
+      ;;; Work-around to force button to refresh.
+      (win:SetWindowText mirror (or (gadget-label PANE) "")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; hbutton-pane
@@ -630,27 +790,103 @@
 		     :text-style nil
 		     ))
 
+(defmethod realize-mirror ((port acl-clim::acl-port) (sheet hbutton-pane))
+  (multiple-value-bind (left top right bottom)
+      (sheet-native-region* sheet)
+    (fix-coordinates left top right bottom)
+    (let* ((parent (sheet-mirror sheet))
+	   (parent2 (sheet-mirror (sheet-parent sheet)))
+           (window nil)
+           (buttonstyle nil)
+	   (value nil)
+	   (width (- right left))
+	   (height (- bottom top))
+	   gadget-id)
+      (assert (eq parent parent2) () "parents don't match!")
+      (setq gadget-id (silica::allocate-gadget-id sheet))
+      (setq value (slot-value sheet 'silica::value))
+      (setq buttonstyle
+	(ecase (gadget-indicator-type sheet)
+	  (:one-of win:BS_RADIOBUTTON)
+	  (:some-of win:BS_CHECKBOX)))
+      (multiple-value-bind (cwidth cheight)
+	  (compute-gadget-label-size sheet)
+	(setq top (+ top (* gadget-id 25)))
+	(setq left (+ left 50))
+	(setq width (+ cwidth (* 2 *hbutton-width*)))
+	(setq height (max cheight (* 1 *hbutton-height*))))
+      (setq window
+	(let ((label (slot-value sheet 'silica::label))
+	      (resources (acl-clim::port-default-resources port)))
+	  (when (or (acl-clim::isa-pixmap label)
+		    (acl-clim::isa-pattern label))
+	    (setf (slot-value sheet 'silica::pixmap)
+	      (if (acl-clim::isa-pattern label)
+		  (with-sheet-medium (medium sheet)
+		    (with-output-to-pixmap 
+			(stream medium
+				:width (pattern-width label)
+				:height (pattern-height label))
+		      (draw-pattern* stream label 0 0)))
+		label))
+	    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
+		  label nil))
+	  (unless (eq (pane-background sheet) 
+		      (getf resources :background))
+	    (setq buttonstyle win:BS_OWNERDRAW))
+	  (unless (eq (pane-foreground sheet) 
+		      (getf resources :foreground))
+	    (setq buttonstyle win:BS_OWNERDRAW))
+	  (acl-clim::hbutton-open parent gadget-id
+				  left top width height 
+				  :buttonstyle buttonstyle
+				  :value value
+				  :label label)))
+      (setf (sheet-native-transformation sheet)
+	(sheet-native-transformation (sheet-parent sheet)))
+      (setf (silica::gadget-id->window sheet gadget-id) window)
+      (let ((text-style (pane-text-style sheet)))
+	(when text-style
+	  (let ((font (text-style-mapping port text-style)))
+	    (win:SendMessage window win:WM_SETFONT 
+			     (acl-clim::acl-font-index font) 0))))
+      (when (sheet-enabled-p sheet)
+	;; It's too soon for this.  Need to do this later, 
+	;; after the layout has been processed, but where?
+	(win:ShowWindow window win:SW_SHOW))
+      window)))
+
 (defmethod draw-picture-button ((pane hbutton-pane) state hdc rect)
   (multiple-value-bind (bwidth bheight)
       (bounding-rectangle-size pane)
-    (let* ((pixmap (slot-value pane 'pixmap))
-	   (op (slot-value pane 'raster-op))
-	   (width (pixmap-width pixmap))
-	   (height (pixmap-height pixmap))
-	   (x (floor (- bwidth width) 2))
-	   (y (floor (- bheight height) 2))
-	   (selected (logtest state win:ODS_SELECTED)))
-      (when selected
-	(incf x)
-	(incf y))
-      (win:DrawEdge hdc
-		     rect 
-		     (if selected
-			 win:BDR_SUNKEN
-		       win:BDR_RAISED)
-		     (+ win:BF_RECT win:BF_MIDDLE))
-      (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-		   (acl-clim::bop->winop op)))))
+    (win:SetBkMode hdc win:OPAQUE)
+    (win:SetBkColor hdc (acl-clim::color->wincolor (pane-background pane)))
+    (win:SetTextColor hdc (acl-clim::color->wincolor (pane-foreground pane)))
+    (win:SetRop2 hdc win:R2_COPYPEN)
+    (win:SelectObject hdc 
+		      (win:CreateSolidBrush 
+		       (acl-clim::color->wincolor (pane-background pane))))
+    (win:DrawEdge hdc
+		  rect 
+		  (if (logtest state win:ODS_SELECTED)
+		      win:BDR_SUNKEN
+		    win:BDR_RAISED)
+		  (+ win:BF_RECT win:BF_MIDDLE))
+    (let ((margin 1))
+      (win:rectangle hdc margin margin 
+		     (- bwidth margin margin) (- bheight margin margin)))
+    (let* ((pixmap (slot-value pane 'pixmap)))
+      (when pixmap
+	(let* ((op (slot-value pane 'raster-op))
+	       (width (pixmap-width pixmap))
+	       (height (pixmap-height pixmap))
+	       (x (floor (- bwidth width) 2))
+	       (y (floor (- bheight height) 2)))
+	  (when (logtest state win:ODS_SELECTED)
+	    (incf x)
+	    (incf y))
+	  (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+		      (acl-clim::bop->winop op)))))))
 
 (defmethod compose-space ((pane hbutton-pane) &key width height)
   (declare (ignore width height))
@@ -1034,6 +1270,9 @@
         (setq armed nil)
 	(disarmed-callback pane (gadget-client pane) (gadget-id pane))))))
 
+(defmethod isa-pull-down-menu ((object t)) nil)
+(defmethod isa-pull-down-menu ((object pull-down-menu)) t)
+
 (defmethod handle-event ((pane mswin-pull-down-menu-button)
 			 (event pointer-motion-event))
   (with-slots (next-menu x-margin normal-pattern) pane
@@ -1046,7 +1285,7 @@
 	  (when (and next-menu
 		     (> x (- (+ left x-margin pattern-width)
 			     sensitive-region)))
-	    (if (typep next-menu 'pull-down-menu)
+	    (if (isa-pull-down-menu next-menu)
 		(choose-from-pull-down-menu next-menu pane :cascade-p t)
 		(funcall next-menu pane))))))))
 
@@ -1153,10 +1392,8 @@
 	    (let ((*subsidiary-pull-down-menu* t))
 	      (loop
 	        (unless (winhandle-equal mirror
-			       (acl-clim::acl-port-mirror-with-focus
-			         acl-clim::*acl-port*))
-                  #||(format *terminal-io* "mirror=~a focus=~a~%" mirror (acl-clim::acl-port-mirror-with-focus
-			         acl-clim::*acl-port*))||#
+					 (acl-clim::acl-port-mirror-with-focus
+					  acl-clim::*acl-port*))
 		  (throw 'exit-pull-down-menu (values)))
 		(port-event-wait (port menu) #'waiter 
                             :wait-reason "Pull-Down Menu" :timeout 2)
@@ -1264,19 +1501,14 @@
 ;; returned brush can be freed - is this a reasonable assumption? 
 ;; (cim 10/11/96)
 
-(defvar *background-brush* nil)
-
 (defmethod adjust-gadget-colors (pane hdc)
+  (when silica::*background-brush*
+    (win:DeleteObject silica::*background-brush*))
   (let* ((bg (color->wincolor (pane-background pane)))
-	 (fg (color->wincolor (pane-foreground pane)))
-	 (new-brush (win:CreateSolidBrush bg))
-	 (old-brush *background-brush*))
+	 (fg (color->wincolor (pane-foreground pane))))
     (win:SetBkColor hdc bg)
     (win:SetTextColor hdc fg)
-    (when old-brush
-      (win:DeleteObject old-brush))
-    (setq *background-brush* new-brush)
-    new-brush))
+    (setq silica::*background-brush* (win:CreateSolidBrush bg))))
 
 (defmethod get-sheet-resources ((port acl-port) sheet)
   (declare (ignore sheet))
@@ -1385,3 +1617,11 @@
      (sheet-child pane)
      0 0
      (- width (* 2 thickness)) (- height (* 2 thickness)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Labelled-pane
+
+(defmethod (setf gadget-label) :after 
+	   ((new-label string) (gadget labelled-gadget-mixin))
+  (handle-repaint gadget T)
+  )

@@ -11,6 +11,20 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.55
+
+1999-05-21  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-class: Fix for gadgets w/ color backgrounds
+* aclpc/acl-frames: Cleanup
+* aclpc/acl-medium: Implement bitmaps with transparent background
+* aclpc/acl-mirror: Modularize realize-mirror some more
+* aclpc/acl-port: fixes for pointer cursor, gadget color, cleanup
+* aclpc/acl-widget: fixes for text gadget size, color, editability
+                    implement color buttons, button armed callbacks
+* aclpc/winwidgh: win:SRCOR seems to be missing, lets add our own.
+
+*******************************************************************************
 2.2.1.54
 
 1999-04-15  Kevin Layer  <layer@ultra>

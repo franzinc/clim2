@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.4.8.10 1999/03/31 18:49:26 layer Exp $
+;; $Id: acl-dc.lisp,v 1.4.8.11 1999/05/26 18:11:34 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -180,12 +180,18 @@
    (height :initarg :height :reader pixmap-height)
    (original-bitmap :initarg :original-bitmap)))
 
+(defmethod isa-pixmap ((object t)) nil)
+(defmethod isa-pixmap ((object acl-pixmap)) t)
+
+(defmethod isa-pixmap-medium ((object t)) nil)
+(defmethod isa-pixmap-medium ((object basic-pixmap-medium)) t)
+
 ;; The call to GetDC will cons a bignum (16 bytes).
 ;; We should probably try to optimize this some how
 ;; since it is called constantly during simple
 ;; things like repaint.
 (defmacro with-dc ((window dc) &rest body)
-  `(if (typep ,window 'acl-pixmap-medium)
+  `(if (isa-pixmap-medium ,window)
        (let ((,dc (pixmap-cdc (medium-drawable ,window))))
 	 ,@body)
      ;; It was my intention to rewrite this to
@@ -199,7 +205,7 @@
 	 (release-objects ,window ,dc)))))
 
 (defmacro with-medium-dc ((medium dc) &rest body)
-  `(if (typep ,medium 'acl-pixmap-medium)
+  `(if (isa-pixmap-medium ,medium)
        (let ((,dc (pixmap-cdc (medium-drawable ,medium))))
 	 ,@body)
      ;; It was my intention to rewrite this to
@@ -286,16 +292,23 @@
 
 (defun set-dc-for-ink (dc medium ink line-style &optional xorg yorg)
   (let ((image (dc-image-for-ink medium ink)))
+    ;; For transparent patterns, we actually have two images.
+    ;; Callers should prevent us from getting here in that case,
+    ;; but in case they fail, do something responsible here:
+    (when (consp image) (setq image (second image)))
     (if line-style
       (set-dc-for-drawing dc image line-style)
       (set-dc-for-filling dc image xorg yorg))))
+
+(defmethod isa-pattern ((object t)) nil)
+(defmethod isa-pattern ((object pattern)) t)
 
 (defun set-cdc-for-pattern (dc medium ink line-style)
   (declare (ignore line-style))
   (let ((image (dc-image-for-ink medium ink))
 	#+ign
 	size)
-    (when (typep ink 'pattern)
+    (when (isa-pattern ink)
       #+ign
       (multiple-value-bind (array designs) (decode-pattern ink)
 	(declare (ignore array))
@@ -324,26 +337,31 @@
     win:SRCCOPY))
 
 (defun set-dc-for-text (dc medium ink font)
-  (let* ((image (dc-image-for-ink medium ink))
-	 (text-color (dc-image-text-color image))
-	 (background-color (dc-image-background-color image))
-	 (brush (dc-image-brush image))
-	 (pen (dc-image-solid-1-pen image)))
-    (win:SetMapMode dc win:MM_TEXT)
-    (when font (selectobject dc font))
-    (cond ((not background-color)
-	   (win:SetBkMode dc win:TRANSPARENT))
-	  ((minusp background-color)
-	   (win:SetBkMode dc win:TRANSPARENT))
-	  (t
-	   (win:SetBkMode dc win:OPAQUE)
-	   (win:SetBkColor dc background-color)))
-    (when brush (win:SelectObject dc brush))
-    (when pen (win:SelectObject dc pen))
-    (when text-color (win:SetTextColor dc text-color))
-    ;; SetRop2 has no effect on text.  If you want to use
-    ;; one, you have to draw into a bitmap and biblt that.
-    t))
+  (let ((image (dc-image-for-ink medium ink)))
+    (when (consp image) (setq image (second image)))
+    (let* ((text-color (dc-image-text-color image))
+	   #+ignore
+	   (background-color (dc-image-background-color image))
+	   (brush (dc-image-brush image))
+	   (pen (dc-image-solid-1-pen image)))
+      (win:SetMapMode dc win:MM_TEXT)
+      (when font (selectobject dc font))
+      ;; Seems like we never want opaque background. JPM.
+      #+ignore				
+      (cond ((not background-color)
+	     (win:SetBkMode dc win:TRANSPARENT))
+	    ((minusp background-color)
+	     (win:SetBkMode dc win:TRANSPARENT))
+	    (t
+	     (win:SetBkMode dc win:OPAQUE)
+	     (win:SetBkColor dc background-color)))
+      (win:SetBkMode dc win:TRANSPARENT)
+      (when brush (win:SelectObject dc brush))
+      (when pen (win:SelectObject dc pen))
+      (when text-color (win:SetTextColor dc text-color))
+      ;; SetRop2 has no effect on text.  If you want to use
+      ;; one, you have to draw into a bitmap and biblt that.
+      t)))
 
 (defgeneric dc-image-for-ink (medium ink))
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.1.22.6 1999/03/31 18:49:30 layer Exp $
+;; $Id: winwidgh.lisp,v 1.1.22.7 1999/05/26 18:11:37 layer Exp $
 
 (in-package :acl-clim)
 
@@ -27,6 +27,8 @@
 (defconstant TTN_NEEDTEXTA TTN_FIRST)	; ascii
 (defconstant TTN_NEEDTEXTW (- TTN_FIRST 10)); unicode
 (defconstant TTN_NEEDTEXT TTN_NEEDTEXTA)
+
+(defvar SRCOR #xee0086)
 
 (ff:def-foreign-type browseinfo
     (:struct (hwndOwner win:hwnd)
