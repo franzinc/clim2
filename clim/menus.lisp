@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.37 92/12/03 10:27:16 cer Exp $
+;; $fiHeader: menus.lisp,v 1.38 92/12/16 16:46:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -244,7 +244,7 @@
 			     max-width max-height n-rows n-columns
 			     x-spacing y-spacing (row-wise nil)
 			     (cell-align-x ':left) (cell-align-y ':top)
-			     pointer-documentation menu-type)
+			     pointer-documentation menu-type gesture)
   (declare (values value chosen-item gesture))
   (declare (ignore associated-window
 		   text-style default-item
@@ -252,7 +252,7 @@
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
 		   x-spacing y-spacing row-wise cell-align-x cell-align-y
-		   pointer-documentation menu-type))
+		   pointer-documentation menu-type gesture))
   (declare (dynamic-extent keys))
   (unless (zerop (length items))
     (apply #'frame-manager-menu-choose (frame-manager *application-frame*) items keys)))
@@ -270,9 +270,9 @@
 		 max-width max-height n-rows n-columns
 		 x-spacing y-spacing (row-wise nil)
 		 (cell-align-x ':left) (cell-align-y ':top)
-		 pointer-documentation menu-type)
+		 pointer-documentation menu-type gesture)
   (declare (values value chosen-item gesture))
-  (declare (ignore keys))
+  (declare (ignore keys gesture))
   (flet ((present-item (item stream)
 	   (present item presentation-type :stream stream)))
     (declare (dynamic-extent #'present-item))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.27 92/12/14 15:03:53 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.28 93/01/11 15:45:42 colin Exp $
 
 (in-package :tk)
 
@@ -35,6 +35,10 @@
   (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
 	(y (make-array 1 :element-type '(unsigned-byte 32)))
 	result)
+    ;;--- Perhaps we can just do this when we want to grab the resources.
+    ;;--- In this way we would only have to do one the display is
+    ;;--- opened and the toolkit initialized etc etc.
+    (xt_initialize_widget_class (class-handle class))
     (funcall fn (class-handle class) x y)
     (let ((resources (aref x 0))
 	  (n (aref y 0)))
@@ -188,11 +192,7 @@
       #+ignore
       (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
-	(push (list h class-ep) clist)
-	;;--- Perhaps we can just do this when we want to grab the resources.
-	;;--- In this way we would only have to do one the display is
-	;;--- opened and the toolkit initialized etc etc.
-	(xt_initialize_widget_class h)))
+	(push (list h class-ep) clist)))
     (setq clist (nreverse clist))
 
     (do ((cs clist (cdr cs))

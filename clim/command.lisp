@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.18 92/11/06 18:59:12 cer Exp $
+;; $fiHeader: command.lisp,v 1.19 92/12/14 15:02:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -517,8 +517,7 @@
 (defun map-over-command-table-menu-items (function command-table)
   (declare (dynamic-extent function))
   (map nil #'(lambda (entry)
-	       (when (first entry)
-		 (apply function entry)))
+	       (apply function entry))
        (slot-value (find-command-table command-table) 'menu)))
 
 (defun find-menu-item (menu-name command-table &key (errorp t))

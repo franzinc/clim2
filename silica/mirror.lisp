@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: mirror.lisp,v 1.27 92/09/24 09:37:47 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.28 92/10/02 15:18:29 cer Exp $
 
 (in-package :silica)
 
@@ -159,8 +159,6 @@
 (defgeneric mirror-region* (port sheet)
   (declare (values left top right bottom)))
 
-(defgeneric set-mirror-region* (port sheet minx miny maxx maxy))
-
 ;; Returns the coordinates of sheet's mirror in the coordinates of the
 ;; mirror itself.  That is, it will return 0,0,WIDTH,HEIGHT for most
 ;; known window systems
@@ -174,12 +172,6 @@
 (defmethod mirror-region ((port basic-port) sheet)
   (multiple-value-call #'make-bounding-rectangle
     (mirror-region* port sheet)))
-
-;; Returns the mirror's region in its parents coordinate space
-(defgeneric mirror-edges* (port sheet))
-
-;; Sets the mirror's region in its parents coordinate space
-(defgeneric set-mirror-edges* (port sheet minx miny maxx maxy))
 
 (defmethod mirror-origin ((port basic-port) (sheet basic-sheet))
   :nw)

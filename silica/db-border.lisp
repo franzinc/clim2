@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.15 92/12/03 10:29:15 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.16 92/12/16 16:48:32 cer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -32,15 +32,23 @@
     (move-and-resize-sheet
       (sheet-child pane)
       thickness thickness
-      (- width (* 2 thickness)) (- height (* 2 thickness)))))
+      (- width (* 2 thickness)) (- height (* 2 thickness)))
+    (repaint-border-pane pane)))
   
 (defmethod handle-repaint ((pane border-pane) region)
-  (declare (ignore region))			;not worth checking
+  (declare (ignore region))		;not worth checking
+  (repaint-border-pane pane))
+
+(defun repaint-border-pane (pane)
   (with-sheet-medium (medium pane)
-    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
-      (let ((thickness (slot-value pane 'thickness)))
-	(decf right (ceiling thickness 2))
-	(decf bottom (ceiling thickness 2))
+    (with-bounding-rectangle* (left top right bottom) 
+      (sheet-region pane)
+      (let* ((thickness (slot-value pane 'thickness))
+	     (ht (ceiling thickness 2)))
+	(incf left ht)
+	(incf top ht)
+	(decf right ht)
+	(decf bottom ht)
 	(draw-rectangle* medium left top right bottom
 			 :line-thickness thickness :filled nil
 			 :ink (pane-background pane))))))

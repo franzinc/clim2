@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.32 93/01/11 15:44:49 colin Exp $
+;; $fiHeader: output-protocol.lisp,v 1.33 93/01/21 14:58:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1088,7 +1088,7 @@
 ;;; Input Editor support.  This does STREAM-SCAN-STRING-FOR-WRITING and
 ;;; other stuff, and calls the continuation so the Input Editor can know
 ;;; where its strings are on the screen.
-(Defmethod do-text-screen-real-estate ((stream output-protocol-mixin) continuation
+(defmethod do-text-screen-real-estate ((stream output-protocol-mixin) continuation
 				       string start end
 				       cursor-x cursor-y height baseline style max-x)
   ;; Continuation is a function which takes L T R B Baseline

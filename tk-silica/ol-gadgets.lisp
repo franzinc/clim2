@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.36 92/12/16 16:50:43 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.37 93/01/18 13:58:07 cer Exp $
 
 
 (in-package :xm-silica)
@@ -364,7 +364,6 @@
 			   (unless top
 			     (apply #'make-instance 'xt::static-text
 					    :parent parent
-					    :managed nil
 					    :string " "
 					    options)))
 			  (:function
@@ -899,13 +898,19 @@
   (with-accessors ((value gadget-value)
 		   (ncolumns gadget-columns)
 		   (nlines gadget-lines)
-		   (editable gadget-editable-p)) sheet
+		   (editable gadget-editable-p)
+		   (word-wrap gadget-word-wrap)) sheet
     (values 'tk::text-edit
 	    (append
 	     (and (not editable) `(:edit-type :text-read))
 	     (and ncolumns (list :chars-visible ncolumns))
 	     (and nlines (list :lines-visible nlines))
-	     (and value `(:source ,value))))))
+	     (and value `(:source ,value))
+	     (list :wrap-mode (if word-wrap :wrap-white-space :wrap-off))))))
+
+(defmethod (setf gadget-word-wrap) :after (nv (gadget openlook-text-editor))
+  (tk::set-values (sheet-direct-mirror gadget) 
+		  :wrap-mode (if word-wrap :wrap-white-space :wrap-off)))
 
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-text-editor) 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.27 93/01/11 15:46:24 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.28 93/01/18 13:58:13 cer Exp $
 
 (in-package :xm-silica)
 
@@ -70,17 +70,17 @@
       ;; decode-gadget-background
       ;; decode-gadget-foreground
       
-      (when silica::background
+      (when (or silica::background silica::foreground)
 	(with-sheet-medium (medium sheet)
-	  (setf initargs
-	    (append (decode-gadget-background medium sheet silica::background) 
-		    initargs))))
+	  (when silica::background
+	    (setf initargs
+	      (append (decode-gadget-background medium sheet silica::background) 
+		      initargs)))
       
-      (when silica::foreground
-	(with-sheet-medium (medium sheet)
-	  (setf initargs
-	    (append (decode-gadget-foreground medium sheet silica::foreground)
-		    initargs))))
+	  (when silica::foreground
+	    (setf initargs
+	      (append (decode-gadget-foreground medium sheet silica::foreground)
+		      initargs)))))
 
       (if text-style
 	  (setf (getf initargs :font-list)

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.43 92/12/16 16:49:26 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.44 93/01/21 14:59:03 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -343,10 +343,13 @@
 ;;; Caption
 ;;; Option menu
 
+(defclass row-column-gadget-mixin (oriented-gadget-mixin)
+	  ((rows :initarg :rows :initform nil :accessor gadget-rows)
+	   (columns :initarg :columns :initform nil :accessor gadget-columns)))
 
 ;;; Radio box [exclusive-choice] .. [inclusive-choice]
 (defclass radio-box 
-	  (value-gadget oriented-gadget-mixin) 
+	  (value-gadget row-column-gadget-mixin) 
     ((selections :initform nil 
 		 :reader radio-box-selections)
      ;;--- think about this...
@@ -392,7 +395,7 @@
 ;;; Check-box
 
 (defclass check-box 
-	  (value-gadget oriented-gadget-mixin) 
+    (value-gadget row-column-gadget-mixin) 
     ((selections :initform nil 
 		 :reader check-box-selections)
      ;;--- think about this...
@@ -445,8 +448,10 @@
     ((ncolumns :initarg :ncolumns
 	       :accessor gadget-columns)
      (nlines :initarg :nlines
-	     :accessor gadget-lines))
-  (:default-initargs :ncolumns 1 :nlines 1 :editable-p t))
+	     :accessor gadget-lines)
+     (word-wrap :initarg :word-wrap
+		:accessor gadget-word-wrap))
+  (:default-initargs :ncolumns 1 :nlines 1 :editable-p t :word-wrap nil))
 
 
 ;;; Viewport

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.12 92/11/13 14:47:24 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.13 92/12/03 10:30:26 cer Exp $
 
 
 (in-package :xm-silica)
@@ -36,7 +36,7 @@
       :depth (tk::drawable-depth root))))
 
 (defmethod port-deallocate-pixmap ((port xt-port) (pixmap tk::pixmap))
-  (break "implement me"))
+  (x11:xfreepixmap pixmap))
 
 (defmethod pixmap-width ((pixmap tk::pixmap))
   (tk::pixmap-width pixmap))
@@ -51,8 +51,7 @@
 (defclass xt-pixmap-medium (xt-medium basic-pixmap-medium) ())
 
 (defmethod make-pixmap-medium ((port xt-port) sheet &key width height)
-  (let* ((pixmap (with-sheet-medium (medium sheet)
-		   (port-allocate-pixmap port medium width height)))
+  (let* ((pixmap (port-allocate-pixmap port sheet width height))
 	 (medium (make-instance 'xt-pixmap-medium
 		   :port port
 		   :sheet sheet

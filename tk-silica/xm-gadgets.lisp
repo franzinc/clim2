@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.61 93/01/11 15:46:18 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.62 93/01/21 14:59:24 cer Exp $
 
 (in-package :xm-silica)
 
@@ -249,6 +249,9 @@
 
 (defclass motif-oriented-sliding-gadget (xt-oriented-gadget)
 	  ())
+
+
+;;;
 
 (defmethod set-widget-orientation ((gadget motif-oriented-sliding-gadget) nv)
   (tk::set-values (sheet-direct-mirror gadget) 
@@ -539,7 +542,8 @@
   (with-accessors ((value gadget-value)
                    (editable gadget-editable-p)
                    (ncolumns gadget-columns)
-                   (nlines gadget-lines)) sheet
+                   (nlines gadget-lines)
+		   (word-wrap gadget-word-wrap)) sheet
     (let ((scroll-mode
 	   (let ((p (sheet-parent sheet)))
 	     (and (typep p 'motif-scroller-pane)
@@ -553,7 +557,11 @@
 	       (list :editable editable)
 	       (and ncolumns (list :columns ncolumns))
 	       (and nlines (list :rows nlines))
-	       (and value `(:value ,value)))))))
+	       (and value `(:value ,value))
+	       (and word-wrap `(:word-wrap t)))))))
+
+(defmethod (setf gadget-word-wrap) :after (nv (gadget motif-text-editor))
+  (tk::set-values (sheet-direct-mirror gadget) :word-wrap (and nv t)))
 
 (defmethod (setf gadget-editable-p) :after (nv (te motif-text-editor))
   (let ((m (sheet-direct-mirror te)))
@@ -681,6 +689,23 @@
            viewport)
     ())
 
+;;;
+
+(defclass motif-row-column-gadget-mixin (xt-oriented-gadget)
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet :around  ((port motif-port)
+							      (parent t)
+							      (sheet motif-row-column-gadget-mixin))
+  (multiple-value-bind (class initargs)
+      (let ((x (ecase (gadget-orientation sheet)
+		 (:vertical (gadget-columns sheet))
+		 (:horizontal (gadget-rows sheet)))))
+	(when x (setf (getf initargs :num-columns) x)))
+    (values class initargs)))
+  
+;;;
+
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
                                                      (parent t)
                                                      (sheet xm-viewport))
@@ -755,7 +780,8 @@
 ;  (move-and-resize-sheet (sheet-child fr) 0 0 width height))
 
 
-(defclass motif-frame-pane (motif-geometry-manager
+(defclass motif-frame-pane (foreground-background-and-text-style-mixin
+			    motif-geometry-manager
                             mirrored-sheet-mixin
                             sheet-single-child-mixin
                             sheet-permanently-enabled-mixin
@@ -1442,11 +1468,15 @@
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
       (when (member scroll-bars '(:both :dynamic :vertical))
-        (let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
+        (let ((sb (make-pane 'scroll-bar
+			     :background (pane-background sp)
+			     :orientation :vertical :id :vertical :client sp)))
           (setf (scroller-pane-vertical-scroll-bar sp) sb)
           (sheet-adopt-child sp sb)))
       (when (member scroll-bars '(:both :dynamic :horizontal))
-        (let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
+        (let ((sb (make-pane 'scroll-bar 
+			     :background (pane-background sp)
+			     :orientation :horizontal :id :horizontal :client sp)))
           (setf (scroller-pane-horizontal-scroll-bar sp) sb)
           (sheet-adopt-child sp sb)))
       (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.13 92/12/16 16:48:19 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.14 92/12/17 15:33:11 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -472,7 +472,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 
 (defvar *postscript-prologue*
         "statusdict /waittimeout 30 put
-/fontarray 30 array def
+/fontarray ~D array def
 /f {fontarray exch get setfont} def
 /estfont {findfont exch scalefont fontarray 3 1 roll put} def
 /m {moveto} def
@@ -504,7 +504,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	hour minute second))
     (format printer-stream "%%DocumentFonts: (atend)~%")
     (format printer-stream "%%EndComments~%")
-    (write-string *postscript-prologue* printer-stream)
+    (format printer-stream *postscript-prologue* (length (slot-value (port medium) 'font-map)))
     (ecase orientation
       (:portrait
         (format printer-stream
@@ -806,10 +806,10 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 						     header-comments
 						     (orientation :portrait))
   (assert (not (and multi-page scale-to-fit)) (multi-page scale-to-fit)
-	  "You may not use both ~S and ~S" ':multi-page ':scale-to-fit)
+    "You may not use both ~S and ~S" ':multi-page ':scale-to-fit)
   (let* ((port (make-instance device-type))
 	 (stream (make-instance 'postscript-stream
-		   :multi-page multi-page))
+				:multi-page multi-page))
 	 (abort-p t))
     (setf (port stream) port)
     (let ((medium (sheet-medium stream)))
@@ -817,35 +817,39 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
       (with-output-recording-options (stream :record t :draw nil)
 	(unwind-protect
 	    (multiple-value-prog1
-	      (funcall continuation stream)
+		(funcall continuation stream)
 	      (multiple-value-bind (width height) 
 		  (bounding-rectangle-size (stream-output-history stream))
 		(let* ((page-width
-			 (floor (* (slot-value port 'page-width)
-				   (slot-value port 'device-units-per-inch))
-				*1-pixel=points*))
+			(floor (* (slot-value port 'page-width)
+				  (slot-value port 'device-units-per-inch))
+			       *1-pixel=points*))
 		       (page-height
-			 (floor (* (slot-value port 'page-height)
-				   (slot-value port 'device-units-per-inch))
-				*1-pixel=points*))
+			(floor (* (slot-value port 'page-height)
+				  (slot-value port 'device-units-per-inch))
+			       *1-pixel=points*))
 		       (scale-factor
-			 (progn
-			   (when (eq orientation :landscape)
-			     (rotatef page-width page-height))
-			   (if (or (not scale-to-fit)
-				   (and (< width page-width)
-					(< height page-height)))
-			       1
-			       (min (/ page-width width)
-				    (/ page-height height))))))
-		  (postscript-prologue medium
-				       :scale-factor scale-factor
-				       :orientation orientation
-				       :header-comments header-comments)))
-	      ;; Now do the output to the printer, breaking up the output into
-	      ;; multiple pages if that was requested
-	      (with-output-recording-options (stream :record nil :draw t)
-		(stream-replay stream nil))
+			(progn
+			  (when (eq orientation :landscape)
+			    (rotatef page-width page-height))
+			  (if (or (not scale-to-fit)
+				  (and (< width page-width)
+				       (< height page-height)))
+			      1
+			    (min (/ page-width width)
+				 (/ page-height height))))))
+		  ;; Now do the output to the printer, breaking up the output into
+		  ;; multiple pages if that was requested
+		  (let ((string
+			 (with-output-to-string (string-stream)
+			   (letf-globally (((slot-value medium 'printer-stream) string-stream))
+			     (with-output-recording-options (stream :record nil :draw t)
+			       (stream-replay stream nil))))))
+		    (postscript-prologue medium
+					 :scale-factor scale-factor
+					 :orientation orientation
+					 :header-comments header-comments)
+		    (write-string string (slot-value medium 'printer-stream)))))
 	      (setq abort-p nil))
 	  (close stream :abort abort-p)
 	  (destroy-port port))))))

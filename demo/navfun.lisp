@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.20 92/11/09 10:55:00 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.22 92/11/20 08:45:30 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1413,6 +1413,17 @@
      :priority +1)
     (object)
   (list object))
+
+(define-flight-planner-command (com-foo-it :name t :menu t)
+    ((start 'route-start-object)&key (blah 'number))
+  (print (cons start blah)))
+
+(define-presentation-to-command-translator foo-it
+    (route-start-object com-foo-it flight-planner
+			:gesture nil)
+  (object)
+  (list object :blah *unsupplied-argument-marker*))
+
 
 (define-flight-planner-command (com-show-distance :name t :menu t)
     ((start 'route-start-object)

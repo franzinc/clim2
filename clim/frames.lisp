@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.57 93/01/18 13:54:26 cer Exp $
+;; $fiHeader: frames.lisp,v 1.58 93/01/21 14:57:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -168,10 +168,8 @@
       (check-type disabled-commands list)
       (when (and pane panes)
 	(error "The ~S and ~S options cannot be used together" :pane :panes))
-      (when (and layouts
-		 (null pane)
-		 (null panes))
-	(error "You must use either ~S or ~S with ~S" :pane :panes :layouts))
+      (when (and layouts (null panes))
+	(error "You must use ~S with ~S" :panes :layouts))
       (when (null superclasses)
 	(setq superclasses '(standard-application-frame)))
       (when (eq command-definer 't)
@@ -1258,6 +1256,18 @@
 				   (presentation-event-value event))
 	      (beep sheet))))))
 
+(defun command-callback (function &rest arguments)
+  (cons #'(lambda (widget &rest args) (apply #'command-callback-1 function widget args)) arguments))
+
+(defun command-callback-1 (function sheet &rest arguments)
+  (let ((frame (pane-frame sheet)))
+    (process-command-event
+     sheet
+     (make-instance 'presentation-event
+		    :frame frame
+		    :value (list* function sheet arguments)
+		    :presentation-type `(command :command-table ,(frame-command-table frame))))))
+		  
 (defun queue-frame-command (frame command)
   (queue-push (frame-command-queue frame) command))
 

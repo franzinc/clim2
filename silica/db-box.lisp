@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.21 92/09/08 10:34:17 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.22 92/09/24 09:37:28 cer Exp $
 
 (in-package :silica)
 
@@ -179,3 +179,49 @@
   #---ignore (declare (ignore available where-we-are-now))
   #---ignore wanted-size
   #+++ignore (min wanted-size (1- (- available where-we-are-now))))
+
+;;; Bulletin board
+;;; Is there any value in this???
+;;; What do we want it to do?
+;;; Panes are just as big as they want to be and where they want to be.
+;;; Could specify position and size in turns of relative coordinates.
+;;; 
+
+(defclass bulletin-board-pane (layout-pane) 
+  ((contents :initarg :contents)))
+
+(defmacro bulletin-board (options &rest contents)
+  `(make-pane 'bulletin-board-pane
+	      :contents (list ,@contents)
+	      ,@options))
+
+(defmethod initialize-instance :after ((pane bulletin-board-pane) &key contents)      
+  (dolist (content contents)
+    (destructuring-bind (x y child) content
+      (declare (ignore x y))
+      (sheet-adopt-child pane child))))
+
+(defmethod compose-space ((pane bulletin-board-pane) &key width height)
+  (declare (ignore width height))
+  (with-slots (contents) pane
+    (let ((max-x 0)
+	  (max-y 0))
+      (dolist (content contents)
+	(destructuring-bind (x y pane) content
+	  (let ((sr (compose-space pane)))
+	    (maxf max-x (+ x (space-requirement-width sr)))
+	    (maxf max-y (+ y (space-requirement-height sr))))))
+      (make-space-requirement :width max-x :height max-y))))
+
+
+(defmethod allocate-space ((pane bulletin-board-pane) width height)
+  (declare (ignore width height))
+  (with-slots (contents) pane
+    (dolist (content contents)
+      (destructuring-bind (x y pane) content
+	(let ((sr (compose-space pane)))
+	  (move-and-resize-sheet 
+	   pane x y 
+	   (space-requirement-width sr)
+	   (space-requirement-height sr)))))))
+

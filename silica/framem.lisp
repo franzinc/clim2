@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.25 92/11/19 14:24:57 cer Exp $
+;; $fiHeader: framem.lisp,v 1.26 92/12/03 10:29:21 cer Exp $
 
 (in-package :silica)
 
@@ -27,7 +27,7 @@
 ;;--- This is most likely wrong, since it forces a 1-to-1 mapping
 ;;--- between ports and grafts
 (defmethod graft ((framem standard-frame-manager))
-  (car (port-grafts (port framem))))
+  (find-graft :port (port framem)))
 
 (defvar *default-frame-manager* nil)
 

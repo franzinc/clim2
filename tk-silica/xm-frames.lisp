@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.45 93/01/11 15:46:14 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.46 93/01/21 14:59:19 cer Exp $
 
 (in-package :xm-silica)
 
@@ -210,9 +210,7 @@
 		      (let ((type (command-menu-item-type item)))
 			(case type
 			  (:divider
-			   (make-instance 'tk::xm-separator
-					      :managed nil
-					      :parent menu))
+			   (make-instance 'tk::xm-separator :parent parent))
 			  (:function
 			   ;;--- Do this sometime
 			   )
@@ -342,7 +340,8 @@
 	    presentation-type 
 	    associated-window
 	    text-style
-	    label)
+	    label
+	    gesture)
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)
@@ -353,8 +352,12 @@
 					       (sheet-mirror associated-window))
 					  (port-application-shell
 					   port))
-			      ;;---------- Hard decision
-			      ;; :menu-post "<Btn1Down>"
+			      :menu-post (case (and gesture
+						    (gesture-name-button-and-modifiers gesture))
+					   (#.+pointer-left-button+ "<Btn1Down>")
+					   (#.+pointer-middle-button+ "<Btn2Down>")
+					   (#.+pointer-right-button+ "<Btn3Down>")
+					   (t "<Btn1Down>"))
 			      :managed nil))
 	 (font (and text-style (text-style-mapping (port framem) text-style)))
 	 (font-list (and (or label simplep) font (list :font-list (list font)))))
@@ -414,7 +417,6 @@
 			    (ecase (clim-internals::menu-item-type item)
 			      (:divider
 			       (make-instance 'xt::xm-separator
-					      :managed nil
 					      :parent menu))
 			      (:label
 				  (make-instance 'xt::xm-label
@@ -482,3 +484,15 @@
 
 
 ;;;; 
+
+#|
+
+(defmethod frame-manager-clear-progress-note 
+    ((framem motif-frame-manager) (note progress-note))
+  )
+
+(defmethod frame-manager-display-progress-note
+    ((framem motif-frame-manager) (note progress-note))
+  )
+
+|#

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.43 93/01/18 13:54:20 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.44 93/01/21 14:57:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -321,8 +321,10 @@
 				      label (label-alignment #+Genera :bottom #-Genera :top)
 				      (scroll-bars ':vertical) (borders t)
 				      (display-after-commands nil dac-p)
+				      (background nil background-p)
 				 &allow-other-keys)
-  (setq options (remove-keywords options '(:type :scroll-bars :borders :label
+  (setq options (remove-keywords options '(:type :scroll-bars :borders
+					   :label :background
 					   :label-alignment :display-after-commands)))
   
   (let* ((stream '#:clim-stream)
@@ -331,31 +333,38 @@
 		`(:display-time ,(cond ((eq display-after-commands t) :command-loop)
 				       ((eq display-after-commands :no-clear) :no-clear)
 				       (t nil)))))
+	 (background-var (and background (gensym)))
 	 (pane
 	   `(setq ,stream (make-pane ,type 
-			    ,@display-time
-			    ,@options))))
+				     ,@display-time
+				     ,@(and background-p `(:background ,background-var))
+				     ,@options))))
     (when scroll-bars
-      (setq pane `(scrolling (:scroll-bars ,scroll-bars)
+      (setq pane `(scrolling (:scroll-bars ,scroll-bars ,@(and background-p `(:background ,background-var)))
 		    ,pane)))
     (when label
       (let ((label (if (stringp label)
 		       `(make-pane 'label-pane 
 			  :label ,label
-			  :max-width +fill+)
+			  :max-width +fill+
+			   ,@(and background-p `(:background ,background-var)))
 		       `(make-pane 'label-pane 
 			  :label ,(first label)
-			  :max-width +fill+ ,@(rest label)))))
+			  :max-width +fill+ ,@(rest label)
+			   ,@(and background-p `(:background ,background-var))))))
 	(ecase label-alignment
 	  (:bottom
-	    (setq pane `(vertically () ,pane ,label)))
+	    (setq pane `(vertically (,@(and background-p `(:background ,background-var))) ,pane ,label)))
 	  (:top
-	    (setq pane `(vertically () ,label ,pane))))))
+	    (setq pane `(vertically (,@(and background-p `(:background ,background-var))) ,label ,pane))))))
     (when borders 
-      (setq pane `(outlining (:thickness 1)
+      (setq pane `(outlining (:thickness 1 ,@(and background-p
+						  `(:background
+						    ,background-var)))
 		    #+Allegro ,pane
 		    #-Allegro (spacing (:thickness 1) ,pane))))
-    `(let (,stream)
+    `(let ((,stream)
+	   ,@(and background-p `((,background-var ,background))))
        (values ,pane ,stream))))
 
 (defmacro make-clim-interactor-pane (&rest options)

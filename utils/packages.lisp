@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.45 92/12/16 16:51:14 cer Exp $
+;; $fiHeader: packages.lisp,v 1.46 93/01/21 14:59:44 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -38,7 +38,7 @@
    class-of
    class-precedence-list
    class-prototype
-   class-slots
+    class-slots
    #+PCL classp
    compute-applicable-methods
    defclass
@@ -2772,7 +2772,8 @@
     ;; Panes
     +fill+
     allocate-space
-    bboard-pane
+    bulletin-board-pane
+    bulletin-board
     border-pane
     bordering
     change-space-requirements
@@ -2842,6 +2843,7 @@
     check-box-current-selection
     check-box-pane
     check-box-selections
+    command-callback
     deactivate-gadget
     disarmed-callback
     drag-callback
@@ -3413,6 +3415,7 @@
     gadget-lines
     gadget-supplied-scrolling
     gadget-visible-items
+    gadget-word-wrap
     generic-label-pane
     generic-list-pane
     generic-option-pane

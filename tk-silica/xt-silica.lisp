@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.67 93/01/11 15:46:36 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.68 93/01/21 14:59:36 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1595,7 +1595,7 @@ the geometry of the children. Instead the parent has control. "))
 
 ;;;---- Cursor stuff
 
-(defvar *clx-cursor-type-alist*
+(defvar *xt-cursor-type-alist*
 	'((:default 132)
 	  (:vertical-scroll 116)
 	  (:scroll-up 114)
@@ -1657,7 +1657,7 @@ the geometry of the children. Instead the parent has control. "))
 	      (call-next-method)))))
 
 (defmethod realize-cursor ((port xt-port) (cursor symbol))
-  (let ((cursor (or (second (assoc cursor *clx-cursor-type-alist*))
+  (let ((cursor (or (second (assoc cursor *xt-cursor-type-alist*))
 		    132)))
     (realize-cursor port cursor)))
 
@@ -1722,3 +1722,9 @@ the geometry of the children. Instead the parent has control. "))
   (check-type x (signed-byte 16))
   (check-type y (signed-byte 16))
   (tk::set-values (frame-shell frame) :x x :y y))
+
+(defmethod destroy-port ((port xt-port))
+  (when (port-process port)
+    (clim-sys:destroy-process (port-process port)))
+  (port-terminated port (make-condition 'error)))
+

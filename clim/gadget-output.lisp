@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.42 92/12/03 10:26:40 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.43 93/01/18 13:54:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -283,7 +283,7 @@
   ;;--- number of items, etc.
   (if read-only
       (call-next-method)
-      +radio-box-view+))
+    +radio-box-view+))
 
 (define-presentation-method gadget-includes-prompt-p 
 			    ((type completion) (stream t) (view radio-box-view))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.33 92/12/03 10:29:34 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.34 92/12/16 16:49:48 cer Exp $
 
 (in-package :silica)
 
@@ -245,24 +245,6 @@
 			 (sheet-transformation child) left top right bottom)))
 	    (funcall function child))))))
 
-(defgeneric children-overlapping-rectangle* (sheet min-x min-y max-x max-y))
-
-(defgeneric delta-transformation (sheet ancestor))
-(defmethod delta-transformation ((sheet basic-sheet) ancestor)
-  (let ((parent (sheet-parent sheet)))
-    (cond
-      ((eq parent ancestor)
-       (sheet-transformation sheet))
-      ((null parent) 
-       (error "in delta transformation: ~S,~S"
-	      sheet parent))
-      (t
-       (compose-transformations 
-	 (sheet-transformation sheet)
-	 (delta-transformation parent ancestor))))))
-
-(defgeneric allocated-region (sheet child))
-
 ;;;; 
 
 (defclass sheet-identity-transformation-mixin () ())
@@ -374,7 +356,6 @@
   (invalidate-cached-transformations sheet)
   (invalidate-cached-regions sheet))
 
-(defgeneric update-native-transformation (port sheet))
 
 (defmethod (setf sheet-enabled-p) :after (enabled (sheet basic-sheet))
   (if enabled
@@ -384,6 +365,29 @@
 (defmethod sheet-enabled-children ((sheet sheet-parent-mixin))
   (remove-if-not #'sheet-enabled-p (sheet-children sheet)))
 
+(defmethod sheet-siblings ((sheet basic-sheet))
+  (let ((parent (sheet-parent sheet)))
+    (assert parent () "Sheet must have parent")
+    (remove sheet (sheet-children parent))))
+
+(defmethod sheet-ancestor-p ((sheet basic-sheet) (ancestor basic-sheet))
+  (do ((sheet sheet (sheet-parent sheet)))
+      ((or (null sheet)
+	   (eq sheet ancestor))
+       (and sheet t))))
+
+(defmethod sheet-viewable-p ((sheet basic-sheet))
+  (do ((sheet sheet (sheet-parent sheet)))
+      ((graftp sheet) t)
+    (unless (sheet-enabled-p sheet) (return nil))))
+
+(defmethod sheet-occluding-sheets ((sheet basic-sheet) (child basic-sheet))
+  (let ((sheets nil)
+	(r (transform-region (sheet-transformation child) (sheet-region child))))
+    (dolist (child1 (sheet-children sheet) (error "Sheet ~S is not the parent of ~S" sheet child))
+      (cond ((eq child1 child) (return (nreverse sheets)))
+	    ((region-intersects-region-p r (transform-region (sheet-transformation child1) (sheet-region child1)))
+	     (push child1 r))))))
 
 ;;; Making sheets
 

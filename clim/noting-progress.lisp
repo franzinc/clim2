@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: noting-progress.lisp,v 1.3 92/07/01 15:46:43 cer Exp $
+;; $fiHeader: noting-progress.lisp,v 1.4 92/07/08 16:30:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -51,12 +51,19 @@
 (defmacro noting-progress ((stream name &optional (note-var '*current-progress-note*))
 			   &body body)
   (check-type note-var symbol)
-  `(let (,note-var)
-     (unwind-protect
-	 (progn
-	   (setq ,note-var (add-progress-note ,name ,stream))
-	   ,@body)
-       (remove-progress-note ,note-var))))
+  `(invoke-with-noting-progress
+    ,stream ,name #'(lambda (,note-var) ,@body)))
+
+(defun invoke-with-noting-progress (stream name continuation)
+  (let ((note (add-progress-note name stream)))
+    (unwind-protect
+	(frame-manager-invoke-with-noting-progress 
+	 (frame-manager *application-frame*) note continuation)
+      (remove-progress-note note))))
+
+(defmethod frame-manager-invoke-with-noting-progress ((framem standard-frame-manager)
+						      note continuation)
+  (funcall continuation note))
 
 (defun note-progress (numerator &optional (denominator 1) (note *current-progress-note*))
   (when note

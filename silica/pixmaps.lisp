@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.13 92/10/28 11:30:51 cer Exp $
+;; $fiHeader: pixmaps.lisp,v 1.14 92/12/03 10:29:30 cer Exp $
 
 (in-package :silica)
 
@@ -119,9 +119,10 @@
 			 :medium pixmap-medium
 			 :width width :height height)))
     ;;--- Is this a waste of time if this does not have a medium?
-    (with-sheet-medium (medium sheet)
-      (setf (medium-foreground pixmap-medium) (medium-foreground medium)
-	    (medium-background pixmap-medium) (medium-background medium)))
+    (when (typep sheet 'sheet-with-medium-mixin)
+      (with-sheet-medium (medium sheet)
+	(setf (medium-foreground pixmap-medium) (medium-foreground medium)
+	      (medium-background pixmap-medium) (medium-background medium))))
     (funcall continuation pixmap-sheet)
     (slot-value pixmap-medium 'pixmap)))
 

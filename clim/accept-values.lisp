@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.51 93/01/18 13:54:16 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.52 93/01/21 14:57:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -313,7 +313,8 @@
 				      (initially-select-query-identifier nil)
 				      (modify-initial-query nil) align-prompts
 				      (resynchronize-every-pass nil) (check-overlapping t)
-				      label x-position y-position width height)
+				      label x-position y-position
+				      width height (right-margin 10) (bottom-margin 10))
    (incf *accept-values-tick*)
    (setq align-prompts (ecase align-prompts
 			 ((t :right) :right)
@@ -321,9 +322,7 @@
 			 ((nil) nil)))
    (let ((frame-manager (frame-manager stream))
 	 (*current-accept-values-tick* *accept-values-tick*)
-	 (the-own-window nil)
-	 (right-margin 10)
-	 (bottom-margin 10))
+	 (the-own-window nil))
      ;; Create the AVV, run it, and return its values
      (if own-window
 	 (let ((frame (make-application-frame 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.11 92/12/16 16:48:16 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.12 93/01/21 14:58:47 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -514,8 +514,9 @@
 	   (al (length font-map))
 	   (fcs
 	     (do ((i 0 (1+ i)))
-		 ((>= i al)
-		  (error "Font map overflow for ~S" medium))
+		 (nil)
+	       (when (= i al)
+		 (setq font-map (adjust-array font-map (setq al (+ al al)) :initial-element nil)))
 	       (let ((fcs (aref font-map i)))
 		 (when (null fcs)
 		   (setq fcs (make-new-fcs styledesc i))
