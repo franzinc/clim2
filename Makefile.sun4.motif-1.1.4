@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sun4,v 1.1 93/03/01 14:26:12 cer Exp $
+# $fiHeader: Makefile.sun4.motif-1.1.4,v 1.1 93/04/02 18:40:44 cer Exp $
 #
 #  Makefile.sun4 for CLIM 2.0
 #
@@ -11,5 +11,8 @@ XLIB= /x11/R4/sun4-lib/libX11$(DEBUGLIB).a
 XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I/x11/motif-1.1/lib
 XTSUPPORTINCLUDES=-I/x11/R4/src/mit/lib/Xt
+
+OLXLIB= /vapor/x11/olit-3.0/lib/libX11.a
+OLXTLIB=/vapor/x11/olit-3.0/lib/libXt.a
 
 include Makefile.generic

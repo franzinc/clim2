@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: hpgl-port.lisp,v 1.1 93/03/04 08:57:28 cer Exp $
+;;; $fiHeader: hpgl-port.lisp,v 1.2 93/04/02 13:36:19 cer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -251,7 +251,9 @@
 
 (defmethod initialize-instance :after ((port hpgl-port) &key device-type)
   (setf (port-hpi port) (find-hp-ploter-description device-type))
-  (initialize-hpgl-display-device port))
+  (initialize-hpgl-display-device port)
+  (with-slots (silica::default-palette) port
+    (setf silica::default-palette (make-palette port))))
 
 (defmethod make-medium ((port hpgl-port) sheet)
   (make-instance 'hpgl-medium
@@ -270,10 +272,6 @@
     :port port 
     :color-p t
     :dynamic-p nil))
-
-(defmethod initialize-instance :after ((port hpgl-port) &key)
-  (with-slots (silica::default-palette) port
-    (setf silica::default-palette (make-palette port))))
 
 
 (defmethod realize-graft ((port hpgl-port) (graft standard-graft))

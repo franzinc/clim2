@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sun4,v 1.1 93/03/01 14:26:12 cer Exp $
+# $fiHeader: Makefile.sun4,v 1.2 93/04/02 18:40:42 cer Exp $
 #
 #  Makefile.sun4 for CLIM 2.0
 #
@@ -14,5 +14,8 @@ XINCLUDES=-I/3rd/motif-1.2.1/usr/include
 XTSUPPORTINCLUDES=-I/x11/R5/src/mit/lib/Xt
 # Do we really need this. Why is it referenced?
 MOTIFXTRAOS=/3rd/motif-1.2.1/usr/lib/Motif/Sun/dlsym.o
+
+OLXLIB= /vapor/x11/olit-3.0/lib/libX11.a
+OLXTLIB=/vapor/x11/olit-3.0/lib/libXt.a
 
 include Makefile.generic

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.20 92/11/20 08:44:44 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.21 92/12/03 10:27:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -228,27 +228,7 @@
     (frame-manager *application-frame*) 
     *application-frame* stream error))
 
-(defmethod frame-manager-display-input-editor-error 
-	   ((framem standard-frame-manager) frame stream error)
-  (declare (ignore frame))
-  ;;--- Resignal the error so the user can handle it
-  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-  (beep stream)
-  (remove-activation-gesture stream)
-  (with-input-editor-typeout (stream :erase t)
-    (format stream "~A~%Please edit your input." error))
-  ;; Wait until the user forces a rescan by typing an input editing command
-  (loop (read-gesture :stream stream)))
-
-
 (defvar *accept-help* nil)
-
-(defmethod frame-manager-display-help 
-	   (framem frame stream continuation)
-  (declare (dynamic-extent continuation))
-  (declare (ignore framem frame))
-  (with-input-editor-typeout (stream :erase t)	;don't scribble over previous output
-    (funcall continuation stream)))
 
 (defmacro with-input-editor-help (stream &body body)
   `(flet ((with-input-editor-help-body (,stream) ,@body))

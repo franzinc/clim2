@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.41 93/03/18 14:38:50 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.42 93/04/02 13:37:10 cer Exp $
 
 (in-package :tk)
 
@@ -625,7 +625,7 @@
 		    (excl::malloc 256))))
     (declare (type (unsigned-byte 32) buffer))
     (with-ref-par ((keysym 0))
-      (let* ((nchars (x11:xlookupstring event buffer 256 keysym compose-struct))
+      (let* ((nchars (x11:xlookupstring event buffer 256 keysym compose-status))
 	     (result (make-string nchars)))
 	(declare (fixnum nchars)
 		 (simple-string result))

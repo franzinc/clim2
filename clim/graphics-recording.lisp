@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.20 92/12/16 16:46:29 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.21 93/01/21 14:58:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -534,6 +534,7 @@
   (let* ((width (stream-string-width (medium-sheet medium) string
  				     :start start :end end
  				     :text-style text-style))
+	 ;;-- Should we just call the string-output-size function here?
  	 (ascent (text-style-ascent text-style medium))
  	 (descent (text-style-descent text-style medium))
  	 (height (+ ascent descent))

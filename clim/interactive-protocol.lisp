@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.22 92/12/03 10:27:13 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.23 92/12/16 16:46:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -996,3 +996,29 @@
       ((:error) (error "Replace-input while rescanning"))))
   (replace-input stream (string string) :start begin :end end
 		 :buffer-start location :rescan nil))
+
+
+
+
+(defmethod frame-manager-display-input-editor-error 
+	   ((framem standard-frame-manager) frame (stream standard-input-editing-stream) error)
+  ;;--- Resignal the error so the user can handle it
+  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
+  (if (typep (encapsulating-stream-stream stream) 'accept-values-pane)
+      (notify-user frame (princ-to-string error)
+		   :title "Input error"
+		   :style :error :exit-boxes '(:exit))
+    (progn
+      (beep stream)
+      (with-input-editor-typeout (stream :erase t)
+	(format stream "~A~%Please edit your input." error))))
+  (remove-activation-gesture stream)
+  ;; Wait until the user forces a rescan by typing an input editing command
+  (loop (read-gesture :stream stream)))
+
+(defmethod frame-manager-display-help 
+	   (framem frame (stream standard-input-editing-stream) continuation)
+  (declare (dynamic-extent continuation))
+  (declare (ignore framem frame))
+  (with-input-editor-typeout (stream :erase t)	;don't scribble over previous output
+    (funcall continuation stream)))
