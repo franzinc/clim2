@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.68 93/03/25 15:41:27 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.69 93/03/31 10:40:20 cer Exp $
 
 (in-package :xm-silica)
 
@@ -161,9 +161,19 @@
 
 (defmethod compose-space ((sheet motif-label-pane) &key width height)
   (declare (ignore width height))
-  (make-space-requirement
-   :width (process-width-specification sheet `(,(max 1 (length (gadget-label sheet))) :character))
-   :height (process-height-specification sheet `(1 :line))))
+  (compute-space-requirement-for-push-button-or-label sheet))
+
+(defun compute-space-requirement-for-push-button-or-label (sheet)
+  (let ((label (gadget-label sheet)))
+    (etypecase label
+      ((or null string)
+       (make-space-requirement
+	:width (process-width-specification sheet `(,(max 1 (length label)) :character))
+	:height (process-height-specification sheet `(1 :line))))
+      (tk::pixmap
+       (make-space-requirement
+	:width (xt::pixmap-width label)
+	:height (xt::pixmap-height label))))))
 
 ;;; Push button
 
@@ -210,9 +220,7 @@
 
 (defmethod compose-space ((sheet motif-push-button) &key width height)
   (declare (ignore width height))
-  (make-space-requirement
-   :width (process-width-specification sheet `(,(max 1 (length (gadget-label sheet))) :character))
-   :height (process-height-specification sheet `(1 :line))))
+  (compute-space-requirement-for-push-button-or-label sheet))
 
 ;;; range pane mixin
 

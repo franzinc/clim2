@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.56 93/03/19 09:43:09 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.57 93/03/31 10:38:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1344,8 +1344,10 @@
     (stream continuation (view gadget-dialog-view) prompt
      &key (documentation (if (stringp prompt)
 			     prompt
-			   (with-output-to-string (stream)
-			     (funcall prompt stream))))
+			   ;;-- What is the right thing to do?
+			   (ignore-errors
+			    (with-output-to-string (stream)
+			      (funcall prompt stream)))))
 	  (query-identifier (list ':button documentation))
 	  (cache-value t) (cache-test #'eql)
 	  resynchronize)
@@ -1359,11 +1361,6 @@
 				   :documentation documentation
 				   :resynchronize resynchronize)))
 	(make-pane 'push-button
-		   :label (if (stringp prompt)
-			      prompt
-			    ;;--- Perhaps we should create a pixmap
-			    (with-output-to-string (stream)
-			      (funcall prompt stream)))
 		   :id record :client client
 		   :activate-callback
 		   #'(lambda (button)
@@ -1375,4 +1372,13 @@
 					    :sheet sheet
 					    :presentation-type 'command
 					    :value `(com-avv-command-button ,client ,record)
-					    :frame *application-frame*))))))))))
+					    :frame *application-frame*)))))
+		   
+		   :label (if (stringp prompt)
+			      prompt
+			    (pixmap-from-menu-item stream 
+						     prompt
+						     #'funcall
+						     nil)))))))
+
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.40 93/03/04 19:01:38 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.41 93/03/18 14:38:50 colin Exp $
 
 (in-package :tk)
 
@@ -619,13 +619,13 @@
 
 (defvar *lookup-string-buffers* nil)
 
-(defun lookup-string (event)
+(defun lookup-string (event &optional (compose-status 0))
   (declare (optimize (speed 3) (safety 0)))
-  (let ((buffer (or (pop *lookup-string-buffers*)
+  (let ((buffer (or (excl:without-interrupts (pop *lookup-string-buffers*))
 		    (excl::malloc 256))))
     (declare (type (unsigned-byte 32) buffer))
     (with-ref-par ((keysym 0))
-      (let* ((nchars (x11:xlookupstring event buffer 256 keysym 0))
+      (let* ((nchars (x11:xlookupstring event buffer 256 keysym compose-struct))
 	     (result (make-string nchars)))
 	(declare (fixnum nchars)
 		 (simple-string result))
@@ -633,7 +633,7 @@
 	  (declare (fixnum i))
 	  (setf (schar result i)
 	    (code-char (sys:memref-int buffer 0 i :unsigned-byte))))
-	(push buffer *lookup-string-buffers*)
+	(excl:without-interrupts (push buffer *lookup-string-buffers*))
 	(values result
 		(aref keysym 0))))))
 

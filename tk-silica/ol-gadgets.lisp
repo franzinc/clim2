@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.41 93/03/25 15:41:16 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.42 93/03/31 10:40:12 cer Exp $
 
 
 (in-package :xm-silica)
@@ -237,7 +237,7 @@
 ;			 sheet)
   )
 
-(defclass openlook-menu-bar (xt-leaf-pane menu-bar) ())
+(defclass openlook-menu-bar (xt-leaf-pane xt-menu-bar menu-bar) ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -382,7 +382,15 @@
 						 :label menu
 						 :managed t
 						 :parent parent
+						 :sensitive (command-enabled
+							     (car (command-menu-item-value item))
+							     (slot-value sheet 'silica::frame))
 						 options)))
+			     
+			     (when top
+			       (push (cons (car (command-menu-item-value item)) button)
+				     (menu-bar-command-name-to-button-table sheet)))
+			     
 			     (set-button-accelerator-from-keystroke
 			      sheet button keystroke)
 			   

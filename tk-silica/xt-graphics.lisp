@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.66 93/03/19 09:47:10 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.67 93/03/31 10:40:30 cer Exp $
 
 (in-package :tk-silica)
 
@@ -75,6 +75,11 @@
    (ink-table :initform (make-hash-table :test #'equal))
    (indirect-inks :initform nil)
    (clip-mask :initform nil)))
+
+(defmethod make-medium ((port xt-port) sheet)
+  (make-instance 'xt-medium
+		 :port port
+		 :sheet sheet))
 
 (defmethod medium-drawable ((medium xt-medium))
   (with-slots (drawable sheet) medium

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.50 93/03/19 09:46:59 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.51 93/03/31 10:40:17 cer Exp $
 
 (in-package :xm-silica)
 
@@ -56,7 +56,8 @@
 
 ;;; Definitions of the individual classes
 
-(defclass motif-menu-bar (xt-leaf-pane menu-bar) ())
+(defclass motif-menu-bar (xt-leaf-pane xt-menu-bar menu-bar) 
+  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet 
     ((port motif-port) (parent t) (sheet motif-menu-bar))
@@ -117,7 +118,9 @@
   (let* ((mirror (call-next-method))
 	 (text-style (pane-text-style sheet))
 	 (font-list (list :font-list (text-style-mapping port text-style)))
-	 (options font-list))
+	 (options font-list)
+	 (ct (menu-bar-command-table sheet))
+	 (flatp (flat-command-table-menu-p ct)))
     (labels ((update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
@@ -159,9 +162,9 @@
 					 :label-string menu
 					 :sub-menu-id submenu
 					 options)))
-		 
-		 (set-button-mnemonic sheet
-				      cb (getf (command-menu-item-options item) :mnemonic))
+		 (unless flatp
+		   (set-button-mnemonic sheet
+					cb (getf (command-menu-item-options item) :mnemonic)))
 		 
 		 (let* ((ct (find-command-table (second item)))
 			(tick (slot-value ct 'clim-internals::menu-tick)))
@@ -217,17 +220,26 @@
 					   :label-string menu
 					   :managed t
 					   :parent parent
+					   :sensitive (command-enabled
+						       (car (command-menu-item-value item))
+						       (slot-value sheet 'silica::frame))
 					   options)))
 			       (push (list item button)
 				     commands-and-buttons)
 			       
-			       (set-button-accelerator-from-keystroke 
-				sheet
-				button keystroke)
+			       (when flatp 
+				 (push (cons (car (command-menu-item-value item))
+					     button)
+				       (menu-bar-command-name-to-button-table sheet)))
+			       
+			       (unless flatp
+				 (set-button-accelerator-from-keystroke 
+				  sheet
+				  button keystroke)
 			
-			       (set-button-mnemonic
-				sheet
-				button (getf (command-menu-item-options item) :mnemonic))
+				 (set-button-mnemonic
+				  sheet
+				  button (getf (command-menu-item-options item) :mnemonic)))
 
 			       (when (getf (command-menu-item-options item) :documentation)
 				 (tk::add-callback
@@ -248,9 +260,8 @@
 			  
 		  command-table)
 		 commands-and-buttons)))
-      (let ((ct (menu-bar-command-table sheet)))
-	(make-menu-for-command-table
-	 ct mirror (not (flat-command-table-menu-p ct)))))
+      (make-menu-for-command-table
+	 ct mirror (not flatp)))
     mirror))
 
 (defun display-motif-help (widget port documentation)
@@ -387,8 +398,8 @@
 				       :label-insensitive-pixmap pixmap
 				       options)))
 			  (xt::add-widget-cleanup-function
-			   button
-			   #'tk::destroy-pixmap pixmap)
+			     button
+			     #'tk::destroy-pixmap pixmap)
 			  button))))
 		 (when (clim-internals::menu-item-documentation item)
 		   (tk::add-callback button 

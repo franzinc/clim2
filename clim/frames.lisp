@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.61 93/03/19 09:43:26 cer Exp $
+;; $fiHeader: frames.lisp,v 1.62 93/03/31 10:38:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -27,7 +27,6 @@
      ;; have actually been realized so far
      (panes :initarg :panes :accessor frame-panes)
      (all-panes :initform nil)
-     (current-panes :initform nil :accessor frame-current-panes)
      (initialized-panes :initform nil)
      (pane-constructors :initarg :pane-constructors)
      (top-level-sheet :accessor frame-top-level-sheet
@@ -61,6 +60,7 @@
 		     :layouts nil
 		     :resize-frame nil
 		     :top-level 'default-frame-top-level))
+
 
 (defmethod port ((frame standard-application-frame))
   (port (frame-manager frame)))
@@ -1033,6 +1033,8 @@
     (cond ((second (assoc pane-name all-panes)))
 	  (errorp (error "There is no pane named ~S in frame ~S" pane-name frame)))))
 
+
+
 ;; The contract of GET-FRAME-PANE is to get a pane upon which we can do normal
 ;; I/O operations, that is, a CLIM stream pane
 (defmethod get-frame-pane ((frame standard-application-frame) pane-name &key (errorp t))
@@ -1045,6 +1047,16 @@
 			 (second pane)))
       (when errorp
 	(error "There is no CLIM stream pane named ~S in frame ~S" pane-name frame)))))
+
+(defmethod frame-current-panes ((frame standard-application-frame))
+  (let ((panes nil)
+	(top (frame-panes frame)))
+    (when top
+      (map-over-sheets #'(lambda (sheet)
+			   (when (panep sheet)
+			     (push sheet panes)))
+		       top))
+    panes))
 
 (defmethod redisplay-frame-panes ((frame standard-application-frame) &key force-p)
   ;; First display all the :accept-values panes, then display the rest.
@@ -1183,7 +1195,7 @@
 	   (note-command-enabled (frame-manager frame) frame command-name))
 	  (t
 	   (push command-name disabled-commands)
-	   (note-command-enabled (frame-manager frame) frame command-name)))))
+	   (note-command-disabled (frame-manager frame) frame command-name)))))
 
 
 ;;--- There is the compiler bug with (eval-when (compile load eval) ...)

@@ -20,17 +20,26 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.3 92/12/14 15:02:56 cer Exp $
+;; $fiHeader: train.lisp,v 1.4 93/03/19 09:44:22 cer Exp $
 
-(defun train-clim (&key (train-times 2) (psview nil) (frame-tests t) (errorp t))
+(defun train-clim (&key (train-times 2) (psview nil) (frame-tests t) (errorp t) (hpglview nil))
   (setq *global-gc-behavior* nil)
-  (load "test/test.lisp") 
-  (when frame-tests
-    (clim-user::train-clim-2 train-times) 
-    (clim-user::do-frame-tests errorp))
-  (when psview
-    (load "test/postscript-tests.lisp")
-    (clim-user::run-postscript-tests :output psview))
+  (load
+   "test/test.lisp") 
+  (clim-user::with-test-reporting ()
+    (when frame-tests
+      (clim-user::train-clim-2 train-times) 
+      (clim-user::do-frame-tests errorp))
+    (when psview
+      (load "test/postscript-tests.lisp")
+      (clim-user::run-postscript-tests :output psview))
+  
+    (when hpglview
+      (load "test/postscript-tests.lisp")
+      (require :climhpgl)
+      (load "test/hpgl-tests.lisp")
+      (clim-user::run-hpgl-tests :output hpglview)))
+  
   (with-open-file (*standard-output* "coverage-report.lisp" 
 		   :if-exists :supersede :direction :output)
     (generate-coverage-report))

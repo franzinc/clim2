@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
+;;; $fiHeader: hpgl-port.lisp,v 1.1 93/03/04 08:57:28 cer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -270,6 +270,11 @@
     :port port 
     :color-p t
     :dynamic-p nil))
+
+(defmethod initialize-instance :after ((port hpgl-port) &key)
+  (with-slots (silica::default-palette) port
+    (setf silica::default-palette (make-palette port))))
+
 
 (defmethod realize-graft ((port hpgl-port) (graft standard-graft))
   (with-slots (silica::mm-height silica::mm-width

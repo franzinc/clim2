@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.3 93/03/04 18:59:13 colin Exp $
+# $fiHeader: Makefile.defs,v 1.4 93/03/15 08:27:09 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -20,13 +20,14 @@ MV	= /usr/fi/mv-nfs
 
 TRAIN_TIMES=2
 # view, file, print
-PSVIEW=file
+PSVIEW=:file
+HPGLVIEW=:file
 
 FRAME_TESTS=t
 
 TRAIN_LISP= \
 	(load \"misc/train.lisp\") \
-	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) :psview :$(PSVIEW)) \
+	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) :psview $(PSVIEW) :hpglview $(HPGLVIEW)) \
 	(exit 0)
 
 TRAIN_TEXT = \
@@ -105,7 +106,7 @@ OLC_UNDEFS=misc/undefinedsymbols.colit
 
 # These are the fasls and the .o that form the product
 
-CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl
+CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl climhpgl.fasl
 CLIM_OL_FASLS= climol.fasl clim-debugol.fasl
 CLIM_XM_FASLS= climxm.fasl clim-debugxm.fasl
 # clim1compat.fasl
@@ -315,14 +316,12 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/xt-stipples.fasl \
                    tk-silica/xm-silica.fasl \
                    tk-silica/xt-graphics.fasl \
-                   tk-silica/xm-graphics.fasl \
                    tk-silica/image.fasl \
                    tk-silica/xt-frames.fasl \
                    tk-silica/xm-frames.fasl \
                    tk-silica/xm-dialogs.fasl \
                    tk-silica/xt-gadgets.fasl \
                    tk-silica/xm-gadgets.fasl \
-                   tk-silica/xm-menus.fasl \
                    tk-silica/xt-pixmaps.fasl \
                    tk-silica/xt-cursor.fasl \
                    tk-silica/last.fasl
@@ -333,7 +332,6 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/xt-stipples.fasl \
                       tk-silica/ol-silica.fasl \
                       tk-silica/xt-graphics.fasl \
-                      tk-silica/ol-graphics.fasl \
                       tk-silica/image.fasl \
                       tk-silica/xt-frames.fasl \
                       tk-silica/ol-frames.fasl \
@@ -346,6 +344,8 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
 POSTSCRIPT_CLIM= postscript/postscript-port.fasl \
 	postscript/postscript-medium.fasl \
 	postscript/laserwriter-metrics.fasl 
+
+HPGL_OBJS= hpgl/pkg.fasl hpgl/hpgl-port.fasl hpgl/hpgl-medium.fasl
 
 # Used for tags
 ALL_SRC =	   utils/excl-verification.lisp \
@@ -486,13 +486,11 @@ ALL_SRC =	   utils/excl-verification.lisp \
                    tk-silica/xt-stipples.lisp \
                    tk-silica/xm-silica.lisp \
                    tk-silica/xt-graphics.lisp \
-                   tk-silica/xm-graphics.lisp \
                    tk-silica/image.lisp \
                    tk-silica/xt-frames.lisp \
                    tk-silica/xm-frames.lisp \
                    tk-silica/xt-gadgets.lisp \
                    tk-silica/xm-gadgets.lisp \
-                   tk-silica/xm-menus.lisp \
                    tk-silica/xt-cursor.lisp \
                    tk-silica/xt-pixmaps.lisp \
 	      tk/ol-defs.lisp \
@@ -502,7 +500,6 @@ ALL_SRC =	   utils/excl-verification.lisp \
               tk/ol-widgets.lisp \
               tk/ol-callbacks.lisp \
                       tk-silica/ol-silica.lisp \
-                      tk-silica/ol-graphics.lisp \
                       tk-silica/ol-frames.lisp \
                       tk-silica/ol-gadgets.lisp
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.1 93/03/19 09:46:34 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.2 93/03/31 10:39:46 cer Exp $
 
 
 (in-package :clim-user)
@@ -346,7 +346,8 @@
   (run-printer-tests output :postscript))
 
 (defun run-printer-tests (output printer-type)
-  (exercise-frame 'clim-postscript-tests
+  (exercise-frame (clim-utils:fintern "~A~A" 'printer-tests printer-type)
+		  'clim-postscript-tests
 		  `(:width 600 :height 600 :printer-type ,printer-type)
 		  (mapcar #'(lambda (command)
 			      (append command `(:output ,output)))
@@ -458,6 +459,55 @@
    )
   (com-frame-test-quit))
 
+(define-frame-test test-tf109 (tf109)
+  ((com-change-set-gadget-items)
+   (com-change-set-gadget-items :which t)
+   (com-change-set-gadget-items))
+  (com-quit))
+
+
+(define-frame-test test-tf111 (tf111)
+  ()
+  (com-quit))
+
+;;; Disable/enable command stuff.
+
+(define-application-frame enable-disable-frame ()
+  
+  ()
+  (:panes
+   (i :interactor))
+  (:layouts
+   (default i)))
+
+(define-enable-disable-frame-command (com-enable-disable-foo :name nil :menu t)
+    ((i 'integer :gesture :select))
+  (present (* i i) 'integer))
+
+(define-enable-disable-frame-command (com-enable-disable-bar :name nil :menu t)
+    ((i 'integer :gesture :describe)
+     (j 'integer))
+  (present (* i j) 'integer))
+
+(define-enable-disable-frame-command (com-enable-disable-quit :name nil :menu t)
+    ()
+  (frame-exit *application-frame*))
+
+(define-enable-disable-frame-command (com-enable-disable-sensitive :name t)
+    ((enabled 'boolean))
+  (setf (command-enabled 'com-enable-disable-frame *application-frame*) enabled))
+
+(define-frame-test test-enable-disable-command (enable-disable-frame 
+						:disabled-commands '(com-enable-disable-frame)
+						:width 400 :height 400)
+  ((com-enable-disable-sensitive t)
+   (:sleep 1)
+   (com-enable-disable-sensitive nil)
+   (:sleep 1))
+  (com-enable-disable-quit))
+
+
+;;; This should be at the end:
 ;;; make the training selective.
 
 (locally 
@@ -469,13 +519,3 @@
 
 (setq excl:*global-gc-behavior* nil)
 
-(define-frame-test test-tf109 (tf109)
-  ((com-change-set-gadget-items)
-   (com-change-set-gadget-items :which t)
-   (com-change-set-gadget-items))
-  (com-quit))
-
-
-(define-frame-test test-tf111 (tf111)
-  ()
-  (com-quit))

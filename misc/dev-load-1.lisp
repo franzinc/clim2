@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.23 93/03/19 09:44:20 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.24 93/03/31 10:39:08 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -58,6 +58,7 @@
      (load "postscript/sysdcl")
   
      (load "climps.fasl")
+     (load "climhpgl.fasl")
 
      (compile-file-if-needed "test/test-suite")
 

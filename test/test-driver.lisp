@@ -150,7 +150,7 @@
 		    (wait-for-clim-input-state invocation timeout)))
 	      (execute-command-in-frame (or avv-frame frame) command)))))))))
 
-(defun exercise-frame (class initargs commands exit-command &optional (error *catch-errors-in-tests*))
+(defun exercise-frame (test-name class initargs commands exit-command &optional (error *catch-errors-in-tests*))
   (flet ((doit ()
 	   (let ((invocation (make-instance 'invocation :class class :initargs initargs)))
 	     (unwind-protect
@@ -165,10 +165,87 @@
     (if error
 	(handler-case (doit)
 	  (error (condition)
-	    (warn "The following error occurred: ~A" condition)))
+	    (note-test-failed test-name condition))
+	  (:no-error (&rest ignore)
+	    (declare (ignore ignore))
+	    (note-test-succeeded test-name)))
       (doit))))
 
+(defvar *test-successes* nil)
+(defvar *test-failures* nil)
 
+(defun note-test-failed (test reason)
+  (warn "The following error occurred: ~A" reason)
+  (when *test-failures*
+    (push (cons test reason) (cdr *test-failures*))))
+
+(defun note-test-succeeded (test)
+  (when *test-successes*
+    (push test (cdr *test-successes*))))
+
+(defmacro with-test-reporting ((&rest options &key) &body body)
+  `(invoke-with-test-reporting #'(lambda () ,@body) ,@options))
+
+(defun invoke-with-test-reporting (continuation)
+  (let ((*test-successes* (list nil))
+	(*test-failures* (list nil)))
+    (funcall continuation)
+    (pop *test-successes*)
+    (pop *test-failures*)
+    (generate-test-report)))
+
+(defun generate-test-report ()
+  (format t "~4%")
+  (when *test-failures*
+    (format t "The following tests failed:~%")
+    (dolist (x *test-failures*)
+      (format t "~10t~A : ~A~%" (car x) (cdr x))))
+    
+  (when (probe-file "test-suite-report.lisp")
+    (let (old-successes old-failures)
+      (with-open-file (*standard-input* "test-suite-report.lisp")
+	(let ((*package* (find-package :clim-user)))
+	  (setq old-successes (read) old-failures (read))))
+	
+      (let ((first t))
+	(dolist (x *test-failures*)
+	  (when (member (car x) old-successes)
+	    (when first
+	      (format t "The following tests have for failed the first time:~%")
+	      (setq first nil))
+	    (format t "~10t~A : ~A~%" (car x) (cdr x)))))
+	
+      (let ((first t))
+	(dolist (x *test-failures*)
+	  (when (member (car x) old-failures)
+	    (when first
+	      (format t "The following tests have failed again:~%")
+	      (setq first nil))
+	    (format t "~10t~A : ~A~%" (car x) (cdr x)))))
+	
+      (let ((first t))
+	(dolist (x *test-successes*)
+	  (when (member x old-failures)
+	    (when first
+	      (format t "The following tests have succeeded finally:~%")
+	      (setq first nil))
+	    (format t "~10t~A~%" x))))))
+    
+  (when *test-successes*
+    (format t "The following tests succeeded:~%")
+    (dolist (x *test-successes*)
+      (format t "~10t~A ~%" x)))
+    
+
+  (with-open-file (*standard-output* "test-suite-report.lisp"
+		   :direction :output :if-exists :supersede)
+    (let ((*package* (find-package :clim-user)))
+      (print *test-successes*)
+      (print (mapcar #'car *test-failures*)))))
+	
+    
+	  
+	  
 (defun walk-over-presentations (function output-record)
   (labels ((find-object-1 (record x-offset y-offset)
 	     (with-bounding-rectangle* (left top right bottom) record
@@ -367,7 +444,7 @@
   `(progn
      (pushnew ',name *frame-tests*)
      (defun ,name ()
-       (exercise-frame ',class ',initargs ',commands ',exit-command))))
+       (exercise-frame ',name ',class ',initargs ',commands ',exit-command))))
 
 (defmacro define-command-sequence (name &rest commands)
   `(defun ,name (invocation)
@@ -400,7 +477,8 @@
 
 (defun test-it (&optional filename (errorp *catch-errors-in-tests*))
   (let* ((file (pathname (or filename (format nil "/tmp/foofile~A" (gensym))))))
-    (exercise-frame 'clim-tests
+    (exercise-frame 'test-it
+		    'clim-tests
 		    '(:width 600 :height 400 :left 0 :top 0)
 		    `(((run-benchmarks-to-dummy-file :file ,file) :timeout 1800))
 		    `(exit-clim-tests)

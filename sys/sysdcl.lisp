@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.35 92/12/17 15:33:24 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.36 93/03/04 19:01:15 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -410,14 +410,12 @@
   ("xt-stipples")
   ("xm-silica")
   ("xt-graphics")
-  ("xm-graphics")
   ("image")
   ("xt-frames")
   ("xm-frames")
   ("xm-dialogs")
   ("xt-gadgets")
   ("xm-gadgets")
-  ("xm-menus")
   ("xt-cursor")
   ("xt-pixmaps")
   ("last"))
@@ -435,7 +433,6 @@
   ("xt-stipples")
   ("ol-silica")
   ("xt-graphics")
-  ("ol-graphics")
   ("image")
   ("xt-frames")
   ("ol-frames")

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.73 93/03/25 15:41:40 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.74 93/03/31 10:40:33 cer Exp $
 
 (in-package :xm-silica)
 
@@ -40,7 +40,9 @@
      (depth :accessor port-depth)
      (visual-class :accessor port-visual-class)
      (cursor-font :initform nil)
-     (cursor-cache :initform nil))
+     (cursor-cache :initform nil)
+     (compose-status :initform (x11:make-xcomposestatus)
+		     :reader port-compose-status))
   (:default-initargs :allow-loose-text-style-size-mapping t
 		     :deep-mirroring t)
   (:documentation "The port for X intrinsics based ports"))
@@ -1115,7 +1117,7 @@
   (declare (ignore sheet mirror)
 	   (optimize (speed 3) (safety 0)))
   (multiple-value-bind (character keysym)
-      (tk::lookup-string event)
+      (tk::lookup-string event (port-compose-status (port sheet)))
     (setq character (and (= (length (the simple-string character)) 1)
 			 (aref (the simple-string character) 0)))
     ;;--- Map the asci control-characters into the common lisp

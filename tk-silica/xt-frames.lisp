@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.29 93/03/19 09:47:07 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.30 93/03/31 10:40:25 cer Exp $
 
 
 (in-package :xm-silica)
@@ -73,7 +73,8 @@
 (defun command-button-callback (button dunno frame command-table item)
   (declare (ignore dunno button))
   (execute-command-in-frame
-   frame (substitute clim-internals::*application-frame-marker* frame (second item))
+   frame (substitute clim-internals::*application-frame-marker* frame
+		     (command-menu-item-value item))
    :presentation-type `(command :command-table ,command-table)))
 
 
@@ -206,3 +207,31 @@
 
 (defmethod invoke-with-mouse-grabbed-in-window ((framem xt-frame-manager) (window t) continuation &key)
   (invoke-with-pointer-grabbed window continuation))
+
+
+
+(defclass xt-menu-bar ()
+  ((command-name-to-button-table 
+    :accessor menu-bar-command-name-to-button-table
+    :initform nil)))
+
+(defmethod note-sheet-degrafted :after ((sheet xt-menu-bar))
+  (setf (menu-bar-command-name-to-button-table sheet) nil))
+
+(defmethod note-command-enabled :after ((framem xt-frame-manager) frame command)
+  (update-command-button-status frame command t))
+
+(defmethod note-command-disabled :after ((framem xt-frame-manager) frame command)
+  (update-command-button-status frame command nil))
+
+(defun update-command-button-status (frame command enabled)
+  (let ((sheet (frame-top-level-sheet frame)))
+    (when sheet
+      (flet ((update-sheet (sheet)
+	       (when (typep sheet 'xt-menu-bar)
+		 (let ((button (cdr (assoc command (menu-bar-command-name-to-button-table sheet)))))
+		   (when button
+		     (tk::set-sensitive button enabled))))))
+	(map-over-sheets #'update-sheet sheet)))))
+
+
