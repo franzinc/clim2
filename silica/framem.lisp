@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.24 92/11/09 10:55:41 cer Exp $
+;; $fiHeader: framem.lisp,v 1.25 92/11/19 14:24:57 cer Exp $
 
 (in-package :silica)
 
@@ -75,6 +75,7 @@
 
 (defmethod frame-manager-matches-options-p
 	   ((framem standard-frame-manager) port &key palette &allow-other-keys)
+  (declare (ignore palette))
   (eq (port framem) port))
 
 

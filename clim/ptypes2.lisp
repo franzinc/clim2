@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.21 92/11/19 14:18:18 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.22 92/11/20 08:44:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -480,11 +480,11 @@
 
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
-			       present-p query-identifier &key (prompt t) (active-p t))
+			       present-p query-identifier 
+			       &key (prompt t) (active-p t))
   (funcall-presentation-generic-function accept-present-default
     presentation-type stream view default default-supplied-p present-p query-identifier
-    :active-p active-p
-    :prompt prompt))
+    :prompt prompt :active-p active-p))
 
 (define-default-presentation-method accept-present-default
 				    (presentation-type stream view
@@ -515,9 +515,10 @@
   (declare (ignore presentation-type framem query-identifier))
   view)
 
-(defun decode-indirect-view (type view frame-manager &rest args &key query-identifier read-only)
-  (declare (dynamic-extent args)
-	   (ignore query-identifier read-only))
+(defun decode-indirect-view (type view frame-manager &rest args 
+			     &key query-identifier read-only)
+  (declare (dynamic-extent args))
+  (declare (ignore query-identifier read-only))
   (apply-presentation-generic-function decode-indirect-view
     type view frame-manager args))
 
@@ -545,7 +546,7 @@
 (define-default-presentation-method highlight-presentation
 				    (presentation-type record stream state)
   (declare (ignore presentation-type))
-  (highlight-output-record-1 record stream state))
+  (highlight-output-record record stream state))
 
 
 ;;;; More Development Environment Support

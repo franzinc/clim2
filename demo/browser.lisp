@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.15 92/10/28 11:32:51 cer Exp $
+;; $fiHeader: browser.lisp,v 1.16 92/11/06 19:02:39 cer Exp $
 
 (in-package :clim-browser)
 
@@ -268,7 +268,7 @@
 	       (present (node-object-name node) 'expression :stream stream))))
     (declare (dynamic-extent #'draw))
     (if (node-recurses node)
-	(surrounding-output-with-border (stream :shape :rectangle)
+	(surrounding-output-with-border (stream :shape :oval)
 	  (draw stream))
 	(draw stream))))
 
@@ -291,19 +291,6 @@
 (defmethod node-generate-inferior-objects ((node function-call-node) (type (eql ':callees)))
   (let ((function (node-object node)))
     (typecase function
-      (compiled-function
-	(let ((callees nil))
-	  (si:map-over-compiled-function-callees
-	    function
-	    #'(lambda (caller callee how)
-		(declare (ignore caller))
-		(case how
-		  ((:function :generic-function)
-		   (pushnew (sys:fdefinition callee) callees))
-		  (:variable
-		    (pushnew callee callees))))
-	    :external-references t)
-	  (nreverse callees)))
       (flavor:generic-function
 	;; Return all the real methods for this generic function
 	(loop for method in (sort (flavor:generic-function-methods
@@ -323,7 +310,20 @@
 			      :sort :heuristic)
 	      as function = (clos:method-function method)
 	      when function
-		collect function)))))
+		collect function))
+      (compiled-function
+	(let ((callees nil))
+	  (si:map-over-compiled-function-callees
+	    function
+	    #'(lambda (caller callee how)
+		(declare (ignore caller))
+		(case how
+		  ((:function :generic-function)
+		   (pushnew (sys:fdefinition callee) callees))
+		  (:variable
+		    (pushnew callee callees))))
+	    :external-references t)
+	  (nreverse callees))))))
 
 #+genera
 (defmethod node-generate-inferior-objects ((node function-call-node) (type (eql ':callers)))
@@ -343,9 +343,9 @@
 		      (case how
 			((:function :generic-function :macro)
 			 (pushnew (sys:fdefinition caller) callers))
-			(:variable
+			((:variable :constant)
 			  (pushnew caller callers))))
-		  :called-how '(:function :generic-function :macro :variable))
+		  :called-how '(:function :generic-function :macro :variable :constant))
 		(nreverse callers))))))))
 
 
@@ -648,7 +648,7 @@
 		       (prin1 object stream))))))
       (declare (dynamic-extent #'draw))
       (if (node-recurses node)
-	  (surrounding-output-with-border (stream :shape :rectangle)
+	  (surrounding-output-with-border (stream :shape :oval)
 	    (draw stream))
 	  (draw stream)))))
 
@@ -739,7 +739,9 @@
 	   :display-function 'display-graph-pane
 	   :display-after-commands t
 	   :incremental-redisplay t
-	   :scroll-bars :both)
+	   :scroll-bars :both
+	   :end-of-page-action :allow
+	   :end-of-line-action :allow)
     (interactor :interactor :height '(5 :line))
     (control-panel :accept-values
 		   :height :compute
@@ -756,7 +758,7 @@
 	   (:fill control-panel)))))))
 
   
-#+genera (define-genera-application browser :select-key #\Triangle)
+#+genera (define-genera-application browser :select-key #\)
 #+genera (zwei:defindentation (define-browser-command 0 3 1 3 2 1))
 
 (defmethod configure-for-browser-type ((browser browser) type subtype)
@@ -828,6 +830,7 @@
 	         (delete-if-not node-filter inferiors)))))
     (declare (dynamic-extent #'inferior-producer))
     (format-graph-from-roots root-nodes node-printer #'inferior-producer
+			     :graph-type :dag	;we eliminate circularities ourselves
 			     :stream stream
 			     :orientation orientation
 			     :center-nodes center-nodes

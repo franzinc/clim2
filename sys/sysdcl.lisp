@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.30 92/11/06 19:04:08 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.31 92/11/19 14:25:12 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -25,9 +25,9 @@
 	   (pushnew :Genera-Release-8-0 *features*))
 	  ((= major 436)
 	   (pushnew :Genera-Release-8-1 *features*))
-	  ((>= major 437)
+	  ((= major 443)
 	   (pushnew :Genera-Release-8-2 *features*))
-	  ((>= major 444)
+	  ((> major 444)
 	   (pushnew :Genera-Release-8-3 *features*)))))
 
 )	;eval-when

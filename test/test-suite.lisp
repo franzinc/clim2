@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.46 92/11/20 08:45:55 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.47 92/12/01 09:46:42 cer Exp $
 
 (in-package :clim-user)
 
@@ -209,27 +209,25 @@ What about environment issue?
 	(formatting-cell (stream)
 	  (draw-circle* stream 0 0 50 
 			:ink +green+ :filled t
-			:start-angle (second angles) :end-angle (car
-								 angles)))))))
+			:start-angle (second angles) :end-angle (car angles)))))))
 
 (define-test (draw-some-points graphics) (stream)
   "Draw lots of points"
   (formatting-table (stream)
-      (dotimes (size 10)
-	(formatting-row (stream)
-	    (formatting-cell (stream)
-		(with-text-face (stream :italic)
-		  (format stream "~D size" size)))
-	  (formatting-cell (stream)
-	      (let ((points nil))
-		(dotimes (i 10) 
-		  (push (random 50) points)
-		  (push (random 50) points))
-		(surrounding-output-with-border (stream)
-		    (draw-points* stream points 
-				  :ink +red+
-				  :line-thickness size))))))))
-			      
+    (dotimes (size 10)
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (with-text-face (stream :italic)
+	    (format stream "~D size" size)))
+	(formatting-cell (stream)
+	  (let ((points nil))
+	    (dotimes (i 10) 
+	      (push (random 50) points)
+	      (push (random 50) points))
+	    (surrounding-output-with-border (stream)
+	      (draw-points* stream points 
+			    :ink +red+
+			    :line-thickness size))))))))
 
 
 (defparameter *gettysburg-address*
@@ -740,7 +738,7 @@ people, shall not perish from the earth.
     (let ((pixmap (with-output-to-pixmap (ps stream :width 100 :height 100)
 		    (draw-rectangle* ps 0 0 100 100 :ink +red+)
 		    (surrounding-output-with-border (ps)
-			(draw-text* ps "hello" 10 50)))))
+		      (draw-text* ps "hello" 10 50)))))
       (dotimes (i 5)
 	(sleep 0.25)
 	(copy-from-pixmap pixmap 0 0 100 100 medium (* i 100) (* i 100))))
@@ -1731,23 +1729,20 @@ Luke Luck licks the lakes Luke's duck likes."))
   (macrolet ((doit (&body body)
 	       `(mp::with-timeout (5) ,@body)))
     (doit
-     (menu-choose '("Whistle"
-		    ("Pat head" :items
-		     (("with right hand" . "Pat head with right hand")
-		      ("with left hand" . "Pat head with left hand")))
-		    ("Rub Tummy" :items
-		     (("clockwise" . "Rub tummy clockwise")
-		      ("counter-clockwise" . "Rub tummy counter-clockwise")))
-		    "Walk"
-		    "Chew Gum")
-		  :associated-window stream
-		  :label "Select an activity"))
+      (menu-choose '("Whistle"
+		     ("Pat head" :items
+		      (("with right hand" . "Pat head with right hand")
+		       ("with left hand" . "Pat head with left hand")))
+		     ("Rub Tummy" :items
+		      (("clockwise" . "Rub tummy clockwise")
+		       ("counter-clockwise" . "Rub tummy counter-clockwise")))
+		     "Walk"
+		     "Chew Gum")
+		   :associated-window stream
+		   :label "Select an activity"))
     (doit
-     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj") :label "foo" :text-style '(:fix :roman :huge)))
-
-    (doit
-     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj") :label "foo" :text-style '(:fix :roman :tiny)))))
-
+      (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
+		   :label "foo" :text-style '(:fix :roman :huge)))))
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
   "A menu that contains graphics."
@@ -1824,15 +1819,19 @@ Luke Luck licks the lakes Luke's duck likes."))
   "An ACCEPTING-VALUES dialog that has graphics inside of it."
   (graphics-dialog-internal stream))
 
+(define-test (graphics-dialog-own-window menus-and-dialogs) (stream)
+  "An own-window ACCEPTING-VALUES dialog that has graphics inside of it."
+  (graphics-dialog-internal stream t))
+
 (define-test (graphics-dialog-options menus-and-dialogs) (stream)
-  "An ACCEPTING-VALUES dialog with options that has graphics inside of it."
+  "An ACCEPTING-VALUES dialog with options."
   (let ((own-window nil)
 	(scroll-bars nil))
     (accepting-values (stream :align-prompts t)
-	(setf own-window (accept 'boolean
-				 :default own-window
-				 :prompt "Own window"
-				 :stream stream))
+      (setf own-window (accept 'boolean
+			       :default own-window
+			       :prompt "Own window"
+			       :stream stream))
       (setf scroll-bars (accept '(member nil t :both :dynamic :vertical :horizontal)
 				:view '(radio-box-view :orientation :vertical)
 				:default scroll-bars
@@ -1840,10 +1839,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 				:stream stream
 				:active-p own-window)))
     (graphics-dialog-internal stream own-window (and own-window scroll-bars))))
-
-(define-test (graphics-dialog-own-window menus-and-dialogs) (stream)
-  "An own-window ACCEPTING-VALUES dialog that has graphics inside of it."
-  (graphics-dialog-internal stream t))
 
 (defun graphics-dialog-internal (stream &optional own-window scroll-bars)
   (labels ((display-color (object stream &key acceptably)
@@ -1866,8 +1861,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (line-thickness 1)
 	  (color-name :foreground)
 	  (line-thickness-units :normal))
-      (accepting-values (stream :own-window own-window :label "Graphics Dialog"
-				:scroll-bars scroll-bars)
+      (accepting-values (stream :own-window own-window
+				:scroll-bars scroll-bars
+				:label "Graphics Dialog")
 	(setq square-dimension
 	      (accept 'number :stream stream
 		      :prompt "Size of square" :default square-dimension))
@@ -1936,6 +1932,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		  (draw-line* stream 0 0 square-dimension square-dimension
 			      :line-cap-shape :round))))))))))
 
+
 (define-test (gadgets-dialog menus-and-dialogs) (stream)
   "An own-window ACCEPTING-VALUES dialog that has lots of gadgets inside of it."
   (gadgets-dialog-internal stream nil))
@@ -1944,90 +1941,77 @@ Luke Luck licks the lakes Luke's duck likes."))
   "Test of gadgets out in hyper space"
   (let ((x "hello"))
     (accepting-values (stream :own-window nil :label "Gadgets dialog")
-	(stream-set-cursor-position stream 100000 0)
+      (stream-set-cursor-position stream 100000 0)
       (setq x (accept 'string :view +text-field-view+ 
 		      :stream stream
 		      :default x))
       (terpri stream))))
 
-
 (define-test (readonly-gadget-dialog menus-and-dialogs) (stream)
-  " Create a bunch of readonly gadgets"
+  "Create a bunch of readonly gadgets"
   (accepting-values (stream :own-window nil :label "Gadgets dialog"
 			    :align-prompts t)
-      (macrolet ((do-presents (view &rest p)
-		   `(progn
-		      ,@(mapcar #'(lambda (x)
-				    `(progn
-				       (present ',(car x) ',(cadr x)
-						,@(and view `(:view ,view))
-						:prompt (format nil "~A,~A"
-								',(cadr x)
-								,(if (constantp view)
-								     (if (eval view) `',(type-of (eval view)) :default)
-								   `(if ,view (type-of ,view) :default)))
-						:stream stream)
-				       (terpri stream)))
-				p))))
-	(do-presents
-	    nil
-	  (5.0 real)
-	  ("xxx" string)
-	  (#P"/tmp/fooo" pathname)
-	  (:a (member :a :b))
-	  ((:a :b) (subset :a :b))
-	  (( 3 4) (sequence integer))
-	  ;; sequence-enumerated
-	  (t boolean))
-	
-	(do-presents
-	    +text-field-view+
-	  (5.0 real)
-	  ("xxx" string)
-	  (#P"/tmp/fooo" pathname)
-	  (:a (member :a :b))
-	  ((:a :b) (subset :a :b))
-	  (( 3 4) (sequence integer))
-	  ;; sequence-enumerated
-	  (t boolean))
-		
-      
-	(do-presents
-	    '(text-editor-view :nlines 5 :ncolumns 30)
-	  ("      (do-presents
+    (macrolet ((do-presents (view &rest p)
+		 `(progn
+		    ,@(mapcar #'(lambda (x)
+				  `(progn
+				     (present ',(car x) ',(cadr x)
+				       ,@(and view `(:view ,view))
+				       :prompt (format nil "~A,~A"
+						 ',(cadr x)
+						 ,(if (constantp view)
+						      (if (eval view) `',(type-of (eval view)) :default)
+						      `(if ,view (type-of ,view) :default)))
+				       :stream stream)
+				     (terpri stream)))
+			      p))))
+      (do-presents
+	nil
+	(5.0 real)
+	("xxx" string)
+	(#P"/tmp/foo" pathname)
+	(:a (member :a :b))
+	((:a :b) (subset :a :b))
+	(( 3 4) (sequence integer))
+	;; sequence-enumerated
+	(t boolean))
+      (do-presents
+	+text-field-view+
+	(5.0 real)
+	("xxx" string)
+	(#P"/tmp/foo" pathname)
+	(:a (member :a :b))
+	((:a :b) (subset :a :b))
+	(( 3 4) (sequence integer))
+	;; sequence-enumerated
+	(t boolean))
+      (do-presents
+	'(text-editor-view :nlines 5 :ncolumns 30)
+	("      (do-presents
 	  +text-field-view+
 	  (5.0 real)
 	(xxx string)
-	(#P/tmp/fooo pathname)
+	(#P/tmp/foo pathname)
 	(:a (member :a :b))
 	((:a :b) (subset :a :b))
 	(( 3 4) (sequence integer))
 	;; sequence-enumerated
 	(t boolean)) "
-	      string))
-	
-	(do-presents
-	    +slider-view+
-	  (5.0 float)
-	  (1 integer)))))
-
-
-	
-	
-
+	 string))
+      (do-presents
+	+slider-view+
+	(5.0 float)
+	(1 integer)))))
 
 (defun gadgets-dialog-internal (stream &optional own-window)
   (macrolet ((accepts (&rest accepts)
 	       `(progn
 		  ,@(mapcar #'(lambda (ac)
-				(destructuring-bind (var type &key 
-							 view
-							 (prompt
-							  (format nil "~A" var))) ac
+				(destructuring-bind 
+				    (var type &key view (prompt (format nil "~A" var))) ac
 				  `(progn
 				     (setq ,var (accept ',type 
-							:stream
-							stream
+							:stream stream
 							,@(and view `(:view ,view))
 							:default ,var
 							:prompt ,prompt))
@@ -2046,18 +2030,18 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (k '(:green :blue))
 	  (l :red))
       (accepting-values (stream :own-window own-window :label "Gadgets dialog")
-	  (accepts (a (member :red :blue :green))
-		   (b (subset :red :blue :green))
-		   (c boolean)
-		   (d (float 0 1) :view '(slider-view :decimal-places 2))
-		   (e (integer 0 10) :view +slider-view+)
-		   (f (member :red :blue :green) :view +text-field-view+)
-		   (g (integer 0 10) :view +text-field-view+)
-		   (h string :view +text-field-view+)
-		   (i string :view +text-editor-view+)
-		   (j (member :red :blue :green) :view +list-pane-view+)
-		   (k (subset :red :blue :green) :view +list-pane-view+)
-		   (l (member :red :blue :green) :view +option-pane-view+))))))
+	(accepts (a (member :red :blue :green))
+		 (b (subset :red :blue :green))
+		 (c boolean)
+		 (d (float 0 1) :view '(slider-view :decimal-places 2))
+		 (e (integer 0 10) :view +slider-view+)
+		 (f (member :red :blue :green) :view +text-field-view+)
+		 (g (integer 0 10) :view +text-field-view+)
+		 (h string :view +text-field-view+)
+		 (i string :view +text-editor-view+)
+		 (j (member :red :blue :green) :view +list-pane-view+)
+		 (k (subset :red :blue :green) :view +list-pane-view+)
+		 (l (member :red :blue :green) :view +option-pane-view+))))))
 
 
 (define-test (input-editor-tests menus-and-dialogs) (stream)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.20 92/11/06 19:02:44 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.21 92/11/20 08:45:19 cer Exp $
 
 (in-package :clim-demo)
 
@@ -122,7 +122,7 @@
 		  :filled (not (connection-value connection))	;required method
 		  :ink ink)))
 
-(defmethod highlight-output-record-1 ((connection connection) stream state)
+(defmethod highlight-output-record ((connection connection) stream state)
   (if (eq *highlight-ink* +flipping-ink+)
       (with-slots (x y size) connection
 	(draw-circle* stream x y (1+ size)
@@ -307,7 +307,7 @@
 (defmethod presentation-type ((comp component))
   'component)
 
-(defmethod highlight-output-record-1 ((comp component) stream state)
+(defmethod highlight-output-record ((comp component) stream state)
   (if (eq *highlight-ink* +flipping-ink+)
       (with-slots (x y size) comp
 	(draw-circle* stream x y (1+ size)
@@ -356,6 +356,7 @@
 	       (draw-junction (round-val x1 :up) y2)
 	       (draw-line* stream (round-val x1 :up) y2 x2 y2 :ink ink))
 	     ;; This one forks near X2, splitting off OFFSET units away.
+	     #+ignore
 	     (draw-path-fork-late-offset (x1 y1 x2 y2 offset)
 	       (let ((x-mid (- x2 offset)))
 		 (draw-line* stream x1 y1 x-mid y1 :ink ink)
@@ -364,6 +365,7 @@
 	     ;; Path policy functions.  The one currently named DRAW-WIRE wins.
 	     ;; This one forks late, extracting the offset from the connection.
 	     ;; (see the code that creates connections)
+	     #+ignore
 	     (draw-wire-conn-offset (connection direction)
 	       (dolist (other-conn (connection-other-connections connection))
 		 (let ((conn connection))
@@ -373,7 +375,8 @@
 		     (:from ))
 		   (multiple-value-bind (x y) (thing-position conn)
 		     (multiple-value-bind (ox oy) (thing-position other-conn)
-		       (draw-path-fork-late-offset x y ox oy (connection-wire-offset other-conn)))))))
+		       (draw-path-fork-late-offset
+			 x y ox oy (connection-wire-offset other-conn)))))))
 	     ;; This one forks early or late depending on a value stored in the connection
 	     ;; at make-instance time.
 	     (draw-wire #+ignore -early-late (connection direction)
@@ -389,6 +392,7 @@
 			   (draw-path-fork-early x y ox oy)
 			   (draw-path-fork-late x y ox oy)))))))
 	     ;; This one simply forks early for all connections.
+	     #+ignore
 	     (draw-wire-early (connection direction)
 	       (multiple-value-bind (x y) (thing-position connection)
 		 (dolist (oc (connection-other-connections connection))
@@ -401,6 +405,7 @@
 		       (:to (draw-path-fork-early ox oy x y))
 		       (:from (draw-path-fork-early x y ox oy)))))))
 	     ;; This one simply forks late for all connections.
+	     #+ignore
 	     (draw-wire-late (connection direction)
 	       (multiple-value-bind (x y) (thing-position connection)
 		 (dolist (oc (connection-other-connections connection))

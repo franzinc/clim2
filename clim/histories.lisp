@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.12 92/09/24 09:38:57 cer Exp $
+;; $fiHeader: histories.lisp,v 1.13 92/11/19 14:17:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -410,13 +410,19 @@
 	string)))
 
 (defmethod print-history-element ((history presentation-history) element stream)
-  (let ((string (unparse-presentation-history-element history element
-						      :view (stream-default-view stream))))
-    (with-output-as-presentation (stream
-				  (presentation-history-element-object element)
-				  (presentation-history-element-type element))
-      (write-string string stream))))
-
+  (handler-case
+      (let ((string (unparse-presentation-history-element 
+		      history element :view (stream-default-view stream))))
+	(with-output-as-presentation (stream
+				      (presentation-history-element-object element)
+				      (presentation-history-element-type element))
+	  (write-string string stream)))
+    (error ()
+      (with-text-style (stream *accept-result-style*)
+	(present (presentation-history-element-object element)
+		 (presentation-history-element-type element)
+		 :view (stream-default-view stream) :acceptably nil
+		 :for-context-type (presentation-type-for-yanking history))))))
 
 (define-presentation-type presentation-history-element ()
   :inherit-from 'basic-history-element)

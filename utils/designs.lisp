@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.12 92/11/18 15:56:01 colin Exp $
+;; $fiHeader: designs.lisp,v 1.13 92/11/19 14:25:41 cer Exp $
 
 (in-package :clim-utils)
 
@@ -26,6 +26,10 @@
   (cond ((= opacity 0) +nowhere+)
 	((= opacity 1) +everywhere+)
 	(t (make-standard-opacity-1 opacity))))
+
+
+;; Useful as the 0 value in patterns, to let the background show through
+(defconstant +transparent-ink+ +nowhere+)	;i.e., (make-opacity 0)
 
 
 ;; Black and white are the same everywhere
@@ -559,6 +563,10 @@
       (format stream "~Dx~D n=~D"
 	      (array-dimension array 1) (array-dimension array 0) (length designs)))))
 
+(defmethod bounding-rectangle* ((pattern pattern))
+  (with-slots (array) pattern
+    (values (array-dimension array 1) (array-dimension array 0))))
+
 (defmethod decode-pattern ((pattern pattern))
   (with-slots (array designs) pattern
     (values array designs)))
@@ -587,6 +595,15 @@
     (with-slots (design width height) tile
       (format stream "~Dx~D of " width height)
       (write design :stream stream))))
+
+(defmethod transform-region ((transformation transformation) (tile rectangular-tile))
+  (let ((design (transform-region transformation (slot-value tile 'design))))
+    (multiple-value-bind (width height)
+	(transform-distance transformation
+	  (slot-value tile 'width) (slot-value tile 'height))
+      (roundf width)
+      (roundf height)
+      (make-rectangular-tile design width height))))
 
 (defmethod decode-rectangular-tile ((tile rectangular-tile))
   (with-slots (design width height) tile

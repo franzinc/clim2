@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.31 92/11/13 14:47:10 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.32 92/11/20 08:46:35 cer Exp $
 
 
 (in-package :xm-silica)
@@ -334,7 +334,7 @@
 			(case type
 			  (:divider
 			   (unless top
-			     (make-instance 'xt::static-text
+			     (apply #'make-instance 'xt::static-text
 					    :parent parent
 					    :managed nil
 					    :string " "

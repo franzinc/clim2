@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.11 92/11/13 14:45:56 cer Exp $
+;; $fiHeader: present.lisp,v 1.12 92/11/19 14:18:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -22,17 +22,15 @@
 			 (for-context-type presentation-type) (single-box nil)
 			 (allow-sensitive-inferiors *allow-sensitive-inferiors*)
 			 (sensitive *allow-sensitive-inferiors*)
+			 prompt query-identifier
 			 (record-type 'standard-presentation)
-			 prompt
-			 query-identifier))
-  
+		    &allow-other-keys))
   (multiple-value-bind (expansion expanded)
       (expand-presentation-type-abbreviation presentation-type)
     (when expanded
       (when (eq for-context-type presentation-type)
 	(setq for-context-type expansion))
       (setq presentation-type expansion)))
-  
   (unless (eq for-context-type presentation-type)
     (multiple-value-bind (expansion expanded)
 	(expand-presentation-type-abbreviation for-context-type)
@@ -43,13 +41,14 @@
     (null)
     (symbol (setq view (make-instance view)))
     (cons   (setq view (apply #'make-instance view))))
-  
   (setq view (decode-indirect-view presentation-type view (frame-manager stream)
-				   :read-only t
-				   :query-identifier query-identifier))
+				   :query-identifier query-identifier
+				   :read-only t))
 
-  (with-keywords-removed (present-args present-args '(:stream :view))
-    (apply #'stream-present stream object presentation-type :view view present-args)))
+  (with-keywords-removed (present-args present-args '(:stream :view :for-context-type))
+    (apply #'stream-present stream object presentation-type 
+			    :view view :for-context-type for-context-type
+			    present-args)))
 
 ;; Specialize on T since this method is good for all stream classes
 (defmethod stream-present ((stream t) object presentation-type
@@ -58,8 +57,9 @@
 				(for-context-type presentation-type) (single-box nil)
 				(allow-sensitive-inferiors *allow-sensitive-inferiors*) 
 				(sensitive *allow-sensitive-inferiors*)
+				(prompt nil prompt-p)
 				(record-type 'standard-presentation)
-				(prompt nil prompt-p))
+			   &allow-other-keys)
 
   ;; The arguments are allowed to be presentation type abbreviations
   (multiple-value-bind (expansion expanded)

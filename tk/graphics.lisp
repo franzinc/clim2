@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.10 92/11/20 08:46:08 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.11 92/12/01 09:46:50 cer Exp $
 
 (in-package :tk)
 
@@ -95,6 +95,7 @@
        (* 2 y-radius)
        start-angle end-angle))))
 
+
 (defun draw-rectangle (drawable gcontext x y width height &optional
 				  fill-p)
   (if fill-p
@@ -159,6 +160,7 @@
   (x11:xtextwidth font
 		  (+ start (string-to-char* sequence))
 		  (- end start)))
+
 
 (defun draw-string (drawable gc x y string &optional (start 0) end)
   (unless start (setq start 0))

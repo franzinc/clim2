@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.20 92/11/18 15:54:51 colin Exp $
+;; $fiHeader: callbacks.lisp,v 1.21 92/11/20 08:46:03 cer Exp $
 
 (in-package :tk)
 
@@ -48,7 +48,7 @@
     0))
 
 (defmethod spread-callback-data (widget call-data (type (eql nil)))
-  (declare (ignore widget call-data)) 
+  (declare (ignore widget call-data))
   (values))
 
 (defvar *callback-handler-address* (register-function
@@ -120,8 +120,8 @@
 	    ("toTopCallback")         
 	    ("focusCallback")         
 	    ("losingFocusCallback")   
+	    ("modifyVerifyCallback")  
 	    ("modifyVerifyCallback" :modify-verify)
-	    ("motionVerifyCallback")  
 	    ("valueChangedCallback")  
 	    ("noMatchCallback")       
 	    ("cancelCallback")        

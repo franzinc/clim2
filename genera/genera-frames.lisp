@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.12 92/10/02 15:20:24 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.13 92/10/28 11:32:38 cer Exp $
 
 (in-package :genera-clim)
 
@@ -21,17 +21,18 @@
 (defmethod frame-manager-matches-options-p
 	   ((framem genera-frame-manager) port 
 	    &key palette (gadget-menu-bar *use-gadget-menu-bars*) &allow-other-keys)
+  (declare (ignore palette))
   (and (eq (port framem) port)
        (eq (slot-value framem 'gadget-menu-bar) gadget-menu-bar)))
 
 (defmethod frame-wrapper ((framem genera-frame-manager) 
 			  (frame standard-application-frame) pane)
-  (let* ((menu-pane (clim-internals::find-frame-pane-of-type 
-		      frame 'clim-internals::command-menu-pane))
-	 (menu-bar (let ((menu-bar (slot-value frame 'menu-bar)))
-		     (cond ((and menu-pane (eq menu-bar 't)) nil)
-			   ((eq menu-bar 't) (frame-command-table frame))
-			   (t menu-bar)))))
+  (let ((menu-bar (let ((menu-bar (slot-value frame 'menu-bar)))
+		    (if (and (eq menu-bar 't)
+			     (clim-internals::find-frame-pane-of-type 
+			       frame 'clim-internals::command-menu-pane))
+			nil
+			menu-bar))))
     (with-look-and-feel-realization (framem frame)
       (outlining ()
 	(if menu-bar
@@ -138,3 +139,18 @@
 	  (setq clim-internals::*last-pointer-documentation-time* 0)))
       (scl:send stream :clear-window)
       (scl:send stream :string-out *pointer-documentation-buffer*))))
+
+(defmethod frame-manager-display-pointer-documentation-string 
+	   ((framem genera-frame-manager) stream string)
+  (declare (ignore stream))
+  (let ((stream
+	  (let ((console 
+		  (tv:sheet-console (sheet-mirror (first (port-grafts (port framem)))))))
+	    (if (eq console sys:*main-console*)
+		tv:who-line-documentation-window
+		(let ((who-screen (tv:console-who-line-screen console)))
+		  (and who-screen
+		       (tv:get-who-line-field :mouse-documentation who-screen)))))))
+    (scl:send stream :clear-window)
+    (when string
+      (scl:send stream :string-out string))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.17 92/11/09 19:55:54 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.18 92/11/10 08:56:55 cer Exp $
 
 
 (in-package :xm-silica)
@@ -75,9 +75,10 @@
 	 (font-args (and font (list :font font))))
 
     (tk::set-values menu-shell :title (or label "Choose"))
+
     ;;-- Does not have a font resource
     ;;    (when font (tk::set-values menu-shell :font font))
-
+    
     (labels ((make-menu-button (item class parent &rest options)
 	       (let ((button
 		      (if simplep
@@ -88,7 +89,7 @@
 				 :managed nil
 				 :label (string (menu-item-display
 						 item))
-				 (append font-args options)) 
+				 (append font-args options))
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item
@@ -125,14 +126,14 @@
 			       (apply #'make-instance 'xt::static-text
 					      :parent menu
 					      :managed nil
-					      :string " " 
+					      :string " "
 					      font-args))
 			      (:label
 			       (apply #'make-instance 'xt::static-text
 						 :parent menu
 						 :managed nil
 						 :string (string
-							  (menu-item-display item))
+								(menu-item-display item))
 						 font-args))
 			      (:item
 			       (if (clim-internals::menu-item-items item)

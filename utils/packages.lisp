@@ -1,6 +1,6 @@
-;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.40 92/11/20 08:47:13 cer Exp $
+;; $fiHeader: packages.lisp,v 1.41 92/12/01 09:47:32 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1978,8 +1978,8 @@
     deallocate-pixmap
     draw-arrow
     draw-arrow*
-    draw-bezier-polygon
-    draw-bezier-polygon*
+    draw-bezier-curve
+    draw-bezier-curve*
     draw-circle
     draw-circle*
     draw-ellipse
@@ -2003,7 +2003,7 @@
     draw-text
     draw-text*
     medium-copy-area
-    medium-draw-bezier-polygon*
+    medium-draw-bezier-curve*
     medium-draw-character*
     medium-draw-ellipse*
     medium-draw-line*
@@ -2024,6 +2024,7 @@
     +background-ink+
     +flipping-ink+
     +foreground-ink+
+    +transparent-ink+
     color
     color-ihs
     color-not-found
@@ -2133,7 +2134,6 @@
     graphics-displayed-output-record
     graphics-displayed-output-record-p
     highlight-output-record
-    highlight-output-record-1
     invoke-with-new-output-record
     invoke-with-output-recording-options
     invoke-with-output-to-output-record
@@ -2274,8 +2274,8 @@
     
     ;; Extended input
     *abort-gestures*
-    *asynchronous-abort-gestures*
     *accelerator-gestures*
+    *asynchronous-abort-gestures*
     *input-wait-handler*
     *input-wait-test*
     *pointer-button-press-handler*
@@ -2651,6 +2651,7 @@
     enable-frame
     execute-frame-command
     execute-command-in-frame
+    find-application-frame
     find-frame-manager
     find-pane-for-frame
     find-pane-named
@@ -2764,7 +2765,7 @@
     horizontally
     hrack-pane
     label-pane
-    labelled
+    labelling
     lowering
     make-clim-application-pane
     make-clim-interactor-pane
@@ -2844,6 +2845,7 @@
     gadget-show-value-p
     gadget-value
     gadget-value-changed-callback
+    gadgetp
     labelled-gadget-mixin
     list-pane
     list-pane-mode
@@ -3072,8 +3074,6 @@
     convert-to-device-coordinates
     convert-to-device-distances
     copy-vector-portion
-    ;;--- This is not used
-    ;; define-class-mixture
     define-constructor
     define-constructor-using-prototype-instance
     define-group
@@ -3378,6 +3378,7 @@
     fetch-medium-drawable
     find-port-type
     fit-region*-in-region*
+    focus-gadget
     focus-in-gadget-event
     focus-out-gadget-event
     foreground-background-and-text-style-mixin
@@ -3387,6 +3388,7 @@
     frame-manager-display-help
     frame-manager-display-progress-note
     frame-manager-display-pointer-documentation
+    frame-manager-display-pointer-documentation-string
     frame-manager-exit-box-labels
     frame-manager-matches-options-p
     frame-manager-note-pretty-name-changed
@@ -3398,6 +3400,8 @@
     gadget-columns
     gadget-editable-p
     gadget-event
+    gadget-focus-out-callback
+    gadget-focus-in-callback
     gadget-lines
     gadget-supplied-scrolling
     gadget-visible-items
@@ -3473,6 +3477,7 @@
     port-canonical-gesture-specs
     port-canonicalize-gesture-spec
     port-deallocate-pixmap
+    port-default-text-style
     port-display
     port-draw-cursor
     port-event-loop

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.12 92/10/02 15:18:31 cer Exp $
+;; $fiHeader: pixmaps.lisp,v 1.13 92/10/28 11:30:51 cer Exp $
 
 (in-package :silica)
 
@@ -75,6 +75,7 @@
 	(medium-foreground sheet) (or (medium-foreground medium) +black+)
 	(medium-background sheet) (or (medium-background medium) +white+)
 	(medium-default-text-style sheet) (or (medium-default-text-style medium)
+					      (and port (port-default-text-style port))
 					      *default-text-style*)))
 
 (defmethod handle-repaint ((pane pixmap-sheet) region)

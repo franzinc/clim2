@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.35 92/11/19 14:24:50 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.36 92/12/01 09:46:20 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,7 +11,7 @@
 
 ;; The abstract scroller pane class
 ;;--- Need to be able to specify horizontal and vertical separately
-(defclass scroller-pane (foreground-background-and-text-style-mixin)
+(defclass scroller-pane (foreground-background-and-text-style-mixin pane)
     ((scroll-bars :initarg :scroll-bars
 		  :reader scroller-pane-scroll-bar-policy)
      viewport
@@ -37,9 +37,12 @@
   (deallocate-event event))
 
 ;; Returns the viewport of the pane, if there is one
-(defmethod pane-viewport ((sheet basic-sheet))
+(defmethod pane-viewport ((sheet sheet))
   (let ((parent (sheet-parent sheet)))
-    (and (viewportp parent) parent)))
+    (when parent
+      (if (viewportp parent)
+	  parent
+	  (pane-viewport parent)))))
 
 (defmethod pane-viewport-region ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
@@ -267,8 +270,8 @@
 			       (bounding-rectangle-width region)))
 		     (if (= size (gadget-range sheet))
 			 0
-		       (/ (- value (gadget-min-value sheet))
-			  (- (gadget-range sheet) size)))))
+			 (/ (- value (gadget-min-value sheet))
+			    (- (gadget-range sheet) size)))))
 	    :y (bounding-rectangle-min-y region)))))))
 
 (defun update-region (sheet nleft ntop nright nbottom &key no-repaint)
@@ -857,6 +860,40 @@
       (#.+pointer-middle-button+
        (scroll-elevator-callback
 	 scroll-bar client id orientation x y)))))
+
+(defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
+  (frame-manager-display-pointer-documentation-string
+    (frame-manager pane) *pointer-documentation-output*
+    (ecase (gadget-orientation (slot-value pane 'scroll-bar))
+      (:vertical
+	"L: This line to top; M: Proportional scrolling; R: Top line to here.")
+      (:horizontal
+	"L: This column to left edge; M: Proportional scrolling; R: Left edge to here."))))
+
+(defmethod handle-event :after ((pane scroll-bar-target-pane) (event pointer-enter-event))
+  (frame-manager-display-pointer-documentation-string
+    (frame-manager pane) *pointer-documentation-output*
+    (ecase (gadget-orientation (slot-value pane 'scroll-bar))
+      (:vertical
+	(ecase (slot-value pane 'end)
+	  (:greater-than
+	    "L: Next screenful; M: Last screenful; R: previous screenful.")
+	  (:less-than
+	    "L: Next line; M: First screenful; R: Previous line.")))
+      (:horizontal
+	(ecase (slot-value pane 'end)
+	  (:greater-than
+	    "L: Next screenful; M: Last screenful; R: previous screenful.")
+	  (:less-than
+	    "L: Next column; M: First screenful; R: Previous column."))))))
+
+(defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-exit-event))
+  (frame-manager-display-pointer-documentation-string 
+    (frame-manager pane) *pointer-documentation-output* nil))
+
+(defmethod handle-event :after ((pane scroll-bar-target-pane) (event pointer-exit-event))
+  (frame-manager-display-pointer-documentation-string 
+    (frame-manager pane) *pointer-documentation-output* nil))
 
 (defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-event))
   (deallocate-event event))

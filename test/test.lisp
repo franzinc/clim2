@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.41 92/11/09 19:55:49 cer Exp $
+;; $fiHeader: test.lisp,v 1.42 92/11/19 14:25:18 cer Exp $
 
 (in-package :clim-user)
 
@@ -971,13 +971,13 @@
 	(y :a)
 	(stream *query-io*))
     (accepting-values (stream :align-prompts t :resynchronize-every-pass t)
-	(setq y (accept '(member :a :b :c)
-			:default y 
-			:active-p (< x 5)
-			:stream stream
-			:prompt "YYY"))
+      (setq y (accept '(member :a :b :c)
+		      :default y 
+		      :active-p (< x 5)
+		      :stream stream
+		      :prompt "YYY"))
       (setq x (accept '(integer 0 10)
 		      :default x 
 		      :view +slider-view+
 		      :stream stream
-		      :prompt "XXXX")))))
+ 		      :prompt "XXXX")))))

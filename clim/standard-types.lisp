@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.20 92/11/19 14:18:26 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.21 92/11/20 08:44:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -563,11 +563,10 @@
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (flet ((possibility-printer (possibility type stream)
-	   (with-output-as-presentation (stream (funcall value-key (second possibility)) type)
-	     (funcall printer 
-		      (funcall name-key (find (second possibility) sequence 
-					      :key value-key :test test))
-		      stream))))
+	   (let ((object (find (second possibility) sequence 
+			       :key value-key :test test)))
+	     (with-output-as-presentation (stream object type)
+	       (funcall printer (funcall name-key object) stream)))))
     (declare (dynamic-extent #'possibility-printer))
     (values
       (completing-from-suggestions 
@@ -745,8 +744,9 @@
 	      " "
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (flet ((possibility-printer (possibility type stream)
-	     (let ((object (find (second possibility) sequence :key value-key :test test)))
-	       (with-output-as-presentation (stream (list (funcall value-key object)) type)
+	     (let ((object (find (second possibility) sequence 
+				 :key value-key :test test)))
+	       (with-output-as-presentation (stream (list object) type)
 		 (funcall printer (funcall name-key object) stream)))))
       (declare (dynamic-extent #'possibility-printer))
       (loop
@@ -1442,7 +1442,8 @@
 (defvar *read-recursive-objects*)
 
 ;;--- Maybe this should have WRITE options
-(define-presentation-type expression ())
+(define-presentation-type expression ()
+  :options ((auto-activate nil boolean)))
 
 (define-presentation-method presentation-type-history ((type expression))
   (presentation-type-history-for-frame type *application-frame*))
@@ -1450,7 +1451,8 @@
 (define-presentation-method accept ((type expression) stream (view textual-view) &key)
   (let ((*read-recursive-objects* nil))
     (with-temporary-string (string)
-      (read-recursive stream string nil)
+      (with-activation-gestures ('(:end))
+	(read-recursive stream string nil :auto-activate auto-activate))
       (when (input-editing-stream-p stream)
 	(rescan-if-necessary stream))
       (multiple-value-bind (expression index)
@@ -1466,7 +1468,7 @@
 				(subseq string index))))
 	expression))))
 
-(define-presentation-method present (object (type expression) stream (view textual-view)
+r(define-presentation-method present (object (type expression) stream (view textual-view)
 				     &key (acceptably *print-readably*))
   (print-recursive object stream :make-presentation nil :readably acceptably))
 
@@ -1478,7 +1480,8 @@
 ;; Same as EXPRESSION except for quoting issues in some presentation translators
 ;;--- Maybe this should have WRITE options
 (define-presentation-type form ()
-  :inherit-from `expression)
+  :options ((auto-activate nil boolean))
+  :inherit-from `((expression) :auto-activate ,auto-activate))
 
 (define-presentation-method presentation-type-history ((type form))
   ;; Share history with EXPRESSION
@@ -1495,8 +1498,11 @@
 			      (#\" . #\")
 			      (#\| . #\|)))
 
+
 ;;; Ignore issues like comments for now.
-(defun read-recursive (stream input-buffer desired-delimiter)
+(defun read-recursive (stream input-buffer desired-delimiter &key auto-activate)
+  (unless auto-activate
+    (setq desired-delimiter nil))
   (loop
     (with-input-context ('expression)
 			(object type)
@@ -1526,9 +1532,11 @@
 			      (char-equal char desired-delimiter))
 			 (return))
 			((setq other-delimiter (cdr (assoc char *char-associations*)))
-			 (read-recursive stream input-buffer other-delimiter)
+			 (read-recursive stream input-buffer other-delimiter
+					 :auto-activate auto-activate)
 			 (unless desired-delimiter (return)))
-			((and (whitespace-char-p char) (not desired-delimiter))
+			((and (whitespace-char-p char) (not desired-delimiter) 
+			      auto-activate)
 			 (unread-char char stream)
 			 (return))
 			(t nil)))))

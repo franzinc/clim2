@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.18 92/11/20 08:44:29 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.19 92/12/01 09:45:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -66,6 +66,14 @@
        (unwind-protect
 	   (progn ,@body)
 	 (stream-set-cursor-position ,stream ,x ,y)))))
+
+(defmacro with-viewport-position-saved ((stream) &body body)
+  (let ((x '#:x)
+	(y '#:y))
+    `(multiple-value-bind (,x ,y) (window-viewport-position ,stream)
+       (unwind-protect
+	   (progn ,@body)
+	 (window-set-viewport-position ,stream ,x ,y)))))
 
 (defmacro with-output-recording-options 
 	  ((stream &key (draw nil draw-supplied)
@@ -335,9 +343,10 @@
   `(let ((,frame *application-frame*))
      ,@body))
 
-;;; Acitivities
 
+;;; Activities
 (defvar *activity* nil)
+
 
 ;;; Command processor variables
 (defvar *command-parser* 'command-line-command-parser)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.19 92/11/19 14:18:05 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.20 92/11/20 08:44:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -22,7 +22,6 @@
 
 ;; Noise strings and ACCEPT results
 
-
 (eval-when (compile load eval)
 (defstruct (noise-string (:constructor make-noise-string-1))
   display-string
@@ -36,9 +35,9 @@
 )	;eval-when
 
 (defvar *noise-string-style* (make-text-style nil nil :smaller))
-(defun-inline make-noise-string (&key display-string unique-id)
+(defun-inline make-noise-string (&key display-string unique-id text-style)
   (make-noise-string-1 :display-string display-string 
-		       :text-style *noise-string-style*
+		       :text-style (or text-style *noise-string-style*)
 		       :unique-id unique-id))
 
 (defvar *accept-result-style* (make-text-style nil :italic nil))
@@ -92,7 +91,7 @@
 (defmacro with-delimiter-gestures ((additional-gestures &key override)
 				   &body body &environment env)
   #-(or Genera Minima) (declare (ignore env))
-  (when (characterp additional-gestures) ;yes, we mean CHARACTERP
+  (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
   `(with-stack-list* 
        (*delimiter-gestures*

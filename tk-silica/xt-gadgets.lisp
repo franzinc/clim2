@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.24 92/10/28 13:17:44 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.25 92/11/13 14:47:19 cer Exp $
 
 (in-package :xm-silica)
 
@@ -191,6 +191,7 @@
 	       (top-level-sheet-accelerator-gestures (frame-top-level-sheet frame))))))
 
 
+
 ;; Xt-orriented-gadget
 
 (defclass xt-oriented-gadget () ())
@@ -212,4 +213,3 @@
 
 (defmethod set-widget-orientation ((gadget xt-oriented-gadget) nv)
   (tk::set-values (sheet-direct-mirror gadget) :orientation nv))
-

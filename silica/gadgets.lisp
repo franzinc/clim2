@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.40 92/11/18 15:54:32 colin Exp $
+;; $fiHeader: gadgets.lisp,v 1.41 92/11/20 08:45:47 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -8,7 +8,8 @@
 (in-package :silica)
 
 
-(defclass gadget (foreground-background-and-text-style-mixin)
+;;--- This should be BASIC-GADGET, with GADGET being a protocol class
+(defclass gadget (foreground-background-and-text-style-mixin pane)
     ((id :initarg :id :reader gadget-id :initform nil)
      (client :initarg :client :initform nil :accessor gadget-client)
      (armed-callback :initarg :armed-callback :initform nil
@@ -17,6 +18,9 @@
 			:reader gadget-disarmed-callback)
      (active :initarg :active :accessor gadget-active-p))
   (:default-initargs :active t))
+
+(defmethod gadgetp ((object t)) nil)
+(defmethod gadgetp ((object gadget)) t)
 
 ;;; Arming and disarming
 
@@ -110,6 +114,7 @@
 (defmethod activate-callback ((gadget action-gadget) (client t) (id t))
   nil)
 
+
 (defclass focus-gadget (gadget)
     ((focus-out-callback :initarg :focus-out-callback :initform nil
 			 :reader gadget-focus-out-callback)
@@ -120,7 +125,7 @@
   (let ((callback (gadget-focus-out-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
-      (call-next-method))))
+	(call-next-method))))
 
 (defmethod focus-out-callback ((gadget focus-gadget) (client t) (id t))
   nil)
@@ -129,10 +134,11 @@
   (let ((callback (gadget-focus-in-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
-      (call-next-method))))
+	(call-next-method))))
 
 (defmethod focus-in-callback ((gadget focus-gadget) (client t) (id t))
   nil)
+
 
 ;;; Basic gadgets-mixins
 
@@ -328,11 +334,11 @@
 
 
 ;;; Menu bar
-(defclass menu-bar ()
-	  ((command-table :initarg :command-table :initform nil
-			  :accessor menu-bar-command-table)
-	   (text-style :initarg :text-style :initform nil
-		       :reader menu-bar-text-style)))
+(defclass menu-bar (pane)
+    ((command-table :initarg :command-table :initform nil
+		    :accessor menu-bar-command-table)
+     (text-style :initarg :text-style :initform nil
+		 :reader menu-bar-text-style)))
 
 
 ;;; Cascade button
@@ -374,9 +380,8 @@
 (defmethod value-changed-callback :around 
 	   ((selection gadget) (client radio-box) gadget-id value)
   (declare (ignore gadget-id))
-  ;;--- The following comment is wrong. Perhaps these should be
-  ;; :BEFORE methods since the use could define a more specific around
-  ;; method only.
+  ;;--- The following comment is wrong.  Perhaps these should be :BEFORE
+  ;;--- methods since the user could define a more specific around method only.
   ;; This and the one below have to be :AROUND because if the user has
   ;; specified a callback function only :AROUNDs ever get executed.
   (when (eq value t)
@@ -433,19 +438,16 @@
 
 ;;; Text edit
 ;;--- Do we want to specify a binding to commands?
-
 (defclass text-field 
-    (value-gadget focus-gadget action-gadget) 
-    ((editable-p :initarg :editable-p :accessor
-		 gadget-editable-p))
+	  (value-gadget focus-gadget action-gadget) 
+    ((editable-p :initarg :editable-p :accessor gadget-editable-p))
   (:default-initargs :editable-p t))
 
 (defclass text-editor (text-field) 
     ((ncolumns :initarg :ncolumns
 	       :accessor gadget-columns)
      (nlines :initarg :nlines
-	     :accessor gadget-lines)
-     (editable-p :initarg :editable-p :accessor gadget-editable-p))
+	     :accessor gadget-lines))
   (:default-initargs :ncolumns 1 :nlines 1 :editable-p t))
 
 
@@ -674,6 +676,15 @@
 (defmethod handle-event ((gadget action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
+
+(defclass drag-gadget-event (gadget-event) 
+    ((value :initarg :value :reader event-value)))
+
+(defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
+  (drag-callback
+   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
+
+
 (defclass focus-out-gadget-event (gadget-event) ())
 
 (defmethod handle-event ((gadget focus-gadget) (event focus-out-gadget-event))
@@ -683,11 +694,3 @@
 
 (defmethod handle-event ((gadget focus-gadget) (event focus-in-gadget-event))
   (focus-in-callback gadget (gadget-client gadget) (gadget-id gadget)))
-
-(defclass drag-gadget-event (gadget-event) 
-    ((value :initarg :value :reader event-value)))
-
-(defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
-  (drag-callback
-   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
-

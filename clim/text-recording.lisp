@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.14 92/10/02 15:20:06 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.15 92/11/06 19:00:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -64,7 +64,7 @@
 	    (safe-slot-value object 'top)
 	    (safe-slot-value object 'bottom))))
 
-(defmethod highlight-output-record-1 ((record standard-text-output-record) stream state)
+(defmethod highlight-output-record ((record standard-text-output-record) stream state)
   ;; State is :HIGHLIGHT or :UNHIGHLIGHT
   (declare (ignore state))
   (multiple-value-bind (xoff yoff)

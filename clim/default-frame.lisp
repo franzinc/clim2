@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-frame.lisp,v 1.3 92/09/08 15:17:41 cer Exp $
+;; $fiHeader: default-frame.lisp,v 1.4 92/10/02 15:19:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -27,8 +27,6 @@
 (defmethod frame-wrapper ((framem standard-frame-manager) 
 			  (frame standard-application-frame) pane)
   (let ((menu-bar (slot-value frame 'menu-bar)))
-    (when (eq menu-bar 't)
-      (setq menu-bar (frame-command-table frame)))
     (with-look-and-feel-realization (framem frame)
       (outlining ()
 	(if menu-bar

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.40 92/11/19 14:25:26 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.41 92/11/20 08:46:41 cer Exp $
 
 (in-package :xm-silica)
 
@@ -339,7 +339,7 @@
 				 :parent parent 
 				 :managed nil
 				 :label-string (string (menu-item-display item))
-				 (append font-list options)) 
+				 (append font-list options))
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: custom-records.lisp,v 1.1 92/10/01 10:03:39 cer Exp $
+;; $fiHeader: custom-records.lisp,v 1.2 92/10/07 14:43:22 cer Exp $
 
 (in-package :clim-user)
 
@@ -194,7 +194,7 @@
   (declare (ignore x y))
   t)
 
-(defmethod highlight-output-record-1 ((datum data-point) stream state)
+(defmethod highlight-output-record ((datum data-point) stream state)
   (declare (ignore state))
   (let ((x (slot-value datum 'x))
 	(y (slot-value datum 'y))

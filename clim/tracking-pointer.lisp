@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.13 92/09/24 09:39:30 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.14 92/10/02 15:20:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -309,10 +309,11 @@
 
 ;;; Miscellaneous utilities
 
-(defun pointer-place-rubber-band-line* (&key (stream *standard-input*)
+(defun pointer-place-rubber-band-line* (&key start-x start-y
+					     (stream *standard-input*)
 					     (pointer (stream-primary-pointer stream))
 					     multiple-window)
-  (let (start-x start-y end-x end-y)
+  (let (end-x end-y)
     (tracking-pointer (stream :pointer pointer :multiple-window multiple-window)
       (:pointer-motion (window x y)
        (when (and start-x (eq window stream))
@@ -341,8 +342,7 @@
 				      (stream *standard-input*)
 				      (pointer (stream-primary-pointer stream))
 				      multiple-window)
-  (let (left top right bottom
-	(rectangle-drawn nil))
+  (let ((rectangle-drawn nil))
     (with-output-recording-options (stream :draw t :record nil)
       (tracking-pointer (stream :pointer pointer :multiple-window multiple-window)
 	(:pointer-motion (window x y)

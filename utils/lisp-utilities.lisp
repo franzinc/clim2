@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.24 92/11/19 14:25:44 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.25 92/11/20 08:47:09 cer Exp $
 
 (in-package :clim-utils)
 
@@ -830,6 +830,8 @@
 (defun canonicalize-and-match-lambda-lists (canonical-order user-specified 
 					    &optional allow-user-keys)
   (declare (values lambda-list ignores))
+  (check-type canonical-order list)
+  (check-type user-specified list)
   (let* ((new-lambda-list nil)
 	 (ignores nil)
 	 (rest-pos (or (position '&rest user-specified) (length user-specified)))
@@ -876,156 +878,6 @@
 	      (nreverse ignores)))))
 
 
-;;; The DEFINE-CLASS-MIXTURE macro is designed to allow some flexibility
-;;; in the way the programmer defines class hierarchies.  It works
-;;; pretty much the same as the Flavors :MIXTURE option to DEFFLAVOR,
-;;; except without one of the more mystifying features, namely the
-;;; ability to condition the keywords' effects on the value of other
-;;; keywords.  Here is an example of the kind of this this version
-;;; handles:
-;;; (define-class-mixture drawing-path
-;;;   (:stretch-p stretching-drawing-path-mixin)
-;;;   (:orientation
-;;;     (nil horizontal-drawing-path-mixin)
-;;;     (:diagonal "Diagonal drawing paths not yet implemented")
-;;;     (:horizontal horizontal-drawing-path-mixin)
-;;;     (:vertical vertical-drawing-path-mixin)))
-;(defmacro define-class-mixture (name &body specs)
-;  `(define-group ,name define-class-mixture
-;     ,@(define-class-mixture-compile-time name specs)))
-;#+Genera (scl:defprop define-class-mixture "Class Mixture" si:definition-type-name)
-;
-;;;; Use this to define a class-mixture and a resource at the same time.
-;;;; This defines a mixture, and a resource of them which has a matcher
-;;;; and a constructor which will do what you want, namely give you
-;;;; objects which have the right properties flavors mixed in.
-;(defmacro define-class-mixture-and-resource (name (&key initializer initial-copies)
-;					     &body specs)
-;  (let ((matcher-function-name 
-;	  (make-symbol (lisp:format nil "~A-~A" name 'matcher)))
-;	(constructor-function-name
-;	  (make-symbol (lisp:format nil "~A-~A" name 'constructor))))
-;    `(define-group ,name define-class-mixture-and-resource
-;       (define-class-mixture ,name ,@specs)
-;       (defun ,matcher-function-name (object os &rest args)
-;	 (declare (dynamic-extent args))
-;	 (declare (ignore os))			;Object-storage object from resource
-;	 (apply #'mixture-typep object ',name args))
-;       (defun ,constructor-function-name (rd &rest args)
-;	 (declare (dynamic-extent args))
-;	 (declare (ignore rd))			;resource-descriptor for resource
-;	 (apply #'make-mixture-instance ',name args))
-;       (defresource ,name (&rest args)
-;	 :constructor ,constructor-function-name
-;	 :matcher ,matcher-function-name
-;	 :initializer ,initializer
-;	 :initial-copies ,initial-copies))))
-;
-;;;; Create an instance of a class which has a mixture option.
-;(defun make-mixture-instance (mixture-name &rest args)
-;  (declare (dynamic-extent args))
-;  (apply #'make-instance
-;	 (apply (get mixture-name 'mixture-class-name) args)
-;	 args))
-;
-;(defun mixture-typep (instance mixture-name &rest args)
-;  (declare (dynamic-extent args))
-;  (typep instance (apply (get mixture-name 'mixture-class-name) args)))
-;
-;;;; The guts of DEFINE-CLASS-MIXTURE.  This creates a class-name
-;;;; function for a given mixture definition, plus all the classes you
-;;;; need to make it work.  The class names are heuristically chosen to
-;;;; be the ones the programmer would likely have chosen for the mixed
-;;;; flavors.  There is no attempt to fix problems this heuristic might
-;;;; cause, unlike Flavors.
-;
-;(defun define-class-mixture-compile-time (name specs)
-;  (let ((keywords nil)
-;	(forms nil)
-;	(classes nil)
-;	(trimmed-names nil))
-;    (labels ((compile (form) (push form forms))
-;	     (define-class (class-name component-list)
-;	       (compile `(defclass ,class-name
-;				   (,@component-list ,name)
-;			   ())))
-;	     (substring (string start &optional end)
-;	       (setf string (string string))
-;	       (subseq string start (or end (length string))))
-;	     (trim-off-name-parts (the-class-name)
-;	       (let ((pair (assoc the-class-name trimmed-names)))
-;		 (when pair (return-from trim-off-name-parts (cdr pair))))
-;	       (let* ((class-name (string the-class-name))
-;		      (sname (string name))
-;		      (nl (length sname)))
-;		 (when (and (> (length class-name) 6)
-;			    (string-equal class-name "BASIC-" :end1 6))
-;		   (setf class-name (substring class-name 6)))
-;		 (when (and (> (length class-name) 6) 
-;			    (string-equal class-name "-MIXIN"
-;					  :start1 (- (length class-name) 6)))
-;		   (setf class-name (substring class-name 0 (- (length class-name) 6))))
-;		 (when (and (> (length class-name) nl)
-;			    (string-equal class-name sname :start1 (- (length class-name) nl)))
-;		   (setf class-name (substring class-name 0 (- (length class-name) nl))))
-;		 (push (cons the-class-name class-name) trimmed-names)
-;		 class-name))
-;	     (invent-class-name (subclasses)
-;	       (when (stringp (first subclasses))
-;		 (return-from invent-class-name `(error "Can't decode mixture ~S: ~A"
-;							',name ,(first subclasses))))
-;	       (intern
-;		 (with-output-to-string (out)
-;		   (dolist (class subclasses)
-;		     (princ (trim-off-name-parts class) out))
-;		   (princ name out))))
-;	     (process-specs (specs classes-so-far)
-;	       (when (null specs)
-;		 (let ((class-name (invent-class-name classes-so-far)))
-;		   (when (symbolp class-name)
-;		     (unless (member class-name classes)
-;		       (push class-name classes)
-;		       (define-class class-name classes-so-far))
-;		     (return-from process-specs `',class-name))
-;		   (return-from process-specs class-name)))
-;	       (let* ((first-spec (first specs))
-;		      (keyword (first first-spec))
-;		      (variable-name (intern (symbol-name keyword)))
-;		      (rest (rest first-spec)))
-;		 (pushnew variable-name keywords)
-;		 (assert (consp rest) ()
-;			 "Ill-formatted mixture specification: ~S" specs)
-;		 (when (and (first rest) (symbolp (first rest)))
-;		   (assert (null (cdr rest)) ()
-;			   "A component-class mixture spec must stand alone. ~S is incorrect."
-;			   first-spec)
-;		   (return-from process-specs 
-;		     `(if ,variable-name
-;			  ,(process-specs (cdr specs) (cons (first rest) classes-so-far))
-;			  ,(process-specs (cdr specs) classes-so-far))))
-;		 (assert (and rest (listp rest)) ()
-;			 "A specification keyword must be followed by one or more values.  ~
-;			  ~S is incorrect."
-;			 first-spec)
-;		 `(case ,variable-name
-;		    ,@(mapcar #'(lambda (subspec)
-;				  `((,(first subspec))
-;				    ,(if (second subspec)
-;					 (process-specs (cdr specs)
-;							(cons (second subspec) classes-so-far))
-;					 (process-specs (cdr specs) classes-so-far))))
-;			      rest)
-;		    ,@(unless (assoc 'otherwise rest)
-;			`((otherwise (error "~S is illegal as the ~S option to mixture ~S.~%~
-;					     The legal values are ~{~S~^, ~}."
-;					    ,variable-name ,keyword ',name
-;					    ',(mapcar #'first rest)))))))))
-;      (let ((result (process-specs specs nil)))
-;	(compile `(defun-property (,name mixture-class-name)
-;				  (&key ,@keywords &allow-other-keys)
-;		    ,result))))
-;    (nreverse forms)))
-
 #+Genera
 (defmacro defun-property ((symbol indicator) lambda-list &body body)
   `(zl:::scl:defun (:property ,symbol ,indicator) ,lambda-list ,@body))
@@ -1171,7 +1023,6 @@
   (mapc #'compiler:function-defined (cdr decl)))
 
 
-
 #-(or Genera ANSI-90)
 (defmacro print-unreadable-object ((object stream &key type identity) &body body)
   `(flet ((print-unreadable-object-body () ,@body))
@@ -1506,3 +1357,159 @@
 	   ;; Still establish it as a restart, just don't handle ABORT.
 	   (with-simple-restart (nil ,format-string ,@format-args)
 	     (,name))))))
+
+
+#||
+
+;;; The DEFINE-CLASS-MIXTURE macro is designed to allow some flexibility
+;;; in the way the programmer defines class hierarchies.  It works
+;;; pretty much the same as the Flavors :MIXTURE option to DEFFLAVOR,
+;;; except without one of the more mystifying features, namely the
+;;; ability to condition the keywords' effects on the value of other
+;;; keywords.  Here is an example of the kind of this this version
+;;; handles:
+;;; (define-class-mixture drawing-path
+;;;   (:stretch-p stretching-drawing-path-mixin)
+;;;   (:orientation
+;;;     (nil horizontal-drawing-path-mixin)
+;;;     (:diagonal "Diagonal drawing paths not yet implemented")
+;;;     (:horizontal horizontal-drawing-path-mixin)
+;;;     (:vertical vertical-drawing-path-mixin)))
+(defmacro define-class-mixture (name &body specs)
+  `(define-group ,name define-class-mixture
+     ,@(define-class-mixture-compile-time name specs)))
+#+Genera (scl:defprop define-class-mixture "Class Mixture" si:definition-type-name)
+
+;;; Use this to define a class-mixture and a resource at the same time.
+;;; This defines a mixture, and a resource of them which has a matcher
+;;; and a constructor which will do what you want, namely give you
+;;; objects which have the right properties flavors mixed in.
+(defmacro define-class-mixture-and-resource (name (&key initializer initial-copies)
+					     &body specs)
+  (let ((matcher-function-name 
+	  (make-symbol (lisp:format nil "~A-~A" name 'matcher)))
+	(constructor-function-name
+	  (make-symbol (lisp:format nil "~A-~A" name 'constructor))))
+    `(define-group ,name define-class-mixture-and-resource
+       (define-class-mixture ,name ,@specs)
+       (defun ,matcher-function-name (object os &rest args)
+	 (declare (dynamic-extent args))
+	 (declare (ignore os))			;Object-storage object from resource
+	 (apply #'mixture-typep object ',name args))
+       (defun ,constructor-function-name (rd &rest args)
+	 (declare (dynamic-extent args))
+	 (declare (ignore rd))			;resource-descriptor for resource
+	 (apply #'make-mixture-instance ',name args))
+       (defresource ,name (&rest args)
+	 :constructor ,constructor-function-name
+	 :matcher ,matcher-function-name
+	 :initializer ,initializer
+	 :initial-copies ,initial-copies))))
+
+;;; Create an instance of a class which has a mixture option.
+(defun make-mixture-instance (mixture-name &rest args)
+  (declare (dynamic-extent args))
+  (apply #'make-instance
+	 (apply (get mixture-name 'mixture-class-name) args)
+	 args))
+
+(defun mixture-typep (instance mixture-name &rest args)
+  (declare (dynamic-extent args))
+  (typep instance (apply (get mixture-name 'mixture-class-name) args)))
+
+;;; The guts of DEFINE-CLASS-MIXTURE.  This creates a class-name
+;;; function for a given mixture definition, plus all the classes you
+;;; need to make it work.  The class names are heuristically chosen to
+;;; be the ones the programmer would likely have chosen for the mixed
+;;; flavors.  There is no attempt to fix problems this heuristic might
+;;; cause, unlike Flavors.
+
+(defun define-class-mixture-compile-time (name specs)
+  (let ((keywords nil)
+	(forms nil)
+	(classes nil)
+	(trimmed-names nil))
+    (labels ((compile (form) (push form forms))
+	     (define-class (class-name component-list)
+	       (compile `(defclass ,class-name
+				   (,@component-list ,name)
+			   ())))
+	     (substring (string start &optional end)
+	       (setf string (string string))
+	       (subseq string start (or end (length string))))
+	     (trim-off-name-parts (the-class-name)
+	       (let ((pair (assoc the-class-name trimmed-names)))
+		 (when pair (return-from trim-off-name-parts (cdr pair))))
+	       (let* ((class-name (string the-class-name))
+		      (sname (string name))
+		      (nl (length sname)))
+		 (when (and (> (length class-name) 6)
+			    (string-equal class-name "BASIC-" :end1 6))
+		   (setf class-name (substring class-name 6)))
+		 (when (and (> (length class-name) 6) 
+			    (string-equal class-name "-MIXIN"
+					  :start1 (- (length class-name) 6)))
+		   (setf class-name (substring class-name 0 (- (length class-name) 6))))
+		 (when (and (> (length class-name) nl)
+			    (string-equal class-name sname :start1 (- (length class-name) nl)))
+		   (setf class-name (substring class-name 0 (- (length class-name) nl))))
+		 (push (cons the-class-name class-name) trimmed-names)
+		 class-name))
+	     (invent-class-name (subclasses)
+	       (when (stringp (first subclasses))
+		 (return-from invent-class-name `(error "Can't decode mixture ~S: ~A"
+							',name ,(first subclasses))))
+	       (intern
+		 (with-output-to-string (out)
+		   (dolist (class subclasses)
+		     (princ (trim-off-name-parts class) out))
+		   (princ name out))))
+	     (process-specs (specs classes-so-far)
+	       (when (null specs)
+		 (let ((class-name (invent-class-name classes-so-far)))
+		   (when (symbolp class-name)
+		     (unless (member class-name classes)
+		       (push class-name classes)
+		       (define-class class-name classes-so-far))
+		     (return-from process-specs `',class-name))
+		   (return-from process-specs class-name)))
+	       (let* ((first-spec (first specs))
+		      (keyword (first first-spec))
+		      (variable-name (intern (symbol-name keyword)))
+		      (rest (rest first-spec)))
+		 (pushnew variable-name keywords)
+		 (assert (consp rest) ()
+			 "Ill-formatted mixture specification: ~S" specs)
+		 (when (and (first rest) (symbolp (first rest)))
+		   (assert (null (cdr rest)) ()
+			   "A component-class mixture spec must stand alone. ~S is incorrect."
+			   first-spec)
+		   (return-from process-specs 
+		     `(if ,variable-name
+			  ,(process-specs (cdr specs) (cons (first rest) classes-so-far))
+			  ,(process-specs (cdr specs) classes-so-far))))
+		 (assert (and rest (listp rest)) ()
+			 "A specification keyword must be followed by one or more values.  ~
+			  ~S is incorrect."
+			 first-spec)
+		 `(case ,variable-name
+		    ,@(mapcar #'(lambda (subspec)
+				  `((,(first subspec))
+				    ,(if (second subspec)
+					 (process-specs (cdr specs)
+							(cons (second subspec) classes-so-far))
+					 (process-specs (cdr specs) classes-so-far))))
+			      rest)
+		    ,@(unless (assoc 'otherwise rest)
+			`((otherwise (error "~S is illegal as the ~S option to mixture ~S.~%~
+					     The legal values are ~{~S~^, ~}."
+					    ,variable-name ,keyword ',name
+					    ',(mapcar #'first rest)))))))))
+      (let ((result (process-specs specs nil)))
+	(compile `(defun-property (,name mixture-class-name)
+				  (&key ,@keywords &allow-other-keys)
+		    ,result))))
+    (nreverse forms)))
+
+||#
+

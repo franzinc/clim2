@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.28 92/11/20 08:44:47 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.29 92/12/01 09:45:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -100,7 +100,6 @@
 
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (stream output-protocol-mixin))
-  (declare (ignore port))
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
@@ -116,7 +115,7 @@
 	  silica::default-text-style
 	    (parse-text-style (or (medium-default-text-style stream)
 				  (setf (slot-value stream 'default-text-style)
-					*default-text-style*)))
+					(port-default-text-style port))))
 	  silica::text-style 
 	    (parse-text-style silica::default-text-style)
 	  silica::merged-text-style-valid nil)))
@@ -392,14 +391,14 @@
 		 ;; Special case so that we don't lozenge this.  It is up to
 		 ;; the caller to have established the correct text style.
 		 #+CCL-2 (eql character #\CommandMark))
-	     (let ((medium (sheet-medium stream))
-		   (ink (medium-ink stream)))
+	     (let ((medium (sheet-medium stream)))
 	       (dotimes (i 2)
 		 (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height
 				       font index)
 		     (stream-scan-character-for-writing 
 		       stream medium character style cursor-x max-x)
 		   (declare (type coordinate new-cursor-x new-baseline new-height))
+		   (declare (ignore index font))
 		   (when no-wrap
 		     (when record-p
 		       (stream-add-character-output
@@ -459,7 +458,8 @@
 (defmethod stream-draw-lozenged-character ((stream output-protocol-mixin) character
 					   cursor-x cursor-y baseline height style
 					   max-x record-p draw-p)
-  (let ((text-style (merge-text-styles '(nil nil :very-small) *default-text-style*))
+  (let ((text-style (merge-text-styles '(nil nil :very-small) 
+				       (port-default-text-style (port stream))))
 	(ink (medium-ink stream))
 	(name (char-name character)))
     (setq name (if name
@@ -540,8 +540,7 @@
     (declare (type coordinate cursor-x cursor-y baseline height max-x))
     (unless (or draw-p record-p)
       (return-from stream-write-string string))	;No deeds to do
-    (let* ((medium (sheet-medium stream))
-	   (ink (medium-ink stream)))
+    (let* ((medium (sheet-medium stream)))
       (with-cursor-state (stream nil)
 	(loop
 	  (multiple-value-bind (write-char next-char-index
@@ -549,6 +548,7 @@
 	      (stream-scan-string-for-writing 
 		stream medium string start end style cursor-x max-x glyph-buffer)
 	    (declare (type coordinate new-cursor-x new-baseline new-height))
+	    (declare (ignore font))
 	    (when record-p
 	      (stream-add-string-output
 		stream string start next-char-index style

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.13 92/10/02 15:18:07 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.14 92/12/01 09:46:17 cer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -82,7 +82,8 @@
 
 (defclass label-pane 
 	  (foreground-background-and-text-style-mixin
-	   labelled-gadget-mixin)
+	   labelled-gadget-mixin
+	   pane)
     ()
   (:default-initargs :align-x :left
 		     ;; Supplying a text style here defeats the resource
@@ -90,17 +91,26 @@
 		     :text-style nil))
 
 (defmacro labelling ((&rest options 
-		       &key (label-alignment #+Genera :bottom #-Genera :top) 
-		       &allow-other-keys) 
-		      &body contents)
-   (setq options (remove-keywords options '(:label-alignment)))
-   `(ecase label-alignment
-      (:bottom
-	(vertically () 
-	  ,@contents (make-pane 'label-pane ,@options)))
-      (:top
-	(vertically ()
-	    (make-pane 'label-pane ,@options) ,@contents))))
+		      &key (label-alignment #+Genera :bottom #-Genera :top) 
+		      &allow-other-keys) 
+		     &body contents &environment env)
+  #-(or Genera Minima) (declare (ignore env))
+  (setq options (remove-keywords options '(:label-alignment)))
+  (let ((lvar '#:label)
+	(cvar '#:contents))
+    `(let ((,lvar (make-pane 'label-pane ,@options))
+	   (,cvar (progn ,@contents)))
+       ,(if (constantp label-alignment #+(or Genera Minima) env)
+	    (ecase (eval label-alignment #+(or Genera Minima-Developer) env)
+	      (:bottom
+		`(vertically () ,cvar ,lvar))
+	      (:top
+		`(vertically () ,lvar ,cvar)))
+	    `(ecase ,label-alignment
+	       (:bottom
+		 (vertically () ,cvar ,lvar))
+	       (:top
+		 (vertically () ,lvar ,cvar)))))))
 
 (defclass generic-label-pane 
 	  (label-pane
@@ -127,5 +137,5 @@
 
 ;;; Separator panes
 
-(defclass separator (oriented-gadget-mixin) ())
+(defclass separator (oriented-gadget-mixin pane) ())
 

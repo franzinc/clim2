@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.12 92/09/24 09:38:12 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.13 92/10/02 15:19:03 cer Exp $
 
 (in-package :clx-clim)
 
@@ -201,6 +201,7 @@
 			      #b1111111111111101
 			      #b1111011111111111
 			      #b1111111111011111)))
+		  (1.0 (1 1 (#b0)))
 		  (+everywhere+ (1 1 (#b1))))))
 		
 ;; The xlib:image objects are created at load time to save run time & space.
@@ -327,6 +328,10 @@
 (defmethod clx-decode-ink ((ink contrasting-ink) medium)
   (clx-decode-ink (make-color-for-contrasting-ink ink) medium))
 
+(defmethod clx-decode-ink ((ink standard-opacity) medium)
+  (declare (ignore medium))
+  (clx-decode-opacity ink))
+
 (defmethod clx-decode-ink ((ink rectangular-tile) medium)
   (with-slots (ink-table) medium
     (or (gethash ink ink-table)
@@ -339,15 +344,30 @@
 
 (defmethod clx-decode-ink ((ink stencil) medium)
   (declare (ignore medium))
-  (error "Stencils and opacities are not supported in this CLIM implementation"))
+  (error "Stencils are not supported in this CLIM implementation"))
 
 (defmethod clx-decode-ink ((ink composite-in) medium)
-  (declare (ignore medium))
-  (error "Compositing is not supported in this CLIM implementation"))
+  (let* ((designs (slot-value ink 'clim-utils::designs)))
+    (when (= (length designs) 2)
+      (let ((color (let ((ink (aref designs 0)))
+		     (cond ((eq ink +foreground-ink+) (medium-foreground medium))
+			   ((eq ink +background-ink+) (medium-background medium))
+			   ((eq ink +everywhere+) (medium-foreground medium))
+			   (t ink))))
+	    (opacity (aref designs 1)))
+	(when (and (colorp color)
+		   (opacityp opacity))
+	  (return-from clx-decode-ink
+	    ;;--- Use the alpha channel if the hardware supports it
+	    (clx-decode-ink (make-pattern (xlib:image-z-pixarray	;yoiks!
+					    (clx-decode-opacity opacity))
+					  (list +transparent-ink+ color))
+			    medium))))))
+  (error "This type of compositing is not supported in this CLIM implementation"))
 
 (defmethod clx-decode-ink ((ink composite-out) medium)
   (declare (ignore medium))
-  (error "Compositing is not supported in this CLIM implementation"))
+  (error "This type of compositing is not supported in this CLIM implementation"))
 
 (defmethod clx-decode-pattern ((ink design) medium &optional width height tiled-p)
   (declare (ignore medium width height tiled-p))
@@ -672,7 +692,7 @@
 	 (length (length position-seq)))
     ;; These really are fixnums, since we're fixing coordinates below
     (declare (type fixnum minx miny))
-    (with-stack-array (points (if (and closed line-style) (+ length 2) length))
+    (with-stack-array (points (if (and closed (not filled)) (+ length 2) length))
       (declare (type simple-vector points))
       (replace points position-seq)		;set up the initial contents
       (do ((i 0 (+ i 2)))
@@ -684,7 +704,7 @@
 	  (setf (svref points (1+ i)) y)
 	  (minf minx x)
 	  (minf miny y)))
-      (when (and closed line-style)		;kludge
+      (when (and closed (not filled))		;kludge
 	(setf (svref points length) (svref points 0))
 	(setf (svref points (+ length 1)) (svref points 1)))
       (xlib:draw-lines drawable 

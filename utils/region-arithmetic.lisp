@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.9 92/11/06 19:05:17 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.10 92/11/20 08:47:20 cer Exp $
 
 (in-package :clim-utils)
 
@@ -222,10 +222,9 @@
     (when (ltrb-well-formed-p left top right bottom)
       (values t left top right bottom))))
 
-;; Returns a list of bounding rectangles.
-;;--- I don't think this is completely right...
+;; Returns a list of bounding rectangles that represent the union
 (defun ltrb-union (left1 top1 right1 bottom1
-		   left2 top2 right2 bottom2)
+		   left2 top2 right2 bottom2 &optional (banding :x-banding))
   (declare (type coordinate left1 top1 right1 bottom1
 		 	    left2 top2 right2 bottom2)
 	   (values rectangles))
@@ -240,22 +239,43 @@
 	 (list (make-bounding-rectangle-1 left1 top1 right1 bottom1)
 	       (make-bounding-rectangle-1 left2 top2 right2 bottom2)))
 	(t
-	 (let ((result nil))
-	   (when (< top1 top2)
-	     (push (make-bounding-rectangle-1 left1 top1 right1 top2) result))
-	   (when (> bottom2 bottom1)
-	     (push (make-bounding-rectangle-1 left2 bottom2 right2 bottom1) result))
-	   (when (< left1 left2)
-	     (push (make-bounding-rectangle-1 left1 (max top1 top2)
-					      right2 (min bottom1 bottom2))
-		   result))
-	   (when (> right1 right2)
-	     (push (make-bounding-rectangle-1 left2 (max top1 top2)
-					      right1 (min bottom1 bottom2))
-		   result))
-	   result))))
+	 (ecase banding
+	   (:x-banding
+	     (let ((result nil))
+	       (when (< top1 top2)
+		 (push (make-bounding-rectangle left1 top1 right1 top2) result))
+	       (when (> bottom2 bottom1)
+		 (push (make-bounding-rectangle left2 bottom2 right2 bottom1) result))
+	       (when (< left1 left2)
+		 (let ((top (max top1 top2))
+		       (bottom (min bottom1 bottom2)))
+		   (when (> bottom top)
+		     (push (make-bounding-rectangle left1 top right2 bottom) result))))
+	       (when (> right1 right2)
+		 (let ((top (min bottom1 bottom2))
+		       (bottom (max top1 top2)))
+		   (when (> bottom top)
+		     (push (make-bounding-rectangle left2 top right1 bottom) result))))
+	       result))
+	   (:y-banding
+	     (let ((result nil))
+	       (when (< left1 left2)
+		 (push (make-bounding-rectangle left1 top1 left2 bottom1) result))
+	       (when (> right2 right1)
+		 (push (make-bounding-rectangle right1 top2 right2 bottom2) result))
+	       (when (< top1 top2)
+		 (let ((left (max left1 left2))
+		       (right (min right1 right2)))
+		   (when (> right left)
+		     (push (make-bounding-rectangle left top1 right bottom2) result))))
+	       (when (> bottom1 bottom2)
+		 (let ((left (min right1 right2))
+		       (right (max left1 left2)))
+		   (when (> right left)
+		     (push (make-bounding-rectangle left top2 right bottom1) result))))
+	       result))))))
 
-;; Returns a single bounding rectangle, or NIL.
+;; Returns a single bounding rectangle that represents the intersection, or NIL.
 (defun ltrb-intersection (left1 top1 right1 bottom1
 			  left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
@@ -267,7 +287,7 @@
     (when valid-p
       (make-bounding-rectangle-1 left top right bottom))))
 
-;; Returns a list of bounding rectangles, or NIL.
+;; Returns a list of bounding rectangles that represent the difference, or NIL.
 ;; Diagrams of rectangle differences:
 ;;
 ;;     111111111111111111
@@ -314,17 +334,19 @@
         ;; If the second ltrb contains the first ltrb, the difference is NIL.
         (let ((result nil))
 	  (when (< top1 top2)			;Area A above
-	    (push (make-bounding-rectangle-1 left1 top1 right1 top2) result))
+	    (push (make-bounding-rectangle left1 top1 right1 top2) result))
 	  (when (> bottom1 bottom2)		;Area B above
-	    (push (make-bounding-rectangle-1 left1 bottom2 right1 bottom1) result))
+	    (push (make-bounding-rectangle left1 bottom2 right1 bottom1) result))
 	  (when (< left1 left2)			;Area C above
-	    (push (make-bounding-rectangle-1 left1 (max top1 top2)
-					     left2 (min bottom1 bottom2))
-		  result))
+	    (let ((top (max top1 top2))
+		  (bottom (min bottom1 bottom2)))
+	      (when (> bottom top)
+		(push (make-bounding-rectangle left1 top left2 bottom) result))))
 	  (when (> right1 right2)		;Area D above
-	    (push (make-bounding-rectangle-1 right2 (max top1 top2)
-					     right1 (min bottom1 bottom2))
-		  result))
+	    (let ((top (max top1 top2))
+		  (bottom (min bottom1 bottom2)))
+	      (when (> bottom top)
+		(push (make-bounding-rectangle right2 top right1 bottom) result))))
 	  result))))
 
 
@@ -380,15 +402,15 @@
 (defmethod slot-unbound
 	   (class (region standard-rectangle-set) (slot (eql 'x-banded-rectangles)))
   (declare (ignore class))
-  (with-slots (rectangles x-banded-rectangles) region
-    (setq x-banded-rectangles (normalize-rectangles rectangles :x-banding))
+  (with-slots (x-banded-rectangles) region
+    (setq x-banded-rectangles (normalize-rectangles region :x-banding))
     x-banded-rectangles))
 
 (defmethod slot-unbound
 	   (class (region standard-rectangle-set) (slot (eql 'y-banded-rectangles)))
   (declare (ignore class))
-  (with-slots (rectangles y-banded-rectangles) region
-    (setq y-banded-rectangles (normalize-rectangles rectangles :y-banding))
+  (with-slots (y-banded-rectangles) region
+    (setq y-banded-rectangles (normalize-rectangles region :y-banding))
     y-banded-rectangles))
 
 (defmethod region-union ((rect1 standard-bounding-rectangle)
@@ -421,13 +443,13 @@
 						     (set standard-rectangle-set))
   (let ((new-rectangles nil))
     (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect
-      (flet ((intersect (rectangle)
+      (flet ((do-intersection (rectangle)
 	       (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
 		 (let ((new (ltrb-intersection left1 top1 right1 bottom1
 					       left2 top2 right2 bottom2)))
 		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'intersect))
-	(map-over-region-set-regions #'intersect set))
+	(declare (dynamic-extent #'do-intersection))
+	(map-over-region-set-regions #'do-intersection set))
       (if new-rectangles
 	  (apply #'make-rectangle-set new-rectangles)
 	  +nowhere+))))
@@ -465,13 +487,13 @@
 			      (set standard-rectangle-set))
   (let ((new-rectangles nil))
     (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect
-      (flet ((difference (rectangle)
+      (flet ((do-difference (rectangle)
 	       (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
 		 (let ((new (ltrb-difference left1 top1 right1 bottom1
 					     left2 top2 right2 bottom2)))
 		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'difference))
-	(map-over-region-set-regions #'difference set))
+	(declare (dynamic-extent #'do-difference))
+	(map-over-region-set-regions #'do-difference set))
       (if new-rectangles
 	  (apply #'make-rectangle-set new-rectangles)
 	  +nowhere+))))
@@ -480,13 +502,13 @@
 			      (rect standard-bounding-rectangle))
   (let ((new-rectangles nil))
     (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect
-      (flet ((difference (rectangle)
+      (flet ((do-difference (rectangle)
 	       (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rectangle
 		 (let ((new (ltrb-difference left1 top1 right1 bottom1
 					     left2 top2 right2 bottom2)))
 		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'difference))
-	(map-over-region-set-regions #'difference set))
+	(declare (dynamic-extent #'do-difference))
+	(map-over-region-set-regions #'do-difference set))
       (if new-rectangles
 	  (apply #'make-rectangle-set new-rectangles)
 	  +nowhere+))))
@@ -518,7 +540,6 @@
   (every #'region-empty-p (rectangle-set-rectangles set)))
 
 (defmethod normalize-rectangles ((set standard-rectangle-set) banding)
-  (unless (eq banding :x-banding) (nyi))
   (labels ((collect-rectangles (region)
 	     (etypecase region
 	       (standard-rectangle-set
@@ -559,5 +580,6 @@
 		   ;; Don't use REGION-UNION, because we are only prepared
 		   ;; to deal with bounding rectangles
 		   (ltrb-union left1 top1 right1 bottom1
-			       left2 top2 right2 bottom2))))))
+			       left2 top2 right2 bottom2 
+			       banding))))))
     (reduce-rectangles (collect-rectangles set) nil)))

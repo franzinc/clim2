@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.18 92/10/02 15:19:53 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.19 92/11/20 08:44:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -84,7 +84,7 @@
   (and (eql (presentation-object record) object)
        (eq (presentation-type record) type)))
 
-(defmethod highlight-output-record-1 ((record output-record-element-mixin) stream state)
+(defmethod highlight-output-record ((record output-record-element-mixin) stream state)
   ;; State is :HIGHLIGHT or :UNHIGHLIGHT
   (declare (ignore state))
   (multiple-value-bind (xoff yoff)
@@ -100,7 +100,7 @@
 			       (1- left) (1- top) right bottom
 			       +flipping-ink+ +highlighting-line-style+))))
 
-(defmethod highlight-output-record-1 :around ((record standard-presentation) stream state)
+(defmethod highlight-output-record :around ((record standard-presentation) stream state)
   (let ((single-box (presentation-single-box record)))
     (if (or (eq single-box t) 
 	    (eq single-box :highlighting))
@@ -111,7 +111,7 @@
 		 (when (displayed-output-record-p child)
 		   (if (eq record child)
 		       (call-next-method)	;avoid infinite recursion
-		       (highlight-output-record-1 child stream state)))
+		       (highlight-output-record child stream state)))
 		 (multiple-value-bind (xoff yoff) (output-record-position child)
 		   (declare (type coordinate xoff yoff))
 		   (map-over-output-records
@@ -120,12 +120,6 @@
 	(declare (dynamic-extent #'highlight))
 	(highlight record (coordinate 0) (coordinate 0))))))
 
-(defun highlight-output-record (stream record state &optional presentation-type)
-  (unless (eq record *null-presentation*)
-    (unless presentation-type
-      (when (presentationp record)
-	(setq presentation-type (presentation-type record))))
-    (highlight-presentation record presentation-type stream state)))
 
 (define-presentation-type blank-area ())
 
@@ -139,6 +133,7 @@
 		:object nil :type 'blank-area :single-box nil)))
 	(setf (presentation-object null-presentation) null-presentation)
 	null-presentation))
+
 
 (defun window-cohorts-p (window-one window-two)
   ;; The best test for whether or not two windows care about each
@@ -162,40 +157,44 @@
 
 (defun invoke-with-input-context (type override body-continuation context-continuation)
   (declare (dynamic-extent body-continuation context-continuation))
- (with-presentation-type-decoded (type-name type-parameters TYPE-OPTIONS) type
-   (LET ((TYPE `((,TYPE-NAME ,@TYPE-PARAMETERS) ,@TYPE-OPTIONS)))
-      (with-stack-list (this-tag 'catch-tag type)	;unique
-	(with-stack-list (this-context type this-tag)
-	  (let ((pwindow nil)
-		(px 0)
-		(py 0)
-		(old-state 0))
-	    (flet ((pointer-motion-pending (stream)
-		     (let ((moved-p nil))
-		       (multiple-value-setq (moved-p pwindow px py)
-			 (pointer-state-changed (stream-primary-pointer stream)
-						pwindow px py))
-		       (or 
-			 (and moved-p
-			      pwindow
-			      (window-cohorts-p stream pwindow))
-			 ;; This is more like the pointer moving than anything else.
-			 (/= old-state
-			     (setf old-state (window-modifier-state stream)))))))
-	      (declare (dynamic-extent #'pointer-motion-pending))
-	      (let ((*input-wait-handler* #'highlight-presentation-of-context-type)
-		    (*input-wait-test* #'pointer-motion-pending)
-		    (*pointer-button-press-handler* #'input-context-button-press-handler))
-		;; Push the new context.  Most specific context is at the beginning
-		;; of *INPUT-CONTEXT*
-		(with-stack-list* (*input-context*
-				    this-context (unless override *input-context*))
-		  (block with-input-context
-		    (multiple-value-bind (object ptype event options)
-			(catch this-tag
-			  (return-from invoke-with-input-context
-			    (funcall body-continuation)))
-		      (funcall context-continuation object ptype event options))))))))))))
+  ;; At one time, this used to canonicalize the presentation type by
+  ;; calling WITH-PRESENTATION-TYPE-DECODED and then consing just the
+  ;; type name and parameters.  That turns out not to be necessary any
+  ;; more since everyplace else in CLIM is careful to decode the type.
+  ;; Furthermore, it is necessary to include the type options in the
+  ;; input context in case the options are needed to correctly present
+  ;; an object using the context type as the presentation type.
+  (with-stack-list (this-tag '#:context-tag type)	;guaranteed to be unique
+    (with-stack-list (this-context type this-tag)
+      (let ((pwindow nil)
+	    (px 0)
+	    (py 0)
+	    (old-state 0))
+	(flet ((pointer-motion-pending (stream)
+		 (let ((moved-p nil))
+		   (multiple-value-setq (moved-p pwindow px py)
+		     (pointer-state-changed (stream-primary-pointer stream)
+					    pwindow px py))
+		   (or 
+		     (and moved-p
+			  pwindow
+			  (window-cohorts-p stream pwindow))
+		     ;; This is more like the pointer moving than anything else.
+		     (/= old-state
+			 (setf old-state (window-modifier-state stream)))))))
+	  (declare (dynamic-extent #'pointer-motion-pending))
+	  (let ((*input-wait-handler* #'highlight-presentation-of-context-type)
+		(*input-wait-test* #'pointer-motion-pending)
+		(*pointer-button-press-handler* #'input-context-button-press-handler))
+	    ;; Push the new context.  The most specific context is at the
+	    ;; beginning of *INPUT-CONTEXT, the least specific is at the end.
+	    (with-stack-list* (*input-context* this-context (unless override *input-context*))
+	      (block with-input-context
+		(multiple-value-bind (object ptype event options)
+		    (catch this-tag
+		      (return-from invoke-with-input-context
+			(funcall body-continuation)))
+		  (funcall context-continuation object ptype event options))))))))))
 
 ;; Given a presentation, return the next ancestor presentation that
 ;; has exactly the same bounding box.
@@ -401,8 +400,9 @@
 		  ((null presentation)
 		   ;; Over nothing now, was over something before.
 		   ;; Unhighlight.
-		   (highlight-output-record 
-		     history-window highlighted-presentation :unhighlight)
+		   (highlight-presentation 
+		     highlighted-presentation (presentation-type highlighted-presentation)
+		     history-window :unhighlight)
 		   (setf highlighted-presentation nil)
 		   (frame-document-highlighted-presentation
 		     frame highlighted-presentation
@@ -420,9 +420,12 @@
 		  (t
 		   ;; Over something now, might have been over something before
 		   (when highlighted-presentation
-		     (highlight-output-record 
-		       history-window highlighted-presentation :unhighlight))
-		   (highlight-output-record history-window presentation :highlight)
+		     (highlight-presentation 
+		       highlighted-presentation (presentation-type highlighted-presentation)
+		       history-window :unhighlight))
+		   (highlight-presentation 
+		     presentation (presentation-type presentation)
+		     history-window :highlight)
 		   (setf highlighted-presentation presentation)
 		   (frame-document-highlighted-presentation
 		     frame presentation
@@ -444,18 +447,23 @@
 	      (t
 	       (when highlighted-presentation
 		 ;; Unhighlight old presentation
-		 (highlight-output-record 
-		   history-window highlighted-presentation :unhighlight))
+		 (highlight-presentation 
+		   highlighted-presentation (presentation-type highlighted-presentation)
+		   history-window :unhighlight))
 	       (setf highlighted-presentation presentation)
 	       (when presentation
-		 (highlight-output-record history-window presentation :highlight))))))))
+		 (highlight-presentation 
+		   presentation (presentation-type presentation)
+		   history-window :highlight))))))))
 
 (defun unhighlight-highlighted-presentation (stream &optional (prefer-pointer-window t))
   (let ((history-window (if prefer-pointer-window (find-appropriate-window stream) stream)))
     (when history-window
       (with-slots (highlighted-presentation) history-window
 	(when highlighted-presentation
-	  (highlight-output-record history-window highlighted-presentation :unhighlight)
+	  (highlight-presentation 
+	    highlighted-presentation (presentation-type highlighted-presentation)
+	    history-window :unhighlight)
 	  (setf highlighted-presentation nil))))))
 
 (defun find-appropriate-window (stream)

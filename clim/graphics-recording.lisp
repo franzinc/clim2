@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.17 92/11/20 08:44:38 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.18 92/12/01 09:45:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -192,7 +192,7 @@
 	       (multiple-value-bind (doc-string declarations body)
 		   (extract-declarations body env)
 		 (declare (ignore doc-string))
-		 `((defmethod highlight-output-record-1 ((record ,class) ,@args)
+		 `((defmethod highlight-output-record ((record ,class) ,@args)
 		     ,@declarations
 		     #+Genera (declare (sys:function-parent ,name define-graphics-recording))
 		     (block highlighting-function
@@ -510,6 +510,12 @@
 		 +flipping-ink+ +highlighting-line-style+))))))))
 
 
+(define-graphics-recording draw-bezier-curve (ink line-style clipping-region)
+  :bounding-rectangle
+    (position-sequence-bounding-rectangle 
+      position-seq line-style))
+
+
 (define-graphics-recording draw-text (ink text-style clipping-region)
   :bounding-rectangle
     (medium-text-bounding-box medium string-or-char x y
@@ -552,10 +558,3 @@
 		     vb (+ y (ceiling height 2)))))
     (values (coordinate vx) (coordinate vt) 
 	    (coordinate vr) (coordinate vb))))
-
-
-
-(define-graphics-recording draw-bezier-polygon (ink line-style clipping-region)
-  :bounding-rectangle
-    (position-sequence-bounding-rectangle 
-     position-seq line-style))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.20 92/10/28 11:31:47 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.21 92/11/06 19:00:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -881,7 +881,8 @@
 	     (noise-string 
 	       (make-noise-string
 		 :display-string string
-		 :unique-id string)))
+		 :unique-id string
+		 :text-style (medium-text-style istream))))
 	(vector-push-extend noise-string input-buffer)
 	(incf scan-pointer)
 	(incf insertion-pointer)

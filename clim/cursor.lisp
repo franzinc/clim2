@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.19 92/10/02 15:19:18 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.20 92/11/20 08:44:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -217,17 +217,16 @@
 (defmethod port-draw-cursor
 	   ((port basic-port) (cursor standard-text-cursor) stream x y on-p
 	    &optional (focus nil focus-p))
+  #---ignore (declare (ignore on-p))
   ;;--- protocol violations:  output recording protocol (with-output-recording-options)
   ;;---                       graphics protocol (draw-rectangle*)
   ;;---                       output protocol (stream-line-height)
-  #---ignore (declare (ignore on-p))
   (let ((height (stream-line-height stream))
 	(width (slot-value cursor 'width)))
     (unless focus-p (setq focus (cursor-focus cursor)))
     (with-output-recording-options (stream :record nil)
       (draw-rectangle* stream x y (+ x width) (+ y height)
 		       :filled focus
-
 		       :ink #+++ignore (if on-p +foreground-ink+ +background-ink+)
 			    #---ignore +flipping-ink+))
     (force-output stream)))

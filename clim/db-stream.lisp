@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.37 92/11/19 14:17:21 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.38 92/12/01 09:45:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -314,11 +314,11 @@
 (defmacro make-clim-stream-pane (&rest options
 				 &key (type ''clim-stream-pane) 
 				      label (label-alignment #+Genera :bottom #-Genera :top)
-				      (scroll-bars ':vertical)
+				      (scroll-bars ':vertical) (borders t)
 				      (display-after-commands nil dac-p)
 				 &allow-other-keys)
-  (setq options (remove-keywords options '(:type :label :label-alignment
-					   :scroll-bars :display-after-commands)))
+  (setq options (remove-keywords options '(:type :scroll-bars :borders :label
+					   :label-alignment :display-after-commands)))
   (macrolet ((setf-unless (slot-keyword value)
 	       `(when (eq (getf options ',slot-keyword #1='#:default) #1#)
 		  (setf (getf options ',slot-keyword) ,value))))
@@ -354,15 +354,15 @@
 	    (setq pane `(vertically () ,pane ,label)))
 	  (:top
 	    (setq pane `(vertically () ,label ,pane))))))
+    (when borders 
+      (setq pane (outlining (:thickness 1)
+		   #+allegro
+		   ,pane
+		   #-allegro
+		   (spacing (:thickness 1)
+		     ,pane))))
     `(let (,stream)
-       (values 
-	(outlining (:thickness 1)
-   	   #+allegro
-	   ,pane
-	   #-allegro
-	   (spacing (:thickness 1)
-	     ,pane))
-	 ,stream))))
+       (values ,pane ,stream))))
 
 (defmacro make-clim-interactor-pane (&rest options)
   `(make-clim-stream-pane :type 'interactor-pane ,@options))
@@ -404,7 +404,6 @@
       ;; anything gets drawn on the same stream.
       (force-output stream))))
 
-;;; Basically a hook for other mixins.
 (defmethod window-refresh ((stream clim-stream-sheet))
   (window-erase-viewport stream))
 
@@ -412,6 +411,10 @@
   (frame-replay *application-frame* stream)
   (let ((text-record (stream-text-output-record stream)))
     (when text-record (replay text-record stream))))
+
+(defmethod window-refresh :around ((stream clim-stream-sheet))
+  (with-viewport-position-saved (stream)
+    (call-next-method)))
 
 (defmethod window-erase-viewport ((stream clim-stream-sheet))
   (let ((medium (sheet-medium stream)))
@@ -620,8 +623,7 @@
 ;;; This is too useful to simply omit
 (defun open-window-stream (&key port left top right bottom width height
 				(foreground +black+) (background +white+)
-				(text-style *default-text-style*)
-				(default-text-style *default-text-style*)
+				text-style default-text-style
 				(vertical-spacing 2)
 				(end-of-line-action :allow)
 				(end-of-page-action :allow)
@@ -640,6 +642,12 @@
 	      height 100)
 	(setq width (- right left)
 	      height (- bottom top))))
+  (when (null port)
+    (setq port (find-port)))
+  (when (null text-style)
+    (setq text-style (port-default-text-style port)))
+  (when (null default-text-style)
+    (setq default-text-style (port-default-text-style port)))
   (let ((stream
 	  (let ((frame (make-application-frame 'menu-frame
 					       :parent (or port (find-port))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.19 92/11/19 14:17:01 cer Exp $
+;; $fiHeader: accept.lisp,v 1.20 92/11/20 08:44:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -142,7 +142,7 @@
 		      (additional-activation-gestures nil)
 		      (delimiter-gestures nil delimiter-gestures-p)
 		      (additional-delimiter-gestures nil)
-		      (active-p nil)
+		      (active-p t)
 		 &allow-other-keys)
 
   ;; Set up the input editing environment
@@ -162,8 +162,8 @@
     (when present-p
       (return-from accept-1
 	(accept-present-default type stream view default default-supplied-p
-				present-p query-identifier :prompt prompt
-				:active-p active-p)))
+				present-p query-identifier
+				:prompt prompt :active-p active-p)))
 
     (block input-editing
       (flet ((input-sensitizer (continuation stream)
@@ -331,8 +331,8 @@
 	(with-input-from-string (stream string :start start :end end :index index)
 	  (handler-bind 
 	      ((parse-error
-		#'(lambda (error)
-		    (declare (ignore error))
+		 #'(lambda (error)
+		     (declare (ignore error))
 		     ;; This private version of CHECK-FOR-DEFAULT is
 		     ;; enough for string and string streams to do a
 		     ;; reasonable job, but it's not perfect.  Some

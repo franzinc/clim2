@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.5 92/05/07 13:12:05 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.6 92/09/24 09:38:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -70,18 +70,16 @@
       (declare (type simple-vector vector) (type fixnum fp))
       (maxf tallest-box-height (bounding-rectangle-height child))
       (with-bounding-rectangle* (left top right bottom) child
-        (declare (ignore left top))
 	;; Quick check for doing output at the bottom of the window
 	(if (or (zerop fp)
 		(let ((other-child (svref vector (1- fp))))
 		  (when (eq other-child child)
 		    (return-from add-output-record nil))
-		  (with-bounding-rectangle* (other-left other-top other-right other-bottom)
-					    other-child
-		    (declare (ignore other-left other-top))
-		    (or (> bottom other-bottom)
-			(and (= bottom other-bottom) 
-			     (>= right other-right))))))
+		  (with-bounding-rectangle* (oleft otop oright obottom) other-child
+		    (declare (ignore oleft otop))
+		    (or (> bottom obottom)
+			(and (= bottom obottom) 
+			     (>= right oright))))))
 	    (multiple-value-setq (coordinate-sorted-set fill-pointer)
 	      (simple-vector-push-extend child vector fp 200))
 	  (let ((index (coordinate-sorted-set-index-for-position
@@ -91,7 +89,10 @@
 	    ;; so that replaying happens in the right order.
 	    (loop
 	      (if (and (< index fp)
-		       (region-intersects-region-p child (svref vector index)))
+		       (with-bounding-rectangle* (oleft otop oright obottom) 
+						 (svref vector index)
+			 (ltrb-overlaps-ltrb-p left top right bottom
+					       oleft otop oright obottom)))
 		  (incf index)
 		  (return)))
 	    (multiple-value-setq (coordinate-sorted-set fill-pointer)
@@ -100,7 +101,13 @@
 (defmethod delete-output-record
 	   (child (record standard-tree-output-record) &optional (errorp t))
   (with-slots (coordinate-sorted-set fill-pointer tallest-box-height) record
-    (let ((index (coordinate-sorted-set-position child coordinate-sorted-set fill-pointer)))
+    (let ((index (or (coordinate-sorted-set-position
+		       child coordinate-sorted-set fill-pointer)
+		     ;; If we couldn't find it with the binary search, try
+		     ;; again the hard way.  If these things were more
+		     ;; disciplined with respect to managing overlapping
+		     ;; records, we wouldn't have to resort to this.
+		     (position child coordinate-sorted-set))))
       (cond (index
 	     (let ((new-fp (the fixnum (1- fill-pointer)))
 		   (vector coordinate-sorted-set))
@@ -189,29 +196,32 @@
   (declare (type simple-vector vector) (fixnum fill-pointer))
   (declare (optimize (speed 3) (safety 0)))
   (with-bounding-rectangle* (left top right bottom) object
-    (declare (ignore left top))
     ;; Binary search to find where this one goes.
     (let ((search-index (coordinate-sorted-set-index-for-position
 			  vector right bottom 0 fill-pointer)))
       (declare (type fixnum search-index))
-      ;; Search back over things in the same place.
+      ;; Search back over things in the same place, accounting for overlap
       (when (< search-index fill-pointer)
 	(dovector ((record index) vector :start 0 :end (1+ search-index)
 					 :from-end t :simple-p t)
 	  (when (eq record object)
 	    (return-from coordinate-sorted-set-position index))
-	  (with-bounding-rectangle* (other-left other-top other-right other-bottom) record
-	    (declare (ignore other-left other-top))
-	    (unless (and (= right other-right) (= bottom other-bottom))
-	      (return)))))
-      ;; Search forward too.
+	  (with-bounding-rectangle* (oleft otop oright obottom) record
+	    (unless (and (= right oright) (= bottom obottom))
+	      (unless (ltrb-overlaps-ltrb-p left top right bottom
+					    oleft otop oright obottom)
+		(return))))))
+      ;; Search forward too, also accounting for overlap
       (dovector ((record index) vector
 		 :start (if (< search-index fill-pointer) (1+ search-index) 0)
 		 :end fill-pointer :simple-p t)
 	(when (eq record object)
-	  (return index)
-	  (when (> (bounding-rectangle-bottom record) bottom)
-	    (return nil)))))))
+	  (return index))
+	(with-bounding-rectangle* (oleft otop oright obottom) record
+	  (when (> obottom bottom)
+	    (unless (ltrb-overlaps-ltrb-p left top right bottom
+					  oleft otop oright obottom)
+	      (return nil))))))))
 
 ;; Binary search; dictionary order Y, X.
 (defun coordinate-sorted-set-index-for-position (vector right bottom start end)
@@ -230,14 +240,13 @@
 	  (return above))
 	(let* ((index (the fixnum (ash (the fixnum (+ above below)) -1)))
 	       (other-box (svref vector index)))
-	  (with-bounding-rectangle* (other-left other-top other-right other-bottom)
-				    other-box
-	    (declare (ignore other-left other-top))
-	    (cond ((or (< bottom other-bottom)
-		       (and (= bottom other-bottom) (< right other-right)))
+	  (with-bounding-rectangle* (oleft otop oright obottom) other-box
+	    (declare (ignore oleft otop))
+	    (cond ((or (< bottom obottom)
+		       (and (= bottom obottom) (< right oright)))
 		   (setq above index))
-		  ((or (> bottom other-bottom)
-		       (and (= bottom other-bottom) (> right other-right)))
+		  ((or (> bottom obottom)
+		       (and (= bottom obottom) (> right oright)))
 		   (if (= below index)
 		       (return above)
 		       (setq below index)))

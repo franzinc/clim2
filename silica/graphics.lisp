@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.23 92/11/20 08:45:50 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.24 92/12/01 09:46:27 cer Exp $
 
 (in-package :silica)
 
@@ -790,6 +790,11 @@
   (apply #'draw-oval* 
 	 medium (point-x center) (point-y center) x-radius y-radius args))
 
+(define-graphics-generic draw-bezier-curve ((points point-sequence position-seq)
+					    &key (filled t))
+  :drawing-options :line-joint-cap
+  :position-sequences-to-transform (position-seq))
+
 (define-graphics-generic draw-text (string-or-char (point point x y)
 				    &key (start 0) (end nil)
 					 (align-x :left) (align-y :baseline)
@@ -806,8 +811,3 @@
   (letf-globally (((medium-ink medium) +background-ink+)
 		  ((medium-transformation medium) +identity-transformation+))
     (medium-draw-rectangle* medium left top right bottom t)))
-
-(define-graphics-generic draw-bezier-polygon ((points point-sequence position-seq)
-							      &key (filled t))
-  :drawing-options :line-joint-cap
-  :position-sequences-to-transform (position-seq))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.22 92/11/06 18:59:52 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.23 92/11/19 14:17:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1097,6 +1097,7 @@
   "Show symbol documentation"
   (multiple-value-bind (symbol package start end)
       (symbol-at-position stream input-buffer '(#\space #\( #\) #\"))
+    (declare (ignorable package end))
     (when (null symbol)
       ;; If we can't find a variable, try for a function
       (multiple-value-setq (symbol package start end)
@@ -1370,12 +1371,39 @@
   (with-debug-io-selected (stream)
     (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))
 
+(define-input-editor-command (com-ie-show-context :rescan nil)
+			     (stream)
+  "Show the current input context"
+  (with-input-editor-typeout (stream)
+    (formatting-table (stream)
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (with-text-face (stream :italic)
+	    (write-string "Delimiters" stream)))
+	(formatting-cell (stream)
+	  (print *delimiter-gestures* stream)))
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (with-text-face (stream :italic)
+	    (write-string "Activators" stream)))
+	(formatting-cell (stream)
+	  (print *activation-gestures* stream)))
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (with-text-face (stream :italic)
+	    (write-string "Context" stream)))
+	(formatting-cell (stream)
+	  (dolist (context *input-context*)
+	    (print (input-context-type context) stream)))))))
+
 (define-input-editor-gestures
   (:ie-break	      :suspend)
-  (:ie-debugger-break :suspend  :meta))
+  (:ie-debugger-break :suspend  :meta)
+  (:ie-show-context   :help	:meta))
 
 (assign-input-editor-key-bindings
   com-ie-break		:ie-break
-  com-ie-debugger-break :ie-debugger-break)
+  com-ie-debugger-break :ie-debugger-break
+  com-ie-show-context   :ie-show-context)
 
 )	;#+Genera

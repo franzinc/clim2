@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.33 92/11/20 08:44:41 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.34 92/12/01 09:45:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -154,11 +154,11 @@
 	(keysym (keyboard-event-key-name event))
 	temp)
     (cond ((and (member event *asynchronous-abort-gestures*
-		 :test #'keyboard-event-matches-gesture-name-p)
+			:test #'keyboard-event-matches-gesture-name-p)
 		(setq temp (pane-frame stream))
 		(setq temp (slot-value temp 'top-level-process)))
 	   (process-interrupt temp #'abort))
-	  ((and (characterp char) 
+	  ((and (characterp char)
 		(or (ordinary-char-p char)
 		    (diacritic-char-p char)))
 	   (queue-put (stream-input-buffer stream) char))
@@ -194,8 +194,6 @@
       (setf (cursor-focus text-cursor) t))))
 
 (defmethod queue-event :before ((stream input-protocol-mixin) (event pointer-exit-event))
-  (when (port stream)
-    (unhighlight-highlighted-presentation stream))
   (let ((text-cursor (stream-text-cursor stream)))
     (when text-cursor
       (setf (cursor-focus text-cursor) nil))))
@@ -351,6 +349,8 @@
 
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture pointer-exit-event))
+  (when (port stream)
+    (unhighlight-highlighted-presentation stream))
   nil)
 
 ;;; default method
@@ -388,17 +388,32 @@
 	((member gesture *abort-gestures*
 		 :test #'keyboard-event-matches-gesture-name-p)
 	 (let* ((frame (pane-frame stream))
+		;; When dealing with an application frame, prefer an
+		;; interactor pane to any other stream
 		(stream (cond ((typep stream 'interactor-pane)
 			       stream)
 			      ((typep *standard-input* 'interactor-pane)
 			       *standard-input*)
-			      (frame
-			       (find-frame-pane-of-type frame 'interactor-pane))))
+			      (t
+			       (or (and frame
+					(find-frame-pane-of-type frame 'interactor-pane))
+				   (and (typep stream 'application-pane)
+					stream)))))
 		(cursor (and stream (stream-text-cursor stream))))
 	   (when (and cursor
 		      (cursor-active cursor))
-	     (write-string "[Abort]" stream)
-	     (force-output stream)))
+	     ;; OK, this is wierd.  Try to find an input editing stream
+	     ;; to do the output on, but only if that input editing stream
+	     ;; encapsulates the stream we chose above
+	     (let ((istream (encapsulated-stream stream)))
+	       (if (and (input-editing-stream-p istream)
+			(eq (encapsulating-stream-stream istream) stream))
+		   (progn
+		     (input-editor-format istream "[Abort]")
+		     (force-output istream))
+		   (progn
+		     (write-string "[Abort]" stream) 
+		     (force-output stream))))))
 	 (error 'abort-gesture :event gesture))))
 
 ;;; This function is just a convenience for the programmer, defaulting the
@@ -645,7 +660,9 @@
   (stream-set-pointer-position stream x y))
 
 (defmethod stream-set-input-focus ((stream input-protocol-mixin))
-  (setf (port-keyboard-input-focus (port stream)) stream))
+  (let ((old-focus (port-keyboard-input-focus (port stream))))
+    (setf (port-keyboard-input-focus (port stream)) stream)
+    old-focus))
 
 (defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
   (setf (port-keyboard-input-focus (port stream)) old-focus))

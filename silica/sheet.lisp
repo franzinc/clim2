@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.31 92/11/06 19:03:59 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.32 92/12/01 09:46:32 cer Exp $
 
 (in-package :silica)
 
@@ -25,7 +25,7 @@
 (defgeneric sheet-enabled-p (sheet))
 (defgeneric (setf sheet-enabled-p) (enabled-p sheet))
 (defgeneric sheet-viewable-p (sheet))
-(defgeneric occluding-sheets (sheet child))
+(defgeneric sheet-occluding-sheets (sheet child))
 
 (defgeneric sheet-shell (sheet))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.7 92/11/20 08:44:24 cer Exp $
+;; $fiHeader: activities.lisp,v 1.8 92/12/01 09:45:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -10,6 +10,7 @@
 
 ;;; Activities
 
+;; An activity acts like both an application frame and a frame manager
 ;;--- Implement other relevant frame and frame-manager methods
 ;;--- What about methods to choose the default values for the standard streams?
 (defclass activity (application-frame)
@@ -89,7 +90,7 @@
 	      (*command-parser* 'command-line-command-parser)
 	      (*command-unparser* 'command-line-command-unparser)
 	      (*partial-command-parser*
-	       'command-line-read-remaining-arguments-for-partial-command) 
+		'command-line-read-remaining-arguments-for-partial-command) 
 	      ;; Start these out nowhere
 	      ;;--- Surely these are bound by the frame top level
 	      ;; (*standard-output* nil)
@@ -101,7 +102,7 @@
 	      (catch 'window-resynchronize
 		(unless (activity-active-frame activity)
 		  (setf (activity-active-frame activity)
-		    (select-next-active-frame activity)))
+			(select-next-active-frame activity)))
 		(unless (activity-active-frame activity)
 		  (frame-exit activity))
 		(let* ((frame (activity-active-frame activity))
@@ -112,14 +113,13 @@
 			(catch 'layout-changed
 			  (with-frame-manager ((frame-manager frame))
 			    (setf (slot-value frame 'top-level-process)
-			      (slot-value activity 'top-level-process))
+				  (slot-value activity 'top-level-process))
 			    (if (atom top-level)
 				(funcall top-level frame)
-			      (apply (first top-level) frame (rest top-level))))
+				(apply (first top-level) frame (rest top-level))))
 			  ;;--- Well, what *are* we supposed to do here?
 			  (break "do something")))
-		    (setf (slot-value frame 'top-level-process)
-		      nil))))))))
+		    (setf (slot-value frame 'top-level-process) nil))))))))
     (disable-activity-frames activity)))
 
 (defmethod select-activity-initial-frame ((activity activity))
@@ -134,7 +134,6 @@
 
 (defmethod enable-activity-frames ((activity activity))
   (mapc #'enable-frame (frame-manager-frames activity)))
-
 
 ;; Closes all of the frames in the activity and exits the activity's
 ;; top level loop
@@ -153,14 +152,14 @@
   (assert activity () "The activity frame ~S requires an activity" frame))
 
 (defclass secondary-activity-frame (activity-frame)
-	  ())
+    ())
 
 (defmethod initialize-instance :after ((frame secondary-activity-frame) &key activity)
-  (assert (activity-frames activity) ()
-    "Other frames must be created before secondary activity frames"))
+  (assert (frame-manager-frames activity) ()
+	  "Other frames must be created before secondary activity frames"))
+
 
 ;; Starts an application frame and registers it in the activity
-
 (defmethod start-application-frame ((activity activity) frame-name &rest frame-options)
   (declare (dynamic-extent frame-options))
   (let* ((frame (apply #'make-application-frame frame-name
@@ -192,6 +191,7 @@
 
 (defmethod start-other-application-frames ((activity activity))
   nil)
+
 
 
 ;;; Callbacks from the window manager

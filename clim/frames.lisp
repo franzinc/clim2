@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.51 92/11/19 14:17:33 cer Exp $
+;; $fiHeader: frames.lisp,v 1.52 92/12/01 09:45:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -635,6 +635,36 @@
 	(enable-frame frame))
       frame)))
 
+;; Create an application frame of the specified type if one does not already
+;; exist, and then run it, possibly in its own process.  If one already exists,
+;; just select it.
+(defun find-application-frame (frame-name &rest options
+			       &key (create t) (activate t) 
+				    (own-process *multiprocessing-p*)
+				    frame-class)
+  (declare (dynamic-extent options))
+  (when (null frame-class)
+    (setq frame-class frame-name))
+  (let ((frame
+	  (block find-frame
+	    (map-over-frames #'(lambda (frame)
+				 (when (typep frame frame-class)
+				   (return-from find-frame frame)))))))
+    (when (or (eq create :force)
+	      (and (null frame)
+		   (eq create t)))
+      (with-keywords-removed (options options '(:create :activate :own-process))
+	(setq frame (apply #'make-application-frame frame-name options))))
+    (when (and frame activate)
+      (cond ((slot-value frame 'top-level-process)
+	     (raise-frame frame))
+	    (own-process
+	     (make-process #'(lambda () (run-frame-top-level frame))
+			   :name (frame-pretty-name frame)))
+	    (t
+	     (run-frame-top-level frame))))
+    frame))
+
 (defmethod enable-frame ((frame standard-application-frame))
   (unless (frame-manager frame)
     (error "Cannot enable a disowned frame ~S" frame))
@@ -737,64 +767,65 @@
 
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
-  (handler-bind ((frame-exit
-		   #'(lambda (condition)
-		       (let ((exit-frame (frame-exit-frame condition)))
-			 (when (eq frame exit-frame)
-			   (return-from run-frame-top-level nil))))))
-    (unwind-protect
-	(let (;; Reset the state of the input editor and the presentation
-	      ;; type system, etc., in case there is an entry into another
-	      ;; application from inside the input editor, such as a Debugger
-	      ;; written using CLIM.
-	      ;;--- This should be done in a more modular way
-	      ;;--- If you change this, change MENU-CHOOSE-FROM-DRAWER
-	      (*original-stream* nil)
-	      (*input-wait-test* nil)
-	      (*input-wait-handler* nil)
-	      (*pointer-button-press-handler* nil)
-	      (*numeric-argument* nil)
-	      (*delimiter-gestures* nil)
-	      (*activation-gestures* nil)
-	      (*accelerator-gestures* nil)
-	      (*accelerator-numeric-argument* nil)
-	      (*input-context* nil)
-	      (*accept-help* nil)
-	      (*assume-all-commands-enabled* nil)
-	      (*sizing-application-frame* nil)
-	      (*frame-layout-changing-p* *frame-layout-changing-p*)
-	      (*command-parser* 'command-line-command-parser)
-	      (*command-unparser* 'command-line-command-unparser)
-	      (*partial-command-parser*
-		'command-line-read-remaining-arguments-for-partial-command) 
-	      (*application-frame* frame))
-	  (with-frame-manager ((frame-manager frame))
-	    (loop
-	      (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
-		(loop
-		  (catch 'layout-changed
-		    (let ((*application-frame* frame))
-		      ;; We must return the values from CALL-NEXT-METHOD,
-		      ;; or else ACCEPTING-VALUES will return NIL
-		      #-CCL-2
-		      (return-from run-frame-top-level (call-next-method))
-		      ;; The (RETURN-FROM FOO (CALL-NEXT-METHOD)) form above
-		      ;; doesn't work in Coral.  If the "top level" restart
-		      ;; above is taken, the CALL-NEXT-METHOD form blows out
-		      ;; the second time through this code, claiming that it
-		      ;; can't find the next method.  Hoisting the
-		      ;; CALL-NEXT-METHOD out of the RETURN-FROM form seems
-		      ;; to fix it...  So it conses, big deal.
-		      #+CCL-2
-		      (let ((results (multiple-value-list (call-next-method))))
-			(return-from run-frame-top-level (values-list results))))))))))
-      ;; We disable the frame here, but it is the responsibility of the
-      ;; top-level function to enable the frame.  For example, if we
-      ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
-      ;; wrong frame.  Sigh.
-      (queue-flush (frame-command-queue frame))
-      (queue-flush (sheet-event-queue (frame-top-level-sheet frame)))
-      (disable-frame frame))))
+  (with-simple-restart (nil "Exit ~A" (frame-pretty-name frame))
+    (handler-bind ((frame-exit
+		     #'(lambda (condition)
+			 (let ((exit-frame (frame-exit-frame condition)))
+			   (when (eq frame exit-frame)
+			     (return-from run-frame-top-level nil))))))
+      (unwind-protect
+	  (let (;; Reset the state of the input editor and the presentation
+		;; type system, etc., in case there is an entry into another
+		;; application from inside the input editor, such as a Debugger
+		;; written using CLIM.
+		;;--- This should be done in a more modular way
+		;;--- If you change this, change MENU-CHOOSE-FROM-DRAWER
+		(*original-stream* nil)
+		(*input-wait-test* nil)
+		(*input-wait-handler* nil)
+		(*pointer-button-press-handler* nil)
+		(*numeric-argument* nil)
+		(*delimiter-gestures* nil)
+		(*activation-gestures* nil)
+		(*accelerator-gestures* nil)
+		(*accelerator-numeric-argument* nil)
+		(*input-context* nil)
+		(*accept-help* nil)
+		(*assume-all-commands-enabled* nil)
+		(*sizing-application-frame* nil)
+		(*frame-layout-changing-p* *frame-layout-changing-p*)
+		(*command-parser* 'command-line-command-parser)
+		(*command-unparser* 'command-line-command-unparser)
+		(*partial-command-parser*
+		  'command-line-read-remaining-arguments-for-partial-command) 
+		(*application-frame* frame))
+	    (with-frame-manager ((frame-manager frame))
+	      (loop
+		(with-simple-restart (nil "~A top level" (frame-pretty-name frame))
+		  (loop
+		    (catch 'layout-changed
+		      (let ((*application-frame* frame))
+			;; We must return the values from CALL-NEXT-METHOD,
+			;; or else ACCEPTING-VALUES will return NIL
+			#-CCL-2
+			(return-from run-frame-top-level (call-next-method))
+			;; The (RETURN-FROM FOO (CALL-NEXT-METHOD)) form above
+			;; doesn't work in Coral.  If the "top level" restart
+			;; above is taken, the CALL-NEXT-METHOD form blows out
+			;; the second time through this code, claiming that it
+			;; can't find the next method.  Hoisting the
+			;; CALL-NEXT-METHOD out of the RETURN-FROM form seems
+			;; to fix it...  So it conses, big deal.
+			#+CCL-2
+			(let ((results (multiple-value-list (call-next-method))))
+			  (return-from run-frame-top-level (values-list results))))))))))
+	;; We disable the frame here, but it is the responsibility of the
+	;; top-level function to enable the frame.  For example, if we
+	;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
+	;; wrong frame.  Sigh.
+	(queue-flush (frame-command-queue frame))
+	(queue-flush (sheet-event-queue (frame-top-level-sheet frame)))
+	(disable-frame frame)))))
 
 (defmethod run-frame-top-level ((frame standard-application-frame) &rest args)
   (declare (dynamic-extent args))
@@ -1117,6 +1148,8 @@
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))
 
+(defvar *click-outside-menu-handler* nil)
+
 (defmethod command-enabled (command-name (frame standard-application-frame))
   (with-slots (disabled-commands) frame
     (or *assume-all-commands-enabled*
@@ -1347,6 +1380,15 @@
 			  frame presentation input-context window x y stream))
 	      (setq *last-pointer-documentation-time* 0))
 	    (force-output stream)))))))
+
+(defmethod frame-manager-display-pointer-documentation-string 
+	   ((framem standard-frame-manager) stream string)
+  (with-output-recording-options (stream :record nil)
+    (with-end-of-line-action (stream :allow)
+      (with-end-of-page-action (stream :allow)
+	(window-clear stream)
+	(when string
+	  (write-string string stream))))))
 
 (defun frame-document-highlighted-presentation-1
        (frame presentation input-context window x y stream)

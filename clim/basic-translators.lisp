@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.10 92/11/06 18:59:02 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.11 92/11/19 14:17:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -28,7 +28,8 @@
 	 (object (presentation-object presentation)))
     (with-presentation-type-decoded (context-name context-parameters) context-type
       (if (eq type-name 'blank-area)
-	  (eq context-name 'blank-area)
+	  (orD,#TD1PsT[Begin using 006 escapes](1 0 (NIL 0) (NIL :BOLD NIL) "CPTFONTCB") 0(eq context-name 'blank-area)
+	      (presentation-subtypep-1 type context-type))
 	;; Let MENU-ITEM-IDENTITY take care of pure menu items
 	(unless (and (eq type-name 'menu-item)
 		     (eq context-name 'menu-item))
@@ -164,7 +165,8 @@
       (unless (or (= nmatches 0) (null possibilities))
 	;;--- Just using the first non-COMPLETER context type is far too simplistic
 	(let ((type (evacuate-list
-		      (input-context-type (second *input-context*)))))
+		      (input-context-type (second *input-context*))))
+	      (tag (input-context-tag (second *input-context*))))
 	  (labels ((print-possibility (possibility stream)
 		     (cond (possibility-printer
 			    (funcall possibility-printer possibility type stream))
@@ -185,5 +187,4 @@
 		(let ((object
 			(menu-choose-from-drawer menu type #'menu-choose-body)))
 		  (when object
-		    (presentation-replace-input stream object type +textual-view+
-						:buffer-start location :rescan t)))))))))))
+		    (throw tag (values object type nil nil))))))))))))

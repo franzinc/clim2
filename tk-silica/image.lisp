@@ -20,10 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.5 92/11/20 08:46:30 cer Exp $
+;; $fiHeader: image.lisp,v 1.6 92/12/01 09:47:04 cer Exp $
 
 
 (in-package :xm-silica)
+
 
 (defun make-pattern-from-file (file designs)
   (multiple-value-bind
@@ -79,7 +80,6 @@
 	      (when ind
 		(setf (getf properties ind) val)))))
 	(setq line (read-line fstream)))
-      
       (multiple-value-bind (width height depth left-pad)
 	  (flet ((extract-property (ind &rest default)
 		   (prog1 (apply #'getf properties ind default)
@@ -134,3 +134,4 @@
 		    width 
 		    height
 		    depth)))))))
+

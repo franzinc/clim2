@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drag-and-drop.lisp,v 1.6 92/11/06 18:59:26 cer Exp $
+;; $fiHeader: drag-and-drop.lisp,v 1.8 92/11/19 14:17:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -166,7 +166,8 @@
 	 (*input-wait-test* nil)
 	 (*pointer-button-press-handler* nil))
     (read-gesture :stream window :timeout 0)	;eat the initial mouse click
-    (unhighlight-highlighted-presentation window)
+    (when (output-recording-stream-p window)
+      (unhighlight-highlighted-presentation window))
     (when (null translators)
       (return-from invoke-drag-and-drop-translator nil))
     (flet ((find-translator (destination-presentation window x y)
@@ -190,7 +191,8 @@
 		     `(funcall feedback frame from-presentation ,window 
 					initial-x initial-y ,x ,y ,state))
 		   (highlight (presentation window state)
-		     `(when ,presentation
+		     `(when (and ,presentation
+				 (output-recording-stream-p ,window))
 			(funcall highlighting frame ,presentation ,window ,state))))
 	  (block drag-presentation
 	    (tracking-pointer (window :context-type `((or ,@destination-types))
@@ -256,15 +258,14 @@
 				    (presentation-object destination) destination
 				    doc-stream)))))))
 	      (:pointer-motion (window x y)
-		(when (typep window 'clim-stream-sheet)	       
-		  (highlight destination last-window :unhighlight)
-		  (setq destination nil)
-		  (when last-x
-		    (feedback last-window last-x last-y :unhighlight))
-		  (setq last-x x
-			last-y y
-			last-window window)
-		  (feedback window x y :highlight)))))
+	       (highlight destination last-window :unhighlight)
+	       (setq destination nil)
+	       (when last-x
+		 (feedback last-window last-x last-y :unhighlight))
+	       (setq last-x x
+		     last-y y
+		     last-window window)
+	       (feedback window x y :highlight))))
 	  (when last-x
 	    (feedback last-window last-x last-y :unhighlight)))
 	(setf (pointer-cursor pointer) old-pointer-cursor))

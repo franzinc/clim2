@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: base-designs.lisp,v 1.4 92/10/29 16:55:03 cer Exp $
+;; $fiHeader: base-designs.lisp,v 1.5 92/11/06 19:04:52 cer Exp $
 
 (in-package :clim-utils)
 
@@ -103,6 +103,9 @@
 
 (defgeneric update-palette-entry (palette pixel color))
 (defgeneric update-palette-entries (palette updates))
+
+(defgeneric allocate-color (color palette))
+(defgeneric deallocate-color (color palette))
 
 
 ;;; Dynamic Colors 

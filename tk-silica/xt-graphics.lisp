@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.55 92/12/01 09:47:15 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.56 92/12/02 13:31:30 colin Exp $
 
 (in-package :tk-silica)
 
@@ -158,7 +158,8 @@
 	      (if errorp
 		  (error 'color-not-found :color name)
 		(return-from find-named-color nil))))))))
-  
+
+
 (defmethod update-palette-entry ((palette xt-palette) pixel color)
   (let ((xcolor (get-xcolor color palette)))
     (setf (x11:xcolor-pixel xcolor) pixel)
@@ -1294,7 +1295,6 @@ and on color servers, unless using white or black")
 					     (tk::xarc-array-angle1 points j) 0
 					     (tk::xarc-array-angle2 points j) (* 360 64))
 				       (incf j)))))
-
 		       (inner-guts))
 		     (x11::xfillarcs
 		      (tk::object-display drawable)
@@ -1306,6 +1306,7 @@ and on color servers, unless using white or black")
 				  miny)
 		      points
 		      j))))))))))
+
 
 (defmethod medium-draw-line* ((medium xt-medium) x1 y1 x2 y2)
   (let ((drawable (medium-drawable medium)))
@@ -1939,7 +1940,7 @@ and on color servers, unless using white or black")
 
 
 
-(defmethod medium-draw-bezier-polygon* ((medium xt-medium) points filled)
+(defmethod medium-draw-bezier-curve* ((medium xt-medium) points filled)
   (let* ((npoints (length points))
 	 (last (1- npoints))
 	 (new-points (cons nil nil))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.13 92/11/06 19:00:13 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.14 92/11/19 14:18:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -563,7 +563,7 @@
     (t standard-graph-node-output-record))
   ((setf graph-node-y)
     (t standard-graph-node-output-record))
-  (highlight-output-record-1
+  (highlight-output-record
     (standard-presentation t t)
     (rectangle-output-record t t)
     (standard-text-output-record t t)
@@ -1253,7 +1253,7 @@
   ((setf graph-node-parents))
   ((setf graph-node-x))
   ((setf graph-node-y))
-  (highlight-output-record-1)
+  (highlight-output-record)
   (layout-graph-edges)
   (layout-graph-nodes)
   (make-load-form

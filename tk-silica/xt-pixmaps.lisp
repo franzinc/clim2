@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.11 92/10/02 15:21:10 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.12 92/11/13 14:47:24 cer Exp $
 
 
 (in-package :xm-silica)
@@ -147,31 +147,24 @@
 #+ignore
 (defmethod medium-copy-area 
 	   ((from-medium xt-medium) from-x from-y width height
-	    (to-medium xt-pixmap-medium) to-x to-y)
+	    (pixmap tk::pixmap) to-x to-y)
   (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y)
     (convert-to-device-distances transform width height)
-    ;; We are in a bad situation if the native-transformation is
-    ;; anything other than a scaling transformation
     (let ((window (medium-drawable from-medium))
-	  (copy-gc (make-instance 'tk::gcontext :drawable window))
-	  (pixmap (medium-drawable to-medium)))
+	  (copy-gc (make-instance 'tk::gcontext :drawable window)))
       (tk::copy-area 
 	window copy-gc from-x from-y width height 
 	pixmap to-x to-y))))
 
 #+ignore
 (defmethod medium-copy-area 
-	   ((from-medium xt-pixmap-medium) from-x from-y width height
+	   ((pixmap tk::pixmap) from-x from-y width height
 	    (to-medium xt-medium) to-x to-y)
   (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates transform to-x to-y)
-    ;; We are in a bad situation if the native-transformation is
-    ;; anything other than a scaling transformation
     (let ((window (medium-drawable to-medium))
-	  (copy-gc (make-instance 'tk::gcontext :drawable window))
-	  (pixmap (medium-drawable from-medium)))
+	  (copy-gc (make-instance 'tk::gcontext :drawable window)))
       (tk::copy-area 
 	pixmap copy-gc from-x from-y width height
 	window to-x to-y))))
-

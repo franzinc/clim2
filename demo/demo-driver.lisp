@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.18 92/11/06 19:02:51 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.19 92/11/19 14:24:08 cer Exp $
 
 (in-package :clim-demo)
 
@@ -25,42 +25,35 @@
   (when (fboundp 'clim-user::do-test-suite)
     (clim-user::do-test-suite :port port :force force)))
 
-(define-presentation-type demo-menu-item ())
-
 (defun start-demo (&key (port (find-port)))
-  (let ((*application-frame* 
-	  (make-application-frame 'standard-application-frame
-				  :frame-manager 
-				    (typecase port
-				      (frame-manager port)
-				      (t (find-frame-manager :port port))))))
-    (labels ((demo-menu-drawer (stream type &rest args)
-	       (declare (dynamic-extent args))
-	       (with-text-style (stream '(:serif :roman :large))
-		 (apply #'draw-standard-menu stream type args)))
-	     (demo-menu-choose (list)
-	       (with-menu (menu (typecase port
-				  (frame-manager (graft port))
-				  (t (find-graft :port port)))
-				:label '("Clim Demonstrations"
-					 :text-style (:serif :bold :normal)))
-		 (menu-choose-from-drawer
-		   menu 'demo-menu-item
-		   #'(lambda (stream type)
-		       (demo-menu-drawer stream type list nil))
-		   :cache nil
-		   :unique-id 'demo-menu :id-test #'eql
-		   :cache-value *demos* :cache-test #'equal))))
-      (catch 'exit-demo
-	(loop
-	  (let* ((demo-name (demo-menu-choose 
-			      (sort (copy-list (map 'list #'car *demos*)) #'string<)))
-		 (demo-fcn (cdr (assoc demo-name *demos* :test #'string-equal))))
-	    (cond ((null demo-fcn))
-		  ((functionp demo-fcn)
-		   (funcall demo-fcn))
-		  (t
-		   (funcall demo-fcn :port port)))))))))
+  (let* ((framem (typecase port
+		   (frame-manager port)
+		   (t (find-frame-manager :port port))))
+	 (graft (typecase port
+		  (frame-manager (graft port))
+		  (t (find-graft :port port))))
+	 (*application-frame* 
+	   (make-application-frame 'standard-application-frame
+	     :frame-manager framem))
+	 (demos (sort (copy-list (map 'list #'car *demos*)) #'string<)))
+    (catch 'exit-demo
+      (loop
+	(let* ((demo-name 
+		 (menu-choose demos
+			      :text-style '(:serif :roman :large)
+			      :label '("Clim Demonstrations"
+				       :text-style (:serif :bold :normal))
+			      :associated-window graft
+			      :cache nil
+			      :unique-id 'demo-menu :id-test #'eql
+			      :cache-value *demos* :cache-test #'equal))
+	       (demo-fcn
+		 (cdr (assoc demo-name *demos* :test #'string-equal))))
+	  (cond ((null demo-fcn))
+		((functionp demo-fcn)
+		 (funcall demo-fcn))
+		(t
+		 (funcall demo-fcn :port port))))))))
 
 (defparameter *color-stream-p* t)
 (defun color-stream-p (stream)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-menu.lisp,v 1.4 92/11/06 18:59:16 cer Exp $
+;; $fiHeader: db-menu.lisp,v 1.5 92/11/19 14:17:17 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -280,47 +280,58 @@
 ;;--- What about when the command menu tick changes?
 ;;--- What about graying of disabled commands?
 (defun compute-menu-bar-pane (frame command-table)
-  (with-look-and-feel-realization ((frame-manager frame) frame)
-    (labels
-      ((make-command-table-buttons (command-table top-level)
-	 (let ((buttons nil))
-	   (map-over-command-table-menu-items
-	     #'(lambda (menu keystroke item)
-		 (let ((type (command-menu-item-type item))
-		       (value (command-menu-item-value item)))
-		   (case type
-		     (:command 
-		       (push (make-pane (if top-level 'push-button 'pull-down-menu-button)
-			       :label menu
-			       :activate-callback
-			       #'(lambda (button)
-				   (menu-bar-command-callback button command-table value)))
-			     buttons))
-		     (:function
-		       ;;--- Do something about this
-		       )
-		     (:menu
-		       (push (make-pane (if top-level 'menu-bar-button 'pull-down-menu-button)
-			       :label menu
-			       :next-menu (make-command-table-menu value nil)
-			       :activate-callback nil)
-			     buttons))
-		     (:divider
-		       (unless top-level
+  (let* ((text-style (and (listp command-table)
+			 (getf (cdr command-table) :text-style)
+			 `(:text-style ,(getf (cdr command-table) :text-style))))
+	 (command-table (if (listp command-table) (car command-table) command-table)))
+    (when (eq command-table 't)
+      (setq command-table (frame-command-table frame)))
+    (with-look-and-feel-realization ((frame-manager frame) frame)
+      (labels
+	((make-command-table-buttons (command-table top-level)
+	   (let ((buttons nil))
+	     (map-over-command-table-menu-items
+	       #'(lambda (menu keystroke item)
+		   (let ((type (command-menu-item-type item))
+			 (value (command-menu-item-value item)))
+		     (case type
+		       (:command 
+			 (push (apply #'make-pane
+				      (if top-level 'push-button 'pull-down-menu-button)
+				      :label menu
+				      :activate-callback
+					#'(lambda (button)
+					    (menu-bar-command-callback
+					      button command-table value))
+				      text-style)
+			       buttons))
+		       (:function
 			 ;;--- Do something about this
-			 )))))
-	     command-table)
-	   (nreverse buttons)))
-       (make-command-table-menu (command-table top-level)
-	 (let ((buttons (make-command-table-buttons command-table top-level)))
-	   (if top-level
-	       (outlining ()
-		 (make-pane 'hbox-pane :contents buttons))
-	       (let ((menu (make-pull-down-menu :port (port frame))))
-		 (initialize-pull-down-menu menu buttons)
-		 menu)))))
-      (declare (dynamic-extent #'make-command-table-buttons #'make-command-table-menu))
-      (make-command-table-menu command-table t))))
+			 )
+		       (:menu
+			 (push (apply #'make-pane
+				      (if top-level 'menu-bar-button 'pull-down-menu-button)
+				      :label menu
+				      :next-menu (make-command-table-menu value nil)
+				      :activate-callback nil
+				      text-style)
+			       buttons))
+		       (:divider
+			 (unless top-level
+			   ;;--- Do something about this
+			   )))))
+	       command-table)
+	     (nreverse buttons)))
+	 (make-command-table-menu (command-table top-level)
+	   (let ((buttons (make-command-table-buttons command-table top-level)))
+	     (if top-level
+		 (outlining ()
+		   (make-pane 'hbox-pane :contents buttons))
+		 (let ((menu (make-pull-down-menu :port (port frame))))
+		   (initialize-pull-down-menu menu buttons)
+		   menu)))))
+	(declare (dynamic-extent #'make-command-table-buttons #'make-command-table-menu))
+	(make-command-table-menu command-table t)))))
 
 (defun menu-bar-command-callback (button command-table command)
   (let ((frame (pane-frame button)))

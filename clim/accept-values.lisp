@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.46 92/11/19 14:16:57 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.47 92/11/20 08:44:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -98,6 +98,7 @@
 (defmethod prompt-for-accept ((stream accept-values-stream) type view
 			      &rest accept-args 
 			      &key query-identifier &allow-other-keys)
+  (declare (ignore accept-args))
   ;; This does nothing, the gadget ACCEPT methods should provide a label
   (unless (gadget-includes-prompt-p type stream view)
     (call-next-method))
@@ -158,7 +159,7 @@
 			  :cache-value (cons active-p
 					     (if (accept-values-query-changed-p query)
 						 (accept-values-query-value query)
-					       default))
+						 default))
 			  :cache-test #'(lambda (x y)
 					  (unless (accept-values-query-changed-p query)
 					    (equal x y))))
@@ -204,6 +205,48 @@
 	  (setf (gethash query-identifier query-table) query))
 	query))))
 
+;;--- It seems a little bizarre having a prompt argument, but we can't
+;;--- think of a better way.
+(defmethod stream-present ((stream accept-values-stream) object presentation-type 
+			   &rest present-args
+			   &key view (prompt nil prompt-p) (query-identifier nil)
+			   &allow-other-keys)
+  (declare (dynamic-extent present-args))
+  (declare (ignore prompt))
+  (unless prompt-p
+    ;; This is the normal, non-gadget case of doing PRESENT
+    (return-from stream-present (call-next-method)))
+  (flet ((do-present (stream)
+	   (updating-output (stream :unique-id query-identifier
+				    :id-test #'equal
+				    :cache-value object
+				    :cache-test #'equal)
+	     stream
+	     ;;--- We did this because (SEQUENCE INTEGER) reinvoked
+	     ;;--- PRESENT with the prompt for each of components of
+	     ;;--- the stream, which ended up back here creating badly
+	     ;;--- identified updating-output records.
+	     (apply #'stream-present (encapsulating-stream-stream stream)
+		    object presentation-type present-args))))
+    (declare (dynamic-extent #'do-present))
+    (let ((align-prompts (slot-value stream 'align-prompts)))
+      (cond (align-prompts
+	     ;; The user has asked to line up the labels, so oblige him
+	     (formatting-row (stream)
+	       (formatting-cell (stream :align-x align-prompts)
+		 (setq query-identifier 
+		       (apply #'prompt-for-accept (encapsulated-stream stream)
+			      presentation-type view present-args)))
+	       (formatting-cell (stream :align-x :left)
+		 (do-present stream))))
+	    (t
+	     (setq query-identifier
+		   (apply #'prompt-for-accept (encapsulated-stream stream)
+			  presentation-type view present-args))
+	     (do-present stream)))))
+  (values object))
+
+
 ;;--- These frames should be resourced
 (define-application-frame accept-values ()
     ((stream :initarg :stream)
@@ -583,6 +626,16 @@
 
 (define-presentation-type accept-values-exit-box ())
 
+(defmacro with-exit-box-decoded ((value label text-style) exit-box labels &body body)
+  `(let* ((,value (if (consp ,exit-box) (first ,exit-box) ,exit-box))
+	  (,label (or (and (consp ,exit-box)
+			   (second ,exit-box))
+		      (second (assoc ,value ,labels))))
+	  (,text-style (or (and (consp ,exit-box)
+				(getf (cddr ,exit-box) :text-style))
+			   (getf (cddr (assoc ,value ,labels)) :text-style))))
+     ,@body))
+
 ;;; Applications can create their own AVV class and specialize this method in
 ;;; order to get different exit boxes.
 (defmethod display-exit-boxes ((frame accept-values) stream (view view))
@@ -595,24 +648,23 @@
     (updating-output (stream :unique-id stream :cache-value 'exit-boxes)
       (with-slots (exit-boxes) frame
 	(dolist (exit-box exit-boxes)
-	  (let* ((value (if (consp exit-box) (car exit-box) exit-box))
-		 (label (or (and (consp exit-box) (second exit-box))
-			    (second (assoc value labels)))))
+	  (with-exit-box-decoded (value label text-style) exit-box labels
 	    (when label
-	      (with-output-as-presentation (stream value 'accept-values-exit-box)
-		#-CCL-2
-		(write-string label stream)
-		#+CCL-2
-		(if (eq value ':abort)
-		    ;; Kludge to print the cloverleaf char in MCL.
-		    ;; Needs an accompanying kludge in STREAM-WRITE-CHAR so that
-		    ;; #\CommandMark doesn't get lozenged.
-		    (progn
-		      (with-text-style (stream '(:mac-menu :roman :normal))
-			(write-char #\CommandMark stream))
-		      (write-string "-. aborts" stream))
-		    (write-string label stream)))
-	      (write-string " " stream))))))))
+	      (with-text-style (stream text-style)
+		(with-output-as-presentation (stream value 'accept-values-exit-box)
+		  #-CCL-2
+		  (write-string label stream)
+		  #+CCL-2
+		  (if (eq value ':abort)
+		      ;; Kludge to print the cloverleaf char in MCL.
+		      ;; Needs an accompanying kludge in STREAM-WRITE-CHAR so that
+		      ;; #\CommandMark doesn't get lozenged.
+		      (progn
+			(with-text-style (stream '(:mac-menu :roman :normal))
+			  (write-char #\CommandMark stream))
+			(write-string "-. aborts" stream))
+		      (write-string label stream)))
+		(write-string " " stream)))))))))
 
 ;;--- Get this right
 (defmethod frame-pointer-documentation-output ((frame accept-values-own-window))
@@ -786,7 +838,6 @@
       (setf value nil
 	    changed-p t))))
 
-
 (define-gesture-name :exit-dialog  :keyboard (:end))
 (define-gesture-name :abort-dialog :keyboard (:abort))
 
@@ -802,10 +853,10 @@
       (if query-ids
 	  (notify-user *application-frame*
 		       (format nil "The following fields are not valid:~{ ~A~}"
-			       (mapcar #'cadr query-ids))
+			 (mapcar #'cadr (nreverse query-ids)))
 		       :title "Invalid Fields"
 		       :style :error :exit-boxes '(:exit))
-	(frame-exit *application-frame*)))))
+	  (frame-exit *application-frame*)))))
 
 (define-accept-values-command (com-abort-avv :keystroke :abort-dialog) ()
   (abort))
@@ -1208,17 +1259,18 @@
 			       :cache-value 'exit-boxes)
 	(formatting-table (stream :equalize-column-widths nil)
 	  (dolist (exit-box exit-boxes)
-	    (let* ((value (if (consp exit-box) (car exit-box) exit-box))
-		   (label (or (and (consp exit-box) (second exit-box))
-			      (second (assoc value labels)))))
+	    (with-exit-box-decoded (value label text-style) exit-box labels
 	      (when label
+		(when text-style
+		  (setq text-style `(:text-style ,text-style)))
 		(formatting-column (stream)
 		  (formatting-cell (stream)
 		    (with-output-as-gadget (stream)
-		      (make-pane 'push-button
+		      (apply #'make-pane 'push-button
 			:label label
 			:client frame :id value
-			:activate-callback #'handle-exit-box-callback))))))))))))
+			:activate-callback #'handle-exit-box-callback
+			text-style))))))))))))
 
 (defun handle-exit-box-callback (gadget)
   (let ((id (gadget-id gadget)))
@@ -1301,46 +1353,3 @@
 		     :x 0 :y 0
 		     :modifier-state 0
 		     :button +pointer-left-button+)))))))))
-
-;;--- It seems a little bizarre having a prompt argument but
-;;--- is there a better way.
-
-(defmethod stream-present ((stream accept-values-stream) object presentation-type 
-							 &rest present-args
-							 &key view
-							 (prompt nil prompt-p)
-							 (query-identifier nil))
-
-  (declare (ignore prompt))
-  (unless prompt-p (return-from stream-present (call-next-method)))
-
-  (flet ((do-ppresent (stream)
-	   (updating-output
-	       (stream :unique-id query-identifier
-		       :id-test #'equal
-		       :cache-value object
-		       :cache-test #'equal)
-	       stream
-	     ;;--- We did this because (sequence integer) reinvoked
-	     ;;--- present with the prompt for each of components of
-	     ;;--- the stream. so we end up back here and create badly
-	     ;;--- identified updating-output records.
-	     (apply #'stream-present (encapsulating-stream-stream stream)
-		    object presentation-type present-args))))
-    (declare (dynamic-extent #'do-ppresent))
-    (let ((align-prompts (slot-value stream 'align-prompts)))
-      (cond (align-prompts
-	     ;; The user has asked to line up the labels, so oblige him
-	     (formatting-row (stream)
-		 (formatting-cell (stream :align-x align-prompts)
-		     (setq query-identifier 
-		       (apply #'prompt-for-accept
-			      (encapsulated-stream stream) presentation-type view present-args)))
-	       (formatting-cell (stream :align-x :left)
-		   (do-ppresent stream))))
-	    (t
-	     (setq query-identifier
-	       (apply #'prompt-for-accept
-		      (encapsulated-stream stream) presentation-type view present-args))
-	     (do-ppresent stream)))))
-  (values object))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.15 92/11/06 19:00:35 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.16 92/11/19 14:18:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -272,8 +272,8 @@
     (when (or (null ncells) (= ncells 0))
       (return-from adjust-table-cells
 	(tree-recompute-extent table)))
-    (with-stack-array (row-array nrows :initial-element nil)
-      (with-stack-array (column-array ncells :initial-element nil)
+    (with-stack-array (row-array nrows :initial-element 0)
+      (with-stack-array (column-array ncells :initial-element 0)
 	(let ((x-pos nil)
 	      (y-pos nil)
 	      (row-count 0)
@@ -309,10 +309,10 @@
 			      (multiple-value-bind (width height)
 				  (bounding-rectangle-size cell)
 				(declare (type coordinate width height))
-				(maxf-or (row-max-height row-count)
-					 (max height (cell-min-height cell)))
-				(maxf-or (column-max-width column-count)
-					 (max width (cell-min-width cell))))))
+				(maxf (row-max-height row-count)
+				      (max height (cell-min-height cell)))
+				(maxf (column-max-width column-count)
+				      (max width (cell-min-width cell))))))
 		       (declare (dynamic-extent #'cell-mapper))
 		       (map-over-row-cells #'cell-mapper row))))
 	      (declare (dynamic-extent #'row-mapper))
@@ -400,6 +400,7 @@
 	    (declare (type coordinate stream-width)
 		     (ignore stream-height)) ;for now
 	    (let* ((table-width (- tright tleft))
+		   (table-height (- tbottom ttop))
 		   (between-column-margin
 		     (if x-spacing
 			 (process-spacing-arg stream x-spacing
@@ -688,8 +689,8 @@
 						 1.6))
 					(max max-cell-width 1))))
 	   (setq nrows (max 1 (ceiling (/ ncells ncolumns))))))
-    (with-stack-array (row-array nrows :initial-element nil)
-      (with-stack-array (column-array ncolumns :initial-element nil)
+    (with-stack-array (row-array nrows :initial-element 0)
+      (with-stack-array (column-array ncolumns :initial-element 0)
 	(let ((row-count 0)
 	      (column-count 0))
 	  (declare (type fixnum row-count column-count))
@@ -705,10 +706,10 @@
 	    (flet ((size-cells (cell)
 		     (multiple-value-bind (width height) (bounding-rectangle-size cell)
 		       (declare (type coordinate width height))
-		       (maxf-or (column-width column-count) 
-				(max width (cell-min-width cell)))
-		       (maxf-or (row-height row-count)
-				(max height (cell-min-height cell))))
+		       (maxf (column-width column-count) 
+			     (max width (cell-min-width cell)))
+		       (maxf (row-height row-count)
+			     (max height (cell-min-height cell))))
 		     (incf column-count)
 		     (when (= column-count ncolumns)
 		       (incf row-count)

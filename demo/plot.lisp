@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.18 92/11/19 14:24:23 cer Exp $
+;; $fiHeader: plot.lisp,v 1.19 92/11/20 08:45:33 cer Exp $
 
 (in-package :clim-demo)
 
@@ -45,6 +45,7 @@
 		     (plot-data (array)
 		       (funcall ,plot-data-continuation array)))
 		(declare (dynamic-extent #'plot-point #'plot-data))
+		#'plot-point #'plot-data
 		,@body)))
        (declare (dynamic-extent #'plotting-data-body))
        (invoke-plotting-data ,stream #'plotting-data-body ,@options))))
@@ -681,14 +682,14 @@
 
 (defmethod display-graph ((frame plot-demo) stream &key &allow-other-keys)
   (updating-output (stream)
-      (with-slots (y-labelling graph-type plot-data x-labels y-labels
-		   x-min y-min x-max y-max) frame
-	(plotting-data (stream :y-labelling y-labelling 
-			       :x-labels x-labels :y-labels y-labels
-			       :x-min x-min :y-min y-min 
-			       :x-max x-max :y-max y-max
-			       :type graph-type)
-	  (plot-data plot-data)))))
+    (with-slots (y-labelling graph-type plot-data x-labels y-labels
+		 x-min y-min x-max y-max) frame
+      (plotting-data (stream :y-labelling y-labelling 
+			     :x-labels x-labels :y-labels y-labels
+			     :x-min x-min :y-min y-min 
+			     :x-max x-max :y-max y-max
+			     :type graph-type)
+	(plot-data plot-data)))))
 
 (define-plot-demo-command com-describe-graph-line 
     ((line 'graph-line :gesture :describe))

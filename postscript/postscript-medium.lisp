@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.8 92/10/28 11:33:27 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.9 92/11/13 14:46:39 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -41,7 +41,8 @@
 	(dashes (line-style-dashes line-style)))
     (format printer-stream " ~D setlinewidth~%" thickness)
     (when dashes
-      (when (eq dashes t) (setq dashes '(4 4)))
+      (when (eq dashes t)
+	(setq dashes '(4 4)))
       (making-ps-array (printer-stream)
         (let ((limit (length dashes)))
 	  (dotimes (i limit)

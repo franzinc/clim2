@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-frames.lisp,v 1.11 92/10/02 15:19:01 cer Exp $
+;; $fiHeader: clx-frames.lisp,v 1.12 92/10/28 11:31:13 cer Exp $
 
 (in-package :clx-clim)
 
@@ -18,8 +18,6 @@
 (defmethod frame-wrapper ((framem clx-frame-manager) 
 			  (frame standard-application-frame) pane)
   (let ((menu-bar (slot-value frame 'menu-bar)))
-    (when (eq menu-bar 't)
-      (setq menu-bar (frame-command-table frame)))
     (with-look-and-feel-realization (framem frame)
       (outlining ()
 	(if menu-bar

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.19 92/11/06 19:00:20 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.20 92/11/13 14:45:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -335,11 +335,11 @@
 ;;; This hash table is keyed by the presentation type name and yields the class.
 (defvar *presentation-type-class-table* (make-hash-table))
 
-;;; Keyed by name, yields the function that translates one type specifier into another
-(defvar *presentation-type-abbreviation-table* (make-hash-table))
-
 #+CCL-2
 (defvar *presentation-class-type-table* (make-hash-table))
+
+;;; Keyed by name, yields the function that translates one type specifier into another
+(defvar *presentation-type-abbreviation-table* (make-hash-table))
 
 ;;; Find the class corresponding to the presentation type named NAME
 (defun find-presentation-type-class (name &optional (errorp t) environment)
@@ -500,8 +500,6 @@
 
 
 ;;;; Presentation Type Abbreviations
-
-
 
 ;;; Define a "macro" that expands one presentation type specifier into another
 (defmacro define-presentation-type-abbreviation (name parameters expansion &key options
@@ -1628,7 +1626,7 @@
   (declare (arglist type-key parameters options type
 		    stream view default default-supplied-p
 		    present-p query-identifier
-		    &key (prompt t))))
+		    &key (prompt t) (active-p t))))
 
 (define-presentation-generic-function gadget-includes-prompt-p-method
 				      gadget-includes-prompt-p
@@ -1638,7 +1636,11 @@
 
 (define-presentation-generic-function decode-indirect-view-method
                                       decode-indirect-view
-  (type-key parameters options type view frame-manager &key &allow-other-keys))
+  (type-key parameters options type view frame-manager &key &allow-other-keys)
+  #-CCL-2
+  (declare (arglist type-key parameters options type
+		    view frame-manager
+		    &key query-identifier read-only)))
 
 (define-presentation-generic-function presentation-refined-position-test-method
 				      presentation-refined-position-test

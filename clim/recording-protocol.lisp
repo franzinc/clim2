@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.26 92/11/06 19:00:27 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.27 92/11/19 14:18:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -618,10 +618,27 @@
       (move-cursor-beyond-output-record stream record))
     record))
 
+(defun normalize-replay-region (region stream)
+  (cond ((or (null region)
+	     (eq region +everywhere+))
+	 ;; If we've been asked to replay everything, set the replay
+	 ;; region to the viewport
+	 (or (pane-viewport-region stream) (sheet-region stream)))
+	((or (output-record-p region)
+	     (displayed-output-record-p region))
+	 ;; If the replay region is itself an output record, make a
+	 ;; new region in the proper coordinate system
+	 (with-bounding-rectangle* (left top right bottom) region
+	   (multiple-value-bind (xoff yoff)
+	       (convert-from-relative-to-absolute-coordinates 
+		 stream (output-record-parent region))
+	     (translate-coordinates xoff yoff left top right bottom))
+	   (make-bounding-rectangle left top right bottom)))
+	(t region)))
+
 (defun replay (record stream &optional region)
-  (when (null region)
-    (setq region (or (pane-viewport-region stream) (sheet-region stream))))
   (when (stream-drawing-p stream)
+    (setq region (normalize-replay-region region stream))
     (multiple-value-bind (x-offset y-offset)
 	(convert-from-relative-to-absolute-coordinates stream (output-record-parent record))
       ;; Output recording should be off, but let's be forgiving...
@@ -1046,15 +1063,10 @@
     ;; Top-level output records must not have their upper left corner any
     ;; "later" than (0,0), or else scroll bars and scrolling will not do
     ;; the right thing.
-    (let ((old-left left)
-	  (old-top  top)
-	  (old-right  right)
-	  (old-bottom bottom))
-      (declare (type coordinate old-left old-top old-right old-bottom))
-      (setq left (min (coordinate nleft) (coordinate 0))
-	    top  (min (coordinate ntop)  (coordinate 0))
-	    right  (coordinate nright)
-	    bottom (coordinate nbottom))))
+    (setq left (min (coordinate nleft) (coordinate 0))
+	  top  (min (coordinate ntop)  (coordinate 0))
+	  right  (coordinate nright)
+	  bottom (coordinate nbottom)))
   record)
 
 (defmethod bounding-rectangle-set-edges :around ((record stream-output-history-mixin) 
@@ -1109,38 +1121,36 @@
 	   (update-region stream rl rt rr rb)))))))
 
 (defmethod stream-replay ((stream output-recording-mixin) &optional region)
-  (when (null region)
-    (setq region (or (pane-viewport-region stream) (sheet-region stream))))
   (when (stream-drawing-p stream)
     (with-slots (output-record text-output-record record-p) stream
       (when (or output-record text-output-record)
+	(setq region (normalize-replay-region region stream))
 	(letf-globally ((record-p nil))
 	  (when output-record
-	    (replay-output-record output-record stream region 
-				  (coordinate 0) (coordinate 0)))
+	    (replay output-record stream region))
 	  (when text-output-record
-	    (replay-output-record text-output-record stream region
-				  (coordinate 0) (coordinate 0))))))))
+	    (replay text-output-record stream region)))))))
 
-(defun erase-output-record (output-record stream &optional (errorp t))
-  (multiple-value-bind (xoff yoff)
-      (convert-from-relative-to-absolute-coordinates 
-	stream (output-record-parent output-record))
-    (with-bounding-rectangle* (left top right bottom) output-record
-      (with-output-recording-options (stream :record nil)
-	(if (or (= left right) (= top bottom))
-	    ;; Handle specially, for a line is wider than a rectangle of zero width or height
-	    (draw-line-internal stream xoff yoff
-				left top right bottom
-				+background-ink+ nil)
-	    (draw-rectangle-internal stream xoff yoff
-				     left top right bottom
-				     +background-ink+ nil)))))
-  (when (output-record-parent output-record)
-    (delete-output-record output-record (output-record-parent output-record) errorp))
-  ;; Use the output record itself as the replay region, and replay
-  ;; the stuff that might have been obscured by the erased output
-  (frame-replay *application-frame* stream output-record))
+(defmethod erase-output-record (record (stream output-recording-mixin) &optional (errorp t))
+  (let ((parent (output-record-parent record)))
+    (multiple-value-bind (xoff yoff)
+	(convert-from-relative-to-absolute-coordinates stream parent)
+      (with-bounding-rectangle* (left top right bottom) record
+	(with-output-recording-options (stream :record nil)
+	  (if (or (= left right) (= top bottom))
+	      ;; Handle specially, since a thin line is wider than a
+	      ;; rectangle of zero width or height
+	      (draw-line-internal stream xoff yoff
+				  left top right bottom
+				  +background-ink+ nil)
+	      (draw-rectangle-internal stream xoff yoff
+				       left top right bottom
+				       +background-ink+ nil)))))
+    (when parent
+      (delete-output-record record parent errorp))
+    ;; Use the output record itself as the replay region, and replay
+    ;; the stuff that might have been obscured by the erased output
+    (frame-replay *application-frame* stream record)))
 
 (defmethod invoke-with-output-recording-options ((stream output-recording-mixin)
 						 continuation record draw)

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.9 92/11/20 08:45:16 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.10 92/12/01 09:46:01 cer Exp $
 
 (in-package :clim-demo)
 
@@ -60,7 +60,7 @@
     (flet ((display-color (object stream)
 	     (with-room-for-graphics (stream)
 	       (draw-rectangle* stream 0 0 30 10 :ink object))))
-      (formatting-item-list (stream :n-columns 2  :x-spacing 30)
+      (formatting-item-list (stream :n-columns 2 :x-spacing 30)
 	(formatting-cell (stream)
 	  (setf current-color
 		(position
@@ -79,7 +79,7 @@
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
 		  "Add Color"
-		(bitmap-editor-add-color-to-palette frame)))
+		(add-new-color frame)))
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
 		  "Edit Color"
@@ -100,13 +100,13 @@
   ;;--- Exercise for the reader
   )
 
-(defun bitmap-editor-add-color-to-palette (frame)
+(defun add-new-color (frame)
   (let ((fr (make-application-frame 'color-chooser)))
     (run-frame-top-level fr)
     (with-slots (colors current-color) frame
       (setq current-color (length colors)
 	    colors (append colors (list (color fr)))))))
-	    
+
 
 (define-bitmap-editor-command (com-choose-options :menu t)
     ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.24 92/10/28 13:17:04 cer Exp $
+;; $fiHeader: classes.lisp,v 1.25 92/12/01 09:46:13 cer Exp $
 
 (in-package :silica)
 
@@ -11,7 +11,7 @@
 (define-protocol-class port ())
 
 (locally
-(declare (special *undefined-text-style*))
+(declare (special *default-text-style* *undefined-text-style*))
 
 ;; This is called BASIC-PORT rather than STANDARD-PORT because the class
 ;; cannot be used as-is.  It has to be specialized for each implementation.
@@ -39,6 +39,8 @@
      (pointer :initform nil)
      (mapping-table :initform (make-hash-table :test #'equal))
      (mapping-cache :initform (cons nil nil))	;one entry cache
+     (default-text-style :initform *default-text-style*
+			 :accessor port-default-text-style)
      (undefined-text-style :initform *undefined-text-style*
 			   :accessor port-undefined-text-style)
      ;; When this is true, the text style to device font mapping is done
@@ -98,7 +100,7 @@
 			      :accessor medium-merged-text-style-valid)
      (line-style :initform (make-line-style) :accessor medium-line-style)
      (transformation :initarg :transformation :initform +identity-transformation+
-		     :accessor medium-transformation )
+		     :accessor medium-transformation)
      (region :initarg :region :initform +everywhere+
 	     :accessor medium-clipping-region)
      (+y-upward-p :initform nil :accessor medium-+y-upward-p)))

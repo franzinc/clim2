@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.18 92/11/06 18:59:08 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.19 92/11/19 14:17:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -658,7 +658,8 @@
 ;;; COMMAND-OR-FORM, for Lisp Listener style applications
 
 (define-presentation-type command-or-form
-			  (&key (command-table (frame-command-table *application-frame*))))
+			  (&key (command-table (frame-command-table *application-frame*)))
+  :options ((auto-activate nil boolean)))
 
 (define-presentation-method presentation-type-history ((type command-or-form))
   (presentation-type-history-for-frame type *application-frame*))
@@ -666,21 +667,22 @@
 (define-presentation-method accept ((type command-or-form) stream (view textual-view)
 				    &rest args)
   (declare (dynamic-extent args))
-  (let ((p-t `(command :command-table ,command-table))
+  (let ((command-type `(command :command-table ,command-table))
+	(form-type `((form) :auto-activate ,auto-activate))
 	(start-position (and (input-editing-stream-p stream)
 			     (stream-scan-pointer stream)))
 	(replace-input-p nil))
     (multiple-value-bind (object type)
-	(with-input-context (p-t) (command command-presentation-type nil options)
-	     (with-input-context ('form) (form form-presentation-type nil options)
+	(with-input-context (command-type) (command command-presentation-type nil options)
+	     (with-input-context (form-type) (form form-presentation-type nil options)
 		  (let ((gesture (read-gesture :stream stream :peek-p T)))
 		    (cond ((and (characterp gesture)
 				(find gesture *command-dispatchers* :test #'char-equal))
 			   (read-gesture :stream stream)	;get out the colon
-			   (apply #'accept p-t
+			   (apply #'accept command-type
 				  :stream stream :prompt nil :view view
 				  :history type args))
-			  (t (apply #'accept 'form
+			  (t (apply #'accept form-type
 				    :stream stream :prompt nil :view view
 				    :history type args))))
 		(t (when (getf options :echo t)

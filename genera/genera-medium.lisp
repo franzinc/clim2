@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.13 92/10/28 11:32:39 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.14 92/11/06 19:03:12 cer Exp $
 
 (in-package :genera-clim)
 
@@ -139,7 +139,9 @@
 
 (defvar *genera-opacity-stipples*
 	(mapcar #'(lambda (entry)
-		    (cons (first entry) (apply #'graphics::make-stipple (second entry))))
+		    (list (first entry)
+			  (list (apply #'graphics::make-stipple (second entry))
+				boole-1 boole-2)))
 		'((+nowhere+ (1 1 (#b0)))
 		  (0.05 (8 16 (#b1000000000000000
 			       #b0000001000000000
@@ -189,14 +191,15 @@
 			      #b1111111111111101
 			      #b1111011111111111
 			      #b1111111111011111)))
+		  (1.0 (1 1 (#b0)))
 		  (+everywhere+ (1 1 (#b1))))))
 
 (defun genera-decode-opacity (opacity)
   (let ((opacities *genera-opacity-stipples*))
     (cond ((eq opacity +nowhere+)
-	   (cdr (first opacities)))
+	   (rest (first opacities)))
 	  ((eq opacity +everywhere+)
-	   (cdr (first (last opacities))))
+	   (rest (first (last opacities))))
 	  (t
 	   (let ((last-op (cdr (first opacities)))
 		 (value (opacity-value opacity)))
@@ -254,6 +257,10 @@
 (defmethod genera-decode-color ((ink standard-opacity) medium &optional (stipple-p t))
   (declare (ignore medium stipple-p))
   (if (> (opacity-value ink) 0.5) boole-1 boole-2))
+
+(defmethod genera-decode-color ((ink nowhere) medium &optional (stipple-p t))
+  (declare (ignore medium stipple-p))
+  boole-2)
 
 (defun genera-decode-raster (raster &optional width height key tiled-p)
   (multiple-value-bind (swidth sheight)
@@ -342,6 +349,14 @@
 	     (genera-decode-luminosity
 	       (if invert-p (- 1.0 luminosity) luminosity) t))))))
 
+(defmethod genera-decode-ink ((ink nowhere) medium)
+  (declare (ignore medium))
+  boole-2)
+
+(defmethod genera-decode-ink ((ink standard-opacity) medium)
+  (declare (ignore medium))
+  (genera-decode-opacity ink))
+
 (defmethod genera-decode-ink ((ink pattern) medium)
   (genera-decode-pattern ink medium))
 
@@ -352,15 +367,25 @@
 
 (defmethod genera-decode-ink ((ink stencil) medium)
   (declare (ignore medium))
-  (error "Stencils and opacities are not supported in this CLIM implementation"))
+  (error "Stencils are not supported in this CLIM implementation"))
 
 (defmethod genera-decode-ink ((ink composite-in) medium)
-  (declare (ignore medium))
-  (error "Compositing is not supported in this CLIM implementation"))
+  (let* ((designs (slot-value ink 'clim-utils::designs)))
+    (when (= (length designs) 2)
+      (let ((color (follow-indirect-ink (aref designs 0) medium))
+	    (opacity (aref designs 1)))
+	(when (and (colorp color)
+		   (opacityp opacity))
+	  (return-from genera-decode-ink
+	    ;;--- Use the alpha channel if the hardware supports it
+	    (genera-decode-ink (make-pattern (caar (genera-decode-opacity opacity))
+					     (list +transparent-ink+ color))
+			       medium))))))
+  (error "This type of compositing is not supported in this CLIM implementation"))
 
 (defmethod genera-decode-ink ((ink composite-out) medium)
   (declare (ignore medium))
-  (error "Compositing is not supported in this CLIM implementation"))
+  (error "This type of compositing is not supported in this CLIM implementation"))
       
 
 (flavor:defgeneric invoke-with-clim-drawing-state
@@ -720,7 +745,7 @@
 	 (thickness 0)
 	 (dashes nil))
     (assert (= (length alus) 1) ()
-	    "CLIM only supports bitmap icons under Genera sheets")
+	    "CLIM only supports bitmap patterns under Genera sheets")
     (dolist (alu alus)
       (let* ((image (pop alu))
 	     (ones-alu (pop alu))
@@ -740,6 +765,7 @@
 		  (with-drawing-model-adjustments (window)
 		    (graphics:draw-image image left top
 					 :image-right width :image-bottom height
+					 :opaque (if (eq zeros-alu boole-2) nil t)
 					 :stream window)))
 	      window)))))))
 
@@ -839,7 +865,7 @@
 		      (setf (aref points (shiftf i (1+ i))) y))
 		  position-seq))
 	      (with-drawing-model-adjustments (window)
-		(if (null line-style)
+		(if filled
 		    (funcall (flavor:generic graphics:draw-polygon) window points
 			     :filled t)
 		    (funcall (flavor:generic graphics:draw-lines) window points

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.35 92/11/06 19:00:05 cer Exp $
+;; $fiHeader: menus.lisp,v 1.36 92/12/01 09:45:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -231,7 +231,7 @@
 			      max-width max-height n-rows n-columns
 			      x-spacing y-spacing
 			      cell-align-x cell-align-y
-			      pointer-documentation))
+			      pointer-documentation menu-type))
 
 ;; Are these reasonable defaults for UNIQUE-ID, CACHE-VALUE, ID-TEST, and CACHE-TEST?
 (defmethod menu-choose ((items t) &rest keys
@@ -243,7 +243,7 @@
 			     max-width max-height n-rows n-columns
 			     x-spacing y-spacing (row-wise nil)
 			     (cell-align-x ':left) (cell-align-y ':top)
-			     pointer-documentation)
+			     pointer-documentation menu-type)
   (declare (values value chosen-item gesture))
   (declare (ignore associated-window
 		   text-style default-item
@@ -251,7 +251,7 @@
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
 		   x-spacing y-spacing row-wise cell-align-x cell-align-y
-		   pointer-documentation))
+		   pointer-documentation menu-type))
   (declare (dynamic-extent keys))
   (unless (zerop (length items))
     (apply #'frame-manager-menu-choose (frame-manager *application-frame*) items keys)))
@@ -269,7 +269,7 @@
 		 max-width max-height n-rows n-columns
 		 x-spacing y-spacing (row-wise nil)
 		 (cell-align-x ':left) (cell-align-y ':top)
-		 pointer-documentation)
+		 pointer-documentation menu-type)
   (declare (values value chosen-item gesture))
   (declare (ignore keys))
   (flet ((present-item (item stream)
@@ -302,7 +302,8 @@
 		      :cache cache
 		      :unique-id unique-id :id-test id-test
 		      :cache-value cache-value :cache-test cache-test
-		      :pointer-documentation pointer-documentation))
+		      :pointer-documentation pointer-documentation
+		      :menu-type menu-type))
 		(cond ((menu-item-items item)
 		       ;; Set the new item list, then go back through the loop.
 		       ;; Don't cache, because that will cause us to see the same
@@ -352,7 +353,8 @@
 				     ;; for use by HIERARCHICHAL-MENU-CHOOSE
 				     leave-menu-visible
 				     (default-presentation nil)
-				     pointer-documentation)
+				     pointer-documentation menu-type)
+  (declare (ignore menu-type))
   (flet (#+Allegro
 	 (abort-menu-handler () 
 	   (return-from menu-choose-from-drawer nil)))
@@ -468,7 +470,8 @@
 				      (cache-value items) (cache-test #'equal)
 				      max-width max-height n-rows n-columns
 				      x-spacing y-spacing (row-wise nil)
-				      (cell-align-x ':left) (cell-align-y ':top))
+				      (cell-align-x ':left) (cell-align-y ':top)
+				      menu-type)
   (declare (values value chosen-item gesture))
   (flet ((present-item (item stream)
 	   (present item presentation-type :stream stream)))
@@ -477,39 +480,43 @@
 			      (printer printer)
 			      (t #'print-menu-item))))
       (with-menu (menu associated-window :label label)
+	(reset-frame (pane-frame menu) :title label)
 	(with-text-style (menu text-style)
-	  (multiple-value-bind (item gesture)
-	      (flet ((menu-choose-body (stream presentation-type)
-		       (draw-standard-menu stream presentation-type items default-item
-					   :item-printer item-printer
-					   :max-width max-width :max-height max-height
-					   :n-rows n-rows :n-columns n-columns
-					   :x-spacing x-spacing :y-spacing y-spacing 
-					   :row-wise row-wise
-					   :cell-align-x cell-align-x
-					   :cell-align-y cell-align-y)))
-		(declare (dynamic-extent #'menu-choose-body))
-		(menu-choose-from-drawer
-		  menu 'menu-item #'menu-choose-body
-		  :x-position x-position :y-position y-position
-		  :leave-menu-visible t
-		  :cache cache
-		  :unique-id unique-id :id-test id-test
-		  :cache-value cache-value :cache-test cache-test))
-	    (cond ((menu-item-items item)
-		   (with-bounding-rectangle* (ml mt mr mb) menu
-		     (declare (ignore ml mb))
-		     ;;--- How to pass on LABEL, PRINTER, and PRESENTATION-TYPE?
-		     (hierarchical-menu-choose
-		       (menu-item-items item)
-		       :associated-window associated-window
-		       :text-style text-style
-		       :x-position mr :y-position mt
-		       :cache cache
-		       :unique-id unique-id :id-test id-test
-		       :cache-value cache-value :cache-test cache-test)))
-		  (t (return-from hierarchical-menu-choose
-		       (values (menu-item-value item) item gesture))))))))))
+	  (with-end-of-line-action (menu :allow)
+	    (multiple-value-bind (item gesture)
+		(flet ((menu-choose-body (stream presentation-type)
+			 (draw-standard-menu stream presentation-type items default-item
+					     :item-printer item-printer
+					     :max-width max-width :max-height max-height
+					     :n-rows n-rows :n-columns n-columns
+					     :x-spacing x-spacing :y-spacing y-spacing 
+					     :row-wise row-wise
+					     :cell-align-x cell-align-x
+					     :cell-align-y cell-align-y)))
+		  (declare (dynamic-extent #'menu-choose-body))
+		  (menu-choose-from-drawer
+		    menu 'menu-item #'menu-choose-body
+		    :x-position x-position :y-position y-position
+		    :leave-menu-visible t
+		    :cache cache
+		    :unique-id unique-id :id-test id-test
+		    :cache-value cache-value :cache-test cache-test
+		    :menu-type menu-type))
+	      (cond ((menu-item-items item)
+		     (with-bounding-rectangle* (ml mt mr mb) menu
+		       (declare (ignore ml mb))
+		       ;;--- How to pass on LABEL, PRINTER, and PRESENTATION-TYPE?
+		       (hierarchical-menu-choose
+			 (menu-item-items item)
+			 :associated-window associated-window
+			 :text-style text-style
+			 :x-position mr :y-position mt
+			 :cache cache
+			 :unique-id unique-id :id-test id-test
+			 :cache-value cache-value :cache-test cache-test
+			 :menu-type menu-type)))
+		    (t (return-from hierarchical-menu-choose
+			 (values (menu-item-value item) item gesture)))))))))))
 
 
 ;;; Static menus
@@ -578,7 +585,7 @@
 (defmethod menu-choose ((static-menu static-menu)
 			&rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
-			     label text-style pointer-documentation
+			     label text-style pointer-documentation menu-type
 			&allow-other-keys)
   (declare (values value chosen-item gesture))
   (declare (dynamic-extent keys))
@@ -609,7 +616,8 @@
 	      :unique-id name
 	      :cache-value menu-contents
 	      :default-presentation default-presentation
-	      :pointer-documentation pointer-documentation)
+	      :pointer-documentation pointer-documentation
+	      :menu-type menu-type)
 	  (cond ((menu-item-items item)
 		 (with-keywords-removed (keys keys '(:default-item))
 		   (apply #'menu-choose (menu-item-items item) keys)))
