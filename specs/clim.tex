@@ -1,0 +1,107 @@
+% -*- Mode: LaTeX -*-
+
+\documentstyle{report}          % tried to use [twoside] to no avail  --SWM
+\pagestyle{headings}
+
+\title{Common Lisp Interface Manager \\
+       Release 2.0 Specification}
+
+\author{Scott McKay ({\tentt SWM@Riverside.SCRC.Symbolics.COM}) \\
+        William York ({\tentt York@Fuji.ILA.COM}) \\ 
+        {\tenit with contributions by} \\
+        {\tenrm John Aspinall ({\tentt JGA@Riverside.SCRC.Symbolics.COM})} \\
+        {\tenrm Dennis Doughty ({\tentt Doughty@ILeaf.COM})} \\
+        {\tenrm Charles Hornig ({\tentt Hornig@Riverside.SCRC.Symbolics.COM})} \\
+        {\tenrm Richard Lamson ({\tentt RLamson\%UMAB.BitNet@MITVMA.MIT.EDU})} \\
+        {\tenrm David Linden ({\tentt Linden@CRL.DEC.COM})} \\
+        {\tenrm David Moon ({\tentt Moon@Cambridge.Apple.COM})} \\
+        {\tenrm Ramana Rao ({\tentt rao@PARC.Xerox.COM})}}
+
+\date{\today}
+\markright{CLIM 2.0 Specification}
+
+\makeindex
+
+\input psfig+
+\include{spec-macros}
+
+%% Initialize it to \psfigtrue if your DVI to PostScript converter works
+\newif \ifpsfig \psfigfalse
+
+\addtolength{\oddsidemargin}{-.5in}
+\addtolength{\evensidemargin}{-.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\begin{document}
+
+\maketitle
+
+\parindent 0pc
+\parskip   1pc
+
+%% Roman-numbered pages...
+\renewcommand{\thepage}{\roman{page}}
+
+\pagebreak
+\tableofcontents
+
+\pagebreak
+\input{acknowledgments.tex}
+
+\pagebreak
+\setcounter{page}{1}
+\renewcommand{\thepage}{\arabic{page}}
+
+%% Now the document proper...
+\part{Overview and Conventions}
+\input{overview.tex}
+\input{conventions.tex}
+
+\part{Geometry Substrate}
+\input{regions.tex}
+\input{bboxes.tex}
+\input{transforms.tex}
+
+\part{Windowing Substrate}
+\input{silica.tex}
+
+\part{Sheet and Medium Output Facilities}
+\input{drawing-options.tex}
+\input{text-styles.tex}
+\input{graphics.tex}
+\input{colors.tex}
+\input{designs.tex}
+
+\part{Extended Stream Output Facilities}
+\input{extended-output.tex}
+\input{output-recording.tex}
+\input{table-formatting.tex}
+\input{graph-formatting.tex}
+\input{bordered-output.tex}
+\input{text-formatting.tex}
+\input{redisplay.tex}
+
+\part{Extended Stream Input Facilities}
+\input{extended-input.tex}
+\input{presentation-types.tex}
+\input{input-editing.tex}
+\input{menus.tex}
+\input{dialogs.tex}
+
+\part{Building Applications}
+\input{commands.tex}
+\input{frames.tex}
+\input{panes.tex}
+\input{gadgets.tex}
+
+\part{Appendices}
+\appendix
+\input{glossary.tex}
+\input{clim-sys.tex}
+\input{gray-streams.tex}
+\input{encapsulating-streams.tex}
+\input{changes.tex}
+
+\end{document}

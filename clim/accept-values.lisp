@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.49 92/12/07 12:13:56 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.50 92/12/16 16:45:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1117,9 +1117,6 @@
 
 (define-command-table accept-values-pane)
 
-;;--- There must be a better way to do this
-(defvar *pane-to-avv-stream-table* (make-hash-table))
-
 ;; No need for AVV panes to deal with *CURRENT-ACCEPT-VALUES-TICK*, since it is
 ;; guaranteed that those queries will be valid at all times.
 (defun accept-values-pane-displayer (frame pane
@@ -1134,10 +1131,12 @@
 			((:left) :left)
 			((nil) nil)))
   (let* ((stream-and-record (and (not *frame-layout-changing-p*)
-				 (gethash pane *pane-to-avv-stream-table*)))
+				 (gethash pane (or (frame-pane-to-avv-stream-table frame)
+						   (setf (frame-pane-to-avv-stream-table frame) (make-hash-table))))))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
-    (cond (avv-stream
+    (cond ((and avv-stream
+		(output-record-stream avv-record))
 	   (with-deferred-gadget-updates
 	     (letf-globally (((stream-default-view avv-stream) 
 			      (frame-manager-dialog-view (frame-manager frame))))
@@ -1145,7 +1144,7 @@
 	       (when resynchronize-every-pass
 		 (redisplay avv-record avv-stream :check-overlapping check-overlapping)))))
 	  (t
-	   (accept-values-pane-displayer-1 frame pane displayer align-prompts)))))
+	   (accept-values-pane-displayer-1 frame pane displayer align-prompts )))))
 
 (defun accept-values-pane-displayer-1 (frame pane displayer align-prompts)
   (let ((avv-stream (make-instance 'accept-values-stream 
@@ -1164,13 +1163,13 @@
 		      (funcall displayer frame avv-stream))
 		    (funcall displayer frame avv-stream))))))
     (unless *sizing-application-frame*
-      (setf (gethash pane *pane-to-avv-stream-table*)
+      (setf (gethash pane (frame-pane-to-avv-stream-table frame))
 	    (cons avv-stream avv-record)))))
 
 (define-command (com-edit-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)
      (pane 't))
-  (accept-values-query-edit-value choice (car (gethash pane *pane-to-avv-stream-table*))))
+  (accept-values-query-edit-value choice (car (gethash pane (frame-pane-to-avv-stream-table (pane-frame pane))))))
 
 (define-presentation-to-command-translator edit-avv-pane-choice
     (accept-values-choice com-edit-avv-pane-choice accept-values-pane
@@ -1186,7 +1185,7 @@
 (define-command (com-modify-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)
      (pane 't))
-  (accept-values-query-edit-value choice (car (gethash pane *pane-to-avv-stream-table*))
+  (accept-values-query-edit-value choice (car (gethash pane (frame-pane-to-avv-stream-table (pane-frame pane))))
 			:modify t))
 
 (define-presentation-to-command-translator modify-avv-pane-choice
@@ -1218,8 +1217,8 @@
      (pane 't))
   (funcall (slot-value button 'continuation))
   (when (slot-value button 'resynchronize)
-    (let* ((stream-and-record (and (not *frame-layout-changing-p*)
-				   (gethash pane *pane-to-avv-stream-table*)))
+    (let* ((stream-and-record (and (not *frame-layout-changing-p*)  
+				   (gethash pane (frame-pane-to-avv-stream-table (pane-frame pane)))))
 	   (avv-stream (car stream-and-record))
 	   (avv-record (cdr stream-and-record)))
       (when avv-stream

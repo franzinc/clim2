@@ -1,0 +1,7 @@
+*.ps
+*.ps.Z
+*.dvi
+*.toc
+*.idx
+*.aux
+*.log

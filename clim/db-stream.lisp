@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.41 92/12/14 15:02:03 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.42 92/12/16 16:46:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -308,6 +308,9 @@
 
 (defmethod compose-space :before ((pane command-menu-pane) &key width height)
   (declare (ignore width height))
+  ;;------ !!!!!!!!!!!!!!!!!!!!!!
+  ;;
+  #+ignore
   (window-clear pane))
 
 

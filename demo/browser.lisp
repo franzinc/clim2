@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.16 92/11/06 19:02:39 cer Exp $
+;; $fiHeader: browser.lisp,v 1.17 92/12/03 10:28:28 cer Exp $
 
 (in-package :clim-browser)
 
@@ -843,12 +843,22 @@
 (defun draw-line-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
   (declare (dynamic-extent drawing-options))
   (declare (ignore from-node to-node))
-  (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
+  (updating-output (stream
+		    :unique-id (list from-node to-node)
+		    :id-test #'equal
+		    :cache-value (list x1 y1 x2 y2)
+		    :cache-test #'equal)
+    (apply #'draw-line* stream x1 y1 x2 y2 drawing-options)))
 
 (defun draw-arrow-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
   (declare (dynamic-extent drawing-options))
   (declare (ignore from-node to-node))
-  (apply #'draw-arrow* stream x1 y1 x2 y2 drawing-options))
+  (updating-output (stream
+		    :unique-id (list from-node to-node)
+		    :id-test #'equal
+		    :cache-value (list x1 y1 x2 y2)
+		    :cache-test #'equal)
+    (apply #'draw-arrow* stream x1 y1 x2 y2 drawing-options)))
 
 (define-graph-displayer :graphical (browser stream)
   (with-slots (root-nodes merge-duplicate-nodes browser-options grapher-args) browser
@@ -1106,6 +1116,7 @@
 (define-browser-command (com-redisplay :menu t) ()
   (redisplay-frame-pane *application-frame* 'graph :force-p t))
 
+#-Allegro
 (define-browser-command (com-hardcopy-graph :name t :menu "Hardcopy")
     (&key (file 'pathname
 	   :default (make-pathname :name "GRAPH-HARDCOPY"
@@ -1126,6 +1137,25 @@
 	(terpri stream)
 	(terpri stream)
 	(display-graph-pane *application-frame* stream)))))
+
+#+Allegro
+(define-browser-command (com-hardcopy-graph :name t :menu "Hardcopy")
+    (&key (printer '(member :|lw| :|lw2| :|lw3|)
+		    :display-default t
+		    :default :lw2)
+	  (orientation '(member :landscape :portrait)
+		       :default :portrait
+		       :documentation "Orientation to use on the paper"))
+  (with-open-stream 
+      (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer) :input :stream :wait nil))
+    (with-output-to-postscript-stream (stream pipe 
+					      :orientation orientation
+					      :multi-page t)
+      (with-text-style (stream '(:sans-serif :bold :large))
+	(display-title-pane *application-frame* stream))
+      (terpri stream)
+      (terpri stream)
+      (display-graph-pane *application-frame* stream))))
 
 (define-browser-command (com-set-graph-type :name t)
     ((type `(member ,@*graph-displayer-types*)))

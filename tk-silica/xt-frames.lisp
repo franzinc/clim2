@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.24 92/12/01 09:47:12 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.25 92/12/16 16:50:50 cer Exp $
 
 
 (in-package :xm-silica)
@@ -54,6 +54,7 @@
 		   'clim-internals::pointer-documentation-pane
 		   :max-width +fill+
 		   ;;--- This should be one line height in some text style
+		   :max-height 15
 		   :height 15))))
       (cond ((and menu-bar-pane pointer-doc-pane)
 	     (vertically () menu-bar-pane pane pointer-doc-pane))

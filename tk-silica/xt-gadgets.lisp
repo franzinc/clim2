@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.26 92/12/03 10:30:19 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.27 93/01/11 15:46:24 colin Exp $
 
 (in-package :xm-silica)
 
@@ -174,14 +174,18 @@
 (defun compute-new-scroll-bar-values (scroll-bar mmin mmax value slider-size)
   (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
+    (let ((value
+	   (fix-coordinate
+	    (compute-symmetric-value
+	     smin smax (* value (- 1 slider-size)) mmin mmax)))
+	  (size
+	   (max 1
+		(fix-coordinate
+		 (compute-symmetric-value
+		  smin smax slider-size mmin mmax)))))
     (values 
-     (fix-coordinate
-      (compute-symmetric-value
-       smin smax (* value (- 1 slider-size)) mmin mmax))
-     (max 1
-	  (fix-coordinate
-	   (compute-symmetric-value
-	    smin smax slider-size mmin mmax))))))
+     (min value (- mmax size))
+     size))))
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
   (if (eq mp:*current-process* (port-process port))

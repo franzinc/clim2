@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.52 92/12/17 15:33:30 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.53 93/01/11 15:45:28 colin Exp $
 
 (in-package :clim-user)
 
@@ -1215,6 +1215,12 @@ people, shall not perish from the earth.
     (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
     #'(lambda (o s)
 	(let ((text (format nil "~A" (clos::class-name o))))
+	  #+ignore
+	  (with-output-as-gadget (s)
+	    (make-pane 'push-button :label text
+		       :activate-callback #'(lambda (gadget) (print
+							      text excl:*initial-terminal-io*))))
+	  #-ignore
 	  (multiple-value-bind (width height) (text-size s text)
 	    (with-new-output-record (s)
 	      (draw-rectangle* s 0 0 width height :filled t :ink +red+)
@@ -3144,7 +3150,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:panes 
    (caption-pane :application
 	      :scroll-bars :vertical
-		 :height 50
+		 :height 50 :max-height 50
 		 :output-record
 		 (make-instance (clim-tests-history-class *application-frame*)))
    (display-pane :application

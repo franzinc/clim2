@@ -4,4 +4,6 @@ stub-olit.c
 stub-motif.c
 Clim-sizes.n
 slim
-
+slim.ol
+coverage-report.lisp
+postscript.output

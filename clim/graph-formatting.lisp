@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.21 92/12/07 12:14:20 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.22 92/12/16 16:46:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -565,7 +565,11 @@ circular graphs without accounting for this case.
 		   ;; This guarantees that the next phase will have at least one
 		   ;; node from which to start.  Otherwise the entire graph gets
 		   ;; lost.  If the first node isn't really a root, it will be
-		   ;; deleted from the set of roots when the cycle is detected.
+		   ;; deleted from the set of roots when the cycle is
+		   ;; detected.
+		   ;;;-- 
+		   (setf (graph-node-parents child-record) nil
+			 (graph-node-children child-record) nil)
 		   (when (null root-nodes)
 		     (push child-record root-nodes))
 		   (old-node-function parent-object parent-record child-object child-record)))

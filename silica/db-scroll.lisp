@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.38 92/12/07 12:15:15 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.39 92/12/16 16:48:42 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,7 +11,7 @@
 
 ;; The abstract scroller pane class
 ;;--- Need to be able to specify horizontal and vertical separately
-(defclass scroller-pane (foreground-background-and-text-style-mixin pane)
+(defclass scroller-pane (client-overridability-mixin foreground-background-and-text-style-mixin pane)
     ((scroll-bars :initarg :scroll-bars
 		  :reader scroller-pane-scroll-bar-policy)
      viewport

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.11 92/12/03 10:28:25 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.12 92/12/16 16:47:20 cer Exp $
 
 (in-package :clim-demo)
 
@@ -173,8 +173,8 @@
       (with-output-as-presentation (pane (list i j) 'bitmap-editor-cell)
 	(draw-rectangle* pane (+ x 2) 
 			 (+ y 2)
-			 (+ x (- cell-size 2))
-			 (+ y (- cell-size 2))
+			 (+ x (- cell-size 1))
+			 (+ y (- cell-size 1))
 			 :ink (nth  (aref array i j) colors)
 			 :filled t)))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drag-and-drop.lisp,v 1.8 92/11/19 14:17:27 cer Exp $
+;; $fiHeader: drag-and-drop.lisp,v 1.9 92/12/03 10:26:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -258,14 +258,15 @@
 				    (presentation-object destination) destination
 				    doc-stream)))))))
 	      (:pointer-motion (window x y)
-	       (highlight destination last-window :unhighlight)
-	       (setq destination nil)
-	       (when last-x
-		 (feedback last-window last-x last-y :unhighlight))
-	       (setq last-x x
-		     last-y y
-		     last-window window)
-	       (feedback window x y :highlight))))
+		  (when (typep window 'clim-stream-sheet)
+		    (highlight destination last-window :unhighlight)
+		    (setq destination nil)
+		    (when last-x
+		      (feedback last-window last-x last-y :unhighlight))
+		    (setq last-x x
+			  last-y y
+			  last-window window)
+		    (feedback window x y :highlight)))))
 	  (when last-x
 	    (feedback last-window last-x last-y :unhighlight)))
 	(setf (pointer-cursor pointer) old-pointer-cursor))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.55 92/12/14 15:02:07 cer Exp $
+;; $fiHeader: frames.lisp,v 1.56 92/12/16 16:46:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -55,7 +55,8 @@
      (layout :initarg :layouts :reader frame-layouts)
      (top-level-process :initform nil)
      (command-queue :initform (make-locking-queue) :reader frame-command-queue)
-     (input-buffer :initform nil :initarg :input-buffer :reader frame-input-buffer))
+     (input-buffer :initform nil :initarg :input-buffer :reader frame-input-buffer)
+     (pane-to-avv-stream-table :initform nil :accessor frame-pane-to-avv-stream-table))
   (:default-initargs :pointer-documentation nil
 		     :layouts nil
 		     :resize-frame nil

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.35 92/12/14 15:04:28 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.36 92/12/16 16:50:43 cer Exp $
 
 
 (in-package :xm-silica)
@@ -242,31 +242,57 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-menu-bar))
-  (values 'tk::control nil))
+  (values 'tk::draw-area nil))
 
 (defmethod compose-space ((mb openlook-menu-bar) &key width height)
-  (declare (ignore width height))
-  ;;-- OLIT sucks
-  ;;-- We need to take into account the width and the height and
-  ;;-- compute the right size. We should use a fixed width layout and
-  ;;-- then set the measure. Alternatively, we should ditch the
-  ;;-- control area and do everything at the silica level.
-  (let ((children (tk::widget-children (sheet-direct-mirror mb)))
-	(width 0)
-	(height 0))
-    (dolist (child children)
-      (multiple-value-bind
-	  (ignore-x igore-y w h)
-	  (xt::widget-best-geometry child)
-	(declare (ignore ignore-x igore-y))
-	(maxf height h)
-	(incf width w)))
-    (multiple-value-bind (h-pad v-pad h-space)
-	(tk::get-values (sheet-direct-mirror mb)
-			:h-pad :v-pad :h-space)
-      (incf width (+ (* 2 h-pad) (* (1- (length children)) h-space)))
-      (incf height (* 2 v-pad)))
-    (make-space-requirement :width width :height height)))
+  (declare (ignore height))
+  (multiple-value-bind (max-width height)
+        (map-over-menubar mb width)
+    (make-space-requirement :width max-width :height height)))
+
+(defmethod allocate-space ((mb openlook-menu-bar) width height)
+  (declare (ignore height))
+  (flet ((configure-child (child x y width height)
+	   (tk::configure-widget child :x x :y y :width width :height height)))
+    (declare (dynamic-extent #'configure-child))
+    (map-over-menubar mb width #'configure-child)))
+
+(defun map-over-menubar (mb width &optional fn)
+  (let ((h-pad 4)
+	(v-pad 4) 
+	(h-space 4) 
+	(v-space 4))
+    (let ((children (tk::widget-children (sheet-direct-mirror mb)))
+	  (y v-pad)
+	  (max-width 0))
+      (loop
+	(when (null children) (return nil))
+	(let ((x h-space)
+	      (max-height 0)
+	      (first t))
+	  ;; Iterate over one row until we run out of space
+	  (loop
+	    (when (null children) (return nil))
+	    (let ((child (car children)))
+	      (multiple-value-bind
+		  (ignore-x igore-y w h)
+		  (xt::widget-best-geometry child)
+		(declare (ignore ignore-x igore-y))
+		  (unless first (incf x v-space))
+		  (when width
+		    (unless (or first (<= (+ w x) (- width h-space)))
+		      (return nil)))
+		  (when fn (funcall fn child x y w h))
+		(incf x w)
+		(maxf max-height h))
+	      (pop children))
+	    (setq first nil))
+	  (maxf max-width (+ x h-pad))
+	  (incf y max-height)
+	  (when children (incf y v-space))))
+      (incf y v-space)
+      (values max-width y))))
+
 
     
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-menu-bar))
@@ -450,11 +476,16 @@
 
 (defmethod compose-space ((tf openlook-text-field) &key width height)
   (declare (ignore width height))
-  (let ((string (gadget-value tf))
-	(font (tk::get-values (sheet-mirror tf) :font)))
-    (if (zerop (length string)) (setq string "fooofofofo"))
-    (make-space-requirement :width (* (length string) (tk::font-width font))
-			    :height (+ 5 (tk::font-height font)))))
+  (let ((m (sheet-direct-mirror tf)))
+    (if (gadget-editable-p tf)
+	(multiple-value-bind (font chars-visible)
+	    (tk::get-values m :font :chars-visible)
+	  (make-space-requirement :width (* (max 1 chars-visible) (tk::font-width font))
+				  :height (+ 7 (tk::font-height font))))
+      (multiple-value-bind (string font)
+	  (tk::get-values m :string :font)
+	(make-space-requirement :width (* (length string) (tk::font-width font))
+				:height (+ 7 (tk::font-height font)))))))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)

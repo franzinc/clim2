@@ -1,8 +1,7 @@
-# $fiHeader: Makefile,v 1.71 92/12/14 15:01:50 cer Exp $
+# $fiHeader: Makefile,v 1.72 93/01/11 15:44:38 colin Exp $
 #
 #  Makefile for CLIM 2.0
 #
-#CL	= /usr/tech/cer/cl/src/dcl
 CL	= /net/vapor/scm2/4.2.beta/src/dcl
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
@@ -121,7 +120,7 @@ OL_LICENSED_OBJS = clim-olit.o clim-olit_d.o
 XM_LICENSED_OBJS = clim-motif_d.o clim-motif.o 
 
 MOTIF_OBJS= clim-motif_d.o clim-motif.o xtsupport.o stub-xt.o stub-x.o stub-x.o
-OPENLOOK_OBJS= clim-olit_d.o clim-olit.o xtsupport.o stub-xt.o stub-x.o stub-x.o 
+OPENLOOK_OBJS= clim-olit_d.o clim-olit.o xtsupport.o stub-xt.o stub-x.o stub-x.o olsupport.o
 
 CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 

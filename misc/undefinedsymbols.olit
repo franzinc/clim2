@@ -1,3 +1,14 @@
+OlAddCallback
+OlMenuPopdown
+OlMenuPost
+OlRegisterHelp
+OlSetErrorHandler
+OlSetInputFocus
+OlSetVaDisplayErrorMsgHandler
+OlSetVaDisplayWarningMsgHandler
+OlSetWarningHandler
 OlTextEditClearBuffer
-OlTextEditReadSubString
+OlTextEditGetLastPosition
 OlTextEditInsert
+OlTextEditReadSubString
+OlToolkitInitialize

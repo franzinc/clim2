@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.41 92/11/19 14:17:37 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.42 92/12/03 10:26:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -320,7 +320,8 @@
 	       (buttons
 		 (map 'list
 		      #'(lambda (element)
-			  (let ((button
+			  (let* ((value (funcall value-key element))
+				 (button
 				  (apply #'make-pane 'toggle-button 
 				    :label 
 				      (let ((name (funcall name-key element)))
@@ -332,13 +333,13 @@
 				    :value
 				      (and default-supplied-p
 					   (funcall test 
-						    (funcall value-key element)
+						    value
 						    (funcall value-key default)))
-				    :id element
+				    :id value
 				    toggle-options)))
 			    (when (and default-supplied-p
 				       (funcall test 
-						(funcall value-key element)
+						value
 						(funcall value-key default)))
 			      (setq current-selection button))
 			    button))
@@ -837,16 +838,16 @@
 ;;--- These should be defined in the standard DEFOPERATION way...
 
 (defmethod sheet-region ((stream standard-encapsulating-stream))
-  (sheet-parent (encapsulating-stream-stream stream)))
+  (sheet-region (encapsulating-stream-stream stream)))
 
 (defmethod sheet-transformation ((stream standard-encapsulating-stream))
-  (sheet-parent (encapsulating-stream-stream stream)))
+  (sheet-transformation (encapsulating-stream-stream stream)))
 
 (defmethod sheet-parent ((stream standard-encapsulating-stream))
   (sheet-parent (encapsulating-stream-stream stream)))
 
 (defmethod sheet-children ((stream standard-encapsulating-stream))
-  (sheet-parent (encapsulating-stream-stream stream)))
+  (sheet-children (encapsulating-stream-stream stream)))
 
 (defmethod sheet-medium ((stream standard-encapsulating-stream))
   (sheet-medium (encapsulating-stream-stream stream)))
