@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.38 1993/07/22 15:39:42 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.39 1993/09/17 19:07:14 cer Exp $
 
 (in-package :xm-silica)
 
@@ -194,3 +194,28 @@
 	 (shell (and m (tk::widget-parent m))))
     (call-next-method)
     (when shell (tk::destroy-widget shell))))
+
+
+(defmethod port-move-frame :after ((port motif-port) frame x y)
+  (fix-coordinates x y)
+  (check-type x (signed-byte 16))
+  (check-type y (signed-byte 16))
+  ;;--what is the right thing to do?
+  (let ((m (sheet-direct-mirror (frame-top-level-sheet frame))))
+    (when (and (typep m 'xt::xm-bulletin-board)
+	       (not (xt::is-managed-p m)))
+      (let ((z (or (assoc 'when-mapped-callback (xt::widget-callback-data m))
+		   (car (push (cons 'when-mapped-callback nil)
+			      (xt::widget-callback-data m))))))
+	(setf (cdr z) (list :x x :y y))))))
+
+
+(defun map-callback-function (bb)
+  (let ((z (assoc 'when-mapped-callback (xt::widget-callback-data bb))))
+    (when z
+      (destructuring-bind (&key x y) (cdr z)
+	(tk::set-values bb :default-position nil :x x :y y))
+      (setf (xt::widget-callback-data bb) 
+	(delete z (xt::widget-callback-data bb))))))
+
+

@@ -1,4 +1,5 @@
-(in-package :clim-user)
+
+(in-package :clim-test)
 
 (defvar *catch-errors-in-tests* t)
 (defvar *invocation* nil)
@@ -687,10 +688,10 @@
 (defun test-it (&optional filename (errorp *catch-errors-in-tests*))
   (let* ((file (pathname (or filename (format nil "/tmp/foofile~A" (gensym))))))
     (exercise-frame 'test-it
-		    'clim-tests
+		    'clim-user::clim-tests
 		    '(:width 600 :height 400 :left 0 :top 0)
-		    `(((run-benchmarks-to-dummy-file :file ,file) :timeout 1800))
-		    `(exit-clim-tests)
+		    `(((clim-user::run-benchmarks-to-dummy-file :file ,file) :timeout 1800))
+		    `(clim-user::exit-clim-tests)
 		    :error errorp)
     (unless filename 
       (when (probe-file file)
@@ -850,7 +851,7 @@
 	   ;;-- it would be nice to restrict it to the invocation process
 	   (declare (ignore invocation))
 	   (if (or (atom command)
-		   (equal command '(exit-clim-tests)))
+		   (equal command '(clim-user::exit-clim-tests)))
 	       (funcall continuation)
 	     (progn
 	       (unwind-protect

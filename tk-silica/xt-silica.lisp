@@ -20,14 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.90 1993/09/22 18:26:47 layer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.91 1993/10/26 03:22:58 colin Exp $
 
 (in-package :xm-silica)
 
 (defclass xt-port (basic-port)
     ((application-shell :reader port-application-shell)
      (display :reader port-display)
-     (context :reader port-context)     
+     (context :reader port-context)
+     ;; access to port-copy-gc should be within a without-scheduling
      (copy-gc :initform nil)
      (copy-gc-depth-1 :initform nil)
      (stipples :initform nil :accessor port-stipples)
@@ -54,6 +55,8 @@
 (defmethod port-name ((port xt-port))
   (ff:char*-to-string 
    (x11:display-display-name (port-display port))))
+
+;; access to port-copy-gc should be within a without-scheduling
 
 (defmethod port-copy-gc ((port xt-port))
   ;;-- Assume 1-1 port-graft mapping?
@@ -681,7 +684,10 @@
     ;;--- hack alert
     ;;**** Not needed any more [clim2bug462]
     ;; (popup-frame-p sheet)
-    (find-shell-of-calling-frame sheet))
+    (let ((shell (find-shell-of-calling-frame sheet)))
+      (and shell
+	   (eq (xt::widget-display shell) (port-display port))
+	   shell)))
    (port-application-shell port)))
 
 (defmethod find-shell-class-and-initargs ((port xt-port) (sheet t))
@@ -1813,7 +1819,10 @@ the geometry of the children. Instead the parent has control. "))
   (fix-coordinates x y)
   (check-type x (signed-byte 16))
   (check-type y (signed-byte 16))
-  (tk::set-values (frame-shell frame) :x x :y y))
+  ;;--what is the right thing to do?
+  (let ((m (sheet-direct-mirror (frame-top-level-sheet frame))))
+    (tk::set-values m :x x :y y)))
+
 
 (defmethod port-resize-frame ((port xt-port) frame width height)
   (check-type width (signed-byte 16))

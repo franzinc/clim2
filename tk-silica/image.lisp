@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.15 1993/09/07 21:47:04 colin Exp $
+;; $fiHeader: image.lisp,v 1.16 1993/09/17 19:06:57 cer Exp $
 
 (in-package :xm-silica)
 
@@ -48,27 +48,31 @@
 	(when (probe-file p)
 	  (return (setq pathname p))))))
   (let ((palette (and port (port-default-palette port))))
-    (if (member format '(:bitmap :pixmap))
-	(with-open-file (fstream pathname :direction :input)
-	  (case format
-	    (:bitmap
-	     (read-bitmap-file-1 fstream))
-	    (:pixmap
-	     (read-pixmap-file-1 fstream palette))))
-      (multiple-value-bind
-	  (format filter)
-	  (compute-filter-for-bitmap-format format)
-	(with-open-stream (fstream (excl:run-shell-command
-				    (format nil "cat ~A | ~A"
-					    (truename pathname) filter)
-				    :wait nil
-				    :error-output :stream
-				    :output :stream))
-	  (ecase format
-	    (:bitmap
-	     (read-bitmap-file-1 fstream))
-	    (:pixmap
-	     (read-pixmap-file-1 fstream palette))))))))
+    (read-image-file format pathname palette)))
+
+(defmethod read-image-file ((format (eql :bitmap)) pathname palette)
+  (declare (ignore palette))
+  (if (streamp pathname)
+      (read-bitmap-file-1 pathname)
+    (with-open-file (fstream pathname :direction :input)
+      (read-bitmap-file-1 fstream))))
+
+(defmethod read-image-file ((format (eql :pixmap)) pathname palette)
+  (if (streamp pathname)
+      (read-pixmap-file-1 pathname palette)
+    (with-open-file (fstream pathname :direction :input)
+      (read-pixmap-file-1 fstream palette))))
+
+(defmethod read-image-file ((format t) pathname palette)
+  (multiple-value-bind (format filter)
+      (compute-filter-for-bitmap-format format)
+    (with-open-stream (fstream (excl:run-shell-command
+				(format nil "cat ~A | ~A"
+					(truename pathname) filter)
+				:wait nil
+				:error-output :stream
+				:output :stream))
+      (read-image-file format fstream palette))))
 
 (defmethod compute-filter-for-bitmap-format (format)
   (error "Dont know how to convert from the format ~A" format))
@@ -223,3 +227,146 @@
   
   
 
+
+
+;; Support for the xpm stuff.
+
+(defmethod read-image-file ((format (eql :pixmap-3)) pathname palette)
+  (if (streamp pathname)
+      (read-xpm-file-1 pathname palette)
+    (with-open-file (fstream pathname :direction :input)
+      (read-xpm-file-1 fstream palette))))
+
+(defun read-xpm-file-1 (stream palette)
+  (labels ((ensure-next-char (c)
+	     (assert (eql c (skip-whitespace)) () "Expected ~S" c)
+	     (read-char stream))
+	   (read-a-token (predicate &optional (stream stream))
+	     (skip-whitespace)
+	     (let ((chars (make-array 0 :fill-pointer 0 
+				      :adjustable t
+				      :element-type 'string-char)))
+	       (loop
+		 (let ((c (peek-char nil stream nil nil)))
+		   (unless (and c (funcall predicate c))
+		     (return (coerce chars 'simple-string)))
+		   (vector-push-extend c chars))
+		 (read-char stream))))
+	   (skip-comment ()
+	     (when (eql #\/ (skip-whitespace))
+	       (read-char stream) ; /
+	       (read-char stream) ; *
+	       (loop
+		 (peek-char #\* stream)
+		 (read-char stream)
+		 (when (eql #\/ (read-char stream))
+		   (return)))))
+	   (skip-trailing-crap ()
+	     (loop
+	       (case (skip-whitespace)
+		 (#\, (read-char stream))
+		 (#\/ (skip-comment))
+		 (t (return)))))
+	   (read-a-string ()
+	     (read stream))
+	   (skip-whitespace ()
+	     (let (c)
+	       (loop
+		 (unless  (eql (setq c (peek-char t stream)) #\newline)
+		   (return c))))))
+
+    (let (name width height ncolors pixels colors cpp)
+
+      (assert (eql #\/ (skip-whitespace)) () "File must begin with a comment")
+
+      (skip-comment)
+      (assert (string= (read-a-token #'alpha-char-p) "static")
+	  () "Expected static keyword")
+      (assert (string= (read-a-token #'alpha-char-p) "char")
+	  () "Expected char keyword" )
+      (ensure-next-char #\*)
+
+      (setq name (read-a-token #'(lambda (c) (or (alphanumericp c) (eql c #\_)))))
+  
+      (ensure-next-char #\[)
+      (ensure-next-char #\])
+      (ensure-next-char #\=)
+      (ensure-next-char #\{)
+    
+      (skip-comment)
+    
+      (let ((values (read-a-string)))
+	(with-input-from-string (s values)
+	  (setq width (read s)
+		height (read s)
+		ncolors (read s)
+		cpp (read s))))
+    
+      (skip-trailing-crap)
+
+      (let ((array (make-array (list height width))))
+	
+	(dotimes (i ncolors)
+	  (let* ((string (prog1 (read-a-string) (skip-trailing-crap)))
+		    (chars (subseq string 0 cpp))
+		  (values nil))
+	    (with-input-from-string (s string :start cpp)
+	      (loop
+		(let ((key (read s nil nil)))
+		  (when (eq key nil) (return))
+		  (assert (member key '(m s g4 g c) :test #'string-equal)
+		      () "Expected either m, s, g4, g or . Got ~S" key)
+		  (push (cons key
+			      (case (peek-char t s)
+				(#\# ; rgb
+				 (read-char s)
+				 (let ((number (read-a-token #'(lambda (c) (digit-char-p c 16)) s)))
+				   (assert (= (length number) 12) ()
+				     "Expected 12 character hex string. Got ~S" number)
+				   (flet ((get-integer (i)
+					    (/ (parse-integer number
+							   :start (* i 4)
+							   :end (* (1+ i) 4)
+							   :radix 16)
+					       #.(1- (ash 1 16)))))
+				     (make-rgb-color
+				      (get-integer 0)
+				      (get-integer 1)
+				      (get-integer 2)))))
+				(#\% ; hsv
+				 (read-char s)
+				 (error "HSV color spec not implemented")
+				 )
+				(t ; color-name
+				 (read s))))
+			values))))
+	    (assert values () "Expected  key,color for ~S" chars)
+	    (push (cons chars values) colors)))
+			      
+    
+	(setq pixels (nreverse pixels))
+    
+	(dotimes (i height)
+	  (let ((string (read-a-string)))
+	    (skip-trailing-crap)
+	    (dotimes (j width)
+	      (setf (aref array i j)
+		(position
+		 (let ((index (* cpp j)))
+		   (subseq string index (+ index cpp)))
+		 colors
+		 :key #'car
+		 :test #'string=)))))
+      
+	(values array
+		(mapcar #'(lambda (name-and-versions)
+			    (let ((color (or (cdr (assoc "c" (cdr name-and-versions) :test #'string-equal))
+					     (cdr (car (cdr name-and-versions))))))
+			      (etypecase color
+				(color color)
+				(symbol (cond ((string-equal color 'none)
+					       +transparent-ink+)
+					      (palette 
+						(find-named-color color palette))
+					      (t color))))))
+			colors))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.21 1993/06/21 20:51:00 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.22 1993/08/12 16:04:02 cer Exp $
 
 (provide :climps)
 
@@ -909,7 +909,6 @@ end } def
 		  (not multi-page))
 	      (replay output-record stream (or region +everywhere+))
 	      (with-bounding-rectangle* (left top right bottom) output-record
-		(break "~S" output-record)
 		(let* ((page-width
 			 (floor (* (slot-value port 'page-width)
 				   (slot-value port 'device-units-per-inch))

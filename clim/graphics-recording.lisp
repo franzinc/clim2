@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.24 1993/09/07 21:45:57 colin Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.25 1993/10/25 16:15:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -570,3 +570,7 @@
 	    towards-x
 	    towards-y)))
 	    
+
+(define-graphics-recording draw-pixmap (ink clipping-region)
+  :bounding-rectangle
+  (values x y (+ x (pixmap-width pixmap)) (+ y (pixmap-height pixmap))))

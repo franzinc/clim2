@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.57 1993/08/12 16:02:59 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.58 1993/10/25 16:15:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -400,6 +400,7 @@
 
       (when scroll-bars
 	(setq pane (make-pane 'scroller-pane
+			      :scroll-bars scroll-bars
 			      :contents pane
 			      :name name
 			      :background background)))

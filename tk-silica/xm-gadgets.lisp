@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.83 1993/10/25 16:16:42 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.84 1993/10/26 03:22:51 colin Exp $
 
 (in-package :xm-silica)
 
@@ -519,9 +519,13 @@
 
 ;;;;;;;;;;;;;;;;
 
+(defvar *map-callback-function* (ff:register-function 'mapped-proc-callback))
 
 (defmethod add-sheet-callbacks :after ((port motif-port) (sheet t) 
                                        (widget tk::xm-bulletin-board))
+  (tk::add-callback widget 
+		    :map-callback
+		    'map-callback-function)
   (tk::add-event-handler widget
                          '(:enter-window 
                            :leave-window

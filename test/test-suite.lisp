@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.72 1993/09/17 19:06:31 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.73 1993/10/25 16:16:15 cer Exp $
 
 (in-package :clim-user)
 
@@ -1094,6 +1094,16 @@ people, shall not perish from the earth.
   (format-compose-table stream "Compose In" #'compose-in)
   (format-compose-table stream "Compose Out" #'compose-out)
   )
+
+(define-test (draw-some-pixmap graphics) (stream)
+  "Test the draw-pixmap function"
+  (let ((pixmap (with-output-to-pixmap (p stream :width 50 :height 50)
+		  (draw-rectangle* p 0 0 50 50 :ink +background-ink+)
+		  (draw-circle* p 25 25 25 :ink +red+))))
+    (formatting-item-list (stream)
+      (dotimes (i 15)
+	(formatting-cell (stream)
+	  (draw-pixmap* stream pixmap 0 0 :function i))))))
 
 
 

@@ -1,9 +1,9 @@
-# $fiHeader: Makefile.defs,v 1.24 1993/10/25 16:15:06 cer Exp $
+# $fiHeader: Makefile.defs,v 1.25 1993/10/26 03:21:22 colin Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= /usr/fi/dcl-4.2.devel.18
+CL	= /usr/fi/dcl-4.2.devel.19
 
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)

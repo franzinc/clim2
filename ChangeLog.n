@@ -1,3 +1,57 @@
+from cer: Thu Nov 18 10:42:51 PST 1993
+
+Makefile.defs			Moved to devel.19
+clim/accept-values.lisp		Added tester to accept-values-pane translators
+				to make sure the query is still valid. [clim2bug620]
+				:calling-frame/:input-buffer code checks for
+				input-protocol-mixin [clim2bug630]
+clim/basic-translators.lisp	Completions menu is now multicolumn format
+clim/command-processor.lisp	[clim2bug625] translator returns too many arguments
+clim/db-stream.lisp		scroll-bars option ignored in stream-panes
+clim/frames.lisp		[clim2bug636] Pane needs redisplay called too
+				many times
+clim/gadget-output.lisp		:current-selection initarg wrong
+clim/graphics-recording.lisp		draw-pixmap code
+clim/interactive-protocol.lisp		stream-unread only treats activation
+				char specially if its not delimeter [clim2bug622]
+				stream-yes-or-no-p stuff.[clim2rfe281]
+
+climtoys/booch.lisp		clim-test: package
+climtoys/ibtest.lisp		clim-test: package
+misc/train.lisp			clim-test: package
+misc/undefinedsymbols		Added _XFlushGCCache
+postscript/postscript-port.lisp		Removed debugging code.
+silica/gadgets.lisp		[clim2bug623] Initial radio-box/check-box button selection
+silica/graphics.lisp		draw-pixmap code
+silica/pixmaps.lisp		Added function argument copy-area functions.
+test/test-clim-tests.lisp	clim-test: package
+test/test-clim.lisp		clim-test: package
+test/test-demos.lisp		clim-test: package
+test/test-driver.lisp		clim-test: package
+test/test-suite.lisp		Added draw-pixmap tests
+test/testdcl.lisp		Added test-pkg file
+tk/gcontext.lisp		Added decode-function
+tk-silica/image.lisp		Added support for version 3 pixmaps.
+				Added read-image-file protocol
+tk-silica/ol-gadgets.lisp	[clim2bug619] super and hyper gestures not
+				turned into accelerators 
+tk-silica/xm-frames.lisp	[clim2bug619] super and hyper gestures not
+				turned into accelerators.
+				progress note only displays slider when
+				note-progress called.
+tk-silica/xm-gadgets.lisp	Added map-callback for bulletin-board [clim2bug624]
+tk-silica/xm-silica.lisp 	Added map-callback for bulletin-board [clim2bug624]
+tk-silica/xt-graphics.lisp	Locks around port-copy-gc
+				added text-style-fixed-width-p method
+				medium-draw-pixmap*
+tk-silica/xt-pixmaps.lisp	Added function argument copy-area functions.
+tk-silica/xt-silica.lisp	[clim2bug638] calling-frame problem
+				[clim2bug624] port-move-frame stuff
+utils/packages.lisp		Exported draw-pixmap functions
+xlib/xlib-funs.lisp		Added _xflushgccache
+
+
+--------------------------------------------------------------------------------
 from colin: Thu Oct 28 00:10:46 PDT 1993
 
 clim/coordinate-sorted-set.lisp

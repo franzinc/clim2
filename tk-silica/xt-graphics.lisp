@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.81 1993/09/22 21:21:26 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.82 1993/10/25 16:16:47 cer Exp $
 
 (in-package :tk-silica)
 
@@ -652,11 +652,12 @@
 			 :width width
 			 :height height
 			 :depth depth)))
-	  (tk::put-image pixmap 
-			 (if bitmap
-			     (port-copy-gc-depth-1 port)
-			   (port-copy-gc port))
-			 image)
+	  (clim-sys:without-scheduling
+	    (tk::put-image pixmap 
+			   (if bitmap
+			       (port-copy-gc-depth-1 port)
+			     (port-copy-gc port))
+			   image))
 	  (tk::destroy-image image)
 	  (values pixmap format pixels))))))
 
@@ -1903,6 +1904,11 @@
 (defmethod text-style-descent ((text-style t) (medium xt-medium))
   (tk::font-descent (text-style-mapping (port medium) text-style)))
 					
+(defmethod text-style-fixed-width-p ((text-style t) (medium xt-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    ;;-??
+    (= (x11::xfontstruct-min-bounds-width font)
+       (x11::xfontstruct-max-bounds-width font))))
 
 (defmethod medium-beep ((medium xt-medium))
   (x11:xbell (port-display (port medium)) 100))
@@ -1917,4 +1923,24 @@
   (x11:xsync (port-display port) 0))
 
 (defmacro with-medium-state-cached ((medium) &body body)
-  `(prog ,medium ,@body))
+  `(progn ,medium ,@body))
+
+
+
+(defmethod medium-draw-pixmap* ((medium xt-medium) pixmap x y
+				function)
+  ;;-- Perhaps the copy area functions need to observe the clipping region?
+  (let* ((w (pixmap-width pixmap))
+	 (h (pixmap-height pixmap))
+	 (r (region-intersection (make-bounding-rectangle x y (+ x w) (+ y h))
+				 (untransform-region
+				  (sheet-device-transformation
+				   (medium-sheet medium))
+				 (medium-device-clip-region medium)))))
+    (unless (eq r +nowhere+)
+      (with-bounding-rectangle* (left top right bottom) r
+	(copy-from-pixmap pixmap 
+			  (- left x) (- top y) (- right left ) (- bottom top)
+			  medium
+			  left top
+			  function)))))

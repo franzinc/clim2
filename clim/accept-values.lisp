@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.70 1993/09/22 21:21:04 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.71 1993/10/25 16:15:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -364,8 +364,11 @@
 			    (frame-manager-accepting-values-frame-class
 			     frame-manager))
 			;;--- What is the correct thing here?
-			:calling-frame (or (pane-frame stream) *application-frame*)
-			:input-buffer (stream-input-buffer stream)
+			:calling-frame (or (and (typep stream '(or basic-pane standard-encapsulating-stream))
+						(pane-frame stream))
+					   *application-frame*)
+			:input-buffer (and (typep stream '(or input-protocol-mixin standard-encapsulating-stream))
+					   (stream-input-buffer stream))
 			:frame-manager frame-manager
 			:pretty-name label
 			:continuation continuation
@@ -1338,6 +1341,8 @@
      :documentation "Edit this field"
      :pointer-documentation "Edit this field"
      :gesture :edit-field
+     :tester ((object presentation)
+	      (accept-values-query-valid-p object presentation))
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      ;; Echoing this is annoying, as is putting it into the command history
      :echo nil :maintain-history nil)
@@ -1355,6 +1360,8 @@
      :documentation "Modify this field"
      :pointer-documentation "Modify this field"
      :gesture :modify-field
+     :tester ((object presentation)
+	      (accept-values-query-valid-p object presentation))
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil :maintain-history nil)
     (object window)
@@ -1368,6 +1375,8 @@
     (accept-values-choice com-delete-avv-pane-choice accept-values-pane
      :documentation "Remove this field"
      :pointer-documentation "Remove this field"
+     :tester ((object presentation)
+	      (accept-values-query-valid-p object presentation))
      :gesture :delete-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil :maintain-history nil)

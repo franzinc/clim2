@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.20 1993/08/31 04:54:47 layer Exp $
+;; $fiHeader: event.lisp,v 1.21 1993/09/17 19:06:37 cer Exp $
 
 (in-package :tk)
 
@@ -111,6 +111,8 @@
   (let ((desired-display (sys:memref-int arg 0 0 :unsigned-long))
 	(desired-sequence (sys:memref-int arg 4 0 :unsigned-long))
 	(event-type (x11:xevent-type event)))
+    
+    
     (if (and (eql desired-display display)
 	     (eql desired-sequence (x11:xanyevent-serial event))
 	     (do* ((i 8 (+ i 4))
@@ -130,6 +132,9 @@
   (unless (consp types)
     (setq types (list types)))
   (let ((display (object-display display-object))
+	;;-- This is pretty scarey. Heap allocated objects are passed
+	;;-- to C which then passes them to lisp. If a GC happens we
+	;;-- could be hosed
 	(data (make-array (+ 3 (length types))
 			  :element-type '(unsigned-byte 32)))
 	(i 2)

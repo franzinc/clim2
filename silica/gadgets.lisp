@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.56 1993/08/12 16:04:16 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.57 1993/09/07 21:46:41 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -347,7 +347,8 @@
 	   ;; in order to do layout, but that will happen later.
 	   (unless (sheet-parent choice)
 	     (sheet-adopt-child rb choice))
-	   (push choice selections))
+	   (push choice selections)
+	   (setf (gadget-value choice) (eq choice (radio-box-current-selection rb))))
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
 	   (let* ((value (equal (radio-box-current-selection rb) choice))
@@ -411,7 +412,8 @@
 	   ;; in order to do layout, but that will happen later.
 	   (push choice selections)
 	   (unless (sheet-parent choice)
-	     (sheet-adopt-child cb choice)))
+	     (sheet-adopt-child cb choice))
+	   (setf (gadget-value choice) (member choice (check-box-current-selection cb))))
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
 	   (let* ((value (member choice (check-box-current-selection cb) :test #'equal))

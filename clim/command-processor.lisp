@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.23 1993/09/17 19:05:00 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.24 1993/10/25 16:15:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -81,8 +81,8 @@
 	(declare (dynamic-extent #'parse-and-collect))
 	(funcall parser-function #'parse-and-collect delimiter-parser stream)))
     (let ((final-delimiter (funcall delimiter-parser stream ':end)))
-    (values (cons command-name (nreverse arguments))
-	    final-delimiter))))
+      (values (cons command-name (nreverse arguments))
+	      final-delimiter))))
 
 (defun parse-normal-arg (stream arg-type &rest options)
   (declare (dynamic-extent options))
@@ -345,7 +345,8 @@
 		      (when partial-command
 			(setq start-location
 			      (replace-input stream " "
-					     :buffer-start start-location :rescan nil)))))
+					     :buffer-start start-location :rescan nil)))
+		      #\space))
 	       (declare (dynamic-extent #'reverse-parser #'delimiter-parser))
 	       (invoke-command-parser-and-collect
 		 command-table #'reverse-parser #'delimiter-parser stream)))

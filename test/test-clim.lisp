@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.13 1993/09/17 19:06:24 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.14 1993/10/25 16:16:10 cer Exp $
 
 
 (in-package :clim-user)
 
-(define-frame-test test-test-frame (test-frame :width 600 :height 600)
+(clim-test:define-frame-test test-test-frame (test-frame :width 600 :height 600)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -33,7 +33,7 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-test-frame0 (test-frame0)
+(clim-test:define-frame-test test-test-frame0 (test-frame0)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -41,7 +41,7 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-test-frame5 (test-frame5)
+(clim-test:define-frame-test test-test-frame5 (test-frame5)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -51,19 +51,19 @@
    (com-switch))
   (com-quit))
 
-(define-frame-test test-tf0 (tf0)
+(clim-test:define-frame-test test-tf0 (tf0)
   ()
   (com-quit))
 
-(define-frame-test test-tf99 (tf99)
+(clim-test:define-frame-test test-tf99 (tf99)
   ()
   (com-quit))
 
-(define-frame-test test-tf98 (tf98 :width 600 :height 600)
+(clim-test:define-frame-test test-tf98 (tf98 :width 600 :height 600)
   ()
   (com-quit))
 
-(define-frame-test test-tf96 (tf96)
+(clim-test:define-frame-test test-tf96 (tf96)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -71,7 +71,7 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-tf96-2 (tf96)
+(clim-test:define-frame-test test-tf96-2 (tf96)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -83,7 +83,7 @@
    (com-frob-sizes))
   (com-quit))
 
-(define-frame-test test-tf95 (tf95)
+(clim-test:define-frame-test test-tf95 (tf95)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -91,7 +91,7 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-tf94 (tf94)
+(clim-test:define-frame-test test-tf94 (tf94)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -99,7 +99,7 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-tf93 (tf93)
+(clim-test:define-frame-test test-tf93 (tf93)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -107,7 +107,7 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-tf91 (tf91)
+(clim-test:define-frame-test test-tf91 (tf91)
   ((com-clear)
    (com-make-table) 
    (com-make-table) 
@@ -115,27 +115,27 @@
    (com-make-one (:push-button)))
   (com-quit))
 
-(define-frame-test test-tf92 (tf92)
+(clim-test:define-frame-test test-tf92 (tf92)
   ()
   (com-quit))
 
 
-(define-frame-test test-tf101 (tf101)
+(clim-test:define-frame-test test-tf101 (tf101)
   ((com-make-table)
    (com-switch)
    (com-switch)
    (com-switch))
   (com-quit))
 
-(define-frame-test test-tf100 (tf100)
+(clim-test:define-frame-test test-tf100 (tf100)
   ()
   (com-quit))
 
-(define-frame-test test-tf107 (tf107)
+(clim-test:define-frame-test test-tf107 (tf107)
   ()
   (com-quit))
 
-(define-frame-test test-tf108 (tf108)
+(clim-test:define-frame-test test-tf108 (tf108)
   ()
   (com-quit))
 
@@ -143,7 +143,7 @@
   (run-printer-tests output :postscript))
 
 (defun run-printer-tests (output printer-type)
-  (exercise-frame (clim-utils:fintern "~A~A" 'printer-tests printer-type)
+  (clim-test:exercise-frame (clim-utils:fintern "~A~A" 'printer-tests printer-type)
 		  'clim-postscript-tests
 		  `(:width 600 :height 600 :printer-type ,printer-type)
 		  (mapcar #'(lambda (command)
@@ -243,7 +243,7 @@
     ()
   (enable-frame *application-frame*))
 
-(define-frame-test test-frame-test (frame-test :width 400 :height 400)
+(clim-test:define-frame-test test-frame-test (frame-test :width 400 :height 400)
   ((com-frame-test-hello)
    (:sleep 2)
    (com-frame-test-change-name)
@@ -270,7 +270,7 @@
    )
   (com-frame-test-quit))
 
-(define-frame-test test-tf109 (tf109)
+(clim-test:define-frame-test test-tf109 (tf109)
   ((com-change-set-gadget-items)
    (com-change-set-gadget-values)
    (com-change-set-gadget-items :which t)
@@ -280,11 +280,11 @@
   (com-quit))
 
 
-(define-frame-test test-tf111 (tf111)
+(clim-test:define-frame-test test-tf111 (tf111)
   ()
   (com-quit))
 
-(define-frame-test test-tf112 (tf112)
+(clim-test:define-frame-test test-tf112 (tf112)
   ()
   (com-quit))
 
@@ -315,7 +315,7 @@
     ((enabled 'boolean))
   (setf (command-enabled 'com-enable-disable-frame *application-frame*) enabled))
 
-(define-frame-test test-enable-disable-command (enable-disable-frame 
+(clim-test:define-frame-test test-enable-disable-command (enable-disable-frame 
 						:disabled-commands '(com-enable-disable-frame)
 						:width 400 :height 400)
   ((com-enable-disable-sensitive t)
@@ -324,10 +324,10 @@
    (:sleep 1))
   (com-enable-disable-quit))
 
-(push 'find-frame-manager-test *frame-tests*)
+(push 'find-frame-manager-test clim-test:*frame-tests*)
 
 (defun find-frame-manager-test ()
-  (with-test-success-expected ('find-frame-manager-test)
+  (clim-test:with-test-success-expected ('find-frame-manager-test)
     (let ((fm (find-frame-manager)))
       (with-frame-manager (fm)
 	(let ((*default-server-path* 
@@ -338,12 +338,12 @@
 
 ;;
 
-(push 'open-window-stream-test *frame-tests*)
+(push 'open-window-stream-test clim-test:*frame-tests*)
 
 ;; Stewart introduced bugs here......................
 
 (defun open-window-stream-test ()
-  (with-test-success-expected ('open-window-stream-test)
+  (clim-test:with-test-success-expected ('open-window-stream-test)
     (let* (stream1 stream2 stream3)
       (setq stream1 (open-window-stream :label "Fred" :scroll-bars :vertical))
       (window-expose stream1)
@@ -359,28 +359,28 @@
 
 ;;
 
-(push 'multiple-value-setf-test *frame-tests*)
+(push 'multiple-value-setf-test clim-test:*frame-tests*)
 
 (defun multiple-value-setf-test ()
-  (with-test-success-expected ('multiple-value-setf-test)
+  (clim-test:with-test-success-expected ('multiple-value-setf-test)
     (eval '(let ((x (make-bounding-rectangle 0 0 10 10)))
 	    (setf (bounding-rectangle* x)
 	      (values 12 12 13 14))))))
 
 ;;
 
-(push 'define-presentation-type-with-history-test *frame-tests*)
+(push 'define-presentation-type-with-history-test clim-test:*frame-tests*)
 
 (defun define-presentation-type-with-history-test ()
-  (with-test-success-expected ('define-presentation-type-with-history-test)
+  (clim-test:with-test-success-expected ('define-presentation-type-with-history-test)
     (eval `(define-presentation-type ,(gensym) nil :history t :inherit-from '((string))))))
 ;;
 
 
-(push 'filling-output-on-plain-stream-test *frame-tests*)
+(push 'filling-output-on-plain-stream-test clim-test:*frame-tests*)
 
 (defun filling-output-on-plain-stream-test ()
-  (with-test-success-expected ('filling-output-on-plain-stream-test)
+  (clim-test:with-test-success-expected ('filling-output-on-plain-stream-test)
     (filling-output (*standard-output* :fill-width '(20 :character))
       (write-string *gettysburg-address* *standard-output*))))
 
@@ -388,11 +388,11 @@
 ;;----
 
 #+ignore
-(push 'create-multiple-ports *frame-tests*)
+(push 'create-multiple-ports clim-test:*frame-tests*)
 
 #+ignore
 (defun create-multiple-ports ()
-  (with-test-success-expected ('create-multiple-ports)
+  (clim-test:with-test-success-expected ('create-multiple-ports)
     (let (port2)
       (mp::with-timeout (30) 
 	(clim-demo::start-demo :port (setq port2
@@ -417,25 +417,25 @@
     (setf (pane-text-style gadget) '(:fix :roman 10))
     (sleep 1)))
 
-(define-frame-test test-com-multi-colored-button (frame-test :width 400 :height 400)
+(clim-test:define-frame-test test-com-multi-colored-button (frame-test :width 400 :height 400)
   ((com-multi-colored-button))
   (com-frame-test-quit))
 
-(define-frame-test  test-tf108-selection (tf108)
+(clim-test:define-frame-test  test-tf108-selection (tf108)
   ((com-test-text-selection)
    (com-test-text-editable))
   (com-quit))
 
-(define-frame-test test-box-update (tf114)
+(clim-test:define-frame-test test-box-update (tf114)
   ((com-update-boxes)
    (com-update-boxes))
   (com-quit))
 
 
-(push 'accept-from-string-tests *frame-tests*)
+(push 'accept-from-string-tests clim-test:*frame-tests*)
 
 (defun accept-from-string-tests ()
-  (with-test-success-expected ('accept-from-string-tests)
+  (clim-test:with-test-success-expected ('accept-from-string-tests)
     
     (assert (eq nil (accept-from-string '(subset :a :b) "")))
     (assert (equal '(:a :b) (accept-from-string '(subset :a :b) "a,b")))
@@ -453,6 +453,6 @@
       (:no-error (&rest ignore) ignore (error "subset bogus failed")))))
 
 
-(define-frame-test test-avv-text-fields-and-list-panes-with-scroll-bars (tf115)
+(clim-test:define-frame-test test-avv-text-fields-and-list-panes-with-scroll-bars (tf115)
   ()
   (com-quit))

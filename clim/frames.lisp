@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.73 1993/09/17 19:05:06 cer Exp $
+;; $fiHeader: frames.lisp,v 1.74 1993/09/22 21:21:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1126,8 +1126,11 @@
   (let* ((display-function (pane-display-function pane))
 	 (ir (slot-value pane 'incremental-redisplay-p))
 	 (redisplay-p (if (listp ir) (first ir) ir))
-	 (check-overlapping (or (atom ir)	;default is T
-				(getf (rest ir) :check-overlapping t))))
+	 (check-overlapping (or (atom ir) ;default is T
+				(getf (rest ir) :check-overlapping
+				      t)))
+	 needs-display 
+	 clear)
     (with-simple-restart (skip-pane-redisplay "Skip redisplaying pane ~S" pane)
       (loop
 	(with-simple-restart (retry-pane-redisplay "Retry displaying pane ~S" pane)
@@ -1141,15 +1144,15 @@
 	    (cond (display-function
 		   (cond (redisplay-p
 			  (let ((redisplay-record
-				  (let ((history (stream-output-history pane)))
-				    (when history
-				      #+compulsive-redisplay
-				      (when (> (output-record-count history :fastp t) 1)
-					(cerror "Clear the output history and proceed"
-						"There is more than one element in this redisplay pane")
-					(window-clear pane))
-				      (unless (zerop (output-record-count history :fastp t))
-					(output-record-element history 0))))))
+				 (let ((history (stream-output-history pane)))
+				   (when history
+				     #+compulsive-redisplay
+				     (when (> (output-record-count history :fastp t) 1)
+				       (cerror "Clear the output history and proceed"
+					       "There is more than one element in this redisplay pane")
+				       (window-clear pane))
+				     (unless (zerop (output-record-count history :fastp t))
+				       (output-record-element history 0))))))
 			    (cond ((or (null redisplay-record) force-p)
 				   (when force-p
 				     (window-clear pane))
@@ -1157,12 +1160,11 @@
 				  (t 
 				   (redisplay redisplay-record pane 
 					      :check-overlapping check-overlapping)))))
-			 ((or force-p (pane-needs-redisplay pane))
-			  (multiple-value-bind (needs-display clear)
-			      (pane-needs-redisplay pane)
-			    (declare (ignore needs-display))
-			    (when (or force-p clear)
-			      (window-clear pane)))
+			 ((or force-p (progn (multiple-value-setq (needs-display clear)
+					       (pane-needs-redisplay pane))
+					     needs-display))
+			  (when (or force-p clear)
+			    (window-clear pane))
 			  (invoke-pane-display-function frame pane)))
 		   (force-output pane))
 		  (force-p

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.53 1993/09/07 21:45:50 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.54 1993/10/25 16:15:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -350,7 +350,7 @@
 					   '(:toggle-button-options))
 			  (list :label (and (stringp prompt) prompt)
 				:choices buttons 
-				:selection current-selection 
+				:current-selection current-selection 
 				:client stream
 				:id query-identifier 
 				:value-changed-callback

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.58 1993/09/07 21:47:44 colin Exp $
+;; $fiHeader: packages.lisp,v 1.60 1993/09/22 18:26:58 layer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2011,6 +2011,8 @@
     draw-lines*
     draw-oval
     draw-oval*
+    draw-pixmap
+    draw-pixmap*
     draw-point
     draw-point*
     draw-points
@@ -2029,6 +2031,7 @@
     medium-draw-ellipse*
     medium-draw-line*
     medium-draw-lines*
+    medium-draw-pixmap*
     medium-draw-point*
     medium-draw-points*
     medium-draw-polygon*

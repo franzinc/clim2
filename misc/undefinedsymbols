@@ -346,3 +346,4 @@ XrmStringToQuark
 XrmStringToQuarkList
 XrmUniqueQuark
 XIconifyWindow
+_XFlushGCCache

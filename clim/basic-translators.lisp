@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.16 93/03/19 09:43:14 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.17 1993/07/27 01:38:19 colin Exp $
 
 (in-package :clim-internals)
 
@@ -179,11 +179,12 @@
 			    (format stream "~A" (first possibility)))))
 		   (menu-choose-body (stream presentation-type)
 		     (declare (ignore presentation-type))
-		     (formatting-table (stream :multiple-columns t)
+		     (formatting-item-list (stream :max-height
+						   (* 0.95 (bounding-rectangle-height
+							    (graft stream))))
 		       (dolist (possibility possibilities)
-			 (formatting-row (stream)
-			   (formatting-cell (stream)
-			     (print-possibility possibility stream)))))))
+			 (formatting-cell (stream)
+			   (print-possibility possibility stream))))))
 	    (declare (dynamic-extent #'print-possibility #'menu-choose-body))
 	    (with-menu (menu window :label "Menu of completions")
 	      (with-end-of-line-action (menu :allow)

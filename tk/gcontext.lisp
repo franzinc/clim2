@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.24 1993/07/27 01:52:55 colin Exp $
+;; $fiHeader: gcontext.lisp,v 1.25 1993/09/17 19:06:40 cer Exp $
 
 (in-package :tk)
 
@@ -307,6 +307,10 @@
 		#.boole-andc1 #.boole-2 #.boole-xor #.boole-ior
 		#.boole-nor #.boole-eqv #.boole-c2 #.boole-orc2
 		#.boole-c1 #.boole-orc1 #.boole-nand #.boole-set))
+
+(defun decode-function (gc x)
+  (declare (ignore gc))
+  (svref *boole-vector* x))
 
 (defun encode-function (gc x)
    (declare (ignore gc))

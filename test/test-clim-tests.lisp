@@ -20,41 +20,41 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim-tests.lisp,v 1.2 1993/09/17 19:06:22 cer Exp $
+;; $fiHeader: test-clim-tests.lisp,v 1.3 1993/10/25 16:16:08 cer Exp $
 
 
 (in-package :clim-user)
 
 ;;; Testing stuff
 
-(define-frame-test run-clim-tests (clim-tests :width 600 :height 600)
+(clim-test:define-frame-test run-clim-tests (clim-tests :width 600 :height 600)
   (
    (:commands clim-tests-commands)
    )
    (exit-clim-tests))
 
-(define-frame-test run-clim-tests-with-r-tree (clim-tests 
-					       :width 600 :height 600  
-					       :history-class r-tree-output-history)
+(clim-test:define-frame-test run-clim-tests-with-r-tree (clim-tests 
+							 :width 600 :height 600  
+							 :history-class r-tree-output-history)
   (
    (:commands clim-tests-commands)
    )
   (exit-clim-tests))
 
 (defun do-avv-test (inv)
-  (execute-one-command inv '(com-graphics-dialog))
-  (wait-for-clim-input-state inv)
-  (clim-utils:letf-globally (((slot-value inv 'avv-frame) (get-avv-frame inv)))
+  (clim-test:execute-one-command inv '(com-graphics-dialog))
+  (clim-test:wait-for-clim-input-state inv)
+  (clim-utils:letf-globally (((slot-value inv 'clim-test::avv-frame) (clim-test:get-avv-frame inv)))
     (dotimes (i 10)
       (dolist (cmd '(("Draw / diagonal" nil)
 		     ("Draw / diagonal" t)
 		     ("Color" :red)
 		     ("Color" :green)))
-	(apply 'change-query-value cmd)))
-    (execute-one-command inv :abort)
+	(apply 'clim-test:change-query-value cmd)))
+    (clim-test:execute-one-command inv :abort)
     ))
 
-(define-command-sequence clim-tests-commands
+(clim-test:define-command-sequence clim-tests-commands
     (com-draw-some-bezier-curves)
   (:commands do-avv-test)
   (com-input-editor-tests)
@@ -103,15 +103,17 @@
   (:presentation-click display-pane integer)
   (:presentation-click display-pane integer)
   :abort
+  
+  (com-draw-some-pixmap)
   )
 
-(define-frame-test more-simple-menu-test (clim-tests 
+(clim-test:define-frame-test more-simple-menu-test (clim-tests 
 				    :width 600 :height 600)
   ((com-more-simple-menus))
   (exit-clim-tests))
 
   
-(define-frame-test more-clim-tests (clim-tests 
+(clim-test:define-frame-test more-clim-tests (clim-tests 
 				    :width 600 :height 600)
   ((com-read-image-test)
    
@@ -212,7 +214,7 @@
   (exit-clim-tests)
   )
 
-(define-frame-test test-drag-and-drop (clim-tests 
+(clim-test:define-frame-test test-drag-and-drop (clim-tests 
 					       :width 600 :height 600  
 					       :history-class r-tree-output-history
 					       )
@@ -233,8 +235,8 @@
 
 
 (defun profile-clim-tests ()
-  (let ((errorp *catch-errors-in-tests*))
-    (exercise-frame 'test-it
+  (let ((errorp clim-test:*catch-errors-in-tests*))
+    (clim-test:exercise-frame 'clim-test:test-it
 		    'clim-tests
 		    '(:width 600 :height 400)
 		    (mapcan #'(lambda (benchmark-group)
@@ -247,9 +249,9 @@
   (let ((prof::*hidden-packages* nil)
 	(prof::*significance-threshold* 0.001)
 	(prof::*fractional-significance-threshold* .002))
-    (with-test-success-expected ('run-profile-clim-tests-time)
-      (do-frame-test-with-profiling 'profile-clim-tests  :prefix prefix :type :time))
-    (with-test-success-expected ('run-profile-clim-tests-space)
-      (do-frame-test-with-profiling 'profile-clim-tests :prefix prefix
+    (clim-test:with-test-success-expected ('run-profile-clim-tests-time)
+      (clim-test:do-frame-test-with-profiling 'profile-clim-tests  :prefix prefix :type :time))
+    (clim-test:with-test-success-expected ('run-profile-clim-tests-space)
+      (clim-test:do-frame-test-with-profiling 'profile-clim-tests :prefix prefix
 				    :type :space))))
 

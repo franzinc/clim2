@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.28 93/05/05 01:39:51 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.29 1993/07/27 01:50:47 colin Exp $
 
 (in-package :silica)
 
@@ -21,14 +21,15 @@
 (defparameter *always-meaningful-drawing-options* '(:ink :clipping-region :transformation))
 
 (defparameter *drawing-option-subsets*
-	      '((:point          :line-style :line-thickness :line-unit)
-		(:line-cap       :line-style :line-thickness :line-unit
-				 :line-dashes :line-cap-shape)
-		(:line-joint     :line-style :line-thickness :line-unit
-				 :line-dashes :line-joint-shape)
-		(:line-joint-cap :line-style :line-thickness :line-unit
-				 :line-dashes :line-joint-shape :line-cap-shape)
-		(:text           :text-style :text-family :text-face :text-size)))
+    '((:point          :line-style :line-thickness :line-unit)
+      (:line-cap       :line-style :line-thickness :line-unit
+       :line-dashes :line-cap-shape)
+      (:line-joint     :line-style :line-thickness :line-unit
+       :line-dashes :line-joint-shape)
+      (:line-joint-cap :line-style :line-thickness :line-unit
+       :line-dashes :line-joint-shape :line-cap-shape)
+      (:text           :text-style :text-family :text-face :text-size)
+      (:pixmap         )))
 
 (defun non-drawing-option-keywords (arglist)
   (do ((l (cdr (member '&key arglist)) (cdr l))
@@ -47,10 +48,12 @@
   (mapcar #'(lambda (keyword) (intern (symbol-name keyword)))
 	  (cond ((null drawing-options) *all-drawing-options*)
 		((atom drawing-options)
-		 (append (or (cdr (assoc drawing-options *drawing-option-subsets*))
+		 (append (let ((x (assoc drawing-options *drawing-option-subsets*)))
+			   (unless x
 			     (warn "~S was specified in :drawing-options but is not ~
 				    a known drawing-option subset."
 				   drawing-options))
+			   (cdr x))
 			 *always-meaningful-drawing-options*))
 		(t
 		 (dolist (option drawing-options)
@@ -879,3 +882,11 @@
 	    (render-bezier-curve function x00 y00 x10 y10 x20 y20 x30 y30 distance)
 	    (funcall function x30 y30)
 	    (render-bezier-curve function x01 y01 x11 y11 x21 y21 x31 y31 distance))))))
+
+
+(define-graphics-generic draw-pixmap (pixmap (point point x y)
+					     &key (function boole-1))
+  :positions-to-transform (x y)
+  :drawing-options :pixmap)
+
+

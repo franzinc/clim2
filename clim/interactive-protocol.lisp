@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.29 1993/06/21 20:50:09 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.30 1993/07/27 01:40:04 colin Exp $
 
 (in-package :clim-internals)
 
@@ -388,7 +388,8 @@
     (when (characterp gesture)		;no general keyboard events here...
       ;; If it's an activation gesture, store it in the input editor's
       ;; slot rather than sending it back to the underlying stream.
-      (when (activation-gesture-p gesture)
+      (when (and (activation-gesture-p gesture)
+		 (not (delimiter-gesture-p gesture)))
 	(when activation-gesture
 	  (cerror "Proceed anyway"
 		  "Unexpected activation gesture ~S found in the input editor"
@@ -742,6 +743,8 @@
 					     :for-context-type for-context-type))
 			(error ()
 			  (princ-to-string object))))
+		(vector blip)
+		#+ignore-since-this-seems-to-be-wrong
 		(with-slots (input-buffer scan-pointer insertion-pointer) istream
 		  (vector-push-extend blip input-buffer)
 		  (incf insertion-pointer)
@@ -1034,3 +1037,30 @@
 	    (funcall continuation stream)))
       (with-input-editor-typeout (stream :erase t) ;don't scribble over previous output
 	(funcall continuation stream)))))
+
+
+(defun stream-yay-or-nay-p (stream ptype format-string args &rest accept-args)
+  (values (apply #'accept ptype
+		 :stream stream
+		 :prompt-mode :raw
+		 :prompt (apply #'format nil format-string args)
+		 accept-args)))
+
+(defmethod stream-yes-or-no-p ((stream input-protocol-mixin) &optional (format-string "") &rest args)
+  (stream-yay-or-nay-p stream
+		       '(member-alist (("Yes" :value t) ("No" :value nil)))
+		       format-string args))
+
+
+(defmethod stream-y-or-n-p ((stream input-protocol-mixin) &optional (format-string "") &rest args)
+  (stream-yay-or-nay-p stream
+		       '(member-alist (("Y" :value t) ("N" :value nil)))
+		       format-string args))
+
+(defmethod stream-y-or-n-or-newline-p ((stream input-protocol-mixin) 
+				       &optional (format-string "") &rest args)
+  (stream-yay-or-nay-p stream
+		       '(member-alist (("Y" :value t) ("N" :value nil)))
+		       format-string args
+		       :display-default nil 
+		       :default t))

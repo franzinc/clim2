@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.61 1993/10/25 16:16:36 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.62 1993/10/26 03:22:43 colin Exp $
 
 
 (in-package :xm-silica)
@@ -467,21 +467,33 @@
 
 (defmethod set-button-accelerator-from-keystroke ((menubar openlook-menu-bar) button keystroke)
   (when keystroke 
-    (record-accelerator menubar keystroke)
-    (multiple-value-bind (accel accel-text)
-	(get-accelerator-text keystroke t)
-      (dolist (modifier (cdr keystroke))
-	(setq accel-text
-	  (concatenate 'string 
-	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
-	    accel-text))
-	(setq accel
-	  (concatenate 'string 
-	    (case modifier (:control "c") (:meta "a") (t ""))
-	    accel)))
-      (tk::set-values button 
-		      :accelerator accel
-		      :accelerator-text accel-text))))
+    (let ((modifiers (cdr keystroke)))
+      (when modifiers (record-accelerator menubar keystroke))
+      (multiple-value-bind (accel accel-text)
+	  (get-accelerator-text keystroke t)
+	(dolist (modifier modifiers)
+	  (setq accel-text
+	    (concatenate 'string 
+	      (ecase modifier 
+		(:control "Ctrl+") 
+		(:meta "Alt+")
+		(:super "Super+")
+		(:hyper "Hyper+"))
+	      accel-text))
+	  (setq accel
+	    (concatenate 'string 
+	      (ecase modifier 
+		(:control "c") 
+		(:meta "a")
+		(:super "Mod2")
+		(:hyper "Mod3"))
+	      accel)))
+	(if modifiers
+	    (tk::set-values button 
+			    :accelerator accel
+			    :accelerator-text accel-text)
+	  (tk::set-values button 
+			  :accelerator-text accel-text))))))
 
 (defun command-button-callback-ol (button frame command-table item)
   (command-button-callback button nil frame command-table item))

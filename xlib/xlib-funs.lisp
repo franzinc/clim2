@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.12 93/04/16 09:26:50 layer Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.13 1993/07/27 01:59:24 colin Exp $
 
 (in-package :x11)
 
@@ -2015,3 +2015,7 @@
     (class int)
     (vinfo-return (:pointer visual-info)))
 
+
+(def-exported-foreign-function (_xflushgccache (:return-type int) (:name "_XFlushGCCache")) 
+   (dpy (:pointer display))
+   (gc gc))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.63 1993/10/25 16:16:39 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.64 1993/10/26 03:22:47 colin Exp $
 
 (in-package :xm-silica)
 
@@ -299,21 +299,34 @@
 
 (defmethod set-button-accelerator-from-keystroke ((menubar motif-menu-bar) button keystroke)
   (when keystroke 
-    (record-accelerator menubar keystroke)
-    (multiple-value-bind (accel accel-text)
-	(get-accelerator-text keystroke)
-      (dolist (modifier (cdr keystroke))
-        (setq accel-text
-          (concatenate 'string 
-            (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
-            accel-text))
-        (setq accel
-          (concatenate 'string 
-            (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
-            accel)))
-      (tk::set-values button 
-                      :accelerator accel
-                      :accelerator-text accel-text))))
+    (let ((modifiers (cdr keystroke)))
+      (when modifiers
+	(record-accelerator menubar keystroke))
+      (multiple-value-bind (accel accel-text)
+	  (get-accelerator-text keystroke)
+	(dolist (modifier modifiers)
+	  (setq accel-text
+	    (concatenate 'string 
+	      (ecase modifier 
+		(:control "Ctrl+") 
+		(:meta "Alt+")
+		(:super "Super+")
+		(:hyper "Hyper+"))
+	      accel-text))
+	  (setq accel
+	    (concatenate 'string 
+	      (ecase modifier 
+		(:control "Ctrl")
+		(:meta "Mod1")
+		(:super "Mod2")
+		(:hyper "Mod3"))
+	      accel)))
+	(if modifiers
+	    (tk::set-values button 
+			    :accelerator accel
+			    :accelerator-text accel-text)
+	  (tk::set-values button 
+			  :accelerator-text accel-text))))))
 
 (defun display-motif-help (widget framem documentation)
   (frame-manager-notify-user 
@@ -580,6 +593,8 @@
       (let ((slider
 	     (make-instance 'xt::xm-scale 
 			    :show-value t
+			    :managed nil
+			    :sensitive nil
 			    :parent dialog
 			    :orientation :horizontal)))
 	(unwind-protect
@@ -595,8 +610,11 @@
 	       (stream clim-internals::stream)
 	       (numerator clim-internals::numerator)
 	       (denominator clim-internals::denominator)) note
-    (tk::set-values (cdr *working-dialog*)
-		    :value (round (* 100 numerator) denominator))))
+    (let ((slider (cdr *working-dialog*)))
+      (unless (xt::is-managed-p slider)
+	(tk::manage-child slider))
+      (tk::set-values slider
+		      :value (round (* 100 numerator) denominator)))))
 
 ;;
 
