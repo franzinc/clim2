@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: demo-driver.lisp,v 1.35 1998/08/06 23:16:27 layer Exp $
+;; $Id: demo-driver.lisp,v 1.35.36.1 2001/05/17 17:32:24 layer Exp $
 
 (in-package :clim-demo)
 
@@ -58,8 +58,24 @@
   (with-text-style (stream '(:serif :roman :large))
     (dolist (demo (sort (copy-list *demos*) #'string< :key #'demo-name))
       (let ((name (demo-name demo)))
-	(with-output-as-presentation (stream demo 'demo)
-	  (format stream "~A~%" name))))))
+	;; Attempt to gracefully recover from any error
+	;; which occurs while printing the demos name.
+	;; In particular, this can occur when listing
+	;; the Japanese graphics-editor when the correct
+	;; Japanese fonts are not accessible.	
+	(let ((result (catch 'excl::printer-error
+			(with-output-as-presentation (stream demo 'demo)
+			  (format stream "~A~%" name))
+			nil)))
+	  (clim:with-output-recording-options (stream :draw nil :record nil)
+	    (when (and result
+		       (typep result 'error))
+	      (format t "An error occured while displaying the demo: ~S~%(The demo will be removed from the menu.)~%~A"
+		      (clim-demo::demo-class demo)
+		      result)
+	      nil
+	      ))))))
+  nil)
 
 (define-demo-driver-command (com-exit-demo-driver :menu t :name "Exit") ()
   (frame-exit *application-frame*))

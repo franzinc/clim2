@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.12.12.2 2000/09/05 19:06:39 layer Exp $
+;; $Id: acl-prel.lisp,v 1.12.12.3 2001/05/17 17:32:23 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -170,7 +170,9 @@
 			     :key value-key :test test)))
 	    (when i 
 	      (win:SendMessage 
-	       hwnd win:LB_SETCURSEL i 0))))
+	       hwnd win:LB_SETCURSEL i 0)
+	      (win:SendMessage 
+	       hwnd win:LB_SETTOPINDEX i 0))))
 	;; we put in the 20% hack because
 	;; compute-set-gadget-dimensions in acl-widg is
 	;; inherently wrong - see the comment (cim 9/25/96)

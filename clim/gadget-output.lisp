@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadget-output.lisp,v 1.65 1999/07/19 22:25:13 layer Exp $
+;; $Id: gadget-output.lisp,v 1.65.34.1 2001/05/17 17:32:23 layer Exp $
 
 (in-package :clim-internals)
 
@@ -768,15 +768,6 @@
   ;; NB query should never be nil but this test was put in for the
   ;; windows CLIM port when apparently it sometimes is nil (cim 1/30/97)
   (if query (setf (accept-values-query-changed-p query) t)))
-
-#+(or aclpc acl86win32);; rl - needed by everyone?
-;;--- rockwell doesn't seem to think so... but I'm leaving it in for now
-;;--- tjm Aug97
-(defmethod accept-values-note-text-field-changed-callback :after
-           ((gadget text-field) new-value query)
-  (declare (ignore new-value))
-  (accept-values-string-field-changed-callback
-    gadget (gadget-client gadget) query))
 
 (defmethod accept-values-string-field-changed-callback
            ((gadget text-field) stream query)

@@ -11,6 +11,72 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.17
+
+16May2000 Nichael Cramer <ncramer@pointnclick.com>
+          -Fix package problem preparing for merge.
+        * demo/winlisp.lisp
+
+
+15May2000 Nichael Cramer <ncramer@pointnclick.com>
+        * clim/gadget-output.lisp
+        * aclpc/acl-widget.lisp
+          - (spr23788, spr23859, spr24046, spr24232)
+        On Windows, properly handle loss and gain of focus in mswin-text-edit,
+        (which affects accepting-values completion).
+        Attempt to preserver caret-position after setting the gadget-value.
+
+15May2000 Nichael Cramer <ncramer@pointnclick.com>
+          -(spr23763)
+       * tk-silica/xt-silica.lisp
+       Throw a more meaningful error message when an x-font isn't found.
+
+       * demo/demo-driver.lisp
+       Attempt to gracefully recover from any error
+       which occurs while printing the demo's name.
+       In particular, this can occur when listing
+       the Japanese graphics-editor when the correct
+       Japanese fonts are not accessible.
+
+       * demo/japanese-graphics-editor.lisp
+       Make sure the japanese-graphics-editor is compiled
+       with the proper external-format (i.e. so the japanese
+       characters are correct).
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * postscript/postscript-port.lisp
+          - (spr23353) Correct error when postscript output becomes
+          too large.  (The problem was caused because the postscript
+          built the output to file by playing all o the text into a
+          single, large string-output-stream.  Because there is a
+          limit on array/string sizes, the would break.  The fix here
+          involves playing the output directly to the output file-stream.)
+
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * aclpc/acl-widget.lisp
+          -(Windows) Correct string-label display following
+           deactivation/activation of push-buttons.
+          -(spr22454) (Windows) Allow graying-out of deactivated pixmap-labels
+           on push-buttons.
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * aclpc/acl-prel.lisp
+          - (Spr22341) (Windows) Menu show initially selected items.
+
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * aclpc/acl-widget.lisp
+          - (spr23114) Correct appearance of owner-drawn buttons and
+          setting value of mswin-text-edit gadgets.
+        * clim/menus.lisp
+          - (spr23114) Proeper spacing of items in menu-panes.
+
+*******************************************************************************
 2.2.2.21.16
 
 Tue May  1 15:25:21 PDT 2001  Duane Rettig  <duane@beta>
