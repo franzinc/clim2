@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.13 2002/07/09 20:57:14 layer Exp $
+;; $Id: acl-port.lisp,v 1.14 2003/12/12 05:33:28 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -730,17 +730,28 @@ or (:style . (family face size))")
 ;; The second element of each item is passed to
 ;; LoadCursor and SetCursor.
 (defvar *win-cursor-type-alist*
-    `((:appstarting ,win:IDC_APPSTARTING)
-      (:default ,win:IDC_ARROW)
-      (:position ,win:IDC_CROSS)
-      (:ibeam ,win:IDC_IBEAM)
-      #+ignore
-      (:no ,win:IDC_NO)
-      (:move ,win:IDC_SIZEALL)
-      (:vertical-scroll ,win:IDC_SIZENS)
-      (:horizontal-scroll ,win:IDC_SIZEWE)
-      (:scroll-up ,win:IDC_UPARROW)
-      (:busy ,win:IDC_WAIT)))
+    `(
+      (:busy                ,win:IDC_WAIT)
+      (:button              32649) ;;; IDC_HAND
+      (:default             ,win:IDC_ARROW)
+      (:horizontal-scroll   ,win:IDC_SIZEWE)
+      (:lower-left          ,win:IDC_SIZENESW)
+      (:lower-right         ,win:IDC_SIZENWSE)
+      (:move                ,win:IDC_SIZEALL)
+      (:position            ,win:IDC_CROSS)
+      (:prompt              ,win:IDC_IBEAM)
+      (:scroll-down         ,win:IDC_SIZENS)
+      (:scroll-left         ,win:IDC_SIZEWE)
+      (:scroll-right        ,win:IDC_SIZEWE)
+      (:scroll-up           ,win:IDC_UPARROW)
+      (:upper-right         ,win:IDC_SIZENESW)
+      (:upper-left          ,win:IDC_SIZENWSE)
+      (:vertical-scroll     ,win:IDC_SIZENS)
+      (:stop                ,win:IDC_NO)
+      (:help                ,win:IDC_HELP)
+      (:appstarting         ,win:IDC_APPSTARTING)
+      (:ibeam               ,win:IDC_IBEAM)
+      ))
 
 (defmethod port-set-pointer-cursor ((port acl-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
@@ -1046,3 +1057,60 @@ or (:style . (family face size))")
 (define-gesture-name :describe :pointer-button (:right :control) :unique nil)
 (define-gesture-name :delete :pointer-button (:right :control :shift) :unique nil)
 
+
+
+
+
+;;; bug12221/spr24998 - pnc
+;;; Implementation of clim:make-pattern-from-pixmap for Window.
+(defmethod make-pattern-from-pixmap ((pixmap acl-pixmap)
+				     &key
+				     (x 0)
+				     (y 0)
+				     (width (pixmap-width pixmap))
+				     (height (pixmap-height pixmap)))
+  (declare (optimize (speed 3) (safety 0)))
+  (let ((pixmap-wid (pixmap-width pixmap))
+	(pixmap-hei (pixmap-height pixmap))
+	(cdc (pixmap-cdc pixmap)))
+    (when (or (< pixmap-wid (+ 0 width))
+	      (< pixmap-hei (+ 0 height)))
+      (error "Requested pixmap area (x=~A:y=~A:w=~A:h=~A) outside of actual size (x=~A:y=~A:w=~A:h=~A)"
+	     x y width height 0 0 pixmap-wid pixmap-hei))
+    (let* ((pattern-data (make-array (list height width)))
+	   (rgb-list nil)
+	   (color-count -1))
+      (flet ((convert (x)
+	       ;; the most common cases should be fast
+	       (cond ((= x 0) 0.0)
+		     ((= x #xff) 1.0)
+		     (t (/ x 255.0)))))
+	(loop for target-row from 0 below height
+	    for source-row = (+ target-row y)
+	    do (loop for target-col from 0 below width
+		   for source-col = (+ target-col x)
+		   for rgb = (let ((color (win::GetPixel cdc source-col source-row)))
+			       (if (= color -1)
+				   +transparent-ink+
+				 (list (convert (ldb (byte 8 0) color))	;;; red
+				       (convert (ldb (byte 8 8) color))	;;; green
+				       (convert (ldb (byte 8 16) color)) ;;; blue
+				       )))
+		   for rgb-list-index = (position rgb rgb-list :test #'equal)
+		   for color-index = (cond (rgb-list-index
+					    ;; Color was found 
+					    (- color-count rgb-list-index))
+					   (t
+					    (push rgb rgb-list)
+					    (setq color-count (1+ color-count))))
+		   do (setf (aref pattern-data target-row target-col)
+			color-index))))
+      (setq rgb-list (nreverse rgb-list))
+      (do ((tl rgb-list (cdr tl)))
+	  ((atom tl))
+	(when (consp (car tl))
+	  ;; if item is not a cons, it must be +transparent-ink+
+	  ;;    so let it be
+	  (setf (car tl) (apply #'make-rgb-color (car tl)))))
+      
+      (make-pattern pattern-data rgb-list))))

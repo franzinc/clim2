@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.97 2002/07/09 20:57:15 layer Exp $
+;; $Id: frames.lisp,v 1.98 2003/12/12 05:33:29 layer Exp $
 
 (in-package :clim-internals)
 
@@ -502,9 +502,19 @@
       ;;--- Don't throw, just recompute stream bindings in a principled way
       (setf (sheet-enabled-p sheets) t))
     (note-frame-layout-changed (frame-manager frame) frame)
+    
+    ;; bug12946 - indicate that this is a throw to top-level for a layout change.
+    ;;  Do it just before throw in case any of the above does a non-local exit.
+    (setf *throw-to-frame-top-level* :new-layout)
+    
     (handler-case
         (throw 'layout-changed nil)
-      (error () nil))))
+      (error () nil))
+    
+    ;; If we dont throw, cancel the marker
+    (setf *throw-to-frame-top-level* nil)
+    
+    ))
 
 (defmethod note-frame-layout-changed ((frame-manager standard-frame-manager) (frame t))
   nil)
@@ -859,6 +869,12 @@
                  (apply tl-function frame (append args tl-args)))))
       (setq top-level-process nil))))
 
+;; bug12946 - new variable bound by run-frame-top-level
+;; actually defined in silica/db-scroll.lisp
+;;(defvar *throw-to-frame-top-level* nil)
+
+
+
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
   (let ((destroy nil))
@@ -878,7 +894,15 @@
 		  (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
 		    (loop
 		      (catch 'layout-changed
-			(let ((*application-frame* frame))
+			(let ((*application-frame* frame)
+			      
+			      ;; bug12946
+			      ;; This variable identifies a throw to top-level
+			      ;;  so that various unwind-protect clauses may avoid
+			      ;;  doing un-necessary or un-desirable work.
+			      (*throw-to-frame-top-level* nil)
+			      
+			      )
 			  ;; We must return the values from CALL-NEXT-METHOD,
 			  ;; or else ACCEPTING-VALUES will return NIL
 			  (return-from run-frame-top-level (call-next-method)))))))))

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 1.101 2002/07/09 20:57:18 layer Exp $
+;; $Id: xt-graphics.lisp,v 1.102 2003/12/12 05:33:31 layer Exp $
 
 (in-package :tk-silica)
 
@@ -1582,7 +1582,18 @@
 			     (warn "Cannot rotate 16-bit font ~A" font)))
 		       (funcall
 			(excl:ics-target-case
-			 (:+ics 'tk::draw-string16)
+			 (:+ics 
+			  ;; bug12286/spr26334
+			  ;; The old function, tk::draw-string16,
+			  ;; does not properly handle "higher-numbered"
+			  ;; ascii characters.
+			  ;; The following is in analogy to
+			  ;; the similar operation in
+			  ;; convert-resource-out 'xm-string
+			  (ecase codeset
+			    ((0 2) 'tk::draw-string)
+			    ((1 3) 'tk::draw-string16))
+			  )
 			 (:-ics 'tk::draw-string))
 			drawable gc
 			x y

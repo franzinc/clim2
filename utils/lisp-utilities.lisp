@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.46 2002/07/09 20:57:19 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.47 2003/12/12 05:33:31 layer Exp $
 
 (in-package :clim-utils)
 
@@ -86,6 +86,52 @@
      ,@body))
 
 ;; Why is there DOLIST in CL but no DOVECTOR or DOSEQ{uence}
+
+
+;; rfe5546 - evaluate the from-end argument at run-time
+;;   This is a deviation from the old definition which evaluated from-end 
+;;   (twice) at compile-time.
+;;   All CLIM uses are compile-time constants. 
+;;   Any non-contant usage would have generaed a compiler error or very
+;;   incorrect code.
+(defmacro dovector ((var vector &key (start 0) end from-end simple-p) 
+		    &body body)
+  (unless (constantp simple-p)
+    (setq simple-p nil)
+    (warn "SIMPLE-P should be a constant, ignoring it"))
+  (when (and simple-p (null end))
+    (warn "When SIMPLE-P is T, you must supply :END"))
+  (let ((fvector '#:vector)
+	(startd  '#:start)
+	(endd    '#:end)
+	(limit   '#:limit)
+	(fromend '#:from-end)
+	(variable (if (atom var) var (first var)))
+	(index    (if (atom var) '#:index (second var)))
+	(aref (if simple-p 'svref 'aref)))
+    `(block nil
+       (let* ((,fvector ,vector)
+	      (,startd ,start)
+	      (,endd ,(if simple-p 
+			  `,end 
+			`(or ,end (length ,fvector))))
+	      (,fromend ,from-end)
+	      (,index (if ,fromend (1- ,endd) ,startd))
+	      (,limit (if ,fromend (1- ,startd) ,endd)))
+	 (declare (type fixnum ,endd ,index ,limit)
+		  ;; Turn on the afterburners...
+		  (optimize (speed 3) (safety 0))
+		  ,(if simple-p
+		       `(type simple-vector ,fvector)
+		     `(type vector ,fvector)))
+	 (loop
+	   (when (= ,index ,limit) (return))
+	   (let ((,variable (,aref ,fvector ,index)))
+	     ,@body)
+	   (if ,fromend (decf ,index) (incf ,index)))))))
+
+;;The old definition
+#+ignore
 (defmacro dovector ((var vector &key (start 0) end from-end simple-p) &body body)
   (unless (constantp simple-p)
     (setq simple-p nil)

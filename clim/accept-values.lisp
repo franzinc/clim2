@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 1.88 2002/07/09 20:57:14 layer Exp $
+;; $Id: accept-values.lisp,v 1.89 2003/12/12 05:33:28 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1729,12 +1729,17 @@
               (formatting-cell (stream) (doit stream)))
           (doit stream))))))
 
+(defvar +frame-manager-position-dialog-default-x+ 100)
+(defvar +frame-manager-position-dialog-default-y+ 100)
 (defmethod frame-manager-position-dialog ((framem standard-frame-manager)
-                                                          frame
-                                                          own-window-x-position own-window-y-position)
+					  frame
+					  own-window-x-position own-window-y-position)
+  ;; [bug12221] On Windows, we override this method (in aclpc.acl-frames.lisp)
+  ;;     in order to position the dialog over the parent window.
   (multiple-value-bind (x y)
-      #+++ignore (pointer-position (port-pointer (port frame)))
-      #---ignore (values 100 100)
+      ;;(pointer-position (port-pointer (port frame)))
+      (values +frame-manager-position-dialog-default-x+
+	      +frame-manager-position-dialog-default-y+)
       (when (and own-window-x-position own-window-y-position)
         (setq x own-window-x-position
               y own-window-y-position))

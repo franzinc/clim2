@@ -11,7 +11,97 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
-<no version change>
+
+2003-12-10  Kevin Layer  <layer@crikey>
+
+	* Makefile.macosx: remove /usr/local/lib from DYLD_LIBRARY_PATH,
+	  since current configs of jax and seed don't need it
+
+2003-10-29  Kevin Layer  <layer@crikey>
+
+	* Makefile.macosx: try and make it work on jax now that openmotif
+	  2.2.2 is installed on Mac OS X 10.3.... no dice!
+
+*******************************************************************************
+2.3.19
+
+2003-08-25  Kevin Layer  <layer@crikey>
+
+	* postscript/postscript-port.lisp: add defpatch
+
+2003-08-19  Martin Mikelsons  <mm@gemini>
+
+	* utils/packages.lisp (*clim-version*): 2.3.19 
+	* postscript/postscript-port.lisp
+	     (postscript-prologue): [bug13470] emit integers for %%BoundingBox:
+	* postscript/postscript-medium.lisp
+	     (use-line-style): [bug13511] allow any line thickness
+	* postscript/pkgdcl.lisp: 
+	     (*clim-postscript-version*): new variable to track climps module version
+	* aclpc/acl-class.lisp
+	     (oncommand): [bug12977] set the focus to make sure mswin-text-field
+	                             instances get updated  
+	     (clim-ctrl-proc): [bug13094] ignore WM_GETDLGCODE in acl-text-editor-pane
+	     (*ignore-getdlgcode-in-acl-text-editor-pane*): [bug13094] new var
+	* utils/lisp-utilities.lisp
+	     (dovector): [rfe5546] evalueate from-end arguemnt at run-time
+	* tk/xm-font-list.lisp
+	     (*font-list-tags*):  [bug13059] use string-to-native 
+	                          instead of string-to-foreign
+
+2.3.18
+
+2003-07-15  Martin Mikelsons  <mm@gemini>
+
+	* aclpc/acl-port.lisp
+	     (*win-cursor-type-alist*): [bug13234] enable all Windows cursor shapes
+	     (make-pattern-from-pixmap): [bug12221] implement this method for Windows
+	* aclpc/acl-frames.lisp
+	     (gesture-spec-for-mswin): [bug13218] Menu accelerator is not always a character 
+	     (calculate-mswin-menu-pos): [bug12221] new function to
+	                      make native menus appear with pointer on :default-item
+	     (frame-manager-menu-choose): [bug12221] call calculate-mswin-menu-pos
+	     (popup-frame-p): [bug12221] new function
+	     (clim-internals::frame-manager-position-dialog): [bug12221] new method
+	              to position the dialog explicitly on Windows
+	     (+batch-menubar-refresh+): [bug12221] new variable 
+	     (with-batch-menubar-refresh): [bug12221] new macro
+	     (note-command-enabled): [bug12221] redraw menubar if button state changed
+	     (note-command-disabled): [bug12221] redraw menubar if button state changed
+	     (menubar-refresh-1): [bug12221] new function
+	* aclpc/acl-widget.lisp
+	     (realize-mirror): [bug12693] Add :echo-character functionality to text-field
+	     (text-edit-flags): [bug12693] Add :echo-character functionality to text-field
+	     (realize-mirror): [bug12221] pass button-label-justify slot to hbutton-open
+	* aclpc/acl-prel.lisp 
+	     (hbutton-open): [bug12221] use button-label-justify slot value
+	* clim/frames.lisp
+	     (*throw-to-frame-top-level*): [bug12946] new variable bound by run-frame-top-level 
+	     (run-frame-top-level): [bug12946] bind the new var
+	     (setf frame-current-layout): [bug12946] set varbefore handler bind
+	* clim/accept-values.lisp 
+	     (+frame-manager-position-dialog-default-x+): [bug12221] new variable
+	     (+frame-manager-position-dialog-default-y+): [bug12221] new variable
+	     (frame-manager-position-dialog): [bug12221] use new variables instead of
+	                                      constant (100 100)
+	* silica/db-scroll.lisp
+	     (update-scroll-bars): [bug12946] test for layout change throw
+	* silica/gadgets.lisp 
+	     (+hbutton-pane-default-button-label-justify+): [bug12221] new variable
+	     (toggle-button): [bug12221] add new slot button-label-justify to control
+	                      label position on toggle-button (used on Windows ONLY)
+	* tk/xlib.lisp
+	     (store-cut-buffer): must call string-to-native in foreign call [spr25829]
+	     (get-image): [bug12394] Fix to properly return colors.
+	* tk-silica/xt-graphics.lisp
+	     (medium-draw-text*): [bug12286] Make medium-draw-text* worry about 
+	                     the codeset of the characters in the string
+	* tk-silica/xt-frames.lisp 
+	     (frame-manager-menu-choose): [bug12221] call calculate-xm-menu-pos
+	     (calculate-xm-menu-pos): [bug12221] new function to
+                              make native menus appear with pointer on :default-item
+
+
 
 2003-08-29  Kevin Layer  <layer@crikey>
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.66 2002/07/09 20:57:18 layer Exp $
+;; $Id: xlib.lisp,v 1.67 2003/12/12 05:33:31 layer Exp $
 
 (in-package :tk)
 
@@ -769,12 +769,28 @@
 				  (width (pixmap-width pixmap))
 				  (height (pixmap-height pixmap))
 				  (format x11:zpixmap))
-  (let ((display (object-display pixmap)))
+  (let* ((display (object-display pixmap))
+
+	 ;; from pnc patch p8j010.001
+	 ;;     Fix tk::get-image to properly return colors.
+	 ;;     Error if color-depth is unhandled.
+	 (depth (pixmap-depth pixmap))
+	 (plane-mask (cond ((= depth 1)
+			    1)
+			   ((= depth 8)
+			    #xff)
+			   ((= depth 16)
+			    #xffff) 
+			   ((= depth 24)
+			    #xffffff)
+			   (t
+			    (error "get-image(): pixmap-depth not handled: "
+				   depth)))))
     (make-instance 'image
       :display display
       :width width
       :height height
-      :depth (pixmap-depth pixmap)
+      :depth depth
       :format format
       :foreign-address (x11:xgetimage display
 				      pixmap
@@ -782,7 +798,7 @@
 				      y
 				      width
 				      height
-				      #xff
+				      plane-mask
 				      format))))
 
 (defun get-pixel (image x y)
@@ -834,7 +850,7 @@
    x11:xa-string
    8
    x11:propmodereplace
-   string
+   (excl::string-to-native string) ;; spr25829
    (length string)))
 
 (defun get-cut-buffer (display)

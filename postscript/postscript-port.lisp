@@ -1,6 +1,12 @@
+(sys:defpatch "climps" 1
+  "Emit integers in PostScript BoundinBox entry"
+  :type :clim2
+  :feature :clim
+  :post-loadable t)
+
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 1.32 2002/07/09 20:57:16 layer Exp $
+;; $Id: postscript-port.lisp,v 1.33 2003/12/12 05:33:29 layer Exp $
 
 (provide :climps)
 
@@ -541,7 +547,12 @@ end } def
 		 (setq llx (- dx (scale bottom)) lly (- dy (scale right))
 		       urx (- dx (scale top)) ury (- dy (scale left))))))
 	    (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
-		    llx lly urx ury)
+		    
+		    ;; bug13470 emit integers
+		    (truncate llx) (truncate lly)
+		    (truncate urx) (truncate ury)
+		    
+		    )
 	    #+debug
 	    (format printer-stream
 		    "newpath ~D ~D moveto ~D ~D lineto stroke~%"

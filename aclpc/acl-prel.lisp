@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.13 2002/07/09 20:57:14 layer Exp $
+;; $Id: acl-prel.lisp,v 1.14 2003/12/12 05:33:28 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -226,36 +226,46 @@
 		     &key (buttonstyle win:BS_AUTORADIOBUTTON)
 		          (value nil)
 			  (nobutton nil)
-			  (label ""))
+			  (label "")
+			  (button-label-justify nil))
   (declare (ignore nobutton id))
   ;; Both push buttons and radio buttons are created here.
-  (let* ((nlabel (cleanup-button-label label))
-	 (hwnd
-	  (excl:with-native-string (classname "BUTTON")
-	    (excl:with-native-string (windowname nlabel)
-	      (win:CreateWindowEx 0
-				  classname ; classname
-				  windowname ; windowname
-				  (logior buttonstyle
-					  win:WS_TABSTOP
-					  win:WS_CHILD
-					  win:WS_CLIPCHILDREN 
-					  win:WS_CLIPSIBLINGS) ; style
-				  0 0 0 0
-				  parent
-				  0
-				  *hinst*
-				  (symbol-name (gensym)))))))
-    (if (zerop hwnd)
-	;; failed
-	(cerror "proceed" "failed")
-      ;; else succeed if we can init the DC
-      (progn
-	(win:SetWindowPos hwnd 0
-			  left top width height
-			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
-	(win:SendMessage hwnd win:BM_SETCHECK (if value 1 0) 0)))
-    hwnd))
+  (let ((style (logior buttonstyle
+		       win:WS_TABSTOP
+		       win:WS_CHILD
+		       win:WS_CLIPCHILDREN 
+		       win:WS_CLIPSIBLINGS)))
+    (when (eq button-label-justify :left)
+      ;; bug12221/SPR24998 -pnc
+      ;; See discussion of button-label-justify on toggle-button (in silica/gadgets.lisp).
+      ;; This is only really relevant for hbutton-pane.
+      (setq style (logior style
+			  win:BS_LEFTTEXT  ; Put the text on the left
+			  #x0200           ; BS_RIGHT: Right-justify the text in the label
+			  )))			  
+    (let* ((nlabel (cleanup-button-label label))
+	   (hwnd
+	    (excl:with-native-string (classname "BUTTON")
+	      (excl:with-native-string (windowname nlabel)
+		(win:CreateWindowEx 0
+				    classname ; classname
+				    windowname ; windowname
+				    style ; style
+				    0 0 0 0
+				    parent
+				    0
+				    *hinst*
+				    (symbol-name (gensym)))))))
+      (if (zerop hwnd)
+	  ;; failed
+	  (cerror "proceed" "failed")
+	;; else succeed if we can init the DC
+	(progn
+	  (win:SetWindowPos hwnd 0
+			    left top width height
+			    #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
+	  (win:SendMessage hwnd win:BM_SETCHECK (if value 1 0) 0)))
+      hwnd)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Open an edit control

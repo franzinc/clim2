@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-medium.lisp,v 1.23 2000/05/01 21:43:31 layer Exp $
+;; $Id: postscript-medium.lisp,v 1.24 2003/12/12 05:33:29 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -44,9 +44,15 @@
       (unless (equalp current-line-style new-line-style)
 	(setq current-line-style new-line-style)
 	(format printer-stream " ~D setlinewidth~%"
+		
+		;;spr27839 bug13511 - allow any line thickness
+		(the fixnum (round thickness))
+		#+ignore
 		(if (< thickness 2)
 		    0
-		  (the fixnum (round thickness))))
+		  (the fixnum (round thickness)))
+		
+		)
 	(if dashes
 	    (progn
 	      (when (eq dashes t)
