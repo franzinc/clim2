@@ -6,7 +6,12 @@
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates.
- Portions copyright (c) 1992 Franz, Inc."
+ Portions copyright (c) 1992, 1993 Franz, Inc."
+
+#+allegro
+(eval-when (compile load eval)
+  (require :mdproc)
+  (require :process))
 
 ;;; Locks
 

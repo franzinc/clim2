@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: cl-user -*-
 ;;
-;;				-[]-
+;;				-[Thu Aug 12 09:55:10 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -50,3 +50,4 @@
    #:window-property-list
    ))
 
+(in-package :tk)

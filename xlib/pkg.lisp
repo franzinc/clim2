@@ -627,5 +627,6 @@
 	   #:xwmhints-window-group #:xwritebitmapfile #:xybitmap #:xypixmap
 	   #:ysorted #:yxbanded #:yxsorted #:zoomstate #:zpixmap
 	   #:xiconifywindow)
-      )
+  )
 
+(in-package :x11)

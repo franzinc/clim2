@@ -14,7 +14,9 @@ RM	= /bin/rm
 CAT	= /bin/cat
 ECHO	= /bin/echo
 TAGS	= /usr/fi/lib/emacs/etc/etags
-TMP	= /tmp
+# /tmp is either on /usr (in which case it points to /usr/tmp) or is on the
+# root filesystem, which is probably really small.  So, use /usr/tmp.
+TMP	= /usr/tmp
 MV	= /usr/fi/mv-nfs
 
 # If you try and execute this as the -f argument to `make', then you forgot
@@ -29,18 +31,19 @@ TRAIN_TIMES=1
 PSVIEW=:file
 HPGLVIEW=:file
 TRAIN_COMPILE=t
+TRAIN_PROFILEP=t
 
 FRAME_TESTS=t
 
 TRAIN_LISP= \
 	(load \"misc/train.lisp\") \
 	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES)\
-		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) :hpglview $(HPGLVIEW)) \
-	(exit 0)
+		:profilep $(TRAIN_PROFILEP) :compile $(TRAIN_COMPILE) :psview $(PSVIEW) :hpglview $(HPGLVIEW))
 
 TRAIN_TEXT = \
 	$(ECHO) "\
 	$(TRAIN_LISP) \
+	(exit 0) \
 " | $(CLIM) $(CLOPTS) -batch \
 	; echo CLIM trained!!!!	
 

@@ -366,15 +366,20 @@
 	       (set-difference failures expected-failures))
 	      (unexpected-successes 
 	       (intersection successes expected-failures)))
-	  (format t "~D CLIM 2.0 tests succeeded~%~D CLIM 2.0 tests failed~%"
+	  ;; use *error-output* so it goes to stderr and is seen even
+	  ;; though make-dist redirects stdout to a file
+	  (format *error-output*
+		  "~D CLIM 2.0 tests succeeded~%~D CLIM 2.0 tests failed~%"
 		  (length successes) (length failures))
 	  (when unexpected-failures
-	    (format t "~D CLIM 2.0 tests failed unexpectedly:~{~20t~A~%~}~%"
+	    (format *error-output*
+		    "~D CLIM 2.0 tests failed unexpectedly:~{~20t~A~%~}~%"
 		    (length unexpected-failures)
 		    unexpected-failures))
 	
 	  (when unexpected-successes
-	    (format t "~D tests succeeded unexpectedly: ~{~20t~A~%~}~%"
+	    (format *error-output*
+		    "~D tests succeeded unexpectedly: ~{~20t~A~%~}~%"
 		    (length unexpected-successes)
 		    unexpected-successes)))))))
 

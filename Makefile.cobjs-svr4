@@ -1,14 +1,12 @@
 # $fiHeader: Makefile.cobjs-svr4,v 1.1 93/04/16 09:26:11 layer Exp $
 
 climol.so:	xlibsupport.o xtsupport.o olsupport.o
-	(eval `$(setup_LLP) openlook`; \
-	 echo LD_LIBRARY_PATH is $$LD_LIBRARY_PATH; \
+	(test -f $(setup_LLP) && eval `$(setup_LLP) openlook`; \
 	 ld -G -o climol.so xlibsupport.o xtsupport.o olsupport.o \
 		-lXol -lXt -lX11)
 
 climxm.so:	xlibsupport.o xtsupport.o MyDrawingA.o
-	(eval `$(setup_LLP) motif`; \
-	 echo LD_LIBRARY_PATH is $$LD_LIBRARY_PATH; \
+	(test -f $(setup_LLP) && eval `$(setup_LLP) motif`; \
 	 ld -G -o climxm.so xlibsupport.o xtsupport.o MyDrawingA.o \
 		-lXm -lXt -lX11 -lgen)
 

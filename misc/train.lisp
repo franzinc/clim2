@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Tue Jul 20 08:58:43 1993 by layer]-
+;;				-[Fri Aug 20 07:36:40 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -37,7 +37,8 @@
 					     "test-suite-reportxm.lisp"
 					   "test-suite-reportol.lisp"))
     (when compile
-      (load (compile-file "test/test-suite")))
+      (compile-file-if-needed "test/test-suite" :print nil :verbose t))
+    (load "test/test-suite.fasl")
     (clim-user::train-clim-2 train-times) 
     (when frame-tests
       (clim-user::do-frame-tests errorp))
@@ -51,11 +52,12 @@
       (load "test/hpgl-tests.lisp")
       (clim-user::run-hpgl-tests :output hpglview)))
   
-  (with-open-file (*standard-output* (if (excl::featurep :clim-motif) 
-					     "coverage-reportxm.lisp"
-					   "coverage-reportol.lisp")
-		   :if-exists :supersede :direction :output)
-    (generate-coverage-report :files (known-clim2-files)))
+  (when (fboundp 'generate-coverage-report)
+    (with-open-file (*standard-output* (if (excl::featurep :clim-motif) 
+					   "coverage-reportxm.lisp"
+					 "coverage-reportol.lisp")
+		     :if-exists :supersede :direction :output)
+      (generate-coverage-report :files (known-clim2-files))))
 
   ;; We have to do this here because profiling clears the call counts.
   
@@ -65,12 +67,24 @@
 
   (when benchmarkp 
     (clim-user::benchmark-clim))
-  
+
+  ;; delete the preload fasls for the type of clim we are testing, so that
+  ;; make-dist cat use the one we will make.
+  (let ((xx (if* (excl::featurep :clim-motif) 
+	       then "xm"
+	       else "ol")))
+    (dolist (file-format '("clim~a-preload.fasl"
+			   "clim~a-preload.fasl.Z"
+			   "clim~a-preload.fasl.z"
+			   "clim~a-preload.fasl.gz"))
+      (handler-case (delete-file (format nil file-format xx))
+	(error () nil))))
+
   (compile-file "misc/clos-preload.cl" 
 		:output-file 
 		(if (excl::featurep :clim-motif) 
-		    "misc/clos-preloadxm.fasl" 
-		  "misc/clos-preloadol.fasl")))
+		    "climxm-preload.fasl" 
+		  "climol-preload.fasl")))
 
 
 

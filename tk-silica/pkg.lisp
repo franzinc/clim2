@@ -20,10 +20,10 @@
 ;;
 ;; $fiHeader: pkg.lisp,v 1.9 93/04/02 18:41:09 cer Exp $
 
-(defpackage tk-silica
-  (:nicknames xm-silica xt-silica)
-  (:use clim-lisp clim-utils clim silica tk)
-  (:import-from excl #:if*)
+(defpackage :tk-silica
+  (:nicknames :xm-silica :xt-silica)
+  (:use :clim-lisp :clim-utils :clim :silica :tk)
+  (:import-from :excl #:if*)
   (:export
    ;; Motif 
  
@@ -59,3 +59,4 @@
    
    ))
 
+(in-package :tk-silica)

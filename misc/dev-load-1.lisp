@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Mon Jul 26 16:54:26 1993 by colin]-
+;;				-[Thu Aug 12 11:35:05 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -35,7 +35,7 @@
        (load "sys/defsystem"))
      (load "sys/sysdcl")))
 
-(defun load-it (sys)
+(defun load-it (sys &key (load-composer t))
   (let ((*load-source-file-info* t)
 	(*record-source-file-info* t)
 	(*load-xref-info* nil)
@@ -62,10 +62,11 @@
 
      (load "postscript/sysdcl")
      (load "demo/sysdcl")
-     
-     (ignore-errors 
-       (tenuring 
-	(require :composer)))
+
+     (when load-composer
+       (ignore-errors 
+	(tenuring 
+	 (require :composer))))
 
      (progn
        (load "test/testdcl")
@@ -84,6 +85,6 @@
      
      (ignore-errors
       (load (case sys
-	      (motif-clim "misc/clos-preloadxm.fasl")
-	      (openlook-clim "misc/clos-preloadol"))
+	      (motif-clim "climxm-preload.fasl")
+	      (openlook-clim "climol-preload.fasl"))
 	    :if-does-not-exist nil)))))

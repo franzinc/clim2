@@ -190,6 +190,31 @@ clim-small:	FORCE
 train	:	FORCE
 	$(TRAIN_TEXT)
 
+# the following two rules are used by make-dist so that we don't have 
+# to build a slim image to run the test suite
+
+train-xm:	FORCE
+	$(ECHO) " \
+	(setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	(setq sys::*libx11-pathname* \"$(XLIB)\") \
+        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
+	(load \"misc/dev-load-1.lisp\") \
+	(load-it 'motif-clim :load-composer nil) \
+	$(TRAIN_LISP) \
+	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
+	   $(CL) $(CLOPTS) -batch
+
+train-ol:	FORCE
+	$(ECHO) " \
+	(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
+	(setq sys::*libx11-pathname* \"$(OLXLIB)\") \
+        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
+	(load \"misc/dev-load-1.lisp\") \
+	(load-it 'openlook-clim :load-composer nil) \
+	$(TRAIN_LISP) \
+	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
+	   $(CL) $(CLOPTS) -batch
+
 generate_test_report:
 	@$(ECHO) "\
 	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\") \
@@ -213,7 +238,7 @@ testps :
 "  | $(CLIM) $(CLOPTS) -batch
 
 echo-train:
-	-$(ECHO) "$(TRAIN_LISP)"
+	-$(ECHO) "$(TRAIN_LISP)(exit 0)"
 
 # Misc
 

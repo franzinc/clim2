@@ -1,6 +1,6 @@
- ;; -*- mode: common-lisp; package: tk -*-
+;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Fri Aug 20 18:53:50 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.

@@ -1,3 +1,37 @@
+Thu Aug 12 12:01:08 1993  Kevin Layer  (layer@sole)
+
+	* Makefile.cobjs-svr4: make sure setup_LLP exists before using it.
+
+	* Makefile.defs: add TRAIN_PROFILEP, TMP=/usr/tmp
+
+	* Makefile.generic: new rules (used by make-dist) train-xm and
+	train-ol
+
+	* Makefile.sun-sun4: renamed from Makefile.svr4
+
+	* misc/devl-load-1.lisp: load-it now takes a keyword argument:
+	load-composer (used by make-dist); fix name of clos preload file
+	to be the same as the one make-dist creates (so if the training is
+	run, then make-dist will use the `better' one).
+
+	* misc/train.lisp: compile test/test-suite only if needed, and do
+	it with :print nil and :vervose t (instead of both t); don't do
+	generate-coverate-report unless fboundp.  Remove clos-preload files
+	before starting.
+
+	* test/test-driver.lisp: print test report to *error-output* so
+	make-dist can segregate it from the rest of the test output
+
+	* tk/pkg.lisp: add in-package (so don't get a compiler warning)
+
+	* tk-silica/pkg.lisp: fix defpackage (use keywords instead of
+	symbols in whatever package is current); add in-package
+
+	* xlib/pkg.lisp: add in-package
+
+	* utils/processes.lisp: require :mdproc and :process
+
+*******************************************************************************
 Mon Aug 16 15:15:00 1993  Steven Haflich
 
 	* clim/ptypes1.lisp:
