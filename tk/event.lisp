@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 1.30.34.3 2001/06/08 04:18:24 layer Exp $
+;; $Id: event.lisp,v 1.30.34.3.2.1 2001/08/25 22:35:17 layer Exp $
 
 (in-package :tk)
 
@@ -101,7 +101,9 @@
 	 (desired-display (aref arg 0))
 	 (desired-sequence (aref arg 1))
 	 (event-type (x11:xevent-type event)))
-    (declare (type (simple-array (unsigned-byte 32) (*)) arg))
+    ;; Preparedfor rfe4722, worrying avout 64bit, big-endian machines
+    #-(and big-endian 64bit) (declare (type (simple-array (unsigned-byte 32) (*)) arg))
+    #+(and big-endian 64bit) (declare (type (simple-array bignum (*)) arg))
 
     (if (and (eql desired-display display)
 	     (eql desired-sequence (x11:xanyevent-serial event))
@@ -124,6 +126,7 @@
   (or *event-matching-event*
       (setq *event-matching-event* (make-xevent))))
 
+;;; Preparedfor rfe4722, worrying avout 64bit, big-endian machines
 (defun get-event-matching-sequence-and-types (display-object seq-no types
 					      &key (block t))
   (unless (consp types)
@@ -132,25 +135,29 @@
 	 ;;-- This is pretty scarey. Heap allocated objects are passed
 	 ;;-- to C which then passes them to lisp. If a GC happens we
 	 ;;-- could be hosed
-	 (data (make-array (+ 3 (length types))
-			   :element-type '(unsigned-byte 32)))
+	 (data  (make-array (+ 3 (length types))
+			    :element-type
+			    #-(and big-endian 64bit) '(unsigned-byte 32) 
+			    #+(and big-endian 64bit) 'bignum))
 	 (i 2)
 	 (resulting-event (event-matching-event))
 	 (addr (or *match-event-sequence-and-types-address*
 		   (setq *match-event-sequence-and-types-address*
 		     (register-foreign-callable 'match-event-sequence-and-types))))
 	 (*sequence-matching-data* data))
-    (declare (type (simple-array (unsigned-byte 32) (*)) data)
+    (declare #-(and big-endian 64bit) (type (simple-array (unsigned-byte 32) (*)) data)
+	     #+(and big-endian 64bit) (type (simple-array bignum (*)) data)
 	     (fixnum i))
-    (setf (aref data 0) (ff:foreign-pointer-address display))
+    (let ((temp (ff:foreign-pointer-address display)))
+      (setf (aref data 0) temp))
     (setf (aref data 1) seq-no)
     (dolist (type types)
       (setf (aref data i) (position type tk::*event-types*))
       (incf i))
     (setf (aref data i) 0)
     (cond (block
-	   (x11:xifevent display resulting-event addr 0)
-	   resulting-event)
+	      (x11:xifevent display resulting-event addr 0)
+	    resulting-event)
 	  ((zerop (x11:xcheckifevent display resulting-event addr 0))
 	   nil)
 	  (t

@@ -11,6 +11,44 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.9
+
+2001-08-23 Nichael Cramer <ncramer@pointnclick.com>
+        
+	* tk/resources.lisp
+          tk/event.lisp
+          rfe4722 - Get Clim working of 64bit HPUX and Sparc
+
+	* tk-silica/xm-frames.lisp
+          spr24205 - "Changing an item on the menu-bar on a motif frame caused a seg-fault."
+          [Rewrite method realize-mirror :around (motif-port motif-menu-bar)
+          to remove use of labels.]
+
+        * silica/layout.lisp
+          spr24242 - "Add several documented methods to top-level-sheet."
+          window-expose
+          (setf window-visibility)
+          window-visibility
+          window-stack-on-top
+          window-stack-on-bottom
+          window-inside-edges
+          window-inside-size
+
+        * utils/lisp-utilities.lisp
+          demo/graphics-demos.lisp
+          test/test-suite.lisp
+          spr24505 - "Better support for running in case modes. Ensure symbols are interned properly."
+          [Modify package-fintern to better handle symbol vs strings.]
+
+        * utils/input-defs.lisp
+          clim/frames.lisp
+          tk-silica/xt-silica.lisp [Motif only.]
+          spr24597  "Make pointer-position, pointer-set-position,
+                     pointer-native-position, and pointer-set-native-position
+                     behave as specified in their documentation."
+
+
+*******************************************************************************
 2.3.8
 
 2001-06-26  Kevin Layer  <layer@crikey>

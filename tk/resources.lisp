@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.63.34.4 2001/06/08 04:18:24 layer Exp $
+;; $Id: resources.lisp,v 1.63.34.4.2.1 2001/08/25 22:35:17 layer Exp $
 
 (in-package :tk)
 
@@ -445,6 +445,11 @@
     (int :signed-long)
     (boolean :unsigned-byte)
     (ol-define :unsigned-word)
+    
+    ;; rfe4722
+    #+(and big-endian 64bit)
+    (cardinal :unsigned-long32)
+    
     (t :unsigned-natural)))
 
 

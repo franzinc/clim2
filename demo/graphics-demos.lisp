@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics-demos.lisp,v 1.18 1998/08/06 23:16:27 layer Exp $
+;; $Id: graphics-demos.lisp,v 1.18.66.1 2001/08/25 22:35:16 layer Exp $
 
 (in-package :clim-demo)
 
@@ -41,7 +41,8 @@
 
 (defmacro define-gdemo (name explanation (window) &body body)
   `(define-graphics-demo-command 
-       (,(intern (format nil "~A-~A-~A" 'com name 'graphics-demo))
+       ( ;;; ,(intern (format nil "~A-~A-~A" 'com name 'graphics-demo))
+	,(clim-utils::fintern "~A-~A-~A" 'com name 'graphics-demo)
 	:menu ,(nstring-capitalize (substitute #\space #\- (string name)))) 
        ()
      (explain ,explanation)
