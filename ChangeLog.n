@@ -13,6 +13,10 @@ Tests for new features:	<`no new features', `no tests for new features', or
 *******************************************************************************
 2.2.1.5.1
 
+Fri Feb  6 17:24:48 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.sgi4d-svr4: -n32, etc
+
 Thu Feb  5 10:15:13 1998  Kevin Layer  <layer@ultra>
 
 	* Makefile.generic: disable the autoload warning
