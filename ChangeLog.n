@@ -24,7 +24,7 @@ tk/xm-init.lisp		svr4 shared library reinitializations
 tk-silica/ol-gadgets.lisp		Comments
 tk-silica/xt-silica.lisp		Comments
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 from cer: Wed Jun  2 11:27:19 PDT 1993
 
 
