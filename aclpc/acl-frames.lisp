@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.18 1999/06/09 21:29:47 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.19 1999/06/09 22:37:18 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1593,7 +1593,7 @@ in a second Lisp process.  This frame cannot be reused."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Printer support
 
-(ff:defun-c-callable printer-abort-proc (hdc code)
+(ff:defun-foreign-callable printer-abort-proc (hdc code)
   (declare (ignore hdc code))
   1)
 

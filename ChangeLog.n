@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.59
+
+1999-06-09    <layer@HOBART>
+
+	* aclpc/acl-frames.lisp: defun-c-callable -> defun-foreign-callable
+
+*******************************************************************************
 2.2.1.58
 
 1999-06-09  Jeff Morrill  <jmorrill@pointnclick.com> 
