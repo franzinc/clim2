@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-xm.lisp,v 1.1 92/02/16 20:31:27 cer Exp $
+;; $fiHeader: compile-xm.lisp,v 1.2 92/02/24 13:09:41 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -28,9 +28,10 @@
 (set-case-mode :case-insensitive-lower)
 
 ;;(load "/misc/jdi/4.1/src/code/defctype.fasl")
-(setf *load-source-file-info* nil)
-(setf *load-xref-info* nil)
-(setf *record-xref-info* nil)
+(setf *load-source-file-info* t)
+(setf *record-source-file-info* t)
+(setf *load-xref-info* t)
+(setf *record-xref-info* t)
 (setf (sys:gsgc-switch :print) nil)
 (setf (sys:gsgc-switch :stats) nil)
 (setq *compile-print* nil)
@@ -44,7 +45,6 @@
 (tenuring
  (defsys::load-system 'motif-clim))
 (compile-file-if-needed "test/test-suite")
-#|
 (load "demo/sysdcl")
 (defsys::compile-system 'clim-demo :propagate t)
-|#
+

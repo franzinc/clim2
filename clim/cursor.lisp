@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.4 92/01/31 14:57:45 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.5 92/02/24 13:07:12 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -36,7 +36,8 @@
      (y :initarg :y)
      (stream :initarg :stream)
      (flags :initform 0)
-     (width :initarg :width))
+     (width :initarg :width)
+     (plist :initform nil))
   (:default-initargs :x 0 :y 0
 		     :width 8
 		     :stream nil))
@@ -220,5 +221,12 @@
 	(force-output stream)))))
 
 ;;;---- BOGUS
-(defun cursor-visibility (x) nil)
-(defun (setf cursor-visibility) (nv x) nil)
+(defun cursor-visibility (cursor) 
+  (cursor-active cursor))
+
+(defun (setf cursor-visibility) (nv cursor)
+  (setf (cursor-active cursor) 
+    (case nv
+      (:off nil)
+      ((nil) nil)
+      (t t))))

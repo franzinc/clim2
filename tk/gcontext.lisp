@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.4 92/01/31 14:54:41 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.5 92/02/24 13:03:02 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -146,7 +146,8 @@
 
 (defmacro define-gc-writer (name encoder &rest args)
   `(progn
-     (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name))) (nv gc)
+     (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
+	 (nv (gc gcontext))
        (let ((gc-values (x11::make-xgcvalues)))
 	 (setf (,(intern (format nil "~A~A"
 				 'xgcvalues-
@@ -164,7 +165,7 @@
 	 nv))))
 
 (defmacro define-gc-reader (name decoder &rest args)
-  `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) (gc)
+  `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
     (,decoder 
      (,(intern (format nil "~A~A" '_xgc-values- name) :x11)
       (object-handle gc))
@@ -204,7 +205,24 @@
 
 
 (define-gc-accessor line-width  (encode-card16 decode-card16))
-(define-gc-accessor fill-style (encode-enum decode-enum) '(:solid :tiled :stippled :opaque-stippled))
+
+(defmethod gcontext-fill-style ((gc gcontext))
+  (decode-fill-style
+   (x11::_xgc-values-fill-style (object-handle gc))))
+
+(defun decode-fill-style (x)
+  (nth x '(:solid :tiled :stippled :opaque-stippled)))
+
+(defun encode-fill-style (x)
+  (or (position x '(:solid :tiled :stippled :opaque-stippled))
+      (error "~s is not a fill style" x)))
+
+(defmethod (setf gcontext-fill-style) (nv (gc gcontext))
+  (x11:xsetfillstyle
+   (display-handle (object-display gc))
+   (object-handle gc)
+   (encode-fill-style nv)))
+  
 
 (define-gc-accessor fill-rule (encode-enum decode-enum) '(:even-odd :winding))
 (define-gc-accessor tile  (encode-pixmap decode-pixmap))
@@ -218,9 +236,17 @@
 
    
 (define-gc-accessor font (encode-font decode-font))
-(define-gc-accessor line-style  (encode-enum decode-enum) '(:solid :dash :double-dash))
-(define-gc-accessor cap-style (encode-enum decode-enum) '(:not-last :butt :round :projecting))
-(define-gc-accessor join-style (encode-enum decode-enum)  '(:miter :round :bevel))
+(define-gc-accessor cap-style (encode-cap-style decode-cap-style))
+
+(defun encode-cap-style (x)
+  (or (position x '(:not-last :butt :round :projecting))
+      (error "~s is not a cap style" x)))
+
+(define-gc-accessor join-style (encode-join-style decode-join-style))
+
+(defun encode-join-style (x)
+  (or (position x '(:miter :round :bevel))
+      (error "~s is not a join-style" x)))
 
 (define-gc-accessor subwindow-mode (encode-enum decode-enum)
 		  '(:clip-by-children :include-inferiors))
@@ -229,7 +255,6 @@
 (define-gc-accessor clip-y (encode-int16 decode-int16))
 
 (define-gc-accessor dash-offset (encode-card16 decode-card16))
-(define-gc-accessor dashes (encode-dashes decode-dashes))
 (define-gc-accessor arc-mode (encode-enum decode-enum)  '(:chord :pie-slice))
 
 ;;; 
@@ -255,6 +280,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun set-line-attributes (gc line-width line-style cap-style join-style)
+  (x11:xsetlineattributes
+   (display-handle (object-display gc))
+   (object-handle gc)
+   line-width
+   (encode-line-style line-style)
+   (encode-cap-style cap-style)
+   (encode-join-style join-style)))
+
 (defmethod (setf gcontext-clip-mask) ((nv (eql :none)) (gc gcontext))
   (x11:xsetclipmask
    (display-handle (object-display gc))
@@ -278,11 +312,56 @@
       1
       x11:unsorted))))
 
+(defmethod (setf gcontext-clip-mask) ((nv (eql :nowhere)) (gc gcontext))
+  (x11:xsetcliprectangles
+   (display-handle (object-display gc))
+   (object-handle gc)
+   0					; clip-x-origin
+   0					; clip-y-origin
+   0
+   0
+   x11:unsorted))
+
+(define-gc-accessor line-style  (encode-line-style decode-style))
+
+(defun encode-line-style (x)
+  (or (position x '(:solid :dash :double-dash))
+      (error "~S is not a valid line-style" x)))
+
+(defmethod (setf gcontext-dashes) (nv (gc gcontext))
+  (multiple-value-bind
+      (n v)
+      (encode-dashes nv)
+    (x11:xsetdashes
+     (display-handle (object-display gc))
+     (object-handle gc)
+     0
+     v
+     n)
+    (excl::free v)))
+
+
+(defun encode-dashes (nv)
+  (let (n v)
+    (etypecase nv
+      (list 
+       (setq n (length nv))
+       (setq v (excl::malloc n))
+       (let ((i 0))
+	 (dolist (x nv)
+	   (setf (sys::memref-int v i 0 :unsigned-byte) x)
+	   (incf i))))
+      (vector
+       (setq n (length nv))
+       (setq v (excl::malloc n))
+       (dotimes (i n)
+	 (setf (sys::memref-int v i 0 :unsigned-byte) (aref nv i)))))
+    (values n v)))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun encode-int16 (x) x)
 
-(defun encode-dashes (x)
-  x)
+
 
 (defun encode-font (x) (x11:xfontstruct-fid (object-handle x)))
 

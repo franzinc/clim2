@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.4 92/01/31 14:55:37 cer Exp $
+;; $fiHeader: event.lisp,v 1.5 92/02/24 13:04:33 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -339,6 +339,7 @@
 				   :modifiers modifiers)))))
     (let ((v (port-trace-thing port)))
       ;; Pop up the stack of sheets
+      ;;(print "going up")
       (unless (zerop (fill-pointer v))
 	(let ((m (if (eq (aref v 0) sheet)
 		     (let ((new-x x)
@@ -358,12 +359,24 @@
 	    (unless (zerop i)
 	      (generate-enter-event (aref v (1- i)))))
 	  (setf (fill-pointer v) m)))
+      
       ;; If its empty initialize it
+
+      ;;(print "maybe going deeper")
+      
       (when (region-contains-point*-p
-	      (sheet-region sheet) x y)
+	     (sheet-region sheet) x y)
+	;;(print (cons "going deeper" v))
+	
 	(when (zerop (fill-pointer v))
 	  (vector-push-extend sheet v)
 	  (generate-enter-event sheet))
+	;; We have to get the sheets into the correct coordinate
+	;; space
+	(loop for i from (1+ (position sheet v)) below (fill-pointer v)
+	    do (multiple-value-setq
+		   (x y)
+		 (map-sheet-point*-to-child (aref v i) x y)))
 	;; Add children
 	(let ((new-x x)
 	      (new-y y)
@@ -390,6 +403,7 @@
   (let ((sheet (let ((v (port-trace-thing port)))
 		 (and (not (zerop (fill-pointer v)))
 		      (aref v (1- (fill-pointer v)))))))
+    ;;(print sheet)
     (when (and sheet (sheet-port sheet))
       (multiple-value-bind (tx ty)
 	  (untransform-point*
@@ -414,6 +428,8 @@
   (:method (port (event keyboard-event))
    (let ((focus (or (port-keyboard-input-focus port)
 		    (event-sheet event))))
+     ;;--- Is this correct???
+     (setf (slot-value event 'sheet) focus)
      (dispatch-event focus event)))
   (:method (port (event window-event))
    (dispatch-event 

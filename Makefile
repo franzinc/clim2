@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.10 92/02/16 20:55:48 cer Exp $
+# $fiHeader: Makefile,v 1.11 92/02/24 13:09:36 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -216,6 +216,7 @@ clim-debug.fasl:	$(MOTIF-OBJS)
 cat:	clim.fasl clim-debug.fasl
 
 clim:	FORCE
+	-$(RM) $(CLIM)
 	$(ECHO) " \
 		(setq *ignore-package-name-case* t) \
 		(set-case-mode :case-insensitive-lower) \

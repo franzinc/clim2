@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.7 92/02/16 20:55:06 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.8 92/02/24 13:03:53 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -53,8 +53,41 @@
 			      (object-handle window)
 			      attrs)
     (x11:xwindowattributes-depth attrs)))
-    
-  
+
+(defmethod (setf drawable-save-under) (nv (window window))
+  (let ((attrs (x11:make-xsetwindowattributes)))
+    (setf (x11:xsetwindowattributes-save-under attrs) (if nv 1 0))
+    (x11:xchangewindowattributes (display-handle (object-display window))
+				 (object-handle window)
+				 x11::cwsaveunder ;; 
+				 attrs)
+    nv))
+
+(defmethod drawable-save-under ((window window))
+  (let ((attrs (x11:make-xwindowattributes)))
+    (x11:xgetwindowattributes (display-handle (object-display window))
+			      (object-handle window)
+			      attrs)
+    (not (zerop (x11:xwindowattributes-save-under attrs)))))
+
+
+(defmethod (setf drawable-backing-store) (nv (window window))
+  (let ((attrs (x11:make-xsetwindowattributes)))
+    (setf (x11:xsetwindowattributes-backing-store attrs) (if nv 1 0))
+    (x11:xchangewindowattributes (display-handle (object-display window))
+				 (object-handle window)
+				 x11::cwbackingstore ;; 
+				 attrs)
+    nv))
+
+(defmethod drawable-backing-store ((window window))
+  (let ((attrs (x11:make-xwindowattributes)))
+    (x11:xgetwindowattributes (display-handle (object-display window))
+			      (object-handle window)
+			      attrs)
+    (not (zerop (x11:xwindowattributes-backing-store attrs)))))
+
+
 (defclass pixmap (drawable)
   ((width :initarg :width :reader pixmap-width)
    (height :initarg :height :reader pixmap-height)

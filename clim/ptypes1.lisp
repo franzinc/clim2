@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.3 92/02/05 21:45:48 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.4 92/02/24 13:08:21 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -385,11 +385,6 @@
 (defmethod acceptable-presentation-type-class ((class (eql (find-class 't)))) t)
 (defmethod acceptable-presentation-type-class ((class t)) nil)
 
-;;--- In theory we could cons up a prototype of a structure-class just
-;;--- by calling the constructor
-#+Allegro
-(defmethod acceptable-presentation-type-class ((class clos::structure-class)) nil)
-
 ;;; Abstract flavors aren't accepted since CLASS-PROTOTYPE signals an error
 #+Genera
 (defmethod acceptable-presentation-type-class ((class clos-internals::flavor-class))
@@ -710,201 +705,204 @@
 				 parameters-are-types
 				 parameter-massagers options-massagers
 				 &optional environment)
-  (when (or (eq direct-supertypes 't)		;In CLOS there's an intervening class
-	    (null direct-supertypes))		;If the :inherit-from was erroneous
-    (unless (eq name 't)			;Don't create a bootstrapping problem
+  (when (or (eq direct-supertypes 't)	;In CLOS there's an intervening class
+	    (null direct-supertypes))	;If the :inherit-from was erroneous
+    (unless (eq name 't)		;Don't create a bootstrapping problem
       (typecase (find-class-that-works name nil environment)
-	#+(or Symbolics LispWorks)		;Symbolics CLOS, that is
+	#+(or Symbolics LispWorks)	;Symbolics CLOS, that is
 	(clos:structure-class
-	  (setq direct-supertypes 'clos:structure-object))
-	#+CCL-2 
+	 (setq direct-supertypes 'clos:structure-object))
+	#+Allegro
+	(clos::structure-class
+	 (setq direct-supertypes 'common-lisp:structure-object))
+	#+CCL-2
 	(structure-class
-	  (setq direct-supertypes 'structure-object))
+	 (setq direct-supertypes 'structure-object))
 	(t
-	  (setq direct-supertypes 'standard-object)))))
+	 (setq direct-supertypes 'standard-object)))))
   (with-warnings-for-definition name define-presentation-type
-    (let* ((supertypes-list (if (listp direct-supertypes) 
-				direct-supertypes
-				(list direct-supertypes)))
-	   (direct-superclasses (mapcar #'(lambda (name)
-					    (find-presentation-type-class name t environment))
-					supertypes-list))
-	   old-inheritance new-inheritance
-	   (clos-class (find-class-that-works name nil environment))
-	   (class (find-presentation-type-class name nil environment))
-	   #-CLIM-extends-CLOS
-	   (old-direct-superclasses (if class
-					(class-direct-superclasses class)
-					direct-superclasses))
-	   #+CCL-2
-	   (registered-class-name
-	     (let ((keyword-package (find-package :keyword))
-		   (*package* (find-package :lisp)))
-	       (intern (lisp:format nil "~A ~S" 'ptype name) keyword-package))))
+				(let* ((supertypes-list (if (listp direct-supertypes) 
+							    direct-supertypes
+							  (list direct-supertypes)))
+				       (direct-superclasses (mapcar #'(lambda (name)
+									(find-presentation-type-class name t environment))
+								    supertypes-list))
+				       old-inheritance new-inheritance
+				       (clos-class (find-class-that-works name nil environment))
+				       (class (find-presentation-type-class name nil environment))
+				       #-CLIM-extends-CLOS
+				       (old-direct-superclasses (if class
+								    (class-direct-superclasses class)
+								  direct-superclasses))
+				       #+CCL-2
+				       (registered-class-name
+					(let ((keyword-package (find-package :keyword))
+					      (*package* (find-package :lisp)))
+					  (intern (lisp:format nil "~A ~S" 'ptype name) keyword-package))))
   
-      ;; If both a regular class and a presentation type class exist,
-      ;; get rid of the presentation type class, with a warning
-      (when (and (not (compile-file-environment-p environment))
-		 class clos-class
-		 (not (eq class clos-class))
-		 (acceptable-presentation-type-class clos-class))
-	(warn "The presentation type ~S is being converted to use ~S.~@
+				  ;; If both a regular class and a presentation type class exist,
+				  ;; get rid of the presentation type class, with a warning
+				  (when (and (not (compile-file-environment-p environment))
+					     class clos-class
+					     (not (eq class clos-class))
+					     (acceptable-presentation-type-class clos-class))
+				    (warn "The presentation type ~S is being converted to use ~S.~@
 	       If any presentation methods were previously defined for this type,~@
 	       they will no longer work until they are recompiled."
-	      name clos-class)
-	(remhash name *presentation-type-class-table*)
-	(setq class clos-class))
+					  name clos-class)
+				    (remhash name *presentation-type-class-table*)
+				    (setq class clos-class))
   
-      ;; Create a presentation-type-class if one does not already exist
-      (cond ((not class)
-	     (dolist (superclass direct-superclasses)
-	       (unless (or (presentation-type-class-p superclass)
-			   (eq superclass
-			       (find-presentation-type-class 'standard-object t environment)))
-		 (error "The presentation type ~S is being defined with~@
+				  ;; Create a presentation-type-class if one does not already exist
+				  (cond ((not class)
+					 (dolist (superclass direct-superclasses)
+					   (unless (or (presentation-type-class-p superclass)
+						       (eq superclass
+							   (find-presentation-type-class 'standard-object t environment)))
+					     (error "The presentation type ~S is being defined with~@
 			 the class ~S as a direct supertype.  This is invalid~@
 			 because ~S cannot be used to create~@
 			 a new subclass of a CLOS class.~
 			 ~@[~%Use ~S of ~S first to define the class, then~@
 			 use ~3:*~S to define how that class acts as a presentation type.~]"
-			name (class-proper-name superclass environment)
-			'define-presentation-type
-			(typecase superclass
-			  (funcallable-standard-class 'defgeneric)
-			  (standard-class 'defclass)
-			  #+Symbolics		;Symbolics CLOS, that is
-			  (clos:structure-class 'defstruct)
-			  #+CCL-2 (structure-class 'defstruct))
-			name)))
-	     (let ((class-name `(presentation-type ,name)))
-	       (setq class #-Lucid (make-instance 'presentation-type-class
-				     :direct-superclasses direct-superclasses
-				     ;; Symbolics CLOS, that is
-				     #+(or Genera Cloe-Runtime) 'clos-internals::name
-				     #+(or Genera Cloe-Runtime) class-name
-				     #+CCL-2 :name #+CCL-2 class-name
-				     #-(or PCL CCL-2 Allegro) :slots
-				     #+(or PCL CCL-2 Allegro) :direct-slots
-				       nil)
-			   ;; The above does not work in Lucid 4.0, so do it this way
-			   ;; instead, on JonL's advice.  We can't set the name here
-		           ;; because only symbols are accepted as names.
-			   #+Lucid (clos-sys:common-add-named-class 
-				     (class-prototype (find-class 'presentation-type-class))
-				     nil			;name
-				     direct-superclasses	;superclasses
-				     ()				;slots
-				     ()))			;options
-               ;;--- Workaround for apparent MCL bug that otherwise causes
-	       ;;--- BAD things to happen
-               #+CCL-2 (setf (slot-value class 'ccl::slots) (cons nil (vector)))
-	       ;; If the class name couldn't be set while making the class, set it now
-	       #-(or Genera Cloe-Runtime CCL-2) (setf (class-name class) class-name)))
-	    ((not (or (equal (class-direct-superclasses class) direct-superclasses)
-		      ;; The above equal would suffice if it were not for the fact that when
-		      ;; a CLOS class in the compile-file environment has a superclass in the
-		      ;; runtime environment, CLOS uses a forward-referenced-class instead
-		      ;; of using the run-time class
-		      (every #'(lambda (class type)
-				 (eq (class-proper-name class environment) type))
-			     (class-direct-superclasses class) supertypes-list)
-		      (presentation-type-class-p class)))
-	     ;; Inheritance must be consistent between CLOS and CLIM classes,
-	     ;; but only when CLOS and CLIM use the same class object.
-	     ;; When using different class objects, e.g. for built-in-classes, the
-	     ;; inheritance will necessarily be different since the metaclasses differ.
-	     (warn "The direct supertypes of presentation type ~S, ~S,~@
+						    name (class-proper-name superclass environment)
+						    'define-presentation-type
+						    (typecase superclass
+						      (funcallable-standard-class 'defgeneric)
+						      (standard-class 'defclass)
+						      #+Symbolics ;Symbolics CLOS, that is
+						      (clos:structure-class 'defstruct)
+						      #+CCL-2 (structure-class 'defstruct))
+						    name)))
+					 (let ((class-name `(presentation-type ,name)))
+					   (setq class #-Lucid (make-instance 'presentation-type-class
+									      :direct-superclasses direct-superclasses
+									      ;; Symbolics CLOS, that is
+									      #+(or Genera Cloe-Runtime) 'clos-internals::name
+									      #+(or Genera Cloe-Runtime) class-name
+									      #+CCL-2 :name #+CCL-2 class-name
+									      #-(or PCL CCL-2 Allegro) :slots
+									      #+(or PCL CCL-2 Allegro) :direct-slots
+									      nil)
+						 ;; The above does not work in Lucid 4.0, so do it this way
+						 ;; instead, on JonL's advice.  We can't set the name here
+						 ;; because only symbols are accepted as names.
+						 #+Lucid (clos-sys:common-add-named-class 
+							  (class-prototype (find-class 'presentation-type-class))
+							  nil ;name
+							  direct-superclasses ;superclasses
+							  () ;slots
+							  ())) ;options
+					   ;;--- Workaround for apparent MCL bug that otherwise causes
+					   ;;--- BAD things to happen
+					   #+CCL-2 (setf (slot-value class 'ccl::slots) (cons nil (vector)))
+					   ;; If the class name couldn't be set while making the class, set it now
+					   #-(or Genera Cloe-Runtime CCL-2) (setf (class-name class) class-name)))
+					((not (or (equal (class-direct-superclasses class) direct-superclasses)
+						  ;; The above equal would suffice if it were not for the fact that when
+						  ;; a CLOS class in the compile-file environment has a superclass in the
+						  ;; runtime environment, CLOS uses a forward-referenced-class instead
+						  ;; of using the run-time class
+						  (every #'(lambda (class type)
+							     (eq (class-proper-name class environment) type))
+							 (class-direct-superclasses class) supertypes-list)
+						  (presentation-type-class-p class)))
+					 ;; Inheritance must be consistent between CLOS and CLIM classes,
+					 ;; but only when CLOS and CLIM use the same class object.
+					 ;; When using different class objects, e.g. for built-in-classes, the
+					 ;; inheritance will necessarily be different since the metaclasses differ.
+					 (warn "The direct supertypes of presentation type ~S, ~S,~@
 		    do not match the direct superclasses of ~S, ~S."
-		   name supertypes-list class
-		   (mapcar #'(lambda (class)
-			       (class-proper-name class environment))
-			   (class-direct-superclasses class)))))
+					       name supertypes-list class
+					       (mapcar #'(lambda (class)
+							   (class-proper-name class environment))
+						       (class-direct-superclasses class)))))
   
-      ;;--- This used to be done only in the case where we were creating a class
-      ;;--- "de novo".  However, CCL-2 currently doesn't record anything about
-      ;;--- DEFCLASS at compile time, so we may write the new methods for this
-      ;;--- presentation class on this "registered" name instead of on the
-      ;;--- official class name.  The following line hooks up the class and the
-      ;;--- registered name at load time.  -- rsl & York, 4 June 1991
-      #+CCL-2 (setf (gethash class *presentation-class-type-table*) registered-class-name
-		    ;;--- Should the following be done at compile time?  It's unclear.
-		    (find-class registered-class-name) class)
+				  ;;--- This used to be done only in the case where we were creating a class
+				  ;;--- "de novo".  However, CCL-2 currently doesn't record anything about
+				  ;;--- DEFCLASS at compile time, so we may write the new methods for this
+				  ;;--- presentation class on this "registered" name instead of on the
+				  ;;--- official class name.  The following line hooks up the class and the
+				  ;;--- registered name at load time.  -- rsl & York, 4 June 1991
+				  #+CCL-2 (setf (gethash class *presentation-class-type-table*) registered-class-name
+						;;--- Should the following be done at compile time?  It's unclear.
+						(find-class registered-class-name) class)
 
-      ;; Always put the class into the table, even if FIND-CLASS could find it, for better
-      ;; virtual memory locality in systems where FIND-CLASS uses the property list.
-      (when (symbolp name)
-	(if (compile-file-environment-p environment)
-	    (setf (compile-time-property name 'presentation-type-class) class)
-	    (setf (gethash name *presentation-type-class-table*) class)))
+				  ;; Always put the class into the table, even if FIND-CLASS could find it, for better
+				  ;; virtual memory locality in systems where FIND-CLASS uses the property list.
+				  (when (symbolp name)
+				    (if (compile-file-environment-p environment)
+					(setf (compile-time-property name 'presentation-type-class) class)
+				      (setf (gethash name *presentation-type-class-table*) class)))
   
-      (setq old-inheritance (gethash class *presentation-type-inheritance-table*)
-	    new-inheritance (list direct-supertypes parameter-massagers options-massagers))
+				  (setq old-inheritance (gethash class *presentation-type-inheritance-table*)
+					new-inheritance (list direct-supertypes parameter-massagers options-massagers))
   
-      ;; Store the information about the presentation type into the tables
-      (cond ((compile-file-environment-p environment)
-	     (setf (compile-time-property class 'presentation-type-parameters) parameters))
-	    (parameters
-	     (setf (gethash class *presentation-type-parameters-table*) parameters))
-	    (t (remhash class *presentation-type-parameters-table*)))
-      (cond ((compile-file-environment-p environment)
-	     (setf (compile-time-property class 'presentation-type-options) options))
-	    (options 
-	     (setf (gethash class *presentation-type-options-table*) options))
-	    (t (remhash class *presentation-type-options-table*)))
-      (if (compile-file-environment-p environment)
-	  (setf (compile-time-property class 'presentation-type-description) description)
-	  (setf (gethash class *presentation-type-description-table*) description))
-      ;; We use the type's name instead of the class for speed during presentation
-      ;; translator lookup
-      (if (compile-file-environment-p environment)
-	  (setf (compile-time-property name 'parameters-are-types) parameters-are-types)
-	  (if parameters-are-types
-	      (pushnew name *presentation-type-parameters-are-types*)
-	      (setq *presentation-type-parameters-are-types*
-		    (delete name *presentation-type-parameters-are-types*))))
-      (cond ((compile-file-environment-p environment)
-	     (setf (compile-time-property name 'presentation-type-history) history))
-	    ((null history)
-	     (remhash name *presentation-type-history-table*))
-	    ((eql history 't)
-	     (setf (gethash name *presentation-type-history-table*)
-		   (make-presentation-type-history name)))
-	    (t
-	     (setf (gethash name *presentation-type-history-table*) history)))
-      (if (compile-file-environment-p environment)
-	  (setf (compile-time-property class 'presentation-type-inheritance) new-inheritance)
-	  (setf (gethash class *presentation-type-inheritance-table*) new-inheritance))
+				  ;; Store the information about the presentation type into the tables
+				  (cond ((compile-file-environment-p environment)
+					 (setf (compile-time-property class 'presentation-type-parameters) parameters))
+					(parameters
+					 (setf (gethash class *presentation-type-parameters-table*) parameters))
+					(t (remhash class *presentation-type-parameters-table*)))
+				  (cond ((compile-file-environment-p environment)
+					 (setf (compile-time-property class 'presentation-type-options) options))
+					(options 
+					 (setf (gethash class *presentation-type-options-table*) options))
+					(t (remhash class *presentation-type-options-table*)))
+				  (if (compile-file-environment-p environment)
+				      (setf (compile-time-property class 'presentation-type-description) description)
+				    (setf (gethash class *presentation-type-description-table*) description))
+				  ;; We use the type's name instead of the class for speed during presentation
+				  ;; translator lookup
+				  (if (compile-file-environment-p environment)
+				      (setf (compile-time-property name 'parameters-are-types) parameters-are-types)
+				    (if parameters-are-types
+					(pushnew name *presentation-type-parameters-are-types*)
+				      (setq *presentation-type-parameters-are-types*
+					(delete name *presentation-type-parameters-are-types*))))
+				  (cond ((compile-file-environment-p environment)
+					 (setf (compile-time-property name 'presentation-type-history) history))
+					((null history)
+					 (remhash name *presentation-type-history-table*))
+					((eql history 't)
+					 (setf (gethash name *presentation-type-history-table*)
+					   (make-presentation-type-history name)))
+					(t
+					 (setf (gethash name *presentation-type-history-table*) history)))
+				  (if (compile-file-environment-p environment)
+				      (setf (compile-time-property class 'presentation-type-inheritance) new-inheritance)
+				    (setf (gethash class *presentation-type-inheritance-table*) new-inheritance))
   
-      ;; If it used to be an abbreviation, undefine the abbreviation
-      (cond ((compile-file-environment-p environment)
-	     (setf (compile-time-property name 'presentation-type-abbreviation) nil))
-	    (t
-	     #+Genera (sys:fundefine `(presentation-type-abbreviation ,name))
-	     #-Genera (remhash name *presentation-type-abbreviation-table*)))
+				  ;; If it used to be an abbreviation, undefine the abbreviation
+				  (cond ((compile-file-environment-p environment)
+					 (setf (compile-time-property name 'presentation-type-abbreviation) nil))
+					(t
+					 #+Genera (sys:fundefine `(presentation-type-abbreviation ,name))
+					 #-Genera (remhash name *presentation-type-abbreviation-table*)))
   
-      ;; If class already existed, make sure its inheritance is up to date.
-      ;; This cannot be done until after the information is stored into the tables,
-      ;; since this will recompute method combination, which accesses the tables.
-      ;; This must be done even if class-direct-superclasses equals
-      ;; direct-superclasses, since if there is both a defclass and a
-      ;; define-presentation-type, when changing superclasses the defclass
-      ;; will be redefined first, then when the define-presentation-type
-      ;; is redefined, we need to make sure that methods are recombined based
-      ;; on the new information in *presentation-type-inheritance-table*.
-      ;; If a CLOS implementation optimizes out recombining methods when
-      ;; reinitialize-instance doesn't appear to be changing anything, it will lose.
-      ;; If we don't do method combination based on the presentation type class inheritance
-      ;; tables, and the direct superclasses haven't changed, then don't call
-      ;; reinitialize-instance.  This gets around a bug in some CLOS implementations.
-      (unless (compile-file-environment-p environment)
-	(unless (equal new-inheritance old-inheritance)
-	  (unless #+CLIM-extends-CLOS nil	;always recompute method combination
-		  #-CLIM-extends-CLOS		;if not massaging the parameters/options during method inheritance
-		  (equal direct-superclasses old-direct-superclasses)
-	    #-Lucid (reinitialize-instance class :direct-superclasses direct-superclasses)
-	    #+Lucid (clos-sys:update-class class :direct-superclasses direct-superclasses))))
+				  ;; If class already existed, make sure its inheritance is up to date.
+				  ;; This cannot be done until after the information is stored into the tables,
+				  ;; since this will recompute method combination, which accesses the tables.
+				  ;; This must be done even if class-direct-superclasses equals
+				  ;; direct-superclasses, since if there is both a defclass and a
+				  ;; define-presentation-type, when changing superclasses the defclass
+				  ;; will be redefined first, then when the define-presentation-type
+				  ;; is redefined, we need to make sure that methods are recombined based
+				  ;; on the new information in *presentation-type-inheritance-table*.
+				  ;; If a CLOS implementation optimizes out recombining methods when
+				  ;; reinitialize-instance doesn't appear to be changing anything, it will lose.
+				  ;; If we don't do method combination based on the presentation type class inheritance
+				  ;; tables, and the direct superclasses haven't changed, then don't call
+				  ;; reinitialize-instance.  This gets around a bug in some CLOS implementations.
+				  (unless (compile-file-environment-p environment)
+				    (unless (equal new-inheritance old-inheritance)
+				      (unless #+CLIM-extends-CLOS nil ;always recompute method combination
+					      #-CLIM-extends-CLOS ;if not massaging the parameters/options during method inheritance
+					      (equal direct-superclasses old-direct-superclasses)
+					      #-Lucid (reinitialize-instance class :direct-superclasses direct-superclasses)
+					      #+Lucid (clos-sys:update-class class :direct-superclasses direct-superclasses))))
   
-      class)))
+				  class)))
 
 ;;; Called by MAKE-LOAD-FORM forms
 (defun load-reference-to-presentation-type-class (name parameters options direct-supertypes

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.10 92/02/16 20:55:35 cer Exp $
+;; $fiHeader: menus.lisp,v 1.11 92/02/24 13:08:05 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -20,7 +20,8 @@
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
-  *application-frame*)
+  (and (boundp '*application-frame*)
+       *application-frame*))
 
 (defun get-menu (&key server-path)
   (let ((frame (make-application-frame 'menu-frame

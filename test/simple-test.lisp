@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: silica; Base: 10; Lowercase: Yes -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,26 +20,70 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: simple-test.lisp,v 1.3 92/02/16 20:55:44 cer Exp $
+;; $fiHeader: simple-test.lisp,v 1.4 92/02/24 13:09:07 cer Exp Locker: cer $
 
 
 (in-package :silica)
 
-(setq port (find-port))
-(setq graft (find-graft))
+(defclass even-simpler (simple-sheet) ())
 
-(setq sheet (make-instance 'standard-sheet
-			   :parent graft
-			   :region (make-bounding-rectangle 0 0 300 300)))
+(defun simple-test ()
+  (let* ((port (find-port))
+	 (graft (find-graft))
+	 (sheet (make-instance 'standard-sheet
+			       :parent graft
+			       :region (make-bounding-rectangle 0 0 300 300))))
+    (dotimes (i 5)
+      (dotimes (j 5)
+	(let ((s (make-instance 'simple-sheet
+				:parent sheet
+				:region (make-bounding-rectangle 0 0 60 60)
+				:transformation
+				(make-translation-transformation (* i 60) (* j 60)))))
+	  (setf (sheet-enabled-p s) t)
+	  (let ((s2 (make-instance 'even-simpler
+				   :parent s
+				   :region (make-bounding-rectangle 0 0 40 40)
+				   :transformation
+				   (make-translation-transformation 10 10))))
+	    (setf (sheet-enabled-p s2) t)))))
+    (setf (sheet-enabled-p sheet) t)
+    sheet))
 
 
-(setf (sheet-enabled-p sheet) t)
 
-(setq sheet1 (make-instance 'simple-sheet
-			    :parent sheet
-			    :region (make-bounding-rectangle 0 0 100 100)
-			    :transformation
-			    (make-translation-transformation 75 75)))
+(defmethod handle-event ((sheet simple-sheet) (event pointer-enter-event))
+  (outline-sheet sheet)
+  (setf (port-keyboard-input-focus (sheet-port sheet)) sheet))
+
+(defun outline-sheet (sheet)
+  (with-bounding-rectangle* (a b c d) sheet
+			    (draw-rectangle* 
+			     sheet 
+			     a b (1- c) (1- d)
+			     :filled nil
+			     :ink +flipping-ink+)))
+
+(defmethod handle-event ((sheet simple-sheet) (event pointer-exit-event))
+    (outline-sheet sheet))
 
 
-(setf (sheet-enabled-p sheet1) t)
+(defmethod handle-event ((sheet simple-sheet) (event pointer-button-event))
+  (multiple-value-call
+      #'draw-rectangle*
+    sheet
+    (bounding-rectangle* sheet)
+    :ink +flipping-ink+))
+
+(defmethod handle-event ((sheet simple-sheet) (event keyboard-event))
+  (draw-line* sheet -200 -200 200 200 :ink +flipping-ink+
+	      :line-thickness 10))
+
+
+(defmethod repaint-sheet ((sheet even-simpler) region)
+  (declare (ignore region))
+  (multiple-value-call #'draw-rectangle* 
+    sheet 
+    (bounding-rectangle* sheet)
+    :filled t
+    :ink +red+))

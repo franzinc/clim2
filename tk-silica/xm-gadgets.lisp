@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.10 92/02/14 18:57:42 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.11 92/02/24 13:06:18 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -476,4 +476,4 @@
 						     (sheet motif-frame-pane))
   (values 'tk::xm-frame nil))
 	  
-	  
+

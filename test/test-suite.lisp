@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.7 92/01/31 14:59:04 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.10 92/02/24 13:09:09 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -2514,6 +2514,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"
   (without-clim-input
+   (if #+Allegro (typep (sheet-port stream) 'xm-silica::xt-port)
+     #-Allegro nil
+     (sleep 1) ;; Avoid division by zero!
     (menu-choose '(("Red" :value +red+)
 		   ("Green" :value +green+)
 		   ("Blue" :value +blue+)
@@ -2524,7 +2527,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 :label "Please choose a color"
 		 :printer #'print-menu-item	;no Macintosh menus, please
 		 :cache nil
-		 :associated-window stream)))
+		 :associated-window stream))))
 
 (define-benchmark (cached-menu-choose :iterations 10) (stream)
   "Pop up a cached menu of colors"

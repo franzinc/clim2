@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.6 91/03/26 13:00:01 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.4 92/02/24 13:09:02 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -277,6 +277,9 @@
    :load-before-compile ("presentations"))
   ("ptypes2"
    :load-before-compile ("translators"))
+  ("excl-presentations"
+   :load-before-compile ("presentations")
+   :features Allegro)
   (#-Cloe-Runtime "standard-types" #+Cloe-Runtime "std-typs"
    :load-before-compile ("ptypes2"))
 
@@ -486,6 +489,7 @@
   ("xt-gadgets")
   ("xm-gadgets")
   ("xm-menus")
+  ("xm-cursor")
   ("xt-pixmaps"))
 
 #+(and Silica Allegro)

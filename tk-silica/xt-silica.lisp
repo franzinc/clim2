@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.3 92/01/31 14:56:42 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.7 92/02/24 13:06:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -144,8 +144,11 @@
 			   :parent parent
 			   :managed (sheet-enabled-p sheet)
 			   initargs)))
-	(add-sheet-callbacks port sheet widget)
+	(initialize-mirror port sheet widget)
 	widget))))
+
+(defmethod initialize-mirror (port sheet widget)
+  (add-sheet-callbacks port sheet widget))
 
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
   (declare (ignore sheet)))

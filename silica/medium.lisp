@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.5 92/01/31 14:55:44 cer Exp $
+;; $fiHeader: medium.lisp,v 1.6 92/02/24 13:04:48 cer Exp Locker: cer $
 
 (in-package :silica)
 

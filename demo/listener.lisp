@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.1 92/01/31 14:32:03 cer Exp $
+;; $fiHeader: listener.lisp,v 1.2 92/02/24 13:09:25 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -493,12 +493,10 @@
   (let* ((entry (assoc root *listeners*))
 	 (ll (cdr entry)))
     (when (or (null ll) reinit)
-      (multiple-value-bind (left top right bottom)
-	  (size-demo-frame root 50 50 500 500)
-	(setq ll (make-application-frame 'lisp-listener
-					 :parent root
-					 :left left :top top
-					 :right right :bottom bottom)))
+      (setq ll (make-application-frame 'lisp-listener
+				       :parent root
+				       :width 500
+				       :height 500))
       (if entry
 	  (setf (cdr entry) ll)
 	  (push (cons root ll) *listeners*)))

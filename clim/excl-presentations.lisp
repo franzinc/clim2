@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-streams.cl,v 1.2 92/02/05 21:52:04 cer Exp $
+;; $fiHeader: excl-presentations.lisp,v 1.3 92/02/24 13:09:45 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -92,3 +92,21 @@
       #+ignore(print (list parent abs-x abs-y) excl:*initial-terminal-io*)
       (when parent
 	(add-output-record record parent)))))
+
+(defvar *font-stack-hack* nil)
+
+#+ignore
+;;; Somehow this does not integrate with the CLIM mechanism
+(defmethod excl::stream-set-font ((stm output-protocol) font-spec)
+  (setf (medium-text-style stm)
+    (etypecase font-spec
+      ((nil)
+       (pop *font-stack-hack*)))
+    (character
+     (push (medium-text-style stm) *font-stack-hack*)
+     (ecase (char-downcase font-spec)
+       (#\r (window-stream-regular-font     stm))
+       (#\b (window-stream-bold-font        stm))
+       (#\i (window-stream-italic-font      stm))
+       (#\j (window-stream-bold-italic-font stm))))))
+     

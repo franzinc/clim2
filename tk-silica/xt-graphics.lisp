@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.7 92/02/16 20:55:18 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.8 92/02/24 13:06:27 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -41,6 +41,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	(setf drawable (fetch-medium-drawable 
 			sheet
 			(sheet-mirror sheet))))))
+
+(defmethod silica::deallocate-medium :after (port (medium xt-medium))
+  (with-slots (drawable) medium
+    (setf drawable nil)))
 
 (defmethod fetch-medium-drawable (sheet (mirror tk::xt-root-class))
   (declare (ignore sheet))
@@ -294,39 +298,60 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 
 
 (defmethod adjust-ink ((medium xt-medium) gc ink line-style x-origin y-origin)
-  ;; This is used to adjust for the line-style
   (declare (ignore ink))
-  (let ((thickness (line-style-thickness line-style)))
-    (when (< thickness 2)
-      (setq thickness 0))
-    (setf (tk::gcontext-line-width gc) (round thickness)))
+  ;;-- This should just call the equivalent of xsetlineattributes to bash
+  ;; everything in one go
+  (let* ((dashes (line-style-dashes line-style))
+	 (gc-line-style
+	  (etypecase dashes
+	    ((member nil t) :solid) (sequence :dash))))
+	
+    (tk::set-line-attributes 
+     gc
+     (let ((thickness (line-style-thickness line-style)))
+       (when (< thickness 2)
+	 (setq thickness 0))
+       (round thickness))
+     gc-line-style
+     (ecase (line-style-cap-shape line-style)
+       (:butt :butt)
+       (:square :projecting)
+       (:round :round)
+       (:no-end-point :not-last))
+     (ecase (line-style-joint-shape line-style)
+       ((:miter :none) :miter)
+       (:bevel :bevel)
+       (:round :round)))
   
-  #+++ignore	;---do this...
-  (let ((dashes (line-style-dashes line-style)))
-    (when dashes
-      (setf (tk::gcontext-dashes gc) 
-	(cond ((eq dashes t) '(4 4))
-	      ((vectorp dashes) (coerce dashes 'list))
-	      (t dashes)))))
-
-  (setf (tk::gcontext-cap-style gc)
-    (ecase (line-style-cap-shape line-style)
-      (:butt :butt)
-      (:square :projecting)
-      (:round :round)
-      (:no-end-point :not-last)))
+    (when (eq gc-line-style :dash)
+      (setf (tk::gcontext-dashes gc) dashes))
   
-  (setf (tk::gcontext-join-style gc)
-    (ecase (line-style-joint-shape line-style)
-      ((:miter :none) :miter)
-      (:bevel :bevel)
-      (:round :round)))
+    (let* ((sheet (medium-sheet medium))
+	   (dr (sheet-device-region sheet))
+	   (mcr (medium-clipping-region medium)))
+      (unless (eq mcr +everywhere+)
+	(setq mcr (transform-region (sheet-device-transformation sheet) mcr))
+	(setq dr (region-intersection dr (bounding-rectangle mcr))))
+      (cond ((eq dr +everywhere+)
+	     (setf (tk::gcontext-clip-mask gc) 
+	       :none))
+	    ((eq dr +nowhere+)
+	     (setf (tk::gcontext-clip-mask gc) 
+	       :nowhere))
+	    (t
+	     (with-bounding-rectangle*
+		 (a b c d) dr
+		 (with-stack-list (x 
+				   (integerize-coordinate a) 
+				   (integerize-coordinate b) 
+				   (integerize-coordinate (- c a)) 
+				   (integerize-coordinate (- d b)))
+		   (setf (tk::gcontext-clip-mask gc) x))))))
   
-  (when (eq (tk::gcontext-fill-style gc) :tiled)
-    (setf (tk::gcontext-ts-x-origin gc) x-origin
-	  (tk::gcontext-ts-y-origin gc) y-origin))
-  
-  gc)
+    (when (eq (tk::gcontext-fill-style gc) :tiled)
+      (setf (tk::gcontext-ts-x-origin gc) x-origin
+	    (tk::gcontext-ts-y-origin gc) y-origin))
+    gc))
 
 (defmethod decode-ink :around ((ink t) (medium xt-medium))
   (let ((gc (call-next-method)))
