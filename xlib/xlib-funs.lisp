@@ -44,7 +44,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.18 1995/11/08 06:16:51 georgej Exp $
+;;; $Header: /repo/cvs.copy/clim2/xlib/xlib-funs.lisp,v 1.20 1997/02/05 01:56:10 tomj Exp $
 
 (in-package :x11)
 

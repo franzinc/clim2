@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-functions.lisp,v 1.6 92/10/28 11:30:58 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/cl-stream-functions.lisp,v 1.8 1997/02/05 01:54:33 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -135,7 +135,15 @@
 ;;; STREAM-PEEK-CHAR doesn't get a peek-type; that's all handled at the PEEK-CHAR level.
 (defun peek-char (&optional peek-type input-stream (eof-error-p t)
 			    eof-value recursive-p)
-  (declare (ignore recursive-p))
+  #-aclpc (declare (ignore recursive-p))
+  #+(or aclpc acl86win32); handle the case of non-clim stream
+  (when (typep input-stream 'acl:simple-stream)
+    (return-from peek-char
+		 (cl:peek-char peek-type
+			       input-stream
+			       eof-error-p
+			       eof-value
+			       recursive-p)))
   (case input-stream
     ((nil) (setf input-stream *standard-input*))
     ((t)   (setf input-stream *standard-output*)))

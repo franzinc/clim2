@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.18 1995/10/17 05:02:14 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-medium.lisp,v 1.20 1997/02/05 01:49:36 tomj Exp $
 
 (in-package :postscript-clim)
 

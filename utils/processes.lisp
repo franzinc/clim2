@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.17 1993/09/17 19:07:36 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/processes.lisp,v 1.19 1997/02/05 01:55:11 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -32,29 +32,31 @@
   #+(or Allegro Xerox Genera ccl Minima)
   (declare (ignore state #+ccl place))
   #{
-    Allegro	`(mp:with-process-lock (,place) ,@forms)
-    Lucid	`(lcl:with-process-lock (,place ,@(if state (cons state nil)))
-		   ,@forms)
-    lispworks	`(mp::with-lock (,place) ,@forms)
-    Xerox	`(il:with.monitor ,place ,@forms)
+    Allegro        `(mp:with-process-lock (,place) ,@forms)
+    Lucid        `(lcl:with-process-lock (,place ,@(if state (cons state nil)))
+                   ,@forms)
+    lispworks        `(mp::with-lock (,place) ,@forms)
+    Xerox        `(il:with.monitor ,place ,@forms)
     Cloe-Runtime `(progn ,@forms)
-    Genera	`(process:with-lock (,place) ,@forms)
-    Minima	`(minima:with-lock (,place) ,@forms)
-    CCL-2	`(progn ,@forms)
+    aclpc       `(progn ,@forms)
+    Genera        `(process:with-lock (,place) ,@forms)
+    Minima        `(minima:with-lock (,place) ,@forms)
+    CCL-2        `(progn ,@forms)
     }
   )
 
 (defun make-lock (&optional (lock-name "a CLIM lock"))
   #-(or Genera Minima Allegro) (declare (ignore lock-name))
   #{
-    Allegro	(mp::make-process-lock :name lock-name)
-    lispworks	(mp::make-lock)
-    Lucid	nil
-    CCL-2	nil
-    Xerox	(il:create.monitorlock)
+    Allegro        (mp::make-process-lock :name lock-name)
+    lispworks        (mp::make-lock)
+    Lucid        nil
+    CCL-2        nil
+    Xerox        (il:create.monitorlock)
     Cloe-Runtime nil
-    Genera	(process:make-lock lock-name)
-    Minima	(minima:make-lock lock-name)
+    aclpc       nil
+    Genera        (process:make-lock lock-name)
+    Minima        (minima:make-lock lock-name)
    }
   )
 
@@ -68,19 +70,19 @@
 #-(or Genera Minima)
 (defun invoke-with-simple-recursive-lock (place state continuation)
   (let ((store-value (current-process))
-	(place-value (first place)))
+        (place-value (first place)))
     (if (and place-value (eql place-value store-value))
-	(funcall continuation)
-	(progn
-	  (unless (null place-value)
-	    (flet ((waiter ()
-		     (null (first place))))
-	      #-Allegro (declare (dynamic-extent #'waiter))
-	      (process-wait state #'waiter)))
-	  (unwind-protect
-	      (progn (rplaca place store-value)
-		     (funcall continuation))
-	    (rplaca place nil))))))
+        (funcall continuation)
+        (progn
+          (unless (null place-value)
+            (flet ((waiter ()
+                     (null (first place))))
+              #-Allegro (declare (dynamic-extent #'waiter))
+              (process-wait state #'waiter)))
+          (unwind-protect
+              (progn (rplaca place store-value)
+                     (funcall continuation))
+            (rplaca place nil))))))
 
 (defmacro with-recursive-lock-held ((place &optional state) &body forms)
   #+(or Xerox Genera ccl Minima)
@@ -112,6 +114,7 @@
     Lucid      `(lcl:with-scheduling-inhibited ,@forms)
     Xerox      `(progn ,@forms)
     Cloe-Runtime `(progn ,@forms)
+    aclpc      `(progn ,@forms)
     ;; should be process:with-no-other-processes if this is used as
     ;; a global locking mechanism
     Genera     `(scl:without-interrupts ,@forms)
@@ -124,47 +127,47 @@
 #+Genera
 (defmacro atomic-incf (reference &optional (delta 1))
   (let ((location '#:location)
-	(old-value '#:old)
-	(new-value '#:new))
+        (old-value '#:old)
+        (new-value '#:new))
     `(loop with ,location = (scl:locf ,reference)
-	   for ,old-value = (scl:location-contents ,location)
-	   for ,new-value = (sys:%32-bit-plus ,old-value ,delta)
-	   do (when (scl:store-conditional ,location ,old-value ,new-value)
-		(return ,new-value)))))
+           for ,old-value = (scl:location-contents ,location)
+           for ,new-value = (sys:%32-bit-plus ,old-value ,delta)
+           do (when (scl:store-conditional ,location ,old-value ,new-value)
+                (return ,new-value)))))
 
 #-Genera
 (defmacro atomic-incf (reference &optional (delta 1))
   (let ((value '#:value))
     (if (= delta 1)
-	`(without-scheduling 
-	   (let ((,value ,reference))
-	     (if (eq ,value most-positive-fixnum)
-		 (setf ,reference most-negative-fixnum)
-		 (setf ,reference (the fixnum (1+ (the fixnum ,value)))))))
-	(warn "Implement ~S for the case when delta is not 1" 'atomic-incf))))
+        `(without-scheduling 
+           (let ((,value ,reference))
+             (if (eq ,value most-positive-fixnum)
+                 (setf ,reference most-negative-fixnum)
+                 (setf ,reference (the fixnum (1+ (the fixnum ,value)))))))
+        (warn "Implement ~S for the case when delta is not 1" 'atomic-incf))))
 
 ;; Atomically decrements a fixnum value
 #+Genera
 (defmacro atomic-decf (reference &optional (delta 1))
   (let ((location '#:location)
-	(old-value '#:old)
-	(new-value '#:new))
+        (old-value '#:old)
+        (new-value '#:new))
     `(loop with ,location = (scl:locf ,reference)
-	   for ,old-value = (scl:location-contents ,location)
-	   for ,new-value = (sys:%32-bit-difference ,old-value ,delta)
-	   do (when (scl:store-conditional ,location ,old-value ,new-value)
-		(return ,new-value)))))
+           for ,old-value = (scl:location-contents ,location)
+           for ,new-value = (sys:%32-bit-difference ,old-value ,delta)
+           do (when (scl:store-conditional ,location ,old-value ,new-value)
+                (return ,new-value)))))
 
 #-Genera
 (defmacro atomic-decf (reference &optional (delta 1))
   (let ((value '#:value))
     (if (= delta 1)
-	`(without-scheduling 
-	   (let ((,value ,reference))
-	     (if (eq ,value most-negative-fixnum)
-		 (setf ,reference most-positive-fixnum)
-		 (setf ,reference (the fixnum (1- (the fixnum ,value)))))))
-	(warn "Implement ~S for the case when delta is not 1" 'atomic-decf))))
+        `(without-scheduling 
+           (let ((,value ,reference))
+             (if (eq ,value most-negative-fixnum)
+                 (setf ,reference most-positive-fixnum)
+                 (setf ,reference (the fixnum (1- (the fixnum ,value)))))))
+        (warn "Implement ~S for the case when delta is not 1" 'atomic-decf))))
 
 
 ;;; Processes
@@ -186,14 +189,14 @@
 (defun processp (object)
   #{
   ccl        (member object '(:user :event :interrupt))
-  Lucid	     (lcl:processp object)
+  Lucid             (lcl:processp object)
   Allegro    (mp::process-p object)
   lispworks  (mp::process-p object)
   ;; In 7.3 and after it is `(process:process-p ,object)
   Genera     (process:process-p object)
   Minima     (typep object 'minima-internals::basic-process)
   otherwise  (progn (warn "No implementation of PROCESSP for this system.")
-		    nil)
+                    nil)
   }
   )
 
@@ -203,10 +206,10 @@
   Lucid      (lcl:kill-process process)
   Allegro    (mp:process-kill process)
   lispworks  (mp:process-kill process)
-  Xerox	     (il:del.process process)
+  Xerox             (il:del.process process)
   Genera     (scl:process-kill process)
   Minima     (minima:process-kill process)
-  CCL-2	     nil
+  CCL-2             nil
   otherwise  (warn "No implementation of DESTROY-PROCESS for this system.")
   }
   )
@@ -220,11 +223,12 @@
   Lucid      lcl:*current-process*
   Allegro    mp:*current-process*
   lispworks  mp:*current-process*
-  Xerox	     (il:this.process)
+  Xerox             (il:this.process)
   Genera     scl:*current-process*
   Minima     (minima:current-process)
-  CCL-2	     *current-process*
+  CCL-2             *current-process*
   Cloe-Runtime nil
+  aclpc      nil
   }
   )
 
@@ -235,15 +239,16 @@
   Allegro    mp:*all-processes*
   lispworks  (mp::list-all-processes)
   Genera     sys:all-processes
-  CCL-2	     (adjoin *current-process* '(:user))
+  CCL-2             (adjoin *current-process* '(:user))
   Cloe-Runtime nil
+  aclpc      nil
   }
   )
 
 (defun show-processes ()
   #{
-       Lucid	  (lcl::show-processes)
-       Genera	  (si:com-show-processes)
+       Lucid          (lcl::show-processes)
+       Genera          (si:com-show-processes)
        otherwise  (all-processes)
   }
   )
@@ -254,11 +259,12 @@
   Lucid      (lcl:process-allow-schedule)
   Allegro    (mp:process-allow-schedule)
   lispworks  (mp::process-allow-scheduling)
-  Xerox	     (il:block)
+  Xerox             (il:block)
   Genera     (scl:process-allow-schedule)
   Minima     (sleep 1/10)
-  CCL-2	     (ccl:event-dispatch)
+  CCL-2             (ccl:event-dispatch)
   Cloe-Runtime nil
+  aclpc      nil
   }
   )
 
@@ -269,13 +275,14 @@
   Lucid      (lcl:process-wait wait-reason predicate)
   Allegro    (mp:process-wait wait-reason predicate)
   lispworks  (mp:process-wait wait-reason predicate)
-  Xerox	     (let ((il:*who-line-state* wait-reason))
-	       (loop
-		 (il:block)
-		 (when (and (funcall predicate))
-		   (return))))
-  CCL-2	     (ccl::process-wait wait-reason predicate)
+  Xerox             (let ((il:*who-line-state* wait-reason))
+               (loop
+                 (il:block)
+                 (when (and (funcall predicate))
+                   (return))))
+  CCL-2             (ccl::process-wait wait-reason predicate)
   Cloe-Runtime nil
+  aclpc      nil
   Genera     (scl:process-wait wait-reason predicate)
   Minima     (minima:process-wait wait-reason predicate)
   otherwise  (warn "No implementation of PROCESS-WAIT for this system.")
@@ -293,9 +300,9 @@
   #{
   Allegro    (mp:process-wait-with-timeout wait-reason timeout predicate)
   lispworks  (mp:process-wait-with-timeout wait-reason timeout predicate)
-  Lucid	     (lcl:process-wait-with-timeout wait-reason timeout predicate)
+  Lucid             (lcl:process-wait-with-timeout wait-reason timeout predicate)
   Genera     (sys:process-wait-with-timeout wait-reason (* timeout 60.) predicate)
-  CCL-2	     (ccl::process-wait-with-timeout wait-reason timeout predicate)
+  CCL-2             (ccl::process-wait-with-timeout wait-reason timeout predicate)
   otherwise  (warn "No implementation of PROCESS-WAIT-WITH-TIMEOUT for this system.")
   }
   )
@@ -308,7 +315,7 @@
   lispworks (mp:process-interrupt process function)
   Genera    (scl:process-interrupt process function)
   CCL-2     (let ((*current-process* :interrupt))
-	      (funcall function))
+              (funcall function))
   Minima    (minima:process-interrupt process function)
   otherwise (warn "No implementation of PROCESS-INTERRUPT for this system.")
   }
@@ -362,11 +369,11 @@
   #{
   Lucid (lcl::process-state process)
   Allegro (cond ((mp:process-active-p process) "active")
-		((mp:process-runnable-p process) "runnable")
-		(t "deactivated"))
+                ((mp:process-runnable-p process) "runnable")
+                (t "deactivated"))
   lispworks (cond ((mp:process-active-p process) "active")
-		  ((mp:process-runnable-p process) "runnable")
-		  (t "deactivated"))
+                  ((mp:process-runnable-p process) "runnable")
+                  (t "deactivated"))
   Genera (process:process-state process)
   Minima (minima:process-state process)
   otherwise (warn "No implementation of PROCESS-STATE for this system.")

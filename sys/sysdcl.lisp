@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.51 1996/03/13 09:55:53 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.53 1997/02/05 01:51:52 tomj Exp $
 
 (in-package :cl-user)
 
@@ -8,6 +8,7 @@
 ;; successful compilation of CLIM in a non-ICS lisp (cim 2/26/96)
 #+ignore (require :ics)
 
+#+Allegro
 (let ((*enable-package-locked-errors* nil))
   (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
 	    excl::string-to-euc excl::euc-to-string)
@@ -28,6 +29,12 @@
 
 )	;eval-when
 
+#+(or aclpc acl86win32)
+(progn
+  ; (pushnew :use-fixnum-coordinates *features*)
+  ;;mm: to suppress many compiler warnings.
+  (declaim (declaration values arglist))
+  )
 
 
 ;;; CLIM is implemented using the "Gray Stream Proposal" (STREAM-DEFINITION-BY-USER)
@@ -49,7 +56,15 @@
 
 (eval-when (compile load eval)
 
+#+(or Allegro 
+      Minima)
 (pushnew :clim-uses-lisp-stream-classes *features*)
+
+#+(or Allegro
+      Genera				;Except for STREAM-ELEMENT-TYPE
+      Minima
+      Cloe-Runtime
+      CCL-2)				;Except for CLOSE (and WITH-OPEN-STREAM)
 (pushnew :clim-uses-lisp-stream-functions *features*)
 
 ;;; CLIM-ANSI-Conditions means this lisp truly supports the ANSI CL condition system
@@ -57,9 +72,13 @@
 ;;;                      like Allegro 3.1.13 or Lucid.
 (pushnew :CLIM-ANSI-Conditions *features*)
 
+#+Allegro
 (pushnew :allegro-v4.0-constructors *features*)
 
-)					;eval-when
+)	;eval-when
+
+#+(or aclpc acl86win32)
+(setq clim-defsys:*load-all-before-compile* t)
 
 ;; We extend defsystem to have a new module class compile-always
 ;; which always recompiles the module even if not required. This
@@ -395,111 +414,255 @@
    ("gc-cursor")
    ("last")))
 
-
-#+CCL-2
-(clim-defsys:defsystem ccl-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
-		       #-Genera (frob-pathname "ccl")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
-			      #-Genera (frob-pathname "ccl")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("ccl-port")
-  ("ccl-mirror")
-  ("ccl-medium")
-  ("ccl-frames")
-  ("ccl-gadgets")
-  ("ccl-menus"))
+#+(or aclpc acl86win32)
+(defun frob-pathname (subdir
+		      &optional (dir #+Allegro excl::*source-pathname*
+				     #+Lucid lcl::*source-pathname*
+				     #+Cloe-Runtime #p"E:\\CLIM2\\SYS\\SYSDCL.LSP"
+                                     ;;mm: 11Jan95 - remove explicit pathname
+				     #-(or Allegro Lucid Cloe-Runtime)
+				     (or *compile-file-pathname*
+					 *load-pathname*)))
+  (namestring
+    (make-pathname
+      :defaults dir
+      :directory (append (butlast (pathname-directory dir)) (list subdir)))))
 
 
-#+Genera (progn
+#+(or aclpc acl86win32) (progn
+			  
+(clim-defsys:defsystem clim-utils
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
+		       #-Genera (frob-pathname "utils")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
+			      #-Genera (frob-pathname "utils"))
+  ;; These files establish a uniform Lisp environment
+  ("excl-verification" :features Allegro)
+  ("lucid-before" :features lucid)
+  ("lisp-package-fixups")
+  ("defpackage" :features (or Allegro (not ANSI-90)))
+  ("packages")
+  ("coral-char-bits" :features CCL-2)
+  ("defun-utilities") ;; extract-declarations and friends
+  ("defun" :features (or Genera aclpc acl86win32 (not ANSI-90)))
+  ("reader")
+  ("clos-patches")
+  ("clos")
+  ("condpat" :features CLIM-conditions)  ;get the define-condition macro
 
-(clim-defsys:import-into-sct 'clim-utils :subsystem t
-  :pretty-name "CLIM Utilities"
-  :default-pathname "SYS:CLIM;REL-2;UTILS;")
+  ;; General Lisp extensions
+  ("utilities")
+  ("lisp-utilities")
+  ("processes")
+  ("queue")
+  ("timers" :load-before-compile ("queue" "processes"))
+  ("protocols")
 
-(clim-defsys:import-into-sct 'clim-silica :subsystem t
-  :pretty-name "CLIM Silica"
-  :default-pathname "SYS:CLIM;REL-2;SILICA;")
+  ;; Establish a uniform stream model
+  ("clim-streams")
+  ("cl-stream-classes" 
+   ;; :short-name "clstclas"
+   :features (not clim-uses-lisp-stream-classes))
+  ("minima-stream-classes" :features Minima)
+  ("cl-stream-functions"
+   ;; :short-name "clstfunc"
+   :features (and (not clim-uses-lisp-stream-functions) (not Lucid)))
+  ("lucid-stream-functions" :features Lucid)
+  ("genera-streams" :features Genera)
+  ("excl-streams" :features Allegro)
+  ("ccl-streams" :features CCL-2)
 
-(clim-defsys:import-into-sct 'clim-standalone :subsystem t
-  :pretty-name "CLIM Standalone"
-  :default-pathname "SYS:CLIM;REL-2;CLIM;")
+  ;; Basic utilities for Silica and CLIM
+  ("clim-macros")
+  ("transformations" :load-before-compile ("condpat"))
+  ("regions")
+  ("region-arithmetic")
+  ("extended-regions")
+  ("base-designs")
+  ("designs"))
 
-(sct:defsystem clim
-    (:pretty-name "CLIM"
-     :default-pathname "SYS:CLIM;REL-2;"
-     :journal-directory "SYS:CLIM;REL-2;PATCH;"
-     :default-module-type :system
-     :bug-reports "Bug-CLIM"
-     :patches-reviewed "Bug-CLIM-Doc"
-     :source-category :optional)
-  (:module defsystem "sys:clim;rel-2;sys;defsystem"
-	   (:type :lisp) (:root-module nil))
-  (:serial "clim-utils"
-	   "clim-silica"
-	   "clim-standalone"))
+(clim-defsys:defsystem clim-silica
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
+		       #-Genera (frob-pathname "silica")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
+			      #-Genera (frob-pathname "silica")
+     :needed-systems (clim-utils)
+     :load-before-compile (clim-utils))
+  ;; "Silica"
+  ("macros")
+  ("classes")
+  ("text-style")
+  ("sheet")
+  ("mirror")
+  ("event")
+  ("port")
+  ("medium")
+  ("framem")
+  ("graphics")
+  ("pixmaps")
+  ("std-sheet")
 
-#+++ignore
-(progn
-(clim-defsys:import-into-sct 'motif-clim :subsystem t
-  :pretty-name "Motif CLIM"
-  :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
+  ;; "Windshield", aka "DashBoard"
+  ;; First the layout gadgets
+  ("layout")
+  ("db-layout")
+  ("db-box")
+  ("db-table")
 
-(clim-defsys:import-into-sct 'openlook-clim :subsystem t
-  :pretty-name "OpenLook CLIM"
-  :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
+  ;; Then the "physical" gadgets
+  ("gadgets")
+  ("db-border")
+  ("db-scroll")
+  ("scroll-pane")
+  ("db-button")
+  ("db-label"
+   :load-before-compile ("db-border"))
+  ("db-slider"))
 
-(sct:defsystem clim-tags-table
-    (:pretty-name "CLIM Tags Table"
-     :default-pathname "SYS:CLIM;REL-2;CLIM;"
-     :maintain-journals nil
-     :default-module-type :system)
-  (:serial "clim"
-	   "clim-compatibility"
-	   "genera-clim"
-	   "clx-clim"
-	   "postscript-clim"
-	   "cloe-clim"
-	   "motif-clim"
-	   "openlook-clim"
-	   "clim-demo"))
-)	;#+++ignore
+(clim-defsys:defsystem clim-standalone
+    (:default-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
+		       #-Genera (frob-pathname "clim")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
+			      #-Genera (frob-pathname "clim")
+     :needed-systems (clim-utils clim-silica)
+     :load-before-compile (clim-utils clim-silica))
 
-)	;#+Genera
+  ;; Basic tools
+  ("gestures")
+  ("defprotocol")
+  ("stream-defprotocols" 
+   ;; :short-name "stdefpro"
+  )
+  ("defresource")
+  ("temp-strings")
+  ("coral-defs" :features CCL-2)
+  ("clim-defs")
+  
+  ;; Definitions and protocols
+  ("stream-class-defs"
+   ;; :short-name "scdefs"
+  )
+  ("interactive-defs" 
+   ;; :short-name "idefs"
+  )
+  ("cursor")
+  ("view-defs")
+  ("input-defs")
+  ("input-protocol")
+  ("output-protocol")
 
-#+Minima-Developer (progn
+  ;; Output recording
+  ("recording-defs" 
+   ;; :short-name "rdefs"
+   :load-before-compile ("clim-defs"))
+  ("formatted-output-defs")
+  ("recording-protocol" 
+   ;; :short-name "rprotoco"
+   :load-before-compile ("recording-defs"))
+  ("text-recording"
+   :load-before-compile ("recording-protocol"))
+  ("graphics-recording"
+   :load-before-compile ("recording-protocol"))
+  ("design-recording"
+   :load-before-compile ("graphics-recording"))
 
-(clim-defsys:import-into-sct 'clim-utils :subsystem t
-  :sct-name :minima-clim-utils :pretty-name "Minima CLIM Utilities"
-  :default-pathname "SYS:CLIM;REL-2;UTILS;")
+  ;; Input editing
+  ("interactive-protocol" 
+   ;; :short-name "iprotoco"
+   :load-before-compile ("clim-defs"))
+  ("input-editor-commands")
 
-(clim-defsys:import-into-sct 'clim-silica :subsystem t
-  :sct-name :minima-clim-silica :pretty-name "Minima CLIM Silica"
-  :default-pathname "SYS:CLIM;REL-2;SILICA;")
+  ;; Incremental redisplay
+  ("incremental-redisplay"
+   :load-before-compile ("clim-defs" "recording-protocol"))
 
-(clim-defsys:import-into-sct 'clim-standalone :subsystem t
-  :sct-name :minima-clim-standalone :pretty-name "Minima CLIM Standalone"
-  :default-pathname "SYS:CLIM;REL-2;CLIM;")
+  ;; Windows
+  ("coordinate-sorted-set")
+  ("r-tree")
+  ("window-stream")
+  ("pixmap-streams")
 
-(zl:::sct:defsystem minima-clim
-    (:pretty-name "Minima CLIM"
-     :default-pathname "SYS:CLIM;REL-2;"
-     :journal-directory "SYS:CLIM;REL-2;PATCH;"
-     :maintain-journals nil
-     :default-module-type :system
-     :patches-reviewed "Bug-CLIM-Doc"
-     :source-category :optional)
-  (:module defsystem "sys:clim;rel-2;sys;defsystem"
-	   (:type :minima-lisp) (:root-module nil))
-  (:serial "minima-clim-utils"
-	   "minima-clim-silica"
-	   "minima-clim-standalone"))
+  ;; Presentation types
+  ("ptypes1"
+   :load-before-compile ("clim-defs"))
+  ("completer"
+   :load-before-compile ("ptypes1"))
+  ("presentations"
+   :load-before-compile ("ptypes1"))
+  ("translators"
+   :load-before-compile ("presentations"))
+  ("histories"
+   :load-before-compile ("presentations"))
+  ("ptypes2"
+   :load-before-compile ("translators"))
+  ("standard-types"
+   :load-before-compile ("ptypes2"))
+  ("excl-presentations"
+   :load-before-compile ("presentations")
+   :features Allegro)
 
-)	;#+Minima-Developer
+  ;; Formatted output
+  ("table-formatting"
+   :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("graph-formatting"
+   :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("surround-output" 
+   :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("text-formatting"
+   :load-before-compile ("clim-defs" "incremental-redisplay"))
 
-
+  ;; Pointer tracking
+  ("tracking-pointer")
+  ("dragging-output"
+   :load-before-compile ("tracking-pointer"))
+
+  ;; Gadgets
+  ("db-stream")
+  ("gadget-output")
+
+  ;; Application building substrate
+  ("accept"
+   :load-before-compile ("clim-defs" "ptypes2"))
+  ("present"
+   :load-before-compile ("clim-defs" "ptypes2"))
+  ("command"
+   :load-before-compile ("clim-defs" "ptypes2"))
+  ("command-processor"
+   :load-before-compile ("clim-defs" "command"))
+  ("basic-translators"
+   :load-before-compile ("ptypes2" "command"))
+  ("frames" 
+   :load-before-compile ("clim-defs" "command-processor"))
+  ("panes" :load-before-compile ("frames"))
+  ("default-frame" 
+   :load-before-compile ("frames"))
+  ("activities" 
+   :load-before-compile ("frames"))
+  ("db-menu"
+   :load-before-compile ("frames"))
+  ("db-list"
+   :load-before-compile ("db-menu"))
+  ("db-text"
+   :load-before-compile ("frames"))
+  ("noting-progress"
+   :load-before-compile ("frames"))
+  ("menus"
+   :load-before-compile ("defresource" "clim-defs"))
+  ("accept-values"
+   :load-before-compile ("clim-defs" "incremental-redisplay" "frames"))
+  ("drag-and-drop" 
+   :load-before-compile ("frames"))
+  ("item-list-manager")
+
+  ;; Bootstrap everything
+  ("stream-trampolines" 
+    ;; :short-name "strtramp"
+   :load-before-compile ("defprotocol" "stream-defprotocols"))
+  ("lucid-after" :features lucid)
+  ("prefill" :features (or Genera Cloe-Runtime)))
+
+) ;; progn
+
 #||
 
 ;; You get the general idea...
@@ -553,3 +716,4 @@
 (compare-system-files 'clim "sys:clim;rel-2;" "sys:clim;rel-2;shared;")
 
 ||#
+

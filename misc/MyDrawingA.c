@@ -16,7 +16,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $fiHeader: MyDrawingA.c,v 1.5 1993/07/27 01:47:40 colin Exp $
+ * $Header: /repo/cvs.copy/clim2/misc/MyDrawingA.c,v 1.9 1997/02/05 01:48:59 tomj Exp $
  */
 
 #if defined(__alpha)

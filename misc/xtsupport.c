@@ -1,4 +1,4 @@
-/* $fiHeader: xtsupport.c,v 1.11 1995/04/07 01:09:14 georgej Exp $ */
+/* $Header: /repo/cvs.copy/clim2/misc/xtsupport.c,v 1.14 1997/02/05 01:49:19 tomj Exp $ */
 
 #if defined(__alpha)
 # pragma pointer_size (save)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: formatted-output-defs.lisp,v 1.8 92/12/16 16:46:17 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/formatted-output-defs.lisp,v 1.10 1997/02/05 01:43:27 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -9,16 +9,16 @@
 
 ;;; We want to evaluate the user's :RECORD-TYPE option, right?
 (defmacro formatting-table ((&optional stream
-			     &rest options
-			     &key x-spacing y-spacing
-				  multiple-columns multiple-columns-x-spacing	
-				  equalize-column-widths
-				  record-type (move-cursor t)
-			     &allow-other-keys)
-			    &body body)
+                             &rest options
+                             &key x-spacing y-spacing
+                                  multiple-columns multiple-columns-x-spacing        
+                                  equalize-column-widths
+                                  record-type (move-cursor t)
+                             &allow-other-keys)
+                            &body body)
   (declare (ignore x-spacing y-spacing 
-		   multiple-columns multiple-columns-x-spacing
-		   equalize-column-widths record-type move-cursor))
+                   multiple-columns multiple-columns-x-spacing
+                   equalize-column-widths record-type move-cursor))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-table)
   `(flet ((formatting-table-body (,stream) ,@body))
@@ -26,8 +26,8 @@
      (invoke-formatting-table ,stream #'formatting-table-body ,@options)))
 
 (defmacro formatting-row ((&optional stream
-			   &rest options &key record-type &allow-other-keys)
-			  &body body)
+                           &rest options &key record-type &allow-other-keys)
+                          &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-row)
   (setq options (remove-keywords options '(:record-type)))
@@ -36,8 +36,8 @@
      ,@body))
 
 (defmacro formatting-column ((&optional stream
-			      &rest options &key record-type &allow-other-keys)
-			     &body body)
+                              &rest options &key record-type &allow-other-keys)
+                             &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-column)
   (setq options (remove-keywords options '(:record-type)))
@@ -46,11 +46,11 @@
      ,@body))
 
 (defmacro formatting-cell ((&optional stream
-			    &rest options
-			    &key (align-x ':left) (align-y ':top)
-				 min-width min-height record-type
-			    &allow-other-keys)
-			   &body body)
+                            &rest options
+                            &key (align-x ':left) (align-y ':top)
+                                 min-width min-height record-type
+                            &allow-other-keys)
+                           &body body)
   (declare (ignore align-x align-y min-width min-height record-type))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-cell)
@@ -59,18 +59,18 @@
      (invoke-formatting-cell ,stream #'formatting-cell-body ,@options)))
 
 (defmacro formatting-item-list ((&optional stream
-				 &rest options
-				 &key record-type
-				      x-spacing y-spacing initial-spacing
-				      n-columns n-rows
-				      max-width max-height
-				      stream-width stream-height
-				      (row-wise t) (move-cursor t)
-				 &allow-other-keys)
-				&body body)
+                                 &rest options
+                                 &key record-type
+                                      x-spacing y-spacing initial-spacing
+                                      n-columns n-rows
+                                      max-width max-height
+                                      stream-width stream-height
+                                      (row-wise t) (move-cursor t)
+                                 &allow-other-keys)
+                                &body body)
   (declare (ignore x-spacing y-spacing initial-spacing
-		   record-type n-columns n-rows max-width max-height
-		   stream-width stream-height row-wise move-cursor))
+                   record-type n-columns n-rows max-width max-height
+                   stream-width stream-height row-wise move-cursor))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-item-list)
   `(flet ((formatting-item-list-body (,stream) ,@body))
@@ -79,10 +79,10 @@
 
 
 (defmacro surrounding-output-with-border ((&optional stream
-					   &rest drawing-options
-					   &key (shape ':rectangle) (move-cursor t)
-					   &allow-other-keys)
-					  &body body)
+                                           &rest drawing-options
+                                           &key (shape ':rectangle) (move-cursor t)
+                                           &allow-other-keys)
+                                          &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (declare (ignore move-cursor))
   (default-output-stream stream surrounding-output-with-border)
@@ -90,14 +90,14 @@
     `(flet ((surrounding-output-with-border-body (,stream) ,@body))
        (declare (dynamic-extent #'surrounding-output-with-border-body))
        (invoke-surrounding-output-with-border
-	 ,stream #'surrounding-output-with-border-body ,shape
-	 ,@(copy-list drawing-options)))))
+         ,stream #'surrounding-output-with-border-body ,shape
+         ,@(copy-list drawing-options)))))
 
 (defmacro filling-output ((&optional stream &rest keys
-			   &key (fill-width '(80 :character))
-				(break-characters '(#\space))
-				after-line-break after-line-break-initially)
-			  &body body)
+                           &key (fill-width '(80 :character))
+                                (break-characters '(#\space))
+                                after-line-break after-line-break-initially)
+                          &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (declare (ignore fill-width break-characters after-line-break after-line-break-initially))
   (default-output-stream stream filling-output)
@@ -106,33 +106,33 @@
      (invoke-filling-output ,stream #'filling-output-body ,@keys)))
 
 (defmacro indenting-output ((stream indentation &key (move-cursor t))
-			    &body body)
+                            &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream indenting-output)
   `(flet ((indenting-output-body (,stream) ,@body))
      (declare (dynamic-extent #'indenting-output-body))
      (invoke-indenting-output ,stream #'indenting-output-body 
-			      ,indentation :move-cursor ,move-cursor)))
+                              ,indentation :move-cursor ,move-cursor)))
 
 
 (defmacro updating-output
-	  ((stream &rest args
-		   &key (record-type `'standard-updating-output-record)
-			(unique-id `'assign-sequential-unique-IDs) (id-test `#'eql)
-			(cache-value `'unsupplied-cache-value) (cache-test `#'eql)
-			copy-cache-value parent-cache
-			output-record fixed-position all-new
-		   &allow-other-keys)
-	   &body body)
+          ((stream &rest args
+                   &key (record-type `'standard-updating-output-record)
+                        (unique-id `'assign-sequential-unique-IDs) (id-test `#'eql)
+                        (cache-value `'unsupplied-cache-value) (cache-test `#'eql)
+                        copy-cache-value parent-cache
+                        output-record fixed-position all-new
+                   &allow-other-keys)
+           &body body)
   (declare (ignore fixed-position all-new))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream updating-output)
   `(flet ((updating-output-body (,stream) ,@body))
      (invoke-updating-output ,stream #'updating-output-body
-			     ,record-type ,unique-id ,id-test
-			     ,cache-value ,cache-test
-			     ,copy-cache-value ,parent-cache ,output-record 
-			     ,@(remove-keywords args
-				 ;; Remove all args that aren't initargs to the record.
-				 '(:record-type :id-test :cache-test :copy-cache-value
-				   :parent-cache :output-record)))))
+                             ,record-type ,unique-id ,id-test
+                             ,cache-value ,cache-test
+                             ,copy-cache-value ,parent-cache ,output-record 
+                             ,@(remove-keywords args
+                                 ;; Remove all args that aren't initargs to the record.
+                                 '(:record-type :id-test :cache-test :copy-cache-value
+                                   :parent-cache :output-record)))))

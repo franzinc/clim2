@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.69 1996/03/13 09:56:23 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.71 1997/02/05 01:55:08 tomj Exp $
 
 (in-package :common-lisp-user)
 
@@ -10,10 +10,13 @@
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
 (defpackage clim-lisp
-   (:implementation-packages :clim-lisp :clim-utils)
- (:use common-lisp clos stream)
+  #+Allegro (:implementation-packages :clim-lisp :clim-utils)
+  ;; 28Jan97 added allegro package for aclpc since mop stuff was moved
+  ;; there in 3.0.1 -tjm
+ (:use common-lisp #+Allegro clos #+Allegro stream #+aclpc allegro)
 
- (:shadow
+ ;; Import these symbols so that we can define methods for them.
+ (:shadow 
    pathname
    truename)
 
@@ -171,7 +174,7 @@
    boole-orc2
    boole-set
    boole-xor
-   boolean
+   #-aclpc boolean
    both-case-p
    boundp
    break
@@ -969,6 +972,7 @@
    use-package
    use-value
    user-homedir-pathname
+   #+aclpc validate-superclass
    values
    values-list
    variable
@@ -1003,6 +1007,12 @@
    yes-or-no-p
    zerop)
 
+  #+aclpc
+ (:import-from allegro
+   acl::dynamic-extent
+   synonym-stream
+   )
+
  ;; Export symbols from Gray stream proposal, sigh
  (:export
    fundamental-binary-input-stream
@@ -1032,7 +1042,8 @@
    stream-unread-char
    stream-write-byte
    stream-write-char
-   stream-write-string))
+   stream-write-string)
+)
 
 
 ;; Define the CLIM-SYS package
@@ -1085,16 +1096,17 @@
 
 ;; Define the CLIM package
 (defpackage clim
-  (:use)				;use nothing
-  (:implementation-packages :silica
-			    :clim-utils
-			    :clim-silica
-			    :clim-internals
-			    :postscript-clim
-			    :xm-silica)
+  (:use)                                ;use nothing
+  #+Allegro (:implementation-packages 
+             :silica 
+             :clim-utils 
+             :clim-silica 
+             :clim-internals
+             :postscript-clim
+             :xm-silica)
   (:import-from clim-lisp
     and
-    boolean
+    #-aclpc boolean
     character
     close
     complex
@@ -2505,12 +2517,15 @@
     oriented-gadget-mixin
     push-button
     push-button-pane
+    #+(or aclpc acl86win32) push-button-show-as-default-p
     push-button-show-as-default
     radio-box
     radio-box-current-selection
     radio-box-pane
     radio-box-selections
     scroll-bar
+    #+(or aclpc acl86win32) scroll-bar-current-size
+    #+(or aclpc acl86win32) scroll-bar-current-value
     scroll-bar-drag-callback
     scroll-bar-pane
     scroll-bar-size
@@ -2626,6 +2641,7 @@
     windowp
     window-top-level-window))
 
+#+Allegro
 (excl:ics-target-case
 (:+ics
 
@@ -2652,14 +2668,20 @@
 
 ;; Now define all of the implementation packages
 (defpackage clim-utils
-  (:implementation-packages :clim-utils :clim-silica
+  #+Allegro (:implementation-packages :clim-utils :clim-silica
 			    :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim)
 
-  (:import-from excl
+  #+Allegro (:import-from excl
     arglist)
 
-  (:shadowing-import-from cltl1
+  #+aclpc
+  (:shadow
+    defun
+    flet labels
+    defgeneric defmethod)
+
+  #+Allegro (:shadowing-import-from cltl1
     string-char
     char-bits)
 
@@ -2927,10 +2949,13 @@
     modifier-key-index
     modifier-key-index-name))
 
+#+(or aclpc acl86win32)
+(eval-when (compile load eval)
+ (intern "NON-DYNAMIC-EXTENT" (find-package "CLIM-UTILS")))
 
 (defpackage clim-silica
    (:nicknames silica pyrex)
-   (:implementation-packages :clim-silica :clim-internals :xt-silica)
+   #+Allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim clim-utils)
 
   (:shadowing-import-from clim-utils
@@ -2949,6 +2974,7 @@
     *ports*
     *standard-character-set*
     *all-character-sets*
+    #+(or aclpc acl86win32) *undefined-text-style* 
     +highlighting-line-style+
     activate-gadget-event
     add-sheet-callbacks
@@ -3101,14 +3127,17 @@
     port-set-sheet-grabbed-pointer-cursor
     port-terminated
     port-trace-thing
+    #+(or aclpc acl86win32) port-undefined-text-style
     process-event-locally
     pull-down-menu
     pull-down-menu-button
     pull-down-menu-frame
     radio-button-pane
     raise-mirror
+    #+(or aclpc acl86win32) scroll-bar-size
     scroll-bar-shaft-pane
     scroll-bar-target-pane
+    #+(or aclpc acl86win32) scroll-bar-value
     scroll-bar-value-changed-callback
     scrollable-pane
     scroller-pane-gadget-supplies-scrolling-p
@@ -3170,6 +3199,7 @@
     with-mouse-grabbed-in-window
     wrapping-space-mixin))
 
+#+Allegro
 (excl:ics-target-case
 (:+ics
 
@@ -3183,14 +3213,21 @@
 )) ;; ics-target-case
 
 (defpackage clim-internals
-  (:use	:clim-lisp :clim-sys :clim :clim-utils :clim-silica)
-  (:implementation-packages :clim-internals :xt-silica))
+  (:use        :clim-lisp :clim-sys :clim :clim-utils :clim-silica)
+  #+Allegro (:implementation-packages :clim-internals :xt-silica)
+  #+aclpc
+  (:shadowing-import-from clim-utils
+    defun
+    flet labels
+    defgeneric defmethod
+    dynamic-extent))
 
 
 ;; A package for casual use...
 (defpackage clim-user
    (:use clim-lisp clim))
 
+#+Allegro
 (flet ((lock-package (package)
 	 (setq package (find-package package))
 	 (setf (package-definition-lock package) t)))

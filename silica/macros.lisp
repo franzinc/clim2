@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: macros.lisp,v 1.14 92/09/24 09:37:45 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/macros.lisp,v 1.16 1997/02/05 01:51:08 tomj Exp $
 
 (in-package :silica)
 
@@ -17,15 +17,15 @@
   `(flet ((with-sheet-medium-bound-body () ,@body))
      (declare (dynamic-extent #'with-sheet-medium-bound-body))
      (invoke-with-sheet-medium-bound ,sheet ,medium 
-				     #'with-sheet-medium-bound-body)))
+                                     #'with-sheet-medium-bound-body)))
 
 (defmacro with-temporary-medium ((medium sheet) &body body)
   (let ((sheet-var '#:sheet))
     `(let* ((,sheet-var ,sheet)
-	    (,medium (allocate-medium (port ,sheet-var) ,sheet-var)))
+            (,medium (allocate-medium (port ,sheet-var) ,sheet-var)))
        (unwind-protect
-	   (progn ,@body)
-	 (deallocate-medium (port ,sheet-var) ,medium)))))
+           (progn ,@body)
+         (deallocate-medium (port ,sheet-var) ,medium)))))
 
 
 (defmacro with-port-locked ((port) &body body)
@@ -42,13 +42,13 @@
     (setq frame-manager `(frame-manager *application-frame*))
     (setq frame `*application-frame*))
   `(flet ((make-pane (pane-class &rest pane-options)
-	    (declare (dynamic-extent pane-options))
-	    (apply #'make-pane-1 ,frame-manager ,frame pane-class pane-options))
-	  (make-clim-stream-pane (&rest pane-options)
-	    (declare (dynamic-extent pane-options))
-	    (apply #'clim-internals::make-clim-stream-pane-1 ,frame-manager ,frame pane-options)))
+            (declare (dynamic-extent pane-options))
+            (apply #'make-pane-1 ,frame-manager ,frame pane-class pane-options))
+          (make-clim-stream-pane (&rest pane-options)
+            (declare (dynamic-extent pane-options))
+            (apply #'clim-internals::make-clim-stream-pane-1 ,frame-manager ,frame pane-options)))
      (declare (dynamic-extent #'make-pane #'make-clim-stream-pane))
-     #'make-pane		;prevent spurious compiler warnings
+     #'make-pane                ;prevent spurious compiler warnings
      #'make-clim-stream-pane
      ,@forms))
 
@@ -56,9 +56,9 @@
 (defun make-pane (pane-class &rest pane-options)
   (declare (ignore pane-class pane-options))
   (warn "~S not inside a call to ~S"
-	'make-pane 'with-look-and-feel-realization))
+        'make-pane 'with-look-and-feel-realization))
 
 (defun make-clim-stream-pane (&rest pane-options)
   (declare (ignore pane-options))
   (warn "~S not inside a call to ~S"
-	'make-clim-stream-pane 'with-look-and-feel-realization))
+        'make-clim-stream-pane 'with-look-and-feel-realization))

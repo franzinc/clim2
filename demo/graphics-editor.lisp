@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.23 1993/10/26 03:21:57 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/graphics-editor.lisp,v 1.25 1997/02/05 01:47:24 tomj Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -64,13 +64,6 @@
   (incf (slot-value object 'redisplay-tick)))
 
 ;; All objects participate in redisplay...
-(defmethod draw-object :around ((object basic-object) stream)
-  (updating-output (stream :unique-id object
-			   :cache-value (slot-value object 'redisplay-tick))
-    (call-next-method)
-    (when (object-selected-p *application-frame* object)
-      (draw-object-handles object stream))))
-
 (defmethod draw-object ((object basic-object) stream)
   (declare (ignore stream ink)))
 
@@ -86,11 +79,6 @@
 (defmethod move-object :after ((object basic-object) x y)
   (declare (ignore x y))
   (tick-object object))
-
-(defmethod reshape-object :after ((object basic-object) x y type)
-  (declare (ignore x y type))
-  (tick-object object))
-
 
 (defclass object-with-handles-mixin ()
     ((handles :initform nil)))
@@ -115,10 +103,6 @@
 ;; Moving (or reshaping) an object changes its handle locations
 (defmethod move-object :after ((object object-with-handles-mixin) x y)
   (declare (ignore x y))
-  (setf (slot-value object 'handles) nil))
-
-(defmethod reshape-object :after ((object object-with-handles-mixin) x y type)
-  (declare (ignore x y type))
   (setf (slot-value object 'handles) nil))
 
 
@@ -200,6 +184,15 @@
       (:se (setq right x
 		 bottom y)))
     (clim-utils:bounding-rectangle-set-edges object left top right bottom)))
+
+
+(defmethod reshape-object :after ((object basic-object) x y type)
+  (declare (ignore x y type))
+  (tick-object object))
+
+(defmethod reshape-object :after ((object object-with-handles-mixin) x y type)
+  (declare (ignore x y type))
+  (setf (slot-value object 'handles) nil))
 
 (defmethod reshape-object :after ((object box) x y type)
   (declare (ignore x y type))
@@ -446,6 +439,13 @@
 	      (formatting-row (stream) (do-body stream)))
 	    (:vertical
 	      (formatting-column (stream) (do-body stream)))))))))
+
+(defmethod draw-object :around ((object basic-object) stream)
+  (updating-output (stream :unique-id object
+			   :cache-value (slot-value object 'redisplay-tick))
+    (call-next-method)
+    (when (object-selected-p *application-frame* object)
+      (draw-object-handles object stream))))
 
 (defmethod display-objects ((frame graphics-editor) stream)
   (dolist (object (slot-value frame 'objects))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-pixmaps.lisp,v 1.8 92/12/16 16:48:09 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/genera/genera-pixmaps.lisp,v 1.10 1997/02/05 01:48:17 tomj Exp $
 
 (in-package :genera-clim)
 

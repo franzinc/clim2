@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.21 1995/11/08 06:12:29 georgej Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/train.lisp,v 1.23 1997/02/05 01:49:17 tomj Exp $
 
 (defun train-clim (&key (train-times 2)
 			(psview nil)

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: db-label.lisp,v 1.3 1993/07/27 01:50:31 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/homegrown/db-label.lisp,v 1.3 1997/02/05 01:48:34 tomj Exp $
 
 (in-package :silica)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.15 93/01/21 14:58:20 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/stream-defprotocols.lisp,v 1.17 1997/02/05 01:44:59 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -99,9 +99,9 @@
 (defoperation stream-read-gesture basic-extended-input-protocol
   ((stream basic-extended-input-protocol)
    &key timeout peek-p
-	(input-wait-test *input-wait-test*)
-	(input-wait-handler *input-wait-handler*)
-	(pointer-button-press-handler *pointer-button-press-handler*)))
+        (input-wait-test *input-wait-test*)
+        (input-wait-handler *input-wait-handler*)
+        (pointer-button-press-handler *pointer-button-press-handler*)))
 
 (defoperation stream-unread-gesture basic-extended-input-protocol
   ((stream basic-extended-input-protocol) gesture))
@@ -115,7 +115,7 @@
 
 (defoperation stream-pointer-position basic-extended-input-protocol
   ((stream basic-extended-input-protocol) &key (timeout 0) pointer)
-  (declare (values x y)))
+  #-aclpc (declare (values x y)))
 
 (defoperation stream-set-pointer-position basic-extended-input-protocol
   ((stream basic-extended-input-protocol) x y &key pointer))
@@ -125,11 +125,11 @@
 
 (defoperation stream-pointer-input-rectangle* basic-extended-input-protocol
   ((stream basic-extended-input-protocol) pointer &key left top right bottom)
-  (declare (values left top right bottom)))
+  #-aclpc (declare (values left top right bottom)))
 
 (defoperation stream-accept basic-extended-input-protocol
   ((stream basic-extended-input-protocol) presentation-type &rest accept-args)
-  (declare (values object type)))
+  #-aclpc (declare (values object type)))
 
 (defoperation prompt-for-accept basic-extended-input-protocol
   ((stream basic-extended-input-protocol) type view &rest accept-args))
@@ -261,12 +261,12 @@
 
 (defoperation text-size basic-extended-output-protocol
   ((stream basic-extended-output-protocol) string &key text-style start end)
-  (declare (values largest-x total-height last-x last-y baseline))
+  #-aclpc (declare (values largest-x total-height last-x last-y baseline))
   (:no-defgeneric t))
 
 (defoperation stream-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol))
-  (declare (values x y)))
+  #-aclpc (declare (values x y)))
 
 (defoperation stream-set-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y))
@@ -300,7 +300,7 @@
 (defoperation invoke-formatting-cell basic-extended-output-protocol
   ((stream basic-extended-output-protocol) continuation
    &key (align-x :left) (align-y :top) min-width min-height
-	(record-type 'standard-cell-output-record)))
+        (record-type 'standard-cell-output-record)))
 
 ;; not sure this is the right place...
 (defoperation incremental-redisplay basic-extended-output-protocol
@@ -405,7 +405,7 @@
 
 (defoperation window-inside-size window-mixin
   ((window window-mixin))
-  (declare (values width height)))
+  #-aclpc (declare (values width height)))
 
 (defoperation window-set-inside-size window-mixin
   ((window window-mixin) new-width new-height))
@@ -459,3 +459,5 @@
 
 (defoperation pane-frame pane-protocol
   ((pane pane-protocol)))
+
+#+(or aclpc acl86win32) nil ; because the last form is printed!?

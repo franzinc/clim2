@@ -2,7 +2,7 @@
 
 ;;; Hacks for efficiently drawing really big scientific graphs.
 ;;; Needs to be clim2.0 ified.
-;;; $fiHeader: output-record.lisp,v 1.2 92/10/07 14:43:41 cer Exp $
+;;; $Header: /repo/cvs.copy/clim2/demo/output-record.lisp,v 1.4 1997/02/05 01:47:39 tomj Exp $
 
 (in-package :clim)
 ;;; Vendors have started locking this package, so we shouldn't be using it.

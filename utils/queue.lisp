@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: queue.lisp,v 1.5 92/09/24 09:38:07 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/queue.lisp,v 1.7 1997/02/05 01:55:14 tomj Exp $
 
 ;;;
 ;;; Copyright (c) 1989 by Xerox Corporations.  All rights reserved.
@@ -44,12 +44,12 @@
   `(rplacd
      (prog1
          (or
-	   (slot-value ,queue 'free-list)
-	   (cons nil nil))
+           (slot-value ,queue 'free-list)
+           (cons nil nil))
        (setf (slot-value ,queue 'free-list) 
-	     (cdr (slot-value ,queue 'free-list))))
+             (cdr (slot-value ,queue 'free-list))))
      nil))
-	  
+          
 (defmacro free-cons (queue cons)
   ;; add a cons cell to the list of free cons cells
   `(prog1
@@ -114,11 +114,11 @@
    or at the head of the lifo queue"
   (let ((new-item (rplaca (get-free-cons queue) item)))
     (if (queue-empty-p queue)
-	(psetf (queue-head queue) new-item
-	       (queue-tail queue) new-item)
-	(progn
-	  (rplacd (queue-tail queue) new-item)
-	  (setf (queue-tail queue) new-item)))
+        (psetf (queue-head queue) new-item
+               (queue-tail queue) new-item)
+        (progn
+          (rplacd (queue-tail queue) new-item)
+          (setf (queue-tail queue) new-item)))
     queue))
       
 (defmethod queue-get ((queue queue) &optional default)
@@ -126,30 +126,30 @@
    deleteing it from the queue"
   (if (queue-empty-p queue)
       default
-      (prog1				
-	  (queue-next queue)
-	(setf (queue-head queue) (free-cons queue (queue-head queue))))))
+      (prog1                                
+          (queue-next queue)
+        (setf (queue-head queue) (free-cons queue (queue-head queue))))))
 
 (defmethod queue-unget ((queue queue) item)
   ;;--- Eventually this will check to see that the item being ungotten
   ;;--- is the same as the last gotten item.
   (let ((new-item (rplaca (get-free-cons queue) item)))
     (if (queue-empty-p queue)
-	(psetf (queue-head queue) new-item
-	       (queue-tail queue) new-item)
+        (psetf (queue-head queue) new-item
+               (queue-tail queue) new-item)
         (psetf (cdr new-item) (queue-head queue)
-	       (queue-head queue) new-item))))
+               (queue-head queue) new-item))))
 
 (defmethod queue-push ((queue queue) item)
   "put a new element at the tail of the fifo queue
    or at the head of the lifo queue"
   (let ((new-item (rplaca (get-free-cons queue) item)))
     (if (queue-empty-p queue)
-	(setf (queue-head queue) new-item
-	      (queue-tail queue) new-item)
-	(progn
-	  (rplacd new-item (queue-head queue))
-	  (setf (queue-head queue) new-item)))
+        (setf (queue-head queue) new-item
+              (queue-tail queue) new-item)
+        (progn
+          (rplacd new-item (queue-head queue))
+          (setf (queue-head queue) new-item)))
     queue))
 
 (defmethod queue-pop ((queue queue) &optional default)
@@ -157,9 +157,9 @@
    deleteing it from the queue"
   (if (queue-empty-p queue)
       default
-      (prog1				
-	  (queue-next queue)
-	(setf (queue-head queue) (free-cons queue (queue-head queue))))))
+      (prog1                                
+          (queue-next queue)
+        (setf (queue-head queue) (free-cons queue (queue-head queue))))))
 
 ;;;
 ;;;     Locking Queues
@@ -187,7 +187,7 @@
     (call-next-method)))
 
 (defmethod map-over-queue (function (queue locking-queue))
-  (declare (ignore function))
+  #-aclpc (declare (ignore function))
   (with-queue-locked queue 
     (call-next-method)))
 
@@ -196,22 +196,22 @@
     (call-next-method)))
 
 (defmethod queue-put ((queue locking-queue) item)
-  (declare (ignore item))
+  #-aclpc (declare (ignore item))
   (with-queue-locked queue 
     (call-next-method)))
 
 (defmethod queue-get ((queue locking-queue) &optional default)
-  (declare (ignore default))
+  #-aclpc (declare (ignore default))
   (with-queue-locked queue 
     (call-next-method)))
 
 (defmethod queue-push ((queue locking-queue) item)
-  (declare (ignore item))
+  #-aclpc (declare (ignore item))
   (with-queue-locked queue 
     (call-next-method)))
 
 (defmethod queue-pop ((queue locking-queue) &optional default)
-  (declare (ignore default))
+  #-aclpc (declare (ignore default))
   (with-queue-locked queue 
     (call-next-method)))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: condpat.lisp,v 1.8 92/09/24 09:37:59 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/condpat.lisp,v 1.10 1997/02/05 01:54:42 tomj Exp $
 
 (in-package :clim-utils)
 

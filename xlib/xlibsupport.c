@@ -16,7 +16,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $fiHeader: xlibsupport.c,v 1.5 1994/12/05 00:02:50 colin Exp $
+ * $Header: /repo/cvs.copy/clim2/xlib/xlibsupport.c,v 1.8 1997/02/05 01:56:12 tomj Exp $
  */
 
 /************************************************************************/

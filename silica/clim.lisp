@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: clim.lisp,v 1.3 92/01/31 14:55:27 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/clim.lisp,v 1.6 1997/02/05 01:50:36 tomj Exp $
 
 (in-package :silica)
 

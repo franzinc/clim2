@@ -1,7 +1,6 @@
-
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.37 1995/10/20 17:40:41 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/classes.lisp,v 1.39 1997/02/05 01:50:34 tomj Exp $
 
 (in-package :silica)
 
@@ -24,37 +23,46 @@
      (process :initform nil :accessor port-process)
      (frame-managers :initform nil :accessor port-frame-managers)
      (modifier-state :initform (make-modifier-state)
-		     :accessor port-modifier-state)
+                     :accessor port-modifier-state)
      (mirror->sheet-table :initform (make-hash-table :test #'equal)
-			  :reader port-mirror->sheet-table)
+                          :reader port-mirror->sheet-table)
      (focus :initform nil :accessor port-keyboard-input-focus)
      (focus-selection :initform :click-to-select :initarg :focus-selection
-		      :accessor port-input-focus-selection
-		      :type (member :sheet-under-pointer :click-to-select))
+                      :accessor port-input-focus-selection
+                      :type (member :sheet-under-pointer :click-to-select))
      (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
-		  :reader port-trace-thing)
+                  :reader port-trace-thing)
      (deep-mirroring :initform nil :initarg :deep-mirroring
-		     :reader port-deep-mirroring)
+                     :reader port-deep-mirroring)
      (medium-cache :initform nil :accessor port-medium-cache)
      (default-palette :reader port-default-palette)
      (pointer :initform nil)
      (mapping-table :initform
-		    (excl:ics-target-case
-		     (:+ics (let ((v (make-array 4)))
-			      (dotimes (i 4)
-				(setf (svref v i)
-				  (make-hash-table :test #'equal)))
-			      v))
-		     (:-ics (make-hash-table :test #'equal))))
+#+(or aclpc acl86win32)
+                    (make-hash-table :test #'equal)
+#-(or aclpc acl86win32)
+                    (excl:ics-target-case
+                     (:+ics (let ((v (make-array 4)))
+                              (dotimes (i 4)
+                                (setf (svref v i)
+                                  (make-hash-table :test #'equal)))
+                              v))
+                     (:-ics (make-hash-table :test #'equal))))
      ;; one entry cache
      (mapping-cache :initform
-		    (excl:ics-target-case
-		     (:+ics (let ((v (make-array 4)))
-			      (dotimes (i 4)
-				(setf (svref v i)
-				  (cons nil nil)))
-			      v))
-		     (:-ics (cons nil nil))))
+#+(or aclpc acl86win32)
+                    (cons nil nil)
+#-(or aclpc acl86win32)
+                    (excl:ics-target-case
+                     (:+ics (let ((v (make-array 4)))
+                              (dotimes (i 4)
+                                (setf (svref v i)
+                                  (cons nil nil)))
+                              v))
+                     (:-ics (cons nil nil))))
+#+(or aclpc acl86win32)
+     (undefined-text-style :initform *undefined-text-style*
+                           :accessor port-undefined-text-style)
      ;; When this is true, the text style to device font mapping is done
      ;; loosely.  That is, the actual screen size of the font need not be
      ;; exactly what the user has asked for.  Instead the closest fit is
@@ -67,10 +75,10 @@
      (allow-loose-text-style-size-mapping
        :initform nil :initarg :allow-loose-text-style-size-mapping)
      (canonical-gesture-specs :reader port-canonical-gesture-specs
-			      :initform (make-hash-table :test #'equal))
+                              :initform (make-hash-table :test #'equal))
      (grabbing-sheet :initform nil :accessor port-grabbing-sheet)))
 
-)	;locally
+)        ;locally
 
 
 (define-protocol-class sheet ())
@@ -79,13 +87,13 @@
     ((port :initform nil :reader port)
      (graft :initform nil :reader graft)
      (parent :initform nil
-	     :accessor sheet-parent)
+             :accessor sheet-parent)
      (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
-	     :accessor sheet-region)
+             :accessor sheet-region)
      (enabledp :initform nil :accessor sheet-enabled-p)
      ;;--- Is this the best place for this?
      (pointer-cursor :initarg :pointer-cursor :initform nil
-		     :reader sheet-pointer-cursor)))
+                     :reader sheet-pointer-cursor)))
 
 
 (define-protocol-class medium ())
@@ -103,19 +111,19 @@
      (ink :initform +foreground-ink+ :accessor medium-ink)
      (text-style :initform nil :accessor medium-text-style)
      (default-text-style :initform *default-text-style*
-			 :accessor medium-default-text-style)
+                         :accessor medium-default-text-style)
      (merged-text-style :initform *default-text-style*
-			:writer (setf medium-merged-text-style))
+                        :writer (setf medium-merged-text-style))
      (merged-text-style-valid :initform nil
-			      :accessor medium-merged-text-style-valid)
+                              :accessor medium-merged-text-style-valid)
      (line-style :initform (make-line-style) :accessor medium-line-style)
      (transformation :initarg :transformation :initform +identity-transformation+
-		     :accessor medium-transformation)
+                     :accessor medium-transformation)
      (region :initarg :region :initform +everywhere+
-	     :accessor medium-clipping-region)
+             :accessor medium-clipping-region)
      (+y-upward-p :initform nil :accessor medium-+y-upward-p)))
 
-)	;locally
+)        ;locally
 
 
 ;;; Event types
@@ -127,17 +135,17 @@
      ;; in some implementations of CLOS
      (defmethod event-type ((event ,name))
        ,(intern (subseq
-		  (symbol-name name)
-		  0 (search (symbol-name '-event) (symbol-name name)
-			    :from-end t))
-		*keyword-package*))))
+                  (symbol-name name)
+                  0 (search (symbol-name '-event) (symbol-name name)
+                            :from-end t))
+                *keyword-package*))))
 
 ;; A fixnum, incremented only with ATOMIC-INCF
 (defvar *event-timestamp* 0)
 
 (define-event-class event ()
   ((timestamp :reader event-timestamp
-	      :initform (atomic-incf *event-timestamp*) :initarg :timestamp)))
+              :initform (atomic-incf *event-timestamp*) :initarg :timestamp)))
 
 (defgeneric eventp (object))
 
@@ -147,7 +155,7 @@
 (define-event-class device-event (event)
   ((sheet :reader event-sheet :initarg :sheet)
    (modifier-state :reader event-modifier-state
-		   :initform 0 :initarg :modifier-state)))
+                   :initform 0 :initarg :modifier-state)))
 
 
 (define-event-class keyboard-event (device-event)
@@ -166,11 +174,11 @@
    (native-x :reader pointer-event-native-x :initarg :native-x)
    (native-y :reader pointer-event-native-y :initarg :native-y)
    (pointer :reader pointer-event-pointer
-	    :initarg :pointer :initform nil)))
+            :initarg :pointer :initform nil)))
 
 (define-event-class pointer-button-event (pointer-event)
   ((button :reader pointer-event-button
-	   :initarg :button :initform nil)))
+           :initarg :button :initform nil)))
 
 (define-event-class pointer-button-press-event (pointer-button-event) ())
 (define-event-class pointer-button-release-event (pointer-button-event) ())
@@ -183,7 +191,7 @@
 
 (define-event-class pointer-boundary-event (pointer-event)
   ((kind :reader pointer-boundary-event-kind :initarg :kind
-	 :type (member :ancestor :virtual :inferior :nonlinear :nonlinear-virtual nil))))
+         :type (member :ancestor :virtual :inferior :nonlinear :nonlinear-virtual nil))))
 (define-event-class pointer-exit-event (pointer-boundary-event) ())
 (define-event-class pointer-enter-event (pointer-boundary-event) ())
 
@@ -191,8 +199,8 @@
   ((region :reader window-event-region :initarg :region)
    (native-region :reader window-event-native-region :initarg :native-region)
    (mirrored-sheet :reader window-event-mirrored-sheet
-		   :reader event-sheet
-		   :initarg :sheet :initarg :mirrored-sheet)))
+                   :reader event-sheet
+                   :initarg :sheet :initarg :mirrored-sheet)))
 
 (defmethod print-object ((event window-event) stream)
   (print-unreadable-object (event stream :type t)
@@ -217,6 +225,11 @@
 (define-event-class focus-in-event (focus-event) ())
 (define-event-class focus-out-event (focus-event) ())
 
+#+(or aclpc acl86win32)
+(define-event-class window-change-event (pointer-button-event) ;was window-event
+  ((mswin-control :reader event-mswin-control :initarg :mswin-control)))
+#+(or aclpc acl86win32)
+(define-event-class window-close-event (window-event) ())
 
 ;;; Values used in event objects
 

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: read-afm.lisp,v 1.1 93/03/31 10:39:23 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/read-afm.lisp,v 1.4 1997/02/05 01:49:43 tomj Exp $
 
 (in-package :postscript-clim)
 

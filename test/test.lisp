@@ -18,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.53 1993/10/25 16:16:19 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/test/test.lisp,v 1.56 1997/02/05 01:52:24 tomj Exp $
 
 (in-package :clim-user)
 
@@ -764,8 +764,11 @@
     (:default
       (vertically ()
 	d
+	#-acl86win32
 	(make-pane 'xm-silica::motif-paned-pane
-		   :contents (list a b c))))))
+		   :contents (list a b c))
+	#+acl86win32
+	(horizontally () a b c)))))
 
 
 #+Allegro
@@ -780,6 +783,7 @@
     (:default
       (vertically ()
 	d
+	#-acl86win32
 	(make-pane 'xm-silica::motif-rc-pane
 		   :contents (list* a
 				    b
@@ -789,7 +793,9 @@
 					(push
 					  (make-pane 'push-button
 						     :label (format nil "button ~D" i))
-					  r)))))))))
+					  r)))))
+	#+acl86win32
+    (horizontally () a b c)))))
 
 #+Allegro
 (define-application-frame tf104 () ()
@@ -801,6 +807,7 @@
     (d :application))
   (:layouts
     (:default
+      #-acl86win32
       (make-pane 'xm-silica::motif-form-pane
 		 :attachments '((0 :left-attachment :form
 				   :right-attachment :position
@@ -817,7 +824,9 @@
 				   :left-position 66 :right-attachment :form
 				   :top-attachment :form
 				   :bottom-attachment :form))
-		 :contents (list a b c)))))
+		 :contents (list a b c))
+    #+acl86win32
+    (horizontally () a b c))))
 
 
 ;; This was from a pkarp mail message

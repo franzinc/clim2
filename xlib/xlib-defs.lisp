@@ -18,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.11 1996/01/23 06:47:52 duane Exp $
+;;; $Header: /repo/cvs.copy/clim2/xlib/xlib-defs.lisp,v 1.13 1997/02/05 01:56:07 tomj Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a

@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: hpgl-tests.lisp,v 1.1 93/04/02 13:36:54 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/test/hpgl-tests.lisp,v 1.3 1997/02/05 01:52:03 tomj Exp $
 
 (in-package :clim-user)
 

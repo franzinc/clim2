@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: plot.lisp,v 1.31 1993/10/25 16:15:56 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/plot.lisp,v 1.33 1997/02/05 01:47:46 tomj Exp $
 
 (in-package :clim-demo)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defun.lisp,v 1.8 92/10/28 11:31:00 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.10 1997/02/05 01:54:48 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -227,7 +227,7 @@
 
 (defmacro defun (name lambda-list &body body &environment env)
   (with-new-function (ll b) (lambda-list body :environment env :function-name name)
-    `(,(lintern 'defun) ,name ,ll ,@b)))
+    `( #+aclpc cl:defun #-aclpc ,(lintern 'defun) ,name ,ll ,@b)))
 
 #+Genera
 (progn
@@ -284,13 +284,13 @@
   #+++ignore `((declare (dynamic-extent ,@(mapcar #'(lambda (fn) `#',fn) functions)))))
 
 (defmacro flet (functions &body body &environment env)
-  (construct-local-function-body (lintern 'flet) functions body env))
+  (construct-local-function-body #+aclpc 'cl:flet #-aclpc (lintern 'flet) functions body env))
 
 #+Genera
 (pushnew 'flet zwei:*definition-list-functions*)
 
 (defmacro labels (functions &body body &environment env)
-  (construct-local-function-body (lintern 'labels) functions body env))
+  (construct-local-function-body #+aclpc 'cl:labels #-aclpc (lintern 'labels) functions body env))
 
 #+Genera
 (pushnew 'labels zwei:*definition-list-functions*)
@@ -298,7 +298,8 @@
 
 (defparameter *defgeneric* #+PCL 'pcl::defgeneric
 			   #+Allegro 'clos::defgeneric
-			   #-(or Allegro PCL) 'clos:defgeneric)
+			   #+aclpc 'cl:defgeneric
+			   #-(or Allegro aclpc PCL) 'clos:defgeneric)
 
 (defmacro defgeneric (name lambda-list &body options &environment env)
   (multiple-value-bind (new-ll new-body)
@@ -312,7 +313,8 @@
 ;;; DEFMETHOD needs to handle the DYNAMIC-EXTENT declaration, too.
 (defparameter *defmethod* #+PCL 'pcl::defmethod
 			  #+Allegro 'clos::defmethod
-			  #-(or Allegro PCL) 'clos:defmethod)
+			  #+aclpc 'cl:defmethod
+			  #-(or Allegro PCL aclpc) 'clos:defmethod)
 
 (defmacro defmethod (&whole form name &rest args &environment env)
   (declare (arglist name {method-qualifier}* specialized-lambda-list &body body)
@@ -349,11 +351,11 @@
 		 (return (nreverse result)))
 	       (push type result)))))
     #+PCL `(pcl::method ,function-name ,@qualifiers ,specifier-list)
-    #-PCL `(clos:method ,function-name ,specifier-list ,@qualifiers)))
+    #-PCL `(#-aclpc clos:method #+aclpc cl:method ,function-name ,specifier-list ,@qualifiers)))
 
-#+(and Allegro (version>= 4 1))
+#+(and Allegro (not microsoft-32) (version>= 4 1))
 (eval-when (compile load eval) (cltl1::require :scm))
-#+(and Allegro (version>= 4 1))
+#+(and Allegro (not microsoft-32) (version>= 4 1))
 (scm::define-simple-parser defmethod scm::defmethod-parser)
 
 #+Genera

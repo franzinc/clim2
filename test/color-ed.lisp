@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: color-ed.lisp,v 1.6 92/07/27 11:03:12 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/test/color-ed.lisp,v 1.9 1997/02/05 01:52:01 tomj Exp $
 
 (in-package :clim-user)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.33 1993/12/07 05:34:01 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/layout.lisp,v 1.35 1997/02/05 01:51:06 tomj Exp $
 
 (in-package :silica)
 
@@ -14,10 +14,10 @@
 (defmethod print-object ((object space-requirement) stream)
   (print-unreadable-object (object stream :type t)
     (multiple-value-bind (width min-width max-width height min-height max-height) 
-	(space-requirement-components object)
+        (space-requirement-components object)
       (format stream "~D<w=~D<~D ~D<h=~D<~D"
-	min-width width max-width 
-	min-height height max-height))))
+        min-width width max-width 
+        min-height height max-height))))
 
 
 (defclass null-space-requirement (space-requirement) ())
@@ -42,7 +42,7 @@
 (defmethod space-requirement-components ((sr simple-space-requirement))
   (with-slots (width height) sr
     (values width width width
-	    height height height)))
+            height height height)))
 
 (defmethod space-requirement-width ((sr simple-space-requirement)) 
   (slot-value sr 'width))
@@ -68,37 +68,41 @@
 
 (defmethod space-requirement-components ((sr general-space-requirement))
   (with-slots (width min-width max-width
-	       height min-height max-height) sr
+               height min-height max-height) sr
     (values width min-width max-width
-	    height min-height max-height)))
+            height min-height max-height)))
 
 (defmethod initialize-instance :after ((sr general-space-requirement)
-				       &key (width (error "Width not specified"))
-					    (min-width width)
-					    (max-width width)
-					    (height (error "Height not specified"))
-					    (min-height height)
-					    (max-height height))
+                                       &key (width (error "Width not specified"))
+                                            (min-width width)
+                                            (max-width width)
+                                            (height (error "Height not specified"))
+                                            (min-height height)
+                                            (max-height height))
   (setf (slot-value sr 'min-height) min-height
-	(slot-value sr 'max-height) max-height
-	(slot-value sr 'min-width) min-width
-	(slot-value sr 'max-width) max-width))
+        (slot-value sr 'max-height) max-height
+        (slot-value sr 'min-width) min-width
+        (slot-value sr 'max-width) max-width))
 
 (defun make-space-requirement (&key (width 0) (min-width width) (max-width width)
-				    (height 0) (min-height height) (max-height height))
+                                    (height 0) (min-height height) (max-height height))
   (cond ((and (eq width  min-width)  (eq width  max-width)
-	      (eq height min-height) (eq height max-height))
-	 ;; Compare with EQ since width and height can be :COMPUTE
-	 (if (and (eq width 0) (eq height 0))
-	     +null-space-requirement+
-	     (make-instance 'simple-space-requirement 
-	       :width width :height height)))
-	(t
-	 (make-instance 'general-space-requirement
-	   :width width :min-width min-width :max-width max-width
-	   :height height :min-height min-height :max-height max-height))))
+              (eq height min-height) (eq height max-height))
+         ;; Compare with EQ since width and height can be :COMPUTE
+         (if (and (eq width 0) (eq height 0))
+             +null-space-requirement+
+             (make-instance 'simple-space-requirement 
+               :width width :height height)))
+        (t
+         (make-instance 'general-space-requirement
+           :width width :min-width min-width :max-width max-width
+           :height height :min-height min-height :max-height max-height))))
 
-(defconstant +fill+ (floor (/ (expt 10 (floor (log most-positive-fixnum 10))) 100)))
+(defconstant +fill+
+             #+(or aclpc acl86win32) 2048 ; expression below gives 100 in aclpc - too small
+             #-(or aclpc acl86win32)
+             (floor (/ (expt 10 (floor (log most-positive-fixnum 10))) 100)))
+
 
 
 ;;; Layout protocol
@@ -118,22 +122,22 @@
 
 (defun parse-box-contents (contents)
   (mapcar #'(lambda (x)
-	      ;; Handle top-down layout syntax
-	      (if (and (consp x)
-		       (typep (first x) '(or (member :fill) number)))
-		  `(list ,(first x) ,(second x))
-		  x))
-	  contents))
+              ;; Handle top-down layout syntax
+              (if (and (consp x)
+                       (typep (first x) '(or (member :fill) number)))
+                  `(list ,(first x) ,(second x))
+                  x))
+          contents))
 
 (defmacro vertically ((&rest options &key spacing &allow-other-keys)
-		      &body contents)
+                      &body contents)
   (declare (ignore spacing))
   `(make-pane 'vbox-pane
      :contents (list ,@(parse-box-contents contents))
      ,@options))
 
 (defmacro horizontally ((&rest options &key spacing &allow-other-keys)
-			&body contents)
+                        &body contents)
   (declare (ignore spacing))
   `(make-pane 'hbox-pane
      :contents (list ,@(parse-box-contents contents))
@@ -144,25 +148,25 @@
 (defmethod resize-sheet ((sheet basic-sheet) width height)
   (unless (and (> width 0) (> height 0))
     (error "Trying to resize sheet ~S to be too small (~D x ~D)"
-	   sheet width height))
+           sheet width height))
   (with-bounding-rectangle* (left top right bottom) sheet
     (let ((owidth (- right left))
-	  (oheight (- bottom top)))
+          (oheight (- bottom top)))
       (if (or (/= owidth width)
-	      (/= oheight height)
-	      #+Allegro
-	      (mirror-needs-resizing-p sheet width height))
-	  ;; It should be safe to modify the sheet's region, since
-	  ;; each sheet gets a fresh region when it is created
-	  (let ((region (sheet-region sheet)))
-	    (setf (slot-value region 'left) left
-		  (slot-value region 'top)  top
-		  (slot-value region 'right) (+ left width)
-		  (slot-value region 'bottom) (+ top height))
-	    (note-sheet-region-changed sheet))
-	;;--- Do this so that we relayout the rest of tree.
-	;;--- I guess we do not want to do this always but ...
-	(allocate-space sheet owidth oheight)))))
+              (/= oheight height)
+              #+Allegro
+              (mirror-needs-resizing-p sheet width height))
+          ;; It should be safe to modify the sheet's region, since
+          ;; each sheet gets a fresh region when it is created
+          (let ((region (sheet-region sheet)))
+            (setf (slot-value region 'left) left
+                  (slot-value region 'top)  top
+                  (slot-value region 'right) (+ left width)
+                  (slot-value region 'bottom) (+ top height))
+            (note-sheet-region-changed sheet))
+        ;;--- Do this so that we relayout the rest of tree.
+        ;;--- I guess we do not want to do this always but ...
+        (allocate-space sheet owidth oheight)))))
 
 ;;;-- This sucks but it seems to get round the problem of the mirror
 ;;;-- geometry being completely wrong after the layout has been changed
@@ -177,24 +181,24 @@
 (defmethod mirror-needs-resizing-p ((sheet mirrored-sheet-mixin) width height)
   (and (sheet-direct-mirror sheet)
        (multiple-value-bind (left top right bottom)
-	   (mirror-region* (port sheet) sheet)
-	 (or (/= width (- right left))
-	     (/= height (- bottom top))))))
+           (mirror-region* (port sheet) sheet)
+         (or (/= width (- right left))
+             (/= height (- bottom top))))))
 
 
 (defmethod move-sheet ((sheet basic-sheet) x y)
   (let ((transform (sheet-transformation sheet)))
     (multiple-value-bind (old-x old-y)
-	(transform-position transform 0 0)
+        (transform-position transform 0 0)
       (when (or (and x (/= old-x x))
-		(and y (/= old-y y)))
-	;; We would like to use volatile transformations here, but it's
-	;; not really safe, since the current implementation of transformations
-	;; is likely to cause them to be shared
-	(setf (sheet-transformation sheet)
-	      (compose-translation-with-transformation
-		transform
-		(if x (- x old-x) 0) (if y (- y old-y) 0)))))))
+                (and y (/= old-y y)))
+        ;; We would like to use volatile transformations here, but it's
+        ;; not really safe, since the current implementation of transformations
+        ;; is likely to cause them to be shared
+        (setf (sheet-transformation sheet)
+              (compose-translation-with-transformation
+                transform
+                (if x (- x old-x) 0) (if y (- y old-y) 0)))))))
 
 (defmethod move-and-resize-sheet ((sheet basic-sheet) x y width height)
   (resize-sheet sheet width height)
@@ -205,23 +209,27 @@
 
 (define-protocol-class pane (sheet))
 
+#+aclpc ;;; aclpc is anal about initialization args, so we must appease
+(defmethod initialize-instance :around ((pane pane) &key background text-style)
+  (apply #'call-next-method nil))
+
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
 (defclass basic-pane 
-	  (sheet-transformation-mixin
-	   standard-sheet-input-mixin
-	   standard-repainting-mixin
-	   temporary-medium-sheet-output-mixin
-	   basic-sheet
-	   pane)
+          (sheet-transformation-mixin
+           standard-sheet-input-mixin
+           standard-repainting-mixin
+           temporary-medium-sheet-output-mixin
+           basic-sheet
+           pane)
     ((frame :reader pane-frame :initarg :frame)
      (framem :reader frame-manager :initarg :frame-manager)
      (name :accessor pane-name :initform nil :initarg :name)))
 
 (defmethod print-object ((object basic-pane) stream)
   (if (and (slot-boundp object 'name)
-	   (stringp (slot-value object 'name)))
+           (stringp (slot-value object 'name)))
       (print-unreadable-object (object stream :type t :identity t)
-	(format stream "~A" (slot-value object 'name)))
+        (format stream "~A" (slot-value object 'name)))
       (call-next-method)))
 
 (defmethod handle-repaint ((pane basic-pane) region)
@@ -270,7 +278,7 @@
 ;(defmethod contents ((lcm list-contents-mixin))
 ;  (with-slots (reverse-p contents) lcm
 ;    (if reverse-p (reverse contents)
-;	contents)))
+;        contents)))
 ;    
 ;(defmethod (setf contents) (new-contents (lcm list-contents-mixin))
 ;  (with-slots (reverse-p contents children) lcm
@@ -279,11 +287,11 @@
 ;    (dolist (pane new-contents)
 ;      (sheet-adopt-child lcm pane))
 ;    (setf contents (if reverse-p (reverse new-contents)
-;		       new-contents)
-;	  ;; So that things repaint from top to bottom
-;	  ;; ??? However, it only work is you go through this method.
-;	  children (if reverse-p (nreverse children)
-;			  children))
+;                       new-contents)
+;          ;; So that things repaint from top to bottom
+;          ;; ??? However, it only work is you go through this method.
+;          children (if reverse-p (nreverse children)
+;                          children))
 ;    
 ;    (note-space-requirements-changed (sheet-parent lcm) lcm)))
 ;
@@ -296,12 +304,12 @@
 ;    (unless position (setq position len))
 ;    (check-type position number)
 ;    (assert (and (<= 0 position) (<= position len))
-;	    (position)
-;	    "Position argument out of bounds")
+;            (position)
+;            "Position argument out of bounds")
 ;    position))
 ;
 ;(defmethod insert-panes ((lcm list-contents-mixin) panes
-;			 &key position &allow-other-keys)
+;                         &key position &allow-other-keys)
 ;  (with-slots (reverse-p contents) lcm
 ;    (setq position (check-position position reverse-p contents))
 ;    (dolist (pane panes)
@@ -310,19 +318,19 @@
 ;    (note-space-requirements-changed (sheet-parent lcm) lcm)))
 ;
 ;(defmethod insert-pane ((lcm list-contents-mixin) (pane basic-pane) 
-;			&key position batch-p &allow-other-keys)
+;                        &key position batch-p &allow-other-keys)
 ;  (with-slots (contents reverse-p) lcm
 ;    (unless batch-p
 ;      (setq position (check-position position reverse-p contents)))
 ;    (if (zerop position)
-;	(push pane contents)
-;	(let ((tail (nthcdr (1- position) contents)))
-;	  (setf (cdr tail) 
-;		(cons pane (cdr tail)))))
+;        (push pane contents)
+;        (let ((tail (nthcdr (1- position) contents)))
+;          (setf (cdr tail) 
+;                (cons pane (cdr tail)))))
 ;    (sheet-adopt-child lcm pane)
 ;    (unless batch-p
 ;      (note-space-requirements-changed (sheet-parent lcm) lcm))))
-;			      
+;                              
 ;(defmethod remove-panes ((lcm list-contents-mixin) panes)
 ;  (dolist (pane panes)
 ;    (with-slots (contents) lcm
@@ -331,7 +339,7 @@
 ;  (note-space-requirements-changed (sheet-parent lcm) lcm))
 ;
 ;(defmethod remove-pane ((lcm list-contents-mixin) (pane basic-pane)
-;			&key batch-p &allow-other-keys)
+;                        &key batch-p &allow-other-keys)
 ;  (with-slots (contents) lcm
 ;    (setf contents (delete pane contents :test #'eq))
 ;    (sheet-disown-child lcm pane)
@@ -347,14 +355,14 @@
 
 ;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
 (defclass top-level-sheet 
-	  (;;--- Temporary kludge until we get the protocols correct
-	   ;;--- so that ACCEPT works correctly on a raw sheet
-	   clim-internals::window-stream
-	   wrapping-space-mixin
-	   sheet-multiple-child-mixin
-	   mirrored-sheet-mixin
-	   permanent-medium-sheet-output-mixin
-	   basic-pane)
+          (;;--- Temporary kludge until we get the protocols correct
+           ;;--- so that ACCEPT works correctly on a raw sheet
+           clim-internals::window-stream
+           wrapping-space-mixin
+           sheet-multiple-child-mixin
+           mirrored-sheet-mixin
+           permanent-medium-sheet-output-mixin
+           basic-pane)
     ((user-specified-size-p :initform :unspecified :initarg :user-specified-size-p)
      (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))
   ;;--- More of same...
@@ -374,8 +382,8 @@
       ;; do the complete LAYOUT-FRAME thing including clearing caches
       ;; etc etc.
       (multiple-value-call #'layout-frame
-	(pane-frame pane) 
-	(bounding-rectangle-size pane))
+        (pane-frame pane) 
+        (bounding-rectangle-size pane))
       ;; Otherwise just call ALLOCATE-SPACE etc
       (call-next-method)))
 
@@ -389,14 +397,14 @@
 
 
 (defclass composite-pane
-	  (sheet-multiple-child-mixin 
-	   basic-pane)
+          (sheet-multiple-child-mixin 
+           basic-pane)
     ())
 
 (defclass leaf-pane 
-	  (sheet-permanently-enabled-mixin
-	   client-overridability-mixin
-	   basic-pane)
+          (sheet-permanently-enabled-mixin
+           client-overridability-mixin
+           basic-pane)
     ((cursor :initarg :cursor :initform nil
-	     :accessor sheet-cursor)))
+             :accessor sheet-cursor)))
 

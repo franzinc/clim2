@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.8 92/07/01 15:48:48 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/pre-silica/window-protocol.lisp,v 1.10 1997/02/05 01:50:23 tomj Exp $
 
 (in-package :clim-internals)
 

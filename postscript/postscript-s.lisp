@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: postscript-s.lisp,v 1.1 92/11/20 08:45:40 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-s.lisp,v 1.4 1997/02/05 01:49:41 tomj Exp $
 
 
 (in-package :postscript-clim)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.12 1995/10/20 17:38:00 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/packages.lisp,v 1.14 1997/02/05 01:47:40 tomj Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -40,6 +40,7 @@
 ;;; is added (non-ics). The unless deals with the situation of
 ;;; compiling and then loading in the same non-ICS image! (cim 2/28/96)
 
+#+allegro
 (excl:ics-target-case
 (:+ics
 

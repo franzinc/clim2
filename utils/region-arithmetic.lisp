@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.14 93/04/08 13:19:48 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/region-arithmetic.lisp,v 1.16 1997/02/05 01:55:18 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -27,7 +27,7 @@
 (defmethod transform-region (transformation (region-set standard-region-union))
   (let ((regions nil))
     (flet ((transform (region)
-	     (push (transform-region transformation region) regions)))
+             (push (transform-region transformation region) regions)))
       (declare (dynamic-extent #'transform))
       (map-over-region-set-regions #'transform region-set))
     (make-region-union-1 (nreverse regions))))
@@ -47,13 +47,13 @@
 
 (defmethod region-union ((path1 path) (path2 path))
   (cond ((region-contains-region-p path1 path2) path1)
-	((region-contains-region-p path2 path1) path2)
-	(t (make-region-union path1 path2))))
+        ((region-contains-region-p path2 path1) path2)
+        (t (make-region-union path1 path2))))
 
 (defmethod region-union ((area1 area) (area2 area))
   (cond ((region-contains-region-p area1 area2) area1)
-	((region-contains-region-p area2 area1) area2)
-	(t (make-region-union area1 area2))))
+        ((region-contains-region-p area2 area1) area2)
+        (t (make-region-union area1 area2))))
 
 (defmethod region-union ((region1 region) (region2 region))
   (make-region-union region1 region2))
@@ -63,7 +63,7 @@
 
 (defmethod region-union ((region1 standard-region-union) (region2 standard-region-union))
   (apply #'make-region-union (append (slot-value region1 'regions)
-				     (slot-value region2 'regions))))
+                                     (slot-value region2 'regions))))
 
 
 ;;; General region intersection
@@ -87,7 +87,7 @@
 (defmethod transform-region (transformation (region-set standard-region-intersection))
   (let ((regions nil))
     (flet ((transform (region)
-	     (push (transform-region transformation region) regions)))
+             (push (transform-region transformation region) regions)))
       (declare (dynamic-extent #'transform))
       (map-over-region-set-regions #'transform region-set))
     (make-region-intersection-1 (nreverse regions))))
@@ -117,7 +117,7 @@
 
 (defmethod region-intersection ((region1 standard-region-intersection) (region2 standard-region-intersection))
   (apply #'make-region-intersection (append (slot-value region1 'regions)
-					    (slot-value region2 'regions))))
+                                            (slot-value region2 'regions))))
 
 
 ;;; General region difference
@@ -128,7 +128,7 @@
      (regions :type list)))
 
 (define-constructor make-region-difference standard-region-difference
-		    (region1 region2)
+                    (region1 region2)
   :region1 region1 :region2 region2)
 
 (defmethod region-set-function ((region standard-region-difference)) 'set-difference)
@@ -138,7 +138,7 @@
   (slot-value region 'regions))
 
 (defmethod map-over-region-set-regions
-	   (function (region standard-region-difference) &key normalize)
+           (function (region standard-region-difference) &key normalize)
   (declare (dynamic-extent function) (ignore normalize))
   (with-slots (region1 region2) region
     (funcall function region1)
@@ -153,7 +153,7 @@
 (defmethod transform-region (transformation (region-set standard-region-difference))
   (with-slots (region1 region2) region-set
     (make-region-difference (transform-region transformation region1)
-			    (transform-region transformation region2))))
+                            (transform-region transformation region2))))
 
 (defmethod region-difference ((nowhere nowhere) (region region)) +nowhere+)
 (defmethod region-difference ((region region) (nowhere nowhere)) region)
@@ -179,18 +179,18 @@
        (>= bottom top)))
 
 (defun ltrb-equals-ltrb-p (left1 top1 right1 bottom1
-			   left2 top2 right2 bottom2)
+                           left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-		 	    left2 top2 right2 bottom2))
+                             left2 top2 right2 bottom2))
   (and (= left1 left2)
        (= top1 top2)
        (= right1 right2)
        (= bottom1 bottom2)))
 
 (defun ltrb-size-equal (left1 top1 right1 bottom1 
-			left2 top2 right2 bottom2)
+                        left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-		            left2 top2 right2 bottom2))
+                            left2 top2 right2 bottom2))
   (and (= (- right1 left1) (- right2 left2))
        (= (- bottom1 top1) (- bottom2 top2))))
 
@@ -202,95 +202,95 @@
        (>= bottom y)))
 
 (defun ltrb-contains-ltrb-p (left1 top1 right1 bottom1
-			     left2 top2 right2 bottom2)
+                             left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-	                    left2 top2 right2 bottom2))
+                            left2 top2 right2 bottom2))
   (and (<= left1 left2)
        (<= top1 top2)
        (>= right1 right2)
        (>= bottom1 bottom2)))
 
 (defun ltrb-overlaps-ltrb-p (left1 top1 right1 bottom1
-			     left2 top2 right2 bottom2)
+                             left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-		 	    left2 top2 right2 bottom2)
-	   (values valid-p left top right bottom))
+                             left2 top2 right2 bottom2)
+           (values valid-p left top right bottom))
   (let ((left (max left1 left2))
-	(top (max top1 top2))
-	(right (min right1 right2))
-	(bottom (min bottom1 bottom2)))
+        (top (max top1 top2))
+        (right (min right1 right2))
+        (bottom (min bottom1 bottom2)))
     (when (ltrb-well-formed-p left top right bottom)
       (values t left top right bottom))))
 
 ;; Returns a list of bounding rectangles that represent the union
 (defun ltrb-union (left1 top1 right1 bottom1
-		   left2 top2 right2 bottom2 &optional (banding :x-banding))
+                   left2 top2 right2 bottom2 &optional (banding :x-banding))
   (declare (type coordinate left1 top1 right1 bottom1
-		 	    left2 top2 right2 bottom2)
-	   (values rectangles))
+                             left2 top2 right2 bottom2)
+           (values rectangles))
   (cond ((ltrb-contains-ltrb-p left1 top1 right1 bottom1
-			       left2 top2 right2 bottom2)
-	 (list (make-bounding-rectangle-1 left1 top1 right1 bottom1)))
-	((ltrb-contains-ltrb-p left2 top2 right2 bottom2
-			       left1 top1 right1 bottom1)
-	 (list (make-bounding-rectangle-1 left2 top2 right2 bottom2)))
-	((not (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1
-				    left2 top2 right2 bottom2))
-	 (list (make-bounding-rectangle-1 left1 top1 right1 bottom1)
-	       (make-bounding-rectangle-1 left2 top2 right2 bottom2)))
-	(t
-	 (ecase banding
-	   (:x-banding
-	    (let ((result nil))
-	      ;; Three slices
-	      ;;; Top slice
-	      (cond ((< top1 top2)
-		      (push (make-bounding-rectangle left1 top1 right1 top2) result))
-		     ((< top2 top1)
-		      (push (make-bounding-rectangle left2 top2 right2 top1) result)))
-	      ;; Bottom slice
-	      (cond ((< bottom1 bottom2)
-		     (push (make-bounding-rectangle left2 bottom1 right2 bottom2) result))
-		    ((< bottom2 bottom1)
-		     (push (make-bounding-rectangle left1 bottom2 right1 bottom1) result)))
-	      ;; Middle slice
-	      (push (make-bounding-rectangle (min left1 left2)
-					     (max top1 top2)
-					     (max right1 right2)
-					     (min bottom1 bottom2))
-		    result)
-	      result))
-	   
-	   (:y-banding
-	    (let ((result nil))
-	      ;; Three slices
-	      ;;; Left slice
-	      (cond ((< left1 left2)
-		      (push (make-bounding-rectangle left1 top1 left2 bottom1) result))
-		     ((< left2 left1)
-		      (push (make-bounding-rectangle left2 top2 left1 bottom2) result)))
-	      ;; Right slice
-	      (cond ((< right1 right2)
-		     (push (make-bounding-rectangle right1 top2 right2 bottom2) result))
-		    ((< right2 right1)
-		     (push (make-bounding-rectangle right2 top1 right1 bottom1) result)))
-	      ;; Middle slice
-	      (push (make-bounding-rectangle (max left1 left2)
-					     (min top1 top2)
-					     (min right1 right2)
-					     (max bottom1 bottom2))
-		    result)
-	      result))))))
+                               left2 top2 right2 bottom2)
+         (list (make-bounding-rectangle-1 left1 top1 right1 bottom1)))
+        ((ltrb-contains-ltrb-p left2 top2 right2 bottom2
+                               left1 top1 right1 bottom1)
+         (list (make-bounding-rectangle-1 left2 top2 right2 bottom2)))
+        ((not (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1
+                                    left2 top2 right2 bottom2))
+         (list (make-bounding-rectangle-1 left1 top1 right1 bottom1)
+               (make-bounding-rectangle-1 left2 top2 right2 bottom2)))
+        (t
+         (ecase banding
+           (:x-banding
+            (let ((result nil))
+              ;; Three slices
+              ;;; Top slice
+              (cond ((< top1 top2)
+                      (push (make-bounding-rectangle left1 top1 right1 top2) result))
+                     ((< top2 top1)
+                      (push (make-bounding-rectangle left2 top2 right2 top1) result)))
+              ;; Bottom slice
+              (cond ((< bottom1 bottom2)
+                     (push (make-bounding-rectangle left2 bottom1 right2 bottom2) result))
+                    ((< bottom2 bottom1)
+                     (push (make-bounding-rectangle left1 bottom2 right1 bottom1) result)))
+              ;; Middle slice
+              (push (make-bounding-rectangle (min left1 left2)
+                                             (max top1 top2)
+                                             (max right1 right2)
+                                             (min bottom1 bottom2))
+                    result)
+              result))
+           
+           (:y-banding
+            (let ((result nil))
+              ;; Three slices
+              ;;; Left slice
+              (cond ((< left1 left2)
+                      (push (make-bounding-rectangle left1 top1 left2 bottom1) result))
+                     ((< left2 left1)
+                      (push (make-bounding-rectangle left2 top2 left1 bottom2) result)))
+              ;; Right slice
+              (cond ((< right1 right2)
+                     (push (make-bounding-rectangle right1 top2 right2 bottom2) result))
+                    ((< right2 right1)
+                     (push (make-bounding-rectangle right2 top1 right1 bottom1) result)))
+              ;; Middle slice
+              (push (make-bounding-rectangle (max left1 left2)
+                                             (min top1 top2)
+                                             (min right1 right2)
+                                             (max bottom1 bottom2))
+                    result)
+              result))))))
 
 ;; Returns a single bounding rectangle that represents the intersection, or NIL.
 (defun ltrb-intersection (left1 top1 right1 bottom1
-			  left2 top2 right2 bottom2)
+                          left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-			    left2 top2 right2 bottom2)
-	   (values rectangle))
+                            left2 top2 right2 bottom2)
+           (values rectangle))
   (multiple-value-bind (valid-p left top right bottom)
       (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1
-			    left2 top2 right2 bottom2)
+                            left2 top2 right2 bottom2)
     (when valid-p
       (make-bounding-rectangle-1 left top right bottom))))
 
@@ -329,32 +329,32 @@
 ;;     1bbbbbbbbbbbbbbbb1
 ;;     111111111111111111
 (defun ltrb-difference (left1 top1 right1 bottom1
-			left2 top2 right2 bottom2)
+                        left2 top2 right2 bottom2)
   (declare (type coordinate left1 top1 right1 bottom1
-			    left2 top2 right2 bottom2)
-	   (values rectangles))
+                            left2 top2 right2 bottom2)
+           (values rectangles))
   (unless (ltrb-contains-ltrb-p left2 top2 right2 bottom2
-				left1 top1 right1 bottom1)
+                                left1 top1 right1 bottom1)
     (if (not (ltrb-overlaps-ltrb-p left1 top1 right1 bottom1
-				   left2 top2 right2 bottom2))
-	(list (make-bounding-rectangle-1 left1 top1 right1 bottom1))
+                                   left2 top2 right2 bottom2))
+        (list (make-bounding-rectangle-1 left1 top1 right1 bottom1))
         ;; If the second ltrb contains the first ltrb, the difference is NIL.
         (let ((result nil))
-	  (when (< top1 top2)			;Area A above
-	    (push (make-bounding-rectangle left1 top1 right1 top2) result))
-	  (when (> bottom1 bottom2)		;Area B above
-	    (push (make-bounding-rectangle left1 bottom2 right1 bottom1) result))
-	  (when (< left1 left2)			;Area C above
-	    (let ((top (max top1 top2))
-		  (bottom (min bottom1 bottom2)))
-	      (when (> bottom top)
-		(push (make-bounding-rectangle left1 top left2 bottom) result))))
-	  (when (> right1 right2)		;Area D above
-	    (let ((top (max top1 top2))
-		  (bottom (min bottom1 bottom2)))
-	      (when (> bottom top)
-		(push (make-bounding-rectangle right2 top right1 bottom) result))))
-	  result))))
+          (when (< top1 top2)                        ;Area A above
+            (push (make-bounding-rectangle left1 top1 right1 top2) result))
+          (when (> bottom1 bottom2)                ;Area B above
+            (push (make-bounding-rectangle left1 bottom2 right1 bottom1) result))
+          (when (< left1 left2)                        ;Area C above
+            (let ((top (max top1 top2))
+                  (bottom (min bottom1 bottom2)))
+              (when (> bottom top)
+                (push (make-bounding-rectangle left1 top left2 bottom) result))))
+          (when (> right1 right2)                ;Area D above
+            (let ((top (max top1 top2))
+                  (bottom (min bottom1 bottom2)))
+              (when (> bottom top)
+                (push (make-bounding-rectangle right2 top right1 bottom) result))))
+          result))))
 
 
 ;;; Special cases for bounding rectangles
@@ -369,7 +369,7 @@
      (y-banded-rectangles :type list)))
 
 (define-constructor make-rectangle-set-1 standard-rectangle-set
-		    (rectangles left top right bottom)
+                    (rectangles left top right bottom)
   :rectangles rectangles
   :left left :top top :right right :bottom bottom)
 
@@ -378,13 +378,13 @@
   (let ((left nil) (top nil) (right nil) (bottom nil))
     (dolist (rectangle rectangles)
       (with-bounding-rectangle* (rl rt rr rb) rectangle
-	(minf-or left rl)
-	(minf-or top  rt)
-	(maxf-or right  rr)
-	(maxf-or bottom rb)))
+        (minf-or left rl)
+        (minf-or top  rt)
+        (maxf-or right  rr)
+        (maxf-or bottom rb)))
     (make-rectangle-set-1 (copy-list rectangles)
-			  (coordinate left)  (coordinate top) 
-			  (coordinate right) (coordinate bottom))))
+                          (coordinate left)  (coordinate top) 
+                          (coordinate right) (coordinate bottom))))
 
 (defmethod bounding-rectangle* ((rectangle standard-rectangle-set))
   (with-slots (left top right bottom) rectangle
@@ -392,10 +392,10 @@
 
 (defmethod transform-region (transformation (set standard-rectangle-set))
   (flet ((transform (rect)
-	   (transform-region transformation rect)))
+           (transform-region transformation rect)))
     (declare (dynamic-extent #'transform))
     (apply #'make-rectangle-set
-	   (map 'list #'transform (rectangle-set-rectangles set)))))
+           (map 'list #'transform (rectangle-set-rectangles set)))))
 
 (defmethod region-set-function ((region standard-rectangle-set)) 'union)
 
@@ -407,186 +407,186 @@
       ((:y-banding) y-banded-rectangles))))
 
 (defmethod slot-unbound
-	   (class (region standard-rectangle-set) (slot (eql 'x-banded-rectangles)))
+           (class (region standard-rectangle-set) (slot (eql 'x-banded-rectangles)))
   (declare (ignore class))
   (with-slots (x-banded-rectangles) region
     (setq x-banded-rectangles (normalize-rectangles region :x-banding))
     x-banded-rectangles))
 
 (defmethod slot-unbound
-	   (class (region standard-rectangle-set) (slot (eql 'y-banded-rectangles)))
+           (class (region standard-rectangle-set) (slot (eql 'y-banded-rectangles)))
   (declare (ignore class))
   (with-slots (y-banded-rectangles) region
     (setq y-banded-rectangles (normalize-rectangles region :y-banding))
     y-banded-rectangles))
 
 (defmethod region-union ((rect1 standard-bounding-rectangle)
-			 (rect2 standard-bounding-rectangle))
+                         (rect2 standard-bounding-rectangle))
   (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
     (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
       (let ((new-rectangles (ltrb-union left1 top1 right1 bottom1
-					left2 top2 right2 bottom2)))
-	(if (= (length new-rectangles) 1)
-	    (first new-rectangles)
-	    (apply #'make-rectangle-set new-rectangles))))))
+                                        left2 top2 right2 bottom2)))
+        (if (= (length new-rectangles) 1)
+            (first new-rectangles)
+            (apply #'make-rectangle-set new-rectangles))))))
 
 (define-symmetric-region-method region-union ((rect standard-bounding-rectangle)
-					      (set standard-rectangle-set))
+                                              (set standard-rectangle-set))
   (apply #'make-rectangle-set rect (slot-value set 'rectangles)))
 
 (defmethod region-union ((set1 standard-rectangle-set) (set2 standard-rectangle-set))
   (apply #'make-rectangle-set (append (slot-value set1 'rectangles)
-				      (slot-value set2 'rectangles))))
+                                      (slot-value set2 'rectangles))))
 
 (defmethod region-intersection ((rect1 standard-bounding-rectangle)
-				(rect2 standard-bounding-rectangle))
+                                (rect2 standard-bounding-rectangle))
   (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
     (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
       (or (ltrb-intersection left1 top1 right1 bottom1
-			     left2 top2 right2 bottom2)
-	  +nowhere+))))
+                             left2 top2 right2 bottom2)
+          +nowhere+))))
 
 (define-symmetric-region-method region-intersection ((rect standard-bounding-rectangle)
-						     (set standard-rectangle-set))
+                                                     (set standard-rectangle-set))
   (let ((new-rectangles nil))
     (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect
       (flet ((do-intersection (rectangle)
-	       (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
-		 (let ((new (ltrb-intersection left1 top1 right1 bottom1
-					       left2 top2 right2 bottom2)))
-		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'do-intersection))
-	(map-over-region-set-regions #'do-intersection set))
+               (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
+                 (let ((new (ltrb-intersection left1 top1 right1 bottom1
+                                               left2 top2 right2 bottom2)))
+                   (when new (push new new-rectangles))))))
+        (declare (dynamic-extent #'do-intersection))
+        (map-over-region-set-regions #'do-intersection set))
       (if new-rectangles
-	  (apply #'make-rectangle-set new-rectangles)
-	  +nowhere+))))
+          (apply #'make-rectangle-set new-rectangles)
+          +nowhere+))))
 
 (defmethod region-intersection ((set1 standard-rectangle-set) (set2 standard-rectangle-set))
   (let ((new-rectangles nil))
     (map-over-region-set-regions
       #'(lambda (rect1)
-	  (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
-	    (map-over-region-set-regions
-	      #'(lambda (rect2)
-		  (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
-		    (let ((new (ltrb-intersection left1 top1 right1 bottom1
-						  left2 top2 right2 bottom2)))
-		      (when new (push new new-rectangles)))))
-	      set2)))
+          (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
+            (map-over-region-set-regions
+              #'(lambda (rect2)
+                  (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
+                    (let ((new (ltrb-intersection left1 top1 right1 bottom1
+                                                  left2 top2 right2 bottom2)))
+                      (when new (push new new-rectangles)))))
+              set2)))
       set1)
     (if new-rectangles
-	(apply #'make-rectangle-set new-rectangles)
-	+nowhere+)))
+        (apply #'make-rectangle-set new-rectangles)
+        +nowhere+)))
 
 (defmethod region-difference ((rect1 standard-bounding-rectangle) 
-			      (rect2 standard-bounding-rectangle))
+                              (rect2 standard-bounding-rectangle))
   (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
     (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
       (let ((new-rectangles (ltrb-difference left1 top1 right1 bottom1
-					     left2 top2 right2 bottom2)))
-	(if new-rectangles
-	    (if (= (length new-rectangles) 1)
-		(first new-rectangles)
-	        (apply #'make-rectangle-set new-rectangles))
-	    +nowhere+)))))
+                                             left2 top2 right2 bottom2)))
+        (if new-rectangles
+            (if (= (length new-rectangles) 1)
+                (first new-rectangles)
+                (apply #'make-rectangle-set new-rectangles))
+            +nowhere+)))))
 
 (defmethod region-difference ((rect standard-bounding-rectangle) 
-			      (set standard-rectangle-set))
+                              (set standard-rectangle-set))
   (let ((new-rectangles nil))
     (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect
       (flet ((do-difference (rectangle)
-	       (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
-		 (let ((new (ltrb-difference left1 top1 right1 bottom1
-					     left2 top2 right2 bottom2)))
-		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'do-difference))
-	(map-over-region-set-regions #'do-difference set))
+               (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rectangle
+                 (let ((new (ltrb-difference left1 top1 right1 bottom1
+                                             left2 top2 right2 bottom2)))
+                   (when new (push new new-rectangles))))))
+        (declare (dynamic-extent #'do-difference))
+        (map-over-region-set-regions #'do-difference set))
       (if new-rectangles
-	  (apply #'make-rectangle-set new-rectangles)
-	  +nowhere+))))
+          (apply #'make-rectangle-set new-rectangles)
+          +nowhere+))))
 
 (defmethod region-difference ((set standard-rectangle-set) 
-			      (rect standard-bounding-rectangle))
+                              (rect standard-bounding-rectangle))
   (let ((new-rectangles nil))
     (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect
       (flet ((do-difference (rectangle)
-	       (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rectangle
-		 (let ((new (ltrb-difference left1 top1 right1 bottom1
-					     left2 top2 right2 bottom2)))
-		   (when new (push new new-rectangles))))))
-	(declare (dynamic-extent #'do-difference))
-	(map-over-region-set-regions #'do-difference set))
+               (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rectangle
+                 (let ((new (ltrb-difference left1 top1 right1 bottom1
+                                             left2 top2 right2 bottom2)))
+                   (when new (push new new-rectangles))))))
+        (declare (dynamic-extent #'do-difference))
+        (map-over-region-set-regions #'do-difference set))
       (if new-rectangles
-	  (apply #'make-rectangle-set new-rectangles)
-	  +nowhere+))))
+          (apply #'make-rectangle-set new-rectangles)
+          +nowhere+))))
 
 (defmethod region-difference ((set1 standard-rectangle-set) (set2 standard-rectangle-set))
   (let ((new-rectangles nil))
     (map-over-region-set-regions
       #'(lambda (rect1)
-	  (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
-	    (map-over-region-set-regions
-	      #'(lambda (rect2)
-		  (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
-		    (let ((new (ltrb-difference left1 top1 right1 bottom1
-						left2 top2 right2 bottom2)))
-		      (when new (push new new-rectangles)))))
-	      set2)))
+          (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
+            (map-over-region-set-regions
+              #'(lambda (rect2)
+                  (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
+                    (let ((new (ltrb-difference left1 top1 right1 bottom1
+                                                left2 top2 right2 bottom2)))
+                      (when new (push new new-rectangles)))))
+              set2)))
       set1)
     (if new-rectangles
-	(apply #'make-rectangle-set new-rectangles)
-	+nowhere+)))
+        (apply #'make-rectangle-set new-rectangles)
+        +nowhere+)))
 
 (defmethod region-empty-p ((rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     (declare (type coordinate left top right bottom))
     (or (<= right left)
-	(<= bottom top))))
+        (<= bottom top))))
 
 (defmethod region-empty-p ((set standard-rectangle-set))
   (every #'region-empty-p (rectangle-set-rectangles set)))
 
 (defmethod normalize-rectangles ((set standard-rectangle-set) banding)
   (labels ((collect-rectangles (region)
-	     (etypecase region
-	       (standard-rectangle-set
-		 (mapcan #'collect-rectangles (rectangle-set-rectangles region)))
-	       (standard-bounding-rectangle
-		 (list region))
-	       (everywhere
-		 (list region))))
-	   (reduce-rectangles (pending-rectangles processed-rectangles)
-	     (cond ((null pending-rectangles)
-		    processed-rectangles)
-		   ((region-empty-p (first pending-rectangles))
-		    (reduce-rectangles (rest pending-rectangles)
-				       processed-rectangles))
-		   (t
-		    (let ((intersecting-region 
-			    (flet ((intersects-p (rect)
-				     (region-intersects-region-p 
-				       rect (first pending-rectangles))))
-			      (declare (dynamic-extent #'intersects-p))
-			      (find-if #'intersects-p (rest pending-rectangles)))))
-		      (if (null intersecting-region)
-			  (reduce-rectangles 
-			    (rest pending-rectangles)
-			    (cons (first pending-rectangles) processed-rectangles))
-			  (reduce-rectangles 
-			    (nconc (reduce-rectangle-pair 
-				     (first pending-rectangles)
-				     intersecting-region)
-				   (delete intersecting-region
-					   (rest pending-rectangles)))
-			    processed-rectangles))))))
-	   (reduce-rectangle-pair (rect1 rect2)
-	     (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
-	       (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
-		 (delete-if 
-		   #'region-empty-p 
-		   ;; Don't use REGION-UNION, because we are only prepared
-		   ;; to deal with bounding rectangles
-		   (ltrb-union left1 top1 right1 bottom1
-			       left2 top2 right2 bottom2 
-			       banding))))))
+             (etypecase region
+               (standard-rectangle-set
+                 (mapcan #'collect-rectangles (rectangle-set-rectangles region)))
+               (standard-bounding-rectangle
+                 (list region))
+               (everywhere
+                 (list region))))
+           (reduce-rectangles (pending-rectangles processed-rectangles)
+             (cond ((null pending-rectangles)
+                    processed-rectangles)
+                   ((region-empty-p (first pending-rectangles))
+                    (reduce-rectangles (rest pending-rectangles)
+                                       processed-rectangles))
+                   (t
+                    (let ((intersecting-region 
+                            (flet ((intersects-p (rect)
+                                     (region-intersects-region-p 
+                                       rect (first pending-rectangles))))
+                              (declare (dynamic-extent #'intersects-p))
+                              (find-if #'intersects-p (rest pending-rectangles)))))
+                      (if (null intersecting-region)
+                          (reduce-rectangles 
+                            (rest pending-rectangles)
+                            (cons (first pending-rectangles) processed-rectangles))
+                          (reduce-rectangles 
+                            (nconc (reduce-rectangle-pair 
+                                     (first pending-rectangles)
+                                     intersecting-region)
+                                   (delete intersecting-region
+                                           (rest pending-rectangles)))
+                            processed-rectangles))))))
+           (reduce-rectangle-pair (rect1 rect2)
+             (with-slots ((left1 left) (top1 top) (right1 right) (bottom1 bottom)) rect1
+               (with-slots ((left2 left) (top2 top) (right2 right) (bottom2 bottom)) rect2
+                 (delete-if 
+                   #'region-empty-p 
+                   ;; Don't use REGION-UNION, because we are only prepared
+                   ;; to deal with bounding rectangles
+                   (ltrb-union left1 top1 right1 bottom1
+                               left2 top2 right2 bottom2 
+                               banding))))))
     (reduce-rectangles (collect-rectangles set) nil)))

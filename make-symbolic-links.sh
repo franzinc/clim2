@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $fiHeader: make-symbolic-links.sh,v 1.1 1994/12/04 23:56:36 colin Exp $
+# $Header: /repo/cvs.copy/clim2/Attic/make-symbolic-links.sh,v 1.3 1997/02/05 01:42:23 tomj Exp $
 #
 # make a tree of links
 #

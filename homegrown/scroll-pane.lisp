@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: scroll-pane.lisp,v 1.6 1993/07/27 01:51:08 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/homegrown/scroll-pane.lisp,v 1.2 1997/02/05 01:48:44 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.

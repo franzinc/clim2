@@ -22,18 +22,18 @@
 (in-package :lucid)
 
 
-;;; $fiHeader: lucid-after.lisp,v 1.2 92/10/02 15:19:45 cer Exp $
+;;; $Header: /repo/cvs.copy/clim2/clim/lucid-after.lisp,v 1.4 1997/02/05 01:44:12 tomj Exp $
 ;;; Workaround for a disksave/hash bug.  
 ;;;
 (defun rehash-ptypes ()
   (dolist (ht (list clim-internals::*presentation-type-description-table*
-		    clim-internals::*presentation-type-history-table*
-		    clim-internals::*presentation-type-class-table*
-		    clim-internals::*presentation-type-inheritance-table*
-		    clim-internals::*presentation-type-parameters-table*
-		    clim-internals::*presentation-type-options-table*
-		    clim-internals::*presentation-type-abbreviation-table*
-		    clim-internals::*presentation-generic-function-table*))
+                    clim-internals::*presentation-type-history-table*
+                    clim-internals::*presentation-type-class-table*
+                    clim-internals::*presentation-type-inheritance-table*
+                    clim-internals::*presentation-type-parameters-table*
+                    clim-internals::*presentation-type-options-table*
+                    clim-internals::*presentation-type-abbreviation-table*
+                    clim-internals::*presentation-generic-function-table*))
     (rehash ht)))
 
 ;;; Do this when we load CLIM
@@ -47,7 +47,7 @@
 (eval-when (load)
   (pushnew :clim-2-0 *features*)
   (defparameter *clim-repacking-date* (universal-time-string (get-universal-time)))
-  #+ignore				;breaks in 2.0
+  #+ignore                                ;breaks in 2.0
   (unless (member :application *features*)
     (precompile-generic-functions))
   ;;(clos-system:revalidate-all-mki-optimizations)

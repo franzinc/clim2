@@ -1,11 +1,14 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: mirror.lisp,v 1.33 1993/09/17 19:06:18 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/mirror.lisp,v 1.35 1997/02/05 01:51:12 tomj Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
+;;; WARNING: DON'T LOAD THIS INTO THE ACLPC/ACLNT VERSION AS IT
+;;; REDEFINES SOMETHING WHICH CAUSES CLIM TO BREAK IF IT'S NOT LOADED
+;;; IN THE RIGHT ORDER - SOMEONE SHOULD DEFINITELY FIX THIS (CIM 9/24/96)
 
 ;;;; sheet-device-transformation - transformation from sheets
 ;;;; coordinate space to its mirror
@@ -32,7 +35,6 @@
 (defgeneric mirror-visible-p (port sheet))
 
 (defmethod sheet-direct-mirror ((sheet basic-sheet)) nil)
-
 
 (defclass mirrored-sheet-mixin ()
     ((mirror :initform nil :accessor sheet-direct-mirror)
@@ -62,8 +64,19 @@
     (sheet-transformation sheet)
     (sheet-device-transformation (sheet-parent sheet))))
 
+;; for some reason on the windows port cached transformations are
+;; screwing things up leading to the "ufo" sightings (cim 9/24/96)
+
+;; the *setting-sheet-mirror-edges* check in acl-mirr and acl-clas
+;; seems to remove the need for disabling use of cached device
+;; transformations on the windows port - for the moment leave the
+;; switch in (cim 9/26/96)
+
+(defvar *use-cached-device-transformation* t)
+
 (defmethod sheet-device-transformation ((sheet sheet-transformation-mixin))
-  (or (sheet-cached-device-transformation sheet)
+  (or (and *use-cached-device-transformation*
+	   (sheet-cached-device-transformation sheet))
       (setf (sheet-cached-device-transformation sheet)
 	    (compose-transformations
 	      (sheet-transformation sheet)
@@ -104,7 +117,7 @@
 (defmethod sheet-device-region ((sheet sheet-transformation-mixin))
   (let ((region (sheet-cached-device-region sheet)))
     ;; We decache the device region by setting this slot to NIL...
-    (cond ((or (eq region +nowhere+)		;it can happen
+    (cond ((or (eq region +nowhere+)		    ;it can happen
 	       (and region (slot-value region 'left)))
 	   region)
 	  (region
@@ -125,7 +138,7 @@
 		     pleft ptop pright pbottom)
 		 (cond (valid
 			(setf (slot-value region 'left) left
-			      (slot-value region 'top)  top
+			      (slot-value region 'top)	top
 			      (slot-value region 'right)  right
 			      (slot-value region 'bottom) bottom)
 			region)
@@ -160,13 +173,13 @@
 ;; Returns the coordinates of sheet's mirror in the coordinates of the
 ;; parent of the mirror
 (defgeneric mirror-region* (port sheet)
-  (declare (values left top right bottom)))
+  #-aclpc (declare (values left top right bottom)))
 
 ;; Returns the coordinates of sheet's mirror in the coordinates of the
 ;; mirror itself.  That is, it will return 0,0,WIDTH,HEIGHT for most
 ;; known window systems
 (defgeneric mirror-inside-region* (port sheet)
-  (declare (values left top right bottom)))
+  #-aclpc (declare (values left top right bottom)))
 
 (defgeneric mirror-native-edges* (port sheet))
 (defgeneric mirror-inside-edges* (port sheet))
@@ -201,13 +214,26 @@
 (defun-inline mirror->sheet (port mirror)
   (gethash mirror (port-mirror->sheet-table port)))
 
-#-(or Genera Minima)			;inlining the function is enough...
+;; On Windows this function is redefined in acl-mirr.lisp. This was
+;; unfortunate because it meant that loading in silica/mirror would
+;; break things badly. I've added aclnt and aclpc to the #- so that
+;; this file can now be loaded safely (cim 9/24/96)
+;; --unfortunately this isn't true - see comment at top of this file!
+
+#-(or Genera Minima acl86win32 aclpc)			     ;inlining the function is enough...
 (defun (setf mirror->sheet) (sheet port mirror)
   (let ((table (port-mirror->sheet-table port)))
     (if sheet
 	(setf (gethash mirror table) sheet)
       (remhash mirror table))
     sheet))
+
+#+aclpc
+(progn
+ (defmethod realize-mirror (port sheet) nil)
+ (defmethod destroy-mirror (port sheet) nil)
+ (defmethod note-sheet-grafted (sheet) nil)
+)
 
 (defmethod realize-mirror :around ((port basic-port) (sheet mirrored-sheet-mixin))
   (let ((mirror

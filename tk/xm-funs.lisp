@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.18 1995/11/08 06:15:00 georgej Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xm-funs.lisp,v 1.20 1997/02/05 01:53:20 tomj Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

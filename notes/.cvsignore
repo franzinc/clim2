@@ -1,0 +1,6 @@
+coverage-reportxm.lisp
+coverage-reportol.lisp
+postscript.output
+test-suite-reportol.lisp
+test-suite-reportxm.lisp
+hpgl.output

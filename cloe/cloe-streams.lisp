@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-streams.lisp,v 1.2 92/10/28 11:32:32 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/cloe/cloe-streams.lisp,v 1.4 1997/02/05 01:46:06 tomj Exp $
 
 (in-package :cloe-clim)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: temp-strings.lisp,v 1.7 92/11/06 19:00:38 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/temp-strings.lisp,v 1.9 1997/02/05 01:45:08 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -13,22 +13,22 @@
 (progn
 
 (defresource temporary-string
-	     (&key (length 100) (adjustable t))
+             (&key (length 100) (adjustable t))
   :constructor (make-array length
-			   :element-type #+ANSI-90 'character #-ANSI-90 'string-char
-			   :fill-pointer 0
-			   :adjustable adjustable)
+                           :element-type #+ANSI-90 'character #-ANSI-90 'string-char
+                           :fill-pointer 0
+                           :adjustable adjustable)
   :matcher (and (eq adjustable (adjustable-array-p temporary-string))
-		(or (and (not adjustable)
-			 (= length (array-dimension temporary-string 0)))
-		    (<= length (array-dimension temporary-string 0))))
+                (or (and (not adjustable)
+                         (= length (array-dimension temporary-string 0)))
+                    (<= length (array-dimension temporary-string 0))))
   :initializer (setf (fill-pointer temporary-string) 0))
 
 (defun temporary-string-p (string)
   (with-resource-rd ('temporary-string RD)
     (dovector (ts (RD-objects RD))
       (when (eq (os-object ts) string)
-	(return-from temporary-string-p t)))))
+        (return-from temporary-string-p t)))))
 
 (defmacro with-temporary-string ((var &key (length 100) (adjustable t)) &body body)
   `(using-resource (,var temporary-string :length ,length :adjustable ,adjustable)
@@ -37,12 +37,12 @@
 (defmacro evacuate-temporary-string (string-var)
   `(if (temporary-string-p ,string-var)
        (make-array (length ,string-var)
-		   :element-type #+ANSI-90 'character #-ANSI-90 'string-char
-		   :fill-pointer (length ,string-var)
-		   :initial-contents ,string-var)
+                   :element-type #+ANSI-90 'character #-ANSI-90 'string-char
+                   :fill-pointer (length ,string-var)
+                   :initial-contents ,string-var)
        ,string-var))
 
-)	;#-Genera
+)        ;#-Genera
 
 
 #+Genera
@@ -50,8 +50,8 @@
 
 (defmacro with-temporary-string ((var &key (length 100) (adjustable t)) &body body)
   `(sys:with-stack-array (,var ,length :element-type 'character
-				       :adjustable ,adjustable
-				       :fill-pointer 0)
+                                       :adjustable ,adjustable
+                                       :fill-pointer 0)
      ,@body))
 
 (defun temporary-string-p (string)
@@ -60,21 +60,21 @@
 (defmacro evacuate-temporary-string (string-var)
   `(sys:copy-if-necessary ,string-var))
 
-)	;#+Genera
+)        ;#+Genera
 
 
 ;;; Another utility...
 (defmacro with-temporary-substring ((temp-string string &optional (start 0) end)
-				    &body body)
+                                    &body body)
   (let ((string-var '#:string)
-	(start-var '#:start)
-	(end-var '#:end)
-	(length-var '#:length))
+        (start-var '#:start)
+        (end-var '#:end)
+        (length-var '#:length))
     `(let* ((,string-var ,string)
-	    (,start-var ,start)
-	    (,end-var (or ,end (length ,string-var)))
-	    (,length-var (- ,end-var ,start-var)))
+            (,start-var ,start)
+            (,end-var (or ,end (length ,string-var)))
+            (,length-var (- ,end-var ,start-var)))
        (with-temporary-string (,temp-string :length ,length-var)
-	 (setf (fill-pointer ,temp-string) ,length-var)
-	 (replace ,temp-string ,string-var :start2 ,start-var :end2 ,end-var)
-	 ,@body))))
+         (setf (fill-pointer ,temp-string) ,length-var)
+         (replace ,temp-string ,string-var :start2 ,start-var :end2 ,end-var)
+         ,@body))))

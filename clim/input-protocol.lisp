@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.48 1995/10/17 05:01:36 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/input-protocol.lisp,v 1.50 1997/02/05 01:43:57 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -17,7 +17,7 @@
 ;;; implementation-independent code (see the STREAM-READ-GESTURE :AROUND
 ;;; method below).
 (defclass basic-extended-input-protocol
-	  (fundamental-character-input-stream)
+          (fundamental-character-input-stream)
      ())
 
 (define-protocol-p-method extended-input-stream-p basic-extended-input-protocol)
@@ -25,49 +25,17 @@
 (defmethod interactive-stream-p ((stream basic-extended-input-protocol))
   nil)
 
-(defmethod stream-read-gesture :around
-	   ((stream basic-extended-input-protocol)
-	    &key timeout peek-p
-		 (input-wait-test *input-wait-test*)
-		 (input-wait-handler *input-wait-handler*)
-		 (pointer-button-press-handler *pointer-button-press-handler*))
-  ;; All output should be visible before you do any input.
-  (when (output-stream-p stream)
-    (force-output stream))
-  (loop
-    (multiple-value-bind (gesture flag)
-	(call-next-method
-	  stream
-	  :timeout timeout :peek-p peek-p
-	  :input-wait-test input-wait-test
-	  :input-wait-handler input-wait-handler
-	  :pointer-button-press-handler pointer-button-press-handler)
-      (if (and gesture
-	       pointer-button-press-handler
-	       (typep gesture 'pointer-button-press-event))
-	  ;; If we call a normal translator, we'll throw to a tag outside of
-	  ;; this function that was established by WITH-INPUT-CONTEXT.  If we
-	  ;; call an action, it will throw to NO-TRANSLATION, and return here.
-	  ;; In that case, we want to loop through this again.
-	  (funcall pointer-button-press-handler stream gesture)
-	  ;; A "normal" gesture
-	  (return-from stream-read-gesture
-	    (values gesture flag)))
-      ;; If we're looping when PEEK-P is T, we have to eat the gesture.
-      ;;--- What if PEEK-P is T and another gesture has arrived
-      ;;--- between the last call-next-method and this one? (cim)
-      (call-next-method stream :timeout 0 :peek-p nil))))
 
 ;;; Our implementation of the extended-input protocol.
 (defclass input-protocol-mixin
-	 (basic-extended-input-protocol)
+         (basic-extended-input-protocol)
     (#+++ignore (input-buffer :accessor stream-input-buffer
-			      :initarg :input-buffer)
+                              :initarg :input-buffer)
      (pointer-motion-pending :initform nil)
      (text-cursor :accessor stream-text-cursor
-		  :initarg :text-cursor)
+                  :initarg :text-cursor)
      (read-gesture-cursor-state :initarg :read-gesture-cursor-state
-				:accessor stream-read-gesture-cursor-state))
+                                :accessor stream-read-gesture-cursor-state))
   (:default-initargs
       :text-cursor (make-instance 'standard-text-cursor)
     :read-gesture-cursor-state t))
@@ -82,11 +50,17 @@
     (and port (port-pointer port))))
 
 (defmethod initialize-instance :after ((stream input-protocol-mixin)
-				       &key (initial-cursor-visibility :off))
+                                       &key (initial-cursor-visibility :off))
   (let ((cursor (slot-value stream 'text-cursor)))
     (when cursor
       (setf (cursor-visibility cursor) initial-cursor-visibility)
       (setf (cursor-stream cursor) stream))))
+
+#+(or aclpc acl86win32)
+(defmethod stream-set-cursor-position (stream x y) nil)
+
+#+(or aclpc acl86win32)
+(defmethod stream-set-cursor-position-internal (stream x y) nil)
 
 ;;--- Cross-protocol violation here because CURSOR-POSITION is a method on
 ;;--- extended-OUTPUT-protocol right now.  Secondly, this should probably be a
@@ -102,6 +76,9 @@
       ;; Assumes that the cursors are all off for the stream
       (cursor-set-position cursor x y t))))
 
+#+(or aclpc acl86win32)
+(defmethod initialize-menu (port menu &key label) nil)
+
 (defmethod initialize-menu :before (port (menu input-protocol-mixin) &key label)
   (declare (ignore port label))
   (let ((cursor (stream-text-cursor menu)))
@@ -114,36 +91,36 @@
 
 (defmethod repaint-sheet :after ((stream input-protocol-mixin) region)
   (let ((cursor (stream-text-cursor stream))
-	#+ignore (viewport (pane-viewport stream)))
+        #+ignore (viewport (pane-viewport stream)))
     ;; I don't know why the requirement was being made for the stream
     ;; to have a viewport. This was causing problems for cursor redraw
     ;; in panes with no scroll-bars.
     (when (and cursor #+ignore viewport)
       (when (and (cursor-active cursor)
-		 (cursor-state cursor))
-	(multiple-value-bind (x y) (cursor-position cursor)
-	  (multiple-value-bind (width height)
-	      (cursor-width-and-height-pending-protocol cursor)
-	    (with-bounding-rectangle* (left top right bottom) region
-	      (when (ltrb-overlaps-ltrb-p left top right bottom
-					  x y (+ x width) (+ y height))
-		(with-sheet-medium (medium stream)
-		  (with-medium-clipping-region (medium region)
-		    (declare (ignore medium))
-		    ;; this forces the cursor to be redrawn
-		    (note-cursor-change cursor 'cursor-state nil t)))))))))))
+                 (cursor-state cursor))
+        (multiple-value-bind (x y) (cursor-position cursor)
+          (multiple-value-bind (width height)
+              (cursor-width-and-height-pending-protocol cursor)
+            (with-bounding-rectangle* (left top right bottom) region
+              (when (ltrb-overlaps-ltrb-p left top right bottom
+                                          x y (+ x width) (+ y height))
+                (with-sheet-medium (medium stream)
+                  (with-medium-clipping-region (medium region)
+                    (declare (ignore medium))
+                    ;; this forces the cursor to be redrawn
+                    (note-cursor-change cursor 'cursor-state nil t)))))))))))
 
 (defmethod pointer-motion-pending ((stream input-protocol-mixin)
-				   &optional
-				   (pointer #+++ignore (stream-primary-pointer stream)))
-  (declare (ignore pointer))					;---
+                                   &optional
+                                   (pointer #+++ignore (stream-primary-pointer stream)))
+  #-aclpc (declare (ignore pointer))                                        ;---
   (with-slots (pointer-motion-pending) stream
     (prog1 pointer-motion-pending
-	   (setf pointer-motion-pending nil))))
+           (setf pointer-motion-pending nil))))
 
 (defmethod (setf pointer-motion-pending) (new-value (stream input-protocol-mixin)
-					  &optional (pointer #+++ignore (stream-primary-pointer stream)))
-  (declare (ignore pointer))					;---
+                                          &optional (pointer #+++ignore (stream-primary-pointer stream)))
+  #-aclpc (declare (ignore pointer))                                        ;---
   (with-slots (pointer-motion-pending) stream
     (setf pointer-motion-pending new-value)))
 
@@ -157,23 +134,25 @@
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
-	(keysym (keyboard-event-key-name event))
-	temp)
+        (keysym (keyboard-event-key-name event))
+        #+(or aclpc acl86win32) (modstate (slot-value event 'silica::modifier-state))
+        temp)
     (cond ((and (member event *asynchronous-abort-gestures*
-			:test #'keyboard-event-matches-gesture-name-p)
-		(setq temp (pane-frame stream))
-		(setq temp (frame-top-level-process temp)))
-	   (process-interrupt temp #'(lambda () (process-abort-gesture stream event))))
-	  ((and (characterp char)
-		(or (ordinary-char-p char)
-		    (diacritic-char-p char)))
-	   (queue-put (stream-input-buffer stream) char))
-	  ((and keysym (not (typep keysym 'modifier-keysym)))
-	   (queue-put (stream-input-buffer stream) (copy-event event)))
-	  (keysym
-	   ;; Must be a shift keysym, the port event loop should have already
-	   ;; updated the port's modifier state
-	   nil))))
+                        :test #'keyboard-event-matches-gesture-name-p)
+                (setq temp (pane-frame stream))
+                (setq temp (frame-top-level-process temp)))
+           (process-interrupt temp #'(lambda () (process-abort-gesture stream event))))
+          ((and (characterp char)
+                #+(or aclpc acl86win32) (not (> modstate +shift-key+))
+                (or (ordinary-char-p char)
+                    (diacritic-char-p char)))
+           (queue-put (stream-input-buffer stream) char))
+          ((and keysym (not (typep keysym 'modifier-keysym)))
+           (queue-put (stream-input-buffer stream) (copy-event event)))
+          (keysym
+           ;; Must be a shift keysym, the port event loop should have already
+           ;; updated the port's modifier state
+           nil))))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-release-event))
   ;; If this is a shift keysym, the port event loop should have already
@@ -197,8 +176,9 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-exit-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
+#-(or aclpc acl86win32)               ;;mm: this was commented out in PC alpha
 (defmethod note-sheet-transformation-changed :after
-	   ((stream input-protocol-mixin) &key port-did-it)
+           ((stream input-protocol-mixin) &key port-did-it)
   (declare (ignore port-did-it))
   (let ((pointer (stream-primary-pointer stream)))
     (when pointer (pointer-decache pointer))))
@@ -221,73 +201,117 @@
   (declare (ignore new-x new-y))
   (let ((cursor (stream-text-cursor stream)))
     (if cursor
-	;; Shifting the viewport may need to redraw the cursor
-	(multiple-value-bind (x y)
-	    (cursor-position cursor)
-	  (call-next-method)
-	  (cursor-set-position cursor x y))
-	(call-next-method))))
+        ;; Shifting the viewport may need to redraw the cursor
+        (multiple-value-bind (x y)
+            (cursor-position cursor)
+          (call-next-method)
+          (cursor-set-position cursor x y))
+        (call-next-method))))
 
 
 (defmethod stream-read-gesture ((stream input-protocol-mixin)
-				&key timeout peek-p
-				(input-wait-test *input-wait-test*)
-				(input-wait-handler *input-wait-handler*)
-				pointer-button-press-handler)
+                                &key timeout peek-p
+                                (input-wait-test *input-wait-test*)
+                                (input-wait-handler *input-wait-handler*)
+                                pointer-button-press-handler)
   (declare (ignore pointer-button-press-handler))
   (let ((read-gesture-cursor-state (stream-read-gesture-cursor-state stream)))
     (with-cursor-state (stream read-gesture-cursor-state)
       (with-input-focus (stream read-gesture-cursor-state)
-	(loop
-	  (multiple-value-bind (input-happened flag)
-	      (stream-input-wait
-	       stream
-	       :timeout timeout :input-wait-test input-wait-test)
-	    (case flag
-	      (:timeout
-	       (return-from stream-read-gesture (values nil :timeout)))
-	      (:input-wait-test
-	       ;; only call the input-wait-handler if we didn't get a first-rate
-	       ;; gesture back from stream-input-wait.
-	       (when input-wait-handler
-		 (funcall input-wait-handler stream)))
-	      (otherwise
-	       (when input-happened
-		 (let ((gesture (queue-get (stream-input-buffer stream))))
-		   (when gesture
-		     ;;--- What we *should* do is to reinstate a separate input
-		     ;;--- buffer for the stream, then this should loop doing
-		     ;;--- HANDLE-EVENT until something gets inserted into the
-		     ;;--- stream's input buffer.  Then this should read and
-		     ;;--- process the gesture in the input buffer.
-		     (let* ((sheet (and (typep gesture 'device-event)
-					(event-sheet gesture)))
-			    (new-gesture
-			     (receive-gesture
-			      (if (or (null sheet) (eq sheet stream))
-				  (encapsulating-stream stream)
-				sheet)
-			      gesture)))
-		       (when new-gesture
-			 (when peek-p
-			   (queue-unget (stream-input-buffer stream) gesture))
-			 (return-from stream-read-gesture new-gesture))))))))))))))
+        (loop
+          (multiple-value-bind (input-happened flag)
+              (stream-input-wait
+               stream
+               :timeout timeout :input-wait-test input-wait-test)
+            (case flag
+              (:timeout
+               (return-from stream-read-gesture (values nil :timeout)))
+              (:input-wait-test
+               ;; only call the input-wait-handler if we didn't get a first-rate
+               ;; gesture back from stream-input-wait.
+               (when input-wait-handler
+                 (funcall input-wait-handler stream)))
+              (otherwise
+               (when input-happened
+                 (let ((gesture (queue-get (stream-input-buffer stream))))
+                   (when gesture
+                     ;;--- What we *should* do is to reinstate a separate input
+                     ;;--- buffer for the stream, then this should loop doing
+                     ;;--- HANDLE-EVENT until something gets inserted into the
+                     ;;--- stream's input buffer.  Then this should read and
+                     ;;--- process the gesture in the input buffer.
+                     ;(when (typep gesture 'window-change-event)
+                     ;  (setq *wce* gesture)
+                     ;  (break "look at *wce* = ~a" *wce*))
+                     (let* ((sheet (and (or 
+                                          (typep gesture 'device-event)
+                                          #+(or acl86win32 aclpc)
+                                          ;; why is this here?
+                                          ;; window-change-event is a
+                                          ;; subclass of device-event
+                                          ;; - am i missing something
+                                          ;; (cim 9/17/96)?
+                                          (typep gesture 'silica::window-change-event))
+                                        (event-sheet gesture)))
+                            (new-gesture 
+                             (receive-gesture
+                              (if (or (null sheet) (eq sheet stream))
+                                  (encapsulating-stream stream)
+                                sheet)
+                              gesture)))
+                       (when new-gesture
+                         (when peek-p
+                           (queue-unget (stream-input-buffer stream) gesture))
+                         (return-from stream-read-gesture new-gesture))))))))))))))
+
+(defmethod stream-read-gesture :around
+           ((stream basic-extended-input-protocol)
+            &key timeout peek-p
+                 (input-wait-test *input-wait-test*)
+                 (input-wait-handler *input-wait-handler*)
+                 (pointer-button-press-handler *pointer-button-press-handler*))
+  ;; All output should be visible before you do any input.
+  (when (output-stream-p stream)
+    (force-output stream))
+  (loop
+    (multiple-value-bind (gesture flag)
+        (call-next-method
+          stream
+          :timeout timeout :peek-p peek-p
+          :input-wait-test input-wait-test
+          :input-wait-handler input-wait-handler
+          :pointer-button-press-handler pointer-button-press-handler)
+      (if (and gesture
+               pointer-button-press-handler
+               (typep gesture 'pointer-button-press-event))
+          ;; If we call a normal translator, we'll throw to a tag outside of
+          ;; this function that was established by WITH-INPUT-CONTEXT.  If we
+          ;; call an action, it will throw to NO-TRANSLATION, and return here.
+          ;; In that case, we want to loop through this again.
+          (funcall pointer-button-press-handler stream gesture)
+          ;; A "normal" gesture
+          (return-from stream-read-gesture
+            (values gesture flag)))
+      ;; If we're looping when PEEK-P is T, we have to eat the gesture.
+      ;;--- What if PEEK-P is T and another gesture has arrived
+      ;;--- between the last call-next-method and this one? (cim)
+      (call-next-method stream :timeout 0 :peek-p nil))))
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture pointer-button-press-event))
+           ((stream input-protocol-mixin) (gesture pointer-button-press-event))
   (if *pointer-button-press-handler*
       ;; This may throw or something, but otherwise we will return NIL
       ;; which will cause the gesture to be eaten
       (progn
-	(when (and *click-outside-menu-handler*
-		   (output-recording-stream-p stream)
-		   (not (region-contains-position-p
-			  (stream-output-history stream)
-			  (pointer-event-x gesture) (pointer-event-y gesture))))
-	  (funcall *click-outside-menu-handler*))
-	(funcall *pointer-button-press-handler* stream gesture)
-	nil)
+        (when (and *click-outside-menu-handler*
+                   (output-recording-stream-p stream)
+                   (not (region-contains-position-p
+                          (stream-output-history stream)
+                          (pointer-event-x gesture) (pointer-event-y gesture))))
+          (funcall *click-outside-menu-handler*))
+        (funcall *pointer-button-press-handler* stream gesture)
+        nil)
       ;; No button press handler, just return the gesture
       gesture))
 
@@ -295,37 +319,37 @@
 (defvar *discard-pointer-release-events* t)
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture pointer-button-release-event))
+           ((stream input-protocol-mixin) (gesture pointer-button-release-event))
   ;; In the usual case, button release events don't get queued.  However,
   ;; TRACKING-POINTER arranges to get them, so just pass them through.
   (unless *discard-pointer-release-events*
     gesture))
 
 ;(defmethod receive-gesture
-;	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
+;           ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
 ;  (throw 'resynchronize t))
 ;
 ;(defmethod receive-gesture
-;	   ((stream input-protocol-mixin) (gesture list))
+;           ((stream input-protocol-mixin) (gesture list))
 ;  (let ((*original-stream* nil))
 ;    (receive-list-gesture stream (first gesture) (rest gesture)))
 ;  ;; Don't return this gesture to the higher level
 ;  nil)
 ;
 ;(defmethod receive-list-gesture
-;	   ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
+;           ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
 ;  (redisplay-frame-pane (first args) (second args)))
 ;
 ;;;--- This needs to be looked at carefully!
 ;(defmethod receive-list-gesture
-;	   ((stream input-protocol-mixin) (type (eql 'execute-frame-command)) command)
+;           ((stream input-protocol-mixin) (type (eql 'execute-frame-command)) command)
 ;  ;; Instead of executing here, we throw to the command catch tag if there is one
 ;  (let ((command-function (command-name (second command))))
 ;    (dolist (this-context *input-context*)
 ;      (let* ((context (first this-context))
-;	     (tag (second this-context)))
-;	(when (presentation-subtypep-1 'command context)
-;	  (throw tag (values (second command) context)))))
+;             (tag (second this-context)))
+;        (when (presentation-subtypep-1 'command context)
+;          (throw tag (values (second command) context)))))
 ;    ;; If no command context applies, then we can do no better than execute here and
 ;    ;; resynchronize
 ;    (apply #'execute-frame-command command)
@@ -334,22 +358,22 @@
 ;    (throw 'command-executed t)))
 ;
 ;(defmethod receive-list-gesture
-;	   ((stream input-protocol-mixin) (type (eql 'stop-frame)) args)
+;           ((stream input-protocol-mixin) (type (eql 'stop-frame)) args)
 ;  (apply #'stop-frame args))
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture window-repaint-event))
+           ((stream input-protocol-mixin) (gesture window-repaint-event))
   ;; Handle synchronous repaint request
   (repaint-sheet (event-sheet gesture) (window-event-region gesture))
   ;; Don't return.
   nil)
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture pointer-enter-event))
+           ((stream input-protocol-mixin) (gesture pointer-enter-event))
   nil)
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture pointer-exit-event))
+           ((stream input-protocol-mixin) (gesture pointer-exit-event))
   (when (port stream)
     (unhighlight-highlighted-presentation stream))
   nil)
@@ -366,68 +390,80 @@
   nil)
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) gesture)
+           ((stream input-protocol-mixin) gesture)
   ;; don't translate it
   gesture)
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture character))
+           ((stream input-protocol-mixin) (gesture character))
   (process-abort-or-accelerator-gesture stream gesture)
   gesture)
 
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture key-press-event))
+           ((stream input-protocol-mixin) (gesture key-press-event))
   (process-abort-or-accelerator-gesture stream gesture)
   gesture)
 
 (defun process-abort-or-accelerator-gesture (stream gesture)
   (cond ((member gesture *accelerator-gestures*
-		 :test #'keyboard-event-matches-gesture-name-p)
-	 (signal 'accelerator-gesture
-		 :event gesture
-		 :numeric-argument (or *accelerator-numeric-argument* 1)))
-	((member gesture *abort-gestures*
-		 :test #'keyboard-event-matches-gesture-name-p)
-	 (process-abort-gesture stream gesture))))
+                 :test #'keyboard-event-matches-gesture-name-p)
+         (signal 'accelerator-gesture
+                 :event gesture
+                 :numeric-argument (or *accelerator-numeric-argument* 1)))
+        ((member gesture *abort-gestures*
+                 :test #'keyboard-event-matches-gesture-name-p)
+         (process-abort-gesture stream gesture))))
+
+#+(or aclpc acl86win32)
+(eval-when (compile load eval)
+   ;;mm: 11Jan95 - this is defined later in  ???
+   (unless (ignore-errors (find-class 'interactor-pane))
+      (defclass interactor-pane () ()))
+   (unless (ignore-errors (find-class 'application-pane))
+      (defclass application-pane () ()))
+   )
 
 (defun process-abort-gesture (stream gesture)
   (let* ((frame (pane-frame stream))
-	 ;; When dealing with an application frame, prefer an
-	 ;; interactor pane to any other stream
-	 (stream (cond ((typep stream 'interactor-pane)
-			stream)
-		       ((typep *standard-input* 'interactor-pane)
-			*standard-input*)
-		       (t
-			(or (and frame
-				 (find-frame-pane-of-type frame 'interactor-pane))
-			    (and (typep stream 'application-pane)
-				 stream)))))
-	 (cursor (and stream (stream-text-cursor stream))))
-    (when (and cursor
-	       (cursor-active cursor))
-      ;; OK, this is wierd.  Try to find an input editing stream
-      ;; to do the output on, but only if that input editing stream
-      ;; encapsulates the stream we chose above
-      (let ((istream (encapsulating-stream stream)))
-	(if (and (input-editing-stream-p istream)
-		 (eq (encapsulating-stream-stream istream) stream))
-	    (progn
-	      (input-editor-format istream "[Abort]")
-	      (force-output istream))
-	  (progn
-	    (write-string "[Abort]" stream)
-	    (force-output stream))))))
-  (error 'abort-gesture :event gesture))
+		 ;; When dealing with an application frame, prefer an
+		 ;; interactor pane to any other stream
+		 (stream (cond ((typep stream 'interactor-pane)
+						stream)
+					   ((typep *standard-input* 'interactor-pane)
+						*standard-input*)
+					   (t
+						 (or (and frame
+								  (find-frame-pane-of-type frame 'interactor-pane))
+							 (and (typep stream 'application-pane)
+								  stream)))))
+		 (cursor (and stream (stream-text-cursor stream))))
+	(when (and cursor
+			   (cursor-active cursor))
+	  ;; OK, this is wierd.  Try to find an input editing stream
+	  ;; to do the output on, but only if that input editing stream
+	  ;; encapsulates the stream we chose above
+	  (let ((istream (encapsulating-stream stream)))
+		(if (and (input-editing-stream-p istream)
+				 (eq (encapsulating-stream-stream istream) stream))
+			(progn
+			  (input-editor-format istream "[Abort]")
+			  (force-output istream))
+			(progn
+			  (write-string "[Abort]" stream)
+			  (force-output stream))))))
+  (error 'abort-gesture          
+		 #+(or aclpc acl86win32) :format-control 
+		 #+(or aclpc acl86win32) "Abort gesture seen"
+		 :event gesture))
 
 ;;; This function is just a convenience for the programmer, defaulting the
 ;;; keyword :STREAM argument to *standard-input*.  The application can call
 ;;; stream-read-gesture directly.
 (defun read-gesture (&rest args &key (stream *standard-input*) &allow-other-keys)
   (declare (arglist &rest args
-		    &key (stream *standard-input*)
-			 timeout peek-p input-wait-test input-wait-handler
-			 pointer-button-press-handler))
+                    &key (stream *standard-input*)
+                         timeout peek-p input-wait-test input-wait-handler
+                         pointer-button-press-handler))
   (declare (dynamic-extent args))
   (with-keywords-removed (keywords args '(:stream))
     (apply #'stream-read-gesture stream keywords)))
@@ -449,9 +485,9 @@
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
       (setq gesture (stream-read-gesture (encapsulating-stream stream)))
       (when (and (characterp gesture)
-		 (or (ordinary-char-p gesture)
-		     (diacritic-char-p gesture)))
-	(return-from stream-read-char gesture))
+                 (or (ordinary-char-p gesture)
+                     (diacritic-char-p gesture)))
+        (return-from stream-read-char gesture))
       ;;--- Probably wrong.  It prevents the input editor from ever seeing
       ;;--- mouse clicks, for example.
       #+ignore (beep stream))))
@@ -468,32 +504,32 @@
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
       (setq gesture (stream-read-gesture (encapsulating-stream stream) :timeout 0))
       (when (or (null gesture)
-		(and (characterp gesture)
-		     (or (ordinary-char-p gesture)
-			 (diacritic-char-p gesture)) ))
-	(return-from stream-read-char-no-hang gesture)))))
+                (and (characterp gesture)
+                     (or (ordinary-char-p gesture)
+                         (diacritic-char-p gesture)) ))
+        (return-from stream-read-char-no-hang gesture)))))
 
 (defmethod stream-peek-char ((stream input-protocol-mixin))
   ;; stream-listen used to return the char, but Hornig says it has to return T
   (or nil ;(stream-listen stream)
       (let ((char (stream-read-char (encapsulating-stream stream))))
-	(prog1 char (stream-unread-gesture (encapsulating-stream stream) char)))))
+        (prog1 char (stream-unread-gesture (encapsulating-stream stream) char)))))
 
 ;;; We think that the "standard" demands that this only see characters.
 ;;; However, it does not want to flush any pending action elements that
 ;;; might precede the character, 'cause LISTEN should have no side effects.
 (defmethod stream-listen ((stream input-protocol-mixin))
-  #-Silica (stream-event-handler stream :timeout 0)	;Process pending keyboard input events
+  #-Silica (stream-event-handler stream :timeout 0)        ;Process pending keyboard input events
   (let ((input-buffer (stream-input-buffer stream)))
     (when (queue-empty-p input-buffer)
       (return-from stream-listen nil))
     ;; map over the input buffer looking for characters.
     ;; If we find one, return true
     (flet ((find-char (gesture)
-	     (when (and (characterp gesture)
-			(or (ordinary-char-p gesture)
-			    (diacritic-char-p gesture)))
-	       (return-from stream-listen t))))
+             (when (and (characterp gesture)
+                        (or (ordinary-char-p gesture)
+                            (diacritic-char-p gesture)))
+               (return-from stream-listen t))))
       (declare (dynamic-extent #'find-char))
       (map-over-queue #'find-char input-buffer))
     nil))
@@ -507,19 +543,19 @@
       ;; that the caller supplied error-p nil, and we may have to return the eof-val.
       ;; Of course, we aren't dealing with EOF on our window streams at all.
       (unless (eq ch *end-of-file-marker*)
-	(loop
-	  ;; Process the character
-	  (cond ((or (eql ch #\Newline)
-		     (eq ch *end-of-file-marker*))
-		 (return-from stream-read-line
-		   (evacuate-temporary-string result)))
-		(t
-		 ;; Be robust against weird characters
-		 (if (or (ordinary-char-p ch)
-			 (diacritic-char-p ch))
-		     (vector-push-extend ch result)
-		     (beep stream))))
-	  (setq ch (stream-read-char stream)))))))
+        (loop
+          ;; Process the character
+          (cond ((or (eql ch #\Newline)
+                     (eq ch *end-of-file-marker*))
+                 (return-from stream-read-line
+                   (evacuate-temporary-string result)))
+                (t
+                 ;; Be robust against weird characters
+                 (if (or (ordinary-char-p ch)
+                         (diacritic-char-p ch))
+                     (vector-push-extend ch result)
+                     (beep stream))))
+          (setq ch (stream-read-char stream)))))))
 
 (defmethod stream-clear-input ((stream input-protocol-mixin))
   (queue-flush (stream-input-buffer stream)))
@@ -529,95 +565,97 @@
 (defmethod stream-compatible-read-char ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-read-char stream)))
     (cond ((not (eq char *end-of-file-marker*)) char)
-	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
-	  (t nil))))
+          (eof (error 'sys:end-of-file :stream stream :format-string eof))
+          (t nil))))
 
 #+Genera
 ;; The eof argument is as for the :tyi-no-hang message
 (defmethod stream-compatible-read-char-no-hang ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-read-char-no-hang stream)))
     (cond ((not (eq char *end-of-file-marker*)) char)
-	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
-	  (t nil))))
+          (eof (error 'sys:end-of-file :stream stream :format-string eof))
+          (t nil))))
 
 #+Genera
 ;; The eof argument is as for the :tyipeek message
 (defmethod stream-compatible-peek-char ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-peek-char stream)))
     (cond ((not (eq char *end-of-file-marker*)) char)
-	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
-	  (t nil))))
+          (eof (error 'sys:end-of-file :stream stream :format-string eof))
+          (t nil))))
 
 ;;; Extended Input
 (defmethod stream-input-wait ((stream input-protocol-mixin)
-			      &key timeout input-wait-test)
+                              &key timeout input-wait-test)
   (with-accessors ((input-buffer stream-input-buffer)) stream
     ;; The assumption is that the input-wait-test function can only change
     ;; its value when an event is received and processed.  The only
     ;; commonly-desired exception is a timeout, which we provide directly.
     (cond ((not (queue-empty-p input-buffer))
-	   (return-from stream-input-wait t))
-	  ((and input-wait-test (funcall input-wait-test stream))
-	   (return-from stream-input-wait (values nil :input-wait-test))))
+           (return-from stream-input-wait t))
+          ((and input-wait-test (funcall input-wait-test stream))
+           (return-from stream-input-wait (values nil :input-wait-test))))
     ;; Will go blocked if there are no pending events, which unfortunately puts
     ;; the input-wait-test function out of commission.  Need to get the "process-wait"
     ;; story straight.  PORT-EVENT-WAIT deals with the case where the port
     ;; does not support multi-processing.
     (let* ((flag nil)
-	   (start-time (get-internal-real-time))
-	   (end-time (and timeout
-			  (+ start-time
-			     (* timeout internal-time-units-per-second)))))
+           (start-time (get-internal-real-time))
+           (end-time (and timeout
+                          (+ start-time
+                             (* timeout internal-time-units-per-second)))))
       (flet ((waiter ()
-	       (unless (port stream) (return-from waiter (setq flag :eof)))
-	       (when (not (queue-empty-p input-buffer))
-		 (setq flag :input-buffer))
-	       (when (and input-wait-test (funcall input-wait-test stream))
-		 (setq flag :input-wait-test))
-	       (when (and end-time
-			  (> (get-internal-real-time) end-time))
-		 (setq flag :timeout))
-	       flag))
-	#-Allegro (declare (dynamic-extent #'waiter))
-	(port-event-wait (port stream) #'waiter :timeout timeout)
-	(return-from stream-input-wait
-	  (values (when (eq flag ':input-buffer) t)
-		  (or flag ':timeout)))))))
+               (unless (port stream) (return-from waiter (setq flag :eof)))
+               (when (not (queue-empty-p input-buffer))
+                 (setq flag :input-buffer))
+               (when (and input-wait-test (funcall input-wait-test stream))
+                 (setq flag :input-wait-test))
+               (when (and end-time
+                          (> (get-internal-real-time) end-time))
+                 (setq flag :timeout))
+               flag))
+        #-Allegro (declare (dynamic-extent #'waiter))
+        (port-event-wait (port stream) #'waiter 
+          :wait-reason "Clim Input"
+          :timeout timeout)
+        (return-from stream-input-wait
+          (values (when (eq flag ':input-buffer) t)
+                  (or flag ':timeout)))))))
 
 
 #+Genera
 (defmethod stream-compatible-any-tyi
-	   ((stream input-protocol-mixin) &optional eof)
+           ((stream input-protocol-mixin) &optional eof)
   (stream-compatible-any-tyi-1 stream nil eof))
 
 #+Genera
 (defmethod stream-compatible-any-tyi-no-hang
-	   ((stream input-protocol-mixin) &optional eof)
+           ((stream input-protocol-mixin) &optional eof)
   (stream-compatible-any-tyi-1 stream 0 eof))
 
 #+Genera
 (defun stream-compatible-any-tyi-1 (stream timeout eof)
   (let ((character (stream-read-gesture (encapsulating-stream stream) :timeout timeout)))
     (cond ((null character) nil)
-	  ((eq character *end-of-file-marker*)
-	   (and eof (error "~a" eof)))
-	  ((and (characterp character)
-		(let ((activation (si:input-editor-option :activation)))
-		  (and activation
-		       (apply (car activation) character (cdr activation)))))
-	   ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn activation
-	   ;; characters into the appropriate blips to be compatible with the
-	   ;; Genera input editor.
-	   (si:ie-make-blip :activation character nil))
-	  ((and (characterp character)
-		(let ((blip-gesture (si:input-editor-option :blip-character)))
-		  (and blip-gesture
-		       (apply (car blip-gesture) character (cdr blip-gesture)))))
-	   ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn blip
-	   ;; characters into the appropriate blips to be compatible with the
-	   ;; Genera input editor.
-	   (si:ie-make-blip :blip-character character nil))
-	  (t character))))
+          ((eq character *end-of-file-marker*)
+           (and eof (error "~a" eof)))
+          ((and (characterp character)
+                (let ((activation (si:input-editor-option :activation)))
+                  (and activation
+                       (apply (car activation) character (cdr activation)))))
+           ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn activation
+           ;; characters into the appropriate blips to be compatible with the
+           ;; Genera input editor.
+           (si:ie-make-blip :activation character nil))
+          ((and (characterp character)
+                (let ((blip-gesture (si:input-editor-option :blip-character)))
+                  (and blip-gesture
+                       (apply (car blip-gesture) character (cdr blip-gesture)))))
+           ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn blip
+           ;; characters into the appropriate blips to be compatible with the
+           ;; Genera input editor.
+           (si:ie-make-blip :blip-character character nil))
+          (t character))))
 
 #+Genera
 ;;; Return T so READ-CHAR will echo.
@@ -627,13 +665,13 @@
 #+Genera
 ;;; Needed for Y-OR-N-P
 (defmethod stream-compatible-input-wait ((stream input-protocol-mixin)
-					 whostate function &rest arguments)
+                                         whostate function &rest arguments)
   (declare (dynamic-extent arguments)
-	   (ignore whostate))
+           (ignore whostate))
   (stream-input-wait stream :input-wait-test #'(lambda (stream)
-						 (declare (sys:downward-function))
-						 (declare (ignore stream))
-						 (apply function arguments))))
+                                                 (declare (sys:downward-function))
+                                                 (declare (ignore stream))
+                                                 (apply function arguments))))
 
 #+Genera
 ;;; Needed for Y-OR-N-P

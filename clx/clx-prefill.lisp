@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-prefill.lisp,v 1.7 92/11/06 19:02:26 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clx/clx-prefill.lisp,v 1.9 1997/02/05 01:46:37 tomj Exp $
 
 (in-package :clim-internals)
 

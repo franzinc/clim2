@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: JAPANESE-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: japanese-graphics-editor.lisp,v 1.3 1996/03/13 09:55:40 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/japanese-graphics-editor.lisp,v 1.5 1997/02/05 01:47:29 tomj Exp $
 
 (in-package :japanese-graphics-editor)
 

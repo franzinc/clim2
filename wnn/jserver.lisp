@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: jserver.lisp,v 1.2 1996/03/01 05:44:50 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/wnn/jserver.lisp,v 1.4 1997/02/05 01:55:43 tomj Exp $
 
 (in-package :wnn)
 

@@ -1,10 +1,5 @@
 For more detailed instructions on filling in the ChangeLog form, see 
 `/fi/doc/procedures/changelogs.txt'.
-Thu Nov 14 08:23:23 1996  Sean Foderaro  <jkf@tiger.franz.com>
-
-	* code/syscall.cl - separate out microsoft code correctly
-	* test/t-proc.cl - do test so that failure shows up in final count
-
 *******************************************************************************
 <version for this commit, if applicable>
 
@@ -15,6 +10,56 @@ Tests for new features:	<`no new features', `no tests for new features', or
 
 <standard changelog date stamp>
 	* <changes go here...>
+*******************************************************************************
+Tue Feb  4 17:08:22 PST 1997  Tom McClure  <tomj@vapor>
+
+	* This is the merge of Paul Robertson's 1/23/97 tree into the
+	  master CLIM tree.  Made necessary modifications and
+          checks to ensure semantics of Unix version remain
+          unchanged.  Search for #+aclpc and #+acl86win32 to
+          find most of Paul's mods.  Many of his changes appear to be
+          related to :around and :after methods needing to be defined after the
+          primary method in aclpc and other aclpc deficiencies
+          (declarations, destructuring-bind...).
+
+	* MOP stuff moved from cl to acl in aclwin3.0.2, so...
+          - utils/packages.lisp: added acl to use-package list for aclpc
+	  - clim/ptypes1.lisp:   changed a bunch of cl's to acl's
+
+	* Replaced all instances of fiHeader with Header so that
+          correct RCS version numbers appear in files
+
+	* Makefile.defs, Makefile.generic
+	  - added CL_HOME and CLIM_HOME to correctly set up ALLEGRO_CL_HOME
+
+	* new files:
+	  clim/db-list.lisp
+	  clim/db-menu.lisp
+	  clim/db-text.lisp
+	  demo/sysdcl-pc.lisp
+	  notes/.cvsignore
+	  postscript/sysdcl-pc.lisp
+	  silica/db-button.lisp
+	  silica/db-label.lisp
+	  silica/db-slider.lisp
+	  silica/scroll-pane.lisp
+	  sys/compile.lisp
+	  sys/do.lisp
+	  sys/fids-pre.lisp
+	  sys/load.lisp
+	  sys/loaddemo.lisp
+	  sys/loadnd.lisp
+	  sys/odrawpat.lisp
+	  sys/recompile.lisp
+	  sys/sysdcl-pc.lisp
+	  test/sysdcl-pc.lisp
+
+
+*******************************************************************************
+Thu Nov 14 08:23:23 1996  Sean Foderaro  <jkf@tiger.franz.com>
+
+	* code/syscall.cl - separate out microsoft code correctly
+	* test/t-proc.cl - do test so that failure shows up in final count
 
 *******************************************************************************
 <merge from 4.3.2.alpha branch>

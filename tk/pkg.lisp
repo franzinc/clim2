@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.16 1993/08/31 04:54:50 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/pkg.lisp,v 1.19 1997/02/05 01:53:07 tomj Exp $
 
 (defpackage :tk
   ;;-- No we really need

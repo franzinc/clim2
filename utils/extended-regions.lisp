@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: extended-regions.lisp,v 1.5 92/11/06 19:05:03 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/extended-regions.lisp,v 1.8 1997/02/05 01:54:54 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -33,8 +33,8 @@
   (make-line*-1 (coordinate start-x) (coordinate start-y)
 		(coordinate end-x) (coordinate end-y)))
 
-(defmethod make-load-form ((line standard-line) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((line standard-line) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   `(make-line ',(line-start-point line) ',(line-end-point line)))
 
 (defmethod line-start-point* ((line standard-line))
@@ -225,8 +225,8 @@
 (define-constructor make-polyline* standard-polyline (coord-seq &key closed)
   :coords (coerce coord-seq 'vector) :closed closed)
 
-(defmethod make-load-form ((polyline standard-polyline) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((polyline standard-polyline) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   (with-slots (closed) polyline
     `(make-polyline ',(polygon-points polyline) :closed ,closed)))
 
@@ -250,8 +250,8 @@
 (define-constructor make-polygon* standard-polygon (coord-seq)
   :coords (coerce coord-seq 'vector))
 
-(defmethod make-load-form ((polygon standard-polygon) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((polygon standard-polygon) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   `(make-polygon ',(polygon-points polygon)))
 
 (defmethod polyline-closed ((polygon standard-polygon))
@@ -324,8 +324,8 @@
 		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
-(defmethod make-load-form ((ellipse standard-elliptical-arc) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((ellipse standard-elliptical-arc) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   (with-slots (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	       start-angle end-angle) ellipse
     `(make-elliptical-arc ',center-point
@@ -381,8 +381,8 @@
 		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
-(defmethod make-load-form ((ellipse standard-ellipse) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((ellipse standard-ellipse) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   (with-slots (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			    start-angle end-angle) ellipse
     `(make-ellipse ',center-point
@@ -408,3 +408,12 @@
 	       start-angle end-angle) ellipse
     (elliptical-arc-box center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			start-angle end-angle nil)))
+
+
+;;; +++pr move this to protocol.lsp ???
+#+(or aclpc acl86win32)
+(defmethod make-load-form ((des design) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
+  '(make-instance 'design))
+ 
+

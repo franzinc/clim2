@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.37 1996/03/13 09:56:03 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/load-xm.lisp,v 1.39 1997/02/05 01:52:49 tomj Exp $
 
 (in-package :user)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.24 1994/12/05 00:00:07 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-port.lisp,v 1.26 1997/02/05 01:49:38 tomj Exp $
 
 (provide :climps)
 
@@ -212,8 +212,13 @@
 ;;; which already have their width hard-coded in *ps-font-family-data*?
 
 (defun setup-laserwriter-metrics (font-info)
-  (destructuring-bind ((name scale box) . char-widths)
-      font-info
+  ;;(destructuring-bind ((name scale box) . char-widths)
+  ;;    font-info
+  (let* ((head (car font-info))
+         (name (first head))
+         (scale (second head))
+         (box (third head))
+         (char-widths (cdr font-info)))
   (let ((width-table nil))
     (multiple-value-bind (family face size-kludge)
 	(find-family-and-face-for-postscript-font-name name)

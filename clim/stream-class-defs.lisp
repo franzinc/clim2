@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.13 1993/07/27 01:41:10 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/stream-class-defs.lisp,v 1.15 1997/02/05 01:44:57 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -14,9 +14,9 @@
   (bounding-rectangle* (encapsulating-stream-stream stream)))
 
 (defmethod bounding-rectangle-set-edges ((stream standard-encapsulating-stream)
-					 left top right bottom)
+                                         left top right bottom)
   (bounding-rectangle-set-edges (encapsulating-stream-stream stream)
-				left top right bottom))
+                                left top right bottom))
 
 (defmethod bounding-rectangle-set-position ((stream standard-encapsulating-stream) x y)
   (bounding-rectangle-set-position (encapsulating-stream-stream stream) x y))
@@ -46,42 +46,42 @@
 
 ;;; The methods for this class are in OUTPUT-RECORDING-PROTOCOL
 (defclass output-recording-mixin
-	  (output-recording-stream redisplayable-stream)
+          (output-recording-stream redisplayable-stream)
     ((draw-p :initarg :draw-p 
-	     :accessor stream-drawing-p)
+             :accessor stream-drawing-p)
      (record-p :initarg :record-p
-	       :accessor stream-recording-p)
+               :accessor stream-recording-p)
      (redisplaying-p :initform nil
-		     :accessor stream-redisplaying-p)
+                     :accessor stream-redisplaying-p)
      (output-record :initarg :output-record
-		    :accessor stream-output-history)
+                    :accessor stream-output-history)
      (current-output-record-stack :initform nil
-				  :accessor stream-current-output-record)
+                                  :accessor stream-current-output-record)
      (output-record-absolute-position :initform (make-point 0 0)
-				      :accessor stream-output-history-position)
+                                      :accessor stream-output-history-position)
      (redisplay-output-record :initform nil
-			      :accessor stream-current-redisplay-record)
+                              :accessor stream-current-redisplay-record)
      (text-output-record :initform nil 
-			 :accessor stream-text-output-record)
+                         :accessor stream-text-output-record)
      (highlighted-presentation :initform nil
-			       :accessor stream-highlighted-presentation)
+                               :accessor stream-highlighted-presentation)
      #+Allegro
      ;; Support for allegro presentations
      (excl-presentation-stack :initform nil
-			      :accessor
-			      stream-excl-presentation-stack)
+                              :accessor
+                              stream-excl-presentation-stack)
      #+Allegro
      (excl-recording-p :accessor stream-excl-recording-p
-		       :initform nil
-		       :initarg :excl-recording-p))
-  (:default-initargs :draw-p t :record-p t	;!!!
+                       :initform nil
+                       :initarg :excl-recording-p))
+  (:default-initargs :draw-p t :record-p t        ;!!!
 
-		     :output-record 
-		     ;; this used to be standard-tree-output-history
-		     ;; but because of longstanding bugs in
-		     ;; coordinate sorted sets, we should avoid this
-		     ;; for the default (cim 11/30/93)
-		     (make-instance 'standard-sequence-output-history)))
+                     :output-record 
+                     ;; this used to be standard-tree-output-history
+                     ;; but because of longstanding bugs in
+                     ;; coordinate sorted sets, we should avoid this
+                     ;; for the default (cim 11/30/93)
+                     (make-instance 'standard-sequence-output-history)))
 
 
 ;; For any window-specific output recording methods

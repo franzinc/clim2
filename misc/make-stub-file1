@@ -1,5 +1,5 @@
 #! /bin/sh
-# $fiHeader: make-stub-file1,v 1.1 92/12/14 15:02:53 cer Exp $
+# $Header: /repo/cvs.copy/clim2/misc/make-stub-file1,v 1.4 1997/02/05 01:49:12 tomj Exp $
 
 header=$1
 shift;

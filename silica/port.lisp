@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.35 1995/10/20 17:40:45 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.37 1997/02/05 01:51:15 tomj Exp $
 
 (in-package :silica)
 
@@ -10,11 +10,13 @@
 
 ;; Ports and grafts
 
-(defvar *default-server-path* #+Allegro '(:motif)
-			      #+Lucid '(:clx)
-			      #+Genera `(:genera)
-			      #+Cloe-Runtime `(:cloe)
-			      #-(or Allegro Lucid Genera Cloe-Runtime) nil)
+(defvar *default-server-path* #+(and Allegro (not microsoft-32)) '(:motif)
+                              #+Lucid '(:clx)
+                              #+Genera `(:genera)
+                              #+Cloe-Runtime `(:cloe)
+                              #+(or aclpc acl86win32) '(:aclpc)
+                              #-(or Allegro Lucid Genera Cloe-Runtime aclpc aclnt) nil)
+
 
 (defvar *ports* nil)
 
@@ -29,8 +31,8 @@
 (defun find-port (&rest initargs &key (server-path *default-server-path*) &allow-other-keys)
   (declare (dynamic-extent initargs))
   (map-over-ports #'(lambda (port)
-		      (when (port-match port server-path)
-			(return-from find-port port))))
+                      (when (port-match port server-path)
+                        (return-from find-port port))))
   (with-keywords-removed (initargs initargs '(:server-path))
     (apply #'make-port :server-path server-path initargs)))
 
@@ -82,9 +84,9 @@
 (defmethod port-pointer ((port basic-port))
   (with-slots (pointer grafts) port
     (or pointer
-	(setq pointer (make-instance 'standard-pointer
-			:graft (find-graft :port port)
-			:port port)))))
+        (setq pointer (make-instance 'standard-pointer
+                        :graft (find-graft :port port)
+                        :port port)))))
 
 (defmethod (setf port-pointer) (pointer (port basic-port))
   (setf (slot-value port 'pointer) pointer))
@@ -110,17 +112,23 @@
     (when (port-process port)
       (destroy-process (port-process port)))
     (setf (port-process port)
-	  (make-process #'(lambda () (port-event-loop port))
-			:name (format nil "CLIM Event Dispatcher for ~A"
-				(port-server-path port))))))
+          #-acl86win32 (make-process 
+                   #'(lambda () (port-event-loop port))
+                   :name (format nil "CLIM Event Dispatcher for ~A" (port-server-path port)))
+          #+acl86win32 (mp:process-run-function
+                    `(:quantum 5
+                      :priority 1000
+                      :name ,(format nil "CLIM Event Dispatcher for ~A" (port-server-path port)))
+                    #'(lambda () (port-event-loop port))))))
+
 
 (defgeneric port-event-loop (port))
 (defmethod port-event-loop ((port basic-port))
   (with-simple-restart (nil "Exit event loop for ~A" port)
       (loop
-	(with-simple-restart (nil "Restart event loop for ~A" port)
-	  (loop
-	    (process-next-event port))))))
+        (with-simple-restart (nil "Restart event loop for ~A" port)
+          (loop
+            (process-next-event port))))))
 
 
 (defgeneric destroy-port (port))
@@ -135,17 +143,17 @@
   (setq *ports* (delete port *ports*)))
 
 
-(define-event-class port-terminated (window-manager-event)
+(define-event-class port-terminated (window-manager-event) 
   ((condition :initarg :condition :reader port-terminated-condition)))
 
 (defmethod port-terminated ((port basic-port) condition)
-  ;;--- Should mark it as dead
+  ;;--- Should mark it as dead 
   (setq *ports* (delete port *ports*))
   (dolist (graft (port-grafts port))
     (dolist (sheet (sheet-children graft))
-      (queue-event sheet (make-instance 'port-terminated
-			   :condition condition
-			   :sheet sheet)))))
+      (queue-event sheet (make-instance 'port-terminated 
+                           :condition condition
+                           :sheet sheet)))))
 
 (defmethod port-alive-p ((port basic-port))
   (or (not *multiprocessing-p*)
@@ -159,11 +167,11 @@
 (defgeneric graft-units (graft))
 
 (defclass standard-graft
-	  (mirrored-sheet-mixin
-	   sheet-multiple-child-mixin
-	   sheet-transformation-mixin
-	   basic-sheet
-	   graft)
+          (mirrored-sheet-mixin
+           sheet-multiple-child-mixin
+           sheet-transformation-mixin
+           basic-sheet
+           graft)
     ((port :initarg :port :reader port)
      (lock :initform (make-lock "a graft lock") :reader graft-lock)
      (orientation :reader graft-orientation :initarg :orientation)
@@ -187,15 +195,15 @@
     (* 25.4 (/ pixel-width mm-width))))
 
 (defun find-graft (&key (server-path *default-server-path*)
-			(port (find-port :server-path server-path))
-			(orientation :default)
-			(units :device))
+                        (port (find-port :server-path server-path))
+                        (orientation :default)
+                        (units :device))
   (unless port
     (setq port (find-port :server-path server-path)))
   (map-over-grafts #'(lambda (graft)
-		       (when (graft-matches-spec graft orientation units)
-			 (return-from find-graft graft)))
-		   port)
+                       (when (graft-matches-spec graft orientation units)
+                         (return-from find-graft graft)))
+                   port)
   (make-instance (port-graft-class port)
     :port port
     :orientation orientation
@@ -210,7 +218,7 @@
 (defmethod initialize-instance :after ((graft standard-graft) &key port)
   (setf (slot-value graft 'graft) graft)
   (setf (port-grafts port)
-	(nconc (port-grafts port) (list graft)))
+        (nconc (port-grafts port) (list graft)))
   (realize-graft port graft))
 
 (defmethod update-mirror-region ((port basic-port) (sheet standard-graft))
@@ -222,43 +230,43 @@
   )
 
 (defun fit-region*-in-region* (left1 top1 right1 bottom1
-			       left2 top2 right2 bottom2)
+                               left2 top2 right2 bottom2)
   #+Genera (declare (values left1 top1 right1 bottom1 adjusted-p))
   (let* ((adjusted-p nil)
-	 (w (- right1 left1))
-	 (h (- bottom1 top1))
-	 (ww (- right2 left2))
-	 (hh (- bottom2 top2)))
+         (w (- right1 left1))
+         (h (- bottom1 top1))
+         (ww (- right2 left2))
+         (hh (- bottom2 top2)))
     (when (> w ww)
       (let ((too-much (- w ww)))
-	(decf w too-much)
-	(decf right1 too-much)
-	(setq adjusted-p t)))
+        (decf w too-much)
+        (decf right1 too-much)
+        (setq adjusted-p t)))
     (when (> h hh)
       (let ((too-much (- h hh)))
-	(decf h too-much)
-	(decf bottom1 too-much)
-	(setq adjusted-p t)))
+        (decf h too-much)
+        (decf bottom1 too-much)
+        (setq adjusted-p t)))
     (when (< left1 left2)
       (let ((too-much (- left2 left1)))
-	(incf left1 too-much)
-	(incf right1 too-much)
-	(setq adjusted-p t)))
+        (incf left1 too-much)
+        (incf right1 too-much)
+        (setq adjusted-p t)))
     (when (< top1 top2)
       (let ((too-much (- top2 top1)))
-	(incf top1 too-much)
-	(incf bottom1 too-much)
-	(setq adjusted-p t)))
+        (incf top1 too-much)
+        (incf bottom1 too-much)
+        (setq adjusted-p t)))
     (when (> right1 right2)
       (let ((too-much (- right1 right2)))
-	(decf left1 too-much)
-	(decf right1 too-much)
-	(setq adjusted-p t)))
+        (decf left1 too-much)
+        (decf right1 too-much)
+        (setq adjusted-p t)))
     (when (> bottom1 bottom2)
       (let ((too-much (- bottom1 bottom2)))
-	(decf top1 too-much)
-	(decf bottom1 too-much)
-	(setq adjusted-p t)))
+        (decf top1 too-much)
+        (decf bottom1 too-much)
+        (setq adjusted-p t)))
     (values left1 top1 right1 bottom1 adjusted-p)))
 
 (defgeneric port-graft-class (port))
@@ -272,6 +280,8 @@
 
 (defmethod graft ((object t)) nil)
 
+#-(or aclpc acl86win32)
+(progn
 ;;; ics kanji server support - we put this here for convenience
 ;;;--- consider putting in separate file (cim 2/26/96)
 
@@ -296,9 +306,9 @@
      &allow-other-keys)
   (declare (dynamic-extent initargs))
   (map-over-kanji-servers #'(lambda (kanji-server)
-			      (when (kanji-server-match kanji-server
-							server-path)
-				(return-from find-kanji-server kanji-server))))
+                              (when (kanji-server-match kanji-server
+                                                        server-path)
+                                (return-from find-kanji-server kanji-server))))
   (with-keywords-removed (initargs initargs '(:server-path))
     (apply #'make-kanji-server :server-path server-path initargs)))
 
@@ -316,10 +326,9 @@
 (defgeneric kanji-server-type (kanji-server))
 
 (defmethod initialize-instance :around
-	   ((kanji-server basic-kanji-server) &key server-path)
+           ((kanji-server basic-kanji-server) &key server-path)
   (setf (slot-value kanji-server 'server-path) (copy-list server-path))
   (call-next-method)
   (setq *kanji-servers* (nconc *kanji-servers* (list kanji-server))))
 
-)) ;; ics-target-case
-
+))) ;; ics-target-case

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.36 1995/05/17 19:48:50 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/dev-load-1.lisp,v 1.39 1997/02/05 01:49:07 tomj Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)

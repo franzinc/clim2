@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.20 1994/12/05 00:02:09 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-pixmaps.lisp,v 1.23 1997/02/05 01:54:16 tomj Exp $
 
 
 (in-package :xm-silica)

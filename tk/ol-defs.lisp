@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: ol-defs.lisp,v 1.7 1993/07/27 01:53:26 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/ol-defs.lisp,v 1.10 1997/02/05 01:52:59 tomj Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

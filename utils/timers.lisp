@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: timers.lisp,v 1.2 92/09/24 09:38:09 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/timers.lisp,v 1.4 1997/02/05 01:55:22 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -26,9 +26,9 @@
 (defun add-timer (timer)
   (ensure-timer-process)
   (setf (timer-when timer) 
-	(+ (get-internal-real-time) 
-	   (* internal-time-units-per-second
-	      (timer-delay timer))))
+        (+ (get-internal-real-time) 
+           (* internal-time-units-per-second
+              (timer-delay timer))))
   (queue-put *timer-input-queue* timer)
   timer)
 
@@ -38,48 +38,48 @@
 (defun timer-queue-process-function ()
   (unwind-protect
       (progn
-	(setq *timer-process* (current-process))
-	(flet ((add-timer-to-queue (timer)
-		 (without-scheduling
-		   (setq *timers* (merge 'list (list timer) *timers* #'<
-					 :key #'timer-when)))))
-	  (declare (dynamic-extent #'add-timer-to-queue))
-	  (loop
-	    (let ((head (car *timers*)))
-	      (if head
-		  (let* ((time-now (get-internal-real-time))
-			 (time-to-wait (- (timer-when head) time-now)))
-		    (process-wait-with-timeout "Waiting"
-		      (float (/ time-to-wait internal-time-units-per-second) 0f0)
-		      #'(lambda () (not (queue-empty-p *timer-input-queue*)))))
-		  (process-wait "Waiting"
-		    #'(lambda () (not (queue-empty-p *timer-input-queue*))))))
-	    (loop
-	      (let ((head (queue-pop *timer-input-queue*)))
-		(etypecase head
-		  (null (return nil))
-		  (timer (add-timer-to-queue head))
-		  (cons
-		    (ecase (first head)
-		      (:delete 
-			(without-scheduling
-			  (setf *timers* (delete (second head) *timers*)))))))))
-	    (loop
-	      (unless *timers* (return nil))
-	      (let ((time-now (get-internal-real-time))
-		    (timer (car *timers*)))
-		(if (< (timer-when timer) time-now)
-		    (progn
-		      (pop *timers*)
-		      (when (timer-function timer)
-			(funcall (timer-function timer) timer))
-		      (when (timer-interval timer)
-			(setf (timer-when timer) 
-			      (+ (get-internal-real-time) 
-				 (* internal-time-units-per-second
-				    (timer-interval timer))))
-			(add-timer-to-queue timer)))
-		    (return nil)))))))
+        (setq *timer-process* (current-process))
+        (flet ((add-timer-to-queue (timer)
+                 (without-scheduling
+                   (setq *timers* (merge 'list (list timer) *timers* #'<
+                                         :key #'timer-when)))))
+          (declare (dynamic-extent #'add-timer-to-queue))
+          (loop
+            (let ((head (car *timers*)))
+              (if head
+                  (let* ((time-now (get-internal-real-time))
+                         (time-to-wait (- (timer-when head) time-now)))
+                    (process-wait-with-timeout "Waiting"
+                      (float (/ time-to-wait internal-time-units-per-second) 0f0)
+                      #'(lambda () (not (queue-empty-p *timer-input-queue*)))))
+                  (process-wait "Waiting"
+                    #'(lambda () (not (queue-empty-p *timer-input-queue*))))))
+            (loop
+              (let ((head (queue-pop *timer-input-queue*)))
+                (etypecase head
+                  (null (return nil))
+                  (timer (add-timer-to-queue head))
+                  (cons
+                    (ecase (first head)
+                      (:delete 
+                        (without-scheduling
+                          (setf *timers* (delete (second head) *timers*)))))))))
+            (loop
+              (unless *timers* (return nil))
+              (let ((time-now (get-internal-real-time))
+                    (timer (car *timers*)))
+                (if (< (timer-when timer) time-now)
+                    (progn
+                      (pop *timers*)
+                      (when (timer-function timer)
+                        (funcall (timer-function timer) timer))
+                      (when (timer-interval timer)
+                        (setf (timer-when timer) 
+                              (+ (get-internal-real-time) 
+                                 (* internal-time-units-per-second
+                                    (timer-interval timer))))
+                        (add-timer-to-queue timer)))
+                    (return nil)))))))
     (setq *timer-process* nil)))
 
 (defun ensure-timer-process ()

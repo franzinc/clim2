@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.23 1993/07/22 15:38:20 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/browser.lisp,v 1.25 1997/02/05 01:47:05 tomj Exp $
 
 (in-package :clim-browser)
 
@@ -143,11 +143,6 @@
     (tick node)))
 
 (defparameter *display-node-character-style* '(:sans-serif nil :very-small))
-(defmethod display-node :around ((node basic-call-node) stream)
-  (updating-output (stream :unique-id node
-			   :cache-value (node-tick node))
-    (with-text-style (stream *display-node-character-style*)
-	(call-next-method node stream))))
 
 (defmethod display-node ((node basic-call-node) stream)
   (with-output-as-presentation (stream node (presentation-type-of node))
@@ -302,13 +297,15 @@
 			      (si:valid-function-definition method))
 	      when function
 		collect function))
-      (clos:generic-function
+      (#-aclpc clos:generic-function #+aclpc generic-function
 	;; Return all the real methods for this generic function
 	(loop for method in (clos-internals::sort-generic-function-methods
 			      function
-			      (copy-list (clos:generic-function-methods function))
+			      (copy-list (#-aclpc clos:generic-function-methods 
+                              #+aclpc generic-function-methods 
+                              function))
 			      :sort :heuristic)
-	      as function = (clos:method-function method)
+	      as function = (#-aclpc clos:method-function #+aclpc method-function method)
 	      when function
 		collect function))
       (compiled-function
@@ -330,8 +327,9 @@
   (let ((function (node-object node)))
     (let ((callee-function-name (sys:function-name function)))
       (typecase callee-function-name
-	(clos:method
-	  (list (clos:method-generic-function callee-function-name)))
+	(#-aclpc clos:method #+aclpc method
+	  (list (#-aclpc clos:method-generic-function #+aclpc method-generic-function
+             callee-function-name)))
 	(t
 	  (if (and (listp callee-function-name)
 		   (eql (car callee-function-name) 'flavor:method))
@@ -468,7 +466,8 @@
 		(destructuring-bind (gf method) item
 		  (with-output-as-presentation (stream method 'expression
 						:allow-sensitive-inferiors nil)
-		    (prin1 (clos:generic-function-name gf) stream)))))))))))
+		    (prin1 (#-aclpc clos:generic-function-name 
+                    #+aclpc generic-function-name gf) stream)))))))))))
 
 
 ;;; Package browsing
@@ -655,6 +654,12 @@
 	    (draw stream))
 	  (draw stream)))))
 
+(defmethod display-node :around ((node basic-call-node) stream)
+  (updating-output (stream :unique-id node
+			   :cache-value (node-tick node))
+    (with-text-style (stream *display-node-character-style*)
+	(call-next-method node stream))))
+
 (define-browser-type :lisp-object expression :graphical
     ()
   (:objects make-lisp-object-call-node lisp-object-browser-make-root
@@ -693,9 +698,9 @@
 	   ;;--- How to arrange for the slot names to be printed?
 	   ;; This works for Genera Flavors because they are embedded in CLOS
 	   (let* ((class (class-of object))
-		  (slots (clos:class-slots class)))
+		  (slots (#-aclpc clos:class-slots #+aclpc class-slots class)))
 	     (loop for slot in slots
-		   as slot-name = (clos:slot-definition-name slot)
+		   as slot-name = (#-aclpc clos:slot-definition-name #+aclpc slot-definition-name slot)
 		   collect (if (slot-boundp object slot-name)
 			       (slot-value object slot-name)
 			       *unbound-marker*))))
@@ -1411,7 +1416,8 @@
     ((class-node 'class-call-node
       :prompt "class node to show slots for" :gesture :subnode-1))
   (let* ((class (node-object class-node))
-	 (slots (sort (mapcar #'clos:slot-definition-name (clos:class-direct-slots class))
+	 (slots (sort (mapcar #' #-aclpc clos:slot-definition-name #+aclpc slot-definition-name
+                          (#-aclpc clos:class-direct-slots #+aclpc class-direct-slots class))
 		      #'string-lessp)))
     (when (and slots
 	       (not (subnode-object-present-in-node class-node slots :test #'equal)))
@@ -1423,13 +1429,14 @@
     ((class-node 'class-call-node
       :prompt "class node to show methods for" :gesture :subnode-2))
   (let* ((class (node-object class-node))
-	 (methods (clos:specializer-direct-methods class))
+	 (methods (#-aclpc clos:specializer-direct-methods #+aclpc specializer-direct-methods class))
 	 (method-list
 	   (loop for method in methods
-		 collect (list (clos:method-generic-function method) method))))
+		 collect (list (#-aclpc clos:method-generic-function #+aclpc method-generic-function method) method))))
     (setq method-list (sort method-list #'string-lessp
 			    :key #'(lambda (item)
-				     (let ((name (clos:generic-function-name (first item))))
+				     (let ((name (#-aclpc clos:generic-function-name 
+                                  #+aclpc generic-function-name (first item))))
 				       (if (listp name) (second name) name)))))
     (when (and method-list
 	       (not (subnode-object-present-in-node class-node method-list

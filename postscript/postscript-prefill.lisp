@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-prefill.lisp,v 1.3 92/07/20 16:02:08 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-prefill.lisp,v 1.5 1997/02/05 01:49:40 tomj Exp $
 
 (in-package :clim-postscript)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-classes.lisp,v 1.6 92/08/18 17:24:02 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/cl-stream-classes.lisp,v 1.8 1997/02/05 01:54:32 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -22,26 +22,26 @@
   `(define-group ,class-name define-class-and-predicate
      (defclass ,class-name ,@superclasses ())
      ,@(when predicate-name
-	 `((define-stream-predicate-trampoline ,predicate-name ,class-name)))))
+         `((define-stream-predicate-trampoline ,predicate-name ,class-name)))))
 
 (defmacro define-stream-predicate-trampoline (predicate-name class-name
-					      &key lucid-kludge)
+                                              &key lucid-kludge)
   #-Lucid (declare (ignore lucid-kludge))
   (let ((lisp-predicate (or #+Lucid lucid-kludge
-			    (find-symbol
-			      (symbol-name predicate-name)
-			      ;; #+Genera *Sigh*.  OPEN-STREAM-P is in
-			      ;; FUTURE-COMMON-LISP only.  Of course, it's
-			      ;; not defined yet, but at least it's exported.
-			      #+Genera (find-package :future-common-lisp)
-			      #-Genera (find-package :common-lisp)))))
+                            (find-symbol
+                              (symbol-name predicate-name)
+                              ;; #+Genera *Sigh*.  OPEN-STREAM-P is in
+                              ;; FUTURE-COMMON-LISP only.  Of course, it's
+                              ;; not defined yet, but at least it's exported.
+                              #+Genera (find-package :future-common-lisp)
+                              #-Genera (find-package :common-lisp)))))
     (when (null lisp-predicate)
       (error "No symbol ~S found in the Common-Lisp package." predicate-name))
     `(define-group ,predicate-name define-stream-predicate-trampoline
        (defgeneric ,predicate-name (object))
        (defmethod  ,predicate-name ((object t)) (,lisp-predicate object))
        ,@(when class-name
-	   `((defmethod ,predicate-name ((object ,class-name)) 't))))))
+           `((defmethod ,predicate-name ((object ,class-name)) 't))))))
 
 
 ;;; The classes themselves.
@@ -63,17 +63,17 @@
 
 (define-class-and-predicate fundamental-character-input-stream nil
   (fundamental-input-stream fundamental-character-stream))
-							
+                                                        
 (define-class-and-predicate fundamental-character-output-stream nil
   (fundamental-output-stream fundamental-character-stream))
-							 
+                                                         
 (define-class-and-predicate fundamental-binary-input-stream nil
   (fundamental-input-stream fundamental-binary-stream))
-						     
+                                                     
 (define-class-and-predicate fundamental-binary-output-stream nil
   (fundamental-output-stream fundamental-binary-stream))
 
-#-Cloe-Runtime					;not there yet
+#-Cloe-Runtime                                        ;not there yet
 (define-stream-predicate-trampoline open-stream-p nil
   ;;--- For now.  PW will dig up the right predicate
   :lucid-kludge (lambda (stream) (streamp stream)))

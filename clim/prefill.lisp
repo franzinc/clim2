@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.15 92/12/03 10:27:27 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/prefill.lisp,v 1.17 1997/02/05 01:44:27 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -34,240 +34,240 @@
   (clrhash *method-hash-table*)
   (if file
       (with-open-file (*standard-output* file :direction :output)
-	(generate-all-prefill-dispatch-caches))
+        (generate-all-prefill-dispatch-caches))
       (let ((*print-pretty* t)
-	    (*print-length* nil)
-	    (*print-level* nil)
-	    (*print-case* :downcase))
-	(flet ((print-form (form result)
-		 (format t "~2%;;; ~(~S~)~2%" form)
-		 (format t "(~S" (first result))
-		 (dolist (generic (rest result))
-		   (format t "~%  (~S" (first generic))
-		   (dolist (method (rest generic))
-		     (format t "~%    ~S" method))
-		   (format t ")"))
-		 (format t ")")))
-	  (dolist (base-class '(;; These first to "shadow" them later
-				genera-clim::genera-medium
-				genera-clim::genera-port
-				clx-clim::clx-medium
-				clx-clim::clx-port
+            (*print-length* nil)
+            (*print-level* nil)
+            (*print-case* :downcase))
+        (flet ((print-form (form result)
+                 (format t "~2%;;; ~(~S~)~2%" form)
+                 (format t "(~S" (first result))
+                 (dolist (generic (rest result))
+                   (format t "~%  (~S" (first generic))
+                   (dolist (method (rest generic))
+                     (format t "~%    ~S" method))
+                   (format t ")"))
+                 (format t ")")))
+          (dolist (base-class '(;; These first to "shadow" them later
+                                genera-clim::genera-medium
+                                genera-clim::genera-port
+                                clx-clim::clx-medium
+                                clx-clim::clx-port
   
-				transformation
+                                transformation
   
-				;; This gets us output records, too
-				bounding-rectangle
-				design
-				line-style
-				text-style
+                                ;; This gets us output records, too
+                                bounding-rectangle
+                                design
+                                line-style
+                                text-style
   
-				;; More general Silica stuff
-				sheet
-				medium
-				port
+                                ;; More general Silica stuff
+                                sheet
+                                medium
+                                port
   
-				;; Now the stream-oid stuff
-				fundamental-stream
-				encapsulating-stream
+                                ;; Now the stream-oid stuff
+                                fundamental-stream
+                                encapsulating-stream
   
-				pointer
-				console
-				cursor
+                                pointer
+                                console
+                                cursor
   
-				event
+                                event
   
-				application-frame
-				frame-manager
-				command-table
+                                application-frame
+                                frame-manager
+                                command-table
   
-				presentation-translator
-				view
-				accept-values-query
-				basic-history
+                                presentation-translator
+                                view
+                                accept-values-query
+                                basic-history
   
-				noise-string
-				io-buffer
-				queue))
-	    (print-form `(generate-prefill-dispatch-caches ',base-class)
-			(generate-prefill-dispatch-caches base-class)))
-	  ;; This is only the presentation types that I think all applications use
-	  (dolist (base-class '(command command-name command-arguments keyword-argument-name
-				command-or-form expression form
-				command-menu-element menu-item
-				completion subset-completion sequence null blank-area))
-	    (print-form `(generate-prefill-dispatch-caches
-			   (find-presentation-type-class ',base-class))
-			(generate-prefill-dispatch-caches
-			  (find-presentation-type-class base-class)))))))
+                                noise-string
+                                io-buffer
+                                queue))
+            (print-form `(generate-prefill-dispatch-caches ',base-class)
+                        (generate-prefill-dispatch-caches base-class)))
+          ;; This is only the presentation types that I think all applications use
+          (dolist (base-class '(command command-name command-arguments keyword-argument-name
+                                command-or-form expression form
+                                command-menu-element menu-item
+                                completion subset-completion sequence null blank-area))
+            (print-form `(generate-prefill-dispatch-caches
+                           (find-presentation-type-class ',base-class))
+                        (generate-prefill-dispatch-caches
+                          (find-presentation-type-class base-class)))))))
   file)
 
 (defun generate-prefill-dispatch-caches (class-name)
   (let ((generic-functions nil)
-	(classes nil))
+        (classes nil))
     (clos-internals::map-over-class-and-its-subclasses class-name
       #'(lambda (class)
-	  (pushnew (class-name class) classes)
-	  (clos-internals::map-over-dispatch-table
-	    #'(lambda (selector handler extra-argument)
-		(typecase selector
-		  (cons
-		    (pushnew (first selector) generic-functions))
-		  (clos-internals::generic-function-selector
-		    (when (clos-internals::generic-function-clos selector)
-		      (pushnew (clos-internals::funcallable-instance-from-generic-selector
-				 selector)
-			       generic-functions)))
-		  (otherwise))
-		(values selector handler extra-argument))
-	    (clos-internals::%instance-information-dispatch-table
-	      (clos-internals::class-instance-information class)))))
+          (pushnew (class-name class) classes)
+          (clos-internals::map-over-dispatch-table
+            #'(lambda (selector handler extra-argument)
+                (typecase selector
+                  (cons
+                    (pushnew (first selector) generic-functions))
+                  (clos-internals::generic-function-selector
+                    (when (clos-internals::generic-function-clos selector)
+                      (pushnew (clos-internals::funcallable-instance-from-generic-selector
+                                 selector)
+                               generic-functions)))
+                  (otherwise))
+                (values selector handler extra-argument))
+            (clos-internals::%instance-information-dispatch-table
+              (clos-internals::class-instance-information class)))))
     (setq generic-functions (sort generic-functions
-				  #'(lambda (x y)
-				      (setq x (clos:generic-function-name x)
-					    y (clos:generic-function-name y))
-				      (let ((xx (if (atom x) x (second x)))
-					    (yy (if (atom y) y (second y))))
-					(if (eq xx yy)
-					    (or (atom x)
-						(and (consp y)
-						     (string<= (first x) (first y))))
-					    (string<= xx yy))))))
+                                  #'(lambda (x y)
+                                      (setq x (clos:generic-function-name x)
+                                            y (clos:generic-function-name y))
+                                      (let ((xx (if (atom x) x (second x)))
+                                            (yy (if (atom y) y (second y))))
+                                        (if (eq xx yy)
+                                            (or (atom x)
+                                                (and (consp y)
+                                                     (string<= (first x) (first y))))
+                                            (string<= xx yy))))))
     `(prefill-dispatch-caches
       ,@(mapcar
-	 #'(lambda (generic-function)
-	     (let ((nargs
-		    (length (clos-internals::dispatching-funcallable-instance-precedence-order
-			      generic-function)))
-		   (calls nil))
-	       (labels 
-		 ((mapper (dispatch handler extra-argument state &rest arguments)
-		    (declare (dynamic-extent arguments))
-		    (ecase (clos-internals::dispatch-type dispatch)
-		      (clos-internals::class-dispatch
-			(apply #'clos-internals::generic-function-map-over-dispatch
-			       generic-function handler extra-argument state
-			       #'mapper
-			       (clos-internals::class-dispatch-position dispatch)
-			       (class-name
-				 (clos-internals::class-dispatch-class dispatch))
-			       arguments))
-		      (clos-internals::eql-dispatch
-			(let ((key-or-nil
-				(clos-internals::eql-dispatch-key-or-nil dispatch)))
-			  (when key-or-nil
-			    (apply #'clos-internals::generic-function-map-over-dispatch
-				   generic-function handler extra-argument state
-				   #'mapper
-				   (clos-internals::eql-dispatch-position dispatch)
-				   `(eql ,(cond ((eq key-or-nil +foreground-ink+)
-						 `+foreground-ink+)
-						((eq key-or-nil +background-ink+)
-						 `+background-ink+)
-						((eq key-or-nil +everywhere+)
-						 `+everywhere+)
-						((eq key-or-nil +nowhere+)
-						 `+nowhere+)
-						((eq key-or-nil +flipping-ink+)
-						 `+flipping-ink+)
-						((typep key-or-nil '(or number
-									character
-									(member t nil)
-									keyword))
-						 key-or-nil)
-						(t `',key-or-nil)))
-				   arguments))))
-		      (clos-internals::finish-dispatch
-			(when (do ((l arguments (cddr l)))
-				  ((null l) nil)
-				(when (member (second l) classes)
-				  (return t)))
-			  (let ((pattern 
-				  (do ((i (1- nargs) (1- i))
-				       (l nil))
-				      ((< i 0) l)
-				    (push (getf arguments i 't) l))))
-			    (unless (gethash (cons generic-function pattern)
-					     *method-hash-table*)
-			      (setf (gethash (cons generic-function pattern)
-					     *method-hash-table*)
-				    t)
-			      (pushnew pattern calls
-				       :test #'equal))))))
-		    (values handler extra-argument)))
-		   (clos-internals::map-over-generic-function-computed-dispatches
-		     generic-function #'mapper)
-		   `(,(clos:generic-function-name generic-function)
-		     ,@calls))))
-	   generic-functions))))
+         #'(lambda (generic-function)
+             (let ((nargs
+                    (length (clos-internals::dispatching-funcallable-instance-precedence-order
+                              generic-function)))
+                   (calls nil))
+               (labels 
+                 ((mapper (dispatch handler extra-argument state &rest arguments)
+                    (declare (dynamic-extent arguments))
+                    (ecase (clos-internals::dispatch-type dispatch)
+                      (clos-internals::class-dispatch
+                        (apply #'clos-internals::generic-function-map-over-dispatch
+                               generic-function handler extra-argument state
+                               #'mapper
+                               (clos-internals::class-dispatch-position dispatch)
+                               (class-name
+                                 (clos-internals::class-dispatch-class dispatch))
+                               arguments))
+                      (clos-internals::eql-dispatch
+                        (let ((key-or-nil
+                                (clos-internals::eql-dispatch-key-or-nil dispatch)))
+                          (when key-or-nil
+                            (apply #'clos-internals::generic-function-map-over-dispatch
+                                   generic-function handler extra-argument state
+                                   #'mapper
+                                   (clos-internals::eql-dispatch-position dispatch)
+                                   `(eql ,(cond ((eq key-or-nil +foreground-ink+)
+                                                 `+foreground-ink+)
+                                                ((eq key-or-nil +background-ink+)
+                                                 `+background-ink+)
+                                                ((eq key-or-nil +everywhere+)
+                                                 `+everywhere+)
+                                                ((eq key-or-nil +nowhere+)
+                                                 `+nowhere+)
+                                                ((eq key-or-nil +flipping-ink+)
+                                                 `+flipping-ink+)
+                                                ((typep key-or-nil '(or number
+                                                                        character
+                                                                        (member t nil)
+                                                                        keyword))
+                                                 key-or-nil)
+                                                (t `',key-or-nil)))
+                                   arguments))))
+                      (clos-internals::finish-dispatch
+                        (when (do ((l arguments (cddr l)))
+                                  ((null l) nil)
+                                (when (member (second l) classes)
+                                  (return t)))
+                          (let ((pattern 
+                                  (do ((i (1- nargs) (1- i))
+                                       (l nil))
+                                      ((< i 0) l)
+                                    (push (getf arguments i 't) l))))
+                            (unless (gethash (cons generic-function pattern)
+                                             *method-hash-table*)
+                              (setf (gethash (cons generic-function pattern)
+                                             *method-hash-table*)
+                                    t)
+                              (pushnew pattern calls
+                                       :test #'equal))))))
+                    (values handler extra-argument)))
+                   (clos-internals::map-over-generic-function-computed-dispatches
+                     generic-function #'mapper)
+                   `(,(clos:generic-function-name generic-function)
+                     ,@calls))))
+           generic-functions))))
 ||#
 
 ;;; Prefill dispatch caches for a bunch of generic function calls
 (defmacro prefill-dispatch-caches (&body clauses &environment env)
   (let (function)
     (labels ((expand-clause (clause)
-	       (setq function (car clause))
-	       (unless (clos-internals::fboundp-in-environment function env)
-		 #+++ignore	;until we fix CLOS
-		 (warn "prefill-dispatch-caches: ~S is not a defined generic function."
-		       function))
-	       `(progn ,@(mapcar #'expand-call (cdr clause))))
-	     (expand-call (args)
-	       (dolist (arg args)
-		 (unless (cond ((atom arg) (find-class arg nil env))
-			       ((eq (first arg) 'eql) t)
-			       ((eq (first arg) 'presentation-type)
-				(find-presentation-type-class (second arg) nil env)))
-		   #+++ignore	;until we fix CLOS
-		   (warn "prefill-dispatch-caches: ~S is not a valid specializer in the ~
-			  arguments to ~S."
-			 arg function)))
-	       `(prefill-dispatch-caches-1
-		  ',function
-		 ,(if (some #'needs-evaluation args)
-		      `(list ,@(mapcar #'(lambda (arg)
-					   (if (and (consp arg) (eq (first arg) 'eql))
-					       ``(eql ,,(second arg))
-					       ``,',arg))
-				       args))
-		      `',(mapcar #'(lambda (arg)
-				     (if (and (consp arg) (eq (first arg) 'eql))
-					 `(eql ,(eval (second arg)))
-					 arg))
-				 args))))
-	     (needs-evaluation (arg)
-	       (and (consp arg)
-		    (eq (first arg) 'eql)
-		    (not (if (consp (second arg))
-			     (eq (first (second arg)) 'quote)
-			     (typep (second arg)
-				    '(or number character keyword (member t nil))))))))
+               (setq function (car clause))
+               (unless (clos-internals::fboundp-in-environment function env)
+                 #+++ignore        ;until we fix CLOS
+                 (warn "prefill-dispatch-caches: ~S is not a defined generic function."
+                       function))
+               `(progn ,@(mapcar #'expand-call (cdr clause))))
+             (expand-call (args)
+               (dolist (arg args)
+                 (unless (cond ((atom arg) (find-class arg nil env))
+                               ((eq (first arg) 'eql) t)
+                               ((eq (first arg) 'presentation-type)
+                                (find-presentation-type-class (second arg) nil env)))
+                   #+++ignore        ;until we fix CLOS
+                   (warn "prefill-dispatch-caches: ~S is not a valid specializer in the ~
+                          arguments to ~S."
+                         arg function)))
+               `(prefill-dispatch-caches-1
+                  ',function
+                 ,(if (some #'needs-evaluation args)
+                      `(list ,@(mapcar #'(lambda (arg)
+                                           (if (and (consp arg) (eq (first arg) 'eql))
+                                               ``(eql ,,(second arg))
+                                               ``,',arg))
+                                       args))
+                      `',(mapcar #'(lambda (arg)
+                                     (if (and (consp arg) (eq (first arg) 'eql))
+                                         `(eql ,(eval (second arg)))
+                                         arg))
+                                 args))))
+             (needs-evaluation (arg)
+               (and (consp arg)
+                    (eq (first arg) 'eql)
+                    (not (if (consp (second arg))
+                             (eq (first (second arg)) 'quote)
+                             (typep (second arg)
+                                    '(or number character keyword (member t nil))))))))
       `(progn ,@(mapcar #'expand-clause clauses)))))
 
 (defun prefill-dispatch-caches-1 (&rest calls)
   (declare (dynamic-extent calls))
   (dorest (calls calls cddr)
     (let ((generic-function
-	    (and (clos-internals::fboundp-in-environment (first calls) nil)
-		 (clos-internals::fdefinition-in-environment (first calls) nil)))
-	  (arguments (mapcar #'(lambda (arg)
-				 (setq arg (cond ((atom arg) (find-class arg))
-						 ((eq (first arg) 'eql) arg)
-						 ((eq (first arg) 'presentation-type)
-						  (find-presentation-type-class (second arg)))
-						 (t
-						  (error "Invalid argument specification: ~S"
-							 arg))))
-				 (when (typep arg 'class)
-				   (unless (clos-internals::class-finalized-p arg)
-				     (clos-internals::finalize-inheritance arg)))
-				 arg)
-			     (second calls))))
+            (and (clos-internals::fboundp-in-environment (first calls) nil)
+                 (clos-internals::fdefinition-in-environment (first calls) nil)))
+          (arguments (mapcar #'(lambda (arg)
+                                 (setq arg (cond ((atom arg) (find-class arg))
+                                                 ((eq (first arg) 'eql) arg)
+                                                 ((eq (first arg) 'presentation-type)
+                                                  (find-presentation-type-class (second arg)))
+                                                 (t
+                                                  (error "Invalid argument specification: ~S"
+                                                         arg))))
+                                 (when (typep arg 'class)
+                                   (unless (clos-internals::class-finalized-p arg)
+                                     (clos-internals::finalize-inheritance arg)))
+                                 arg)
+                             (second calls))))
       (unless (typep generic-function 'generic-function)
-	(error "~S is not a defined generic function." (first calls)))
-      #+Symbolics				;Symbolics CLOS, that is
+        (error "~S is not a defined generic function." (first calls)))
+      #+Symbolics                                ;Symbolics CLOS, that is
       (clos-internals::generic-function-ensure-specializers-mapped
-	generic-function arguments #'clos-internals::standard-method-combiner)
+        generic-function arguments #'clos-internals::standard-method-combiner)
       #-Symbolics
       (error "I don't know how to prefill generic function dispatch caches except in Symbolics CLOS"))))
 
@@ -281,9 +281,9 @@
     (let ((class (find-class class-name)))
       (clos-internals::finalize-inheritance class)
       (when (and (slot-exists-p class 'clos-internals::constructors)
-		 (clos-internals::class-finalized-p class))
-	  (map nil #'clos-internals::ensure-constructor-function
-		   (clos-internals::class-constructors class))))))
+                 (clos-internals::class-finalized-p class))
+          (map nil #'clos-internals::ensure-constructor-function
+                   (clos-internals::class-constructors class))))))
 
 
 ;;; This page contains the non-demo-specific results after running the demos in
@@ -314,25 +314,25 @@
   (make-load-form
     (translation-transformation))
   #+Genera (clos-internals:operation-handled-p
-	     (translation-transformation t)
-	     (identity-transformation t)
-	     (standard-transformation t))
+             (translation-transformation t)
+             (identity-transformation t)
+             (standard-transformation t))
   (print-object
     (identity-transformation t)
     (translation-transformation t)
     (standard-transformation t))
   #+Genera (clos-internals::print-self
-	     (identity-transformation t t t)
-	     (translation-transformation t t t)
-	     (standard-transformation t t t))
+             (identity-transformation t t t)
+             (translation-transformation t t t)
+             (standard-transformation t t t))
   (rectilinear-transformation-p
     (standard-transformation)
     (identity-transformation)
     (translation-transformation))
   #+Genera (clos-internals::send-if-handles
-	     (identity-transformation t)
-	     (translation-transformation t)
-	     (standard-transformation t))
+             (identity-transformation t)
+             (translation-transformation t)
+             (standard-transformation t))
   (slot-unbound
     (t translation-transformation (eql 'clim-utils::inverse))
     (t standard-transformation (eql 'clim-utils::inverse)))
@@ -365,9 +365,9 @@
     (translation-transformation t)
     (standard-transformation t))
   #+Genera (clos-internals::which-operations
-	     (identity-transformation)
-	     (translation-transformation)
-	     (standard-transformation)))
+             (identity-transformation)
+             (translation-transformation)
+             (standard-transformation)))
 
 
 ;;; (generate-prefill-dispatch-caches 'bounding-rectangle)
@@ -733,9 +733,9 @@
     (standard-updating-output-record t)
     (accept-values-output-record t))
   #+Genera (clos-internals:operation-handled-p
-	     (standard-bounding-rectangle t)
-	     (gadget-output-record t)
-	     (standard-tree-output-history t))
+             (standard-bounding-rectangle t)
+             (gadget-output-record t)
+             (standard-tree-output-history t))
   (output-record-cache-value
     (standard-updating-output-record))
   (output-record-children
@@ -1035,9 +1035,9 @@
     (gadget-output-record t)
     (standard-tree-output-history t))
   #+Genera (clos-internals::print-self
-	     (standard-bounding-rectangle t t t)
-	     (gadget-output-record t t t)
-	     (standard-tree-output-history t t t))
+             (standard-bounding-rectangle t t t)
+             (gadget-output-record t t t)
+             (standard-tree-output-history t t t))
   (propagate-output-record-changes-p
     (standard-tree-output-history t t))
   (recompute-contents-ok
@@ -1151,7 +1151,7 @@
   (row-table-p
     (standard-table-output-record))
   #+Genera (clos-internals::send-if-handles
-	     (gadget-output-record t))
+             (gadget-output-record t))
   (stylize-text-output-record
     (standard-text-output-record t t))
   (transform-region)
@@ -1184,9 +1184,9 @@
   (update-gadget-position
     (gadget-output-record))
   #+Genera (clos-internals::which-operations
-	     (standard-bounding-rectangle)
-	     (gadget-output-record)
-	     (standard-tree-output-history)))
+             (standard-bounding-rectangle)
+             (gadget-output-record)
+             (standard-tree-output-history)))
 
 
 ;;; (generate-prefill-dispatch-caches 'design)
@@ -1276,9 +1276,9 @@
   (note-output-record-moved)
   (note-output-record-replayed)
   #+Genera (clos-internals:operation-handled-p
-	     (rgb-color t)
-	     (gray-color t)
-	     (standard-opacity t))
+             (rgb-color t)
+             (gray-color t)
+             (standard-opacity t))
   (output-record-cache-value)
   (output-record-children)
   (output-record-contents-ok)
@@ -1319,8 +1319,8 @@
     (rgb-color t)
     (gray-color t))
   #+Genera (clos-internals::print-self
-	     (rgb-color t t t)
-	     (gray-color t t t))
+             (rgb-color t t t)
+             (gray-color t t t))
   (propagate-output-record-changes-p)
   (recompute-contents-ok)
   (recompute-extent)
@@ -1343,8 +1343,8 @@
   (tree-recompute-extent-1)
   (update-gadget-position)
   #+Genera (clos-internals::which-operations
-	     (rgb-color)
-	     (gray-color)))
+             (rgb-color)
+             (gray-color)))
 
 
 ;;; (generate-prefill-dispatch-caches 'line-style)
@@ -1363,7 +1363,7 @@
   (make-load-form
     (standard-line-style))
   #+Genera (clos-internals:operation-handled-p
-	     (standard-line-style t)))
+             (standard-line-style t)))
 
 
 ;;; (generate-prefill-dispatch-caches 'text-style)
@@ -1373,15 +1373,15 @@
     (standard-text-style standard-text-style)
     (cons standard-text-style))
   #+Genera (clos-internals:operation-handled-p
-	     (standard-text-style t))
+             (standard-text-style t))
   (parse-text-style
     (standard-text-style))
   (print-object
     (standard-text-style t))
   #+Genera (clos-internals::print-self
-	     (standard-text-style t t t))
+             (standard-text-style t t t))
   #+Genera (clos-internals::send-if-handles
-	     (standard-text-style t))
+             (standard-text-style t))
   (text-style-ascent)
   (text-style-descent)
   (text-style-face
@@ -1396,7 +1396,7 @@
     (standard-text-style))
   (text-style-width)
   #+Genera (clos-internals::which-operations
-	     (standard-text-style)))
+             (standard-text-style)))
 
 
 ;;; (generate-prefill-dispatch-caches 'sheet)
@@ -2106,17 +2106,17 @@
     (application-pane)
     (clim-stream-pane))
   #+Genera (clos-internals:operation-handled-p
-	     (standard-graft t)
-	     (interactor-pane t)
-	     (toggle-button-pane t)
-	     (scroll-bar-target-pane t)
-	     (push-button-pane t)
-	     (vbox-pane t)
-	     (top-level-sheet t)
-	     (outlined-pane t)
-	     (hbox-pane t)
-	     (slider-pane t)
-	     (application-pane t))
+             (standard-graft t)
+             (interactor-pane t)
+             (toggle-button-pane t)
+             (scroll-bar-target-pane t)
+             (push-button-pane t)
+             (vbox-pane t)
+             (top-level-sheet t)
+             (outlined-pane t)
+             (hbox-pane t)
+             (slider-pane t)
+             (application-pane t))
   (output-recording-stream-p
     (command-menu-pane)
     (interactor-pane)
@@ -2202,16 +2202,16 @@
     (slider-pane t)
     (interactor-pane t))
   #+Genera (clos-internals::print-self
-	     (standard-graft t t t)
-	     (toggle-button-pane t t t)
-	     (scroll-bar-target-pane t t t)
-	     (push-button-pane t t t)
-	     (vbox-pane t t t)
-	     (top-level-sheet t t t)
-	     (outlined-pane t t t)
-	     (hbox-pane t t t)
-	     (slider-pane t t t)
-	     (interactor-pane t t t))
+             (standard-graft t t t)
+             (toggle-button-pane t t t)
+             (scroll-bar-target-pane t t t)
+             (push-button-pane t t t)
+             (vbox-pane t t t)
+             (top-level-sheet t t t)
+             (outlined-pane t t t)
+             (hbox-pane t t t)
+             (slider-pane t t t)
+             (interactor-pane t t t))
   (prompt-for-accept
     (interactor-pane t textual-view)
     (application-pane t textual-dialog-view)
@@ -2380,15 +2380,15 @@
   (scroller-pane-vertical-scroll-bar
     (scroller-pane))
   #+Genera (clos-internals::send-if-handles
-	     (interactor-pane t)
-	     (vbox-pane t)
-	     (outlined-pane t)
-	     (top-level-sheet t)
-	     (push-button-pane t)
-	     (toggle-button-pane t)
-	     (hbox-pane t)
-	     (slider-pane t)
-	     (application-pane t))
+             (interactor-pane t)
+             (vbox-pane t)
+             (outlined-pane t)
+             (top-level-sheet t)
+             (push-button-pane t)
+             (toggle-button-pane t)
+             (hbox-pane t)
+             (slider-pane t)
+             (application-pane t))
   (shared-initialize
     (push-button-pane t)
     (hbox-pane t)
@@ -2880,12 +2880,12 @@
     (application-pane)
     (clim-stream-pane))
   #+Genera (stream-compatible-cursor-position
-	     (interactor-pane))
+             (interactor-pane))
   #+Genera (stream-compatible-output-as-presentation-1
-	     (interactor-pane t t)
-	     (application-pane t t))
+             (interactor-pane t t)
+             (application-pane t t))
   #+Genera (stream-compatible-size-in-characters
-	     (interactor-pane))
+             (interactor-pane))
   ((setf stream-current-line-height)
     (t command-menu-pane)
     (t interactor-pane)
@@ -3136,16 +3136,16 @@
   ((setf viewport-viewport-region)
     (t viewport))
   #+Genera (clos-internals::which-operations
-	     (standard-graft)
-	     (toggle-button-pane)
-	     (scroll-bar-target-pane)
-	     (push-button-pane)
-	     (vbox-pane)
-	     (top-level-sheet)
-	     (outlined-pane)
-	     (hbox-pane)
-	     (slider-pane)
-	     (interactor-pane))
+             (standard-graft)
+             (toggle-button-pane)
+             (scroll-bar-target-pane)
+             (push-button-pane)
+             (vbox-pane)
+             (top-level-sheet)
+             (outlined-pane)
+             (hbox-pane)
+             (slider-pane)
+             (interactor-pane))
   (window-clear
     (command-menu-pane)
     (interactor-pane)
@@ -3390,7 +3390,7 @@
   (note-sheet-region-changed)
   (note-sheet-transformation-changed)
   #+Genera (clos-internals:operation-handled-p
-	     (standard-input-editing-stream t))
+             (standard-input-editing-stream t))
   ((setf original-stream-recording-p)
     (t standard-input-editing-stream))
   (output-recording-stream-p
@@ -3440,7 +3440,7 @@
     (standard-input-editing-stream))
   (resize-sheet)
   #+Genera (clos-internals::send-if-handles
-	     (standard-input-editing-stream t))
+             (standard-input-editing-stream t))
   (shared-initialize)
   (sheet-actual-native-edges*)
   (sheet-adopt-child)
@@ -3487,7 +3487,7 @@
     (filling-stream)
     (accept-values-stream))
   #+Genera (stream-compatible-cursor-position
-	     (standard-input-editing-stream))
+             (standard-input-editing-stream))
   #+Genera (stream-compatible-output-as-presentation-1)
   #+Genera (stream-compatible-size-in-characters)
   ((setf stream-current-line-height))
@@ -3802,8 +3802,8 @@
   (keyboard-event-key-name
     (key-press-event))
   #+Genera (clos-internals:operation-handled-p
-	     (pointer-button-event t)
-	     (pointer-button-press-event t))
+             (pointer-button-event t)
+             (pointer-button-press-event t))
   (pointer-event-button
     (pointer-button-press-event))
   (pointer-event-x
@@ -3816,19 +3816,19 @@
     (pointer-button-event t)
     (pointer-button-press-event t))
   #+Genera (clos-internals::print-self
-	     (pointer-button-event t t t)
-	     (pointer-button-press-event t t t))
+             (pointer-button-event t t t)
+             (pointer-button-press-event t t t))
   (queue-event)
   (receive-gesture)
   #+Genera (clos-internals::send-if-handles
-	     (pointer-button-event t)
-	     (pointer-button-press-event t))
+             (pointer-button-event t)
+             (pointer-button-press-event t))
   (slot-unbound
     (t pointer-button-event t))
   (stream-process-gesture)
   #+Genera (clos-internals::which-operations
-	     (pointer-button-event)
-	     (pointer-button-press-event)))
+             (pointer-button-event)
+             (pointer-button-press-event)))
 
 
 ;;; (generate-prefill-dispatch-caches 'application-frame)
@@ -4086,18 +4086,18 @@
   (invoke-with-default-bound-in-history
     (presentation-history t t))
   #+Genera (clos-internals:operation-handled-p
-	     (presentation-history t))
+             (presentation-history t))
   (presentation-history-type
     (presentation-history))
   (print-object
     (presentation-history t))
   #+Genera (clos-internals::print-self
-	     (presentation-history t t t))
+             (presentation-history t t t))
   (push-history-element
     (kill-ring-history t)
     (presentation-history t))
   #+Genera (clos-internals::which-operations
-	     (presentation-history))
+             (presentation-history))
   (yank-from-history
     (kill-ring-history)))
 
@@ -4116,11 +4116,11 @@
 
 (prefill-dispatch-caches
   #+Genera (clos-internals:operation-handled-p
-	     (queue t))
+             (queue t))
   (print-object
     (queue t))
   #+Genera (clos-internals::print-self
-	     (queue t t t))
+             (queue t t t))
   (queue-contents-type
     (queue))
   (queue-empty-p
@@ -4134,7 +4134,7 @@
   (queue-unget
     (queue t))
   #+Genera (clos-internals::which-operations
-	     (queue)))
+             (queue)))
 
 
 ;;; (generate-prefill-dispatch-caches (find-presentation-type-class 'command))
@@ -4242,7 +4242,7 @@
 
 ;;; Compile constructors for all sorts of instantiable classes
 
-#+++ignore	;this just doesn't seem to do any good
+#+++ignore        ;this just doesn't seem to do any good
 (ensure-constructors-compiled
   accept-values
   accept-values-command-button

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.16 1993/10/26 03:22:18 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/convenience.lisp,v 1.20 1997/02/05 01:52:35 tomj Exp $
 
 (in-package :tk)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.20 1993/07/27 01:45:06 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/address-book.lisp,v 1.22 1997/02/05 01:47:00 tomj Exp $
 
 (in-package :clim-demo)
 

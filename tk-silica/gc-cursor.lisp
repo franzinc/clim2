@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: gc-cursor.lisp,v 1.3 1994/11/23 23:29:23 smh Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/gc-cursor.lisp,v 1.7 1997/02/05 01:53:45 tomj Exp $
 
 
 (in-package :xm-silica)

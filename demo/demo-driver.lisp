@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.30 1993/10/28 07:12:59 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/demo-driver.lisp,v 1.32 1997/02/05 01:47:17 tomj Exp $
 
 (in-package :clim-demo)
 
@@ -80,7 +80,8 @@
 		   (raise-frame frame))
 	       (run-frame-top-level frame)))))
     (if background 
-	(mp:process-run-function 
+	#+aclpc (do-it)
+    #-aclpc (mp:process-run-function 
 	 `(:name ,(demo-name demo)
 	   :initial-bindings ((*package* . ',*package*)))
 	 #'do-it)
@@ -89,6 +90,6 @@
 (let ((demo (make-instance 'demo
 	      :name "Demo Driver" :class 'demo-driver
 	      :initargs '(:left 0 :top 0))))
-  (defun start-demo (&key (port (find-port)) (background t) force)
+  (defun start-demo (&key (port (find-port)) (background #+aclpc nil #-aclpc t) force)
     (run-demo demo :port port :background background :force force)))
 

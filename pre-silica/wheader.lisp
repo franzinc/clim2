@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: wheader.lisp,v 1.4 92/07/01 15:48:47 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/pre-silica/wheader.lisp,v 1.6 1997/02/05 01:50:21 tomj Exp $
 
 ;;; "Translated" from \sys\include\windows.h
 

@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.13 1994/12/05 00:01:52 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/pkg.lisp,v 1.16 1997/02/05 01:53:56 tomj Exp $
 
 ;;; --- the motif v openlook definitions should be in separate package
 ;;; definition files

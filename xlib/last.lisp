@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: last.lisp,v 1.4 1993/07/27 01:59:01 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/xlib/last.lisp,v 1.7 1997/02/05 01:55:59 tomj Exp $
 
 (in-package :x11)
 

@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: japanese-input-editor.lisp,v 1.1 1995/10/20 17:37:40 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/japanese-input-editor.lisp,v 1.3 1997/02/05 01:44:08 tomj Exp $
 
 (in-package :clim-internals)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.10 92/11/06 19:05:24 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/transformations.lisp,v 1.13 1997/02/05 01:55:24 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -26,19 +26,19 @@
 (defgeneric compose-rotation-with-transformation (transform angle &optional origin))
 
 (defgeneric transform-position (transform x y)
-  (declare (values x y)))
+  #-aclpc (declare (values x y)))
 (defgeneric untransform-position (transform x y)
-  (declare (values x y)))
+  #-aclpc (declare (values x y)))
 
 (defgeneric transform-distance (transform dx dy)
-  (declare (values dx dy)))
+  #-aclpc (declare (values dx dy)))
 (defgeneric untransform-distance (transform dx dy)
-  (declare (values dx dy)))
+  #-aclpc (declare (values dx dy)))
 
 (defgeneric transform-rectangle* (transform x1 y1 x2 y2)
-  (declare (values x1 y1 x2 y2)))
+  #-aclpc (declare (values x1 y1 x2 y2)))
 (defgeneric untransform-rectangle* (transform x1 y1 x2 y2)
-  (declare (values x1 y1 x2 y2)))
+  #-aclpc (declare (values x1 y1 x2 y2)))
 
 
 ;;; Transformations
@@ -50,8 +50,8 @@
 ;;; It exists because EQL specializers are slow in PCL.
 (defclass identity-transformation (transformation) ())
 
-(defmethod make-load-form ((transform identity-transformation) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((transform identity-transformation) #-aclpc &optional #-aclpc environment)
+ #-aclpc (declare (ignore environment))
   '+identity-transformation+)
 
 (defvar +identity-transformation+ (make-instance 'identity-transformation))
@@ -59,13 +59,20 @@
 
 ;;; Translation transformations
 
+#+(or aclpc acl86win32) ; aclpc seems not to like using a class in its defclass
+(defclass translation-transformation (transformation)
+    ((inverse :reader invert-transformation)
+     (tx :type single-float :initarg :tx)
+     (ty :type single-float :initarg :ty)))
+ 
+#-(or aclpc acl86win32) ; aclpc seems not to like using a class in its defclass
 (defclass translation-transformation (transformation)
     ((inverse :type translation-transformation :reader invert-transformation)
      (tx :type single-float :initarg :tx)
      (ty :type single-float :initarg :ty)))
 
 (define-constructor make-translation-transformation-1 translation-transformation
-		    (tx ty)
+                    (tx ty)
   :tx tx :ty ty)
 
 (defmethod print-object ((transform translation-transformation) stream)
@@ -74,8 +81,9 @@
       (declare (type single-float tx ty))
       (format stream "(~D,~D)" tx ty))))
 
-(defmethod make-load-form ((transform translation-transformation) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((transform translation-transformation)
+                             #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   (with-slots (tx ty) transform
     (declare (type single-float tx ty))
     `(make-translation-transformation-1 ,tx ,ty)))
@@ -84,7 +92,7 @@
 ;;; General transformations
 
 (defclass standard-transformation (transformation)
-    ((inverse :type standard-transformation :reader invert-transformation)
+    ((inverse #-aclpc :type #-aclpc standard-transformation :reader invert-transformation)
      (mxx :type single-float :initarg :mxx)
      (mxy :type single-float :initarg :mxy)
      (myx :type single-float :initarg :myx)
@@ -93,11 +101,12 @@
      (ty :type single-float :initarg :ty)))
 
 (define-constructor make-standard-transformation-1 standard-transformation
-		    (mxx mxy myx myy tx ty)
+                    (mxx mxy myx myy tx ty)
   :mxx mxx :mxy mxy :myx myx :myy myy :tx tx :ty ty)
 
-(defmethod make-load-form ((transform standard-transformation) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((transform standard-transformation)
+                             #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   (with-slots (mxx mxy myx myy tx ty) transform
     (declare (type single-float mxx mxy myx myy tx ty))
     `(make-standard-transformation-1 ,mxx ,mxy ,myx ,myy ,tx ,ty)))
@@ -107,8 +116,8 @@
     (with-slots (mxx mxy myx myy tx ty) transform
       (declare (single-float mxx mxy myx myy tx ty))
       (if (and (zerop mxy) (zerop myx))
-	  (format stream "scale (~D,~D) translate (~D,~D)" mxx myy tx ty)
-	  (format stream "[~D ~D ~D ~D] ~D ~D)" mxx mxy myx myy tx ty)))))
+          (format stream "scale (~D,~D) translate (~D,~D)" mxx myy tx ty)
+          (format stream "[~D ~D ~D ~D] ~D ~D)" mxx mxy myx myy tx ty)))))
 
 
 ;;; Conditions
@@ -120,23 +129,23 @@
   (:report
     (lambda (condition stream)
       (format stream "You can't make a transformation from the three collinear points ~@
-		     (~D,~D), (~D,~D), and (~D,~D)"
-	(nth 0 (transformation-underspecified-points condition))
-	(nth 1 (transformation-underspecified-points condition))
-	(nth 2 (transformation-underspecified-points condition))
-	(nth 3 (transformation-underspecified-points condition))
-	(nth 4 (transformation-underspecified-points condition))
-	(nth 5 (transformation-underspecified-points condition))))))
+                     (~D,~D), (~D,~D), and (~D,~D)"
+        (nth 0 (transformation-underspecified-points condition))
+        (nth 1 (transformation-underspecified-points condition))
+        (nth 2 (transformation-underspecified-points condition))
+        (nth 3 (transformation-underspecified-points condition))
+        (nth 4 (transformation-underspecified-points condition))
+        (nth 5 (transformation-underspecified-points condition))))))
 
 (define-condition reflection-underspecified (transformation-underspecified) ()
   (:report
     (lambda (condition stream)
       (format stream "You can't make a reflection from the two coincident points ~@
-		     (~D,~D) and (~D,~D)"
-	(nth 0 (transformation-underspecified-points condition))
-	(nth 1 (transformation-underspecified-points condition))
-	(nth 2 (transformation-underspecified-points condition))
-	(nth 3 (transformation-underspecified-points condition))))))
+                     (~D,~D) and (~D,~D)"
+        (nth 0 (transformation-underspecified-points condition))
+        (nth 1 (transformation-underspecified-points condition))
+        (nth 2 (transformation-underspecified-points condition))
+        (nth 3 (transformation-underspecified-points condition))))))
 
 (define-condition singular-transformation (transformation-error)
   ((transformation :reader singular-transformation-transformation :initarg :transformation))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: wheader.lisp,v 1.1 92/10/01 10:04:00 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/cloe/wheader.lisp,v 1.3 1997/02/05 01:46:13 tomj Exp $
 
 (in-package :win)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.23 1993/07/27 01:45:14 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/cad-demo.lisp,v 1.25 1997/02/05 01:47:08 tomj Exp $
 
 (in-package :clim-demo)
 
@@ -59,7 +59,7 @@
 (defvar *draw-connections* t)
 (defmethod replay-output-record ((thing basic-thing) stream
 				 &optional region (x-offset 0) (y-offset 0))
-  (declare (ignore region x-offset y-offset))
+  #- aclpc (declare (ignore region x-offset y-offset))
   (if *draw-connections*
       (draw-self thing stream)
       (draw-body thing stream)))
@@ -257,11 +257,6 @@
 (defun all-connections (component)
   (with-slots (inputs outputs) component
     (append inputs outputs)))
-
-;;; When a component is added to the database, add its connections
-(defmethod add-new-object :after (cd (new-object component))
-  (dolist (conn (all-connections new-object))
-    (add-new-object cd conn)))
 
 (defmethod move :after ((component component) new-x new-y)
   (declare (ignore new-x new-y))
@@ -568,6 +563,11 @@
 
 (defmethod add-new-object ((cd cad-demo) new-object)
   (push new-object (slot-value cd 'object-list)))
+
+;;; When a component is added to the database, add its connections
+(defmethod add-new-object :after (cd (new-object component))
+  (dolist (conn (all-connections new-object))
+    (add-new-object cd conn)))
 
 ;;; Make the cad demo application act as an output history
 (defmethod map-over-output-records-overlapping-region

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.40 1994/12/05 00:00:25 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/medium.lisp,v 1.42 1997/02/05 01:51:10 tomj Exp $
 
 (in-package :silica)
 
@@ -13,10 +13,10 @@
   (declare (ignore port sheet))
   nil)
 
-;; Doing this in an :AROUND method ensures that when any :BEFORE methods
+;; Doing this in an :AROUND method ensures that when any :BEFORE methods 
 ;; run, the medium and the sheet are correctly associated
 (defmethod engraft-medium :around ((medium basic-medium) port sheet)
-  (declare (ignore port))
+  #-aclpc (declare (ignore port))
   (setf (medium-sheet medium) sheet)
   (call-next-method)
   nil)
@@ -29,34 +29,34 @@
   (declare (dynamic-extent continuation))
   (let ((medium (sheet-medium sheet)))
     (if medium
-	(funcall continuation medium)
-	(with-temporary-medium (medium sheet)
-	  (with-sheet-medium-bound (sheet medium)
-	    (funcall continuation medium))))))
+        (funcall continuation medium)
+        (with-temporary-medium (medium sheet)
+          (with-sheet-medium-bound (sheet medium)
+            (funcall continuation medium))))))
 
 ;; Special-case the one we know is going to work all the time
 (defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)
   (declare (dynamic-extent continuation))
   (let ((medium (slot-value sheet 'medium)))
     (if medium
-	(funcall continuation medium)
-	;; Some gadgets won't have a medium while they are being created.
-	;; Go get one now so that foreground/background can be decoded, etc.
-	(call-next-method))))
+        (funcall continuation medium)
+        ;; Some gadgets won't have a medium while they are being created.
+        ;; Go get one now so that foreground/background can be decoded, etc.
+        (call-next-method))))
 
 (defmethod invoke-with-sheet-medium ((sheet shared-medium-sheet-output-mixin) continuation)
   (declare (dynamic-extent continuation))
   (let ((medium (sheet-medium sheet)))
     (if medium
-	;; Note that we do not go through ENGRAFT-MEDIUM or anything
-	;; like that, since the sheets are assumed to be closely enough
-	;; related that ENGRAFT-MEDIUM shouldn't do anything useful.
-	(letf-globally (((sheet-medium sheet) medium)
-			((medium-sheet medium) sheet))
-	  ;; Be sure any clipping regions are decached
-	  (setf (medium-clipping-region medium) +everywhere+)
-	  (funcall continuation medium))
-	(call-next-method))))
+        ;; Note that we do not go through ENGRAFT-MEDIUM or anything
+        ;; like that, since the sheets are assumed to be closely enough
+        ;; related that ENGRAFT-MEDIUM shouldn't do anything useful.
+        (letf-globally (((sheet-medium sheet) medium)
+                        ((medium-sheet medium) sheet))
+          ;; Be sure any clipping regions are decached
+          (setf (medium-clipping-region medium) +everywhere+)
+          (funcall continuation medium))
+        (call-next-method))))
 
 ;;--- Use DEFOPERATION
 (defmethod invoke-with-sheet-medium ((stream standard-encapsulating-stream) continuation)
@@ -69,18 +69,18 @@
 (defun invoke-with-sheet-medium-bound (sheet medium continuation)
   (declare (dynamic-extent continuation))
   (cond ((sheet-medium sheet)
-	 (funcall continuation))
-	(medium
-	 (letf-globally (((sheet-medium sheet) medium))
-	   (engraft-medium medium (port sheet) sheet)
-	   (funcall continuation)))
-	(t
-	 (flet ((call-continuation (medium)
-		  (declare (ignore medium))
-		  (funcall continuation)))
-	   (declare (dynamic-extent #'call-continuation))
-	   (invoke-with-sheet-medium
-	     sheet #'call-continuation)))))
+         (funcall continuation))
+        (medium
+         (letf-globally (((sheet-medium sheet) medium))
+           (engraft-medium medium (port sheet) sheet)
+           (funcall continuation)))
+        (t
+         (flet ((call-continuation (medium)
+                  (declare (ignore medium))
+                  (funcall continuation)))
+           (declare (dynamic-extent #'call-continuation))
+           (invoke-with-sheet-medium
+             sheet #'call-continuation)))))
 
 (defgeneric make-medium (port sheet))
 
@@ -94,20 +94,32 @@
 (defvar *default-pane-foreground* +black+)
 (defvar *default-pane-background* +white+)
 
+;; removed out hard-wired white background hack for nt (cim 10/9/96)
+
+#-(or aclpc-ignore aclnt-ignore)
 (defclass sheet-with-resources-mixin ()
   ((foreground :initform nil :accessor pane-foreground)
    (background :initform nil :accessor pane-background)
    (text-style :initform nil :accessor pane-text-style)
    (initargs :initform nil :reader sheet-with-resources-initargs)))
-
-(defmethod initialize-instance :after
-	   ((sheet sheet-with-resources-mixin) &rest args)
+  
+#+(or aclpc-ignore aclnt-ignore) ; help with background color, initargs
+(defclass sheet-with-resources-mixin ()
+  ((foreground :initform nil :initarg :foreground :accessor pane-foreground)
+   (background :initform +white+
+               :initarg :background
+               :accessor pane-background)
+   (text-style :initform nil :initarg :text-style :accessor pane-text-style)
+   (initargs :initform nil :reader sheet-with-resources-initargs)))
+  
+(defmethod initialize-instance :after 
+           ((sheet sheet-with-resources-mixin) &rest args)
   (with-slots (initargs) sheet
     (setf initargs args)))
 
 
 (defmethod get-sheet-resources ((port basic-port)
-				(sheet sheet-with-resources-mixin))
+                                (sheet sheet-with-resources-mixin))
   nil)
 
 (defmethod get-parent-initarg ((sheet basic-sheet) resource)
@@ -117,31 +129,31 @@
     (setq sheet (sheet-parent sheet))
     (when (typep sheet 'sheet-with-resources-mixin)
       (let ((r (getf (sheet-with-resources-initargs sheet) resource)))
-	(when r (return r))))))
+        (when r (return r))))))
 
 (defmethod note-sheet-grafted :before ((sheet sheet-with-resources-mixin))
   (let* ((port (port sheet))
-	 (palette (port-default-palette port))
-	 (initargs (sheet-with-resources-initargs sheet))
-	 (resources (get-sheet-resources port sheet)))
+         (palette (port-default-palette port))
+         (initargs (sheet-with-resources-initargs sheet))
+         (resources (get-sheet-resources port sheet)))
     (macrolet ((ensure-color (color)
-		 (let ((c '#:c))
-		   `(let ((,c ,color))
-		      (etypecase ,c
-			(color ,c)
-			(string (find-named-color ,c palette))
-			(integer (make-device-color palette ,c))))))
-	       (get-resource (resource default)
-		 `(or (getf initargs ,resource)
-		      (get-parent-initarg sheet ,resource)
-		      (getf resources ,resource)
-		      ,default)))
+                 (let ((c '#:c))
+                   `(let ((,c ,color))
+                      (etypecase ,c
+                        (color ,c)
+                        (string (find-named-color ,c palette))
+                        (integer (make-device-color palette ,c))))))
+               (get-resource (resource default)
+                 `(or (getf initargs ,resource)
+                      (get-parent-initarg sheet ,resource)
+                      (getf resources ,resource)
+                      ,default)))
       (with-slots (foreground background text-style) sheet
-	(setf foreground (ensure-color
-			  (get-resource :foreground *default-pane-foreground*))
-	      background (ensure-color
-			  (get-resource :background *default-pane-background*))
-	      text-style (get-resource :text-style *default-text-style*))))))
+        (setf foreground (ensure-color
+                          (get-resource :foreground *default-pane-foreground*))
+              background (ensure-color
+                          (get-resource :background *default-pane-background*))
+              text-style (get-resource :text-style *default-text-style*))))))
 
 (defmethod (setf pane-foreground) :after (ink (pane sheet-with-resources-mixin))
   (let ((m (sheet-direct-mirror pane)))
@@ -159,31 +171,31 @@
       (port-set-pane-text-style (port pane) pane m text-style))))
 
 (defmethod engraft-medium :after
-	   ((medium basic-medium) (port t) (sheet sheet-with-resources-mixin))
+           ((medium basic-medium) (port t) (sheet sheet-with-resources-mixin))
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
   (with-slots (foreground background
-	       text-style default-text-style merged-text-style-valid)
+               text-style default-text-style merged-text-style-valid)
       medium
     (setf foreground (pane-foreground sheet)
- 	  background (pane-background sheet)
-	  default-text-style (parse-text-style (pane-text-style sheet))
-	  text-style nil
-	  merged-text-style-valid nil)))
+           background (pane-background sheet)
+          default-text-style (parse-text-style (pane-text-style sheet))
+          text-style nil
+          merged-text-style-valid nil)))
 
 
 (defclass pane-repaint-background-mixin () ())
 
 (defmethod handle-repaint ((pane pane-repaint-background-mixin) region)
   (let ((clear (region-intersection
-		 region
-		 (or (pane-viewport-region pane)
-		     (sheet-region pane)))))
+                 region
+                 (or (pane-viewport-region pane)
+                     (sheet-region pane)))))
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium pane)
-	(with-bounding-rectangle* (left top right bottom) clear
-	  (medium-clear-area medium left top right bottom))))))
+        (with-bounding-rectangle* (left top right bottom) clear
+          (medium-clear-area medium left top right bottom))))))
 
 
 ;;; Line styles
@@ -192,72 +204,72 @@
 
 (defclass standard-line-style (line-style)
     ((unit :type (member :normal :point)
-	   :initform :normal :initarg :unit
-	   :reader line-style-unit)
+           :initform :normal :initarg :unit
+           :reader line-style-unit)
      (thickness :type real
-		:initform 1 :initarg :thickness
-		:reader line-style-thickness)
+                :initform 1 :initarg :thickness
+                :reader line-style-thickness)
      (joint-shape :type (member :miter :bevel :round :none)
-		  :initform :miter :initarg :joint-shape
-		  :reader line-style-joint-shape)
+                  :initform :miter :initarg :joint-shape
+                  :reader line-style-joint-shape)
      (cap-shape :type (member :butt :square :round :no-end-point)
-		:initform :butt :initarg :cap-shape
-		:reader line-style-cap-shape)
+                :initform :butt :initarg :cap-shape
+                :reader line-style-cap-shape)
      (dashes :initform nil :initarg :dashes
-	     :reader line-style-dashes)
+             :reader line-style-dashes)
      #+++ignore (initial-dash-phase :initform 0 :initarg :initial-dash-phase
-				    :reader line-style-initial-dash-phase)))
+                                    :reader line-style-initial-dash-phase)))
 
 (defmethod print-object ((line-style standard-line-style) stream)
   (print-unreadable-object (line-style stream :type t :identity t)
     (with-slots (unit thickness joint-shape cap-shape dashes) line-style
       (format stream "Units ~(~A~), thickness ~D, joint ~(~A~), cap ~(~A~), dashes ~S"
-	      unit thickness joint-shape cap-shape dashes))))
+              unit thickness joint-shape cap-shape dashes))))
 
 (defvar +default-line-style+ (make-instance 'standard-line-style))
 (defvar +dashed-line-styles+
-	(make-array 5 :initial-contents
-		        (list (make-instance 'standard-line-style :thickness 0 :dashes t)
-			      (make-instance 'standard-line-style :thickness 1 :dashes t)
-			      (make-instance 'standard-line-style :thickness 2 :dashes t)
-			      (make-instance 'standard-line-style :thickness 3 :dashes t)
-			      (make-instance 'standard-line-style :thickness 4 :dashes t))))
+        (make-array 5 :initial-contents
+                        (list (make-instance 'standard-line-style :thickness 0 :dashes t)
+                              (make-instance 'standard-line-style :thickness 1 :dashes t)
+                              (make-instance 'standard-line-style :thickness 2 :dashes t)
+                              (make-instance 'standard-line-style :thickness 3 :dashes t)
+                              (make-instance 'standard-line-style :thickness 4 :dashes t))))
 (defvar +undashed-line-styles+
-	(make-array 5 :initial-contents
-		        (list (make-instance 'standard-line-style :thickness 0 :dashes nil)
-			      (make-instance 'standard-line-style :thickness 1 :dashes nil)
-			      (make-instance 'standard-line-style :thickness 2 :dashes nil)
-			      (make-instance 'standard-line-style :thickness 3 :dashes nil)
-			      (make-instance 'standard-line-style :thickness 4 :dashes nil))))
+        (make-array 5 :initial-contents
+                        (list (make-instance 'standard-line-style :thickness 0 :dashes nil)
+                              (make-instance 'standard-line-style :thickness 1 :dashes nil)
+                              (make-instance 'standard-line-style :thickness 2 :dashes nil)
+                              (make-instance 'standard-line-style :thickness 3 :dashes nil)
+                              (make-instance 'standard-line-style :thickness 4 :dashes nil))))
 
 (defun-inline make-line-style-1 (unit thickness dashes joint-shape cap-shape)
   #+Genera (declare lt:(side-effects simple reducible))
   (if (and (eq unit :normal)
-	   (eq joint-shape :miter)
-	   (eq cap-shape :butt)
-	   (integerp thickness) (<= 0 thickness 4)
-	   (or (eq dashes t) (eq dashes nil)))
+           (eq joint-shape :miter)
+           (eq cap-shape :butt)
+           (integerp thickness) (<= 0 thickness 4)
+           (or (eq dashes t) (eq dashes nil)))
       ;; Cache the common case when only :DASHES and :THICKNESS are provided
       (svref (if dashes +dashed-line-styles+ +undashed-line-styles+) thickness)
       (make-instance 'standard-line-style
-	:unit unit :thickness thickness :dashes dashes
-	:joint-shape joint-shape :cap-shape cap-shape)))
+        :unit unit :thickness thickness :dashes dashes
+        :joint-shape joint-shape :cap-shape cap-shape)))
 
 (defun make-line-style (&key (unit :normal) (thickness 1) (dashes nil)
-			     (joint-shape :miter) (cap-shape :butt))
+                             (joint-shape :miter) (cap-shape :butt))
   #+Genera (declare lt:(side-effects simple reducible))
   (make-line-style-1 unit thickness dashes joint-shape cap-shape))
 
 (defvar +highlighting-line-style+ (make-line-style :thickness 1))
 
-(defmethod make-load-form ((line-style standard-line-style) &optional environment)
-  (declare (ignore environment))
+(defmethod make-load-form ((line-style standard-line-style) #-aclpc &optional #-aclpc environment)
+  #-aclpc (declare (ignore environment))
   (with-slots (unit thickness joint-shape cap-shape dashes) line-style
     `(make-line-style ,@(unless (eq unit :normal) `(:unit ,unit))
-		      ,@(unless (= thickness 1) `(:thickness ,thickness))
-		      ,@(unless (eq joint-shape :miter) `(:joint-shape ,joint-shape))
-		      ,@(unless (eq cap-shape :butt) `(:cap-shape ,cap-shape))
-		      ,@(unless (eq dashes nil) `(:dashes ,dashes)))))
+                      ,@(unless (= thickness 1) `(:thickness ,thickness))
+                      ,@(unless (eq joint-shape :miter) `(:joint-shape ,joint-shape))
+                      ,@(unless (eq cap-shape :butt) `(:cap-shape ,cap-shape))
+                      ,@(unless (eq dashes nil) `(:dashes ,dashes)))))
 
 
 (defmethod invoke-with-drawing-options ((sheet basic-sheet) continuation &rest options)
@@ -289,12 +301,12 @@
        ,medium #'with-medium-clipping-region-body ,region)))
 
 (defmethod invoke-with-medium-clipping-region
-	   ((medium basic-medium) continuation region)
+           ((medium basic-medium) continuation region)
   (let ((saved-region (medium-clipping-region medium)))
     (unwind-protect
-	(progn
-	  (setf (medium-clipping-region medium) region)
-	  (funcall continuation medium))
+        (progn
+          (setf (medium-clipping-region medium) region)
+          (funcall continuation medium))
       (setf (medium-clipping-region medium) saved-region))))
 
 (defmethod invalidate-cached-regions ((medium basic-medium)) nil)
@@ -303,61 +315,61 @@
 ;; NOTE: if you change the keyword arguments accepted by this method, you
 ;; also have to change the list of keywords in *ALL-DRAWING-OPTIONS*
 (defmethod invoke-with-drawing-options
-	   ((medium basic-medium) continuation
-	    &key ink clipping-region transformation
-		 line-style line-unit line-thickness (line-dashes nil dashes-p)
-		 line-joint-shape line-cap-shape
-		 (text-style nil text-style-p) (text-family nil text-family-p)
-		 (text-face nil text-face-p) (text-size nil text-size-p))
+           ((medium basic-medium) continuation
+            &key ink clipping-region transformation
+                 line-style line-unit line-thickness (line-dashes nil dashes-p)
+                 line-joint-shape line-cap-shape
+                 (text-style nil text-style-p) (text-family nil text-family-p)
+                 (text-face nil text-face-p) (text-size nil text-size-p))
   (with-accessors ((transformed-clipping-region medium-clipping-region)) medium
     (with-slots ((medium-ink ink)
-		 (medium-transformation transformation)
-		 (medium-line-style line-style)) medium
+                 (medium-transformation transformation)
+                 (medium-line-style line-style)) medium
       (let* ((saved-ink medium-ink)
-	     (saved-transformation medium-transformation)
-	     (saved-clipping-region transformed-clipping-region)
-	     (saved-line-style medium-line-style))
-	(unwind-protect
-	    (progn
-	      (when ink
-		(setf medium-ink ink))
-	      (when transformation
-		(setf medium-transformation
-		      (compose-transformations saved-transformation transformation)))
-	      (when clipping-region
-		(setf transformed-clipping-region
-		      (region-intersection saved-clipping-region
-					   (transform-region medium-transformation
-							     clipping-region))))
-	      (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
-		     (when (null line-style)
-		       (setf line-style saved-line-style))
-		     (setf medium-line-style
-			   (make-line-style-1
-			     (or line-unit (line-style-unit line-style))
-			     (or line-thickness (line-style-thickness line-style))
-			     (if dashes-p line-dashes (line-style-dashes line-style))
-			     (or line-joint-shape (line-style-joint-shape line-style))
-			     (or line-cap-shape (line-style-cap-shape line-style)))))
-		    (line-style
-		     (setf medium-line-style line-style)))
-	      (when (or text-family-p text-face-p text-size-p)
-		(if text-style-p
-		    (setq text-style (with-stack-list (style text-family text-face text-size)
-				       (merge-text-styles style text-style)))
-		    (setq text-style (make-text-style text-family text-face text-size)
-			  text-style-p t)))
-	      (if text-style-p
-		  (flet ((call-continuation (stream)
-			   (declare (ignore stream))
-			   (funcall continuation)))
-		    (declare (dynamic-extent #'call-continuation))
-		    (invoke-with-text-style medium #'call-continuation text-style medium))
-		  (funcall continuation)))
-	  (setf medium-line-style saved-line-style)
-	  (setf transformed-clipping-region saved-clipping-region)
-	  (setf medium-transformation saved-transformation)
-	  (setf medium-ink saved-ink))))))
+             (saved-transformation medium-transformation)
+             (saved-clipping-region transformed-clipping-region)
+             (saved-line-style medium-line-style))
+        (unwind-protect
+            (progn
+              (when ink
+                (setf medium-ink ink))
+              (when transformation
+                (setf medium-transformation
+                      (compose-transformations saved-transformation transformation)))
+              (when clipping-region
+                (setf transformed-clipping-region
+                      (region-intersection saved-clipping-region
+                                           (transform-region medium-transformation
+                                                             clipping-region))))
+              (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
+                     (when (null line-style)
+                       (setf line-style saved-line-style))
+                     (setf medium-line-style
+                           (make-line-style-1
+                             (or line-unit (line-style-unit line-style))
+                             (or line-thickness (line-style-thickness line-style))
+                             (if dashes-p line-dashes (line-style-dashes line-style))
+                             (or line-joint-shape (line-style-joint-shape line-style))
+                             (or line-cap-shape (line-style-cap-shape line-style)))))
+                    (line-style
+                     (setf medium-line-style line-style)))
+              (when (or text-family-p text-face-p text-size-p)
+                (if text-style-p
+                    (setq text-style (with-stack-list (style text-family text-face text-size)
+                                       (merge-text-styles style text-style)))
+                    (setq text-style (make-text-style text-family text-face text-size)
+                          text-style-p t)))
+              (if text-style-p
+                  (flet ((call-continuation (stream)
+                           (declare (ignore stream))
+                           (funcall continuation)))
+                    (declare (dynamic-extent #'call-continuation))
+                    (invoke-with-text-style medium #'call-continuation text-style medium))
+                  (funcall continuation)))
+          (setf medium-line-style saved-line-style)
+          (setf transformed-clipping-region saved-clipping-region)
+          (setf medium-transformation saved-transformation)
+          (setf medium-ink saved-ink))))))
 
 
 (defmethod allocate-medium (port sheet)
@@ -400,12 +412,12 @@
 
 (defmethod medium-merged-text-style ((medium basic-medium))
   (with-slots (text-style default-text-style
-	       merged-text-style merged-text-style-valid) medium
+               merged-text-style merged-text-style-valid) medium
     (if merged-text-style-valid
-	merged-text-style
-	(prog1
-	  (setf merged-text-style (merge-text-styles text-style default-text-style))
-	  (setf merged-text-style-valid t)))))
+        merged-text-style
+        (prog1
+          (setf merged-text-style (merge-text-styles text-style default-text-style))
+          (setf merged-text-style-valid t)))))
 
 
 (defmacro with-text-style ((medium style) &body body)
@@ -428,20 +440,20 @@
   ((medium medium) style continuation original-stream))
 
 (defmethod invoke-with-text-style ((medium basic-medium)
-				   continuation style original-stream)
+                                   continuation style original-stream)
   (if (or (null style) (eq style *null-text-style*))
       (funcall continuation original-stream)
       (letf-globally (((medium-merged-text-style-valid medium) nil)
-		      ((slot-value medium 'merged-text-style)
-		       (slot-value medium 'merged-text-style))
-		      ((medium-text-style medium)
-		       (merge-text-styles style (medium-text-style medium))))
-	(funcall continuation original-stream))))
+                      ((slot-value medium 'merged-text-style)
+                       (slot-value medium 'merged-text-style))
+                      ((medium-text-style medium)
+                       (merge-text-styles style (medium-text-style medium))))
+        (funcall continuation original-stream))))
 
 (defmethod invoke-with-text-style ((stream standard-encapsulating-stream)
-				   continuation style original-stream)
+                                   continuation style original-stream)
   (invoke-with-text-style (encapsulating-stream-stream stream)
-			  continuation style original-stream))
+                          continuation style original-stream))
 
 ;; Default method for string streams
 (defmethod invoke-with-text-style ((stream t) continuation style original-stream)
@@ -480,5 +492,5 @@
 
 ;; Generate the sheet->medium trampolines now
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
-		      `(sheet-medium ,standard-sheet-output-mixin))
+                      `(sheet-medium ,standard-sheet-output-mixin))
 

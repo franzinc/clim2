@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: laserwriter-metrics.lisp,v 1.3 93/03/31 10:39:15 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/laserwriter-metrics.lisp,v 1.5 1997/02/05 01:49:32 tomj Exp $
 
 (in-package :postscript-clim)
 

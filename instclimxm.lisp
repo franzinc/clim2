@@ -19,7 +19,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $fiHeader: instclimxm.lisp,v 1.10 1995/05/17 19:47:23 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/instclimxm.lisp,v 1.13 1997/02/05 01:42:22 tomj Exp $
 
 ;;
 ;; Load the Motif version of CLIM

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.14 1993/07/27 01:45:28 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/graphics-demos.lisp,v 1.16 1997/02/05 01:47:22 tomj Exp $
 
 (in-package :clim-demo)
 

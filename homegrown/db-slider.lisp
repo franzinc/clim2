@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.18 1993/07/27 01:50:34 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/homegrown/db-slider.lisp,v 1.2 1997/02/05 01:48:39 tomj Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 

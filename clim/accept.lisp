@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.25 1993/07/27 01:38:16 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/accept.lisp,v 1.27 1997/02/05 01:42:41 tomj Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.	 All rights reserved."
 
 (defun accept (type &rest accept-args
 	       &key (stream *standard-input*)
@@ -57,7 +57,7 @@
       ;; If the user wants a default, but provided none, go get it from the history
       (let ((history (if (typep history 'basic-history)
 			 history
-		         (presentation-type-history history))))
+			 (presentation-type-history history))))
 	(when history
 	  (let ((element (yank-from-history history)))
 	    (when element
@@ -83,7 +83,7 @@
   (setq view (decode-indirect-view type view (frame-manager stream)
 				   :query-identifier query-identifier))
 
-  ;; Call STREAM-ACCEPT to do the work.  It would be nice if we could
+  ;; Call STREAM-ACCEPT to do the work.	 It would be nice if we could
   ;; call PROMPT-FOR-ACCEPT to generate the real query-id here, but we
   ;; can't because we want to be able to decide exactly how it is called
   ;; on a case-by-case basis.  For example, within ACCEPTING-VALUES...
@@ -191,8 +191,8 @@
 					  :override delimiter-gestures-p)
 		  (handler-bind
 		      ((parse-error
-			 #'(lambda (error)
-			     (declare (ignore error))
+			 #'(lambda (anerror)
+			     (declare (ignore anerror))
 			     (when (and default-supplied-p
 					(check-for-default stream start-position
 							   default default-type
@@ -228,7 +228,7 @@
 				    (funcall-presentation-generic-function accept
 				      type stream view
 				      :default default :default-type default-type))
-			        (funcall-presentation-generic-function accept
+				(funcall-presentation-generic-function accept
 				  type stream view)))))))))
 
 	       ;; A presentation translator was invoked
@@ -246,11 +246,11 @@
 
     ;; The input has been parsed, moused, or defaulted.
     ;; If we are still inside a WITH-INPUT-EDITING at an outer level, leave the
-    ;; delimiter in the stream.  But if this was the top level of input, eat
+    ;; delimiter in the stream.	 But if this was the top level of input, eat
     ;; the activation gesture instead of leaving it in the stream. Don't eat
     ;; the activation gesture on streams that can't ever support input editing,
     ;; such as string streams.
-    ;;--- This is really lousy.  We need a coherent theory here.
+    ;;--- This is really lousy.	 We need a coherent theory here.
     (when activated
       (when (and (not (input-editing-stream-p stream))
 		 (stream-supports-input-editing stream))
@@ -346,8 +346,51 @@
 				      :override delimiter-gestures-p)
 	      (handler-bind 
 		  ((parse-error
-		     #'(lambda (error)
-			 (declare (ignore error))
+		     #'(lambda (anerror)
+			 (declare (ignore anerror))
+			 ;; This private version of CHECK-FOR-DEFAULT is
+			 ;; enough for string and string streams to do a
+			 ;; reasonable job, but it's not perfect.  Some
+			 ;; hairy presentation types may still not work.
+			 (flet ((check-for-default (stream)
+				  (loop
+				    (let ((char (read-char stream nil *end-of-file-marker*)))
+				      (when (or (not (characterp char))
+						(delimiter-gesture-p char)
+						(not (whitespace-char-p char)))
+					(unless (eq char *end-of-file-marker*)
+					  (unread-char char stream))
+					(when (and default-supplied-p
+						   (or (eq char *end-of-file-marker*)
+						       (activation-gesture-p char)
+						       (delimiter-gesture-p char)))
+					  (return-from check-for-default t))
+					(return-from check-for-default nil))))))
+			   (declare (dynamic-extent #'check-for-default))
+			   (when (check-for-default stream)
+			     (return-from accept-from-string
+			       (values default default-type index)))))))
+		(if default-supplied-p
+		    (funcall-presentation-generic-function accept
+		      type stream view
+		      :default default :default-type default-type)
+		    (funcall-presentation-generic-function accept
+							   type stream view))))))
+      #+aclpc ;; for some reason paul want to do this twice (error? :)
+	(with-input-from-string (stream string :start start :end end :index index)
+	  (with-activation-gestures ((if activation-gestures-p
+					 activation-gestures
+				       (or additional-activation-gestures
+					   *standard-activation-gestures*))
+				     :override activation-gestures-p)
+	    (with-delimiter-gestures ((if delimiter-gestures-p
+					  delimiter-gestures
+					additional-delimiter-gestures)
+				      :override delimiter-gestures-p)
+	      (handler-bind 
+		  ((parse-error
+		     #'(lambda (anerror)
+			 (declare (ignore anerror))
 			 ;; This private version of CHECK-FOR-DEFAULT is
 			 ;; enough for string and string streams to do a
 			 ;; reasonable job, but it's not perfect.  Some

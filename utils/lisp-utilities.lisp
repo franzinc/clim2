@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.32 1994/06/08 06:56:57 duane Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/lisp-utilities.lisp,v 1.35 1997/02/05 01:54:59 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -130,10 +130,19 @@
 			       `(the fixnum (values (ceiling ,x)))))
   #-(or use-float-coordinates use-fixnum-coordinates) `,x)
 
+#-(or aclpc acl86win32)
 (defconstant +largest-coordinate+
 	     #+use-float-coordinates (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0)
 	     #+use-fixnum-coordinates most-positive-fixnum
 	     #-(or use-float-coordinates use-fixnum-coordinates) most-positive-fixnum)
+
+#+(or aclpc acl86win32)
+(defconstant +largest-coordinate+
+  #+use-float-coordinates (float (* 3 (expt 10 (floor (log most-positive-fixnum 10)))) 0f0)
+  #+use-fixnum-coordinates (* 3 (expt 10 (floor (log most-positive-fixnum 10))))
+  #-(or use-float-coordinates use-fixnum-coordinates)
+  (* 3 (expt 10 (floor (log most-positive-fixnum 10)))))
+
 
 (defmacro integerize-single-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
@@ -264,10 +273,10 @@
 
 ;;; Make sure we don't get screwed by environments like Coral's that
 ;;; have *print-case* set to :downcase by default.
-#-ANSI-90
+#+(or (not ANSI-90) aclpc)
 (defvar *standard-io-environment-val-cache* nil)
 
-#-ANSI-90
+#+(or (not ANSI-90) aclpc)
 (defun standard-io-environment-vars-and-vals ()
   (unless *standard-io-environment-val-cache*
     (setq *standard-io-environment-val-cache*
@@ -292,15 +301,15 @@
     *standard-io-environment-val-cache*))
 
 (defmacro with-standard-io-environment (&body body)
-  #-ANSI-90
+  #+(or (not ANSI-90) aclpc)
   `(multiple-value-bind (vars vals)
        (standard-io-environment-vars-and-vals)
      (progv vars vals
        ,@body))
-  #+ANSI-90
+  #-(or (not ANSI-90) aclpc)
   `(with-standard-io-syntax ,@body))
 
-#-(or ANSI-90 Genera)
+#+(and (or (not ANSI-90) aclpc) (not Genera))
 (defmacro with-standard-io-syntax (&body body)
   `(with-standard-io-environment ,@body))
 
@@ -422,6 +431,7 @@
 ;  `(sys:letf* ,places-and-vals ,@body))
 ;
 ;#-Genera
+;;; can't hack return-from in macro for aclpc +++pr
 (defmacro letf-globally (places-and-vals &body body)
   ;; I don't want to use LETF-globally, mind you, but I can't easily implement
   ;; LETF{-not-globally} without something like sys:%bind-location.
@@ -429,8 +439,8 @@
   ;; A minor optimization: when you bind something to itself or don't
   ;;  say what to bind it to, it doesn't get SETF'd, since it isn't
   ;;  being changed.
-  (when (null places-and-vals)
-    (return-from letf-globally `(progn ,@body)))
+ (if (null places-and-vals)
+  `(progn ,@body)
   (let ((let-forms nil)
 	(set-forms nil)
 	(unwind-forms nil))
@@ -448,8 +458,7 @@
     `(let ,(nreverse let-forms)
        (unwind-protect
 	   (progn (setf ,@(nreverse set-forms)) ,@body)
-	 (setf ,@unwind-forms)))))		;Undo backwards.
-
+	 (setf ,@unwind-forms))))))		;Undo backwards.
 
 (defmacro letf-globally-if (condition places-and-vals &body body)
   #+Genera (declare (zwei:indentation 1 4 2 1))
@@ -480,7 +489,11 @@
 (eval-when (compile load eval)
   (proclaim '(declaration non-dynamic-extent)))
 
-#+(and ANSI-90 (not Allegro) (not Symbolics))
+#+aclpc
+(eval-when (compile load eval)
+  (proclaim '(declaration non-dynamic-extent ignorable)))
+
+#+(and ANSI-90 (not Allegro) (not aclpc) (not Symbolics))
 (define-declaration non-dynamic-extent (spec env)
   (let ((vars (rest spec))
         (result nil))
@@ -1046,6 +1059,11 @@
   #+Allegro `(excl::defcmacro ,name ,lambda-list ,@body)
   #-(or Genera Allegro) (progn name lambda-list body env nil))	;Suppress compiler warnings.
 
+#+aclpc
+(defmacro define-compiler-macro (name lambda-list &body body &environment env)
+  env
+  (progn name lambda-list body env nil))
+
 #+Genera
 ;;; Support (proclaim '(function ...)) and (proclaim '(ftype ...)).
 ;;; This is part of deleting spurious multiple-definition warnings about constructors.
@@ -1252,6 +1270,10 @@
 	 (intern (symbol-name (car spec)) *keyword-package*))
 	(t (caar spec))))
 
+
+#+aclpc
+(defun compile-file-environment-p (env) nil)
+
 ;;; This is needed because FIND-CLASS in the compile-file environment doesn't look
 ;;; also in the run-time environment, at least in Symbolics CLOS, which is pretty
 ;;; embarrassing when we can't find the class T.
@@ -1266,7 +1288,9 @@
 	          (or (find-class name nil environment)
 		      (find-class name errorp nil))
 	          (find-class name errorp)))
-  #-Allegro (if (compile-file-environment-p environment)
+  #+aclpc (find-class name errorp environment)
+  #-(or Allegro aclpc)
+          (if (compile-file-environment-p environment)
 	        (or (find-class name nil environment)
 		    (find-class name errorp nil))
 	        (find-class name errorp environment)))

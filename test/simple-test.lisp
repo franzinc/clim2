@@ -19,9 +19,9 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: simple-test.lisp,v 1.9 92/10/02 15:20:18 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/test/simple-test.lisp,v 1.12 1997/02/05 01:52:06 tomj Exp $
 
-
+#-acl86win32
 (defpackage :clim-user (:use :clim-silica))
 
 (in-package :clim-user)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.15 1993/10/25 16:15:39 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/view-defs.lisp,v 1.17 1997/02/05 01:45:20 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -44,24 +44,24 @@
     ((initargs :initform nil :reader view-gadget-initargs)))
 
 (defmethod initialize-instance :after ((view actual-gadget-view) 
-				       &rest initargs &key &allow-other-keys)
-  (declare (non-dynamic-extent initargs))
+                                       &rest initargs &key &allow-other-keys)
+  #-aclpc (declare (non-dynamic-extent initargs))
   (setf (slot-value view 'initargs) initargs))
 
 (defmacro define-gadget-view (name)
   (let ((class-name (fintern "~A-~A" name 'view))
-	(variable-name (fintern "+~A-~A+" name 'view)))
+        (variable-name (fintern "+~A-~A+" name 'view)))
     `(progn
        (defclass ,class-name 
-		 (;;--- It would be nice to include the gadget as part of
-		  ;;--- the view since that check for proper initargs.
-		  ;;--- But we lose on default initargs.  Since the order
-		  ;;--- of importance is "user specified", those that ACCEPT
-		  ;;--- wants to use and finally the default initargs, but
-		  ;;--- the user+default-initargs gets all mixed up
-		  #+++ignore ,name
-		  actual-gadget-view)
-	   ())
+                 (;;--- It would be nice to include the gadget as part of
+                  ;;--- the view since that check for proper initargs.
+                  ;;--- But we lose on default initargs.  Since the order
+                  ;;--- of importance is "user specified", those that ACCEPT
+                  ;;--- wants to use and finally the default initargs, but
+                  ;;--- the user+default-initargs gets all mixed up
+                  #+++ignore ,name
+                  actual-gadget-view)
+           ())
        (defvar ,variable-name (make-instance ',class-name))
        ',name)))
 
@@ -94,6 +94,6 @@
 
 (defmacro make-pane-from-view (class view ignore &body initargs)
   `(apply #'make-pane ,class
-	  (append (remove-keywords (view-gadget-initargs ,view) ,ignore)
-		  (list ,@initargs))))
+          (append (remove-keywords (view-gadget-initargs ,view) ,ignore)
+                  (list ,@initargs))))
 

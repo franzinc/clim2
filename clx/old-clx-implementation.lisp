@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: old-clx-implementation.lisp,v 1.6 92/08/18 17:24:30 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clx/old-clx-implementation.lisp,v 1.8 1997/02/05 01:46:39 tomj Exp $
 
 ;;--- (1) Why does the new CLX port flush WHITE- and BLACK-PIXEL?
 ;;--- (2) What to do about reparenting?

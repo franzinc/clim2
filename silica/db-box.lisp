@@ -1,11 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.26 1993/06/21 20:51:12 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-box.lisp,v 1.28 1997/02/05 01:50:40 tomj Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
- Portions copyright (c) 1989, 1990 Xerox Corp.  All rights reserved."
+ Portions copyright (c) 1989, 1990 Xerox Corp.	All rights reserved."
 
 
 ;;;
@@ -42,7 +42,13 @@
      keys)
   (with-slots (contents spacing) box-pane
     (if (null contents) 
+	#-(or aclpc acl86win32)
 	(make-space-requirement)
+	#+(or aclpc acl86win32)
+	(apply #'make-space-requirement
+		 (mapcan #'list
+			 keys 
+			 (list 20 20 20 20 20 20)))
       (let ((major 0)
 	    (major+ 0)
 	    (major- 0)
@@ -97,7 +103,10 @@
 	  (apply #'make-space-requirement
 		 (mapcan #'list
 			 keys 
-			 (list (+ extra major) (+ extra major+) (+ extra major-) minor minor+ minor-))))))))
+			 (list (+ extra major) 
+			       (+ extra major+) 
+			       (+ extra major-)
+			       minor minor+ minor-))))))))
 
 
 (defclass hbox-pane (box-pane) 
@@ -199,7 +208,7 @@
 ;;; 
 
 (defclass bulletin-board-pane (layout-pane) 
-  ((contents :initarg :contents  :initform nil)))
+  ((contents :initarg :contents	 :initform nil)))
 
 (defmethod handle-event :after ((pane bulletin-board-pane) (event pointer-motion-event))
   (deallocate-event event))

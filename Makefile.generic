@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.38 1997/01/29 22:15:10 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.39 1997/02/05 01:41:54 tomj Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -12,6 +12,7 @@ FORCE:
 
 compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
+	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
 	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
@@ -115,6 +116,7 @@ clim1compat.fasl: $(CLIM1COMPAT-FASLS)
 clim: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	-$(RM) -f $(CLIM)
 	(eval '$(SET_LIBRARY_PATH)' ; \
+	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
 	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
@@ -138,6 +140,7 @@ clim: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 
 train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
+	ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
 	  (load \"misc/train.lisp\") \
@@ -153,6 +156,7 @@ train: FORCE
 
 load-train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
+	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
 	    (logical-pathname-translations-database-pathnames)) \
@@ -171,25 +175,29 @@ load-train: FORCE
 	| $(CL) $(CLOPTS))
 
 generate_test_report: FORCE
+	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
-	| $(CLIM) $(CLOPTS)
+	| $(CLIM) $(CLOPTS))
 
 profile: FORCE
+	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(clim-user::run-profile-clim-tests)" \
-	| $(CLIM) $(CLOPTS)
+	| $(CLIM) $(CLOPTS))
 
 benchmark: FORCE
+	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(clim-test::benchmark-clim $(BENCHMARK_FILE))" \
-	| $(CLIM) $(CLOPTS)
+	| $(CLIM) $(CLOPTS))
 
 testps: FORCE
+	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output $(PSVIEW))" \
-	| $(CLIM) $(CLOPTS)
+	| $(CLIM) $(CLOPTS))
 
 # Misc
 

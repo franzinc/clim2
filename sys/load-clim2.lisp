@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: load-clim2.lisp,v 1.4 92/10/28 11:32:15 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/load-clim2.lisp,v 1.6 1997/02/05 01:51:44 tomj Exp $
  
 (defun flush-clim ()
   (when (find-package 'clim-defsys)

@@ -19,7 +19,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $fiHeader: instclimol.lisp,v 1.7 1993/07/27 01:37:41 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/Attic/instclimol.lisp,v 1.10 1997/02/05 01:42:20 tomj Exp $
 
 ;;
 ;; Load the OpenLook version of CLIM

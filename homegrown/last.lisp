@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader:$
+;; $Header: /repo/cvs.copy/clim2/homegrown/last.lisp,v 1.3 1997/02/05 01:48:43 tomj Exp $
 
 (in-package :silica)
 

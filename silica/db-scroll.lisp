@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.52 1994/12/05 00:00:14 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.54 1997/02/05 01:50:50 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -12,32 +12,32 @@
 ;; The abstract scroller pane class
 ;;--- Need to be able to specify horizontal and vertical separately
 (defclass scroller-pane (sheet-with-resources-mixin
-			 client-overridability-mixin
-			 pane)
+                         client-overridability-mixin
+                         pane)
     ((scroll-bars :initarg :scroll-bars
-		  :reader scroller-pane-scroll-bar-policy)
+                  :reader scroller-pane-scroll-bar-policy)
      (drag-scroll :initarg :drag-scroll
-		  :accessor scroller-pane-drag-scroll)
+                  :accessor scroller-pane-drag-scroll)
      viewport
      (contents :initarg :contents :accessor pane-contents)
      (vertical-scroll-bar :initform nil
-			  :accessor scroller-pane-vertical-scroll-bar)
+                          :accessor scroller-pane-vertical-scroll-bar)
      (horizontal-scroll-bar :initform nil
-			    :accessor scroller-pane-horizontal-scroll-bar)
+                            :accessor scroller-pane-horizontal-scroll-bar)
      (scrolling-supplied-by-gadget :initform nil
-				   :accessor
-				   scroller-pane-gadget-supplies-scrolling-p)
+                                   :accessor
+                                   scroller-pane-gadget-supplies-scrolling-p)
      (vertical-line-scroll-amount :initform nil
-				  :initarg
-				  :vertical-line-scroll-amount)
+                                  :initarg
+                                  :vertical-line-scroll-amount)
      (horizontal-line-scroll-amount :initform nil
-				    :initarg
-				    :horizontal-line-scroll-amount)
+                                    :initarg
+                                    :horizontal-line-scroll-amount)
      (vertical-page-scroll-amount :initform nil
-				  :initarg
-				  :vertical-page-scroll-amount)
+                                  :initarg
+                                  :vertical-page-scroll-amount)
      (horizontal-page-scroll-amount :initform nil
-				    :initarg :horizontal-page-scroll-amount))
+                                    :initarg :horizontal-page-scroll-amount))
     (:default-initargs :scroll-bars :both :drag-scroll t))
 
 ;; Returns the viewport of the pane, if there is one
@@ -45,15 +45,15 @@
   (let ((parent (sheet-parent sheet)))
     (when parent
       (and (viewportp parent)
-	   parent
-	   ;;--- should this really recurse?
-	   #+ignore
-	   (pane-viewport parent)))))
+           parent
+           ;;--- should this really recurse?
+           #+ignore
+           (pane-viewport parent)))))
 
 (defmethod pane-viewport-region ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
     (and viewport
-	 (viewport-viewport-region viewport))))
+         (viewport-viewport-region viewport))))
 
 (defmethod pane-scroller ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
@@ -79,10 +79,17 @@
 (defmacro inhibit-updating-scroll-bars ((stream) &body body)
   `(unwind-protect
        (let ((*inhibit-updating-scroll-bars* t))
-	 ,@body)
+         ,@body)
      (let ((viewport (pane-viewport ,stream)))
        (when viewport
-	 (update-scroll-bars viewport)))))
+         (update-scroll-bars viewport)))))
+
+#+(or aclpc acl86win32)
+(eval-when (compile load eval)
+   ;;mm: 11Jan95 - this is defined later in  ???
+   (unless (ignore-errors (find-class 'generic-scroller-pane))
+      (defclass generic-scroller-pane () ())))
+
 
 (defun update-scroll-bars (viewport)
   (unless *inhibit-updating-scroll-bars*
@@ -91,34 +98,54 @@
 
       #+ignore
       (multiple-value-bind (changedp
-			    hscroll-bar hscroll-bar-enabled-p
-			    vscroll-bar vscroll-bar-enabled-p)
-	  (compute-dynamic-scroll-bar-values scroller)
-	(update-dynamic-scroll-bars
-	  scroller changedp
-	  hscroll-bar hscroll-bar-enabled-p
-	  vscroll-bar vscroll-bar-enabled-p t))
+                            hscroll-bar hscroll-bar-enabled-p
+                            vscroll-bar vscroll-bar-enabled-p)
+          (compute-dynamic-scroll-bar-values scroller)
+        (update-dynamic-scroll-bars
+          scroller changedp
+          hscroll-bar hscroll-bar-enabled-p
+          vscroll-bar vscroll-bar-enabled-p t))
 
       (with-bounding-rectangle* (left top right bottom)
-	  (viewport-contents-extent viewport)
-	(with-bounding-rectangle* (vleft vtop vright vbottom)
-	    (viewport-viewport-region viewport)
-	  (minf left vleft)
-	  (minf top vtop)
-	  (maxf right vright)
-	  (maxf bottom vbottom)
-	  (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
-		 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
-	    (when vertical-scroll-bar
-	      (update-scroll-bar vertical-scroll-bar
-				 top bottom
-				 vtop vbottom
-				 :vertical))
-	    (when horizontal-scroll-bar
-	      (update-scroll-bar horizontal-scroll-bar
-				 left right
-				 vleft vright
-				 :horizontal))))))))
+          (viewport-contents-extent viewport)
+        (with-bounding-rectangle* (vleft vtop vright vbottom)
+            (viewport-viewport-region viewport)
+          (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
+                 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
+            (if #+(or aclpc acl86win32) (typep scroller 'silica::generic-scroller-pane)
+                #-(or aclpc acl86win32) t
+                (progn
+                  (minf left vleft)
+                  (minf top vtop)
+                  (maxf right vright)
+                  (maxf bottom vbottom)
+                  (when vertical-scroll-bar
+                    (update-scroll-bar vertical-scroll-bar
+                                       top bottom 
+                                       vtop vbottom
+                                       :vertical))
+                  (when horizontal-scroll-bar
+                    (update-scroll-bar horizontal-scroll-bar
+                                       left right 
+                                       vleft vright
+                                       :horizontal)))
+                #+(or aclpc acl86win32)
+                (progn
+                  (when vertical-scroll-bar
+                    (update-mswin-sbar vertical-scroll-bar
+                                       top bottom 
+                                       vtop vbottom
+                                       :vertical))
+                  (when horizontal-scroll-bar
+                    (update-mswin-sbar horizontal-scroll-bar
+                                       left right 
+                                       vleft vright
+                                       :horizontal)))
+              )))))))
+
+#+(or aclpc acl86win32)
+(defmethod note-sheet-grafted :before ((sheet scroll-bar))
+  (setf (scroll-bar-current-size sheet) nil))
 
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
@@ -131,95 +158,97 @@
   (maxf max vmax)
   (minf min vmin)
   (let ((current-size (scroll-bar-size scroll-bar))
-	(current-value (gadget-value scroll-bar)))
+        (current-value (gadget-value scroll-bar)))
     ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
     ;; before, and the viewport is bigger than the extent, don't bother with
     ;; the fancy math.
     (let ((range (float (gadget-range scroll-bar) 0s0)))
       (declare (type single-float range))
       (when (and (and current-size (= (the single-float current-size) range))
-		 (> (- vmax vmin) (- max min)))
-	(return-from update-scroll-bar))
+                 (> (- vmax vmin) (- max min)))
+        (return-from update-scroll-bar))
       ;; The elevator size in 01 units - calculated from the contents
       (let* ((contents-range (float (- max min) 0.0s0))
-	     (viewport-range (float (- vmax vmin) 0.0s0))
-	     (size (the single-float
-		     (* range
-			(the single-float
-			  (if (= max min)
-			      1.0
-			    (min 1.0 (the single-float
-				       (/ viewport-range contents-range))))))))
-	     (pos (the single-float
-		    (* range
-		       (min 1.0s0 (max 0.0s0
-				       (if (<= contents-range viewport-range)
-					   0.0
-					 (/ (float (- vmin min) 0.0s0)
-					    contents-range))))))))
-	(declare (type single-float pos size))
-	(unless (and current-size
-		     current-value
-		     (= current-size size)
-		     (= current-value pos))
-	  ;;-- It would be nice if we could do this at the point of scrolling
-	  (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client)
-						  orientation
-						  nil))
-		 (page-scroll (page-scroll-amount (slot-value scroll-bar 'client)
-						  orientation
-						  nil)))
-	    (change-scroll-bar-values scroll-bar
-				      :slider-size size
-				      :value pos
-				      :line-increment (if (zerop contents-range)
-							  0 ;-- Who knows
-							(* range (/ line-scroll
-								    contents-range)))
-				      :page-increment (if (> page-scroll 1)
-							  (if (zerop contents-range)
-							      0 ;-- Who knows
-							    (* range (/ page-scroll
-									contents-range)))
-							(* size page-scroll)))))))))
+             (viewport-range (float (- vmax vmin) 0.0s0))
+             (size (the single-float
+                     (* range
+                        (the single-float
+                          (if (= max min)
+                              1.0
+                            (min 1.0 (the single-float
+                                       (/ viewport-range contents-range))))))))
+             (pos (the single-float
+                    (* range
+                       (min 1.0s0 (max 0.0s0
+                                       (if (<= contents-range viewport-range)
+                                           0.0
+                                         (/ (float (- vmin min) 0.0s0)
+                                            contents-range))))))))
+        (declare (type single-float pos size))
+        (unless (and current-size
+                     current-value
+                     (= current-size size)
+                     (= current-value pos))
+          #+(or aclpc acl86win32) (setf (scroll-bar-current-value scroll-bar) pos)   ;;mm: ???
+          #+(or aclpc acl86win32) (setf (scroll-bar-current-size scroll-bar) size)   ;;mm: ???
+          ;;-- It would be nice if we could do this at the point of scrolling
+          (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client)
+                                                  orientation
+                                                  nil))
+                 (page-scroll (page-scroll-amount (slot-value scroll-bar 'client)
+                                                  orientation
+                                                  nil)))
+            (change-scroll-bar-values scroll-bar
+                                      :slider-size size
+                                      :value pos
+                                      :line-increment (if (zerop contents-range)
+                                                          0 ;-- Who knows
+                                                        (* range (/ line-scroll
+                                                                    contents-range)))
+                                      :page-increment (if (> page-scroll 1)
+                                                          (if (zerop contents-range)
+                                                              0 ;-- Who knows
+                                                            (* range (/ page-scroll
+                                                                        contents-range)))
+                                                        (* size page-scroll)))))))))
 
-(defmethod value-changed-callback
+(defmethod value-changed-callback 
     ((sheet scroll-bar) (client scroller-pane) id value)
   (scroll-bar-value-changed-callback sheet client id value
-				     (scroll-bar-size sheet)))
+                                     (scroll-bar-size sheet)))
 
 (defmethod drag-callback
     ((sheet scroll-bar) (client scroller-pane) id value)
   (when (scroller-pane-drag-scroll client)
       (scroll-bar-value-changed-callback sheet client id value
-				     (scroll-bar-size sheet))))
+                                     (scroll-bar-size sheet))))
 
 (defmethod scroll-bar-value-changed-callback
-	   (sheet (client scroller-pane) id value size)
+           (sheet (client scroller-pane) id value size)
   (with-slots (viewport contents) client
     (let* ((extent (viewport-contents-extent viewport))
-	   (region (viewport-viewport-region viewport)))
+           (region (viewport-viewport-region viewport)))
       (case id
-	(:vertical
-	  (scroll-extent
-	    contents
-	     (bounding-rectangle-min-x region)
-	     (+ (bounding-rectangle-min-y extent)
-		  (* (bounding-rectangle-height extent)
-		     (if (= size (gadget-range sheet))
-			 0
-			 (/ (- value (gadget-min-value sheet))
-			    (gadget-range sheet)))))))
-	(:horizontal
-	  (scroll-extent
-	    contents
-	    (+ (bounding-rectangle-min-x extent)
-		  (* (bounding-rectangle-width extent)
-		     (if (= size (gadget-range sheet))
-			 0
-			 (/ (- value (gadget-min-value sheet))
-			    (gadget-range sheet)))))
-	    (bounding-rectangle-min-y region))))
+        (:vertical
+          (scroll-extent
+            contents
+             (bounding-rectangle-min-x region)
+             (+ (bounding-rectangle-min-y extent)
+                  (* (bounding-rectangle-height extent)
+                     (if (= size (gadget-range sheet))
+                         0
+                         (/ (- value (gadget-min-value sheet))
+                            (gadget-range sheet)))))))
+        (:horizontal
+          (scroll-extent
+            contents
+            (+ (bounding-rectangle-min-x extent)
+                  (* (bounding-rectangle-width extent)
+                     (if (= size (gadget-range sheet))
+                         0
+                         (/ (- value (gadget-min-value sheet))
+                            (gadget-range sheet)))))
+            (bounding-rectangle-min-y region))))
       ;;-- Yuck
       (clim-internals::maybe-redraw-input-editor-stream
        contents (pane-viewport-region contents)))))
@@ -237,51 +266,51 @@
   (let ((viewport (pane-viewport sheet)))
     (when viewport
       (with-bounding-rectangle* (left top right bottom)
-	  (pane-viewport-region sheet)
-	;; Optimize this case, since the rest of this code can be
-	;; quite expensive, especially on servers that require COPY-AREA
-	;; to be synchronous
- 	(unless (and (= x left) (= y top))
-	  ;;--- This should actually bash the sheet-transformation
-	  (setf (sheet-transformation sheet)
-	    (make-translation-transformation (- x) (- y)))
-	  (bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
-	  (with-bounding-rectangle* (nleft ntop nright nbottom)
-	      (pane-viewport-region sheet)
-	    ;; If we are scrolling programatically then this might
-	    ;; reveal more of the sheet than currently exists
-	    (update-region sheet nleft ntop nright nbottom)
-	    ;; Must go after bounding-rectangle-set-position
-	    (update-scroll-bars viewport)
-	    (if (ltrb-overlaps-ltrb-p left top right bottom nleft ntop nright nbottom)
-		(progn
-		  ;; Move the old stuff to the new position
-		  (window-shift-visible-region sheet
-					       left top right bottom
-					       nleft ntop nright nbottom)
-		  (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-						     left top right bottom)))
-		    (with-sheet-medium (medium sheet)
-		      (dolist (region rectangles)
-			(with-medium-clipping-region (medium region)
-			  (multiple-value-call #'medium-clear-area
-			    medium (bounding-rectangle* region))
-			  (if (output-recording-stream-p sheet)
-			      (replay (stream-output-history sheet) sheet region)
-			    (repaint-sheet sheet region)))))))
-	      (let ((region (viewport-viewport-region viewport)))
-		;;--- We should make the sheet-region bigger at this point.
-		;;--- Perhaps we do a union of the sheet-region and the viewport.
-		(with-sheet-medium (medium sheet)
-		  (multiple-value-call #'medium-clear-area
-		    medium (bounding-rectangle* region)))
-		(if (output-recording-stream-p sheet)
-		    (replay (stream-output-history sheet) sheet
-			    region)
-		  (repaint-sheet sheet region)))))
-	  (let ((frame (pane-frame sheet)))
-	    (when frame
-	      (note-viewport-position-changed frame sheet x y))))))))
+          (pane-viewport-region sheet)
+        ;; Optimize this case, since the rest of this code can be
+        ;; quite expensive, especially on servers that require COPY-AREA
+        ;; to be synchronous
+         (unless (and (= x left) (= y top))
+          ;;--- This should actually bash the sheet-transformation
+          (setf (sheet-transformation sheet)
+            (make-translation-transformation (- x) (- y)))
+          (bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
+          (with-bounding-rectangle* (nleft ntop nright nbottom)
+              (pane-viewport-region sheet)
+            ;; If we are scrolling programatically then this might
+            ;; reveal more of the sheet than currently exists
+            (update-region sheet nleft ntop nright nbottom)
+            ;; Must go after bounding-rectangle-set-position
+            (update-scroll-bars viewport)
+            (if (ltrb-overlaps-ltrb-p left top right bottom nleft ntop nright nbottom)
+                (progn
+                  ;; Move the old stuff to the new position
+                  (window-shift-visible-region sheet
+                                               left top right bottom
+                                               nleft ntop nright nbottom)
+                  (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+                                                     left top right bottom)))
+                    (with-sheet-medium (medium sheet)
+                      (dolist (region rectangles)
+                        (with-medium-clipping-region (medium region)
+                          (multiple-value-call #'medium-clear-area
+                            medium (bounding-rectangle* region))
+                          (if (output-recording-stream-p sheet)
+                              (replay (stream-output-history sheet) sheet region)
+                            (repaint-sheet sheet region)))))))
+              (let ((region (viewport-viewport-region viewport)))
+                ;;--- We should make the sheet-region bigger at this point.
+                ;;--- Perhaps we do a union of the sheet-region and the viewport.
+                (with-sheet-medium (medium sheet)
+                  (multiple-value-call #'medium-clear-area
+                    medium (bounding-rectangle* region)))
+                (if (output-recording-stream-p sheet)
+                    (replay (stream-output-history sheet) sheet
+                            region)
+                  (repaint-sheet sheet region)))))
+          (let ((frame (pane-frame sheet)))
+            (when frame
+              (note-viewport-position-changed frame sheet x y))))))))
 
 (defmethod note-viewport-position-changed (frame pane x y)
   (declare (ignore frame pane x y))
@@ -292,9 +321,9 @@
 (defun compute-symmetric-value (min1 max1 value1 min2 max2)
   (declare (values value2))
   (let* ((distance1 (- max1 min1))
-	 (fraction1 (if (zerop distance1)
-			0
-		      (/ (- value1 min1) distance1))))
+         (fraction1 (if (zerop distance1)
+                        0
+                      (/ (- value1 min1) distance1))))
     (let ((x (+ min2 (* (- max2 min2) fraction1))))
       (if (integerp x) x (float x)))))
 
@@ -304,10 +333,10 @@
   ;; check with SWM for the MAKE-PANE protocol for these. Davo 6/30/92
   ;; Is this right?? - cer
   (or (with-slots (vertical-line-scroll-amount
-		   horizontal-line-scroll-amount) pane
-	(ecase orientation
-	  (:horizontal horizontal-line-scroll-amount)
-	  (:vertical vertical-line-scroll-amount)))
+                   horizontal-line-scroll-amount) pane
+        (ecase orientation
+          (:horizontal horizontal-line-scroll-amount)
+          (:vertical vertical-line-scroll-amount)))
       (scrolled-pane-line-scroll-amount
        (pane-contents pane)
        orientation
@@ -315,21 +344,21 @@
 
 
 (defmethod scrolled-pane-line-scroll-amount ((pane sheet)
-					     orientation
-					     direction)
+                                             orientation
+                                             direction)
   (declare (ignore direction))
   (let ((r (pane-viewport-region pane)))
     (/ (ecase orientation
-	 (:vertical (bounding-rectangle-height r))
-	 (:horizontal (bounding-rectangle-width r)))
+         (:vertical (bounding-rectangle-height r))
+         (:horizontal (bounding-rectangle-width r)))
        10)))
 
 
 (defmethod page-scroll-amount ((pane scroller-pane) orientation direction)
   (declare (ignore direction))
   (or (with-slots (vertical-page-scroll-amount
-		   horizontal-page-scroll-amount) pane
-	(ecase orientation
-	  (:horizontal horizontal-page-scroll-amount)
-	  (:vertical vertical-page-scroll-amount)))
+                   horizontal-page-scroll-amount) pane
+        (ecase orientation
+          (:horizontal horizontal-page-scroll-amount)
+          (:vertical vertical-page-scroll-amount)))
       0.9))

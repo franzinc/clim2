@@ -1,4 +1,3 @@
-
 (in-package :clim-test)
 
 (defvar *catch-errors-in-tests* t)
@@ -97,7 +96,7 @@
 (defun wait-for-clim-input-state (invocation &optional (timeout *default-input-state-timeout*))
   (let ((process (invocation-process invocation)))
     (let ((port (port (invocation-frame invocation))))
-      (when port (xm-silica::port-finish-output port)))
+      (when port #-acl86win32 (xm-silica::port-finish-output port)))
     (mp:process-allow-schedule)
     (flet ((input-state-p (process)
 	     (or (not (mp::process-stack-group process))
@@ -256,53 +255,53 @@
 
 
 (defun exercise-frame (test-name 
-		       class 
-		       initargs 
-		       command-continuation 
-		       exit-command 
-		       &key (error *catch-errors-in-tests*)
-			    (invocation-class 'frame-invocation))
+						class 
+						initargs 
+						command-continuation 
+						exit-command 
+						&key (#+acl86win32 anerror #-acl86win32 error *catch-errors-in-tests*)
+						(invocation-class 'frame-invocation))
   (flet ((doit ()
-	   (let ((invocation (make-instance invocation-class :class class :initargs initargs)))
-	     (let ((*invocation* invocation))
-	       (unwind-protect
-		   (etypecase command-continuation
-		       (null (sleep 5))
-		       (list
-			(execute-commands-in-invocation 
-			 invocation command-continuation))
-		       (function (funcall command-continuation)))
-		 (unwind-protect
-		     (terminate-invocation invocation exit-command)
-		   (mp::process-kill (invocation-process invocation))
-		   (unless (wait-for-death (invocation-process invocation))
-		     (warn "Process would not die when killed")))
-		 (destroy-invocation invocation))))))
-    (if error
-	(with-test-success-expected (test-name)
-	  (doit))
-      (doit))
-    
-    #+ignore
-    (progn
-      (format t "Port mapping ~S~%" (silica::port-mirror->sheet-table (clim:find-port)))
-    
-      #+verbose
-      (maphash #'(lambda  (x y) 
-		   (print y))
-	       (silica::port-mirror->sheet-table (clim:find-port)))
-    
-      (format t "Port framem ~S~%" (find-frame-manager :port (clim:find-port)))
-      (format t "Port framem frames ~S~%" (frame-manager-frames
-					   (find-frame-manager :port (clim:find-port))))
-    
-      (format t " Address mapping ~S~%" tk::*address->object-mapping*)
-    
-      #+verbose
-      (maphash #'(lambda  (x y) (print y))
-	       tk::*address->object-mapping*))
-    
-    ))
+			   (let ((invocation (make-instance invocation-class :class class :initargs initargs)))
+				 (let ((*invocation* invocation))
+				   (unwind-protect
+					 (etypecase command-continuation
+					   (null (sleep 5))
+					   (list
+						 (execute-commands-in-invocation 
+						   invocation command-continuation))
+					   (function (funcall command-continuation)))
+					 (unwind-protect
+					   (terminate-invocation invocation exit-command)
+					   (mp::process-kill (invocation-process invocation))
+					   (unless (wait-for-death (invocation-process invocation))
+						 (warn "Process would not die when killed")))
+					 (destroy-invocation invocation))))))
+	(if #+acl86win32 anerror #-acl86win32 error
+		(with-test-success-expected (test-name)
+		  (doit))
+		(doit))
+	
+	#+ignore
+	(progn
+	  (format t "Port mapping ~S~%" (silica::port-mirror->sheet-table (clim:find-port)))
+	  
+	  #+verbose
+	  (maphash #'(lambda  (x y) 
+				   (print y))
+			   (silica::port-mirror->sheet-table (clim:find-port)))
+	  
+	  (format t "Port framem ~S~%" (find-frame-manager :port (clim:find-port)))
+	  (format t "Port framem frames ~S~%" (frame-manager-frames
+											(find-frame-manager :port (clim:find-port))))
+	  
+	  (format t " Address mapping ~S~%" tk::*address->object-mapping*)
+	  
+	  #+verbose
+	  (maphash #'(lambda  (x y) (print y))
+			   tk::*address->object-mapping*))
+	
+	))
 
 
 
@@ -430,7 +429,7 @@
 
 (defun warp-the-pointer (sheet x y)
   (multiple-value-setq (x y) (transform-position (sheet-device-transformation sheet) x y))
-  (tk-silica::port-set-pointer-position-1 (port sheet) sheet x y))
+  #-acl86win32 (tk-silica::port-set-pointer-position-1 (port sheet) sheet x y))
 
 (define-condition cannot-find-presentation-error (simple-error) ())
 
@@ -685,14 +684,14 @@
 		 (declare (ignore second minute hour))
 		 (format nil "notes/times/~D.~D.~D.n" month date year)))))
 
-(defun test-it (&optional (pathname "/dev/null") (errorp *catch-errors-in-tests*))
+(defun test-it (&optional (pathname #-acl86win32 "/dev/null" #+acl86win32 "null") (errorp *catch-errors-in-tests*))
   (exercise-frame 'test-it
 		  'clim-user::clim-tests
 		  '(:width 600 :height 400 :left 0 :top 0)
 		  `(((clim-user::run-benchmarks 
 		      :pathname ,pathname) :timeout 1800))
 		  `(clim-user::exit-clim-tests)
-		  :error errorp))
+		  #+acl86win32 :anerror #-acl86win32 :error errorp))
 
 (defun fill-in-partial-command-1 (command-name command-table stream
 				  partial-command accept-function send-it)
@@ -958,7 +957,7 @@
     (funcall continuation)))
 
 (define-test-step press-push-button (button)
-  (xm-silica::queue-active-event nil nil button))
+  #-acl86win32 (xm-silica::queue-active-event nil nil button))
 
 (defmacro with-waiting ((&key timeout) &body clauses)
   (let ((i 0)
@@ -994,7 +993,7 @@
 (locally (declare (special si::*clos-preload-packages*))
   (setq si::*clos-preload-packages* 
     (mapcar #'find-package
-	    '(:clim :clim-utils :clim-internals :silica :tk :xm-silica))))
+	    '(:clim :clim-utils :clim-internals :silica :tk #-acl86win32 :xm-silica))))
 
 ;; This stops warnings happening asynchronously and causing confusion.
 

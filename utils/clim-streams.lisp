@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.10 1993/09/17 19:07:30 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/clim-streams.lisp,v 1.12 1997/02/05 01:54:37 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -16,9 +16,9 @@
 ;; What about the delegation ("multiple self", "xstream") problem?
 ;; See *ORIGINAL-STREAM* for some more information.
 (defclass standard-encapsulating-stream
-	  (encapsulating-stream)
+          (encapsulating-stream)
     ((stream :initarg :stream
-	     :reader encapsulating-stream-stream))
+             :reader encapsulating-stream-stream))
   #+Allegro (:default-initargs :element-type 'character))
 
 ;; Return the encapsulated stream corresponding to STREAM.
@@ -29,7 +29,7 @@
     ((encapsulator standard-encapsulating-stream) stream)
   (let ((encapsulated-stream (encapsulating-stream-stream encapsulator)))
     (or (eq encapsulated-stream stream)
-	(stream-encapsulates-stream-p encapsulated-stream stream))))
+        (stream-encapsulates-stream-p encapsulated-stream stream))))
 
 (defmethod stream-encapsulates-stream-p ((stream1 stream) (stream2 stream))
   nil)
@@ -37,7 +37,7 @@
 (defun encapsulating-stream (stream)
   (declare (special *original-stream*)) ;;-- fwd reference
   (if (and *original-stream*
-	   (stream-encapsulates-stream-p *original-stream* stream))
+           (stream-encapsulates-stream-p *original-stream* stream))
       *original-stream*
     stream))
 
@@ -47,7 +47,13 @@
 (defgeneric interactive-stream-p (stream))
 
 (defmethod interactive-stream-p ((stream t))
-  (lisp:interactive-stream-p stream))
+  #+Genera (future-common-lisp:interactive-stream-p stream)
+  #+Lucid (lucid::interactive-input-stream-p stream)
+  #+Cloe-Runtime nil			;--- this can't be right --Hornig
+  #+aclpc t  ; +++pr just for now, we will need to define something
+  #+acl86win32 t  ; +++pr just for now, we will need to define something
+  #-(or aclpc acl86win32 Genera Lucid Cloe-Runtime) (lisp:interactive-stream-p stream))
 
 (defmethod interactive-stream-p ((stream standard-encapsulating-stream))
   (interactive-stream-p (encapsulating-stream-stream stream)))
+

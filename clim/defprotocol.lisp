@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defprotocol.lisp,v 1.6 92/11/06 18:59:24 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/defprotocol.lisp,v 1.8 1997/02/05 01:43:16 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -12,11 +12,11 @@
   `(progn
      (defprotocol ,name nil)
      (defrole ,name () ,(map 'list #'(lambda (accessor-name)
-				       (list accessor-name :accessor accessor-name))
-			     accessors))
+                                       (list accessor-name :accessor accessor-name))
+                             accessors))
      ,@(map 'list #'(lambda (accessor-name)
-		      `(defgeneric ,accessor-name (stream)))
-	    accessors)
+                      `(defgeneric ,accessor-name (stream)))
+            accessors)
      (pushnew ',name *stream-protocols*)))
 
 ;; CLIM is not in the business of defining every which kind of stream,
@@ -35,12 +35,12 @@
 
 (defmacro define-stream-protocol-class (class-name superclass-names)
   (let ((predicate-name (if (find #\- (string class-name))
-			    (fintern "~A-~A" class-name 'p)
-			    (fintern "~A~A" class-name 'p))))
+                            (fintern "~A-~A" class-name 'p)
+                            (fintern "~A~A" class-name 'p))))
     `(progn
        (define-protocol-class ,class-name ,superclass-names)
        (defmethod ,predicate-name ((stream standard-encapsulating-stream))
-	 (,predicate-name (slot-value stream 'stream))))))
+         (,predicate-name (slot-value stream 'stream))))))
 
 ;; This gets bound to the outermost stream when using "encapsulating" streams.
 ;; We side-step the general delegation ("multiple self") problem in a kludgy way:
@@ -69,12 +69,12 @@
 (defmacro generate-stream-protocol-trampolines ()
   `(progn
      ,@(writing-clauses
-	 (dolist (protocol *stream-protocols*)
-	   (clause `(generate-trampolines
-		      ,protocol ,protocol
-		      standard-encapsulating-stream
-		      `(slot-value ,standard-encapsulating-stream 'stream)
-		      *original-stream*))))))
+         (dolist (protocol *stream-protocols*)
+           (clause `(generate-trampolines
+                      ,protocol ,protocol
+                      standard-encapsulating-stream
+                      `(slot-value ,standard-encapsulating-stream 'stream)
+                      *original-stream*))))))
 
 #||
 ;;; For example:

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.22 1993/07/27 01:39:37 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/gestures.lisp,v 1.24 1997/02/05 01:43:37 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -35,11 +35,11 @@
 (defun make-modifier-state (&rest modifiers)
   (declare (dynamic-extent modifiers))
   (assert (every #'(lambda (x) (find x *modifier-keys*)) modifiers) (modifiers)
-	  "~S is not a subset of ~S" modifiers '(:shift :control :meta :super :hyper))
+          "~S is not a subset of ~S" modifiers '(:shift :control :meta :super :hyper))
   (let ((state 0))
     (dolist (name modifiers)
       (let ((bit (modifier-key-index name)))
-	(setf state (dpb 1 (byte 1 bit) state))))
+        (setf state (dpb 1 (byte 1 bit) state))))
     state))
 
 (define-compiler-macro make-modifier-state (&whole form &rest modifiers)
@@ -47,19 +47,19 @@
       (apply #'make-modifier-state modifiers)
       form))
 
-)	;eval-when
+)        ;eval-when
 
 ;; A table indexed by mouse button and modifier state [now (3 x 32)].
 ;; Each bucket in the table contains a sequence of gesture names.
 (defvar *button-and-modifier-key->gesture*
-	(make-array `(,(length *pointer-buttons*)
-		      ,(ash 1 (length *modifier-keys*)))
-		    :initial-element nil))
+        (make-array `(,(length *pointer-buttons*)
+                      ,(ash 1 (length *modifier-keys*)))
+                    :initial-element nil))
 
 ;; A table indexed by the modifier state.
 ;; Each bucket in the table contains an alist of a keysym and 1 or more gesture names.
 (defvar *keysym-and-modifier-key->gesture*
-	(make-array (ash 1 (length *modifier-keys*)) :initial-element nil))
+        (make-array (ash 1 (length *modifier-keys*)) :initial-element nil))
 
 ;; BUTTON is a button number (0, 1, or 2), and MODIFIER-STATE is a mask
 (defun-inline button-and-modifier-state-gesture-names (button modifier-state)
@@ -69,28 +69,28 @@
 ;; BUTTON is a button number (0, 1, or 2), and MODIFIER-STATE is a mask
 (defun-inline set-button-and-modifier-state-gesture-names (button modifier-state new-gestures)
   (setf (aref *button-and-modifier-key->gesture* button modifier-state)
-	new-gestures))
+        new-gestures))
 
 (defsetf button-and-modifier-state-gesture-names set-button-and-modifier-state-gesture-names)
 
 (defmacro do-button-and-modifier-state ((button-var modifier-var bucket-var) &body body)
   (let ((n-buttons '#:n-buttons)
-	(n-masks '#:n-masks))
+        (n-masks '#:n-masks))
     `(let ((,n-buttons (array-dimension *button-and-modifier-key->gesture* 0))
-	   (,n-masks (array-dimension *button-and-modifier-key->gesture* 1)))
+           (,n-masks (array-dimension *button-and-modifier-key->gesture* 1)))
        (dotimes (,button-var ,n-buttons)
-	 (dotimes (,modifier-var ,n-masks)
-	   (let ((,bucket-var
-		  (aref *button-and-modifier-key->gesture* ,button-var ,modifier-var)))
-	     ,@body))))))
+         (dotimes (,modifier-var ,n-masks)
+           (let ((,bucket-var
+                  (aref *button-and-modifier-key->gesture* ,button-var ,modifier-var)))
+             ,@body))))))
 
 (defun gesture-name-button-and-modifiers (gesture-name)
   (declare (values button modifier-state))
   (do-button-and-modifier-state (button modifier-state bucket)
     (when (member gesture-name bucket)
       (return-from gesture-name-button-and-modifiers
-	(values (ash 1 (+ (1- (integer-length +pointer-left-button+)) button))
-		modifier-state))))
+        (values (ash 1 (+ (1- (integer-length +pointer-left-button+)) button))
+                modifier-state))))
   nil)
 
 (defun gesture-name-keysym-and-modifiers (gesture-name)
@@ -98,9 +98,9 @@
   (dotimes (index (ash 1 (length *modifier-keys*)))
     (let ((bucket (aref *keysym-and-modifier-key->gesture* index)))
       (dolist (entry bucket)
-	(when (member gesture-name (cdr entry))
-	  (return-from gesture-name-keysym-and-modifiers
-	    (values (car entry) index))))))
+        (when (member gesture-name (cdr entry))
+          (return-from gesture-name-keysym-and-modifiers
+            (values (car entry) index))))))
   nil)
 
 #||
@@ -108,11 +108,11 @@
 (defun gestures-for-modifier-state (state)
   ;; Eventually, cache this result because it's a common question
   (let ((n-buttons (array-dimension *button-and-modifier-key->gesture* 0))
-	(return-value nil))
+        (return-value nil))
     (dotimes (b n-buttons)
       (let ((bucket (aref *button-and-modifier-key->gesture* b state)))
-	(when bucket
-	  (push (cons (button-index-name b) bucket) return-value))))
+        (when bucket
+          (push (cons (button-index-name b) bucket) return-value))))
     (nreverse return-value)))
 
 (defun gestures-for-shift-names (&rest shift-names)
@@ -135,17 +135,17 @@
 
 (defun event-matches-gesture-name-p (event gesture-name &optional port)
   (etypecase event
-    (pointer-button-event		;--- POINTER-BUTTON-PRESS-EVENT?
+    (pointer-button-event                ;--- POINTER-BUTTON-PRESS-EVENT?
       (button-press-event-matches-gesture-name-p event gesture-name port))
-    (keyboard-event			;--- KEY-PRESS-EVENT?
+    (keyboard-event                        ;--- KEY-PRESS-EVENT?
       (keyboard-event-matches-gesture-name-p event gesture-name port))))
 
 (defun button-press-event-matches-gesture-name-p (event gesture-name &optional port)
   #---ignore (declare (ignore port))
   #+++ignore (unless port
-	       (setq port (port (event-sheet event))))
+               (setq port (port (event-sheet event))))
   (let ((button (pointer-event-button event))
-	(modifier-state (event-modifier-state event)))
+        (modifier-state (event-modifier-state event)))
     (declare (type fixnum button modifier-state))
     (button-and-modifier-state-matches-gesture-name-p
       (- (integer-length button) #.(integer-length +pointer-left-button+))
@@ -155,61 +155,71 @@
 (defun keyboard-event-matches-gesture-name-p (event gesture-name &optional port)
   (declare (special *application-frame*))
   (when (and (characterp event)
-	     (characterp gesture-name))
+             (characterp gesture-name))
     ;; Speedy exit when they're both characters
     (when (eql event gesture-name)
       (return-from keyboard-event-matches-gesture-name-p t))
     (when (and (ordinary-char-p event)
-	       (ordinary-char-p gesture-name))
+               (ordinary-char-p gesture-name))
       (return-from keyboard-event-matches-gesture-name-p
-	(eql event gesture-name))))
+        (eql event gesture-name))))
   (multiple-value-bind (keysym modifier-state)
       (etypecase event
-	(character
-	  (unless port
-	    ;; This is the best we can do...
-	    (setq port (port *application-frame*)))
-	  (values event (if (upper-case-p event)
-			    (make-modifier-state :shift)
-			  0)))
-	(keyboard-event			;--- KEY-PRESS-EVENT?
-	  (unless port
-	    (setq port (port (event-sheet event))))
-	  (values (keyboard-event-key-name event)
-		  (event-modifier-state event)))
-	(end-of-file-marker
-	  (return-from keyboard-event-matches-gesture-name-p nil)))
+        (character
+          (unless port
+            ;; This is the best we can do...
+            (setq port (port *application-frame*)))
+          (values event (if (upper-case-p event)
+                            (make-modifier-state :shift)
+                          0)))
+        (keyboard-event                        ;--- KEY-PRESS-EVENT?
+          (unless port
+            (setq port (port (event-sheet event))))
+          (values (keyboard-event-key-name event)
+                  (event-modifier-state event)))
+        (end-of-file-marker
+          (return-from keyboard-event-matches-gesture-name-p nil)))
     (declare (type fixnum modifier-state))
     (when (consp gesture-name)
       ;; If GESTURE-NAME is a cons, then it might really be a gesture spec
       (when (or (multiple-value-bind (gkeysym gstate)
-		    (parse-gesture-spec gesture-name)
-		  (and (eq keysym gkeysym)
-		       (= modifier-state gstate)))
-		(and port
-		     (let ((gesture-spec 
-			     (port-canonicalize-gesture-spec port gesture-name)))
-		       (and gesture-spec
-			    (or (and (eq keysym (car gesture-spec))
-				     (= modifier-state (cdr gesture-spec)))
-				(equal gesture-spec
-				       (port-canonicalize-gesture-spec 
-					 port keysym modifier-state)))))))
-	(return-from keyboard-event-matches-gesture-name-p t))
+                    (parse-gesture-spec gesture-name)
+                  (and (eq keysym gkeysym)
+                       (= modifier-state gstate)))
+                (and port
+                     (let ((gesture-spec 
+                             (port-canonicalize-gesture-spec port gesture-name)))
+                       (and gesture-spec
+                            (or (and (eq keysym (car gesture-spec))
+                                     (= modifier-state (cdr gesture-spec)))
+                                (equal gesture-spec
+                                       (port-canonicalize-gesture-spec 
+                                         port keysym modifier-state)))))))
+        (return-from keyboard-event-matches-gesture-name-p t))
       (when (null (cdr gesture-name))
-	;; On the other hand, it might be the user messing with us and giving
-	;; us a bogus keysym disguised as a gesture spec
-	(setq gesture-name (car gesture-name))))
+        ;; On the other hand, it might be the user messing with us and giving
+        ;; us a bogus keysym disguised as a gesture spec
+        (setq gesture-name (car gesture-name))))
     (unless (consp gesture-name)
       (or (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
-	    (member gesture-name (cdr (assoc keysym bucket))))
-	  (let ((gesture-spec 
-		  (port-canonicalize-gesture-spec port keysym modifier-state)))
-	    (and gesture-spec
-		 (destructuring-bind (keysym . modifier-state) gesture-spec
-		   (let ((bucket (aref *keysym-and-modifier-key->gesture*
-				       modifier-state)))
-		     (member gesture-name (cdr (assoc keysym bucket)))))))))))
+            (member gesture-name (cdr (assoc keysym bucket))))
+          (let ((gesture-spec 
+                  (port-canonicalize-gesture-spec port keysym modifier-state)))
+            (and gesture-spec
+                 #+(or aclpc acl86win32)
+                 (let ((keysym (car gesture-spec))
+                       (modifier-state (cdr gesture-spec)))
+;;;  problem with: 
+;;;       destructuring-bind (keysym . modifier-state) gesture-spec
+                   (let ((bucket (aref *keysym-and-modifier-key->gesture*
+                                       modifier-state)))
+		     (setq modifier-state (port-modifier-state (find-port)))
+                     (member gesture-name (cdr (assoc keysym bucket)))))
+                 #-(or aclpc acl86win32)
+                 (destructuring-bind (keysym . modifier-state) gesture-spec
+                   (let ((bucket (aref *keysym-and-modifier-key->gesture*
+                                       modifier-state)))
+                     (member gesture-name (cdr (assoc keysym bucket)))))))))))
 
 (defun-inline keyboard-event-p (x)
   (or (characterp x)
@@ -219,38 +229,38 @@
   (multiple-value-bind (keysym modifiers) (parse-gesture-spec x)
     (declare (ignore modifiers))
     (and keysym 
-	 (not (find keysym *pointer-buttons*)))))
+         (not (find keysym *pointer-buttons*)))))
 
 (defun gesture-spec-eql (gesture1 gesture2)
   (multiple-value-bind (k1 m1) (parse-gesture-spec gesture1)
     (multiple-value-bind (k2 m2) (parse-gesture-spec gesture2)
       (and (or (eql k1 k2)
-	       (and (characterp k1)
-		    (characterp k2)
-		    (char-equal k1 k2)))
-	   (= m1 m2)))))
+               (and (characterp k1)
+                    (characterp k2)
+                    (char-equal k1 k2)))
+           (= m1 m2)))))
 
 (defun parse-gesture-spec (gesture-spec)
   (declare (values keysym modifier-state))
   (when (atom gesture-spec)
     (return-from parse-gesture-spec
       (if (and (characterp gesture-spec)
-	       (upper-case-p gesture-spec))
-	  (values gesture-spec (make-modifier-state :shift))
-	(values gesture-spec 0))))
+               (upper-case-p gesture-spec))
+          (values gesture-spec (make-modifier-state :shift))
+        (values gesture-spec 0))))
   (when (and (consp gesture-spec)
-	     (integerp (cdr gesture-spec)))
+             (integerp (cdr gesture-spec)))
     (return-from parse-gesture-spec
       (values (car gesture-spec) (cdr gesture-spec))))
   (let ((keysym nil)
-	(modifier-state 0))
+        (modifier-state 0))
     (dolist (x gesture-spec)
       (if (find x *modifier-keys*)
-	  (let ((bit (modifier-key-index x)))
-	    (setf modifier-state (dpb 1 (byte 1 bit) modifier-state)))
-	(setq keysym (or keysym x))))
+          (let ((bit (modifier-key-index x)))
+            (setf modifier-state (dpb 1 (byte 1 bit) modifier-state)))
+        (setq keysym (or keysym x))))
     (when (and (characterp keysym)
-	       (upper-case-p keysym))
+               (upper-case-p keysym))
       (setq modifier-state (logior modifier-state (make-modifier-state :shift))))
     (values keysym modifier-state)))
 
@@ -262,71 +272,89 @@
     (return-from decode-gesture-spec
       (values gesture-spec nil)))
   (let ((keysym nil)
-	(modifiers nil))
+        (modifiers nil))
     (dolist (x gesture-spec)
       (cond ((find x *modifier-keys*)
-	     (if (member x modifiers)
-		 (if errorp
-		     (cerror "Ignore the extra modifier"
-			     "The modifier ~S appears more than once in the gesture spec ~S"
-			     x gesture-spec)
-		     (return-from decode-gesture-spec nil))
-		 (push x modifiers)))
-	    (keysym
-	     (if errorp
-		 (error "The gesture spec ~S is invalid" gesture-spec)
-		 (return-from decode-gesture-spec nil)))
-	    (t
-	     (setq keysym x))))
+             (if (member x modifiers)
+                 (if errorp
+                     (cerror "Ignore the extra modifier"
+                             "The modifier ~S appears more than once in the gesture spec ~S"
+                             x gesture-spec)
+                     (return-from decode-gesture-spec nil))
+                 (push x modifiers)))
+            (keysym
+             (if errorp
+                 (error "The gesture spec ~S is invalid" gesture-spec)
+                 (return-from decode-gesture-spec nil)))
+            (t
+             (setq keysym x))))
     (values keysym (nreverse modifiers))))
 
+#-(or aclpc acl86win32)
 (defmethod port-canonicalize-gesture-spec :around 
-	   ((port basic-port) gesture-spec &optional modifier-state)
+           ((port basic-port) gesture-spec &optional modifier-state)
   (multiple-value-bind (keysym modifier-state) 
       (if modifier-state
-	  (values gesture-spec modifier-state)
-	  (parse-gesture-spec gesture-spec))
+          (values gesture-spec modifier-state)
+          (parse-gesture-spec gesture-spec))
     (with-stack-list (key keysym modifier-state)
       (let ((table (port-canonical-gesture-specs port)))
-	(when table
-	  (multiple-value-bind (value found-p) (gethash key table)
-	    (if found-p
-		value
-		(setf (gethash (evacuate-list key) table)
-		      (call-next-method port keysym modifier-state)))))))))
+        (when table
+          (multiple-value-bind (value found-p) (gethash key table)
+            (if found-p
+                value
+                (setf (gethash (evacuate-list key) table)
+                      (call-next-method port keysym modifier-state)))))))))
 
 ;; Needed for (sigh) string streams.  Hardly ever used...
 (defmethod port-canonicalize-gesture-spec 
-	   ((port t) gesture-spec &optional modifier-state)
+           ((port t) gesture-spec &optional modifier-state)
   (multiple-value-bind (keysym shifts)
       (if modifier-state
-	  (values gesture-spec modifier-state)
-	  (parse-gesture-spec gesture-spec))
+          (values gesture-spec modifier-state)
+          (parse-gesture-spec gesture-spec))
     (let ((entry (assoc keysym '((#\Return . :return)
-				 (#\Newline . :newline)
-				 (#\Tab . :tab)
-				 (#\Rubout . :rubout)
-				 (#\Backspace . :backspace)
-				 (#\Page . :page)
-				 #+Genera (#\Line . :linefeed)
-				 #-Genera (#\Linefeed . :linefeed)
-				 (#\Escape . :escape)))))
+                                 (#\Newline . :newline)
+                                 (#\Tab . :tab)
+                                 (#\Rubout . :rubout)
+                                 (#\Backspace . :backspace)
+                                 (#\Page . :page)
+                                 #+Genera (#\Line . :linefeed)
+                                 #-Genera (#\Linefeed . :linefeed)
+                                 (#\Escape . :escape)))))
       (cond (entry
-	     (setq keysym (cdr entry)))
-	    ((and (characterp keysym)
-		  (standard-char-p keysym)) 
-	     (setq keysym (svref #(:space :\! :\" :\# :\$ :\% :\& :\'
-				   :\( :\) :\* :\+ :\, :\- :\. :\/
-				   :\0 :\1 :\2 :\3 :\4 :\5 :\6 :\7 :\8 :\9
-				   :\: :\; :\< :\= :\> :\? :\@
-				   :a :b :c :d :e :f :g :h :i :j :k :l :m
-				   :n :o :p :q :r :s :t :u :v :w :x :y :z
-				   :\[ :\\ :\] :\^ :\_ :\`
-				   :a :b :c :d :e :f :g :h :i :j :k :l :m
-				   :n :o :p :q :r :s :t :u :v :w :x :y :z
-				   :\{ :\| :\} :\~)
-				 (- (char-code keysym) #.(char-code #\space)))))))
+             (setq keysym (cdr entry)))
+            ((and (characterp keysym)
+                  (standard-char-p keysym)) 
+             (setq keysym (svref #(:space :\! :\" :\# :\$ :\% :\& :\'
+                                   :\( :\) :\* :\+ :\, :\- :\. :\/
+                                   :\0 :\1 :\2 :\3 :\4 :\5 :\6 :\7 :\8 :\9
+                                   :\: :\; :\< :\= :\> :\? :\@
+                                   :a :b :c :d :e :f :g :h :i :j :k :l :m
+                                   :n :o :p :q :r :s :t :u :v :w :x :y :z
+                                   :\[ :\\ :\] :\^ :\_ :\`
+                                   :a :b :c :d :e :f :g :h :i :j :k :l :m
+                                   :n :o :p :q :r :s :t :u :v :w :x :y :z
+                                   :\{ :\| :\} :\~)
+                                 (- (char-code keysym) #.(char-code #\space)))))))
     (cons keysym shifts)))
+
+#+(or aclpc acl86win32) ; unqualified first
+(defmethod port-canonicalize-gesture-spec :around 
+           ((port basic-port) gesture-spec &optional modifier-state)
+  (multiple-value-bind (keysym modifier-state) 
+      (if modifier-state
+          (values gesture-spec modifier-state)
+          (parse-gesture-spec gesture-spec))
+    (with-stack-list (key keysym modifier-state)
+      (let ((table (port-canonical-gesture-specs port)))
+        (when table
+          (multiple-value-bind (value found-p) (gethash key table)
+            (if found-p
+                value
+                (setf (gethash (evacuate-list key) table)
+                      (call-next-method port keysym modifier-state)))))))))
+
 
 (defmethod port-canonical-gesture-specs ((port t))
   nil)
@@ -345,51 +373,51 @@
     (setq *modifier-state-specifiers* (make-array (ash 1 (length *modifier-keys*))))
     (dotimes (state (ash 1 (length *modifier-keys*)))
       (let ((shifts nil))
-	(dotimes (bit (length *modifier-keys*))
-	  (let ((name (modifier-key-index-name bit)))
-	    (when (ldb-test (byte 1 bit) state)
-	      (push name shifts))))
-	(setf (aref *modifier-state-specifiers* state) shifts))))
+        (dotimes (bit (length *modifier-keys*))
+          (let ((name (modifier-key-index-name bit)))
+            (when (ldb-test (byte 1 bit) state)
+              (push name shifts))))
+        (setf (aref *modifier-state-specifiers* state) shifts))))
   (aref *modifier-state-specifiers* state))
 
 (defun gesture-specs-from-gesture-name (gesture-name)
   (let ((gesture-specs nil))
     (do-button-and-modifier-state (button modifier-state bucket)
       (when (member gesture-name bucket)
-	(push (list* (button-index-name button) (modifier-state-keys modifier-state))
-	      gesture-specs)))
+        (push (list* (button-index-name button) (modifier-state-keys modifier-state))
+              gesture-specs)))
     (dotimes (modifier-state (ash 1 (length *modifier-keys*)))
       (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
-	(dolist (entry bucket)
-	  (when (member gesture-name (cdr entry))
-	    (push (list* (car entry) (modifier-state-keys modifier-state))
-		  gesture-specs)))))
+        (dolist (entry bucket)
+          (when (member gesture-name (cdr entry))
+            (push (list* (car entry) (modifier-state-keys modifier-state))
+                  gesture-specs)))))
     (nreverse gesture-specs)))
 
 (defun describe-gesture-spec (gesture-spec
-			      &key (stream *standard-output*) (brief t))
+                              &key (stream *standard-output*) (brief t))
   (let ((alist (if brief 
-		   '((:hyper   "h-")
-		     (:super   "s-")
-		     (:meta    "m-")
-		     (:control "c-")
-		     (:shift   "sh-"))
-		   '((:hyper   "hyper-")
-		     (:super   "super-")
-		     (:meta    "meta-")
-		     (:control "control-")
-		     (:shift   "shift-")))))
+                   '((:hyper   "h-")
+                     (:super   "s-")
+                     (:meta    "m-")
+                     (:control "c-")
+                     (:shift   "sh-"))
+                   '((:hyper   "hyper-")
+                     (:super   "super-")
+                     (:meta    "meta-")
+                     (:control "control-")
+                     (:shift   "shift-")))))
     (dolist (shift alist)
       (when (member (first shift) (rest gesture-spec))
-	(princ (second shift) stream)))
+        (princ (second shift) stream)))
     (let ((keysym (first gesture-spec)))
       (when (and (characterp keysym)
-		 (char<= #\A keysym #\A)
-		 (not (member :shift (rest gesture-spec))))
-	(princ (second (assoc :shift alist)) stream))
+                 (char<= #\A keysym #\A)
+                 (not (member :shift (rest gesture-spec))))
+        (princ (second (assoc :shift alist)) stream))
       (when (and (not brief)
-		 (find keysym *pointer-buttons*))
-	(princ "Mouse-" stream))
+                 (find keysym *pointer-buttons*))
+        (princ "Mouse-" stream))
       (format stream "~:(~A~)" keysym))))
 
 #+++ignore
@@ -400,13 +428,13 @@
         (let ((name (modifier-key-index-name bit)))
           (when (ldb-test (byte 1 bit) state)
             (if brief-p
-		(format stream "~A-"
-		  (ecase name
-		    (:shift "sh")
-		    (:control "c")
-		    (:meta "m")
-		    (:super "s")
-		    (:hyper "h")))
+                (format stream "~A-"
+                  (ecase name
+                    (:shift "sh")
+                    (:control "c")
+                    (:meta "m")
+                    (:super "s")
+                    (:hyper "h")))
               (format stream "~:(~A-~)" name))))))))
 
 
@@ -417,43 +445,43 @@
   (ecase type
     (:keyboard
       (multiple-value-bind (key-name modifiers)
-	  (decode-gesture-spec gesture-spec)
-	(check-type key-name (or symbol character))
-	(let* ((index (apply #'make-modifier-state modifiers))
-	       (bucket (aref *keysym-and-modifier-key->gesture* index))
-	       (entry (assoc key-name bucket)))
-	  (cond (entry
-		 (unless (member name (cdr entry))
-		   (setf (aref *keysym-and-modifier-key->gesture* index)
-			 (delete nil
-				 (nsubstitute (append entry (list name)) entry bucket)))))
-		(t
-		 (setq entry (list key-name name))
-		 (setf (aref *keysym-and-modifier-key->gesture* index)
-		       (delete nil
-			       (append (aref *keysym-and-modifier-key->gesture* index)
-				       (list entry))))))
-	  bucket)))
+          (decode-gesture-spec gesture-spec)
+        (check-type key-name (or symbol character))
+        (let* ((index (apply #'make-modifier-state modifiers))
+               (bucket (aref *keysym-and-modifier-key->gesture* index))
+               (entry (assoc key-name bucket)))
+          (cond (entry
+                 (unless (member name (cdr entry))
+                   (setf (aref *keysym-and-modifier-key->gesture* index)
+                         (delete nil
+                                 (nsubstitute (append entry (list name)) entry bucket)))))
+                (t
+                 (setq entry (list key-name name))
+                 (setf (aref *keysym-and-modifier-key->gesture* index)
+                       (delete nil
+                               (append (aref *keysym-and-modifier-key->gesture* index)
+                                       (list entry))))))
+          bucket)))
     (:pointer-button
       (multiple-value-bind (button modifiers)
-	  (decode-gesture-spec gesture-spec)
-	(check-type button (member :left :middle :right))
-	(pushnew name (button-and-modifier-state-gesture-names
-			(button-index button)
-			(apply #'make-modifier-state modifiers)))))))
+          (decode-gesture-spec gesture-spec)
+        (check-type button (member :left :middle :right))
+        (pushnew name (button-and-modifier-state-gesture-names
+                        (button-index button)
+                        (apply #'make-modifier-state modifiers)))))))
 
 (defun delete-gesture-name (name)
   (do-button-and-modifier-state (button modifier-state bucket)
     (when (member name bucket)
       (setf (aref *button-and-modifier-key->gesture* button modifier-state)
-	    (delete name bucket))))
+            (delete name bucket))))
   (dotimes (index (ash 1 (length *modifier-keys*)))
     (let ((bucket (aref *keysym-and-modifier-key->gesture* index)))
       (do* ((entryl bucket (cdr entryl))
-	    (entry (first entryl) (first entryl)))
-	   ((null entryl))
-	(when (member name (cdr entry))
-	  (setf (first entryl) (delete name entry)))))))
+            (entry (first entryl) (first entryl)))
+           ((null entryl))
+        (when (member name (cdr entry))
+          (setf (first entryl) (delete name entry)))))))
 
 (defmacro define-gesture-name (name type gesture-spec &key (unique t))
   (setf (compile-time-property name 'gesture-name) t)
@@ -482,8 +510,8 @@
 
 (define-gesture-name :end         :keyboard (:end))
 (define-gesture-name :abort       :keyboard #+Genera (:abort)
-					    #+Cloe-Runtime (:escape)
-					    #-(or Genera Cloe-Runtime) (:z :control))
+                                            #+Cloe-Runtime (:escape)
+                                            #-(or Genera Cloe-Runtime) (:z :control))
 (define-gesture-name :help        :keyboard (:help))
 (define-gesture-name :complete    :keyboard (:complete)) ; not X
 (define-gesture-name :scroll      :keyboard (:scroll)) ; not X
@@ -492,7 +520,7 @@
 
 #-Genera
 (define-gesture-name :asynchronous-abort :keyboard #+Cloe-Runtime (:escape :control)
-						   #-Cloe-Runtime (:z :control :meta))
+                                                   #-Cloe-Runtime (:z :control :meta))
 
 
 ;;--- Both of these because of a bug in KEYBOARD-EVENT-MATCHES-GESTURE-NAME-P

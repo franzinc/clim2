@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: defun-utilities.lisp,v 1.9 1993/07/22 15:39:48 cer Exp $
+;;; $Header: /repo/cvs.copy/clim2/utils/defun-utilities.lisp,v 1.11 1997/02/05 01:54:47 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -13,8 +13,12 @@
   (proclaim '(declaration values))
   (proclaim '(declaration arglist)))
 
+#+aclpc
+(eval-when (compile load eval)
+  (proclaim '(declaration arglist)))
+
 ;;; Moved here from DEFUN.  DEFUN now only contains the portable implementation
-;;; of the DYNAMIC-EXTENT declaration, and so is not loaded into Lisps which
+;;; of the DYNAMIC-EXTENT declaration, and so is not loaded into Lisps which 
 ;;; implement that declaration.
 
 ;;; This file has to be loaded BEFORE DEFUN.
@@ -56,17 +60,17 @@
 ;;; somehow.  In Genera, this causes the function-parents to be set
 ;;; correctly, for example, and also if you attempt to abort out of the
 ;;; middle you get told that something might be left inconsistent.
-#+Genera
+#+Genera 
 (defmacro define-group (name type &body body)
   `(sys:multiple-definition ,name ,type ,@body))
 
-#+(and Allegro (version>= 4 1))
+#+(and Allegro (not microsoft-32) (version>= 4 1))
 (defmacro define-group (name type &body body)
   `(progn
      (excl::record-source-file ',name :type ',type)
      ,@body))
 
-#-(or Genera (and Allegro (version>= 4 1)))
+#-(or Genera (and (not acl86win32) (and Allegro (version>= 4 1))))
 (defmacro define-group (name type &body body)
   (declare (ignore name type))
   `(progn ,@body))
@@ -89,7 +93,7 @@
   (setf (get 'defun-inline 'zwei:definition-function-spec-parser)
 	(zl:::scl:function (:property zl:::scl:defun zwei:definition-function-spec-parser)))
   (setf (get 'defun-inline 'zwei:definition-function-spec-type) 'zl:::scl:defun)
-  (setf (get 'defun-inline 'gprint::formatter)
+  (setf (get 'defun-inline 'gprint::formatter) 
 	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
   (pushnew 'defun-inline zwei:*irrelevant-functions*)
   (pushnew 'defun-inline zwei:*irrelevant-defining-forms*))

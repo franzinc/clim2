@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.28 1993/07/27 22:29:44 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/ol-frames.lisp,v 1.31 1997/02/05 01:53:50 tomj Exp $
 
 
 (in-package :xm-silica)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.16 92/11/19 14:24:32 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/genera/genera-mirror.lisp,v 1.18 1997/02/05 01:48:16 tomj Exp $
 
 (in-package :genera-clim)
 

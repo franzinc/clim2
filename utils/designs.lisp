@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.20 1995/10/17 05:04:09 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/designs.lisp,v 1.22 1997/02/05 01:54:50 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -291,8 +291,8 @@
       (format stream "i=~F h=~F s=~F>" intensity hue saturation))))
 
 (defun convert-ihs-to-rgb (intensity hue saturation)
-  (let* ((hh (mod (- hue .5f0) 1.0f0))
-	 (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
+  (let* ((hh1 (mod (- hue .5f0) 1.0f0))
+	 (hh (- (* hh1 2.0f0 3.1415926535f0) 3.1415926535f0))
 	 (s3 (sin saturation))
 	 (x (* ihs-rgb-c1 s3 (cos hh) intensity))
 	 (y (* ihs-rgb-c2 s3 (sin hh) intensity))
@@ -331,7 +331,7 @@
     (let ((closest-match (find-closest-matching-color palette color)))
       (when closest-match
 	(when (eq *use-closest-color* :warn)
-	  (let ((*error-output* excl:*initial-terminal-io*))
+	  (let (#+Allegro (*error-output* excl:*initial-terminal-io*))
 	    (warn "Failed to allocate color ~A, using ~A"
 		  color closest-match)))
 	(invoke-restart 'use-other-color closest-match))))
@@ -360,6 +360,7 @@
       (values best-color
 	      best-distance))))
 
+#-(or aclpc (and allegro microsoft-32)) 
 (defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
   (let ((colors-done nil)
@@ -373,6 +374,26 @@
 	  (dolist (color colors-done)
 	    (deallocate-color color palette))
 	  (error condition))))))
+
+#+(or aclpc (and allegro microsoft-32)) 
+(defgeneric add-colors-to-palette (palette &rest colors))
+
+#+(or aclpc (and allegro microsoft-32)) 
+(defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
+  (declare (dynamic-extent colors))
+  (let ((colors-done nil))
+    (dolist (color colors)
+      (handler-case
+	(progn
+	  (push color colors-done)
+	  (allocate-color color palette))
+	(palette-full (condition)
+	 (dolist (color colors-done)
+	   (deallocate-color color palette))
+	 (error condition))))))
+
+#+(or aclpc (and allegro microsoft-32)) 
+(defgeneric remove-colors-from-palette (palette &rest colors))
 
 (defmethod remove-colors-from-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
@@ -456,6 +477,8 @@
 	(setf (apply #'aref dynamic-array dimensions)
 	      (make-dynamic-color +black+)))
     set))
+
+#+(or aclpc (and allegro microsoft-32)) (defgeneric layered-color (set &rest layers))
 
 (defmethod layered-color ((set layered-color-set) &rest layers)
   (declare (dynamic-extent layers))
@@ -667,6 +690,7 @@
 ;;; Compatibility with the old stipple feature, perhaps temporary until
 ;;; rendering of tiles and patterns is fully implemented
 ;;; This could be done with methods, but there is very little point to that
+#-(or aclpc (and allegro microsoft-32))
 (defun decode-tile-as-stipple (rectangular-tile)
   (declare (values array width height))
   (multiple-value-bind (pattern width height)
@@ -680,6 +704,29 @@
 		   (eq (aref designs 0) +background-ink+)
 		   (eq (aref designs 1) +foreground-ink+))
 	  (values array width height))))))
+
+#+(or aclpc (and allegro microsoft-32))
+(defun decode-tile-as-stipple (rectangular-tile)
+  (declare (values array width height))
+  (multiple-value-bind (pattern width height)
+      (decode-rectangular-tile rectangular-tile)
+    ; (format *terminal-io* "~%Pat: ~S, type: ~S" pattern (typep pattern 'pattern))
+    (when (typep pattern 'pattern)
+      (multiple-value-bind (array designs)
+	  (decode-pattern pattern)
+	#+ignore
+	(format t "~%~S ~S ~S ~S ~S"
+		(= width (array-dimension array 1))
+		(= height (array-dimension array 0))
+		(= (length designs) 2)
+		(eq (aref designs 0) +background-ink+)
+		(eq (aref designs 1) +foreground-ink+))
+	(when (and #+ignore(= width (array-dimension array 1))
+		   #+ignore(= height (array-dimension array 0))
+		   (= (length designs) 2)
+		   #+ignore (eq (aref designs 0) +background-ink+)
+		   #+ignore (eq (aref designs 1) +foreground-ink+))
+	  (values array 8 8 #+ignore width #+ignore height))))))
 
 
 ;;; Composite designs

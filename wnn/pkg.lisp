@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader:$
+;; $Header: /repo/cvs.copy/clim2/wnn/pkg.lisp,v 1.2 1997/02/05 01:55:47 tomj Exp $
 
 (defpackage :wnn
   (:use :clim-lisp :clim-utils :clim :silica :ff)

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.10 93/04/23 09:18:33 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/ol-callbacks.lisp,v 1.13 1997/02/05 01:52:56 tomj Exp $
 
 (in-package :tk)
 

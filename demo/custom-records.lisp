@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: custom-records.lisp,v 1.4 1993/07/22 15:38:27 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.6 1997/02/05 01:47:13 tomj Exp $
 
 (in-package :clim-user)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: panes.lisp,v 1.1 1994/12/04 23:58:01 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/panes.lisp,v 1.3 1997/02/05 01:44:22 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -11,23 +11,23 @@
 (defun compute-pane-constructor-code (panes)
   (check-type panes list)
   `(list ,@(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code &rest options) pane-spec
-			 (setq code (canonicalize-pane-spec name code options))
-			 `(list ',name
-				#'(lambda (frame framem)
-				    (with-look-and-feel-realization (framem frame)
-				      ,code)))))
-		   panes)))
+                       (destructuring-bind (name code &rest options) pane-spec
+                         (setq code (canonicalize-pane-spec name code options))
+                         `(list ',name
+                                #'(lambda (frame framem)
+                                    (with-look-and-feel-realization (framem frame)
+                                      ,code)))))
+                   panes)))
 
 (defun canonicalize-pane-spec (name code rest)
   (cond ((symbolp code)
-	 (unless (getf rest :name)
-	   (setf (getf rest :name) `',name))
-	 (apply #'find-pane-class-constructor code rest))
-	((null rest) code)
-	(t
-	 (error "Invalid pane specification: ~S"
-		(list* name code rest)))))
+         (unless (getf rest :name)
+           (setf (getf rest :name) `',name))
+         (apply #'find-pane-class-constructor code rest))
+        ((null rest) code)
+        (t
+         (error "Invalid pane specification: ~S"
+                (list* name code rest)))))
 
 (defmethod find-pane-class-constructor ((type t) &rest options)
   (declare (dynamic-extent options))
@@ -40,7 +40,7 @@
      ,@body))
 
 (define-pane-type :title (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'title-pane
      ,@options
@@ -54,7 +54,7 @@
      :end-of-line-action :allow))
 
 (define-pane-type :command-menu (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'command-menu-pane
      ,@options
@@ -69,19 +69,19 @@
 
 
 (define-pane-type :interactor (&rest options &key (scroll-bars :vertical))
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-clim-interactor-pane
      ,@options
      :scroll-bars ,scroll-bars))
 
 (define-pane-type :application (&rest options &key (scroll-bars :both))
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-clim-application-pane
      ,@options
      :scroll-bars ,scroll-bars))
 
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'accept-values-pane
      ,@options
@@ -92,7 +92,7 @@
      :end-of-line-action :allow))
 
 (define-pane-type :pointer-documentation (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
      :type 'pointer-documentation-pane
      ,@options
@@ -103,49 +103,49 @@
      :end-of-line-action :allow))
 
 (define-pane-type scroll-bar (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'scroll-bar ,@options))
 
 (define-pane-type slider (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'slider ,@options))
 
 (define-pane-type push-button (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'push-button ,@options))
 
 (define-pane-type label-pane (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'label-pane ,@options))
 
 (define-pane-type text-field (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'text-field ,@options))
 
 (define-pane-type text-editor (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'text-editor ,@options))
 
 (define-pane-type toggle-button (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'toggle-button ,@options))
 
 (define-pane-type radio-box (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'radio-box ,@options))
 
 (define-pane-type check-box (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'check-box ,@options))
 
 (define-pane-type list-pane (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'list-pane ,@options))
 
 (define-pane-type option-pane (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'option-pane ,@options))
 
 (define-pane-type :menu-bar (&rest options)
-  (declare (non-dynamic-extent options))
+  #+Allegro (declare (non-dynamic-extent options))
   `(make-pane 'menu-bar ,@options))

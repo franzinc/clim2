@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.9 1995/10/20 17:40:57 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/test/test-demos.lisp,v 1.11 1997/02/05 01:52:13 tomj Exp $
 
 
 

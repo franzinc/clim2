@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[]-
+;;                                -[]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -21,7 +21,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $fiHeader: excl-presentations.lisp,v 1.15 93/01/21 14:57:51 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/excl-presentations.lisp,v 1.19 1997/02/05 01:43:25 tomj Exp $
 
 
 
@@ -29,7 +29,7 @@
 
 (defmacro with-excl-presentations ((stream &optional (state t)) &body body)
   `(flet ((with-excl-presentations-body (,stream)
-	    ,@body))
+            ,@body))
      (declare (dynamic-extent #'with-excl-presentations-body))
      (invoke-with-excl-presentations ,stream ,state #'with-excl-presentations-body)))
 
@@ -48,11 +48,11 @@
 (defclass standard-excl-presentation (standard-presentation)
     ()
   (:default-initargs :single-box nil
-		     :type 'expression))
+                     :type 'expression))
 
 (defmethod initialize-instance :after ((rec standard-excl-presentation)
-				       &rest args
-				       &key (type nil type-p) object)
+                                       &rest args
+                                       &key (type nil type-p) object)
   (declare (ignore args type type-p object)) ;--?
   (setf (slot-value rec 'type) 'expression))
 
@@ -63,41 +63,41 @@
 
 (defmethod excl::set-io-record-pos1 ((stream output-recording-mixin) record)
   (let ((current-output-position
-	  (stream-output-history-position stream)))
+          (stream-output-history-position stream)))
     (multiple-value-bind (px py)
-	(point-position current-output-position)
+        (point-position current-output-position)
       (declare (type coordinate px py))
       (multiple-value-bind (cursor-x cursor-y)
-	  (stream-cursor-position stream)
-	(declare (type coordinate cursor-x cursor-y))
-	(multiple-value-bind (x y)
-	    (position-difference cursor-x cursor-y px py)
-	  (output-record-set-start-cursor-position record x y)
-	  (stream-close-text-output-record stream)
-	  (push (list (stream-current-output-record stream) px py)
-		(stream-excl-presentation-stack stream))
-	  (setf (point-x current-output-position) cursor-x
-		(point-y current-output-position) cursor-y
-		(stream-current-output-record stream) record))))))
+          (stream-cursor-position stream)
+        (declare (type coordinate cursor-x cursor-y))
+        (multiple-value-bind (x y)
+            (position-difference cursor-x cursor-y px py)
+          (output-record-set-start-cursor-position record x y)
+          (stream-close-text-output-record stream)
+          (push (list (stream-current-output-record stream) px py)
+                (stream-excl-presentation-stack stream))
+          (setf (point-x current-output-position) cursor-x
+                (point-y current-output-position) cursor-y
+                (stream-current-output-record stream) record))))))
 
 (defmethod excl::set-io-record-pos2 ((stream output-recording-mixin) record)
   (stream-close-text-output-record stream)
   (let ((current-output-position
-	  (stream-output-history-position stream)))
+          (stream-output-history-position stream)))
     (destructuring-bind (parent abs-x abs-y)
-	(pop (stream-excl-presentation-stack stream))
+        (pop (stream-excl-presentation-stack stream))
       (unless parent
-	(setq parent (stream-output-history stream)))
+        (setq parent (stream-output-history stream)))
       (multiple-value-bind (end-x end-y)
-	  (stream-cursor-position stream)
-	(declare (type coordinate end-x end-y))
-	(output-record-set-end-cursor-position
-	  record (- end-x abs-x) (- end-y abs-y)))
+          (stream-cursor-position stream)
+        (declare (type coordinate end-x end-y))
+        (output-record-set-end-cursor-position
+          record (- end-x abs-x) (- end-y abs-y)))
       (setf (point-x current-output-position) abs-x
-	    (point-y current-output-position) abs-y
-	    (stream-current-output-record stream) parent)
+            (point-y current-output-position) abs-y
+            (stream-current-output-record stream) parent)
       (when parent
-	(add-output-record record parent)))))
+        (add-output-record record parent)))))
 
 (defvar *font-stack-hack* nil)
 
@@ -105,14 +105,14 @@
 ;;; Somehow this does not integrate with the CLIM mechanism
 (defmethod excl::stream-set-font ((stm output-protocol) font-spec)
   (setf (medium-text-style stm)
-	(etypecase font-spec
-	  ((nil)
-	   (pop *font-stack-hack*))
-	  (character
-	    (push (medium-text-style stm) *font-stack-hack*)
-	    (ecase (char-downcase font-spec)
-	      (#\r (window-stream-regular-font     stm))
-	      (#\b (window-stream-bold-font        stm))
-	      (#\i (window-stream-italic-font      stm))
-	      (#\j (window-stream-bold-italic-font stm)))))))
+        (etypecase font-spec
+          ((nil)
+           (pop *font-stack-hack*))
+          (character
+            (push (medium-text-style stm) *font-stack-hack*)
+            (ecase (char-downcase font-spec)
+              (#\r (window-stream-regular-font     stm))
+              (#\b (window-stream-bold-font        stm))
+              (#\i (window-stream-italic-font      stm))
+              (#\j (window-stream-bold-italic-font stm)))))))
 

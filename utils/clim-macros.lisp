@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-macros.lisp,v 1.5 92/07/01 15:45:25 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/clim-macros.lisp,v 1.7 1997/02/05 01:54:36 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -9,36 +9,36 @@
 
 (defmacro default-output-stream (stream &optional must-be-variable-macro-name)
   `(cond ((member ,stream '(t nil))
-	  (setq ,stream '*standard-output*))
-	 ,@(when must-be-variable-macro-name
-	     `(((not (and (symbolp ,stream)
-			  (not (keywordp ,stream))))
-		(warn "The stream argument to ~S, ~S, is invalid.~@
-		       This argument must be a variable that can be bound to a new stream."
-		      ',must-be-variable-macro-name ,stream)
-		(setq ,stream '*standard-output*))))))
+          (setq ,stream '*standard-output*))
+         ,@(when must-be-variable-macro-name
+             `(((not (and (symbolp ,stream)
+                          (not (keywordp ,stream))))
+                (warn "The stream argument to ~S, ~S, is invalid.~@
+                       This argument must be a variable that can be bound to a new stream."
+                      ',must-be-variable-macro-name ,stream)
+                (setq ,stream '*standard-output*))))))
 
 (defmacro default-input-stream (stream &optional must-be-variable-macro-name)
   `(cond ((member ,stream '(t nil))
-	  (setq ,stream '*standard-input*))
-	 ,@(when must-be-variable-macro-name
-	     `(((not (and (symbolp ,stream)
-			  (not (keywordp ,stream))))
-		(warn "The stream argument to ~S, ~S, is invalid.~@
-		       This argument must be a variable that can be bound to a new stream."
-		      ',must-be-variable-macro-name ,stream)
-		(setq ,stream '*standard-input*))))))
+          (setq ,stream '*standard-input*))
+         ,@(when must-be-variable-macro-name
+             `(((not (and (symbolp ,stream)
+                          (not (keywordp ,stream))))
+                (warn "The stream argument to ~S, ~S, is invalid.~@
+                       This argument must be a variable that can be bound to a new stream."
+                      ',must-be-variable-macro-name ,stream)
+                (setq ,stream '*standard-input*))))))
 
 (defmacro default-query-stream (stream &optional must-be-variable-macro-name)
   `(cond ((member ,stream '(t nil))
-	  (setq ,stream '*query-io*))
-	 ,@(when must-be-variable-macro-name
-	     `(((not (and (symbolp ,stream)
-			  (not (keywordp ,stream))))
-		(warn "The stream argument to ~S, ~S, is invalid.~@
-		       This argument must be a variable that can be bound to a new stream."
-		      ',must-be-variable-macro-name ,stream)
-		(setq ,stream '*query-io*))))))
+          (setq ,stream '*query-io*))
+         ,@(when must-be-variable-macro-name
+             `(((not (and (symbolp ,stream)
+                          (not (keywordp ,stream))))
+                (warn "The stream argument to ~S, ~S, is invalid.~@
+                       This argument must be a variable that can be bound to a new stream."
+                      ',must-be-variable-macro-name ,stream)
+                (setq ,stream '*query-io*))))))
 
 
 ;;; Drawing state macros
@@ -51,10 +51,10 @@
 
 (defmacro with-drawing-options ((medium &rest options) &body body)
   (declare (arglist (medium
-		     &key ink clipping-region transformation
-			  line-style line-unit line-thickness line-dashes
-			  line-joint-shape line-cap-shape
-			  text-style text-family text-face text-size)))
+                     &key ink clipping-region transformation
+                          line-style line-unit line-thickness line-dashes
+                          line-joint-shape line-cap-shape
+                          text-style text-family text-face text-size)))
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream medium)
   `(flet ((with-drawing-options-body () ,@body))
@@ -67,20 +67,20 @@
 
 (defmacro with-translation ((medium dx dy) &body body)
   `(with-drawing-options (,medium
-			  :transformation (make-translation-transformation ,dx ,dy))
+                          :transformation (make-translation-transformation ,dx ,dy))
      ,@body))
  
 (defmacro with-scaling ((medium sx &optional (sy nil sy-p)) &body body)
   `(with-drawing-options (,medium
-			  :transformation (let* ((scale-x ,sx)
-						 (scale-y ,(if sy-p sy 'scale-x)))
-					    (make-scaling-transformation scale-x scale-y)))
+                          :transformation (let* ((scale-x ,sx)
+                                                 (scale-y ,(if sy-p sy 'scale-x)))
+                                            (make-scaling-transformation scale-x scale-y)))
      ,@body))
  
 (defmacro with-rotation ((medium angle &optional (origin nil origin-p)) &body body)
   `(with-drawing-options (,medium
-			  :transformation (make-rotation-transformation ,angle
-									,@(if origin-p `(,origin) nil)))
+                          :transformation (make-rotation-transformation ,angle
+                                                                        ,@(if origin-p `(,origin) nil)))
      ,@body))
 
 ;; Establish a local +Y-downward coordinate system at the current cursor position,
@@ -88,35 +88,35 @@
 (defmacro with-local-coordinates ((&optional stream x y) &body body)
   (default-output-stream stream with-local-coordinates)
   (let ((cx '#:cx) (cy '#:cy)
-	(tx '#:tx) (ty '#:ty))
+        (tx '#:tx) (ty '#:ty))
     `(let ((,cx ,x)
-	   (,cy ,y))
+           (,cy ,y))
        (unless (and ,cx ,cy)
-	 (multiple-value-setq (,cx ,cy) (stream-cursor-position ,stream)))
+         (multiple-value-setq (,cx ,cy) (stream-cursor-position ,stream)))
        (multiple-value-bind (,tx ,ty)
-	   (transform-position (medium-transformation ,stream) 0 0)
-	 (with-drawing-options
-	     (,stream :transformation (make-translation-transformation
-					(- ,cx ,tx) (- ,cy ,ty)))
-	   ,@body)))))
+           (transform-position (medium-transformation ,stream) 0 0)
+         (with-drawing-options
+             (,stream :transformation (make-translation-transformation
+                                        (- ,cx ,tx) (- ,cy ,ty)))
+           ,@body)))))
 
 ;; Establish a local +Y-upward coordinate system at the current cursor position,
 ;; and execute the body
 (defmacro with-first-quadrant-coordinates ((&optional stream x y) &body body)
   (default-output-stream stream with-first-quadrant-coordinates)
   (let ((cx '#:cx) (cy '#:cy)
-	(tx '#:tx) (ty '#:ty))
+        (tx '#:tx) (ty '#:ty))
     `(let ((,cx ,x)
-	   (,cy ,y))
+           (,cy ,y))
        (unless (and ,cx ,cy)
-	 (multiple-value-setq (,cx ,cy) (stream-cursor-position ,stream)))
+         (multiple-value-setq (,cx ,cy) (stream-cursor-position ,stream)))
        (multiple-value-bind (,tx ,ty)
-	   (transform-position (medium-transformation ,stream) 0 0)
-	 (with-drawing-options
-	     ;; Don't flip the stream over if we already have
-	     (,stream :transformation (if (silica:medium-+Y-upward-p ,stream)
-					  +identity-transformation+
-					  (make-transformation 1 0 0 -1
-							       (- ,cx ,tx) (- ,cy ,ty))))
-	   (letf-globally (((silica:medium-+Y-upward-p ,stream) t))
-	     ,@body))))))
+           (transform-position (medium-transformation ,stream) 0 0)
+         (with-drawing-options
+             ;; Don't flip the stream over if we already have
+             (,stream :transformation (if (silica:medium-+Y-upward-p ,stream)
+                                          +identity-transformation+
+                                          (make-transformation 1 0 0 -1
+                                                               (- ,cx ,tx) (- ,cy ,ty))))
+           (letf-globally (((silica:medium-+Y-upward-p ,stream) t))
+             ,@body))))))

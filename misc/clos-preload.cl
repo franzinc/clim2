@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: clos-preload.cl,v 1.2 92/06/03 18:19:07 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/clos-preload.cl,v 1.5 1997/02/05 01:49:04 tomj Exp $
 
 (in-package :clos)
 

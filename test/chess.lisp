@@ -20,7 +20,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: chess.lisp,v 1.10 93/02/08 15:57:46 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/test/chess.lisp,v 1.13 1997/02/05 01:51:59 tomj Exp $
 
 
 (in-package :clim-user)

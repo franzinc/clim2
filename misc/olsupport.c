@@ -16,7 +16,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $fiHeader: olsupport.c,v 1.4 1993/07/27 01:48:02 colin Exp $
+ * $Header: /repo/cvs.copy/clim2/misc/olsupport.c,v 1.7 1997/02/05 01:49:13 tomj Exp $
  */
 
 /************************************************************************/

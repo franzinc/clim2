@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.11 1996/03/01 05:44:07 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-dialogs.lisp,v 1.13 1997/02/05 01:53:58 tomj Exp $
 
 (in-package :clim-internals)
 

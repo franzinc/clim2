@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: define-application.lisp,v 1.6 92/07/01 15:48:31 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/pre-silica/define-application.lisp,v 1.8 1997/02/05 01:50:01 tomj Exp $
 
 (in-package :clim-internals)
 

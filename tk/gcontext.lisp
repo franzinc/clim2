@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.25 1993/09/17 19:06:40 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/gcontext.lisp,v 1.31 1997/02/05 01:52:44 tomj Exp $
 
 (in-package :tk)
 

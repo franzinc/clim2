@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.78 1996/03/01 05:41:48 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.80 1997/02/05 01:42:38 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -76,7 +76,7 @@
                                       &allow-other-keys)
   (declare (dynamic-extent accept-args))
   ;;--- When ACTIVE-P is NIL, this should do some sort of "graying out"
-  (declare (ignore active-p))
+  #-aclpc (declare (ignore active-p))
   ;; ACCEPT within ACCEPTING-VALUES has to have a query-identifier, so default
   ;; it here and return it.  It's better to cons this list than to call format
   ;; to intern something.
@@ -221,7 +221,7 @@
                            &key view (prompt nil prompt-p) (query-identifier nil)
                            &allow-other-keys)
   (declare (dynamic-extent present-args))
-  (declare (ignore prompt))
+  #-aclpc (declare (ignore prompt))
   (unless prompt-p
     ;; This is the normal, non-gadget case of doing PRESENT
     (return-from stream-present (call-next-method)))
@@ -434,7 +434,8 @@
   (declare (ignore args))
   (with-slots (stream continuation resynchronize-every-pass check-overlapping
                selected-item initially-select-query-identifier
-               own-window own-window-properties exit-button-stream view) frame
+               own-window own-window-properties exit-button-stream
+                      #-(or aclpc acl86win32) view) frame
     (let* ((original-view (stream-default-view stream))
            (return-values nil)
            (initial-query nil)
@@ -448,8 +449,8 @@
            (own-window-height (pop properties))
            (own-window-right-margin  (pop properties))
            (own-window-bottom-margin (pop properties))
-           (view
-            (or view
+           (view 
+            (or #-(or aclpc acl86win32) view #+(or aclpc acl86win32) (slot-value frame 'view)
                 (frame-manager-dialog-view (frame-manager frame))))
            (*editting-field-p* nil))
       (letf-globally (((stream-default-view stream) view)
@@ -639,8 +640,9 @@
   (declare (ignore stream))
   nil)
 
-(defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation
-                                        &key (align-prompts t))
+(defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
+                                                                      &key (align-prompts t))
+  #+(or aclpc acl86win32) (declare (dynamic-extent continuation))
   (setq align-prompts (ecase align-prompts
                         ((t :right) :right)
                         ((:left) :left)
@@ -668,13 +670,14 @@
 
 (defmethod invoke-with-aligned-prompts ((stream t) continuation &key align-prompts)
   (declare (ignore align-prompts))
+  #+(or aclpc acl86win32) (declare (dynamic-extent continuation))
   (funcall continuation stream))
 
 (defmethod frame-manager-display-input-editor-error
-           ((framem standard-frame-manager) (frame accept-values) stream error)
+           ((framem standard-frame-manager) (frame accept-values) stream anerror)
   ;;--- Resignal the error so the user can handle it
   ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-  (notify-user frame (princ-to-string error)
+  (notify-user frame (princ-to-string anerror)
                :title "Input error"
                :style :error :exit-boxes '(:exit))
   (remove-activation-gesture stream)
@@ -696,7 +699,7 @@
 
 
 (defmethod accept-values-top-level :around ((frame accept-values-own-window) &rest args)
-  (declare (ignore args))
+  #-aclpc (declare (ignore args))
   (unwind-protect
       (call-next-method)
     (with-slots (help-window) frame
@@ -754,7 +757,7 @@
            (if (and (consp ,exit-box)
                     (member :show-as-default (cddr ,exit-box)))
                (getf (cddr ,exit-box) :show-as-default)
-             (getf (cddr (assoc ,value ,labels)) :show-as-default))))
+	       (getf (cddr (assoc ,value ,labels)) :show-as-default))))
      ,@body))
 
 ;;; Applications can create their own AVV class and specialize this method in
@@ -1012,7 +1015,11 @@
 (defmethod display-invalid-queries ((frame standard-application-frame) stream query-info)
   (declare (ignore stream))
   (notify-user frame
-               (format nil "The following fields are not valid:~:{~%~4T~A~@[: ~A~]~}"
+               (format nil 
+#-(or aclpc acl86win32)
+                       "The following fields are not valid:~:{~%~4T~A~@[: ~A~]~}"
+#+(or aclpc acl86win32)
+                       "The following fields are not valid:~{ ~{~A~:[~;~:* : ~A~]~}~}"
                        (mapcar #'(lambda (query-stuff)
                                    (destructuring-bind (query id condition) query-stuff
                                      (declare (ignore query))
@@ -1081,11 +1088,12 @@
 
 (define-presentation-type accept-values-command-button ())
 
-(defmacro accept-values-command-button ((&optional stream &rest options &key (view nil viewp) &allow-other-keys) prompt
+(defmacro accept-values-command-button ((&optional stream &rest options &key (view nil viewp) &allow-other-keys) prompt 
                                                                                                                  &body body &environment env)
   #+Genera (declare (zwei:indentation 1 3 2 1))
   #-(or Genera Minima) (declare (ignore env))
-  (declare (arglist ((&optional stream
+  #-acl3.0 ; temporary restriction?
+  (declare (arglist ((&optional stream 
                                 &key documentation query-identifier
                                 (cache-value t) (cache-test #'eql)
                                 view resynchronize)
@@ -1366,10 +1374,11 @@
               (progn
                 (display-view-background avv-stream view)
                 (funcall displayer frame avv-stream)))))))
+    #+(or aclpc acl86win32)
+    (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
     (unless *sizing-application-frame*
       (setf (gethash pane (get-frame-pane-to-avv-stream-table frame))
         (cons avv-stream avv-record)))))
-
 
 (define-command (com-edit-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)

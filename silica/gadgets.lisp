@@ -1,9 +1,9 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.61 1995/10/17 05:02:37 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.63 1997/02/05 01:51:01 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
- Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
+ Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
 
 (in-package :silica)
 
@@ -31,23 +31,23 @@
       (apply (car function) (append args (cdr function)))
     (apply function args)))
 
+(defmethod armed-callback ((gadget basic-gadget) (client t) (id t))
+  nil)
+
+(defmethod disarmed-callback ((gadget basic-gadget) (client t) (id t))
+  nil)
+
 (defmethod armed-callback :around ((gadget basic-gadget) (client t) (id t))
   (let ((callback (gadget-armed-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
       (call-next-method))))
 
-(defmethod armed-callback ((gadget basic-gadget) (client t) (id t))
-  nil)
-
 (defmethod disarmed-callback :around ((gadget basic-gadget) (client t) (id t))
   (let ((callback (gadget-disarmed-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
       (call-next-method))))
-
-(defmethod disarmed-callback ((gadget basic-gadget) (client t) (id t))
-  nil)
 
 ;;; Activation and deactivation, not intended to be like callbacks
 
@@ -72,7 +72,7 @@
 
 (defclass value-gadget (basic-gadget)
   ((value
-    :initarg :value :initform nil)	; no accessor defined - see below
+    :initarg :value :initform nil)	  ; no accessor defined - see below
    (value-changed-callback
     :initarg :value-changed-callback :initform nil
     :reader gadget-value-changed-callback)))
@@ -98,7 +98,11 @@
     (value-changed-callback gadget
 			    (gadget-client gadget) (gadget-id gadget) value)))
 
-(defmethod value-changed-callback :around
+(defmethod value-changed-callback ((gadget value-gadget) (client t) (id t) value)
+  (declare (ignore value))
+  nil)
+
+(defmethod value-changed-callback :around 
     ((gadget value-gadget) (client t) (id t) value)
   (setf (slot-value gadget 'value) value)
   (let ((callback (gadget-value-changed-callback gadget)))
@@ -106,16 +110,15 @@
       (invoke-callback-function callback gadget value))
     (call-next-method)))
 
-(defmethod value-changed-callback
-    ((gadget value-gadget) (client t) (id t) value)
-  (declare (ignore value))
-  nil)
-
 ;;; Action Gadgets
 
 (defclass action-gadget (basic-gadget)
     ((activate-callback :initarg :activate-callback :initform nil
 			:reader gadget-activate-callback)))
+
+(defmethod activate-callback 
+    ((gadget action-gadget) (client t) (id t))
+  nil)
 
 (defmethod activate-callback :around
     ((gadget action-gadget) (client t) (id t))
@@ -123,10 +126,6 @@
     (when callback
       (invoke-callback-function callback gadget))
     (call-next-method)))
-
-(defmethod activate-callback
-    ((gadget action-gadget) (client t) (id t))
-  nil)
 
 ;;; Focus Gadgets
 
@@ -136,16 +135,18 @@
      (focus-in-callback :initarg :focus-in-callback :initform nil
 			:reader gadget-focus-in-callback)))
 
+(defmethod focus-out-callback ((gadget focus-gadget) (client t) (id t))
+  nil)
+
+(defmethod focus-in-callback ((gadget focus-gadget) (client t) (id t))
+  nil)
+
 (defmethod focus-out-callback :around
-    ((gadget focus-gadget) (client t) (id t))
+    ((gadget focus-gadget) (client t) (id t)) 
   (let ((callback (gadget-focus-out-callback gadget)))
     (when callback
       (invoke-callback-function callback gadget))
     (call-next-method)))
-
-(defmethod focus-out-callback
-    ((gadget focus-gadget) (client t) (id t))
-  nil)
 
 (defmethod focus-in-callback :around
     ((gadget focus-gadget) (client t) (id t))
@@ -153,10 +154,6 @@
     (when callback
       (invoke-callback-function callback gadget))
     (call-next-method)))
-
-(defmethod focus-in-callback
-    ((gadget focus-gadget) (client t) (id t))
-  nil)
 
 ;;; Basic gadgets-mixins
 
@@ -178,15 +175,19 @@
   (let ((label (gadget-label pane)))
     (etypecase label
       (string
-	(let ((text-style (slot-value pane 'text-style)))
-	  (with-sheet-medium (medium pane)
-	    (multiple-value-bind (width height)
-		(text-size medium label :text-style text-style)
-	      (values (+ width (text-style-width text-style medium))
-		      (+ height (floor (text-style-height text-style medium) 2)))))))
+       (let ((text-style (slot-value pane 'text-style)))
+	 ;; fixed in silica/text-style.lisp with text-style trampolines
+	 ;;  31jan97 tjm w/colin
+	 #+ignore(when (consp text-style)
+		   (setq text-style (parse-text-style text-style)))
+	 (with-sheet-medium (medium pane)
+	   (multiple-value-bind (width height)
+	       (text-size medium label :text-style text-style)
+	     (values (+ width (text-style-width text-style medium))
+		     (+ height (floor (text-style-height text-style medium) 2)))))))
       (null (values 0 0))
       (pattern
-	(values (pattern-width label) (pattern-height label)))
+       (values (pattern-width label) (pattern-height label)))
       (pixmap
        (values (pixmap-width label) (pixmap-height label))))))
 
@@ -198,7 +199,30 @@
       (call-next-method)))
 
 
+#+(or aclpc acl86win32)
+(defclass separator (oriented-gadget-mixin basic-pane) 
+  () #||((sheet-parent :accessor sheet-parent :initarg :sheet-parent)
+   (frame :initarg :frame)
+   (frame-manager :initarg :frame-manager))||#)
 
+#+(or aclpc acl86win32)
+(defmethod compute-gadget-label-size ((pane separator))
+  (values 0 0))
+
+#+(or aclpc acl86win32)
+(defmethod note-sheet-adopted ((sep separator)) nil)
+
+#+(or aclpc acl86win32)
+(defmethod compose-space ((pane separator) &key width height)
+  (multiple-value-bind (w h)
+      (compute-gadget-label-size pane)
+    (make-space-requirement :width (max w width 20)  
+			    :min-width (max w width 20)
+			    :height (max h height 10) 
+			    :min-height (max h height 10))))
+
+;; #+aclxx compose-box was here, merged back into silica/db-box.lisp
+;;  31jan97 tjm w/colin
 
 ;;--- We might want a way of changing the range and the value together.
 (defclass range-gadget-mixin ()
@@ -238,8 +262,8 @@
      (number-of-quanta :initarg :number-of-quanta)
      (editable-p :initarg :editable-p :accessor gadget-editable-p))
     (:default-initargs :value 0.0
-                       :decimal-places 0
-                       :show-value-p nil
+		       :decimal-places 0
+		       :show-value-p nil
 		       :min-label nil
 		       :max-label nil
 		       :range-label-text-style
@@ -260,15 +284,15 @@
 	    ((<= range 10)
 	     (setf (slot-value pane 'decimal-places) 1))))))
 
+(defmethod drag-callback ((gadget slider) (client t) (id t) value)
+  (declare (ignore value))
+  nil)
+
 (defmethod drag-callback :around ((gadget slider) (client t) (id t) value)
   (let ((callback (slider-drag-callback gadget)))
     (when callback
       (invoke-callback-function callback gadget value))
     (call-next-method)))
-
-(defmethod drag-callback ((gadget slider) (client t) (id t) value)
-  (declare (ignore value))
-  nil)
 
 
 ;;; Scroll bar
@@ -277,6 +301,11 @@
     ((size :initform nil :initarg :size :accessor scroll-bar-size)
      (drag-callback :initarg :drag-callback :initform nil
 		    :reader scroll-bar-drag-callback)))
+
+#+(or aclpc acl86win32)
+(defmethod destroy-mirror :after  ((port basic-port) (sheet scroll-bar))
+  ;; This invalidates any caching that is going on
+  (setf (scroll-bar-current-size sheet) nil))
 
 (defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
   (let ((callback (scroll-bar-drag-callback gadget)))
@@ -307,14 +336,18 @@
   (call-next-method value gadget))
 
 ;;; Push-button
-(defclass push-button
-	  (action-gadget labelled-gadget-mixin)
+(defclass push-button 
+	  (action-gadget labelled-gadget-mixin) 
     ((show-as-default :initform nil :initarg :show-as-default
-		      :accessor push-button-show-as-default)))
+		      :accessor push-button-show-as-default)
+     #+(or aclpc acl86win32)
+     (pattern :initarg :pattern)
+     #+(or aclpc acl86win32)
+     (icon-pattern :initarg :icon-pattern)))
 
 
 ;;; Toggle button
-(defclass toggle-button
+(defclass toggle-button 
 	  (value-gadget labelled-gadget-mixin)
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :type (member :some-of :one-of)
@@ -348,17 +381,18 @@
 
 ;;; Radio box [exclusive-choice] .. [inclusive-choice]
 (defclass radio-box
-	  (value-gadget row-column-gadget-mixin)
+    (value-gadget row-column-gadget-mixin
+     #+(or aclpc acl86win32) labelled-gadget-mixin) 
     ((selections :initform nil
 		 :reader radio-box-selections)
      ;;--- think about this...
      (value :initform nil
- 	    :initarg :current-selection
- 	    :accessor radio-box-current-selection)))
+	    :initarg :current-selection
+	    :accessor radio-box-current-selection)))
 
 (defmethod (setf gadget-value) :after
     (new-value (gadget radio-box) &key invoke-callback)
-  (declare (ignore invoke-callback))
+  #-aclpc (declare (ignore invoke-callback))
   (unless (eq new-value (radio-box-current-selection gadget))
     (dolist (toggle (radio-box-selections gadget))
       (setf (gadget-value toggle)
@@ -380,7 +414,7 @@
       (dolist (choice choices)
 	(etypecase choice
 	  (pane
-	   ;; Adopt the button.  Some framems will disown the button
+	   ;; Adopt the button.	 Some framems will disown the button
 	   ;; in order to do layout, but that will happen later.
 	   (unless (sheet-parent choice)
 	     (sheet-adopt-child rb choice))
@@ -401,10 +435,10 @@
 	       (setf (radio-box-current-selection rb) button)))))))
     (setf (slot-value rb 'selections) (nreverse selections))))
 
-(defmethod value-changed-callback :around
+(defmethod value-changed-callback :around 
 	   ((selection basic-gadget) (client radio-box) gadget-id value)
-  (declare (ignore gadget-id))
-  ;;--- The following comment is wrong.  Perhaps these should be :BEFORE
+  #-aclpc (declare (ignore gadget-id))
+  ;;--- The following comment is wrong.	 Perhaps these should be :BEFORE
   ;;--- methods since the user could define a more specific around method only.
   ;; This and the one below have to be :AROUND because if the user has
   ;; specified a callback function only :AROUNDs ever get executed.
@@ -423,25 +457,33 @@
 		 :reader check-box-selections)
      ;;--- think about this...
      (value :initform nil
- 	    :initarg :current-selection
- 	    :accessor check-box-current-selection)))
+	    :initarg :current-selection
+	    :accessor check-box-current-selection)))
 
 (defmethod (setf gadget-value) :after
     (new-value (gadget check-box) &key invoke-callback)
-  (declare (ignore invoke-callback))
+  #-aclpc (declare (ignore invoke-callback))
   (unless (equal new-value (check-box-current-selection gadget))
     (dolist (toggle (check-box-selections gadget))
       (setf (gadget-value toggle)
 	(member toggle new-value)))))
 
-(defmethod initialize-instance :after ((cb check-box) &key choices)
+(defmethod initialize-instance :after ((cb check-box) &key choices #+(or aclpc acl86win32) current-selection)
   (let* ((frame (pane-frame cb))
 	 (framem (frame-manager frame))
 	 (selections nil)
+	 #-(or aclpc acl86win32)
 	 (current-selection (check-box-current-selection cb)))
     (assert (and frame framem) ()
       "There must be both a frame and frame manager active")
-    (assert (every #'(lambda (x) (member x choices :test #'equal))
+    (assert (every #-(or aclpc acl86win32)
+		   #'(lambda (x) (member x choices :test #'equal))
+		   #+(or aclpc acl86win32)
+		   #'(lambda (x)
+		       (let ((y (if (typep x 'gadget) (gadget-id x) x)))
+			 (or (member x choices :test #'equal)
+			     (member y choices :test #'equal))
+			 ))
 		   current-selection)
 	()
       "Each element of check box current-selection: ~S must be one of choices: ~S"
@@ -450,7 +492,7 @@
       (dolist (choice choices)
 	(etypecase choice
 	  (toggle-button
-	   ;; Adopt the button.  Some framems will disown the button
+	   ;; Adopt the button.	 Some framems will disown the button
 	   ;; in order to do layout, but that will happen later.
 	   (push choice selections)
 	   (unless (sheet-parent choice)
@@ -471,9 +513,9 @@
 	       (setf (car value) button)))))))
     (setf (slot-value cb 'selections) (nreverse selections))))
 
-(defmethod value-changed-callback :around
+(defmethod value-changed-callback :around 
 	   ((selection basic-gadget) (client check-box) gadget-id value)
-  (declare (ignore gadget-id))
+  #-aclpc (declare (ignore gadget-id))
   (if (eq value t)
       (pushnew selection (check-box-current-selection client))
     (setf (check-box-current-selection client)
@@ -565,7 +607,7 @@
 (defmethod viewportp ((x viewport)) t)
 
 (defmethod compose-space ((viewport viewport) &key width height)
-  (declare (ignore width height))
+  #-aclpc (declare (ignore width height))
   (let ((sr (call-next-method)))
     (multiple-value-bind (width min-width max-width
 			  height min-height max-height)
@@ -575,6 +617,11 @@
 	:width width :min-width 0 :max-width max-width
 	:height height :min-height 0 :max-height max-height))))
 
+#+(or aclpc acl86win32)
+(eval-when (compile load eval)
+   ;;mm: 11Jan95 - this is defined later in clim\db-strea
+   (unless (ignore-errors (find-class 'clim-stream-pane))
+      (defclass clim-stream-pane () ())))
 
 (defmethod allocate-space ((viewport viewport) width height)
   ;; Make sure the child is at least as big as the viewport
@@ -627,6 +674,13 @@
 ;;-- The problem we have is that a whole bunch of panes dont get the
 ;;-- right background so it looks crap.
 
+;; reinstate this for the windows port - this is important because
+;; unlike on the xt port, on the windows port viewports are *not*
+;; mirrored. (cim 9/27/96)
+
+;; simplified so that it repaints the viewport over the entire region
+;; taking advantage of the fact that the repainting of overlapping
+;; children happens after
 #+ignore
 (defmethod repaint-sheet ((sheet viewport) region)
   (let ((region (region-intersection (sheet-region sheet) region)))
@@ -639,6 +693,13 @@
 	    (with-bounding-rectangle* (left top right bottom) rect
 	      (draw-rectangle* medium left top right bottom))))))))
 
+#+(or acl86win32 aclpc)
+(defmethod repaint-sheet ((sheet viewport) region)
+  (with-sheet-medium (medium sheet)
+    (with-bounding-rectangle* (left top right bottom) region
+      (draw-rectangle* medium left top right bottom
+		       :ink +background-ink+))))
+
 (defmethod note-space-requirements-changed ((pane viewport) inner)
   (declare (ignore inner))
   (allocate-space
@@ -648,80 +709,80 @@
 ;;--- Work on this
 #+++ignore
 (defmethod note-sheet-region-changed :around ((viewport viewport) &key port-did-it)
-  (declare (ignore port-did-it))
+  #-aclpc (declare (ignore port-did-it))
   (multiple-value-bind (changedp
 			hscroll-bar hscroll-bar-enabled-p
 			vscroll-bar vscroll-bar-enabled-p)
       (compute-dynamic-scroll-bar-values viewport)
     (if changedp
- 	(update-dynamic-scroll-bars
+	 (update-dynamic-scroll-bars
 	  viewport changedp
 	  hscroll-bar hscroll-bar-enabled-p
 	  vscroll-bar vscroll-bar-enabled-p)
-        (call-next-method))))
+	(call-next-method))))
 
 
 ;(defun update-dynamic-scroll-bars (scroller changedp
-;				   hscroll-bar hscroll-bar-enabled-p
-;				   vscroll-bar vscroll-bar-enabled-p
-;				   &optional relayout)
+;				    hscroll-bar hscroll-bar-enabled-p
+;				    vscroll-bar vscroll-bar-enabled-p
+;				    &optional relayout)
 ;  (when changedp
 ;    (when hscroll-bar
 ;      (setf (sheet-enabled-p hscroll-bar) hscroll-bar-enabled-p))
 ;    (when vscroll-bar
 ;      (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
 ;    (when (or (and hscroll-bar (not hscroll-bar-enabled-p))
-; 	      (and vscroll-bar (not vscroll-bar-enabled-p)))
+;		(and vscroll-bar (not vscroll-bar-enabled-p)))
 ;      (let* ((contents (slot-value scroller 'contents))
-; 	     (c-extent (viewport-contents-extent
-;			 (pane-viewport contents))))
-; 	(multiple-value-bind (vx vy)
-;	    (window-viewport-position contents)
-; 	  (window-set-viewport-position
-;	    contents
-;	    (if (and hscroll-bar (not hscroll-bar-enabled-p))
-;		(bounding-rectangle-min-x c-extent)
-;		vx)
-;	    (if (and vscroll-bar (not vscroll-bar-enabled-p))
-;		(bounding-rectangle-min-y c-extent)
-;		vy)))))
+;	       (c-extent (viewport-contents-extent
+;			  (pane-viewport contents))))
+;	  (multiple-value-bind (vx vy)
+;	     (window-viewport-position contents)
+;	    (window-set-viewport-position
+;	     contents
+;	     (if (and hscroll-bar (not hscroll-bar-enabled-p))
+;		 (bounding-rectangle-min-x c-extent)
+;		 vx)
+;	     (if (and vscroll-bar (not vscroll-bar-enabled-p))
+;		 (bounding-rectangle-min-y c-extent)
+;		 vy)))))
 ;    (clear-space-requirement-caches-in-tree scroller)
 ;    (when relayout
 ;      ;;--- This is kinda bogus.  If this was a generic scroller then
 ;      ;;--- you want to layout the table.
 ;      (let ((table (slot-value scroller 'viewport)))
-; 	(multiple-value-bind (width height)
-; 	    (bounding-rectangle-size table)
-; 	  (allocate-space table width height))))))
+;	  (multiple-value-bind (width height)
+;	      (bounding-rectangle-size table)
+;	    (allocate-space table width height))))))
 
 ;(defun compute-dynamic-scroll-bar-values (scroller)
 ;  (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar scroller))
-;	 (vscroll-bar (scroller-pane-vertical-scroll-bar scroller))
-;	 (scroll-bar-policy (scroller-pane-scroll-bar-policy scroller)))
+;	  (vscroll-bar (scroller-pane-vertical-scroll-bar scroller))
+;	  (scroll-bar-policy (scroller-pane-scroll-bar-policy scroller)))
 ;    (if (eq scroll-bar-policy :dynamic)
-;	(multiple-value-bind (vwidth vheight)
-;	    (bounding-rectangle-size scroller)
-;	  (multiple-value-bind (cwidth cheight)
-;	      (bounding-rectangle-size
-;		(viewport-contents-extent (slot-value scroller 'viewport)))
-;	    (let ((ohenp (sheet-enabled-p hscroll-bar))
-;		  (ovenp (sheet-enabled-p vscroll-bar))
-;		  (nhenp (> cwidth vwidth))
-;		  (nvenp (> cheight vheight)))
-;	      (values
-;		(not (and (eq ohenp nhenp)
-;			  (eq ovenp nvenp)))
-;		(and (not (eq ohenp nhenp)) hscroll-bar)
-;		nhenp
-;		(and (not (eq ovenp nvenp)) vscroll-bar)
-;		nvenp))))
-;        (values nil nil nil nil nil))))
+;	 (multiple-value-bind (vwidth vheight)
+;	     (bounding-rectangle-size scroller)
+;	   (multiple-value-bind (cwidth cheight)
+;	       (bounding-rectangle-size
+;		 (viewport-contents-extent (slot-value scroller 'viewport)))
+;	     (let ((ohenp (sheet-enabled-p hscroll-bar))
+;		   (ovenp (sheet-enabled-p vscroll-bar))
+;		   (nhenp (> cwidth vwidth))
+;		   (nvenp (> cheight vheight)))
+;	       (values
+;		 (not (and (eq ohenp nhenp)
+;			   (eq ovenp nvenp)))
+;		 (and (not (eq ohenp nhenp)) hscroll-bar)
+;		 nhenp
+;		 (and (not (eq ovenp nvenp)) vscroll-bar)
+;		 nvenp))))
+;	 (values nil nil nil nil nil))))
 
 (defun viewport-contents-extent (viewport)
   (let ((contents (sheet-child viewport)))
     (or (and (output-recording-stream-p contents)
 	     (stream-output-history contents))
-        contents)))
+	contents)))
 
 
 (defmacro scrolling (options &body contents)
@@ -753,6 +814,7 @@
      (visible-items :initarg :visible-items :reader gadget-visible-items))
   (:default-initargs :mode :exclusive :visible-items nil))
 
+#-(or aclpc acl86win32)
 (defun compute-list-pane-selected-items (sheet value)
   (with-accessors ((value-key set-gadget-value-key)
 		   (test set-gadget-test)
@@ -787,6 +849,22 @@
 		  (max 0 (- n (1- visible-items)))
 		  (min m (max 0 (- total-items visible-items)))))))))
 
+#+(or aclpc acl86win32)
+(defun compute-list-pane-selected-items (sheet value)
+  (with-accessors ((items set-gadget-items)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)
+		   (mode list-pane-mode)
+		   (name-key set-gadget-name-key)) sheet
+    (ecase mode
+      (:exclusive
+	(let ((x (find value items :test test :key value-key)))
+	  (and x (list (funcall name-key x)))))
+      (:nonexclusive
+	(mapcar name-key
+		(remove-if-not #'(lambda (item)
+				   (member (funcall value-key item) value :test test))
+			       items))))))
 
 (defun list-pane-selected-item-p (sheet item)
   (with-accessors ((items set-gadget-items)
@@ -816,7 +894,6 @@
 
 (defclass gadget-event (event)
     ((gadget :initarg :gadget :reader event-sheet)))
-
 
 (defclass value-changed-gadget-event (gadget-event)
     ((value :initarg :value :reader event-value)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navdata.lisp,v 1.5 92/10/07 14:43:37 cer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/navdata.lisp,v 1.7 1997/02/05 01:47:33 tomj Exp $
 
 (in-package :clim-demo)
 

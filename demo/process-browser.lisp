@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: process-browser.lisp,v 1.7 1993/07/27 01:46:02 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/process-browser.lisp,v 1.10 1997/02/05 01:47:48 tomj Exp $
 
 (in-package :clim-demo)
 
