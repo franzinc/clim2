@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.51 92/10/02 15:20:51 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.52 92/10/04 14:16:44 cer Exp $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -27,15 +27,22 @@ TRAIN_TEXT = \
 
 # Info
 LOAD_SOURCE_FILE_INFO=t
+LOAD_XREF_INFO=nil
 RECORD_SOURCE_FILE_INFO=t
 RECORD_XREF_INFO=nil
-LOAD_XREF_INFO=nil
 
 # Lisp optimization for compiling
 SPEED	= 3
 SAFETY	= 1
 # This next should be set to 1 for distribution
 DEBUG   = 2
+
+make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
+	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
+	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
+	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
+	RECORD_XREF_INFO=${RECORD_XREF_INFO}
+
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -I/x11/motif-1.1/lib
 
@@ -500,41 +507,46 @@ OPENLOOK-OBJS = $(LOAD-OL-OBJS) $(XT-TK-OBJS) $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OB
 default: all-xm
 
 trained-clim-xm:	
-	(make all-xm train ; make clim-xm)
+	(${make} all-xm train ; ${make} clim-xm)
 
 trained-clim-ol:	
-	(make all-ol train ; make clim-ol)
+	(${make} all-ol train ; ${make} clim-ol)
 
 all-xm:	compile-xm cat-xm clim-xm
 all-ol:	compile-ol cat-ol clim-ol
 
 compile-xm:	$(CLIMOBJS) FORCE
-	$(ECHO) " \
-		(setf excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
-		(setf excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
-		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
-		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
-		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)) (debug $(DEBUG)))) \
-		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
-		(setq sys::*libx11-pathname* \"$(XLIB)\") \
-		(setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
-		echo CLIM-XM compiled!!!!
+	$(ECHO) "\
+	(si::system-compile-wrapper \
+	 (function \
+	  (lambda () \
+	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	    (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
+	    (load \"misc/compile-xm.lisp\"))) \
+	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
+	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
+	 :record-xref-info $(RECORD_XREF_INFO) \
+	 :compile-print nil :compile-verbose nil \
+	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
 
 compile-ol:	$(CLIMOBJS) FORCE
-	$(ECHO) " \
-		(setf excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
-		(setf excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
-		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
-		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
-		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
-		(setq sys::*libx11-pathname* \"$(XLIB)\") \
-		(setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
-		(setq *ignore-package-name-case* t) \
-		(set-case-mode :case-insensitive-lower) \
-		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)) (debug $(DEBUG)))) \
-		(load \"misc/compile-ol.lisp\")" | $(CL) $(CLOPTS) -batch
-		echo CLIM-OL compiled!!!!
+	$(ECHO) "\
+	(si::system-compile-wrapper \
+	 (function \
+	  (lambda () \
+	    (setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
+	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	    (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
+	    (setq *ignore-package-name-case* t) \
+	    (set-case-mode :case-insensitive-lower) \
+	    (load \"misc/compile-ol.lisp\"))) \
+	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
+	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
+	 :record-xref-info $(RECORD_XREF_INFO) \
+	 :compile-print nil :compile-verbose nil \
+	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
 
 # Concatenation
 

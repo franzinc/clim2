@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.43 92/10/02 15:21:08 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.44 92/10/04 14:16:49 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -566,10 +566,7 @@ and on color servers, unless using white or black")
 		  (t
 		   (multiple-value-bind (r g b) (color-rgb color)
 		     (let ((luminosity (color-luminosity r g b)))
-		       (list
-			(if (> luminosity .5)
-			    white-pixel
-			  black-pixel)))))))))))
+		       (if (> luminosity .5) white-pixel black-pixel))))))))))
 
 (defmethod decode-color ((medium xt-medium) (color mutable-color))
   (let* ((palette (medium-palette medium))
