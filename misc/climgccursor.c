@@ -35,7 +35,7 @@ int cursor;
 
 	    if (XFindContext(display, root, context, &font_cursor)) {
 		font_cursor = XCreateFontCursor(display, cursor);
-		XSaveContext(display, root, context, font_cursor);
+		XSaveContext(display, root, context, (char*)font_cursor);
 	    }
 	    return (font_cursor);
 	}
@@ -81,7 +81,7 @@ int *call_data;
 }
 
 init_clim_gc_cursor_stuff(vec)
-     int *vec;
+     int (*vec[])();
 {
   if (vec) {
     vec[0] = clim_starting_gc;

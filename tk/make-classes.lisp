@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Mon May  5 15:33:02 1997 by layer]-
+;;				-[Fri Dec  5 15:13:12 1997 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/make-classes.lisp,v 1.45 1997/05/05 22:35:17 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/make-classes.lisp,v 1.46 1997/12/23 22:44:53 duane Exp $
 
 (in-package :tk)
 
@@ -355,7 +355,27 @@
 	 (clrhash cached-constraint-resources)))
    class))
 
-#+dlfcn
+#+(version>= 5 0)
+(defun fixup-class-entry-points ()
+  (let ((root (find-class 'xt-root-class)))
+    (clos::map-over-subclasses #'tk::unregister-address root)
+    (clos::map-over-subclasses
+     #'(lambda (class)
+	 (let* ((old-addr (and (typep class 'xt-class)
+			       (ff::foreign-pointer-address class)))
+		(entry-point (and (typep class 'xt-class)
+				  (slot-boundp class 'entry-point)
+				  (slot-value class 'entry-point)))
+		(new-addr (and entry-point
+			       (get-foreign-variable-value entry-point))))
+	   (when entry-point
+	       (unless (equal old-addr new-addr)
+		 (setf (ff::foreign-pointer-address class) new-addr))
+	       (register-address class ))))
+     root)))
+
+
+#+(and (not (version>= 5 0)) dlfcn)
 (defun fixup-class-entry-points ()
   (let ((root (find-class 'xt-root-class)))
     (clos::map-over-subclasses #'tk::unregister-address root)

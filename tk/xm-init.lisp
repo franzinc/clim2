@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Fri Nov 19 00:56:06 1993 by duane]-
+;;				-[Fri Dec  5 15:13:14 1997 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xm-init.lisp,v 1.18 1997/02/05 01:53:22 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xm-init.lisp,v 1.19 1997/12/23 22:44:53 duane Exp $
 
 (in-package :tk)
 
@@ -38,18 +38,35 @@
 ;; finding this out. Experience would indicate that the default is
 ;; to always link in the shared libraries except on rs6k (cim 3/14/96)
 
-#+dlfcn
+
+#+(version>= 5 0)
 (defparameter *toolkit-static*
     #+rs6000 t
     #-rs6000 nil)
 
-#+dlfcn
+
+#+(and (not (version>= 5 0)) dlfcn)
+(defparameter *toolkit-static*
+    #+rs6000 t
+    #-rs6000 nil)
+
+#+(version>= 5 0)
 (defun reinitialize-toolkit ()
   (unless *toolkit-static*
     (xt_toolkit_initialize)
     (setup-error-handlers)
     (fixup-class-entry-points)))
 
-#+dlfcn
+#+(and (not (version>= 5 0)) dlfcn)
+(defun reinitialize-toolkit ()
+  (unless *toolkit-static*
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (fixup-class-entry-points)))
+
+#+(version>= 5 0)
+(push 'reinitialize-toolkit excl::*restart-actions*)
+
+#+(and (not (version>= 5 0)) dlfcn)
 (push 'reinitialize-toolkit excl::*restart-actions*)
 

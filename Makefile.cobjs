@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.17 1997/10/13 20:29:32 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.18 1997/12/23 22:44:50 duane Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -58,11 +58,11 @@ climxm.$(SHARED_EXT): xlibsupport.o xtsupport.o xmsupport.o
 		xlibsupport.o xtsupport.o xmsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
-climxm.sl: xlibsupport.o xtsupport.o xmsupport.o
-	(eval '$(SET_LIBRARY_PATH)' ; \
-	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.sl \
-		xlibsupport.o xtsupport.o xmsupport.o \
-		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+# climxm.sl: xlibsupport.o xtsupport.o xmsupport.o
+# 	(eval '$(SET_LIBRARY_PATH)' ; \
+# 	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.sl \
+# 		xlibsupport.o xtsupport.o xmsupport.o \
+# 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
 climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o
 	(eval '$(SET_LIBRARY_PATH)' ; \
@@ -70,11 +70,11 @@ climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
 
-climol.sl: xlibsupport.o xtsupport.o olsupport.o
-	(eval '$(SET_LIBRARY_PATH)' ; \
-	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.sl \
-		xlibsupport.o xtsupport.o olsupport.o \
-		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
+# climol.sl: xlibsupport.o xtsupport.o olsupport.o
+# 	(eval '$(SET_LIBRARY_PATH)' ; \
+# 	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.sl \
+# 		xlibsupport.o xtsupport.o olsupport.o \
+#		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
 
 # mainxm.o contains foreign code from the libraries X11,Xt and Xm
 # required by Motif version of CLIM statically linked

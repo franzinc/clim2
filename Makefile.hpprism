@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.14 1997/10/20 23:10:57 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.15 1997/12/23 22:44:50 duane Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
@@ -13,7 +13,7 @@ SHARED-OL-OBJS= climol.sl
 Makefile=Makefile.hpprism
 
 SET_LIBRARY_PATH = \
-	LPATH=/usr/lib/X11R5:/lib/pa1.1:/lib:/usr/lib:/usr/lib/Motif1.2:$(LPATH); export LPATH
+	LPATH=/lib/pa1.1:/lib:/usr/lib:$(LPATH); export LPATH
 
 #CL=../src/xm-dcl
 
@@ -24,7 +24,7 @@ TKLIB=-lXm
 XTLIB=-lXt
 XLIB=-lX11
 
-XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5
+XINCLUDES= 
 
 CFLAGS= -O -Ae +DA1.1
 MOTIFXTRAS=-lc

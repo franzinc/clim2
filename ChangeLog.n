@@ -11,6 +11,22 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.4
+	
+Documentation changes:	none
+Tests for new features:	no new features
+
+Tue Dec 23 14:40:23 1997  duane@beta
+
+	* Makefile.cobjs: Remove hp-specific targets
+	* Makefile.hpprism: Fix for hpux 10.20
+	* misc/climgccursor.c: Ansify
+	* tk/load-xm.lisp: Fix for 5.0 unix
+	* tk/make-classes.lisp: Fix for 5.0 unix
+	* tk/xm-init.lisp: Fix for 5.0 unix
+	* utils/packages.lisp: incf version
+
+*******************************************************************************
 2.2.1.3
 	
 Documentation changes:	none
