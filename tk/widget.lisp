@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.8 92/01/31 14:55:10 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.9 92/02/05 21:45:07 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -247,6 +247,16 @@
        (logtest r x11:cwwidth)
        (logtest r x11:cwheight)
        (logtest r x11:cwborderwidth)))))
+
+(defforeign 'xt_configure_widget :entry-point "_XtConfigureWidget")
+
+;;--- Should call either XtResizeWidget or XtConfigureWidget
+
+(defun tk::configure-widget (widget &key x y width height 
+					 (border-width 
+					  (get-values widget :border-width)))
+  (xt_configure_widget (object-handle widget) x y width height
+		       border-width))
 
 
 (defun describe-widget (w)

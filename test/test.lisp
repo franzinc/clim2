@@ -347,12 +347,15 @@
 (define-test-frame-command (com-make-radio-box :name t :menu t)
     ()
   (let* ((stream *query-io*))
-    (with-output-as-gadget (stream)
-      (let* ((frame-pane
+    	  (with-output-as-gadget (stream)
+      (let* (#+ignore
+	     (frame-pane
 	     (realize-pane 'frame-pane))
 	    (gadget
-	     (realize-pane 'radio-box :parent frame-pane)))
+	     (realize-pane 'radio-box #+ignore :parent #+ignore frame-pane)))
 	(realize-pane 'toggle-button :label "a" :parent gadget)
 	(realize-pane 'toggle-button :label "b" :parent gadget)
 	(realize-pane 'toggle-button :label "c" :parent gadget)
-	frame-pane))))
+	#+ignore
+	frame-pane
+	gadget))))

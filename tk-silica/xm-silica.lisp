@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.cl,v 1.5 92/01/17 17:49:34 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.6 92/01/31 14:56:35 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -49,3 +49,49 @@
 			(tk::object-handle (sheet-mirror stream))))
   (setf (silica::port-keyboard-focus port) 
     (and new stream)))
+
+
+(defmethod change-widget-geometry (parent child &rest args)
+  (declare (ignore parent))
+  ;; In this case let the parent deal with it
+  (apply #'tk::set-values child args))
+		 
+(defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
+				   &rest args
+				   &key x y width height)
+  (declare (ignore x y width height))
+  (apply #'tk::configure-widget child args))
+
+(defclass motif-geometry-manager ()
+	  ;; --- This is probably all
+	  ;; composites excepts drawing-area and shell
+	  ()
+  (:documentation "These are all parents that have strong feelings
+about their children"))
+
+
+(defmethod silica::update-mirror-transformation-1 ((port port) sheet 
+						   (parent
+						    motif-geometry-manager))
+  nil)
+
+(defmethod silica::update-mirror-region-1 ((port port) sheet 
+						   (parent
+						    motif-geometry-manager))
+  nil)
+	    
+
+(defmethod silica::update-mirror-transformation-1 :after  ((port port)
+							   (sheet motif-geometry-manager)
+							   (parent t))
+  (update-geo-manager-sheet-children sheet))
+
+
+(defmethod silica::update-mirror-region-1 :after  ((port port)
+						   (sheet motif-geometry-manager)
+						   (parent t))
+  (update-geo-manager-sheet-children sheet))
+
+(defmethod update-geo-manager-sheet-children (geo-manager)
+  (dolist (child (sheet-children geo-manager))
+    (mirror-region-updated (sheet-port geo-manager) child)))

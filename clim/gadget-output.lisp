@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.cl,v 1.3 92/01/17 17:49:44 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.4 92/01/31 14:58:00 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -50,6 +50,7 @@
        rec
        x y (+ x (space-requirement-width sr)) (+ y (space-requirement-height sr))))
     (when (output-record-stream rec)
+      (update-gadget-position rec)
       (setf (sheet-enabled-p gadget) t))))
 
 ;; Three ways
@@ -82,6 +83,22 @@
 	   gadget
 	   (+ left xoff) (+ top yoff)
 	   (- right left) (- bottom top)))))))
+
+
+#+This-almost-works-with-the-other-definition
+(defmethod update-gadget-position (record) 
+  (let ((gadget (output-record-gadget record)))
+    (when gadget
+      (multiple-value-bind
+	  (xoff yoff)
+	  (convert-from-relative-to-absolute-coordinates
+	   (output-record-stream record)
+	   (output-record-parent record))
+	(with-bounding-rectangle* (left top right bottom) record
+				  (silica::move-and-resize-sheet* 
+				   gadget
+				   (+ left xoff) (+ top yoff)
+				   (- right left) (- bottom top)))))))
 
 ;; Need to add the gadget to the stream
 
@@ -123,7 +140,28 @@
 		   stream x y)))))
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
-	    
+
+
+#+This-almost-works-with-the-other-definition
+(defmethod invoke-with-output-as-gadget (stream continuation &key)
+  (let* ((frame (pane-frame stream))
+	 (framem (frame-manager frame)))
+    (assert frame)
+    (assert framem)
+    (multiple-value-bind (x y)
+	(stream-cursor-position* stream)
+      (let* (gadget
+	     (record
+	      (with-new-output-record (stream 'gadget-output-record record)
+		(unless (setq gadget (output-record-gadget record))
+		  (setq gadget (funcall continuation framem frame))))))
+	(associate-record-and-gadget
+		   record
+		   gadget
+		   stream x y)
+	(move-cursor-beyond-output-record stream record)
+	(values gadget record)))))
+
 
 ;; incf redisplay wanted this!
 
@@ -152,8 +190,9 @@
 
 (defmethod note-output-record-attached :after ((rec gadget-output-record) stream)
   (declare (ignore stream))
-  (setf (sheet-enabled-p (output-record-gadget rec)) t)
-  (update-gadget-position rec))
+  (when (output-record-gadget rec)
+    (update-gadget-position rec)
+    (setf (sheet-enabled-p (output-record-gadget rec)) t)))
 
 (defmethod note-output-record-detached :after ((rec gadget-output-record))
   (setf (sheet-enabled-p (output-record-gadget rec)) nil))

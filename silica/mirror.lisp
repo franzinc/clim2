@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.cl,v 1.5 92/01/08 14:58:32 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.6 92/01/31 14:55:45 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -218,7 +218,14 @@
 ;;; rather than
 
 (defmethod update-mirror-region ((port port) (sheet mirrored-sheet-mixin))
-  ;; If the sheet-region is changed this updates the mirrors region accordingly
+  ;; If the sheet-region is changed this updates the mirrors region
+  ;; accordingly
+  (update-mirror-region-1 port 
+			  sheet
+			  (sheet-parent sheet)))
+  
+(defmethod update-mirror-region-1 ((port port) sheet parent)
+  (declare (ignore parent))
   (multiple-value-bind
       ;; Coordinates in parent space
       (target-left target-top target-right target-bottom)
@@ -235,6 +242,12 @@
 (defmethod update-mirror-transformation ((port port) (sheet mirrored-sheet-mixin))
   ;; Compute transformation from sheet-region to mirror cordinates. I
   ;; would imagine that a lot of the time this would be identity
+  (update-mirror-transformation-1 port 
+				  sheet
+				  (sheet-parent sheet)))
+
+(defmethod update-mirror-transformation-1 ((port port) sheet parent)
+  (declare (ignore parent))
   (multiple-value-bind
       (mirror-left mirror-top mirror-right mirror-bottom)
       (mirror-inside-edges* port sheet)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.3 92/01/31 14:56:42 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.4 92/02/05 21:45:32 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -365,6 +365,10 @@
 
 
 (defmethod set-mirror-geometry (sheet initargs)
+  ;;--- Should we pass in the size of the sheet even though it is
+  ;; liable to be quite stupid
+  ;; We really want to just create the gadgets and then let the layout
+  ;; stuff do everything
   (unless (getf initargs :x)
     (multiple-value-bind
 	(left top right bottom)
@@ -471,11 +475,13 @@
 	  target-top (floor target-top)
 	  w (floor w)
 	  h (floor h))
-    (tk::set-values (sheet-direct-mirror sheet)
-		    :x target-left
-		    :y target-top
-		    :width w
-		    :height h)
+    (change-widget-geometry
+     (sheet-mirror (sheet-parent sheet))
+     (sheet-direct-mirror sheet)
+     :x target-left
+     :y target-top
+     :width w
+     :height h)
     (multiple-value-bind
 	(nx ny nw nh)
 	(tk::get-values (sheet-direct-mirror sheet)

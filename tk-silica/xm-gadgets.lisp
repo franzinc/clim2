@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.7 92/01/31 14:56:29 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.8 92/02/05 21:45:26 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -503,11 +503,8 @@
 ;			 sheet)
   )
 
-
-;; In some ways this behaves like a leaf since the management of the
-;; children is left to the row column widget
-
-(defclass  motif-radio-box (mirrored-sheet-mixin
+(defclass  motif-radio-box (motif-geometry-manager
+			    mirrored-sheet-mixin
 			    sheet-multiple-child-mixin
 			    sheet-permanently-enabled-mixin
 			    radio-box
