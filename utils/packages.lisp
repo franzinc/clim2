@@ -16,11 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-<<<<<<< packages.lisp
-;; $Id: packages.lisp,v 1.106.2.2.4.3 2000/08/17 03:38:43 layer Exp $
-=======
-;; $Id: packages.lisp,v 1.106.2.2.4.3 2000/08/17 03:38:43 layer Exp $
->>>>>>> 1.106.2.2.8.4
+;; $Id: packages.lisp,v 1.106.2.2.4.4 2000/08/17 03:39:00 layer Exp $
 
 (in-package :common-lisp-user)
 
