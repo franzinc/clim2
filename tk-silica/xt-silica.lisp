@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.51 92/10/28 11:33:24 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.52 92/10/28 13:17:48 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -152,49 +152,56 @@
   "When non NIL and nothing better exists use this as the fallback font")
 
 (defmethod initialize-xlib-port ((port xt-port) display)
-  (setf (port-undefined-text-style port)
-	(standardize-text-style 
-	  port (make-text-style :stand-in-for-undefined-style :roman 10)))
-  (flet ((font->text-style (font family)
-	   (let* ((tokens (disassemble-x-font-name font))
-		  (italic (member (fifth tokens) '("i" "o") :test #'equalp))
-		  (bold (equalp (fourth tokens) "Bold"))
-		  (face (if italic
-			    (if bold '(:bold :italic) :italic)
+  (let* ((screen (x11:xdefaultscreen display))
+	 ;;-- This is a property of the graft
+	 (screen-pixels-per-inch
+	  (* 25.4 (/ (x11::xdisplayheight display screen)
+		     (x11:xdisplayheightmm display screen)))))
+    (setf (port-undefined-text-style port)
+      (standardize-text-style 
+       port (make-text-style :stand-in-for-undefined-style :roman 10)))
+    (flet ((font->text-style (font family)
+	     (let* ((tokens (disassemble-x-font-name font))
+		    (italic (member (fifth tokens) '("i" "o") :test #'equalp))
+		    (bold (equalp (fourth tokens) "Bold"))
+		    (face (if italic
+			      (if bold '(:bold :italic) :italic)
 			    (if bold :bold :roman)))
-		  (designed-point-size (parse-integer (ninth tokens)))
-		  (designed-y-resolution (parse-integer (nth 10 tokens)))
-		  (point-size (float designed-point-size))
-		  (size (/ point-size 10)))
-	     (make-text-style family face size))))
-    (dolist (family-stuff *xt-font-families*)
-      (let ((family (car family-stuff)))
-	(dolist (font-pattern (cdr family-stuff))
-	  (dolist (xfont (tk::list-font-names display font-pattern))
-	    (let ((text-style (font->text-style xfont family)))
-	      ;; prefer first font satisfying this text style, so
-	      ;; don't override if we've already defined one.
-	      (unless (text-style-mapping-exists-p
-			port text-style *standard-character-set* t)
-		(setf (text-style-mapping port text-style) xfont)))))
-	;; Now build the logical size alist for the family
-	))
-    (let (temp)
-      (cond ((setq temp
-		   (dolist (family *xt-font-families*)
-		     (when (text-style-mapping-exists-p port `(,(car family) :roman 10))
-		       (return (make-text-style (car family) :roman 10)))))
-	     (setf (text-style-mapping port (port-undefined-text-style port)) temp))
-	    ;; Perhaps we should look for some other conveniently sized
-	    ;; fonts.
-	    (*xt-fallback-font*
-	     (setf (text-style-mapping port (port-undefined-text-style port))
-		   (make-instance 'tk::font 
-				  :display display
-				  :name *xt-fallback-font*)))
+		    (designed-point-size (parse-integer (ninth tokens)))
+		    (designed-y-resolution (parse-integer (nth 10 tokens)))
+		    (point-size (* (float designed-point-size)
+				   (/ designed-y-resolution
+				      screen-pixels-per-inch)))
+		    (size (/ point-size 10)))
+	       (make-text-style family face size))))
+      (dolist (family-stuff *xt-font-families*)
+	(let ((family (car family-stuff)))
+	  (dolist (font-pattern (cdr family-stuff))
+	    (dolist (xfont (tk::list-font-names display font-pattern))
+	      (let ((text-style (font->text-style xfont family)))
+		;; prefer first font satisfying this text style, so
+		;; don't override if we've already defined one.
+		(unless (text-style-mapping-exists-p
+			 port text-style *standard-character-set* t)
+		  (setf (text-style-mapping port text-style) xfont)))))
+	  ;; Now build the logical size alist for the family
+	  ))
+      (let (temp)
+	(cond ((setq temp
+		 (dolist (family *xt-font-families*)
+		   (when (text-style-mapping-exists-p port `(,(car family) :roman 10))
+		     (return (make-text-style (car family) :roman 10)))))
+	       (setf (text-style-mapping port (port-undefined-text-style port)) temp))
+	      ;; Perhaps we should look for some other conveniently sized
+	      ;; fonts.
+	      (*xt-fallback-font*
+	       (setf (text-style-mapping port (port-undefined-text-style port))
+		 (make-instance 'tk::font 
+				:display display
+				:name *xt-fallback-font*)))
 	    ;;; Perhaps we should just grab the first font we can find.
-	    (t
-	     (error "Unable to determine default font")))))
+	      (t
+	       (error "Unable to determine default font"))))))
   (setup-opacities port display))
 
 (defparameter *xt-logical-size-alist*

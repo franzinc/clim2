@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.15 92/09/30 18:04:24 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.16 92/10/28 08:20:08 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -83,21 +83,13 @@
     (tenuring
      #-ignore
      (clim-defsys::load-system 'clim-demo)))
-  
-  #+:allegro-v4.1
-  (when (probe-file "/scm/4.1/sparc/src/code/")
-    (let ((sys::*require-search-list*
-	   (cons (make-pathname :directory "/scm/4.1/sparc/src/code/"
-				:type "fasl")
-		 sys::*require-search-list*))
-	  (sys::*load-search-list*
-	   (cons
-	    (make-pathname :directory "/scm/4.1/sparc/src/code/")
-	    sys::*load-search-list*)))
-      (tenuring (require :composer)))
-  
-    (set (intern :*clm-binary-directory* ':xtk) "/scm/4.1/sparc/src/"))
 
+  (when (probe-file "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+    (load "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+    (tenuring (clim-defsys::load-system 'clim-toys)))
+  
+  (ignore-errors (tenuring (require :composer)))
+   
   (tenuring
 	(ignore-errors
 	 (load (case sys

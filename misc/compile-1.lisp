@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.11 92/09/30 18:04:22 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.12 92/10/28 13:17:42 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -73,6 +73,9 @@
   (load "demo/sysdcl")
   (clim-defsys::compile-system 'clim-demo :propagate t)
   (load "compatibility/sysdcl.lisp")
+  (when (probe-file "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+    (load "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+    (clim-defsys::compile-system 'clim-toys))
   #+ignore
   (clim-defsys::compile-system 'clim-compatibility :propagate t))
 

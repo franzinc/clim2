@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.2 92/10/01 08:51:16 cer Exp Locker: cer $
+;; $fiHeader: activities.lisp,v 1.3 92/10/02 15:19:17 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -123,6 +123,9 @@
 ;; An application frame that participates in an activity
 (defclass activity-frame (standard-application-frame)
     ((activity :initform nil :accessor frame-activity :initarg :activity)))
+
+(defmethod initialize-instance :after ((frame activity-frame) &key activity)
+  (assert activity () "An activity frame requires an activity"))
 
 ;; Starts an application frame and registers it in the activity
 (defmethod start-application-frame ((activity activity) frame-name &rest frame-options)

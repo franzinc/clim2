@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.33 92/10/28 08:19:27 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.34 92/10/28 11:31:38 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -285,6 +285,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore present-p))
+  (move-cursor-to-view-position stream view)
   (let ((current-selection nil))
     (flet ((update-gadget (record gadget radio-box)
 	     (declare (ignore gadget record))
@@ -364,6 +365,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore present-p))
+  (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget check-box)
 	   (declare (ignore record gadget))
 	   (let ((current-selection nil))
@@ -446,6 +448,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore default-supplied-p present-p))
+  (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
  	   (setf (gadget-value button) default)))
@@ -471,6 +474,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore present-p))
+  (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
@@ -493,17 +497,19 @@
 		      stream query-identifier))))
 	  (values (outlining () slider) slider))))))
 
+
+(defun move-cursor-to-view-position (stream view)
+  (let* ((initargs (view-gadget-initargs view))
+	 (x (getf initargs :x))
+	 (y (getf initargs :y)))
+    (when (and x y) (stream-set-cursor-position stream x y))))
+
 (define-presentation-method accept-present-default 
 			    ((type integer) stream (view slider-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore present-p))
-  
-  (let* ((initargs (view-gadget-initargs view))
-	 (x (getf initargs :x))
-	 (y (getf initargs :y)))
-    (when (and x y) (stream-set-cursor-position stream x y)))
-  
+  (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
@@ -534,6 +540,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore default-supplied-p present-p))
+  (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget text-field)
  	   (declare (ignore record gadget))
  	   (setf (gadget-value text-field) (present-to-string default type))))
@@ -573,6 +580,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore default-supplied-p present-p))
+  (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
  	   (setf (gadget-value button) default)))
@@ -591,6 +599,7 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore default-supplied-p present-p))
+  (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
  	   (setf (gadget-value button) default)))
@@ -631,7 +640,9 @@
 
 (defun make-list/option-pane-for-ptype (pane-type stream view sequence 
 					name-key value-key test
-					default query-identifier type printer mode)
+					default query-identifier type
+					printer mode)
+  (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget list-pane)
 	   (declare (ignore gadget record))
 	   (setf (gadget-value list-pane) default)

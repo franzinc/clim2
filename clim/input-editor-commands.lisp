@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.19 92/10/02 15:19:36 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.20 92/10/28 11:31:43 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -38,12 +38,12 @@
     (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
     (cond ((atom gestures)
 	   (assert (bucky-char-p gestures) (gestures)
-		   "~S does not correspond to a bucky character" gestures)
+		   "~S does not correspond to a gesture" gestures)
 	   (add-aarray-entry gestures function *input-editor-command-aarray*))
 	  (t
 	   (assert (> (length gestures) 1))
 	   (assert (bucky-char-p (first gestures)) (gestures)
-		   "~S does not correspond to a bucky character" gestures)
+		   "~S does not correspond to a gesture" gestures)
 	   ;; We've got a command that wil be bound to a sequence of gestures,
 	   ;; so set up the prefix tables.
 	   (let ((aarray *input-editor-command-aarray*))
