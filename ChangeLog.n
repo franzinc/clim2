@@ -1,3 +1,7 @@
+Wed Feb  9 23:09:25 1994  George Jacob  (georgej@lava)
+
+	* tk/xm-init.cl: Corrected symbol to be "XtToolkitInitialize"
+
 Tue Feb  8 11:20:08 1994  George Jacob  (georgej@lava)
 
 * Makefile.sun4-svr4: Used MOTIFXTRAOS for ucl.clim rule

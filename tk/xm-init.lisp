@@ -35,7 +35,7 @@
 
 
 #+svr4
-(unless (ff::symbol-in-main-symbol-table-p "xt_toolkit_initialize")
+(unless (ff::symbol-in-main-symbol-table-p "XtToolkitInitialize")
   (defun reinitialize-toolkit ()
     (xt_toolkit_initialize)
     (setup-error-handlers)
