@@ -13,6 +13,13 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 <no version change>
 
+2003-04-30  Kevin Layer  <layer@crikey>
+
+    for bug12007:
+	* Makefile.cobjs,
+	* Makefile.linux,
+	* Makefile.wnn: add -lpthread on linux
+
 2003-01-13  Kevin Layer  <layer@crikey>
 
 	* Makefile.macosx: work in progress
