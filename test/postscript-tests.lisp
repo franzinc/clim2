@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.6 93/03/19 09:46:31 cer Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.7 93/03/31 10:39:42 cer Exp $
 
 (in-package :clim-user)
 
@@ -146,12 +146,12 @@
 
 
 (defun send-output-to-file (continuation)
-  (with-open-file
-      (file-stream "postscript.output" :direction :output :if-exists :supersede)
-    (invoke-with-output-to-printer-stream 
-     (frame-printer-type *application-frame*)
-     file-stream
-     continuation)))
+  (let ((type (frame-printer-type *application-frame*)))
+    (with-open-file (file-stream (format nil "~A.output" (string-downcase type)) :direction :output :if-exists :supersede)
+      (invoke-with-output-to-printer-stream 
+       type
+       file-stream
+       continuation))))
 
 (defun send-output-to-printer (continuation)
   (invoke-with-pipe-to-printer

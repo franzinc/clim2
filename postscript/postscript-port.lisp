@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.16 93/03/19 09:44:27 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.17 93/03/31 10:39:21 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -750,7 +750,7 @@ end } def
 
 (defmethod initialize-instance :after ((port postscript-port) &key)
   (with-slots (silica::default-palette) port
-    (setf silica::default-palette (make-instance 'postscript-palette))))
+    (setf silica::default-palette (make-palette port))))
 
 (defmethod realize-graft ((port postscript-port) (graft standard-graft))
   (with-slots (page-width page-height) port

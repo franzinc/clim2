@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.14 92/11/09 19:54:58 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.15 92/12/03 10:27:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -61,13 +61,12 @@
 (defun pixmap-from-menu-item (associated-window menu-item printer presentation-type
 			      &optional text-style)
   (with-menu (menu associated-window)
-    (setf (stream-text-margin menu) 1000)
     (let ((record (with-output-recording-options (menu :draw nil :record t)
 		    (with-output-to-output-record (menu)
 		      (handler-case
-			(with-text-style (menu text-style)
-			  (if presentation-type
-			      (present menu-item presentation-type :stream menu)
+			  (with-text-style (menu text-style)
+			    (if presentation-type
+				(present menu-item presentation-type :stream menu)
 			      (funcall printer menu-item menu)))
 			(error ()
 			  (write-string "Error in printer" menu)))))))
@@ -77,6 +76,30 @@
 	  (draw-rectangle* stream 0 0 width height
 			   :ink +background-ink+ :filled t)
 	  (replay-output-record
-	    record stream +everywhere+
-	    (- (bounding-rectangle-left record))
-	    (- (bounding-rectangle-top record))))))))
+	   record stream +everywhere+
+	   (- (bounding-rectangle-left record))
+	   (- (bounding-rectangle-top record))))))))
+
+;;; This code would be nice to use since it will eliminate the
+;;; creation of a whole bunch of pixmaps. However, quite often you get
+;;; multiple text output records and presentations. I suppose in
+;;; theory this could be handled by making sure that the
+;;; text-output-records line up nicely but........ This is tricky and
+;;; will be more efficient than creating a pixmap?
+
+#+ignore
+(defun find-single-text-output-record (record)
+  ;; If the output history contains just one text output record
+  ;; nested inside presentations and boring types of composite output
+  ;; records then return it
+  (loop
+    (let ((class (class-of record)))
+      (cond ((or (eq class (find-class 'standard-presentation))
+		 (eq class (find-class 'standard-sequence-output-record)))
+	     (if (= (output-record-count record) 1)
+		 (setq record (output-record-element record 0)) 
+	       (return nil)))
+	    ((eq class (find-class 'standard-text-output-record))
+	     (return record))
+	    (t (return nil))))))
+

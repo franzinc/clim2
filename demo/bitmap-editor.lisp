@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.12 92/12/16 16:47:20 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.13 93/01/18 13:55:01 cer Exp $
 
 (in-package :clim-demo)
 
@@ -63,30 +63,30 @@
       (formatting-item-list (stream :n-columns 2 :x-spacing 30)
 	(formatting-cell (stream)
 	  (setf current-color
-		(position
-		  (accept `((completion ,colors)
-			    :name-key ,#'identity
-			    :printer ,#'display-color)
-			  :view '(radio-box-view 
-				   :orientation :vertical
-				   :toggle-button-options (:indicator-type nil))
-			  :stream stream
-			  :default (nth current-color colors)
-			  :prompt "Colors")
-		  colors)))
+	    (position
+	     (accept `((completion ,colors)
+		       :name-key ,#'identity
+		       :printer ,#'display-color)
+		     :view '(radio-box-view 
+			     :orientation :vertical
+			     :toggle-button-options (:indicator-type nil))
+		     :stream stream
+		     :default (nth current-color colors)
+		     :prompt "Colors")
+	     colors)))
 	(formatting-cell (stream)
 	  (formatting-item-list (stream :n-columns 1 :y-spacing 10)
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
-		  "Add Color"
+		"Add color"
 		(add-new-color frame)))
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
-		  "Edit Color"
+		"Edit Color"
 		(replace-current-color frame)))
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
-		  "Delete Color"
+		"Delete Color"
 		(delete-current-color frame)))))))))
 
 
