@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.7 92/01/31 14:59:11 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.8 92/01/31 17:51:05 cer Exp Locker: cer $
 
 SOMEDIRS=sys utils silica clim demo
 DIRS=$(SOMEDIRS) xlib tk xm-silica misc
@@ -31,7 +31,7 @@ xm-dcl:
 
 dist	:
 	gtar -z -cf - \
-	*/*.lisp */*.cl Makefile \
+	*/*.lisp *.lisp Makefile \
 	> Dist/src.tar.Z
 
 rcscheck:
