@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.12 93/03/19 09:47:30 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.13 93/03/31 10:40:41 cer Exp $
 
 (in-package :clim-utils)
 
@@ -359,7 +359,7 @@
 
 ;;; Special cases for bounding rectangles
 
-(defclass standard-rectangle-set (region-set bounding-rectangle)
+(defclass standard-rectangle-set (region-set)
     ((left   :initarg :left :type coordinate)
      (top    :initarg :top  :type coordinate)
      (right  :initarg :right  :type coordinate)
