@@ -1,3 +1,7 @@
+Fri Oct 18 13:25:28 1996  Kevin Layer  <layer@freezer>
+
+	* .cvsignore: add stub-wnn.c
+
 *******************************************************************************
 4.3.2.pre-alpha.114
 
