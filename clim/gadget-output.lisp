@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.38 92/11/09 19:54:54 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.39 92/11/13 14:45:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -593,7 +593,7 @@
     ((type t) stream (view text-field-view)
 	      default default-supplied-p present-p query-identifier
 	      &key  (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p))
+   (declare (ignore default-supplied-p present-p))
   (make-gadget-for-text-field-view stream view active-p default type prompt query-identifier t))
 
 ;;;-- This is boring. We need a whole bunch of methods to shadow those
@@ -627,33 +627,51 @@
 	     (deactivate-gadget text-field))
  	   (setf (gadget-value text-field) (present-to-string default type))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((text-field (make-pane-from-view 'text-field view
-					     :label (and (stringp prompt) prompt)
-					     :value (present-to-string default type)
-					     :client stream :id query-identifier
-					     :editable-p editable-p
-					     :value-changed-callback
-					     (and editable-p
-						  `(accept-values-string-field-changed-callback
-						    ,stream ,query-identifier))
-					     :active active-p)))
+      (let ((text-field (make-pane-from-view 
+			 'text-field view
+			 :label (and (stringp prompt) prompt)
+			 :value (present-to-string default type)
+			 :client stream :id query-identifier
+			 :editable-p editable-p
+			 :value-changed-callback
+			 `(accept-values-note-text-field-changed-callback
+			   ,query-identifier)
+			 :focus-out-callback
+			 ;;---why do we check for editable-p?? if it
+			 ;;is read-only won't this callback never be
+			 ;;called?? (cim) 
+			 (and editable-p
+			      `(accept-values-string-field-changed-callback
+				,stream ,query-identifier))
+			 :active active-p)))
  	(values text-field text-field)))))
+
+(defmethod accept-values-note-text-field-changed-callback
+    ((gadget text-field) new-value query)
+  (declare (ignore new-value))
+  (setf (accept-values-query-changed-p query) t))
 
 ;;--- This is mostly nonsense.  If we enter something that is an error then
 ;;--- the field value is unchanged.  What is the right thing to do?
+
 (defmethod accept-values-string-field-changed-callback
-	   ((gadget text-field) new-value stream query)
-  (when (accept-values-query-valid-p query (accept-values-query-presentation query))
-    ;; Only call the callback if the query is still valid
-    (handler-case
-        (multiple-value-bind (object type index)
-	    (accept-from-string (accept-values-query-type query) new-value)
-	  (declare (ignore type))
-	  (assert (= index (length new-value)))
-	  object)
-      (error ())
-      (:no-error (object)
-       (do-avv-command object stream query)))))
+    ((gadget text-field) stream query)
+  (let ((new-value (gadget-value gadget)))
+    ;; only do the accept when the field has changed
+    (when (and (accept-values-query-changed-p query)
+	       (accept-values-query-valid-p query 
+					    (accept-values-query-presentation query)))
+      ;; Only call the callback if the query is still valid
+      (handler-case
+	  (multiple-value-bind (object type index)
+	      (accept-from-string (accept-values-query-type query) new-value)
+	    (declare (ignore type))
+	    (assert (= index (length new-value)))
+	    object)
+	(error () (setf (accept-values-query-error-p query) t))
+	(:no-error (object)
+	  (setf (accept-values-query-error-p query) nil)
+	  (do-avv-command object stream query))))))
 
 ;; The string case is straightforward
 (define-presentation-method decode-indirect-view

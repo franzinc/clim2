@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.43 92/11/09 19:54:44 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.44 92/11/13 14:45:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -50,7 +50,9 @@
       (changed-p :initform nil
 		 :accessor accept-values-query-changed-p)
       (active-p :initform t
-		:accessor accept-values-query-active-p))
+		:accessor accept-values-query-active-p)
+      (error-p :initform nil
+	       :accessor accept-values-query-error-p))
   (:default-initargs :presentation nil))
 
 (defresource accept-values-stream (stream)
@@ -786,7 +788,21 @@
 
 (define-accept-values-command (com-exit-avv :keystroke :end)
     ()
-  (frame-exit *application-frame*))
+  (with-slots (stream) *application-frame*
+    (let ((avv-record (slot-value stream 'avv-record))
+	  (query-ids nil))
+      (map-over-accept-values-queries avv-record
+	#'(lambda (record unique-id)
+	    (declare (ignore record))
+	    (when (accept-values-query-error-p (find-query avv-record unique-id))
+	      (push unique-id query-ids))))
+      (if query-ids
+	  (notify-user *application-frame*
+		       (format nil "The following fields are not valid:~{ ~A~}"
+			       (mapcar #'cadr query-ids))
+		       :title "Invalid Fields"
+		       :style :error :exit-boxes '(:exit))
+	(frame-exit *application-frame*)))))
 
 (define-accept-values-command (com-abort-avv :keystroke :abort)
     ()

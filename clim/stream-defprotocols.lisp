@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.11 92/08/18 17:25:38 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.12 92/09/24 09:39:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -187,6 +187,10 @@
 (defoperation stream-scan-character-for-writing fundamental-character-output-stream
   ((stream fundamental-character-output-stream) 
    medium character style cursor-x max-x))
+
+(defoperation stream-next-tab-column fundamental-character-output-stream 
+  ((stream fundamental-character-output-stream) cursor-x style)
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 #+Allegro
 (defoperation excl::stream-interactive-force-output fundamental-output-stream
