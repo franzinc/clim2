@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: base-designs.lisp,v 1.2 92/10/04 14:16:12 cer Exp $
+
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
-"Portions Copyright (c) 1992 Franz, Inc.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Franz, Inc.  All rights reserved."
 
-;;; $fiHeader: base-designs.lisp,v 1.1 92/09/30 18:02:42 cer Exp $
-
-;;; Designs
+;;; Basic designs definitions
 
 ;;; The DESIGN and OPACITY classes are already defined.
 
@@ -64,6 +64,7 @@
   (with-slots (red green blue) color
     `(make-rgb-color ,red ,green ,blue)))
 
+
 (defclass ihs-color (color)
     ((intensity  :type single-float :initarg :intensity)
      (hue	 :type single-float :initarg :hue)
@@ -77,13 +78,40 @@
     `(make-ihs-color ,intensity ,hue ,saturation)))
 
 
+;;; Palettes
+
+(define-protocol-class palette ())
+
+(defclass basic-palette (palette)
+    ((port :reader palette-port :initarg :port)
+     (color-p :reader palette-color-p :initarg :color-p)
+     (mutable-p :reader palette-mutable-p :initarg :mutable-p)
+     (color-cache :reader palette-color-cache :initform (make-hash-table))
+     (mutable-color-cache :reader palette-mutable-color-cache
+			  :initform (make-hash-table))
+     (color-group-cache :reader palette-color-group-cache
+			:initform (make-hash-table))
+     (delayed-mutations :reader palette-delayed-mutations
+			:initform (make-array 32 :adjustable t :fill-pointer 0))))
+
+(defgeneric make-palette (port &key))
+
+(defparameter *all-palettes* nil)
+
+(defmethod initialize-instance :after ((palette basic-palette) &key)
+  (setq *all-palettes* (nconc *all-palettes* (list palette))))
+
+(defgeneric update-palette-entry (palette pixel color))
+(defgeneric update-palette-entries (palette updates))
+
+
 ;;; Mutable Colors 
 
-(defclass mutable-color (design)
-  ((color :accessor mutable-color-color :initarg :color)
-   (palettes :type list 
-	     :initform nil
-	     :accessor mutable-color-palettes)))
+(defclass mutable-color (color)
+    ((color :accessor mutable-color-color :initarg :color)
+     (palettes :type list 
+	       :initform nil
+	       :accessor mutable-color-palettes)))
 
 (define-constructor make-mutable-color-1 mutable-color (color) 
 		    :color color)
@@ -92,13 +120,13 @@
   (with-slots (color) color
     `(make-mutable-color ,color)))
 
-
+
 ;;; Color Groups
 
 (defclass color-group ()
-  ((layers :initform nil :reader color-group-layers :initarg :layers)
-   (cache :initform (make-hash-table :test #'equal) :reader color-group-cache)
-   (mutable-array :reader color-group-mutable-array :initarg :mutable-array)))
+    ((layers :initform nil :reader color-group-layers :initarg :layers)
+     (cache :initform (make-hash-table :test #'equal) :reader color-group-cache)
+     (mutable-array :reader color-group-mutable-array :initarg :mutable-array)))
 
 (define-constructor make-color-group color-group (&rest layers)
 		    :layers layers
@@ -107,12 +135,26 @@
 (defgeneric group-color (color-group &rest layers))
 
 (defclass group-color (design)
-  ((group :reader group-color-group :initarg :group)
-   (layers :initform nil :reader group-color-layers :initarg :layers)
-   (mutables :initform nil))) 
+    ((group :reader group-color-group :initarg :group)
+     (layers :initform nil :reader group-color-layers :initarg :layers)
+     (mutables :initform nil))) 
    
 (define-constructor make-group-color group-color (group layers)
 		    :group group :layers layers)
+
+
+;;; Foreground and background (indirect) inks
+
+(defconstant +foreground-ink+ (make-instance 'design))
+
+(defmethod make-load-form ((design (eql (symbol-value '+foreground-ink+))))
+  '+foreground-ink+)
+
+
+(defconstant +background-ink+ (make-instance 'design))
+
+(defmethod make-load-form ((design (eql (symbol-value '+background-ink+))))
+  '+background-ink+)
 
 
 ;;; Flipping inks
@@ -182,10 +224,17 @@
      (width  :type real   :initarg :width)
      (height :type real   :initarg :height)))
 
+(defun make-rectangular-tile (design width height)
+  #+Genera (declare lt:(side-effects simple reducible))
+  (check-type width fixnum)
+  (check-type height fixnum)
+  (make-instance 'rectangular-tile :design design :width width :height height))
+
 (defmethod make-load-form ((tile rectangular-tile))
   (with-slots (design width height) tile
     (values `(make-instance 'rectangular-tile :width ,width :height ,height)
 	    `(setf (slot-value ',tile 'design) ',design))))
+
 
 ;;; Composite designs
 
@@ -197,6 +246,7 @@
     (values '(make-instance 'composite-over)
 	    `(setf (slot-value ',design 'designs) ',designs))))
 
+
 (defclass composite-in (design)
     ((designs :type vector :initarg :designs)))
 
@@ -204,6 +254,7 @@
   (with-slots (designs) design
     (values '(make-instance 'composite-in)
 	    `(setf (slot-value ',design 'designs) ',designs))))
+
 
 (defclass composite-out (design)
     ((designs :type vector :initarg :designs)))

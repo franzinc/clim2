@@ -1,19 +1,16 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: cloe-activities.lisp,v 1.1 92/10/01 10:03:47 cer Exp $
 
 (in-package :cloe-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
+
 (defun run-cloe-application (name &key (port (find-port)))
-  (win::start-windows)
-  (unwind-protect
-      (progn
-	(win::show-window (win::get-term-window) :type :minimize)
-	(run-frame-top-level 
-	  (make-application-frame name :frame-manager (find-frame-manager :port port))))
-    (win::stop-windows)))
+  (win::show-window (win::get-term-window) :type :minimize)
+  (run-frame-top-level 
+    (make-application-frame name :frame-manager (find-frame-manager :port port))))
 
 (defun cloe-debugger-hook (condition hook)
   (declare (ignore hook))

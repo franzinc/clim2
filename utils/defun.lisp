@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defun.lisp,v 1.6 92/07/20 15:59:37 cer Exp $
+;; $fiHeader: defun.lisp,v 1.7 92/10/02 15:18:45 cer Exp $
 
 (in-package :clim-utils)
 
@@ -52,6 +52,8 @@
 ;;;
 
 
+(defvar *function-symbol* (first '#'car))
+
 ;;; The heart of function body processing:
 (lisp:defun decode-function (lambda-list body environment
 			     &key clos-method-p function-name downward-p generic-function-p)
@@ -130,7 +132,7 @@
 		  (typecase de
 		    (symbol (make-dynamic de))
 		    (list (if (and (null (cddr de)) 
-				   (or (eq (first de) 'function)
+				   (or (eq (first de) *function-symbol*)
 				       #+Genera (eq (first de) 'zl:::scl:function)))
 			      (progn
 				(warn "You probably meant ~S intead of ~S"
@@ -186,25 +188,22 @@
     #+(and Genera (not Genera-Release-8-0)) (dynamic-extent ,@args)))
 
 (lisp:defun generate-downward-rest-declarations (args)
-  #+(or Genera Cloe-Runtime) (declare (ignore args))
+  #+Cloe-Runtime (declare (ignore args))
   `(#+Cloe-Runtime (sys:downward-rest-argument)
-    #+(or Allegro Lucid) (dynamic-extent ,@args)))
+    #+(or Genera Allegro Lucid) (dynamic-extent ,@args)))
 
 #+Genera (defparameter *warn-about-copied-rest-args* t)
 
 (lisp:defun generate-rest-code (args non-dynamic-vars)
   #-Genera (declare (ignore args non-dynamic-vars))
   #+Genera
-  (let ((code nil)
-	(warn (not (null (set-difference args non-dynamic-vars)))))
-    (dolist (arg args)
-      (push `(setf ,arg (copy-list ,arg)) code))
+  (let ((warn (not (null (set-difference args non-dynamic-vars)))))
     (when (and warn *warn-about-copied-rest-args*)
       (let ((singular-p (null (cdr args))))
 	(warn "The rest argument~:[s~] ~{~S~^, ~} will be copied at runtime ~
 	     because ~:[they are~;it is~] not declared to have dynamic extent."
-	      singular-p args singular-p)))
-    (nreverse code)))
+	      singular-p args singular-p))))
+  nil)
 
 (defmacro with-new-function ((ll-var body-var)
 			     (lambda-list orig-body
@@ -217,12 +216,18 @@
 			:clos-method-p ,clos-method-p :function-name ,function-name
 			:downward-p ,downward-p)
      ,@body))
+
+(eval-when (compile load eval)
+(lisp:defun lintern (symbol)
+  (intern (symbol-name symbol) #+Genera :future-common-lisp #-Genera :lisp))
+)
+
 
 ;;; DEFUN: simple use of above.
 
 (defmacro defun (name lambda-list &body body &environment env)
   (with-new-function (ll b) (lambda-list body :environment env :function-name name)
-    `(lisp:defun ,name ,ll ,@b)))
+    `(,(lintern 'defun) ,name ,ll ,@b)))
 
 #+Genera
 (progn
@@ -248,7 +253,7 @@
 		  (when (eq (first decl-form) 'dynamic-extent)
 		    (dolist (de (cdr decl-form))
 		      (if (and (listp de) (null (cddr de))
-			       (or (eq (first de) 'function)
+			       (or (eq (first de) *function-symbol*)
 				   #+Genera (eq (first de) 'zl:::scl:function)))
 			  (let ((downward-name (second de)))
 			    (if (assoc downward-name functions)
@@ -279,13 +284,13 @@
   #+++ignore `((declare (dynamic-extent ,@(mapcar #'(lambda (fn) `#',fn) functions)))))
 
 (defmacro flet (functions &body body &environment env)
-  (construct-local-function-body 'lisp:flet functions body env))
+  (construct-local-function-body (lintern 'flet) functions body env))
 
 #+Genera
 (pushnew 'flet zwei:*definition-list-functions*)
 
 (defmacro labels (functions &body body &environment env)
-  (construct-local-function-body 'lisp:labels functions body env))
+  (construct-local-function-body (lintern 'labels) functions body env))
 
 #+Genera
 (pushnew 'labels zwei:*definition-list-functions*)

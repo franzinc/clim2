@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.32 92/10/02 15:18:52 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.33 92/10/04 14:16:15 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -277,6 +277,10 @@
  (:import-from cloe
    destructuring-bind
    with-standard-io-syntax)
+
+ #+Cloe-Runtime
+ (:import-from clos-internals
+   dynamic-extent)
 
  #+Lucid
  (:import-from lucid-common-lisp
@@ -1499,7 +1503,7 @@
 
 
 ;; Define the CLIM package
-(#-(Or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
   (:use)				;use nothing
   (:import-from clim-lisp
     and
@@ -1903,10 +1907,6 @@
     standard-sheet-output-mixin
     temporary-medium-sheet-output-mixin
     timer-event
-    update-mirror-region
-    update-mirror-region-1
-    update-mirror-transformation
-    update-mirror-transformation-1
     using-display-medium
     window-configuration-event
     window-event
@@ -1923,7 +1923,7 @@
     with-sheet-medium-bound
     
     ;; Drawing options
-    contrasting-dash-pattern-limit
+    contrasting-dash-patterns-limit
     invoke-with-drawing-options
     line-style
     line-style-cap-shape
@@ -2044,19 +2044,6 @@
     opacity-value
     opacityp
     with-delayed-mutations
-
-    ;; Palettes
-    
-    palette
-    palette-color-p
-    palette-mutable-p
-    palettep
-    make-palette
-    port-default-palette
-    medium-palette
-    sheet-palette
-    frame-palette
-    frame-manager-palette
     
     ;; Designs
     compose-in
@@ -2070,6 +2057,18 @@
     pattern-height
     pattern-width
     
+    ;; Palettes
+    frame-manager-palette
+    frame-palette
+    make-palette
+    medium-palette
+    palette
+    palette-color-p
+    palette-mutable-p
+    palettep
+    port-default-palette
+    sheet-palette
+
     ;; Extended output
     beep
     cursor
@@ -2899,132 +2898,6 @@
     +yellow+
     +black+
     +white+)
-  
-  ;; Stupid CLX color names
-  (:export
-    +alice-blue+
-    +antique-white+
-    +aquamarine+
-    +azure+
-    +beige+
-    +bisque+
-    +black+
-    +blanched-almond+
-    +blue-violet+
-    +brown+
-    +burlywood+
-    +cadet-blue+
-    +chartreuse+
-    +chocolate+
-    +coral+
-    +cornflower-blue+
-    +cornsilk+
-    +dark-goldenrod+
-    +dark-green+
-    +dark-khaki+
-    +dark-olive-green+
-    +dark-orange+
-    +dark-orchid+
-    +dark-salmon+
-    +dark-sea-green+
-    +dark-slate-blue+
-    +dark-slate-gray+
-    +dark-turquoise+
-    +dark-violet+
-    +deep-pink+
-    +deep-sky-blue+
-    +dim-gray+
-    +dodger-blue+
-    +firebrick+
-    +floral-white+
-    +forest-green+
-    +gainsboro+
-    +ghost-white+
-    +gold+
-    +goldenrod+
-    +gray+
-    +green-yellow+
-    +honeydew+
-    +hot-pink+
-    +indian-red+
-    +ivory+
-    +khaki+
-    +lavender+
-    +lavender-blush+
-    +lawn-green+
-    +lemon-chiffon+
-    +light-blue+
-    +light-coral+
-    +light-cyan+
-    +light-goldenrod+
-    +light-goldenrod-yellow+
-    +light-gray+
-    +light-pink+
-    +light-salmon+
-    +light-sea-green+
-    +light-sky-blue+
-    +light-slate-blue+
-    +light-slate-gray+
-    +light-steel-blue+
-    +light-yellow+
-    +lime-green+
-    +linen+
-    +maroon+
-    +medium-aquamarine+
-    +medium-blue+
-    +medium-orchid+
-    +medium-purple+
-    +medium-sea-green+
-    +medium-slate-blue+
-    +medium-spring-green+
-    +medium-turquoise+
-    +medium-violet-red+
-    +midnight-blue+
-    +mint-cream+
-    +misty-rose+
-    +moccasin+
-    +navajo-white+
-    +navy-blue+
-    +old-lace+
-    +olive-drab+
-    +orange+
-    +orange-red+
-    +orchid+
-    +pale-goldenrod+
-    +pale-green+
-    +pale-turquoise+
-    +pale-violet-red+
-    +papaya-whip+
-    +peach-puff+
-    +peru+
-    +pink+
-    +plum+
-    +powder-blue+
-    +purple+
-    +rosy-brown+
-    +royal-blue+
-    +saddle-brown+
-    +salmon+
-    +sandy-brown+
-    +sea-green+
-    +seashell+
-    +sienna+
-    +sky-blue+
-    +slate-blue+
-    +slate-gray+
-    +snow+
-    +spring-green+
-    +steel-blue+
-    +tan+
-    +thistle+
-    +tomato+
-    +turquoise+
-    +violet+
-    +violet-red+
-    +wheat+
-    +white+
-    +white-smoke+
-    +yellow-green+)
 
   ;; Need to export these since not everybody hacks SETF* yet
   (:export
@@ -3370,7 +3243,9 @@
     point-on-thick-ellipse-p
     radians->degrees
 
-    ;; From DESIGNS
+    ;; From BASE-DESIGNS and DESIGNS
+    *all-palettes*
+    basic-palette
     color-group
     color-group-layers
     color-group-mutable-array
@@ -3398,13 +3273,24 @@
     map-over-group-colors    
     mutable-color
     mutable-color-palettes
+    palette-color-cache
+    palette-mutable-color-cache
+    palette-color-group-cache
+    palette-delayed-mutations
     pattern
     rectangular-tile
     rgb-color
     stencil
     stencil-array
     update-palette-entry
-    update-palette-entries))
+    update-palette-entries
+
+    ;; Others
+    *modifier-keys*
+    button-index-name
+    command-name-from-symbol
+    modifier-key-index
+    modifier-key-index-name))
 
 
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-silica
@@ -3432,7 +3318,8 @@
 
   (:export
     *all-drawing-options*
-    *all-palettes*
+    *default-pane-background*
+    *default-pane-foreground*
     *modifier-keys*
     *null-text-style*
     *pointer-buttons*
@@ -3444,7 +3331,6 @@
     add-sheet-callbacks
     all-drawing-options-lambda-list
     allocate-event
-    basic-palette
     basic-pixmap-medium
     bury-mirror
     canvas
@@ -3458,7 +3344,6 @@
     clear-space-requirement-caches-in-tree
     click-event
     client-overridability-mixin
-    color-p
     compute-gadget-label-size
     compute-list-pane-selected-items
     compute-menu-bar-pane
@@ -3467,7 +3352,6 @@
     compute-text-y-adjustment
     copy-event
     deallocate-event
-    default-palette
     default-space-requirements
     define-character-face
     define-character-face-added-mappings
@@ -3479,6 +3363,7 @@
     define-text-style-mappings-1 
     display-device 
     distribute-event-1
+    drag-gadget-event
     draw-gadget-label
     fetch-medium-drawable
     find-port-type
@@ -3497,8 +3382,10 @@
     frame-user-specified-size-p
     frame-wrapper
     gadget-alignment
+    gadget-columns
     gadget-editable-p
     gadget-event
+    gadget-lines
     gadget-supplied-scrolling
     gadget-visible-items
     generic-label-pane
@@ -3550,16 +3437,13 @@
     mirror-visible-p
     mirrored-sheet-mixin
     modifier-keysym
-    mutable-p
     mute-repainting-mixin
     non-drawing-option-keywords
     note-layout-mixin-region-changed
+    note-sheet-tree-grafted
     one-of-pane
     option-pane
-    palette-color-cache
-    palette-mutable-color-cache
-    palette-color-group-cache
-    palette-delayed-mutations
+    pane-contents
     parse-gesture-spec
     pixmap
     pixmap-from-menu-item
@@ -3573,7 +3457,6 @@
     port-allocate-pixmap
     port-canonical-gesture-specs
     port-canonicalize-gesture-spec
-    port-color-cache
     port-deallocate-pixmap
     port-display
     port-draw-cursor
@@ -3608,6 +3491,9 @@
     scroll-bar-value
     scroll-bar-value-changed-callback
     scrollable-pane
+    scroller-pane-gadget-supplies-scrolling-p
+    scroller-pane-horizontal-scroll-bar
+    scroller-pane-vertical-scroll-bar
     set-mirror-edges*
     set-mirror-region*
     set-sheet-mirror-edges*
@@ -3622,6 +3508,7 @@
     sheet-permanently-enabled-mixin
     sheet-shell
     sheet-top-level-mirror
+    sheet-top-level-sheet
     slider-decimal-places
     space-requirement+
     space-requirement+*
@@ -3645,11 +3532,16 @@
     transform-position-sequence
     transform-positions
     update-frame-settings
+    update-mirror-region
+    update-mirror-region-1
+    update-mirror-transformation
+    update-mirror-transformation-1
     update-region
     update-scroll-bars
     update-scroll-bar-value
     update-slider-value
     value-changed-gadget-event
+    viewport-contents-extent
     viewport-region-changed
     window-shift-visible-region
     with-medium-clipping-region

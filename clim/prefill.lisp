@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.10 92/09/24 09:39:13 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.11 92/10/02 15:19:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -211,7 +211,7 @@
 		 #+++ignore	;until we fix CLOS
 		 (warn "prefill-dispatch-caches: ~S is not a defined generic function."
 		       function))
-	       (mapcan #'expand-call (cdr clause)))
+	       `(progn ,@(mapcar #'expand-call (cdr clause))))
 	     (expand-call (args)
 	       (dolist (arg args)
 		 (unless (cond ((atom arg) (find-class arg nil env))
@@ -222,7 +222,8 @@
 		   (warn "prefill-dispatch-caches: ~S is not a valid specializer in the ~
 			  arguments to ~S."
 			 arg function)))
-	       `(',function
+	       `(prefill-dispatch-caches-1
+		  ',function
 		 ,(if (some #'needs-evaluation args)
 		      `(list ,@(mapcar #'(lambda (arg)
 					   (if (and (consp arg) (eq (first arg) 'eql))
@@ -241,8 +242,7 @@
 			     (eq (first (second arg)) 'quote)
 			     (typep (second arg)
 				    '(or number character keyword (member t nil))))))))
-      `(prefill-dispatch-caches-1
-	 ,@(mapcan #'expand-clause clauses)))))
+      `(progn ,@(mapcar #'expand-clause clauses)))))
 
 (defun prefill-dispatch-caches-1 (&rest calls)
   (declare (dynamic-extent calls))
@@ -307,9 +307,6 @@
   (compose-translation-with-transformation
     (identity-transformation t t)
     (translation-transformation t t))
-  #+Genera (clos-internals::decode-slot-locative
-	     (translation-transformation t)
-	     (standard-transformation t))
   (describe-object
     (standard-transformation t))
   (invert-transformation
@@ -1653,7 +1650,7 @@
   (drag-callback
     (slider-pane t t t))
   (silica::draw-slider-indicator
-    (slider-pane t))
+    (slider-pane t t))
   (silica::draw-target
     (scroll-bar-target-pane t))
   (silica::draw-thumb
@@ -2376,11 +2373,11 @@
     (scroll-bar-pane))
   ((setf scroll-bar-current-value)
     (t scroll-bar-pane))
-  (silica::scroller-pane-horizontal-scroll-bar
+  (scroller-pane-horizontal-scroll-bar
     (scroller-pane))
   (silica::scroller-pane-scroll-bar-policy
     (scroller-pane))
-  (silica::scroller-pane-vertical-scroll-bar
+  (scroller-pane-vertical-scroll-bar
     (scroller-pane))
   #+Genera (clos-internals::send-if-handles
 	     (interactor-pane t)
@@ -2882,13 +2879,13 @@
     (interactor-pane)
     (application-pane)
     (clim-stream-pane))
-  (stream-compatible-cursor-position
-    (interactor-pane))
-  (stream-compatible-output-as-presentation-1
-    (interactor-pane t t)
-    (application-pane t t))
-  (stream-compatible-size-in-characters
-    (interactor-pane))
+  #+Genera (stream-compatible-cursor-position
+	     (interactor-pane))
+  #+Genera (stream-compatible-output-as-presentation-1
+	     (interactor-pane t t)
+	     (application-pane t t))
+  #+Genera (stream-compatible-size-in-characters
+	     (interactor-pane))
   ((setf stream-current-line-height)
     (t command-menu-pane)
     (t interactor-pane)
@@ -3317,7 +3314,7 @@
   (filling-stream-write-buffer
     (filling-stream))
   (find-or-add-query
-    (accept-values-stream t t t t t t))
+    (accept-values-stream t t t t t t t))
   (get-text-output-record)
   (graft)
   (handle-event)
@@ -3491,10 +3488,10 @@
     (standard-input-editing-stream)
     (filling-stream)
     (accept-values-stream))
-  (stream-compatible-cursor-position
-    (standard-input-editing-stream))
-  (stream-compatible-output-as-presentation-1)
-  (stream-compatible-size-in-characters)
+  #+Genera (stream-compatible-cursor-position
+	     (standard-input-editing-stream))
+  #+Genera (stream-compatible-output-as-presentation-1)
+  #+Genera (stream-compatible-size-in-characters)
   ((setf stream-current-line-height))
   (stream-current-output-record
     (accept-values-stream))
@@ -3683,7 +3680,7 @@
   (stream-accept)
   (stream-character-width)
   (stream-close-text-output-record)
-  (stream-compatible-cursor-position)
+  #+Genera (stream-compatible-cursor-position)
   (stream-current-output-record)
   ((setf stream-current-output-record))
   (stream-current-redisplay-record)
@@ -3778,8 +3775,6 @@
 ;;; (generate-prefill-dispatch-caches 'event)
 
 (prefill-dispatch-caches
-  #+Genera (clos-internals::decode-slot-locative
-	     (pointer-button-event t))
   (describe-object
     (pointer-button-event t))
   (dispatch-event)
@@ -4250,6 +4245,7 @@
 
 ;;; Compile constructors for all sorts of instantiable classes
 
+#+++ignore	;this just doesn't seem to do any good
 (ensure-constructors-compiled
   accept-values
   accept-values-command-button

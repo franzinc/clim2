@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.28 92/09/30 18:03:09 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.29 92/10/02 15:18:01 cer Exp $
 
 (in-package :tk)
 
@@ -349,7 +349,6 @@
 	(error "Could not find ~S in colormap ~S" name colormap)
       (x11:xcolor-pixel closest))))
 
-
 (defun query-color (colormap x)
   ;;--- Resource time
   (let ((y (x11::make-xcolor)))
@@ -409,8 +408,8 @@
     (when (zerop z)
       (error "Could not allocate color cells ~D,~D" ncolors nplanes))
     (values pixels masks)))
-   
 
+   
 (defun default-screen (display)
   (intern-object-address
    (x11:xdefaultscreenofdisplay

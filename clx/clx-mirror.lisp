@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.14 92/09/24 09:38:14 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.15 92/10/02 15:19:04 cer Exp $
 
 (in-package :clx-clim)
 
@@ -144,7 +144,8 @@
 		       (xlib:query-tree mirror)
 		     (declare (ignore windows root))
 		     parent)))
-    ;; Can deal with reparenting window managers
+    ;;--- Need this to deal with reparenting window managers
+    #+++ignore
     (when (not (eq parent-mirror x-parent))
       (multiple-value-setq (x y)
 	(xlib:translate-coordinates
@@ -287,7 +288,7 @@
 			      display code
 			      (xlib:default-keysym-index display code state))))
 		  (keysym-shift-mask
-		    (if (typep keysym 'silica::modifier-keysym)
+		    (if (typep keysym 'modifier-keysym)
 			(make-modifier-state
 			  (case keysym
 			    ((:left-shift :right-shift) :shift)
@@ -350,7 +351,7 @@
 	       ;;--- Used to pass :PORT-TRIGGER T, better check it out
 	       (setf (sheet-enabled-p sheet) nil))
 	     t))
-	  ((:mapping-notify) (event-window request start count)
+	  ((:mapping-notify) (request start count)
 	   (xlib:mapping-notify display request start count)
 	   (when (eql request :modifier)
 	     (fill-keycode->modifier-state display)

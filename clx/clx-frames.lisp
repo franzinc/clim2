@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-frames.lisp,v 1.10 92/09/24 09:38:11 cer Exp $
+;; $fiHeader: clx-frames.lisp,v 1.11 92/10/02 15:19:01 cer Exp $
 
 (in-package :clx-clim)
 
@@ -11,8 +11,9 @@
     ()
   (:default-initargs :dialog-view +textual-dialog-view+))
 
-(defmethod make-frame-manager ((port clx-port) &key)
-  (make-instance 'clx-frame-manager :port port))
+(defmethod make-frame-manager ((port clx-port) &key palette &allow-other-keys)
+  (make-instance 'clx-frame-manager 
+    :port port :palette palette))
 
 (defmethod frame-wrapper ((framem clx-frame-manager) 
 			  (frame standard-application-frame) pane)

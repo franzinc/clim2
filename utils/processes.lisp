@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.10 92/09/24 09:38:06 cer Exp $
+;; $fiHeader: processes.lisp,v 1.11 92/10/02 15:18:55 cer Exp $
 
 (in-package :clim-utils)
 
@@ -12,7 +12,7 @@
 
 (defvar *multiprocessing-p* 
   #{
-    (or Allegro Genera Lucid Lispworks Minima) T
+    (or Allegro Genera Lucid Lispworks Minima) t
     otherwise nil
     }
     )

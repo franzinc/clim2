@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.13 92/09/24 09:39:55 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.14 92/10/02 15:20:27 cer Exp $
 
 (in-package :genera-clim)
 
@@ -35,6 +35,16 @@
 
 (defparameter *genera-use-color* t)		;for debugging monochrome...
 
+;;--- Eventually do better than this
+(defclass genera-palette (basic-palette) ())
+
+(defmethod make-palette ((port genera-port) &key color-p mutable-p)
+  (make-instance 'genera-palette
+    :port port 
+    :color-p color-p
+    :mutable-p mutable-p))
+
+
 (defmethod initialize-instance :after ((port genera-port) &key server-path)
   (destructuring-bind (type &key (host net:*local-host*)
 				 (screen tv:main-screen)) server-path
@@ -47,7 +57,9 @@
 	    embedded-p	    (typep screen 'tv:basic-remote-screen)
 	    cursor-font     fonts:mouse
 	    height-pixels   (tv:sheet-inside-height screen)
-	    width-pixels    (tv:sheet-inside-width screen)))
+	    width-pixels    (tv:sheet-inside-width screen))
+      (setf (slot-value port 'silica::default-palette) 
+	    (make-palette port :color-p color-p)))
     (initialize-genera-port port)))
 
 
@@ -322,9 +334,11 @@
 	  (parse-gesture-spec gesture-spec))
     (let* ((console (slot-value port 'console))
 	   (keyboard-table (si:keyboard-keyboard-table (si:console-keyboard console)))
-	   (genera-char (if (and (characterp keysym) (standard-char-p keysym))
-			    keysym
-			    (keysym->genera-character keysym)))
+	   (genera-char (cond ((and (characterp keysym) (standard-char-p keysym))
+			       keysym)
+			      ((characterp keysym)
+			       (keysym->genera-character (genera-character->keysym keysym)))
+			      (t (keysym->genera-character keysym))))
 	   (genera-charcode nil)
 	   needed-shifts genera-keycode)
       (unless genera-char

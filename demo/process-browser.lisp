@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: process-browser.lisp,v 1.3 92/10/02 15:20:46 cer Exp $
+;; $fiHeader: process-browser.lisp,v 1.4 92/10/07 14:43:48 cer Exp $
 
 
 (in-package :clim-demo)
@@ -49,11 +49,10 @@
 (defun install-process-browser-timer (frame)
   (with-accessors ((timer process-browser-timer)
 		   (delay process-browser-delay)) frame 
-    (when timer (clim-utils::delete-timer timer))
-    (setq timer (clim-internals::make-command-timer frame
-						    '(com-update-process-browser)
-						    :delay delay))))
-
+    (when timer (clim-utils:delete-timer timer))
+    (setq timer (clim-internals::make-command-timer
+		  frame '(com-update-process-browser)
+		  :delay delay))))
 
 (define-process-browser-command (com-change-delay-browser :menu t)
     ()

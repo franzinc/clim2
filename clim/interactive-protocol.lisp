@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.18 92/09/24 09:39:07 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.19 92/10/02 15:19:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -77,14 +77,13 @@
       ;; A mark that we can set
       (mark :initform nil)))
 
-;; The structure of *INPUT-EDITOR-COMMAND-AARRAY* is an alist that associates
-;; a gesture with either an input editor command, in the case of a "prefix",
-;; another alist.  It is purposely not adjustable for performance reasons.
-;; If you overflow, make another bigger one.
-;; Perhaps the input-editor command table [or alist] should be a conceptual
-;; "slot" in the so that specific implementations can add commands.  More
-;; thought may be needed.
-(defvar *input-editor-command-aarray* (make-array 60 :fill-pointer 0))
+;; The structure of *INPUT-EDITOR-COMMAND-AARRAY* is an alist that
+;; associates a gesture with either an input editor command, in the case
+;; of a "prefix", another alist.  Perhaps the input-editor command table
+;; [or alist] should be a conceptual "slot" in the so that specific
+;; implementations can add commands.  More thought may be needed.
+(defvar *input-editor-command-aarray* 
+	(make-array 80 :fill-pointer 0 :adjustable t))
 
 (defmethod initialize-input-editing-stream ((istream input-editing-stream-mixin))
   (with-slots (input-buffer scan-pointer insertion-pointer
@@ -194,10 +193,8 @@
 	    (noise-string nil))
 	(cond ((and (typep next-char 'noise-string)
 		    (eql (noise-string-unique-id next-char) query-identifier))
+	       (setq noise-string next-char)	;---so what do we do with NOISE-STRING?
 	       (incf scan-pointer)
-	       (setq noise-string next-char)
-	       ;;---so what do we do with NOISE-STRING?
-	       ;;--- returning it seems like a good idea.
 	       (noise-string-unique-id next-char))
 	      (t (when (< scan-pointer insertion-pointer)
 		   #+++ignore (error "Trying to make a noise string while rescanning")
@@ -221,8 +218,7 @@
 		 (incf scan-pointer)
 		 (incf insertion-pointer)
 		 (with-text-style (istream (noise-string-text-style noise-string))
-		   (write-string (noise-string-display-string
-				  noise-string) istream))
+		   (write-string (noise-string-display-string noise-string) istream))
 		 (noise-string-unique-id noise-string)))))))
 
 (defmethod stream-accept ((istream input-editing-stream-mixin)
@@ -874,9 +870,11 @@
   (declare (dynamic-extent format-args))
   (with-slots (input-buffer scan-pointer insertion-pointer) istream
     (unless (stream-rescanning-p istream)
-      (let ((noise-string 
-	      (make-noise-string
-		:display-string (apply #'format nil format-string format-args))))
+      (let* ((string (apply #'format nil format-string format-args))
+	     (noise-string 
+	       (make-noise-string
+		 :display-string string
+		 :unique-id string)))
 	(vector-push-extend noise-string input-buffer)
 	(incf scan-pointer)
 	(incf insertion-pointer)

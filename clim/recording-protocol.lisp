@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.22 92/09/24 09:39:20 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.23 92/10/02 15:19:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -569,7 +569,6 @@
 (defmethod invoke-with-new-output-record
 	   ((stream t) continuation record-type constructor
 	    &rest initargs &key parent &allow-other-keys)
-  (declare (dynamic-extent initargs))
   (declare (ignore record-type constructor initargs parent))
   (funcall continuation stream))
 

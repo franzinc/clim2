@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.50 92/10/02 15:21:01 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.51 92/10/28 08:20:15 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -512,9 +512,9 @@
 						     (sheet
 						      motif-text-editor))
   (with-accessors ((value gadget-value)
-		   (editable silica::gadget-editable-p)
-		   (ncolumns silica::gadget-columns)
-		   (nlines silica::gadget-lines)) sheet
+		   (editable gadget-editable-p)
+		   (ncolumns gadget-columns)
+		   (nlines gadget-lines)) sheet
     (values 'tk::xm-text
 	    (append
 	     (list :edit-mode :multi-line)
@@ -566,8 +566,8 @@
 	(let ((font (second font)))
 	  (maxf max-height (tk::font-height font))
 	  (maxf max-width (tk::font-width font))))
-      (make-space-requirement :width (+ (* 2 margin-width) (* max-width (silica::gadget-columns te)))
-			      :height (+ (* 2 margin-height) (* max-height (silica::gadget-lines te)))))))
+      (make-space-requirement :width (+ (* 2 margin-width) (* max-width (gadget-columns te)))
+			      :height (+ (* 2 margin-height) (* max-height (gadget-lines te)))))))
 
 ;;; Toggle button
 
@@ -792,7 +792,7 @@
   ;;-- We check to see which scrollbars we have
 
   (let* ((spacing (tk::get-values (sheet-mirror fr) :spacing))
-	 (sr (compose-space (silica::pane-contents fr))))
+	 (sr (compose-space (pane-contents fr))))
     (multiple-value-bind (width min-width max-width
 			  height min-height max-height)
 	(space-requirement-components sr)
@@ -803,7 +803,7 @@
       ;;-- might need to do this is a grubby way.
       ;; Perhaps we just call compose-space on the child and then add in
       ;; the size of the scroll-bars.
-      (if (silica::scroller-pane-gadget-supplies-scrolling-p fr)
+      (if (scroller-pane-gadget-supplies-scrolling-p fr)
 	  (multiple-value-bind
 	      (hb vb)
 	      (tk::get-values (sheet-direct-mirror fr) :horizontal-scroll-bar :vertical-scroll-bar)
@@ -820,9 +820,9 @@
 	      (when ha (maxf min-width (+ spacing (* 2 ha))))
 	      (when va (incf min-width (+ spacing va)))
 	      (maxf max-width width)))
-	(let* ((vsb (silica::scroller-pane-vertical-scroll-bar fr))
+	(let* ((vsb (scroller-pane-vertical-scroll-bar fr))
 	       (vsb-sr (and vsb (compose-space vsb)))
-	       (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
+	       (hsb (scroller-pane-horizontal-scroll-bar fr))
 	       (hsb-sr (and hsb (compose-space hsb))))
 	  (when vsb-sr (maxf height (+ spacing (space-requirement-min-height vsb-sr))))
 	  (when hsb-sr (incf height (+ spacing (space-requirement-height hsb-sr))))
@@ -859,7 +859,7 @@
 		   (value-key set-gadget-value-key)
 		   (test set-gadget-test)
 		   (mode list-pane-mode)
-		   (visible-items silica::gadget-visible-items)
+		   (visible-items gadget-visible-items)
 		   (name-key set-gadget-name-key)) sheet
     (let ((selected-items
 	   (compute-list-pane-selected-items sheet value)))
@@ -1391,17 +1391,17 @@
 (defmethod initialize-instance :after ((sp motif-scroller-pane) &key
 								scroll-bars 
 								contents frame-manager frame) 
-  (if (setf (silica::scroller-pane-gadget-supplies-scrolling-p sp)
+  (if (setf (scroller-pane-gadget-supplies-scrolling-p sp)
 	(gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
       (when (member scroll-bars '(:both :dynamic :vertical))
 	(let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
-	  (setf (silica::scroller-pane-vertical-scroll-bar sp) sb)
+	  (setf (scroller-pane-vertical-scroll-bar sp) sb)
 	  (sheet-adopt-child sp sb)))
       (when (member scroll-bars '(:both :dynamic :horizontal))
 	(let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
-	  (setf (silica::scroller-pane-horizontal-scroll-bar sp) sb)
+	  (setf (scroller-pane-horizontal-scroll-bar sp) sb)
 	  (sheet-adopt-child sp sb)))
       (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
@@ -1416,7 +1416,7 @@
 				     (sheet motif-scroll-bar) 
 				     (widget t))
   (tk::set-values parent-widget
-		  (if (eq sheet (silica::scroller-pane-vertical-scroll-bar parent))
+		  (if (eq sheet (scroller-pane-vertical-scroll-bar parent))
 		      :vertical-scroll-bar :horizontal-scroll-bar)
 		  widget))
 

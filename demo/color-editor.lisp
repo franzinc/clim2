@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.6 92/10/04 14:16:38 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.7 92/10/07 14:43:21 cer Exp $
 
 (in-package :clim-demo)
 
@@ -79,23 +79,22 @@
 	rgb ihs))))
 
 (defmethod run-frame-top-level :before ((frame color-chooser) &key)
-  (with-slots (mutable-p color) frame
-    (setf color
-      (if (setf mutable-p (palette-color-p (frame-palette frame)))
-	  (make-mutable-color :color +black+)
-	+black+))))
+  (with-slots (color mutable-p) frame
+    (setf color (if (setf mutable-p (palette-color-p (frame-palette frame)))
+		    (make-mutable-color +black+)
+		    +black+))))
 
 (defmethod color ((frame color-chooser))
-  (with-slots (mutable-p color) frame
+  (with-slots (color mutable-p) frame
     (if mutable-p
 	(mutable-color-color color)
-      color)))
+	color)))
 
 (defmethod (setf color) (new-color (frame color-chooser))
-  (with-slots (mutable-p color) frame
+  (with-slots (color mutable-p) frame
     (if mutable-p
-	(mutate-color color new-color)
-      (setf color new-color))))
+	(setf (mutable-color-color color) new-color)
+	(setf color new-color))))
 
 (defmethod display-color ((frame color-chooser) stream)
   (with-bounding-rectangle* (left top right bottom) (window-viewport stream)
@@ -170,6 +169,8 @@
   (let ((frame (pane-frame slider)))
     (with-slots (mutable-p) frame
       (unless mutable-p
+	;; Redisplay the color swatch only if we haven't done so
+	;; by changing the color in-place
 	(redisplay-frame-pane (pane-frame slider) 'display)))))
 
 
@@ -188,7 +189,7 @@
 		 (push (cons port frame) *color-choosers*))
 	     frame)))
     (run-frame-top-level frame)
-    (slot-value frame 'color)))
+    ;; Return the actual RGB color...
+    (color frame)))
 
 (define-demo "Color Chooser" do-color-chooser)
-

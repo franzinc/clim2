@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.6 91/08/05 14:37:30 cer Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.1 92/10/02 15:17:39 cer Exp $
 
 (in-package :clim-user)
 
@@ -8,23 +8,23 @@
 ;;; output tests that can be used for generating postscript also.
 
 (define-application-frame clim-postscript-tests ()
-			  ()
-    (:panes
-     (interactor :interactor)
-     (display :application))
-    (:layouts 
-     (default 
-	 (vertically ()
-	     (:fill display)
-	   (1/4 interactor)))))
+    ()
+  (:panes
+    (interactor :interactor)
+    (display :application))
+  (:layouts 
+    (default 
+      (vertically ()
+	(:fill display)
+	(1/4 interactor)))))
 
 (define-clim-postscript-tests-command (com-exit-clim-postscript-tests :name t) 
     ()
   (frame-exit *application-frame*))
 
-(defvar clim::*1-inch=points* 72)
-(defvar clim::*ps-page-width* 10)
-(defvar clim::*ps-page-top* 1)
+(defvar *1-inch=points* 72)
+(defvar *ps-page-width* 10)
+(defvar *ps-page-top* 1)
 
 (defun get-drawing-display-window ()
   (get-frame-pane *application-frame* 'display))
@@ -41,13 +41,13 @@
   #+Allegro
   (let ((editor-stream-var '#:editor-stream))
     `(lep:with-output-to-temp-buffer (,editor-stream-var ,buffer-name)
-       (clim::with-output-to-postscript-stream (,stream-var ,editor-stream-var ,@options)
+       (with-output-to-postscript-stream (,stream-var ,editor-stream-var ,@options)
 	 ,@body)))
   #+Genera
   (let ((editor-stream-var (make-symbol "EDITOR-STREAM")))
     `(with-open-stream (,editor-stream-var
 			(zwei:open-interval-stream (zwei:find-buffer-named ,buffer-name t)))
-       (clim::with-output-to-postscript-stream (,stream-var ,editor-stream-var ,@options)
+       (with-output-to-postscript-stream (,stream-var ,editor-stream-var ,@options)
 	 ,@body))))
 
 (defparameter *postscript-test-buffer-name* "postscript-test")
@@ -55,10 +55,10 @@
 (defmacro with-postscript-test-output-to-buffer ((stream-var &rest options)
 						 &body body)
   `(sending-postscript-to-editor-buffer (,stream-var *postscript-test-buffer-name*
-					,@options)
-     ,@body))
+					 ,@options)
+					,@body))
 
-#+genera (zwei:defindentation (define-postscript-test 0 5 1 5 2 1))
+#+Genera (zwei:defindentation (define-postscript-test 0 5 1 5 2 1))
 
 #+Allegro
 (defvar *allegro-printer* "lw2")
@@ -67,79 +67,79 @@
 
 (defvar *postscript-tests* nil)
 
-(defmacro define-postscript-test ((root-name description &optional (group nil group?))
-				      arguments &body body)
-  (let* ((command-name-string (clim-internals::command-name-from-symbol root-name))
+(defmacro define-postscript-test
+	  ((root-name description &optional (group nil group?)) arguments
+	   &body body)
+  (let* ((command-name-string (command-name-from-symbol root-name))
 	 (command-body-function-name (clim-utils:fintern "~A~A" (string root-name) '-function))
 	 (additional-key-args '((output '(member :view :buffer #+Allegro :print)
 					:default *postscript-test-default-output*)))
 	 (postscript-test-name (clim-utils:fintern "~A~A" 'pcom- (string root-name)))
 	 (args arguments)
-	 (command-body-form `(,command-body-function-name
-			      ,@(loop for arg in args
-				      unless (clim-internals::valid-cp-lambda-list-keyword-p arg)
-					collect (if (listp arg) (car arg) arg))))
-	 )
+	 (command-body-form
+	   `(,command-body-function-name
+	     ,@(loop for arg in args
+		     unless (clim-internals::valid-cp-lambda-list-keyword-p arg)
+		       collect (if (listp arg) (car arg) arg)))))
     (let ((hook (member '&key args)))
       (if hook
 	  (setf (cdr hook) (append additional-key-args (cdr hook)))
 	  (setq args (append args '(&key) additional-key-args))))
     `(#+Genera sys:multiple-definition #+Genera ,root-name #+Genera define-postscript-test
-	       #-Genera progn
-       (defun ,command-body-function-name ,(clim-internals::deduce-body-arglist arguments)
-	 ,@body)
-       (pushnew ',postscript-test-name *postscript-tests*)
-       (define-command (,postscript-test-name
-			:command-table clim-postscript-tests
-			:menu (,command-name-string :documentation ,description)
-			:name ,command-name-string)
-	   ,args
-	 (ecase output
-	   (:view (with-drawing-display-window (*standard-output*)
+      #-Genera progn
+      (defun ,command-body-function-name ,(clim-internals::deduce-body-arglist arguments)
+	,@body)
+      (pushnew ',postscript-test-name *postscript-tests*)
+      (define-command (,postscript-test-name
+		       :command-table clim-postscript-tests
+		       :menu (,command-name-string :documentation ,description)
+		       :name ,command-name-string)
+	  ,args
+	(ecase output
+	  (:view
+	    (with-drawing-display-window (*standard-output*)
+	      ,command-body-form))
+	  (:print 
+	    #+Allegro
+	    (with-open-stream 
+	      (printer-stream-var
+		(excl:run-shell-command (format nil "lpr -P~A" *allegro-printer*)
+					:input :stream :wait
+					nil))
+	      (with-output-to-postscript-stream (*standard-output* printer-stream-var)
+		,command-body-form))
+	    #-Allegro
+	    (error "Sorry, don't know how to send to printer"))
+	  (:buffer
+	    (with-postscript-test-output-to-buffer
+	        (*standard-output* :header-comments '(:title ,command-name-string))
+	      ,command-body-form))))
+      ;; If the CLIM test suite is loaded, define a regular CLIM test as well.
+      ,@(when (and (fboundp 'clim-user::define-test) group?)
+	  ;; CLIM-USER::DEFINE-TEST doesn't provide for arguments to tests.
+	  ;; If there are required arguments, use their specified defaults. 
+	  ;; If there is no specified default for a required argument, warn and
+	  ;; don't bother with the CLIM-USER::DEFINE-TEST.
+	  (let ((command-body-form
+		  (do* ((args arguments (cdr args))
+			(arg (car args) (car args))
+			(form-args nil))
+		       ((or (null args) (eq arg '&key))
+			(cons command-body-function-name (nreverse form-args)))
+		    (unless (consp arg) (return nil))
+		    (let* ((none '#:none)
+			   (default (getf (cddr arg) ':default none)))
+		      (when (eq default none) (return nil))
+		      (push default form-args)))))
+	    (if command-body-form
+		`((clim-user::define-test (,(clim-utils:fintern "~A~A" 'com (string root-name))
+					   ,group)
+					  (*standard-output*)
+		    ,description
 		    ,command-body-form))
-	   (:print #+Allegro
-		   (with-open-stream 
-		       (printer-stream-var
-			(excl:run-shell-command  (format nil "lpr -P~A" *allegro-printer*)
-						 :input :stream :wait
-						 nil))
-		     (clim::with-output-to-postscript-stream (*standard-output* printer-stream-var)
-		       ,command-body-form))
-		   #-Allegro
-		   (error "Sorry, don't know how to send to printer"))
-	   (:buffer (with-postscript-test-output-to-buffer
-		      (*standard-output*
-			:header-comments '(:title ,command-name-string))
-		      ,command-body-form))))
-       ;; if the CLIM test suite is loaded, define a regular CLIM test as well.
-       ,@(when (and (fboundp 'clim-user::define-test) group?)
-	   ;; CLIM-USER::DEFINE-TEST doesn't provide for arguments to tests.
-	   ;; If there are required arguments, use their specified defaults. 
-	   ;; If there is no specified default for a required argument, warn and
-	   ;; don't bother with the CLIM-USER::DEFINE-TEST.
-	   (let ((command-body-form
-		   (do* ((args arguments (cdr args))
-			 (arg (car args) (car args))
-			 (form-args nil))
-			((or (null args) (eq arg '&key))
-			 (cons command-body-function-name (nreverse form-args)))
-		     (unless (consp arg) (return nil))
-		     (let* ((none '#:none)
-			    (default (getf (cddr arg) ':default none)))
-		       (when (eq default none) (return nil))
-		       (push default form-args)))))
-	     (if command-body-form
-		 `((clim-user::define-test (,(clim-utils:fintern
-					      "~A~A"
-					      'com (string root-name))
-					    ,group)
-					   (*standard-output*)
-		     ,description
-		     ,command-body-form))
-		 (prog1 nil
-			(warn "DEFINE-POSTSCRIPT-TESTS (~a) can't define a CLIM test with arguments unless defaults are specified"
-			      root-name)))))
-       )))
+		(prog1 nil
+		       (warn "'~S (~A) can't define a CLIM test with arguments unless defaults are specified"
+			     'define-postscript-tests root-name))))))))
 
 (defmacro placing-output ((stream width height) &body body)
   `(let ((output-records nil))
@@ -179,11 +179,10 @@
 	       (output-record-set-position record x y)
 	       (clim-internals::recompute-extent record)
 	       (with-output-recording-options (stream :draw t :record nil)
-		 (replay record stream nil))
-	       )
+		 (replay record stream nil)))
 	     (do-region (offset-x offset-y width height)
-	       ;; find the largest remaining record that will fit in the region and
-	       ;; put it.
+	       ;; Find the largest remaining record that will fit in the
+	       ;; region and put it.
 	       (let ((record (maximal-record remaining-records
 					     #'record-area
 					     width height)))
@@ -195,20 +194,20 @@
 		     (do-region (+ offset-x w) offset-y
 				(- width w) h)
 		     (do-region offset-x (+ offset-y h)
-				width (- height h))))))
-	     )
+				width (- height h)))))))
       (do-region 0 0 max-x max-y))
-    remaining-records
-    ))
+    remaining-records))
 
-;;;; Simple tests.
-;;;; More tests in clim:demo;graphics-demos.
+
+;;; Simple tests.
+;;; More tests in clim:demo;graphics-demos.
+
 ;(defmacro ps-test (&body body)
 ;  `(flet ((doit (stream)
 ;		(let ((*standard-output* stream))
 ;		  (progn ,@body))))
 ;     (ps-test-doer #'doit file)))
-;
+
 ;(defun ps-test-doer (doit file)
 ;  (cond ((eq file t)
 ;	 (let ((w (symbol-value 'win)))
@@ -220,7 +219,7 @@
 ;	   (funcall doit s)))
 ;	(t
 ;	 (with-open-file (file file :direction :output)
-;	   (clim::with-output-to-postscript-stream (s file)
+;	   (with-output-to-postscript-stream (s file)
 ;	     (funcall doit s))))))
 
 ;(defun test-ps-ds (&optional file)  ;"pierced ears"
@@ -234,14 +233,12 @@
 ;      (draw-text* stream "Quid fecit Dominus!?!" 200 200
 ;		    :text-style '(:sans-serif :italic :large)))))
 
-
-
 ;(defun pat-ps (&optional file)
 ;  (ps-test
 ;    (draw-rectangle* stream 100 100 200 200 :ink *hearts-stipple*)))
 
 (define-postscript-test (pattern-test "Draws a heart patterned rectangle"
-					  clim-user::graphics)
+				      clim-user::graphics)
 			()
   (draw-rectangle* *standard-output* 100 100 200 200 :ink clim-internals::*hearts-stipple*))
 
@@ -269,7 +266,7 @@
 ;	(with-rotation (stream angle)
 ;	  (with-translation* (stream 100 0)
 ;	    (draw stream))))))))
-;
+
 ;(define-postscript-test (spin "???")
 ;			()
 ;  (let ((stream *standard-output*))
@@ -287,7 +284,7 @@
 ;	  (with-rotation (stream angle)
 ;	    (with-translation* (stream 100 0)
 ;	      (draw stream))))))))
-;
+
 ;(defun spin-pat (file)
 ;  (ps-test
 ;    (flet ((draw (stream)
@@ -301,8 +298,6 @@
 ;	(with-rotation (stream angle)
 ;	(with-translation* (stream 100 0)
 ;	  (draw stream)))))))
-
-
 
 ;(defun test-ellipse (&optional file)
 ;  (ps-test
@@ -347,12 +342,12 @@
   (let ((stream *standard-output*))
     (draw-line* stream 100 100 300 100)
     (draw-text* stream "X Center Aligned" 200 100
-		  :align-x :center
-		  :text-style '(:fix :roman :large))
+		:align-x :center
+		:text-style '(:fix :roman :large))
     (draw-line* stream 50 200 250 200)
     (draw-text* stream "X Right Aligned" 200 200
-		  :align-x :right
-		  :text-style '(:fix :roman :large))
+		:align-x :right
+		:text-style '(:fix :roman :large))
     (draw-line* stream 200 50 200 300)))
 
 ;(defun ps-test-sw (&optional file)
@@ -369,7 +364,7 @@
   (let ((stream *standard-output*)
 	(x 100)
 	(y 100))
-;    (draw-point* stream 100 100)
+    #+ignore (draw-point* stream 100 100)
     (draw-line* stream (- x 10) y (+ x 10) y)
     (draw-line* stream x (- y 10) x (+ y 10))
     (stream-set-cursor-position stream x y)
@@ -405,7 +400,7 @@
 ;    (draw-character* stream #\A 100 200 :text-style '(:fix :roman :very-large))))
 
 (define-postscript-test (test-character-positioning "Draw a big character"
-							clim-user::graphics)
+						    clim-user::graphics)
 			()
   (let ((stream *standard-output*)
 	(x 100)
@@ -467,7 +462,7 @@
     (draw-line* stream 100 110 300 110)))
 
 (define-postscript-test (test-text-sizes "Output text in several sizes"
-					     clim-user::graphics)
+					 clim-user::graphics)
 			()
   (let ((stream *standard-output*))
     (flet ((out (size)
@@ -492,8 +487,7 @@
   (let ((stream *standard-output*)
 	(sizes '(:very-small :small :normal :large :very-large))
 	(families '(:fix :serif :sans-serif))
-	(faces '(:roman :bold :italic :bold-italic))
-	)
+	(faces '(:roman :bold :italic :bold-italic)))
     ;; for each family, vary size:
     (flet ((loop-loop (outer-list inner-list style-constructor stream how before-row)
 	     (dolist (outer outer-list)
@@ -507,8 +501,7 @@
 	   (family-size-constructor (family size)
 	     (make-text-style family :roman size))
 	   (face-family-constructor (face family)
-	     (make-text-style family face :large))
-	   )
+	     (make-text-style family face :large)))
       (flet ((before-row-for-write (stream)
 	       (fresh-line stream)
 	       (terpri stream)))
@@ -529,19 +522,17 @@
 		 (setq x 0))
 	       (draw-string-how-function (string stream)
 		 (draw-text* stream string x y :align-y :baseline)
-		 (incf x x-inc))
-	       )
+		 (incf x x-inc)))
 	  (with-text-style (stream (make-text-style nil :bold :very-large))
 	    (draw-string-how-function "draw-string:" stream))
 	  (loop-loop families sizes #'family-size-constructor
 		     stream #'draw-string-how-function #'before-row-for-draw)
 	  (before-row-for-draw nil)
 	  (loop-loop faces families #'face-family-constructor
-		     stream #'draw-string-how-function #'before-row-for-draw)))
-      )))
+		     stream #'draw-string-how-function #'before-row-for-draw))))))
 
 (define-postscript-test (test-text-alignment "Text drawing and alignment"
-						 clim-user::graphics)
+					     clim-user::graphics)
 			((sample-text 'string :default "Ignatz"))
   (let* ((align-x-values '(:left :center :right))
 	 (align-y-values '(:top :center :baseline :bottom))
@@ -579,8 +570,7 @@
       (with-drawing-options (stream :transformation (make-translation-transformation 60 140))
 	(with-drawing-options (stream :transformation
 				      (make-rotation-transformation (/ pi 4) center))
-	  (draw-thing stream)))
-      )))
+	  (draw-thing stream))))))
 
 (define-postscript-test (test-record-and-replay
 			  "Record and output record without drawing and then replay it"
@@ -605,7 +595,7 @@
       (draw-polygon* stream '(0 0 100 0 100 100 0 100) :filled nil :closed t))))
 
 (defun dash-pattern-name (dash-pattern)
-  ;;Return a string describing DASH-PATTERN
+  ;; Return a string describing DASH-PATTERN
   (with-output-to-string (stream)
     (let* ((length (length dash-pattern))
 	   (index 0))
@@ -619,9 +609,9 @@
       (write-char #\] stream))))
 
 (define-postscript-test (show-dash-patterns
-			 "Show several different dash patterns at different angles"
-			 clim-user::graphics)
-    ()
+			  "Show several different dash patterns at different angles"
+			  clim-user::graphics)
+			()
   (let ((stream *standard-output*)
 	(dash-patterns (make-contrasting-dash-patterns 15))
 	(angles '(0 5 30 45))
@@ -650,9 +640,9 @@
 		    (angled-draw-dash-patterns stream dash-patterns angle))
 		  output-records)))))
     (place-output-records stream output-records
-			  ;;---- 
-			  (* clim::*1-inch=points* clim::*ps-page-width*)
-			  (* clim::*1-inch=points* clim::*ps-page-top*))))
+			  ;;---
+			  (* *1-inch=points* *ps-page-width*)
+			  (* *1-inch=points* *ps-page-top*))))
 
 (define-postscript-test (show-dash-patterns-some-more
 			  "Bogus rainbow effect" clim-user::graphics)
@@ -713,8 +703,8 @@
     "Combination of pattern Test, Test Text Sizes and Test Text Alignment")
   ()
   (let ((stream *standard-output*))
-    (placing-output (stream (* clim::*1-inch=points* clim::*ps-page-width*)
-			    (* clim::*1-inch=points* clim::*ps-page-top*))
+    (placing-output (stream (* *1-inch=points* *ps-page-width*)
+			    (* *1-inch=points* *ps-page-top*))
       (placing-output-block () (pattern-test-function))
       (placing-output-block () (test-ellipse-function))
       (placing-output-block () (test-graphics-function))

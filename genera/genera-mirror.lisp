@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.11 92/09/24 09:39:52 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.12 92/10/02 15:20:25 cer Exp $
 
 (in-package :genera-clim)
 
@@ -400,7 +400,7 @@
 
 ;;; Save this state (rather than using (mouse-x mouse)) 'cause the coords
 ;;; are in window coordinates already.
-;;;--- All of these should be per-console
+;;;--- All of these should really be per-console
 (defvar *mouse-moved* nil)
 (defvar *mouse-x* nil)
 (defvar *mouse-y* nil)
@@ -408,10 +408,10 @@
 (defvar *mouse-window* nil)
 (defvar *mouse-button-released* nil)
 
-;; So we don't generate spurious motion events
+;; So we don't generate spurious motion events.  These get updated when
+;; we read *MOUSE-X* and *MOUSE-Y*, not when we write them.
 (defvar *old-mouse-x* nil)
 (defvar *old-mouse-y* nil)
-
 (defvar *old-mouse-chord-shifts* 0)
 
 (defun-inline buttons-up (old-buttons new-buttons)
@@ -455,16 +455,14 @@
       (let* ((old-buttons *mouse-buttons*)
 	     (new-buttons tv:mouse-last-buttons)
 	     (buttons-up (buttons-up old-buttons new-buttons))
-	     ;; merge them all, for now.  This might drop a second up
+	     ;; Merge them all, for now.  This might drop a second up
 	     ;; transition before the first one is noticed.  Even if we
-	     ;; handled that here (by delaying updating *mouse-buttons*
-	     ;; (actually, LOGIORing old and new) and
-	     ;; *mouse-button-released*, it could require a mouse motion
-	     ;; to actually notice the button up, which is gross!
+	     ;; handled that here (by delaying updating *MOUSE-BUTTONS*,
+	     ;; by, LOGIORing old and new) and *MOUSE-BUTTON-RELEASED*,
+	     ;; it could require a mouse motion to actually notice the
+	     ;; button up, which is gross!
 	     (merged-up (logior buttons-up (or *mouse-button-released* 0)))
 	     (new-released (and (not (zerop merged-up)) merged-up)))
-	(setq *old-mouse-x* *mouse-x* 
-	      *old-mouse-y* *mouse-y*)
 	(setq *mouse-buttons* new-buttons
 	      ;; doesn't yet handle multiple buttons released at once...
 	      *mouse-button-released* new-released
@@ -485,16 +483,14 @@
     (let* ((old-buttons *mouse-buttons*)
 	   (new-buttons tv:mouse-last-buttons)
 	   (buttons-up (buttons-up old-buttons new-buttons))
-	   ;; merge them all, for now.  This might drop a second up
+	   ;; Merge them all, for now.  This might drop a second up
 	   ;; transition before the first one is noticed.  Even if we
-	   ;; handled that here (by delaying updating *mouse-buttons*
-	   ;; (actually, LOGIORing old and new) and
-	   ;; *mouse-button-released*, it could require a mouse motion
-	   ;; to actually notice the button up, which is gross!
+	   ;; handled that here (by delaying updating *MOUSE-BUTTONS*,
+	   ;; by, LOGIORing old and new) and *MOUSE-BUTTON-RELEASED*,
+	   ;; it could require a mouse motion to actually notice the
+	   ;; button up, which is gross!
 	   (merged-up (logior buttons-up (or *mouse-button-released* 0)))
 	   (new-released (and (not (zerop merged-up)) merged-up)))
-      (setq *old-mouse-x* *mouse-x* 
-	    *old-mouse-y* *mouse-y*)
       (setq *mouse-window* scl:self
 	    *mouse-x* x
 	    *mouse-y* y
@@ -544,8 +540,8 @@
   (ash 1 buttons))
 
 (defun-inline current-modifier-state (&optional (state 0) (mouse tv:main-mouse))
-  ;; Take only the upper bits of state, compute the lower bits from the current
-  ;; shifts.
+  ;; Take only the upper bits of state, compute the lower bits from the
+  ;; current shifts.
   (convert-genera-shift-state state (tv:mouse-chord-shifts mouse)))
 
 ;;; Take events out of the global queue and distribute them, and get key
@@ -567,7 +563,7 @@
   (let ((genera-window nil)
 	(shifts-up nil)
 	(shifts-down nil))
-    (flet ((await-Genera-event ()
+    (flet ((await-genera-event ()
 	     (or *mouse-moved*
 		 ;; which mouse to pass off to MOUSE-CHORD-SHIFTS?
 		 (let ((shifts (tv:mouse-chord-shifts))
@@ -583,24 +579,24 @@
 		   t)
 		 (when wait-function
 		   (funcall wait-function)))))
-      (declare (dynamic-extent #'await-Genera-event))
-      (sys:process-wait-with-timeout whostate timeout #'await-Genera-event))
+      (declare (dynamic-extent #'await-genera-event))
+      (sys:process-wait-with-timeout whostate timeout #'await-genera-event))
     (cond (*mouse-moved*
 	   (let-state ((mouse-moved     (shiftf *mouse-moved* nil))	;capture and reset
 		       (mouse-window	*mouse-window*)
-		       (old-mouse-x     *old-mouse-x*)
-		       (old-mouse-y     *old-mouse-y*)
 		       (mouse-x		*mouse-x*)
 		       (mouse-y		*mouse-y*)
+		       (old-mouse-x     (shiftf *old-mouse-x* *mouse-x*))
+		       (old-mouse-y     (shiftf *old-mouse-y* *mouse-y*))
 		       (mouse-buttons	*mouse-buttons*)
 		       (mouse-button-released (shiftf *mouse-button-released* nil)))
 	     (multiple-value-bind (left top)
-		 (if *mouse-window*
-		     (genera-window-margins *mouse-window*)
+		 (if mouse-window
+		     (genera-window-margins mouse-window)
 		     (values 0 0))
 	       (let ((native-x (- mouse-x left))
 		     (native-y (- mouse-y top)))
-		 (when (and mouse-moved		;check again
+		 (when (and mouse-moved		;check again to close timing window
 			    (or (not (eq old-mouse-x mouse-x))
 				(not (eq old-mouse-y mouse-y))))
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
@@ -661,10 +657,7 @@
 			 (allocate-event 'key-release-event
 			   :key-name shift-keysym
 			   :character nil
-			   :modifier-state 
-			     (setf (port-modifier-state port)
-				   (current-modifier-state 
-				     0 (tv:sheet-mouse genera-window)))
+			   :modifier-state (setf (port-modifier-state port) state)
 			   :sheet sheet))))
 		   (when shifts-down
 		     (map-over-genera-shift-keysyms (shift-keysym shifts-down)
@@ -673,14 +666,11 @@
 			 (allocate-event 'key-press-event
 			   :key-name shift-keysym
 			   :character nil
-			   :modifier-state 
-			     (setf (port-modifier-state port)
-				   (current-modifier-state 
-				     0 (tv:sheet-mouse genera-window)))
+			   :modifier-state (setf (port-modifier-state port) state)
 			   :sheet sheet)))))))))
-	  ;; Make sure we read from the same window that :LISTEN return T on, even
-	  ;; if the selected window state has changed.
-	  ((and genera-window			; must be a genera-window
+	  ;; Make sure we read from the same window that :LISTEN return T on,
+	  ;; even if the selected window state has changed.
+	  ((and genera-window			;must be a genera-window
 		(scl:send genera-window :listen))
 	   (let ((thing (let ((sys:kbd-intercepted-characters
 				(remove #\Abort sys:kbd-intercepted-characters)))
@@ -689,48 +679,43 @@
 	     (typecase thing
 	       (character
 		 (when sheet
-		   ;;--- Not snapshotting simultaneous X and Y, but I don't
-		   ;; think it matters here.
-		   ;; remember that state is always the state before
+		   ;; Remember that state is always the state before
 		   ;; this event was processed.  Since we're not yet distributing
 		   ;; the key presses for the shifts, no big deal.
 		   (let ((keysym (genera-character->keysym thing))
 			 (char thing))
 		     (when keysym
-		       (distribute-event
-			 port
-			 (allocate-event 'key-press-event
-			   :key-name keysym
-			   :character char
-			   :modifier-state 
-			     (setf (port-modifier-state port)
-				   (current-modifier-state 
-				     0 (tv:sheet-mouse genera-window)))
-			   :sheet sheet))
-		       (distribute-event
-			 port
-			 (allocate-event 'key-release-event
-			   :key-name keysym
-			   :character char
-			   :modifier-state 
-			     (setf (port-modifier-state port)
-				   (current-modifier-state 
-				     0 (tv:sheet-mouse genera-window)))
-			   :sheet sheet))))))
-	       ;; See if it is a button-click blip
+		       (let ((state (current-modifier-state
+				      0 (tv:sheet-mouse genera-window))))
+			 (distribute-event
+			   port
+			   (allocate-event 'key-press-event
+			     :key-name keysym
+			     :character char
+			     :modifier-state (setf (port-modifier-state port) state)
+			     :sheet sheet))
+			 (distribute-event
+			   port
+			   (allocate-event 'key-release-event
+			     :key-name keysym
+			     :character char
+			     :modifier-state (setf (port-modifier-state port) state)
+			     :sheet sheet)))))))
+	       ;; See if it's a button-click blip
 	       (list
 		 (when (eq (first thing) ':mouse-button)
 		   ;; (:mouse-button #\mouse-left window x y)
-		   (let* ((mouse-x (fourth thing))
+		   (let* ((window (third thing))
+			  (mouse-x (fourth thing))
 			  (mouse-y (fifth thing))
 			  (code (tv:char-mouse-button (second thing)))
-			  (window (third thing))
 			  (button (genera-button-number->event-button code))
 			  (modifiers
 			    (convert-genera-shift-state
 			      (make-state-from-buttons (ash 1 code))
 			      (tv:char-mouse-bits (second thing))))
 			  (pointer (port-pointer port)))
+		     (declare (ignore window))
 		     (setf (port-modifier-state port) modifiers
 			   (pointer-button-state pointer) button)
 		     (when sheet
@@ -766,11 +751,11 @@
   (let ((state (logand button-state #xFF00)))
     (macrolet ((do-shift (shift)
 		 `(when (si:bit-test (si:name-bit ,shift) shift-state)
-		    (let ((bit (clim-internals::modifier-key-index ,shift)))
+		    (let ((bit (modifier-key-index ,shift)))
 		      (setf state (dpb 1 (byte 1 bit) state))))))
       ;; Why is SHIFT different from sys:%kbd-shifts-shift?
       (when (ldb-test (byte 1 4) shift-state)
-	(let ((bit (clim-internals::modifier-key-index :shift)))
+	(let ((bit (modifier-key-index :shift)))
 	  (setf state (dpb 1 (byte 1 bit) state))))
       (do-shift :control)
       (do-shift :meta)

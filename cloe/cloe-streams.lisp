@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: cloe-streams.lisp,v 1.1 92/10/01 10:03:56 cer Exp $
 
 (in-package :cloe-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
+
 
 ;;; These should really be defined in CL-STREAM, but doing it causes CLOE to
 ;;; go south during the build, my guess is the regular streams get trashed.

@@ -1,47 +1,9 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-
-;; $fiHeader$
+;; $fiHeader: cloe-implementation.lisp,v 1.1 92/10/01 10:03:51 cer Exp $
 
 ;;; Support for the shared class DC.
 
-(defvar *cloe-device*)
-
-
-(defclass cloe-root-window
-	  (window-stream)
-    ())
-
-(defmethod initialize-instance :before ((stream cloe-root-window) &key)
-  (unless win::*windows-channel*
-    (win::connect-to-winfe))
-  (with-slots (left top right bottom) stream
-    (setf left 0 top 0)
-    (multiple-value-setq (right bottom)
-      (win::get-screen-size)))
-  (initialize-dc)
-  (setf (slot-value stream 'display-device-type)
-	(make-instance 'cloe-display-device
-		       :logpixelsy (win::get-device-caps *dc* 90))))
-
-(defmethod initialize-instance :after ((stream cloe-root-window) &key)
-  (setf (stream-pointers stream)
-	(list (make-instance 'standard-pointer :root stream))))
-
-(defmethod close ((stream cloe-root-window) &key abort)
-  (declare (ignore abort))
-  nil)
-
-(defvar *cloe-root-window*)
-(defvar *cloe-pointer*)
-
-(defun create-cloe-root-window ()
-  (unless (boundp '*cloe-root-window*)
-    (setf *cloe-root-window* (make-instance 'cloe-root-window))
-    (setf *cloe-pointer* (stream-primary-pointer *cloe-root-window*)))
-  *cloe-root-window*)
-
-
 (defclass cloe-window-stream
 	  (window-stream)
     ((window :initarg :window)

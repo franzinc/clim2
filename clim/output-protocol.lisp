@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.24 92/09/24 09:39:11 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.25 92/10/02 15:19:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -54,7 +54,7 @@
 			   :initarg :default-text-margin)
       (output-glyph-buffer :accessor stream-output-glyph-buffer
                            :initarg :output-glyph-buffer)
-      (default-view :initform +textual-view+
+      (default-view :initform +textual-view+ :initarg :default-view
 		    :accessor stream-default-view))
   (:default-initargs :end-of-line-action :wrap
 		     :end-of-page-action :scroll
@@ -109,10 +109,10 @@
 	       silica::merged-text-style-valid) medium
     (setf silica::foreground 
 	    (or (medium-foreground stream)
-		(setf (slot-value stream 'foreground) silica::*default-pane-foreground*))
+		(setf (slot-value stream 'foreground) *default-pane-foreground*))
  	  silica::background 
 	    (or (medium-background stream)
-		(setf (slot-value stream 'background) silica::*default-pane-background*))
+		(setf (slot-value stream 'background) *default-pane-background*))
 	  silica::default-text-style
 	    (parse-text-style (or (medium-default-text-style stream)
 				  (setf (slot-value stream 'default-text-style)

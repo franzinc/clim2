@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.15 92/09/24 09:39:35 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.16 92/10/02 15:20:11 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -714,9 +714,7 @@
 
 (defun module-default-pathname (module defaults)
   (let ((name (string (module-name module))))
-    #+Cloe-Runtime
-    (when (> (length name) 8)
-      (setf name (heuristicate-name-component name 8)))
+    #+Cloe-Runtime (setf name (heuristicate-name-component name 8))
     (lisp:make-pathname :name name :defaults defaults)))
 
 #+Cloe-Runtime

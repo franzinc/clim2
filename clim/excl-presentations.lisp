@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.12 92/09/30 11:44:58 cer Exp Locker: cer $
+;; $fiHeader: excl-presentations.lisp,v 1.13 92/09/30 18:03:43 cer Exp $
 
 
 (in-package :clim-internals)
@@ -61,7 +61,7 @@
 
 (defmethod excl::set-io-record-pos1 ((stream output-recording-mixin) record)
   (let ((current-output-position 
-	 (stream-output-history-position stream)))
+	  (stream-output-history-position stream)))
     (multiple-value-bind (px py)
 	(point-position current-output-position)
       (declare (type coordinate px py))
@@ -81,7 +81,7 @@
 (defmethod excl::set-io-record-pos2 ((stream output-recording-mixin) record)
   (stream-close-text-output-record stream)
   (let ((current-output-position 
-	 (stream-output-history-position stream))) 
+	  (stream-output-history-position stream))) 
     (destructuring-bind (parent abs-x abs-y)
 	(pop (stream-excl-presentation-stack stream))
       (unless parent 
@@ -90,7 +90,7 @@
 	  (stream-cursor-position stream)
 	(declare (type coordinate end-x end-y))
 	(output-record-set-end-cursor-position
-	 record (- end-x abs-x) (- end-y abs-y)))
+	  record (- end-x abs-x) (- end-y abs-y)))
       (setf (point-x current-output-position) abs-x
 	    (point-y current-output-position) abs-y
 	    (stream-current-output-record stream) parent)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.28 92/10/02 15:20:54 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.29 92/10/04 14:16:48 cer Exp $
 
 
 (in-package :xm-silica)
@@ -870,8 +870,8 @@
 						     (sheet
 						      openlook-text-editor))
   (with-accessors ((value gadget-value)
-		   (ncolumns silica::gadget-columns)
-		   (nlines silica::gadget-lines)) sheet
+		   (ncolumns gadget-columns)
+		   (nlines gadget-lines)) sheet
     (values 'tk::text-edit
 	    (append
 	     (and ncolumns (list :chars-visible ncolumns))
@@ -958,17 +958,17 @@
 
 (defmethod initialize-instance :after ((sp openlook-scrolling-window)
 				       &key scroll-bars contents frame-manager frame)
-  (if (setf (silica::scroller-pane-gadget-supplies-scrolling-p sp)
+  (if (setf (scroller-pane-gadget-supplies-scrolling-p sp)
 	(gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
       (when t #+bad-hack (member scroll-bars '(:both :dynamic :vertical))
 	(let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
-	  (setf (silica::scroller-pane-vertical-scroll-bar sp) sb)
+	  (setf (scroller-pane-vertical-scroll-bar sp) sb)
 	  (sheet-adopt-child sp sb)))
       (when t #+bad-hack (member scroll-bars '(:both :dynamic :horizontal))
 	(let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
-	  (setf (silica::scroller-pane-horizontal-scroll-bar sp) sb)
+	  (setf (scroller-pane-horizontal-scroll-bar sp) sb)
 	  (sheet-adopt-child sp sb)))
       (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
@@ -1010,7 +1010,7 @@
 					; error but at least 4 (1point) is from
 					; the contents border
 	 (spacing (+ fudge 0) #+ignore (tk::get-values (sheet-mirror fr) :spacing))
-	 (sr (compose-space (silica::pane-contents fr))))
+	 (sr (compose-space (pane-contents fr))))
     (multiple-value-bind (width min-width max-width
 			  height min-height max-height)
 	(space-requirement-components sr)
@@ -1021,7 +1021,7 @@
       ;;-- might need to do this is a grubby way.
       ;; Perhaps we just call compose-space on the child and then add in
       ;; the size of the scroll-bars.
-      (if (silica::scroller-pane-gadget-supplies-scrolling-p fr)
+      (if (scroller-pane-gadget-supplies-scrolling-p fr)
 	  (multiple-value-bind
 	      (hb vb)
 	      (tk::get-values (sheet-direct-mirror fr) :h-scrollbar :v-scrollbar)
@@ -1038,9 +1038,9 @@
 	      (when ha (maxf min-width (+ spacing (* 2 ha))))
 	      (when va (incf min-width (+ spacing va)))
 	      (maxf max-width width)))
-	(let* ((vsb (silica::scroller-pane-vertical-scroll-bar fr))
+	(let* ((vsb (scroller-pane-vertical-scroll-bar fr))
 	       (vsb-sr (and vsb (compose-space vsb)))
-	       (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
+	       (hsb (scroller-pane-horizontal-scroll-bar fr))
 	       (hsb-sr (and hsb (compose-space hsb))))
 	  (when vsb-sr (maxf height (+ spacing (space-requirement-height vsb-sr))))
 	  (when hsb-sr (incf height (+ spacing (space-requirement-height hsb-sr))))
@@ -1064,7 +1064,7 @@
   ;;--- bigger than this. But atleast its a start
   (let ((fudge-factor (+ #-ignore 21
 			 #+ignore (tk::get-values (sheet-mirror fr) :spacing)))
-	(sr (compose-space (silica::pane-contents fr))))
+	(sr (compose-space (pane-contents fr))))
     (multiple-value-bind (width min-width max-width
 			  height min-height max-height)
 	(space-requirement-components sr)
@@ -1087,9 +1087,9 @@
 					  scrolling-window) :width :height)
       (let* ((fudge 0)
 	     (vsbp 
-	      (let ((sb (silica::scroller-pane-vertical-scroll-bar scrolling-window)))
+	      (let ((sb (scroller-pane-vertical-scroll-bar scrolling-window)))
 		(and sb (sheet-enabled-p sb))))
-	     (hsbp (let ((sb (silica::scroller-pane-horizontal-scroll-bar scrolling-window)))
+	     (hsbp (let ((sb (scroller-pane-horizontal-scroll-bar scrolling-window)))
 		     (and sb (sheet-enabled-p sb))))
 	     (hsb-height (tk::ol-sw-geometries-hsb-height geometries))
 	     (vsb-width (tk::ol-sw-geometries-vsb-width geometries))
@@ -1101,7 +1101,7 @@
 	(when (plusp h) (setf (tk::ol-sw-geometries-bbc-height geometries) h))
 	  #+ignore
 	(multiple-value-bind (extent-width extent-height)
-	    (bounding-rectangle-size (silica::viewport-contents-extent viewport))
+	    (bounding-rectangle-size (viewport-contents-extent viewport))
 	  (setf (tk::ol-sw-geometries-bbc-real-width geometries) (fix-coordinate extent-width)
 		(tk::ol-sw-geometries-bbc-real-height geometries)
 		(fix-coordinate extent-height)))))))
@@ -1113,7 +1113,7 @@
 						     (parent t)
 						     (sheet openlook-scrolling-window))
   (values 'xt::scrolled-window 
-	  (and (not (gadget-supplies-scrolling-p (silica::pane-contents sheet)))
+	  (and (not (gadget-supplies-scrolling-p (pane-contents sheet)))
 	       `(:h-auto-scroll nil 
 				:v-auto-scroll nil
 				:compute-geometries ,*scrolling-window-geometry-function-address*

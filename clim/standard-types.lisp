@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.15 92/09/24 09:39:22 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.16 92/10/02 15:20:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -563,7 +563,7 @@
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (values
-   (completing-from-suggestions 
+    (completing-from-suggestions 
 	(stream :partial-completers partial-completers
 		:help-displays-possibilities (<= (length sequence) 10))
       (flet ((suggest-item (item)

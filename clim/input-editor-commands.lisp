@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.18 92/09/24 09:39:02 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.19 92/10/02 15:19:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -54,7 +54,7 @@
 		     (add-aarray-entry prefix function aarray)
 		     (let ((subaarray (second (find prefix aarray :key #'first))))
 		       (when (null subaarray)
-			 (setq subaarray (make-array 40 :fill-pointer 0))
+			 (setq subaarray (make-array 30 :fill-pointer 0 :adjustable t))
 			 (add-aarray-entry prefix subaarray aarray))
 		       (setq aarray subaarray))))))))))
 

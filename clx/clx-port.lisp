@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.15 92/09/24 09:38:15 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.16 92/10/02 15:19:06 cer Exp $
 
 (in-package :clx-clim)
 
@@ -40,9 +40,18 @@
 
 (defvar *clx-white-color* (xlib:make-color :red 1 :blue 1 :green 1))
 (defvar *clx-black-color* (xlib:make-color :red 0 :blue 0 :green 0))
-(defvar *cursor-font* nil)
 
 (defparameter *clx-use-color-p* t)
+
+;;--- Eventually do better than this
+(defclass clx-palette (basic-palette) ())
+
+(defmethod make-palette ((port clx-port) &key color-p mutable-p)
+  (make-instance 'clx-palette
+    :port port 
+    :color-p color-p
+    :mutable-p mutable-p))
+
 
 (defmethod initialize-instance :after ((port clx-port) &key server-path)
   (destructuring-bind (type &key host screen display-number) server-path
@@ -65,26 +74,33 @@
 	(setf window (xlib:screen-root screen))
 	(setf width-pixels (xlib:screen-width screen))
 	(setf height-pixels (xlib:screen-height screen))
-	(setf color-p (and *clx-use-color-p*
-			   (ecase (xlib:visual-info-class 
-				    (xlib:window-visual-info (xlib:screen-root screen)))
-			     ((:static-gray :gray-scale) nil)
-			     ((:static-color :true-color :pseudo-color :direct-color) t))))
-	(setf stipple-gc (xlib:create-gcontext
-			   :drawable window
-			   :foreground (xlib:screen-black-pixel screen)
-			   :background (xlib:screen-white-pixel screen)))
+	(let ((vic (xlib:visual-info-class 
+		     (xlib:window-visual-info (xlib:screen-root screen)))))
+	  (setf color-p (and *clx-use-color-p*
+			     (ecase vic
+			       ((:static-gray :gray-scale) nil)
+			       ((:static-color :true-color :pseudo-color :direct-color) t))))
+	  (setf stipple-gc (xlib:create-gcontext
+			     :drawable window
+			     :foreground (xlib:screen-black-pixel screen)
+			     :background (xlib:screen-white-pixel screen)))
+	  (setf (slot-value port 'silica::default-palette) 
+		(make-palette port :color-p color-p
+				   :mutable-p (and (member vic '(:gray-scale
+								 :pseudo-color
+								 :direct-color))
+						   t))))
  	(prog1
-	  ;; Do this here in order to compute *CURSOR-FONT*
-	  (initialize-clx-port port)
- 	  (setf default-grab-cursor
- 		(xlib:create-glyph-cursor :source-font *cursor-font*
- 					  :mask-font *cursor-font*
- 					  ;; Northeast arrow
- 					  :source-char 2
- 					  :mask-char 3
- 					  :foreground *clx-black-color*
- 					  :background *clx-white-color*)))))))
+	  (initialize-clx-port port)		;compute cursor font now
+	  (let ((cursor-font (slot-value port 'cursor-font)))
+	    (setf default-grab-cursor
+		  (xlib:create-glyph-cursor :source-font cursor-font
+					    :mask-font cursor-font
+					    ;; Northeast arrow
+					    :source-char 2
+					    :mask-char 3
+					    :foreground *clx-black-color*
+					    :background *clx-white-color*))))))))
 
 (defun disassemble-display-spec (display &optional (default-display 0) (default-screen 0))
   (declare (values host display-number nscreen))
@@ -203,7 +219,7 @@
   "When non NIL and nothing better exists use this as the fallback font")
 
 (defmethod initialize-clx-port ((port clx-port))
-  (with-slots (screen display) port
+  (with-slots (screen display cursor-font) port
     (let* ((screen-height (xlib:screen-height screen))
 	   ;; Use a float value so formula below will be accurate.
 	   (screen-pixels-per-inch
@@ -235,7 +251,7 @@
 		    (setf (text-style-mapping port text-style) xfont)))))
 	    ;; Now build the logical size alist for the family
 	    ))))
-    (setq *cursor-font* (xlib:open-font display "cursor"))
+    (setq cursor-font (xlib:open-font display "cursor"))
     ;; We now need to find to establish the
     ;; *undefined-text-style* -> some abstract font mapping -> some real font
     ;; doing something horrible if that fails.
@@ -352,8 +368,9 @@
     ;; Here, we must take the gesture spec, turn it back into
     ;; a keycode, then see what the keysyms are for that keycode
     (let* ((x-display (slot-value port 'display))
-	   (x-keysym (if (and (characterp keysym) (standard-char-p keysym))
-			 (keysym->clx-keysym (clx-keysym->keysym (char-code keysym)))
+	   (x-keysym (if (characterp keysym)
+			 (keysym->clx-keysym (or (clx-keysym->keysym (char-code keysym))
+						 (clx-keysym->keysym keysym)))
 			 (keysym->clx-keysym keysym)))
 	   (x-keycode nil))
       (unless x-keysym 
@@ -370,6 +387,7 @@
 	;; cached, I suppose.  We'll just do :SHIFT for now.
 	(when (and (not (or (<= (char-code #\A) x-keysym (char-code #\Z))
 			    (<= (char-code #\a) x-keysym (char-code #\z))))
+		   (not (member keysym '(:return :newline #\Return #\Newline)))
 		   (= (xlib:keycode->keysym 
 			x-display x-keycode
 			(xlib:default-keysym-index 
@@ -483,12 +501,17 @@
 
 ;; The semi-standard characters
 (define-clx-keysym (xlib::keysym 255 013) :return)
+(define-clx-keysym (xlib::keysym 255 013) :newline)
 (define-clx-keysym (xlib::keysym 255 009) :tab)
 (define-clx-keysym (xlib::keysym 255 255) :rubout)
 (define-clx-keysym (xlib::keysym 255 008) :backspace)
 (define-clx-keysym (xlib::keysym 009 227) :page)
 (define-clx-keysym (xlib::keysym 255 010) :linefeed)
 (define-clx-keysym (xlib::keysym 255 027) :escape)
+
+;; Another way, just to be sure
+(define-clx-keysym #\Return    :return)
+(define-clx-keysym #\Newline   :newline)
 
 ;; Other useful characters
 (define-clx-keysym (xlib::keysym 255 087) :end)
@@ -671,7 +694,7 @@
       (xlib:modifier-mapping display)
     (declare (ignore shift lock control))
     (let ((array (getf (xlib:display-plist display) 'clim-modifier-key-index->x-state))
-	  (length (length clim-internals::*modifier-keys*)))
+	  (length (length *modifier-keys*)))
       (cond ((or (null array)
 		 (< (length array) length))
 	     (setq array (make-array length :element-type '(unsigned-byte 8)
@@ -681,24 +704,24 @@
 	    (t (fill array 0)))
       ;; Maybe we can speed this up by special casing :SHIFT and :CONTROL
       ;; somewhere else.
-      (setf (aref array (clim-internals::modifier-key-index :shift))
+      (setf (aref array (modifier-key-index :shift))
 	    (xlib:make-state-mask :shift))
-      (setf (aref array (clim-internals::modifier-key-index :control))
+      (setf (aref array (modifier-key-index :control))
 	    (xlib:make-state-mask :control))
       (flet ((test-keysym (keysym state-mask)
 	       (cond ((or (= keysym xlib::left-meta-keysym)
 			  (= keysym xlib::left-alt-keysym)
 			  (= keysym xlib::right-meta-keysym)
 			  (= keysym xlib::right-alt-keysym))
-		      (setf (aref array (clim-internals::modifier-key-index :meta))
+		      (setf (aref array (modifier-key-index :meta))
 			    state-mask))
 		     ((or (= keysym xlib::left-super-keysym)
 			  (= keysym xlib::right-super-keysym))
-		      (setf (aref array (clim-internals::modifier-key-index :super))
+		      (setf (aref array (modifier-key-index :super))
 			    state-mask))
 		     ((or (= keysym xlib::left-hyper-keysym)
 			  (= keysym xlib::right-hyper-keysym))
-		      (setf (aref array (clim-internals::modifier-key-index :hyper))
+		      (setf (aref array (modifier-key-index :hyper))
 			    state-mask)))))
 	(macrolet ((do-mod (mod)
 		     `(let ((codes ,mod))
@@ -724,7 +747,7 @@
 (defun state-mask->modifier-state (state-mask display)
   (let ((mask 0))
     (macrolet ((do-shift (clim-shift)
-		 `(let* ((bit (clim-internals::modifier-key-index ,clim-shift))
+		 `(let* ((bit (modifier-key-index ,clim-shift))
 			 (x-state (clim-modifier-key-index->x-state bit display)))
 		    (unless (zerop (boole boole-and x-state state-mask))
 		      (setf mask (dpb 1 (byte 1 bit) mask))))))

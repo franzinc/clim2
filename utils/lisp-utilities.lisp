@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.19 92/09/30 18:03:22 cer Exp Locker: cer $
+;; $fiHeader: lisp-utilities.lisp,v 1.20 92/10/02 15:18:50 cer Exp $
 
 (in-package :clim-utils)
 
@@ -1218,6 +1218,10 @@
 	       (otherwise limit))))
     `(or (float ,(convert min t) ,(convert max t))
 	 (rational ,(convert min nil) ,(convert max nil)))))
+
+#+Genera-Release-8-1
+(defun realp (x)
+  (typep x 'real))
 
 (defconstant *end-of-file-marker* :eof)
 (deftype end-of-file-marker () 

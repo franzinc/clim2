@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.11 92/09/08 15:18:51 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.12 92/09/24 09:39:50 cer Exp $
 
 (in-package :genera-clim)
 
@@ -520,9 +520,9 @@
       stream medium string start end style cursor-x max-x glyph-buffer)))
 
 
-(defparameter *adjust-drawing-model-for-macivory* t)
+(defparameter *use-macivory-for-drawing* t)
 (defmacro with-drawing-model-adjustments 
-	  ((window &optional (host-allowed *adjust-drawing-model-for-macivory*))
+	  ((window &optional (host-allowed '*use-macivory-for-drawing*))
 	   &body body)
   #-IMach (declare (ignore window host-allowed))
   #-IMach `(progn ,@body)
@@ -580,11 +580,11 @@
       (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (scl:send window :draw-line x1 y1 x2 y2 alu t)))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (funcall (flavor:generic graphics:draw-line)
 		       window x1 y1 x2 y2 )))))))
 
@@ -597,7 +597,7 @@
       (invoke-with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (let ((length (length position-seq)))
 		(with-stack-array (points length :initial-contents position-seq)
 		  (declare (type simple-vector points))
@@ -615,7 +615,7 @@
 		  (scl:send window :draw-multiple-lines points alu t)))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (map-endpoint-sequence
 		#'(lambda (x1 y1 x2 y2)
 		    (convert-to-device-coordinates transform x1 y1 x2 y2)
@@ -643,17 +643,17 @@
 		(if filled
 		    (let ((width (- right left))
 			  (height (- bottom top)))
-		      (with-drawing-model-adjustments (window nil)
+		      (with-drawing-model-adjustments (window)
 			(scl:send window :draw-rectangle width height left top alu)))
 		    (scl:stack-let ((lines (vector right top left top
 						   left top left bottom
 						   left bottom right bottom
 						   right bottom right top)))
-		      (with-drawing-model-adjustments (window nil)
+		      (with-drawing-model-adjustments (window)
 			(scl:send window :draw-multiple-lines lines alu nil)))))
 	    #'(lambda (window)
 		(declare (sys:downward-function))
-		(with-drawing-model-adjustments (window nil)
+		(with-drawing-model-adjustments (window)
 		  (funcall (flavor:generic graphics:draw-rectangle) 
 			   window left top right bottom
 			   :filled filled))))))))
@@ -667,7 +667,7 @@
       (invoke-with-appropriate-drawing-state medium ink line-style
 	#'(lambda (window alu)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (if filled
 		  (let ((length (length position-seq)))
 		    (with-stack-array (points length :initial-contents position-seq)
@@ -697,7 +697,7 @@
 		    position-seq))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (map-endpoint-sequence
 		#'(lambda (left top right bottom)
 		    (convert-to-device-coordinates transform left top right bottom)
@@ -737,9 +737,10 @@
 	      thickness dashes nil image
 	      #'(lambda (window)
 		  (declare (sys:downward-function))
-		  (graphics:draw-image image left top
-				       :image-right width :image-bottom height
-				       :stream window))
+		  (with-drawing-model-adjustments (window)
+		    (graphics:draw-image image left top
+					 :image-right width :image-bottom height
+					 :stream window)))
 	      window)))))))
 
 (defmethod medium-draw-polygon* ((medium genera-medium) position-seq closed filled)
@@ -767,7 +768,7 @@
 				       (aref p 4) (aref p 5))))
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3)
-		       (with-drawing-model-adjustments (window nil)
+		       (with-drawing-model-adjustments (window)
 			 (scl:send window :draw-triangle x1 y1 x2 y2 x3 y3 alu))))
 		  (8 (multiple-value-bind (x1 y1 x2 y2 x3 y3 x4 y4)
 			 (if (listp position-seq)
@@ -784,7 +785,7 @@
 				       (aref p 6) (aref p 7))))
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3 x4 y4)
-		       (with-drawing-model-adjustments (window nil)
+		       (with-drawing-model-adjustments (window)
 			 (scl:send window :draw-triangle x1 y1 x2 y2 x3 y3 alu)
 			 (scl:send window :draw-triangle x3 y3 x4 y4 x1 y1 alu))))
 		  (otherwise
@@ -796,7 +797,7 @@
 			      (setf (aref points (shiftf i (1+ i))) x)
 			      (setf (aref points (shiftf i (1+ i))) y))
 			  position-seq))
-		      (with-drawing-model-adjustments (window nil)
+		      (with-drawing-model-adjustments (window)
 			(graphics::triangulate-polygon
 			  #'(lambda (x1 y1 x2 y2 x3 y3)
 			      (scl:send window :draw-triangle x1 y1 x2 y2 x3 y3 alu))
@@ -825,7 +826,7 @@
 			  (setf (aref lines (shiftf i (1+ i))) initial-x)
 			  (setf (aref lines (shiftf i (1+ i))) initial-y))
 			(return))))
-		  (with-drawing-model-adjustments (window nil)
+		  (with-drawing-model-adjustments (window)
 		    (scl:send window :draw-multiple-lines lines alu nil)))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
@@ -837,7 +838,7 @@
 		      (setf (aref points (shiftf i (1+ i))) x)
 		      (setf (aref points (shiftf i (1+ i))) y))
 		  position-seq))
-	      (with-drawing-model-adjustments (window nil)
+	      (with-drawing-model-adjustments (window)
 		(if (null line-style)
 		    (funcall (flavor:generic graphics:draw-polygon) window points
 			     :filled t)
@@ -872,13 +873,13 @@
 	    (invoke-with-appropriate-drawing-state medium ink line-style
 	      #'(lambda (window alu)
 		  (declare (sys:downward-function))
-		  (with-drawing-model-adjustments (window nil)
+		  (with-drawing-model-adjustments (window)
 		    (if filled
 			(scl:send window :draw-filled-in-circle center-x center-y x-radius alu)
 			(scl:send window :draw-circle center-x center-y x-radius alu))))
 	      #'(lambda (window)
 		  (declare (sys:downward-function))
-		  (with-drawing-model-adjustments (window nil)
+		  (with-drawing-model-adjustments (window)
 		    (funcall (flavor:generic graphics:draw-ellipse) window
 			     center-x center-y x-radius y-radius
 			     :filled filled))))
@@ -891,7 +892,7 @@
 		  (graphics:graphics-translate center-x center-y :stream window)
 		  (when (/= axis-rotate-angle 0)
 		    (graphics:graphics-rotate axis-rotate-angle :stream window))
-		  (with-drawing-model-adjustments (window nil)
+		  (with-drawing-model-adjustments (window)
 		    (funcall (flavor:generic graphics:draw-ellipse) window
 			     0 0 x-radius y-radius
 			     :start-angle (or start-angle 0)
@@ -1009,11 +1010,11 @@
 	    (declare (sys:downward-function))
 	    (let ((width (- right left))
 		  (height (- bottom top)))
-	      (with-drawing-model-adjustments (window nil)
+	      (with-drawing-model-adjustments (window)
 		(scl:send window :draw-rectangle width height left top alu))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
-	    (with-drawing-model-adjustments (window nil)
+	    (with-drawing-model-adjustments (window)
 	      (funcall (flavor:generic graphics:draw-rectangle) 
 		       window left top right bottom
 		       :filled t)))))))

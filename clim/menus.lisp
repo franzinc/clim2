@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.31 92/08/18 17:25:15 cer Exp $
+;; $fiHeader: menus.lisp,v 1.32 92/09/24 09:39:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -400,17 +400,11 @@
 		 (labels ((input-wait-test (menu)
 			    ;; Wake up if the menu becomes buried, or if highlighting is needed
 			    (or (and *abort-menus-when-buried*
-				     #+Cloe-Runtime
-				     (not (stream-has-input-focus menu))
-				     #-Cloe-Runtime
 				     (not (window-visibility menu)))
 				(pointer-motion-pending menu)))
 			  (input-wait-handler (menu)
 			    ;; Abort if the menu becomes buried
 			    (when (and *abort-menus-when-buried*
-				       #+Cloe-Runtime
-				       (not (stream-has-input-focus menu))
-				       #-Cloe-Runtime
 				       (not (window-visibility menu)))
 			      (return-from menu-choose-from-drawer nil))
 			    ;; Take care of highlighting

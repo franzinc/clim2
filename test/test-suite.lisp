@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.40 92/10/04 14:16:26 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.41 92/10/28 08:19:47 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -685,7 +685,30 @@ people, shall not perish from the earth.
 		    :towards-x x :towards-y 0)))))
 
 (defparameter *named-colors*
-    '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+))
+ '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
+   "snow" "ghost-white" "white-smoke" "gainsboro" "floral-white" "old-lace"
+   "linen" "antique-white" "papaya-whip" "blanched-almond" "bisque"
+   "peach-puff" "navajo-white" "moccasin" "cornsilk" "ivory" "lemon-chiffon"
+   "seashell" "honeydew" "mint-cream" "azure" "alice-blue" "lavender"
+   "lavender-blush" "misty-rose" "dark-slate-gray" "dim-gray" "slate-gray"
+   "light-slate-gray" "gray" "light-gray" "midnight-blue" "navy-blue"
+   "cornflower-blue" "dark-slate-blue" "slate-blue" "medium-slate-blue"
+   "light-slate-blue" "medium-blue" "royal-blue" "dodger-blue" "deep-sky-blue"
+   "sky-blue" "light-sky-blue" "steel-blue" "light-steel-blue" "light-blue"
+   "powder-blue" "pale-turquoise" "dark-turquoise" "medium-turquoise"
+   "turquoise" "light-cyan" "cadet-blue" "medium-aquamarine" "aquamarine"
+   "dark-green" "dark-olive-green" "dark-sea-green" "sea-green"
+   "medium-sea-green" "light-sea-green" "pale-green" "spring-green"
+   "lawn-green" "chartreuse" "medium-spring-green" "green-yellow" "lime-green"
+   "yellow-green" "forest-green" "olive-drab" "dark-khaki" "khaki"
+   "pale-goldenrod" "light-goldenrod-yellow" "light-yellow" "gold"
+   "light-goldenrod" "goldenrod" "dark-goldenrod" "rosy-brown" "indian-red"
+   "saddle-brown" "sienna" "peru" "burlywood" "beige" "wheat" "sandy-brown"
+   "tan" "chocolate" "firebrick" "brown" "dark-salmon" "salmon" "light-salmon"
+   "orange" "dark-orange" "coral" "light-coral" "tomato" "orange-red"
+   "hot-pink" "deep-pink" "pink" "light-pink" "pale-violet-red" "maroon"
+   "medium-violet-red" "violet-red" "violet" "plum" "orchid" "medium-orchid"
+   "dark-orchid" "dark-violet" "blue-violet" "purple" "medium-purple" "thistle"))
 
 (define-test (colored-inks graphics) (stream)
   "Test colors"
@@ -693,11 +716,15 @@ people, shall not perish from the earth.
     (format stream "~&~%~A~%" "Named Colors")
     (formatting-table (stream)
       (dolist (name *named-colors*)
-	(formatting-row (stream)
-	  (formatting-cell (stream)
-	    (write-string (string name) stream))
-	  (formatting-cell (stream)
-	    (draw-rectangle* stream 0 0 200 10 :ink (symbol-value name))))))))
+	(let ((color (if (symbolp name)
+			 (symbol-value name)
+			 (find-named-color name stream))))
+	  (when color
+	    (formatting-row (stream)
+	      (formatting-cell (stream)
+		(write-string (string name) stream))
+	      (formatting-cell (stream)
+		(draw-rectangle* stream 0 0 200 10 :ink color)))))))))
 
 (define-test (patterned-graphics-shapes graphics) (stream)
   "Test patterned graphics shapes"

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.6 92/09/08 15:19:25 cer Exp Locker: cer $
+;; $fiHeader: postscript-medium.lisp,v 1.7 92/10/02 15:21:16 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -299,8 +299,7 @@
 	   (descent (psfck-clim-descent fcs))
 	   (ascent (- height descent)))
       (let ((x-adjust 
-	      (compute-text-x-adjustment align-x medium string
-					 text-style start end))
+	      (compute-text-x-adjustment align-x medium string text-style start end))
 	    (y-adjust 
 	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
@@ -335,8 +334,7 @@
 	     (descent (psfck-clim-descent fcs))
 	     (ascent (- height descent)))
 	(let ((x-adjust 
-		(compute-text-x-adjustment align-x medium character
-					   text-style 0 1))
+		(compute-text-x-adjustment align-x medium character text-style 0 1))
 	      (y-adjust 
 		(compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.11 92/09/24 09:38:34 cer Exp Locker: cer $
+;; $fiHeader: completer.lisp,v 1.12 92/09/30 18:03:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -34,6 +34,9 @@
 (define-presentation-method presentation-subtypep ((subtype completer) supertype)
   (declare (ignore supertype))
   t)
+
+(define-condition simple-completion-error (simple-parse-error) ())
+(define-condition empty-completion-error (simple-completion-error) ())
 
 (defun complete-input (stream function
 		       &key partial-completers allow-any-input possibility-printer
@@ -130,7 +133,8 @@
 	       (unread-gesture ch :stream stream))
 	     (when (input-editing-stream-p stream)
 	       (rescan-if-necessary stream))
-	     (simple-parse-error "Attempting to complete the null string"))
+	     (signal 'empty-completion-error
+		     :format-string "Attempting to complete the null string"))
 
 	   (cond ((member completion-mode '(:help :possibilities :apropos-possibilities))
 		  ;; Since we've asked the input editor not to do this,
@@ -170,8 +174,9 @@
 	       (unless allow-any-input
 		 (when unread
 		   (unread-gesture ch :stream stream))
-		 (simple-parse-error "Invalid completion: ~A"
-				     (evacuate-temporary-string stuff-so-far))))
+		 (signal 'simple-completion-error
+			 :format-string "Invalid completion: ~A"
+			 :format-arguments (list (evacuate-temporary-string stuff-so-far)))))
 	     (ambiguous
 	       ;; Only beep on ambiguous full completions, in either ALLOW-ANY-INPUT mode
 	       (when (eq completion-mode :complete)

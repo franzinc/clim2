@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.13 92/10/02 09:22:05 cer Exp $
+;; $fiHeader: browser.lisp,v 1.14 92/10/07 14:43:16 cer Exp Locker: cer $
 
 (in-package :clim-browser)
 
@@ -748,11 +748,12 @@
 		      :displayer accept-call-graph-options)))
   (:layouts
    (default
-       (vertically ()
-	   (3/4 graph)
-	 (:fill 
-	  (horizontally ()
-	      interactor control-panel))))))
+     (vertically ()
+       (3/4 graph)
+       (:fill 
+	 (horizontally ()
+	   (1/2 interactor) 
+	   (:fill control-panel)))))))
 
 
   

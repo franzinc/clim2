@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.44 92/10/04 14:16:49 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.45 92/10/05 10:08:22 cer Exp $
 
 (in-package :tk-silica)
 
@@ -59,6 +59,12 @@
    (indirect-inks :initform nil)
    (tile-gcontext :initform nil)))
 
+(defmethod medium-drawable ((medium xt-medium))
+  (with-slots (drawable sheet) medium
+    (or drawable
+	(setf drawable (fetch-medium-drawable 
+			sheet
+			(sheet-mirror sheet))))))
 
 ;;; Palette handling stuff
 
@@ -111,6 +117,9 @@
 
 (defmethod find-named-color (name (palette xt-palette))
   (let ((named-color-cache (palette-named-color-cache palette)))
+    ;;-- What is the correct thing to do?
+    ;;-- CLIM has names containing dashes instead of spaces
+    (setq name (substitute #\space #\- (string name)))
     (or (gethash name named-color-cache)
 	(setf (gethash name named-color-cache)
 	  (let ((xcolor (tk::lookup-color (palette-colormap palette) name))
@@ -145,15 +154,6 @@
 		  #.(logior x11:dored x11:dogreen x11:doblue))))
 	(incf j 2))
       (tk::store-colors colormap xcolors n))))
-
-;;;
-
-(defmethod medium-drawable ((medium xt-medium))
-  (with-slots (drawable sheet) medium
-    (or drawable
-	(setf drawable (fetch-medium-drawable 
-			sheet
-			(sheet-mirror sheet))))))
 
 
 ;;
@@ -241,6 +241,7 @@
 
 
 
+
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
   (with-slots 
@@ -287,20 +288,17 @@
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
-  ;;--- This should be a in silica method
+  ;;--- This should be a in Silica method
   ;;--- This breaks the default-from-mirror-resource code when you
   ;;--- change the layout of a sheet
   ;;--- Perhaps that should just setf slot-value instead
   #+ignore
-  (repaint-sheet (medium-sheet medium) medium +everywhere+))
-
-
+  (repaint-sheet (medium-sheet medium) +everywhere+))
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
   )
-
 
 (defmethod (setf medium-ink) :after (ink (medium xt-medium))
   (declare (ignore ink))
@@ -394,8 +392,7 @@
   t)
 
 (defmethod indirect-ink-p ((ink flipping-ink))
-  (multiple-value-bind (ink1 ink2)
-      (clim-utils:decode-flipping-ink ink)
+  (multiple-value-bind (ink1 ink2) (decode-flipping-ink ink)
     (or (indirect-ink-p ink1)
 	(indirect-ink-p ink2))))
     
@@ -435,41 +432,39 @@
 
 (defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
   (let ((palette (medium-palette medium)))
-    (with-slots (color-p) palette
-      (with-slots (ink-table sheet tile-gcontext drawable indirect-inks)
-	  medium
-	(or (gethash ink ink-table)
-	    (let* ((drawable (or drawable
-				 (tk::display-root-window (port-display (port sheet)))))
-		   (new-gc (make-instance 'fast-gcontext 
-					  :drawable drawable
-					  :function boole-xor)))
-	      (multiple-value-bind (color1 color2)
-		  (clim-utils:decode-flipping-ink ink)
-		(cond (color-p
-		       (setf (tk::gcontext-foreground new-gc)
-			 (logxor (decode-color medium color1)
-				 (decode-color medium color2))))
-		      ;;-- support gray-scale here
-		      (t
-		       ;; in a monochrome context there is only one
-		       ;; flipping ink availiable ie white <-> black
-		       (slot-value medium 'flipping-gcontext)))
-		(when (indirect-ink-p ink)
-		  (push ink indirect-inks))
-		(setf (gethash ink ink-table) new-gc))))))))
-
+    (with-slots (ink-table sheet tile-gcontext drawable indirect-inks)
+	medium
+      (or (gethash ink ink-table)
+	  (let* ((drawable (or drawable
+			       (tk::display-root-window (port-display (port sheet)))))
+		 (new-gc (make-instance 'fast-gcontext 
+					:drawable drawable
+					:function boole-xor)))
+	    (multiple-value-bind (color1 color2) (decode-flipping-ink ink)
+	      (cond ((palette-color-p palette)
+		     (setf (tk::gcontext-foreground new-gc)
+		       (logxor (decode-color medium color1)
+			       (decode-color medium color2))))
+		    ;;-- support gray-scale here
+		    (t
+		     ;; in a monochrome context there is only one
+		     ;; flipping ink availiable ie white <-> black
+		     (slot-value medium 'flipping-gcontext)))
+	      (when (indirect-ink-p ink)
+		(push ink indirect-inks))
+	      (setf (gethash ink ink-table) new-gc)))))))
 		 
+
 (defmethod decode-ink ((ink color) (medium xt-medium))
   (let ((palette (medium-palette medium)))
-    (with-slots (white-pixel black-pixel color-p) palette
+    (with-slots (white-pixel black-pixel) palette
       (with-slots (ink-table sheet tile-gcontext drawable)
 	  medium
 	(or (gethash ink ink-table)
 	    (let* ((drawable (or drawable
 				 (tk::display-root-window (port-display (port sheet)))))
 		   (new-gc (make-instance 'fast-gcontext :drawable drawable)))
-	      (cond (color-p
+	      (cond ((palette-color-p palette)
 		     (setf (tk::gcontext-foreground new-gc)
 		       (decode-color medium ink)))
 		    ;;-- support gray-scale here
@@ -521,13 +516,13 @@ and on color servers, unless using white or black")
 		  (tk::gcontext-fill-style new-gc) :stippled)
 	    (setf (gethash key ink-table) new-gc))))))
   
+ 
 (defmethod decode-ink ((ink contrasting-ink) medium)
   (let ((palette (medium-palette medium)))
-    (with-slots (color-p) palette
-      (decode-ink (if color-p
-		      (make-color-for-contrasting-ink ink)
+    (decode-ink (if (palette-color-p palette)
+		    (make-color-for-contrasting-ink ink)
 		    (make-gray-color-for-contrasting-ink ink))
-		  medium))))
+		medium)))
 
 (defmethod decode-ink ((ink rectangular-tile) medium)
   (multiple-value-bind (pattern width height)
@@ -536,7 +531,7 @@ and on color servers, unless using white or black")
 
 (defmethod decode-ink ((ink pattern) medium)
   (xt-decode-pattern ink medium))
-
+    
 (defmethod decode-color ((medium xt-medium) (design design))
   (error "Drawing with design: ~A not yet implemented" design))
 
@@ -558,8 +553,8 @@ and on color servers, unless using white or black")
 	 (color-cache (palette-color-cache palette)))
     (or (gethash color color-cache)
 	(setf (gethash color color-cache)
-	  (with-slots (color-p white-pixel black-pixel) palette
-	    (cond (color-p
+	  (with-slots (white-pixel black-pixel) palette
+	    (cond ((palette-color-p palette)
 		   (tk::allocate-color
 		    (palette-colormap palette) (get-xcolor color palette)))
 		  ;;-- support gray-scale here
@@ -646,11 +641,11 @@ and on color servers, unless using white or black")
 	    
 (defmethod decode-color ((medium xt-medium) (ink contrasting-ink))
   (let ((palette (medium-palette medium)))
-    (with-slots (color-p) palette
-      (decode-color medium
-		    (if color-p
-			(make-color-for-contrasting-ink ink)
-		      (make-gray-color-for-contrasting-ink ink))))))
+    (decode-color medium
+		  (if (palette-color-p palette)
+		      (make-color-for-contrasting-ink ink)
+		      (make-gray-color-for-contrasting-ink ink)))))
+
 
 (defvar *default-dashes* '(4 4))
 

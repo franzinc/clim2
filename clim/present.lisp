@@ -1,18 +1,34 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.7 92/09/30 18:03:54 cer Exp Locker: cer $
+;; $fiHeader: present.lisp,v 1.8 92/10/02 15:19:52 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (defun present (object &optional (presentation-type (presentation-type-of object))
-		&key (stream *standard-output*) (view (stream-default-view stream))
-		     (modifier nil) (acceptably nil)
-		     (for-context-type presentation-type)
-		     (single-box nil) (allow-sensitive-inferiors *allow-sensitive-inferiors*)
-		     (sensitive *allow-sensitive-inferiors*)
-		     (record-type 'standard-presentation))
+		&rest present-args
+		&key (stream *standard-output*) &allow-other-keys)
+  (declare (dynamic-extent present-args))
+  (declare (arglist object &optional (presentation-type (presentation-type-of object))
+		    &key (stream *standard-output*)
+			 (view (stream-default-view stream))
+			 (modifier nil) (acceptably nil)
+			 (for-context-type presentation-type) (single-box nil)
+			 (allow-sensitive-inferiors *allow-sensitive-inferiors*)
+			 (sensitive *allow-sensitive-inferiors*)
+			 (record-type 'standard-presentation)))
+  (with-keywords-removed (present-args present-args '(:stream))
+    (apply #'stream-present stream object presentation-type present-args)))
+
+;; Specialize on T since this method is good for all stream classes
+(defmethod stream-present ((stream t) object presentation-type
+			   &key (view (stream-default-view stream))
+				(modifier nil) (acceptably nil)
+				(for-context-type presentation-type) (single-box nil)
+				(allow-sensitive-inferiors *allow-sensitive-inferiors*) 
+				(sensitive *allow-sensitive-inferiors*)
+				(record-type 'standard-presentation))
 
   ;; The arguments are allowed to be presentation type abbreviations
   (multiple-value-bind (expansion expanded)
@@ -33,7 +49,8 @@
 	    "The object ~S is not of type ~S"
 	    object presentation-type (class-name (class-of object))))
 
-  ;; Make a presentation if desired, and call the type's present method to fill it in
+  ;; Make a presentation if desired, and call the type's PRESENT method
+  ;; to fill it in
   (if (and sensitive
 	   ;; The right way to fix this is probably to make all the
 	   ;; WITH-xxx macros turn into noops on non-window-streams, but
@@ -68,21 +85,6 @@
 	 (with-output-to-string (stream)
 	   (present object presentation-type :stream stream :view view
 		    :acceptably acceptably :for-context-type for-context-type)))))
-
-(defmethod stream-present ((stream basic-extended-output-protocol) 
-			   object type 
-			   &key (view (stream-default-view stream))
-			   (modifier nil) (acceptably nil)
-			   (for-context-type type) (single-box nil)
-			   ;;--- should these next two default to
-			   ;;*allow-sensitive-inferiors*? 
-			   (allow-sensitive-inferiors t) (sensitive t)
-			   (record-type 'standard-presentation))
-  (present object type :stream stream :view view :modifier modifier
-	   :acceptably acceptably :for-context-type for-context-type
-	   :single-box single-box 
-	   :allow-sensitive-inferiors allow-sensitive-inferiors 
-	   :sensitive sensitive :record-type record-type))
 
 ;; Like WITH-OUTPUT-TO-STRING, but stream is a full output-recording
 ;; protocol stream so all CLIM operations "just work", rather than having

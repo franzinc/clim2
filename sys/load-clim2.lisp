@@ -1,12 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: load-clim2.lisp,v 1.2 92/09/08 15:18:41 cer Exp $
+;; $fiHeader: load-clim2.lisp,v 1.3 92/10/02 15:20:15 cer Exp $
  
 (defun flush-clim ()
   (when (find-package 'clim-defsys)
     (set (intern "*SYSTEMS*" 'clim-defsys) nil))
-  (dolist (pkg '(clim-lisp clim-utils clim clim-user clim-defsys defsys
-		 clim-demo clim-graphics-editor clim-browser
+  (dolist (pkg '(clim-demo clim-graphics-editor clim-browser
+		 clim-user clim clim-utils clim-lisp clim-defsys defsys
 		 ;; CLIM 2.0
 		 clim-sys clim-silica clim-internals clx-clim genera-clim
 		 ;; CLIM 0.9
@@ -21,7 +21,11 @@
 		 silica silica-low silica-core ws ws-core ws-panes
 		 silica-x silica-genera silica-coral-2 silica-postscript
 		 clim-stream ws-demo clim-test ptk))
-    (sct:undefsystem sys)))
+    (sct:undefsystem sys))
+  (setq *features* (delete :clim   *features*))
+  (setq *features* (delete :clim-1 *features*))
+  (setq *features* (delete :clim-2 *features*))
+  t)
 
 (defun rename-clim1 ()
   (loop for (old new) in '((clim-lisp clim1-lisp)
@@ -30,7 +34,8 @@
 			   (clim-user clim1-user)
 			   (clim-demo clim1-demo)
 			   (defsystem clim1-defsystem))
-	do (rename-package old new)))
+	do (rename-package old new))
+  t)
 
 (defun compile-clim2 ()
   (compile-file #p"sys:clim;rel-2;sys;defsystem.lisp")
@@ -68,29 +73,35 @@
     (apply #'sct:load-system 'clx-clim :include-components nil
 			     other-keys)
     (apply #'sct:load-system 'postscript-clim :include-components nil
-			     other-keys)))
+			     other-keys))
+  t)
 
 (defun compile-clim2-demo ()
   (load #p"sys:clim;rel-2;demo;sysdcl")
   (let ((other-keys '(:query nil :recompile t :reload t)))
     (apply #'sct:compile-system 'clim-demo
 				:batch #p"sys:clim;rel-2;sys;clim-demo.cwarns"
-				other-keys)))
+				other-keys))
+  t)
 
 (defun load-clim2-demo ()
   (load #p"sys:clim;rel-2;demo;sysdcl")
   (let ((other-keys '(:query nil :reload t)))
     (apply #'sct:load-system 'clim-demo
-			     other-keys)))
+			     other-keys))
+  t)
 
 (defun compile-clim2-tests ()
   (compile-file #p"sys:clim;rel-2;test;test-suite.lisp")
   (compile-file #p"sys:clim;rel-2;test;test.lisp")
   (compile-file #p"sys:clim;rel-2;test;test-sliders.lisp")
-  (compile-file #p"sys:clim;rel-2;test;test-buttons.lisp"))
+  (compile-file #p"sys:clim;rel-2;test;test-buttons.lisp")
+  t)
 
-(defun load-clim2-tests ()
+(defun load-clim2-tests (&optional load-all)
   (load #p"sys:clim;rel-2;test;test-suite")
-  (load #p"sys:clim;rel-2;test;test")
-  (load #p"sys:clim;rel-2;test;test-sliders")
-  (load #p"sys:clim;rel-2;test;test-buttons"))
+  (when load-all
+    (load #p"sys:clim;rel-2;test;test")
+    (load #p"sys:clim;rel-2;test;test-sliders")
+    (load #p"sys:clim;rel-2;test;test-buttons"))
+  t)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-functions.lisp,v 1.4 92/03/04 16:20:00 cer Exp $
+;; $fiHeader: cl-stream-functions.lisp,v 1.5 92/09/08 15:16:56 cer Exp $
 
 (in-package :clim-utils)
 
@@ -46,7 +46,7 @@
 			optional-parameters)))
     (when (eq (first optional-args) '&optional)
       (pop optional-args))
-    `(clim-utils:define-group ,name write-forwarding-cl-output-stream-function
+    `(define-group ,name write-forwarding-cl-output-stream-function
        (eval-when (compile load eval) (proclaim '(inline ,name)))
        (defun ,name (,@required-args &optional stream ,@optional-args)
 	 (cond ((null stream) (setq stream *standard-output*))
@@ -95,7 +95,7 @@
 	 (call-method `(,method-name stream ,@stream-args)))
     (when (member (first (last method-lambda-list)) lambda-list-keywords)
       (setf method-lambda-list (butlast method-lambda-list)))
-    `(clim-utils:define-group ,name write-forwarding-cl-input-stream-function
+    `(define-group ,name write-forwarding-cl-input-stream-function
        (eval-when (compile load eval) (proclaim '(inline ,name)))
        ,(if eof
 	    (let ((args `(eof-error-p eof-value ,@(and (not (eq eof :no-recursive))

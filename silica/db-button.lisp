@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.16 92/09/24 09:37:29 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.17 92/10/02 15:18:08 cer Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -910,7 +910,7 @@ toggle button base. This way they can share the draw code.
 	     (y (- (floor (+ top bottom) 2) (floor pattern-height 2))))
 	(case (gadget-value pane)
 	  (:unknown (draw-pattern* medium grayed-check-box-pattern x y))
-	  (nil (draw-pattern* medium empty-check-box-pattern x y))
+	  ((nil) (draw-pattern* medium empty-check-box-pattern x y))
 	  (otherwise (draw-pattern* medium checked-check-box-pattern x y)))
 	(when draw-label-p
 	  (draw-gadget-label pane medium
@@ -930,7 +930,7 @@ toggle button base. This way they can share the draw code.
 	     (y (- (floor (+ top bottom) 2) (floor pattern-height 2))))
 	(case (gadget-value pane)
 	  (:unknown (draw-pattern* medium radio-button-grayed-pattern x y))
-	  (nil (draw-pattern* medium radio-button-off-pattern x y))
+	  ((nil) (draw-pattern* medium radio-button-off-pattern x y))
 	  (otherwise (draw-pattern* medium radio-button-on-pattern x y)))
 	(when draw-label-p
 	  (draw-gadget-label pane medium
@@ -1040,30 +1040,30 @@ toggle button base. This way they can share the draw code.
 ;; syntax is (MAKE-PANE 'RADIO-BOX :CHOICES (LIST ...) :SELECTION ...)
 (defmacro with-radio-box ((&rest options &key (type ':one-of) &allow-other-keys)
 			  &body body)
+  (setq options (remove-keywords options '(:type)))
   (let ((current-selection '#:current-selection)
 	(choices '#:choices))
-    (with-keywords-removed (options options '(:type))
-      (ecase type
-	(:one-of
-	  `(let ((,current-selection nil))
-	     (macrolet ((radio-box-current-selection (form)
-			  `(setq ,',current-selection ,form)))
-	       (let ((,choices (list ,@body)))
-		 (make-pane 'radio-box
-		   :choices ,choices
-		   :selection ,current-selection
-		   ,@options)))))
-	(:some-of
-	  `(let ((,current-selection nil))
-	     (macrolet ((radio-box-current-selection (form)
-			  `(setq ,',current-selection 
-				 (append ,',current-selection ,form)))
-			(check-box-current-selection (form)
-			  `(setq ,',current-selection 
-				 (append ,',current-selection ,form))))
-	       (let ((,choices (list ,@body)))
-		 (make-pane 'check-box
-		   :choices ,choices
-		   :selection ,current-selection
-		   ,@(evacuate-list options))))))))))
+    (ecase type
+      (:one-of
+	`(let ((,current-selection nil))
+	   (macrolet ((radio-box-current-selection (form)
+			`(setq ,',current-selection ,form)))
+	     (let ((,choices (list ,@body)))
+	       (make-pane 'radio-box
+		 :choices ,choices
+		 :selection ,current-selection
+		 ,@options)))))
+      (:some-of
+	`(let ((,current-selection nil))
+	   (macrolet ((radio-box-current-selection (form)
+			`(setq ,',current-selection 
+			       (append ,',current-selection ,form)))
+		      (check-box-current-selection (form)
+			`(setq ,',current-selection 
+			       (append ,',current-selection ,form))))
+	     (let ((,choices (list ,@body)))
+	       (make-pane 'check-box
+		 :choices ,choices
+		 :selection ,current-selection
+		 ,@options))))))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.18 92/10/04 14:16:42 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.19 92/10/07 14:43:50 cer Exp $
 
 (in-package :clim-demo)
 
@@ -75,20 +75,19 @@
     ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
     (stream-set-cursor-position stream 0 0)
     (updating-output (stream)
-	(formatting-table (stream)
-	    (dotimes (row 4)
-	      (formatting-row (stream)
-		  (dotimes (column 4)
-		    (let* ((value (aref puzzle-array row column))
-			   (cell-id (encode-puzzle-cell row column)))
-		      (updating-output (stream
-					:unique-id cell-id 
-					:cache-value value)
-			  (formatting-cell (stream :align-x :right)
-			      (unless (zerop value)
-				(with-output-as-presentation 
-				    (stream cell-id 'puzzle-cell)
-				  (format stream "~2D" value)))))))))))))
+      (formatting-table (stream)
+	(dotimes (row 4)
+	  (formatting-row (stream)
+	    (dotimes (column 4)
+	      (let* ((value (aref puzzle-array row column))
+		     (cell-id (encode-puzzle-cell row column)))
+		(updating-output (stream :unique-id cell-id 
+					 :cache-value value)
+		  (formatting-cell (stream :align-x :right)
+		    (unless (zerop value)
+		      (with-output-as-presentation 
+			  (stream cell-id 'puzzle-cell)
+			(format stream "~2D" value)))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)
@@ -144,8 +143,7 @@
 (defun cell-moveable-p (object)
   (multiple-value-bind (r c)
       (decode-puzzle-cell object)
-    (cell-adjacent-to-open-cell (puzzle-puzzle
-				 *application-frame*) r c)))
+    (cell-adjacent-to-open-cell (puzzle-puzzle *application-frame*) r c)))
 
 (define-puzzle-command (com-scramble :menu t)
     ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-prefill.lisp,v 1.4 92/08/18 17:26:06 cer Exp $
+;; $fiHeader: genera-prefill.lisp,v 1.5 92/09/08 15:18:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -308,6 +308,7 @@
 
 ;;; Compile constructors
 
+#+++ignore	;this just doesn't seem to do any good
 (ensure-constructors-compiled
   genera-clim::genera-frame-manager
   genera-clim::genera-medium

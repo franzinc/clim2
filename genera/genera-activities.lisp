@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.7 92/09/08 15:18:50 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.8 92/09/24 09:39:48 cer Exp $
 
 (in-package :genera-clim)
 
@@ -74,17 +74,21 @@
 (defmacro define-genera-application (frame-name &body keys
 				     &key pretty-name select-key
 					  ;; Default edges and size for the frame
-					  left top right bottom width height
+					  left top right bottom 
+					  (width +fill+ width-p) (height +fill+ height-p)
 				     &allow-other-keys)
   (declare (ignore left top right bottom width height))
   (with-keywords-removed (keys keys '(:pretty-name :select-key))
     `(define-genera-application-1
-       ',frame-name ',pretty-name ',select-key ,@(copy-list keys))))
+       ',frame-name ',pretty-name ',select-key
+       ,@(unless width-p `(:width +fill+))
+       ,@(unless height-p `(:height +fill+))
+       ,@(copy-list keys))))
 
 (defun define-genera-application-1 (frame-name pretty-name select-key &rest frame-args)
   (declare (dynamic-extent frame-args))
   (when (null pretty-name)
-    (setq pretty-name (clim-internals::command-name-from-symbol frame-name)))
+    (setq pretty-name (command-name-from-symbol frame-name)))
   (when (cli::define-activity 'clim-activity
 			      :name pretty-name
 			      :description pretty-name

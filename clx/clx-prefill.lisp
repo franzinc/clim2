@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-prefill.lisp,v 1.4 92/08/18 17:24:29 cer Exp $
+;; $fiHeader: clx-prefill.lisp,v 1.5 92/09/08 15:17:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -299,6 +299,7 @@
 
 ;;; Compile constructors
 
+#+++ignore	;this just doesn't seem to do any good
 (ensure-constructors-compiled
   clx-clim::clx-frame-manager
   clx-clim::clx-medium

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.12 92/09/30 11:45:07 cer Exp Locker: cer $
+;; $fiHeader: table-formatting.lisp,v 1.13 92/10/02 15:20:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -254,7 +254,8 @@
 	       (incf nrows)
 	       (setq cells 0)
 	       (map-over-row-cells #'count-cells row)
-	       (when (zerop cells) (error "Row or column in table does not contain any cells"))
+	       (assert (not (zerop cells)) ()
+		       "Row or column in table does not contain any cells")
 	       (cond ((null ncells)
 		      (setq ncells cells))
 		     (t
@@ -624,7 +625,7 @@
 	       (incf ncells))))
       (declare (dynamic-extent #'count-cells))
       (map-over-menu-cells menu #'count-cells))
-    ;;--- Perhaps we should check that ncells is non zero
+    ;;--- Perhaps we should check that NCELLS is not zero?
     ;;--- PREFERRED-GEOMETRY isn't used yet
     ;; What's the preferred orientation of the menu?
     (unless (or nrows ncolumns)

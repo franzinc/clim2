@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.21 92/10/02 15:18:05 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.22 92/10/04 14:16:07 cer Exp $
 
 (in-package :silica)
 
@@ -35,9 +35,6 @@
      (deep-mirroring :initform nil :initarg :deep-mirroring
 		     :reader port-deep-mirroring)
      (medium-cache :initform nil :accessor port-medium-cache)
-     ;; this slot can go as caches are now on a per palette rather
-     ;; then per port basis (cim)
-     (color-cache :initform (make-hash-table) :reader port-color-cache)
      (default-palette :reader port-default-palette)
      (pointer :initform nil)
      (mapping-table :initform (make-hash-table :test #'equal))
@@ -105,31 +102,6 @@
      (+y-upward-p :initform nil :accessor medium-+y-upward-p)))
 
 )	;locally
-
-
-;;; Palettes
-
-(define-protocol-class palette ())
-
-(defclass basic-palette (palette)
-  ((port :reader palette-port :initarg :port)
-   (color-p :reader palette-color-p :initarg :color-p)
-   (mutable-p :reader palette-mutable-p :initarg :mutable-p)
-   (color-cache :initform (make-hash-table) :reader palette-color-cache)
-   (mutable-color-cache :initform (make-hash-table) 
-			:reader palette-mutable-color-cache)
-   (color-group-cache :initform (make-hash-table) 
-		      :reader palette-color-group-cache)
-   (delayed-mutations 
-    :initform (make-array 32 :adjustable t :fill-pointer 0)
-    :reader palette-delayed-mutations)))
-
-(defgeneric make-palette (port &key))
-
-(defparameter *all-palettes* nil)
-
-(defmethod initialize-instance :after ((palette basic-palette) &key)
-  (push palette *all-palettes*))
 
 
 ;;; Event types

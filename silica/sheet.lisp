@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.28 92/09/30 18:03:15 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.29 92/10/02 15:18:33 cer Exp $
 
 (in-package :silica)
 
@@ -126,11 +126,12 @@
   (setf (sheet-parent child) nil
 	(sheet-children parent) nil))
 
+
 (defun sheet-top-level-sheet (sheet)
   (do* ((s sheet parent)
 	(parent (sheet-parent s) parent-parent)
 	(parent-parent (if parent (sheet-parent parent) t) (sheet-parent parent)))
-      ((null parent-parent) s)
+       ((null parent-parent) s)
     (when (eq parent-parent t)
       (return nil))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.2 92/09/08 15:18:48 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.3 92/10/01 10:03:58 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -14,8 +14,7 @@
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
-  ("wheader")
-  ("windows")
+  ("cloe-dc")
   ("cloe-port")
   ("cloe-mirror")
   ("cloe-medium")

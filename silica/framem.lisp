@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.19 92/10/02 15:18:20 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.20 92/10/04 14:16:08 cer Exp $
 
 (in-package :silica)
 
@@ -12,8 +12,8 @@
 
 (defclass standard-frame-manager (frame-manager) 
     ((port :reader port :initarg :port)
-     (palette :accessor frame-manager-palette :initarg :palette)
      (frames :accessor frame-manager-frames :initform nil)
+     (palette :accessor frame-manager-palette :initarg :palette)
      (dialog-view :accessor frame-manager-dialog-view :initarg :dialog-view)))
 
 ;;--- This is most likely wrong
@@ -30,7 +30,7 @@
 			   &key port palette (server-path *default-server-path*)
 			   &allow-other-keys)
   (declare (dynamic-extent options))
-  (with-keywords-removed (options options '(:port :server-path :palette))
+  (with-keywords-removed (options options '(:port :palette :server-path))
     (unless port 
       (setq port (find-port :server-path server-path)))
     (unless palette
@@ -61,14 +61,12 @@
      (setq *default-frame-manager* nil))
   '(before-cold))
 
-(defmethod make-frame-manager 
-    ((port basic-port) &key palette &allow-other-keys)
+(defmethod make-frame-manager ((port basic-port) &key palette &allow-other-keys)
   (make-instance 'standard-frame-manager :port port :palette palette))
 
 (defmethod frame-manager-matches-options-p
 	   ((framem standard-frame-manager) port &key palette &allow-other-keys)
-  (and (eq (port framem) port)
-       (eq (frame-manager-palette framem) palette)))
+  (eq (port framem) port))
 
 
 (defun map-over-frames (function &key port frame-manager)
@@ -86,6 +84,7 @@
 	 (dolist (port *ports*)
 	   (dolist (frame-manager (port-frame-managers port))
 	     (mapc function (frame-manager-frames frame-manager)))))))
+
 
 (defmethod adopt-frame :before ((framem standard-frame-manager) frame)
   (assert (null (frame-manager frame)))
@@ -110,13 +109,13 @@
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)
-    (nconc (frame-manager-frames framem) (list frame)))
+	(nconc (frame-manager-frames framem) (list frame)))
   (port-note-frame-adopted (port frame) frame))
 
 (defmethod disown-frame ((framem standard-frame-manager) frame)
+  (assert (eq (frame-manager frame) framem))
   (case (frame-state frame)
     (:enabled (disable-frame frame)))
-  (assert (eq (frame-manager frame) framem))
   (let ((top (frame-top-level-sheet frame)))
     (when top
       (sheet-disown-child (sheet-parent top) top)

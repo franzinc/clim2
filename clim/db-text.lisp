@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-text.lisp,v 1.2 92/09/24 09:38:42 cer Exp $
+;; $fiHeader: db-text.lisp,v 1.3 92/10/02 15:19:21 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -55,7 +55,7 @@
   (write-string (gadget-value pane) pane))
 
 ;;--- Grotesque kludge to subvert RECEIVE-GESTURE mechanism
-(defmethod clim-internals::receive-gesture :around ((pane text-editor-mixin) (event event))
+(defmethod receive-gesture :around ((pane text-editor-mixin) (event event))
   (process-event-locally pane event)
   nil)
 
@@ -98,11 +98,11 @@
 	   (style-width (text-style-width style medium))
 	   (style-height (text-style-height style medium)))
       (make-space-requirement
-	:width (* style-width (silica::gadget-columns pane))
-	:height (* style-height (silica::gadget-lines pane))))))
+	:width (* style-width (gadget-columns pane))
+	:height (* style-height (gadget-lines pane))))))
 
 (defmethod handle-event ((pane text-editor-pane) (event pointer-button-press-event))
-  (when (silica::gadget-editable-p pane)
+  (when (gadget-editable-p pane)
     (let ((string
 	    (do-text-editing pane :initial-contents (gadget-value pane))))
       (setf (gadget-value pane) string))))

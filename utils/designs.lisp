@@ -1,15 +1,14 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.6 92/09/30 18:03:18 cer Exp $
+;; $fiHeader: designs.lisp,v 1.7 92/10/04 14:16:14 cer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
-"Portions Copyright (c) 1992 Franz, Inc.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions Copyright (c) 1992 Franz, Inc.  All rights reserved."
+
 
 ;;; Designs
-
-;;; The DESIGN and OPACITY classes are already defined.
 
 (defconstant ihs-rgb-c1 (sqrt (/ 6f0)))
 (defconstant ihs-rgb-c2 (sqrt (/ 2f0)))
@@ -17,7 +16,7 @@
 
 (defconstant sqrt3 (sqrt 3))
 
-
+
 ;;; Opacity
 
 (defun make-opacity (opacity)
@@ -28,16 +27,18 @@
 	((= opacity 1) +everywhere+)
 	(t (make-standard-opacity-1 opacity))))
 
-
-;;; Gray colors
 
+;; Black and white are the same everywhere
 (defconstant +black+ (make-gray-color-1 0f0))
 (defconstant +white+ (make-gray-color-1 1f0))
+
+
+;;; Gray colors
 
 (defun make-gray-color (luminosity)
   #+Genera (declare lt:(side-effects simple reducible))
   (assert (and (numberp luminosity) (<= 0 luminosity 1)) (luminosity)
-    "The luminosity ~S is not a number between 0 and 1" luminosity)
+	  "The luminosity ~S is not a number between 0 and 1" luminosity)
   (cond ((= luminosity 0) +black+)
 	((= luminosity 1) +white+)
 	(t (make-gray-color-1 (float luminosity 0f0)))))
@@ -61,7 +62,7 @@
 	 (intensity (* ihs-rgb-c3 (+ luminosity luminosity luminosity))))
     (values intensity 0f0 0f0)))
 
-
+
 ;;; Colors
 
 (defun make-rgb-color (red green blue)
@@ -73,7 +74,7 @@
 	  "The blue value ~S is not a number between 0 and 1" blue)
   (if (= red green blue)
       (make-gray-color red)
-    (make-rgb-color-1 (float red 0f0) (float green 0f0) (float blue 0f0))))
+      (make-rgb-color-1 (float red 0f0) (float green 0f0) (float blue 0f0))))
 
 (defmethod print-object ((color rgb-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -104,6 +105,157 @@
 (defun-inline color-luminosity (r g b)
   ;; From Foley and Van Dam, page 613 (discussion of YIQ color model)...
   (+ (* 0.299f0 r) (* 0.587f0 g) (* 0.114f0 b)))
+
+
+;;; Color constants
+
+(defmacro define-primary-color (color-name r g b)
+  `(defconstant ,color-name 
+		(make-rgb-color-1 (float ,r 0f0) (float ,g 0f0) (float ,b 0f0))))
+
+;; The primary colors, constant across all platforms
+(define-primary-color +red+     1 0 0)
+(define-primary-color +green+   0 1 0)
+(define-primary-color +blue+    0 0 1)
+(define-primary-color +cyan+    0 1 1)
+(define-primary-color +magenta+ 1 0 1)
+(define-primary-color +yellow+  1 1 0)
+
+
+(defvar *default-named-color-table* (make-hash-table :test #+Genera #'string-equal
+							   #-Genera #'equalp))
+
+(defmacro define-named-color (color-name r g b)
+  `(setf (gethash ,color-name *default-named-color-table*)
+	 (make-rgb-color ,(/ r 255.0) ,(/ g 255.0) ,(/ b 255.0))))
+
+;; Simplest possible palette returns canned, silly X Windows colors
+(defmethod find-named-color (name (palette basic-palette))
+  (let ((name (if (symbolp name) (symbol-name name) name)))
+    (values (gethash name *default-named-color-table*))))
+
+;; Default values for named colors
+(define-named-color "snow"              255 250 250)
+(define-named-color "ghost-white"	248 248 255)
+(define-named-color "white-smoke"	245 245 245)
+(define-named-color "gainsboro"		220 220 220)
+(define-named-color "floral-white"	255 250 240)
+(define-named-color "old-lace"		253 245 230)
+(define-named-color "linen"		250 240 230)
+(define-named-color "antique-white"	250 235 215)
+(define-named-color "papaya-whip"	255 239 213)
+(define-named-color "blanched-almond"	255 235 205)
+(define-named-color "bisque"		255 228 196)
+(define-named-color "peach-puff"	255 218 185)
+(define-named-color "navajo-white"	255 222 173)
+(define-named-color "moccasin"		255 228 181)
+(define-named-color "cornsilk"		255 248 220)
+(define-named-color "ivory"		255 255 240)
+(define-named-color "lemon-chiffon"	255 250 205)
+(define-named-color "seashell"		255 245 238)
+(define-named-color "honeydew"		240 255 240)
+(define-named-color "mint-cream"	245 255 250)
+(define-named-color "azure"		240 255 255)
+(define-named-color "alice-blue"	240 248 255)
+(define-named-color "lavender"		230 230 250)
+(define-named-color "lavender-blush"	255 240 245)
+(define-named-color "misty-rose"	255 228 225)
+(define-named-color "dark-slate-gray"	 47  79  79)
+(define-named-color "dim-gray"		105 105 105)
+(define-named-color "slate-gray"	112 128 144)
+(define-named-color "light-slate-gray"	119 136 153)
+(define-named-color "gray"		192 192 192)
+(define-named-color "light-gray"	211 211 211)
+(define-named-color "midnight-blue"      25  25 112)
+(define-named-color "navy-blue"		  0   0 128)
+(define-named-color "cornflower-blue"   100 149 237)
+(define-named-color "dark-slate-blue"    72  61 139)
+(define-named-color "slate-blue"        106  90 205)
+(define-named-color "medium-slate-blue" 123 104 238)
+(define-named-color "light-slate-blue"	132 112 255)
+(define-named-color "medium-blue"	  0   0 205)
+(define-named-color "royal-blue"	 65 105 225)
+(define-named-color "dodger-blue"	 30 144 255)
+(define-named-color "deep-sky-blue"	  0 191 255)
+(define-named-color "sky-blue"		135 206 235)
+(define-named-color "light-sky-blue"	135 206 250)
+(define-named-color "steel-blue"	 70 130 180)
+(define-named-color "light-steel-blue"	176 196 222)
+(define-named-color "light-blue"	173 216 230)
+(define-named-color "powder-blue"	176 224 230)
+(define-named-color "pale-turquoise"	175 238 238)
+(define-named-color "dark-turquoise"	  0 206 209)
+(define-named-color "medium-turquoise"	 72 209 204)
+(define-named-color "turquoise"		 64 224 208)
+(define-named-color "light-cyan"	224 255 255)
+(define-named-color "cadet-blue"	 95 158 160)
+(define-named-color "medium-aquamarine"	102 205 170)
+(define-named-color "aquamarine"	127 255 212)
+(define-named-color "dark-green"	  0 100   0)
+(define-named-color "dark-olive-green"	 85 107  47)
+(define-named-color "dark-sea-green"	143 188 143)
+(define-named-color "sea-green"		 46 139  87)
+(define-named-color "medium-sea-green"	 60 179 113)
+(define-named-color "light-sea-green"	 32 178 170)
+(define-named-color "pale-green"	152 251 152)
+(define-named-color "spring-green"	  0 255 127)
+(define-named-color "lawn-green"	124 252   0)
+(define-named-color "chartreuse"	127 255   0)
+(define-named-color "medium-spring-green" 0 250 154)
+(define-named-color "green-yellow"	173 255  47)
+(define-named-color "lime-green"	 50 205  50)
+(define-named-color "yellow-green"	154 205  50)
+(define-named-color "forest-green"	 34 139  34)
+(define-named-color "olive-drab"	107 142  35)
+(define-named-color "dark-khaki"	189 183 107)
+(define-named-color "khaki"		240 230 140)
+(define-named-color "pale-goldenrod"	238 232 170)
+(define-named-color "light-goldenrod-yellow" 250 250 210)
+(define-named-color "light-yellow"      255 255 224)
+(define-named-color "gold"		255 215   0)
+(define-named-color "light-goldenrod"	238 221 130)
+(define-named-color "goldenrod"		218 165  32)
+(define-named-color "dark-goldenrod"	184 134  11)
+(define-named-color "rosy-brown"	188 143 143)
+(define-named-color "indian-red"	205  92  92)
+(define-named-color "saddle-brown"	139  69  19)
+(define-named-color "sienna"		160  82  45)
+(define-named-color "peru"		205 133  63)
+(define-named-color "burlywood"		222 184 135)
+(define-named-color "beige"		245 245 220)
+(define-named-color "wheat"		245 222 179)
+(define-named-color "sandy-brown"	244 164  96)
+(define-named-color "tan"		210 180 140)
+(define-named-color "chocolate"		210 105  30)
+(define-named-color "firebrick"		178  34  34)
+(define-named-color "brown"		165  42  42)
+(define-named-color "dark-salmon"	233 150 122)
+(define-named-color "salmon"		250 128 114)
+(define-named-color "light-salmon"	255 160 122)
+(define-named-color "orange"		255 165   0)
+(define-named-color "dark-orange"	255 140   0)
+(define-named-color "coral"		255 127  80)
+(define-named-color "light-coral"	240 128 128)
+(define-named-color "tomato"		255  99  71)
+(define-named-color "orange-red"	255  69   0)
+(define-named-color "hot-pink"		255 105 180)
+(define-named-color "deep-pink"		255  20 147)
+(define-named-color "pink"		255 192 203)
+(define-named-color "light-pink"	255 182 193)
+(define-named-color "pale-violet-red"	219 112 147)
+(define-named-color "maroon"		176  48  96)
+(define-named-color "medium-violet-red" 199  21 133)
+(define-named-color "violet-red"	208  32 144)
+(define-named-color "violet"		238 130 238)
+(define-named-color "plum"		221 160 221)
+(define-named-color "orchid"		218 112 214)
+(define-named-color "medium-orchid"	186  85 211)
+(define-named-color "dark-orchid"	153  50 204)
+(define-named-color "dark-violet"	148   0 211)
+(define-named-color "blue-violet"	138  43 226)
+(define-named-color "purple"		160  32 240)
+(define-named-color "medium-purple"	147 112 219)
+(define-named-color "thistle"		216 191 216)
 
 
 (defun make-ihs-color (intensity hue saturation)
@@ -144,42 +296,34 @@
     (values intensity hue saturation)))
 
 
-(defmacro define-named-color (color r g b)
-  `(defconstant ,color 
-       (make-rgb-color-1 (float ,r 0f0) (float ,g 0f0) (float ,b 0f0))))
-
-;;; The primary colors
-
-(define-named-color +red+     1 0 0)
-(define-named-color +green+   0 1 0)
-(define-named-color +blue+    0 0 1)
-(define-named-color +cyan+    0 1 1)
-(define-named-color +magenta+ 1 0 1)
-(define-named-color +yellow+  1 1 0)
-
-
 ;;; Mutable Colors 
 
-(defun make-mutable-color (&key (color +black+))
+(defun make-mutable-color (color)
   (make-mutable-color-1 color))
 
 (defmethod print-object ((color mutable-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
     (princ (mutable-color-color color) stream)))
 
+(defmethod color-rgb ((color mutable-color))
+  (color-rgb (mutable-color-color color)))
+
+(defmethod color-ihs ((color mutable-color))
+  (color-ihs (mutable-color-color color)))
+
 (defvar *doing-delayed-mutations* nil)
 
 (defmethod mutate-mutable ((mutable mutable-color) (color color))
   (if *doing-delayed-mutations*
       (dolist (palette (mutable-color-palettes mutable))
-	(let ((cell (gethash mutable (silica:palette-mutable-color-cache palette)))
-	      (mutations (silica:palette-delayed-mutations palette)))
-	  (excl:without-interrupts
+	(let ((cell (gethash mutable (palette-mutable-color-cache palette)))
+	      (mutations (palette-delayed-mutations palette)))
+	  (without-scheduling
 	    (vector-push-extend cell mutations)
 	    (vector-push-extend color mutations))))
-    (dolist (palette (mutable-color-palettes mutable))
-      (let ((cell (gethash mutable (silica:palette-mutable-color-cache palette))))
-	(update-palette-entry palette cell color)))))
+      (dolist (palette (mutable-color-palettes mutable))
+	(let ((cell (gethash mutable (palette-mutable-color-cache palette))))
+	  (update-palette-entry palette cell color)))))
 
 (defmethod (setf mutable-color-color) :after ((color color) (mutable mutable-color))
   (mutate-mutable mutable color))
@@ -188,9 +332,8 @@
   (setf (slot-value mutable 'color) color)
   (mutate-mutable mutable color))
 
-;;; note that the actual color mutation occurs on exiting the outermost
-;;; with-delayed-mutations
-
+;; Note that the actual color mutation occurs on exiting the outermost
+;; call to WITH-DELAYED-MUTATIONS
 (defmacro with-delayed-mutations (&body body)
   (let ((outer-doing-delayed-mutations '#:outer-doing-delayed-mutations)
 	(palette '#:palette)
@@ -201,52 +344,18 @@
 	   ,@body
 	 (progn
 	   (unless ,outer-doing-delayed-mutations
-	     (dolist (,palette silica:*all-palettes*)
-	       (let ((,mutations (silica:palette-delayed-mutations ,palette)))
+	     (dolist (,palette *all-palettes*)
+	       (let ((,mutations (palette-delayed-mutations ,palette)))
 		 (update-palette-entries ,palette ,mutations)
 		 (setf (fill-pointer ,mutations) 0)))))))))
 
 
 ;;; Color Groups
 
-(defmethod initialize-instance :after ((group color-group) &key mutable-array)
-  (map-over-group-colors
-   #'(lambda (dimensions)
-       (setf (apply #'aref mutable-array dimensions)
-	 (make-mutable-color-1 +black+)))
-   group))
-
-(defmethod group-color ((color-group color-group) &rest layers)
-  (let ((cache (color-group-cache color-group)))
-    (or (gethash layers cache)
-	(setf (gethash layers cache)
-	  (make-group-color color-group layers)))))
-
-(defmethod mutate-color ((group-color group-color) (color color))
-  (with-delayed-mutations
-      (dolist (mutable (group-color-mutables group-color))
-	(mutate-mutable mutable color))))
-
-;;; group-color-mutables should not be exported to the user. It is important
-;;; that these mutables are not drawn with. Instead the fully specified group
-;;; colors should be used 
-
-(defmethod group-color-mutables ((group-color group-color))
-  (with-slots (group layers mutables) group-color
-    (or mutables
-	(setf mutables
-	  (let ((mutable-array (color-group-mutable-array group))
-		mutables)
-	    (map-over-group-colors #'(lambda (dimensions)
-				       (push (apply #'aref mutable-array dimensions)
-					     mutables))
-				   group
-				   layers)
-	    mutables)))))
-
 (defun map-over-group-colors (function group &optional layers)
+  (declare (dynamic-extent function))
   (let ((group-layers (color-group-layers group)))
-    ;; it would be nice if this didn't cons so much
+    ;; It would be nice if this didn't cons so much
     (labels ((iterate (layers group-layers dimensions)
 	       (if group-layers
 		   (let ((layer (car layers))
@@ -255,29 +364,55 @@
 			 (iterate (cdr layers) 
 				  (cdr group-layers) 
 				  (cons layer dimensions))
-		       (dotimes (i group-layer)
-			 (iterate (cdr layers)
-				  (cdr group-layers)
-				  (cons i dimensions)))))
-		 (funcall function dimensions))))
+			 (dotimes (i group-layer)
+			   (iterate (cdr layers)
+				    (cdr group-layers)
+				    (cons i dimensions)))))
+		   (funcall function dimensions))))
       (iterate (reverse layers) (reverse group-layers) nil))))
+
+(defmethod initialize-instance :after ((group color-group) &key mutable-array)
+  (map-over-group-colors
+    #'(lambda (dimensions)
+	(setf (apply #'aref mutable-array dimensions)
+	      (make-mutable-color-1 +black+)))
+    group))
+
+(defmethod group-color ((color-group color-group) &rest layers)
+  (declare (dynamic-extent layers))
+  (let ((cache (color-group-cache color-group)))
+    (or (gethash layers cache)
+	(let ((layers (copy-list layers)))
+	  (setf (gethash layers cache)
+		(make-group-color color-group layers))))))
+
+(defmethod mutate-color ((group-color group-color) (color color))
+  (with-delayed-mutations
+    (dolist (mutable (group-color-mutables group-color))
+      (mutate-mutable mutable color))))
+
+;; GROUP-COLOR-MUTABLES should not be exported to the user.  It is important
+;; that these mutables are not drawn with.  Instead the fully specified group
+;; colors should be used
+(defmethod group-color-mutables ((group-color group-color))
+  (with-slots (group layers mutables) group-color
+    (or mutables
+	(setf mutables
+	      (let ((mutable-array (color-group-mutable-array group))
+		    mutables)
+		(map-over-group-colors #'(lambda (dimensions)
+					   (push (apply #'aref mutable-array dimensions)
+						 mutables))
+				       group
+				       layers)
+		mutables)))))
 
 
 ;;; Foreground and background (indirect) inks
 
-(defconstant +foreground-ink+ (make-instance 'design))
-
-(defmethod make-load-form ((design (eql +foreground-ink+)))
-  '+foreground-ink+)
-
 (defmethod print-object ((design (eql +foreground-ink+)) stream)
   (print-unreadable-object (design stream)
     (write-string "CLIM Foreground" stream)))
-
-(defconstant +background-ink+ (make-instance 'design))
-
-(defmethod make-load-form ((design (eql +background-ink+)))
-  '+background-ink+)
 
 (defmethod print-object ((design (eql +background-ink+)) stream)
   (print-unreadable-object (design stream)
@@ -291,8 +426,7 @@
     (with-slots (design1 design2) design
       (format stream "~A and ~A" design1 design2))))
 
-(defconstant +flipping-ink+ 
-    (make-flipping-ink-1 +foreground-ink+ +background-ink+))
+(defconstant +flipping-ink+ (make-flipping-ink-1 +foreground-ink+ +background-ink+))
 
 (defmethod make-flipping-ink (design1 design2)
   (cond ((eq design1 design2)
@@ -310,10 +444,6 @@
 
 ;;; Contrasting inks
 
-(defmethod contrasting-inks-limit (port)
-  (declare (ignore port))
-  8)
-
 (defun make-contrasting-inks (n &optional k)
   (check-type n (integer 2 8))			;--- 8 is pretty small
   (etypecase k
@@ -326,6 +456,10 @@
      (assert (< k n))
      (make-contrasting-ink-1 k n))))
 
+(defmethod contrasting-inks-limit (port)
+  (declare (ignore port))
+  8)						;--- 8 is pretty small
+
 (defmethod print-object ((design contrasting-ink) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (which-one how-many) design
@@ -336,7 +470,7 @@
     (values which-one how-many)))
 
 (defparameter *contrasting-inks*
-    (list +red+ +blue+ +green+ +yellow+ +cyan+ +magenta+ +black+ +white+))
+	      (list +red+ +blue+ +green+ +yellow+ +cyan+ +magenta+ +black+ +white+))
 
 (defmethod make-color-for-contrasting-ink ((ink contrasting-ink))
   (with-slots (which-one) ink
@@ -344,7 +478,7 @@
 
 (defmethod make-gray-color-for-contrasting-ink ((ink contrasting-ink))
   (with-slots (how-many which-one) ink
-    (make-gray-color (/ which-one (1- how-many)))))
+    (make-gray-color (/ which-one how-many))))
 
 
 ;;; Contrasting dash patterns
@@ -378,9 +512,12 @@
 	(assert (< k n))
 	(make-dash-pattern k)))))
 
+(defmethod contrasting-dash-patterns-limit (port)
+  (declare (ignore port))
+  16)
+
 
 ;;; Patterns
-
 
 (defmethod print-object ((design pattern) stream)
   (print-unreadable-object (design stream :type t :identity t)
@@ -411,12 +548,6 @@
 
 ;;; Tiles
 
-(defun make-rectangular-tile (design width height)
-  #+Genera (declare lt:(side-effects simple reducible))
-  (check-type width fixnum)
-  (check-type height fixnum)
-  (make-instance 'rectangular-tile :design design :width width :height height))
-
 (defmethod print-object ((tile rectangular-tile) stream)
   (print-unreadable-object (tile stream :type t :identity t)
     (with-slots (design width height) tile
@@ -430,7 +561,6 @@
 ;;; Compatibility with the old stipple feature, perhaps temporary until
 ;;; rendering of tiles and patterns is fully implemented
 ;;; This could be done with methods, but there is very little point to that
-
 (defun decode-tile-as-stipple (rectangular-tile)
   (declare (values array width height))
   (multiple-value-bind (pattern width height)

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.11 92/10/02 15:20:43 cer Exp $
+;; $fiHeader: plot.lisp,v 1.12 92/10/07 14:43:46 cer Exp $
 
 (in-package :clim-demo)
 
@@ -633,7 +633,7 @@
   (multiple-value-bind (vwidth vheight)
       (bounding-rectangle-size (pane-viewport-region window))
     (with-bounding-rectangle* (left top right bottom) 
-	(silica::viewport-contents-extent (pane-viewport window))
+	(silica:viewport-contents-extent (pane-viewport window))
       (let ((cwidth (- right left))
 	    (cheight (- bottom top)))
 	(values left top
@@ -707,8 +707,7 @@
 			(get-frame-pane *application-frame* 'graph-window)
 			:force-p t)
   (redisplay-frame-pane *application-frame*
-			(get-frame-pane *application-frame*
-					'data-window)
+			(get-frame-pane *application-frame* 'data-window)
 			:force-p t))
 
 (define-plot-demo-command (com-add-new-column :name t) ()
@@ -754,7 +753,7 @@
 	    (setf (aref plot-data i j)
 		  (max (+ (aref plot-data i j) (- (random 10) 5)) 0))))
 	(redisplay-frame-pane frame (get-frame-pane frame 'graph-window))
-	(silica:medium-force-output (sheet-medium (get-frame-pane frame 'graph-window)))))))
+	(force-output (get-frame-pane frame 'graph-window))))))
 	
 
 (define-plot-demo-command (com-save-as-data :name t) ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.16 92/09/08 15:18:22 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.17 92/10/28 08:19:31 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -89,8 +89,10 @@
 (define-condition parse-error (error) ())
 
 (define-condition simple-parse-error (parse-error)
-  ((format-string :reader parse-error-format-string :initarg :format-string)
-   (format-arguments :reader parse-error-format-arguments :initarg :format-arguments))
+  ((format-string :initarg :format-string
+		  :reader parse-error-format-string )
+   (format-arguments :initarg :format-arguments :initform nil
+		     :reader parse-error-format-arguments))
   (:report (lambda (condition stream)
 	     (apply #'format stream (parse-error-format-string condition)
 				    (parse-error-format-arguments condition)))))
@@ -583,13 +585,13 @@
 	       (values (or type
 			   `((,new-name ,@new-parameters) ,@new-options))
 		       t)))
-	    ((member name '(and or sequence sequence-enumerated))
+	    ((member name *presentation-type-parameters-are-types*)
 	     (let* ((any-expanded nil)
 		    (expansions
 		      (mapcar #'(lambda (type)
 				  (multiple-value-bind (expansion expanded)
-				      (expand-presentation-type-abbreviation-1 type
-									       environment)
+				      (expand-presentation-type-abbreviation-1
+					type environment)
 				    (when expanded (setq any-expanded t))
 				    expansion))
 			      parameters)))
@@ -1837,15 +1839,15 @@
 ;	     zwei:definition-function-spec-type)
 
 #+Genera 
-(defun (define-presentation-method zwei:definition-function-spec-parser) (bp)
+(lisp:defun (define-presentation-method zwei:definition-function-spec-parser) (bp)
   (presentation-method-definition-function-spec-parser bp ':massage))
   
 #+Genera 
-(defun (define-presentation-method-without-massaging zwei:definition-function-spec-parser) (bp)
+(lisp:defun (define-presentation-method-without-massaging zwei:definition-function-spec-parser) (bp)
   (presentation-method-definition-function-spec-parser bp nil))
   
 #+Genera 
-(defun (define-default-presentation-method zwei:definition-function-spec-parser) (bp)
+(lisp:defun (define-default-presentation-method zwei:definition-function-spec-parser) (bp)
   (presentation-method-definition-function-spec-parser bp ':default))
   
 #+Genera 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.7 92/09/24 09:40:39 cer Exp Locker: cer $
+;; $fiHeader: postscript-port.lisp,v 1.8 92/10/02 15:21:17 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -376,7 +376,7 @@
 		  (negative-p nil))
 	      (when (minusp n)
 		(setq negative-p t))
-	      (with-stack-array (string from :element-type 'extended-char)
+	      (with-stack-array (string from :element-type 'character)
 		(macrolet ((add-char (char)
 			     `(setf (aref string (decf from)) ,char)))
 		  (when (/= frac 0)
@@ -557,9 +557,9 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (unless (zerop (rem right 8))
     (error "Sorry, can't hack right /= 0 (mod 8); you have ~D" right))
   (with-stack-array (arr (array-total-size raster) 
-			 ;;--- used to be '(unsigned-byte 8)
-			 :element-type (array-element-type raster)
-						   :displaced-to raster)
+			 :element-type #+Genera '(unsigned-byte 8)
+				       #-Genera (array-element-type raster)
+			 :displaced-to raster)
     (with-temporary-string (buf :length 100)
       (let ((bytes-per-row (truncate (array-dimension raster 1) 8))
 	    (bytes-per-raster (ceiling (- right left) 8)))
@@ -633,6 +633,15 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 (defmethod restart-port ((port postscript-port))
   ;; We don't need no stinking events...
   )
+
+;;--- Eventually do better than this
+(defclass postscript-palette (basic-palette) ())
+
+(defmethod make-palette ((port postscript-port) &key)
+  (make-instance 'postscript-palette
+    :port port 
+    :color-p t
+    :mutable-p nil))
 
 (defmethod standardize-text-style ((port postscript-port) style &optional character-set)
   (declare (ignore character-set))

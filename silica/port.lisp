@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.20 92/09/24 09:37:50 cer Exp $
+;; $fiHeader: port.lisp,v 1.21 92/10/02 15:18:32 cer Exp $
 
 (in-package :silica)
 
@@ -13,7 +13,8 @@
 (defvar *default-server-path* #+Allegro '(:motif)
 			      #+Lucid '(:clx)
 			      #+Genera `(:genera)
-			      #-(or Allegro Lucid Genera) nil)
+			      #+Cloe-Runtime `(:cloe)
+			      #-(or Allegro Lucid Genera Cloe-Runtime) nil)
 
 (defvar *ports* nil)
 
@@ -37,6 +38,13 @@
      (dolist (port *ports*)
        (destroy-port port)))
   '(before-cold))
+
+#+Genera
+(scl:add-initialization "Restart ports"
+  '(progn
+     (dolist (port *ports*)
+       (restart-port port)))
+  '(warm))
 
 #+Allegro
 (progn
@@ -91,12 +99,13 @@
 (defgeneric restart-port (port))
 
 (defmethod restart-port ((port basic-port))
-  (when (port-process port)
-    (destroy-process (port-process port)))
-  (setf (port-process port)
-	(make-process #'(lambda () (port-event-loop port))
-		      :name (format nil "CLIM Event Dispatcher for ~A"
-			      (port-server-path port)))))
+  (when *multiprocessing-p*
+    (when (port-process port)
+      (destroy-process (port-process port)))
+    (setf (port-process port)
+	  (make-process #'(lambda () (port-event-loop port))
+			:name (format nil "CLIM Event Dispatcher for ~A"
+				(port-server-path port))))))
 
 (defgeneric port-event-loop (port))
 (defmethod port-event-loop ((port basic-port))

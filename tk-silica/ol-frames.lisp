@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.13 92/09/30 11:45:33 cer Exp Locker: cer $
+;; $fiHeader: ol-frames.lisp,v 1.14 92/09/30 18:04:26 cer Exp $
 
 
 (in-package :xm-silica)
@@ -32,9 +32,9 @@
 (defmethod make-frame-manager ((port openlook-port) &key palette &allow-other-keys)
   (make-instance 'openlook-frame-manager :port port :palette palette))
 
-;;-- Port-note-frame-adopted
 
-(defmethod port-note-frame-adopted :after ((port openlook-port) (frame standard-application-frame))
+(defmethod port-note-frame-adopted :after
+	   ((port openlook-port) (frame standard-application-frame))
   (when (frame-panes frame)
     (let ((shell (frame-shell frame)))
       (tk::add-ol-callback

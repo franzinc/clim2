@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.14 92/09/24 09:38:51 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.15 92/10/02 15:19:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -152,10 +152,14 @@
 (defun keyboard-event-matches-gesture-name-p (event gesture-name &optional port)
   (declare (special *application-frame*))
   (when (and (characterp event)
-	     (characterp gesture-name)
-	     (eql event gesture-name))
+	     (characterp gesture-name))
     ;; Speedy exit when they're both characters
-    (return-from keyboard-event-matches-gesture-name-p t))
+    (when (eql event gesture-name)
+      (return-from keyboard-event-matches-gesture-name-p t))
+    (when (and (ordinary-char-p event)
+	       (ordinary-char-p gesture-name))
+      (return-from keyboard-event-matches-gesture-name-p
+	(eql event gesture-name))))
   (multiple-value-bind (keysym modifier-state)
       (etypecase event
 	(character

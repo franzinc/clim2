@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.13 92/10/02 15:19:55 cer Exp Locker: cer $
+;; $fiHeader: ptypes2.lisp,v 1.14 92/10/28 08:19:38 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -560,12 +560,12 @@
 	    ;; Recurse on presentation types that take presentation type arguments
 	    ;; so as to give a better error message in the usual case.  If we
 	    ;; don't find anything wrong, call presentation-type-specifier-p.
-	    ((and (member type-name '(and or sequence sequence-enumerated))
+	    ((and (member type-name *presentation-type-parameters-are-types*)
 		  (some #'(lambda (type)
 			    (with-presentation-type-decoded (type-name) type
 			      (unless (member type-name '(not satisfies))
-				(warn-if-presentation-type-specifier-invalid-1 type env
-									       complain))))
+				(warn-if-presentation-type-specifier-invalid-1
+				  type env complain))))
 			parameters)))
 	    ((not (presentation-type-specifier-p type env))
 	     (funcall complain type "an invalid presentation type specifier"))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.27 92/09/30 11:45:04 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.28 92/10/02 15:19:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -515,9 +515,8 @@
 	   (return-from stream-input-wait (values nil :input-wait-test))))
     ;; Will go blocked if there are no pending events, which unfortunately puts
     ;; the input-wait-test function out of commission.  Need to get the "process-wait"
-    ;; story straight.
-    ;; Silica version is always multi-process
-    ;;--- This won't work on Cloe, what can we steal from CLIM 1.0?
+    ;; story straight.  PORT-EVENT-WAIT deals with the case where the port
+    ;; does not support multi-processing.
     (let* ((flag nil)
 	   (start-time (get-internal-real-time))
 	   (end-time (and timeout

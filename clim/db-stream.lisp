@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.32 92/09/30 11:44:56 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.33 92/10/02 15:19:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -306,46 +306,50 @@
 ;; to WITH-LOOK-AND-FEEL-REALIZATION
 (defmacro make-clim-stream-pane (&rest options
 				 &key (type ''clim-stream-pane) 
-				      label (scroll-bars ':vertical)
+				      label (label-alignment #+Genera :bottom #-Genera :top)
+				      (scroll-bars ':vertical)
 				      (display-after-commands nil dac-p)
 				 &allow-other-keys)
-  (with-keywords-removed (options options 
-			  '(:type :label :scroll-bars :display-after-commands))
-    (macrolet ((setf-unless (slot-keyword value)
-		 `(when (eq (getf options ',slot-keyword #1='#:default) #1#)
-		    (setf (getf options ',slot-keyword) ,value))))
-      (setf-unless :width 100)
-      (setf-unless :min-width 0)
-      (setf-unless :max-width +fill+)
-      (setf-unless :height 100)
-      (setf-unless :min-height 0)
-      (setf-unless :max-height +fill+))
-    (let* ((stream '#:clim-stream)
-	   (display-time
-	     (and dac-p
-		  `(:display-time ,(cond ((eq display-after-commands t) :command-loop)
-					 ((eq display-after-commands :no-clear) :no-clear)
-					 (t nil)))))
-	   (pane
-	     `(setq ,stream (make-pane ,type 
-			      ,@display-time
-			      ,@(evacuate-list options)))))
-      (when scroll-bars
-	(setq pane `(scrolling (:scroll-bars ,scroll-bars)
-		      ,pane)))
-      (when label
-	(setq pane `(vertically ()
-		      ,(if (stringp label)
-			   `(make-pane 'label-pane 
-			      :label ,label
-			      :max-width +fill+)
-			   `(apply #'make-pane 'label-pane 
-				   :max-width +fill+ ,label))
-		      ,pane)))
-      `(let (,stream)
- 	 (values 
-	   (outlining (:thickness 1) ,pane)
-	   ,stream)))))
+  (setq options (remove-keywords options '(:type :label :label-alignment
+					   :scroll-bars :display-after-commands)))
+  (macrolet ((setf-unless (slot-keyword value)
+	       `(when (eq (getf options ',slot-keyword #1='#:default) #1#)
+		  (setf (getf options ',slot-keyword) ,value))))
+    (setf-unless :width 100)
+    (setf-unless :min-width 0)
+    (setf-unless :max-width +fill+)
+    (setf-unless :height 100)
+    (setf-unless :min-height 0)
+    (setf-unless :max-height +fill+))
+  (let* ((stream '#:clim-stream)
+	 (display-time
+	   (and dac-p
+		`(:display-time ,(cond ((eq display-after-commands t) :command-loop)
+				       ((eq display-after-commands :no-clear) :no-clear)
+				       (t nil)))))
+	 (pane
+	   `(setq ,stream (make-pane ,type 
+			    ,@display-time
+			    ,@options))))
+    (when scroll-bars
+      (setq pane `(scrolling (:scroll-bars ,scroll-bars)
+		    ,pane)))
+    (when label
+      (let ((label (if (stringp label)
+		       `(make-pane 'label-pane 
+			  :label ,label
+			  :max-width +fill+)
+		       `(apply #'make-pane 'label-pane 
+			       :max-width +fill+ ,label))))
+	(ecase label-alignment
+	  (:bottom
+	    (setq pane `(vertically () ,pane ,label)))
+	  (:top
+	    (setq pane `(vertically () ,label ,pane))))))
+    `(let (,stream)
+       (values 
+	 (outlining (:thickness 1) ,pane)
+	 ,stream))))
 
 (defmacro make-clim-interactor-pane (&rest options)
   `(make-clim-stream-pane :type 'interactor-pane ,@options))
@@ -402,7 +406,6 @@
   (setf (window-visibility stream) t))
 
 ;;--- Is there any way to do this?
-
 (defmethod (setf window-label) (label (stream clim-stream-sheet))
   nil)
 
@@ -449,13 +452,8 @@
 (defun window-root (window)
   (graft window))
 
-(defun window-top-level-window (window)
-  (do* ((win window parent)
-	(parent (window-parent win) parent-parent)
-	(parent-parent (if parent (window-parent parent) t) (window-parent parent)))
-       ((null parent-parent) win)
-    (when (eq parent-parent t)
-      (return nil))))
+(defun-inline window-top-level-window (window)
+  (sheet-top-level-sheet window))
 
 (defun beep (&optional (stream *standard-output*))
   (typecase stream

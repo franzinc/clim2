@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.15 92/09/24 09:38:53 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.16 92/10/02 15:19:32 cer Exp $
 
-(in-package :clim-internals)
+(In-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics Inc.  All rights reserved."
 
@@ -31,14 +31,13 @@
 
 (defun make-graph-node-table (&key (test 'eql) (size 50))
   (let ((table
-	  (and (or (member test '(eq eql equal
-				  #-Genera equalp
+	  (and (or (member test '(eq eql equal equalp
 				  #+Genera string-equal #+Genera string=
 				  #+Genera char-equal #+Genera char=))
 		   (eq test (load-time-value #'eq))
 		   (eq test (load-time-value #'eql))
 		   (eq test (load-time-value #'equal))
-		   #-Genera (eq test (load-time-value #'equalp)))
+		   (eq test (load-time-value #'equalp)))
 	       (make-hash-table :test test :size size))))
     (make-instance 'graph-node-table
       :test test :table table)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.11 92/09/24 09:39:49 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.12 92/10/02 15:20:24 cer Exp $
 
 (in-package :genera-clim)
 
@@ -13,12 +13,14 @@
   (:default-initargs :dialog-view +textual-dialog-view+))
 
 (defmethod make-frame-manager ((port genera-port) 
-			       &key (gadget-menu-bar *use-gadget-menu-bars*) &allow-other-keys)
-  (make-instance 'genera-frame-manager :port port :gadget-menu-bar gadget-menu-bar))
+			       &key palette (gadget-menu-bar *use-gadget-menu-bars*)
+			       &allow-other-keys)
+  (make-instance 'genera-frame-manager 
+    :port port :palette palette :gadget-menu-bar gadget-menu-bar))
 
 (defmethod frame-manager-matches-options-p
 	   ((framem genera-frame-manager) port 
-	    &key (gadget-menu-bar *use-gadget-menu-bars*) &allow-other-keys)
+	    &key palette (gadget-menu-bar *use-gadget-menu-bars*) &allow-other-keys)
   (and (eq (port framem) port)
        (eq (slot-value framem 'gadget-menu-bar) gadget-menu-bar)))
 

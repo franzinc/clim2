@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.49 92/10/02 15:21:11 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.50 92/10/04 14:16:52 cer Exp $
 
 (in-package :xm-silica)
 
@@ -106,8 +106,8 @@
 	      (slot-value port 'display) display
 	      (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
 	      (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
-	      (slot-value port 'default-palette) 
-	      (make-xt-palette port (tk::default-colormap (port-display port))))
+	      (slot-value port 'silica::default-palette) 
+	       (make-xt-palette port (tk::default-colormap (port-display port))))
 	(let* ((screen (x11:xdefaultscreenofdisplay display))
 	       (bs-p (not (zerop (x11::screen-backing-store screen))))
 	       (su-p (not (zerop (x11::screen-save-unders screen))))
@@ -357,7 +357,7 @@
 	 (unless (sheet-enabled-p parent) (return nil)))))
 
 
-(defmethod silica::note-sheet-tree-grafted :after ((port xt-port) (sheet mirrored-sheet-mixin))
+(defmethod note-sheet-tree-grafted :after ((port xt-port) (sheet mirrored-sheet-mixin))
   (let ((mirror (sheet-direct-mirror sheet)))
     (when (and (sheet-and-ancestors-enabled-p sheet)
 	       (typep mirror 'xt::xt-root-class)) ; Pixmap streams are
@@ -399,7 +399,7 @@
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
 	     (let ((keysym-shift-mask
-		    (if (typep keysym 'silica::modifier-keysym)
+		    (if (typep keysym 'modifier-keysym)
 			(make-modifier-state
 			 (case keysym
 			   ((:left-shift :right-shift) :shift)
@@ -421,7 +421,7 @@
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
 	     (let ((keysym-shift-mask
-		    (if (typep keysym 'silica::modifier-keysym)
+		    (if (typep keysym 'modifier-keysym)
 			(make-modifier-state
 			 (case keysym
 			   ((:left-shift :right-shift) :shift)
@@ -578,7 +578,7 @@
 	(multiple-value-bind (character keysym)
 	    (lookup-character-and-keysym sheet widget event)
 	  (let* ((keysym-shift-mask
-		  (if (typep keysym 'silica::modifier-keysym)
+		  (if (typep keysym 'modifier-keysym)
 		      (make-modifier-state
 		       (case keysym
 			 ((:left-shift :right-shift) :shift)
@@ -1388,7 +1388,7 @@ the geometry of the children. Instead the parent has control. "))
   (declare (ignore widget))
   (distribute-event
    (port sheet)
-   (allocate-event 'silica::drag-gadget-event
+   (allocate-event 'drag-gadget-event
      :gadget sheet
      :value value)))
 
@@ -1400,7 +1400,7 @@ the geometry of the children. Instead the parent has control. "))
     (find-widget-sheet port widget)))
 
 (defun find-widget-sheet (port widget &optional (errorp t))
-  (cond ((gethash widget (silica::port-mirror->sheet-table port)))
+  (cond ((gethash widget (port-mirror->sheet-table port)))
 	((not errorp))
 	(t (error "Could not find sheet for widget ~S" widget))))
 
@@ -1409,7 +1409,7 @@ the geometry of the children. Instead the parent has control. "))
   (find-if #'(lambda (port)
 	       (and (typep port 'xt-port)
 		    (eq (port-display port) display)))
-	   silica::*ports*))
+	   *ports*))
 
 
 (defmethod port-canonicalize-gesture-spec 

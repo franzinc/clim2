@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.33 92/09/30 18:04:27 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.34 92/10/02 15:21:00 cer Exp $
 
 (in-package :xm-silica)
 
@@ -28,11 +28,11 @@
     ()
   (:default-initargs :dialog-view +gadget-dialog-view+))
 
-(defmethod make-frame-manager
-    ((port motif-port) &key palette &allow-other-keys)
+(defmethod make-frame-manager ((port motif-port) &key palette &allow-other-keys)
   (make-instance 'motif-frame-manager :port port :palette palette))
 
-(defmethod port-note-frame-adopted :after ((port motif-port) (frame standard-application-frame))
+(defmethod port-note-frame-adopted :after
+	   ((port motif-port) (frame standard-application-frame))
   (when (frame-panes frame)
     (let ((shell (frame-shell frame)))
       (tk::set-values shell :delete-response :do-nothing)
@@ -50,7 +50,7 @@
   ;;-- Conversely querygeoetry will return bogus results otherwise.
   (flet ((fix-sheet (sheet)
 	   (when (typep sheet 'motif-menu-bar)
-	     (silica::update-mirror-region (port sheet) sheet))))
+	     (update-mirror-region (port sheet) sheet))))
     (declare (dynamic-extent #'fix-sheet))
     (map-over-sheets #'fix-sheet (frame-top-level-sheet frame))))
 

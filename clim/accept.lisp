@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.14 92/10/01 08:51:15 cer Exp Locker: cer $
+;; $fiHeader: accept.lisp,v 1.15 92/10/28 08:19:24 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -140,6 +140,7 @@
   ;; Set up the input editing environment
   (let ((the-object nil)
 	(the-type nil)
+	(the-options nil)
 	(activated t)
 	(history nil))
 
@@ -223,11 +224,12 @@
 	       (t 
 		 (setq the-object object
 		       the-type presentation-type
+		       the-options options
 		       activated nil)
 		 (when (if replace-supplied-p
 			   replace-input
-			   (getf options :echo t))
-		   (presentation-replace-input stream object presentation-type view
+			   (getf the-options :echo t))
+		   (presentation-replace-input stream the-object the-type view
 					       :buffer-start start-position
 					       :query-identifier query-identifier))))))))
 
@@ -245,7 +247,9 @@
 	  ;;--- For now, just ignore button release events
 	  (when (typep gesture 'pointer-button-release-event)
 	    (read-gesture :stream stream :timeout 0)))))
-    (when (and history (frame-maintain-presentation-histories *application-frame*))
+    (when (and history
+	       (frame-maintain-presentation-histories *application-frame*)
+	       (getf the-options :maintain-history t))
       ;;--- Should this only record stuff that was input via the keyboard?
       (push-history-element history (make-presentation-history-element
 				      :object the-object :type (or the-type type))))

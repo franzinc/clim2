@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.18 92/09/22 19:38:14 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.19 92/10/02 15:21:05 cer Exp $
 
 
 (in-package :xm-silica)
@@ -35,7 +35,6 @@
 
 (defmethod frame-wrapper ((framem xt-frame-manager) 
 			  (frame standard-application-frame) pane)
-  (declare (ignore pane))
   (with-look-and-feel-realization (framem frame)
     (let* ((menu-bar (slot-value frame 'menu-bar))
 	   (menu-bar-pane

@@ -21,8 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.5 92/10/02 15:20:31 cer Exp $
-
+;; $fiHeader: bitmap-editor.lisp,v 1.6 92/10/07 14:43:14 cer Exp $
 
 (in-package :clim-demo)
 
@@ -205,7 +204,6 @@
 	(erase-output-record presentation stream)
 	(display-cell frame stream i j)
 	(display-pattern frame)))))
-
 
 (define-presentation-to-command-translator toggle-cell
     (bitmap-editor-cell com-toggle-cell bitmap-editor 

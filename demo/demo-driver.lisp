@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.14 92/09/30 11:45:21 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.15 92/10/07 14:43:28 cer Exp $
 
 (in-package :clim-demo)
 
@@ -31,10 +31,9 @@
   (let ((*application-frame* 
 	  (make-application-frame 'standard-application-frame
 				  :frame-manager 
-				  (typecase port
-				    (frame-manager port)
-				    (t
-				  (find-frame-manager :port port))))))
+				    (typecase port
+				      (frame-manager port)
+				      (t (find-frame-manager :port port))))))
     (labels ((demo-menu-drawer (stream type &rest args)
 	       (declare (dynamic-extent args))
 	       (with-text-style (stream '(:serif :roman :large))

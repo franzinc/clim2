@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.32 92/10/02 15:19:28 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.33 92/10/28 08:19:27 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -135,17 +135,17 @@
     (sheet-disown-child window child)))
   
 
-(defmacro with-output-as-gadget ((stream &rest args) &body body)
+(defmacro with-output-as-gadget ((stream &rest options) &body body)
   (default-output-stream stream)
+  (setq options (remove-keywords options '(:stream)))
   (let ((framem '#:framem)
 	(frame '#:frame))
-    (with-keywords-removed (args args '(:stream))
-      `(flet ((with-output-as-gadget-body (,framem ,frame)
-		(with-look-and-feel-realization (,framem ,frame)
-		  ,@body)))
-	 (declare (dynamic-extent #'with-output-as-gadget-body))
-	 (invoke-with-output-as-gadget 
-	   ,stream #'with-output-as-gadget-body ,@(evacuate-list args))))))
+    `(flet ((with-output-as-gadget-body (,framem ,frame)
+	      (with-look-and-feel-realization (,framem ,frame)
+		,@body)))
+       (declare (dynamic-extent #'with-output-as-gadget-body))
+       (invoke-with-output-as-gadget 
+	 ,stream #'with-output-as-gadget-body ,@options))))
 
 #+++ignore
 (defmethod invoke-with-output-as-gadget (stream continuation &key)
@@ -232,8 +232,8 @@
 (defmethod note-output-record-attached :after ((record gadget-output-record) stream)
   (declare (ignore stream))
   (when (and (output-record-gadget record)
-	     ;;--- Why?
-	     (port (output-record-gadget record)))
+ 	     ;;--- Why?
+ 	     (port (output-record-gadget record)))
     (update-gadget-position record)
     (update-output-record-gadget-state record t)))
 
@@ -368,36 +368,35 @@
 	   (declare (ignore record gadget))
 	   (let ((current-selection nil))
 	     (map-over-sheets
-	      #'(lambda (sheet)
-		  (when (typep sheet 'toggle-button)
-		    (let ((value 
-			   (and default-supplied-p
-				(member (gadget-id sheet) default
-					:test test 
-					;;--- Should the value-key be used?
-					:key value-key) 
-				t)))
-		      (when value (push sheet current-selection))
-		      (setf (gadget-value sheet) value))))
-	      check-box)
+	       #'(lambda (sheet)
+		   (when (typep sheet 'toggle-button)
+		     (let ((value 
+			     (and default-supplied-p
+				  (member (gadget-id sheet) default
+					  :test test 
+					  ;;--- Should the value-key be used?
+					  :key value-key) 
+				  t)))
+		       (when value (push sheet current-selection))
+		       (setf (gadget-value sheet) value))))
+	       check-box)
 	     (setf (check-box-current-selection check-box) current-selection))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let* ((toggle-options
-	      (getf (view-gadget-initargs view)
-		    :toggle-button-options))
+	       (getf (view-gadget-initargs view) :toggle-button-options))
 	     (current-selection nil)
 	     (buttons
 	       (map 'list
 		    #'(lambda (element)
 			(let* ((value (funcall value-key element))
 			       (actual-value (and default-supplied-p
-					  (member value default
-						  :test test 
-						  ;;--- Should the value-key be used?
-						  :key value-key) 
-					  t))
+						  (member value default
+							  :test test 
+							  ;;--- Should the value-key be used?
+							  :key value-key)
+						  t))
 			       (button
-				 (apply #'make-pane 'toggle-button 
+				 (apply #'make-pane 'toggle-button
 				   :label
 				     (let ((name (funcall name-key element)))
 				       (if (eq printer #'write-token)

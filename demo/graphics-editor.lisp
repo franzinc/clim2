@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.10 92/09/30 18:04:12 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.11 92/10/07 14:43:32 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -144,30 +144,6 @@
 	  (make-handle object left  bottom :sw)
 	  (make-handle object right bottom :se))))
 
-
-    
-(defparameter *box-highlighting-ink*
-    (make-flipping-ink +background-ink+ +red+))
-
-(defparameter *box-highlighting-line-style*
-    (make-line-style :thickness 2))
-
-(define-presentation-method highlight-presentation 
-    ((type box) record stream state)
-  (declare (ignore state))
-  (multiple-value-bind (xoff yoff)
-      (convert-from-relative-to-absolute-coordinates stream
-						     (output-record-parent record))
-    (with-bounding-rectangle* (left top right bottom) record
-      (draw-rectangle* stream 
-		       (+ xoff (- left 3)) (+ yoff (- top 3))
-		       (+ xoff right 3) (+ yoff bottom 3)
-		       :ink *box-highlighting-ink*
-		       :line-style *box-highlighting-line-style*
-		       :filled nil))))
-
-  
-
 (defmethod draw-object ((object box) stream)
   (with-bounding-rectangle* (left top right bottom) object
     ;; Present the object as a BOX so that commands in the application
@@ -185,6 +161,28 @@
       (draw-text* stream
 		  (box-label object) (+ left (floor (- right left) 2))
 		  (+ top 2) :align-x :center :align-y :top))))
+
+#+allegro
+(defparameter *box-highlighting-ink*
+	      (make-flipping-ink +background-ink+ +red+))
+
+#+allegro
+(defparameter *box-highlighting-line-style*
+	      (make-line-style :thickness 2))
+
+#+allegro
+(define-presentation-method highlight-presentation ((type box) record stream state)
+  (declare (ignore state))
+  (multiple-value-bind (xoff yoff)
+      (convert-from-relative-to-absolute-coordinates
+	stream (output-record-parent record))
+    (with-bounding-rectangle* (left top right bottom) record
+      (draw-rectangle* stream 
+		       (+ xoff (- left 3)) (+ yoff (- top 3))
+		       (+ xoff right 3) (+ yoff bottom 3)
+		       :ink *box-highlighting-ink*
+		       :line-style *box-highlighting-line-style*
+		       :filled nil))))
 
 (defmethod move-object :after ((object box) x y)
   (declare (ignore x y))
@@ -430,7 +428,8 @@
 	(last-box (slot-value *application-frame* 'last-box))
 	(style (slot-value *application-frame* 'style))
 	(shape (slot-value *application-frame* 'shape))
-	(flipping-ink (make-flipping-ink +blue+ +background-ink+)))
+	(flipping-ink #+allegro (make-flipping-ink +blue+ +background-ink+)
+		      #-allegro +flipping-ink+))
     ;;--- Zdrava supplies primitives to input basic objects such as
     ;;--- points, lines, rectangles and polygons, circles and ellipses,
     ;;--- and so forth.  Using Zdrava, the following code would be a

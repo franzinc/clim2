@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.20 92/09/24 09:40:08 cer Exp $
+;; $fiHeader: listener.lisp,v 1.21 92/10/07 14:43:36 cer Exp $
 
 (in-package :clim-demo)
 
@@ -152,7 +152,16 @@
 				 (values
 				   (accelerator-gesture-event c)
 				   :keystroke
-				   (accelerator-gesture-numeric-argument c))))))
+				   (accelerator-gesture-numeric-argument c)))))
+			 (simple-parse-error
+			   #'(lambda (c)
+			       (let ((args (clim-internals::parse-error-format-arguments c)))
+				 (when (and (= (length args) 1)
+					    (equal (first args) ""))
+				   ;; Hmm, user must have just hit <Return>
+				   (return-from lisp-listener-command-reader)))
+			       ;; Otherwise decline to handle this
+			       nil)))
 	    (let ((*accelerator-gestures* keystrokes))
 	      (accept presentation-type
 		      :stream stream

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: cloe-medium.lisp,v 1.1 92/10/01 10:03:52 cer Exp $
 
 (in-package :cloe-clim)
 
@@ -12,167 +12,36 @@
      (background-dc-image)
      (foreground-dc-image)))
 
-;;; After changing the background color, refresh the window.
+(defmethod make-medium ((port cloe-port) sheet)
+  (make-instance 'cloe-medium
+    :port port
+    :sheet sheet))
+
+(defmethod deallocate-medium :after (port (medium cloe-medium))
+  (declare (ignore port))
+  (with-slots (window) medium
+    (setf window nil)))
+
+(defmethod engraft-medium :after ((medium cloe-medium) (port cloe-port) sheet)
+  (with-slots (window background-dc-image foreground-dc-image) medium
+    (unless window
+      (setq window (sheet-mirror sheet)))
+    (setf background-dc-image (dc-image-for-ink medium (medium-background medium)))
+    (setf foreground-dc-image (dc-image-for-ink medium (medium-foreground medium)))))
+
+(defmethod degraft-medium :after ((medium cloe-medium) (port cloe-port) sheet)
+  (declare (ignore sheet))
+  nil)
+
 (defmethod (setf medium-background) :after (new-background (medium cloe-medium))
   (with-slots (background-dc-image) medium
-    (setf background-dc-image (dc-image-for-ink medium new-background)))
-  (window-refresh (medium-sheet medium)))
+    (setf background-dc-image (dc-image-for-ink medium new-background))))
 
 (defmethod (setf medium-foreground) :after (new-foreground (medium cloe-medium))
   (with-slots (foreground-dc-image) medium
-    (setf foreground-dc-image (dc-image-for-ink medium new-foreground)))
-  (window-refresh (medium-sheet medium)))
+    (setf foreground-dc-image (dc-image-for-ink medium new-foreground))))
 
 
-(defvar *dc*)
-
-(defvar *current-pen*)
-(defvar *current-brush*)
-(defvar *current-rop2*)
-(defvar *current-background-color*)
-(defvar *current-text-color*)
-(defvar *current-font*)
-
-;;; Stock objects
-(defvar *null-pen*)
-(defvar *black-pen*)
-(defvar *white-pen*)
-
-(defvar *null-brush*)
-(defvar *black-brush*)
-(defvar *white-brush*)
-
-;;; Original objects
-(defvar *color-to-image* (make-hash-table))
-(defvar *black-image*)
-(defvar *white-image*)
-
-(defvar *ink-to-image* (make-hash-table))
-
-
-(defstruct (dc-image (:predicate nil))
-  (bitmap nil)
-  solid-1-pen
-  (pen-table (make-hash-table))
-  brush
-  (rop2 win::r2_copypen)
-  text-color
-  background-color)
-
-(defun initialize-dc ()
-  ;; Dummy window to represent class.
-  (setf *dc* (win::create-window "Vanilla" "CLIM" win::ws_popup 0 0 0 0 0 0 0 "arg"))
-
-  ;; Stock objects
-  (setf *null-pen* (win::get-stock-object win::null_pen))
-  (setf *black-pen* (win::get-stock-object win::black_pen))
-  (setf *white-pen* (win::get-stock-object win::white_pen))
-  (setf *current-pen* *black-pen*)
-
-  (setf *null-brush* (win::get-stock-object win::null_brush))
-  (setf *black-brush* (win::get-stock-object win::black_brush))
-  (setf *white-brush* (win::get-stock-object win::white_brush))
-  (setf *current-brush* *white-brush*)
-
-  (setf *current-rop2* win::r2_copypen)
-  (setf *current-background-color* #xffffff)
-  (setf *current-text-color* #x000000)
-  (setf *current-font* nil)
-
-  (setf *black-image*
-	(make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
-		       :text-color #x000000 :background-color nil))
-  (setf (gethash #x000000 *color-to-image*) *black-image*)
-  (setf *white-image*
-	(make-dc-image :solid-1-pen *white-pen* :brush *white-brush*
-		       :text-color #xffffff :background-color nil))
-  (setf (gethash #xffffff *color-to-image*) *white-image*)
-  )
-
-
-(defun select-pen (pen)
-  (unless (eql *current-pen* pen)
-    (win::select-pen *dc* pen)
-    (setf *current-pen* pen))
-  pen)
-
-(defun select-brush (brush)
-  (unless (eql *current-brush* brush)
-    (win::select-brush *dc* brush)
-    (setf *current-brush* brush))
-  brush)
-
-(defun select-rop2 (rop2)
-  (unless (eql *current-rop2* rop2)
-    (win::set-rop2 *dc* rop2)
-    (setf *current-rop2* rop2))
-  rop2)
-
-(defun select-background-color (color)
-  (unless (eql *current-background-color* color)
-    (cond ((null color)
-	   #||(win::set-background-mode *dc* win::transparent)||#)
-	  (t
-	   #||(when (null *current-background-color*)
-		(win::set-background-mode *dc* win::opaque))||#
-	   (win::set-background-color *dc* color)
-    (setf *current-background-color* color))))
-  color)
-
-(defun select-text-color (color)
-  (unless (eql *current-text-color* color)
-    (win::set-text-color *dc* color)
-    (setf *current-text-color* color))
-  color)
-
-(defun select-font (font)
-  (unless (eql *current-font* font)
-    (win::select-font *dc* font)
-    (setf *current-font* font))
-  font)
-
-;;;
-
-(defun set-dc-for-drawing (image line-style)
-  (let ((dashes (line-style-dashes line-style)))
-    (select-pen
-      (let* ((thickness (max 1 (round (line-style-thickness line-style))))
-	     (code (if dashes (- thickness) thickness)))
-	(declare (fixnum thickness code))
-	(if (= code 1)
-	    (dc-image-solid-1-pen image)
-	    (or (gethash code (dc-image-pen-table image))
-		(setf (gethash code (dc-image-pen-table image))
-		      (win::create-pen (if dashes win::ps_dash win::ps_solid)
-				       thickness
-				       (dc-image-text-color image)))))))
-    (when dashes
-      (select-background-color nil)))
-  (select-brush *null-brush*)
-  (select-rop2 (dc-image-rop2 image))
-  image)
-
-(defun set-dc-for-filling (image)
-  (select-pen *null-pen*)
-  (select-brush (dc-image-brush image))
-  (let ((background-color (dc-image-background-color image)))
-    (when background-color
-      (select-background-color background-color)))
-  (select-rop2 (dc-image-rop2 image)))
-
-(defun set-dc-for-ink (medium ink line-style)
-  (let ((image (dc-image-for-ink medium ink)))
-    (if line-style
-	(set-dc-for-drawing image line-style)
-	(set-dc-for-filling image))))
-
-(defun set-dc-for-text (medium ink font)
-  (select-text-color (dc-image-text-color (dc-image-for-ink medium ink)))
-  (select-background-color nil)
-  (select-font font))
-
-
-(defgeneric dc-image-for-ink (medium ink))
 
 (defmethod dc-image-for-ink (medium (ink (eql +foreground-ink+)))
   (slot-value medium 'foreground-dc-image))
@@ -205,6 +74,35 @@
 		    (make-dc-image :solid-1-pen (win::create-pen win::ps_solid 1 color)
 				   :brush (win::create-solid-brush color)
 				   :text-color color :background-color nil))))))))
+
+(defmethod dc-image-for-ink (medium (ink pattern))
+  (or (gethash ink *ink-to-image*)
+      (setf (gethash ink *ink-to-image*)
+	    ;; This is broken, but it's hard to do right.
+	    (multiple-value-bind (array designs)
+		(decode-pattern ink)
+	      (unless (and (= (length designs) 2)
+			   (eq (aref designs 0) +background-ink+)
+			   (eq (aref designs 1) +foreground-ink+))
+		(error "Can't handle this pattern."))
+	      (let ((into (make-array 8 :element-type '(unsigned-byte 16) :initial-element 0))
+		    (dc-image (copy-dc-image (slot-value medium 'foreground-dc-image)))
+		    (width (array-dimension array 1))
+		    (height (array-dimension array 0)))
+		(macrolet ((collect-byte (row-no)
+			     `(let ((result 0))
+				(dotimes (j (min 8 width))
+				  (setf (ldb (byte 1 (- 7 j)) result)
+					(aref array ,row-no j)))
+				(logxor result #2r11111111))))
+		  (dotimes (i (min 8 height))
+		    (setf (aref into i) (collect-byte i))))
+		(let ((bitmap (win::create-bitmap into)))
+		  (setf (dc-image-bitmap dc-image) bitmap)
+		  (setf (dc-image-brush dc-image) (win::create-pattern-brush bitmap))
+		  (setf (dc-image-background-color dc-image)
+			(dc-image-text-color (slot-value medium 'background-dc-image))))
+		dc-image)))))
 
 (defmethod dc-image-for-ink (medium (ink rectangular-tile))
   ;; The only case we handle right now is stipples
@@ -270,7 +168,7 @@
     (win::rectangle drawable x y x y)))
 
 (defmethod medium-draw-points* ((medium cloe-medium) position-seq)
-  )
+  (nyi))
 
 (defmethod medium-draw-line* ((medium cloe-medium) x1 y1 x2 y2)
   (let* ((sheet (medium-sheet medium))
@@ -284,7 +182,7 @@
     (win::line-to drawable x2 y2)))
 
 (defmethod medium-draw-lines* ((medium cloe-medium) position-seq)
-  )
+  (nyi))
 
 (defmethod medium-draw-rectangle* ((medium cloe-medium)
 				   left top right bottom filled)
@@ -301,7 +199,7 @@
     (win::rectangle drawable left top right bottom)))
 
 (defmethod medium-draw-rectangles* ((medium cloe-medium) position-seq filled)
-  )
+  (nyi))
 
 (defmethod medium-draw-polygon* ((medium cloe-medium) position-seq closed filled)
   (let* ((sheet (medium-sheet medium))
@@ -331,8 +229,8 @@
 	(setf (svref points (+ length 1)) (svref points 1)))
       (set-dc-for-ink medium ink line-style)
       (if (null line-style)
-	  (win::polygon drawable points)
-	  (win::polyline drawable points closed)))))
+	  (win::polygon drawable (coerce points 'list))
+	  (win::polyline drawable (coerce points 'list) closed)))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))
@@ -441,7 +339,7 @@
 	   (descent (cloe-font-descent font))
 	   (ascent (cloe-font-ascent font)))
       (let ((x-adjust 
-	      (compute-text-x-adjustment align-x medium string text-style start end))
+	      (compute-text-x-adjustment align-x medium character text-style))
 	    (y-adjust
 	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
@@ -472,7 +370,7 @@
 
 
 (defmethod text-style-width ((text-style standard-text-style) (medium cloe-medium))
-  (let ((font (text-style-mapping (port medium) text-style window)))
+  (let ((font (text-style-mapping (port medium) text-style)))
     (cloe-font-average-character-width font)))
 
 (defmethod text-style-height ((text-style standard-text-style) (medium cloe-medium))

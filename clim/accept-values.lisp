@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.38 92/10/02 15:19:12 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.39 92/10/28 08:19:20 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1035,7 +1035,8 @@
      :pointer-documentation "Edit this field"
      :gesture :edit-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
-     :echo nil)
+     ;; Echoing this is annoying, as is putting it into the command history
+     :echo nil :maintain-history nil)
     (object window)
   (list object window))
 
@@ -1051,7 +1052,7 @@
      :pointer-documentation "Modify this field"
      :gesture :modify-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
-     :echo nil)
+     :echo nil :maintain-history nil)
     (object window)
   (list object window))
 
@@ -1065,7 +1066,7 @@
      :pointer-documentation "Remove this field"
      :gesture :delete-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
-     :echo nil)
+     :echo nil :maintain-history nil)
     (object)
   (list object))
 
@@ -1088,7 +1089,7 @@
      :pointer-documentation document-command-button
      :gesture :select
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
-     :echo nil)
+     :echo nil :maintain-history nil)
     (object window)
   (list object window))
 
@@ -1102,7 +1103,7 @@
      :pointer-documentation "Select this value"
      :gesture :select
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
-     :echo nil)
+     :echo nil :maintain-history nil)
     (object)
   (list object))
 
@@ -1116,7 +1117,7 @@
      :pointer-documentation "De/Select this value"
      :gesture :select
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
-     :echo nil)
+     :echo nil :maintain-history nil)
     (object)
   (list object))
 

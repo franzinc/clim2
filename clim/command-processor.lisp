@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.15 92/09/24 09:38:30 cer Exp Locker: cer $
+;; $fiHeader: command-processor.lisp,v 1.16 92/09/30 18:03:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -28,12 +28,16 @@
   (let ((command-name
 	  (with-stack-list (name-type 'command-name ':command-table command-table)
 	    (with-stack-list (cmd-type 'command ':command-table command-table)
-	      (funcall arg-parser stream name-type
-		       :history cmd-type
-		       ;; Prevent it from making a noise string of the command prompt
-		       ;; Arg-parsers better always be prepared to receive a :PROMPT
-		       ;; argument
-		       :prompt nil)))))
+	      (handler-case
+		  (funcall arg-parser stream name-type
+			   :history cmd-type
+			   ;; Prevent it from making a noise string of the
+			   ;; command prompt.  Arg parsers better always be
+			   ;; prepared to receive a :PROMPT argument
+			   :prompt nil)
+		(empty-completion-error ()
+		 ;; No command name, just bag it and return NIL
+		 (return-from invoke-command-parser-and-collect nil)))))))
     (funcall delimiter-parser stream ':args)
     ;; Establish a "wall" so that commands are no longer sensitive.
     (with-input-context ('command-arguments :override t)
@@ -171,13 +175,18 @@
 
 (defun parse-keyword (arg-parser delimiter-parser stream arguments
 		      keyword-documentation keyword-defaults)
-  (prog1 (funcall arg-parser stream
-		  `(keyword-argument-name ,arguments
-					  :keyword-documentation ,keyword-documentation
-					  :keyword-defaults ,keyword-defaults)
-		  :prompt nil)
-	 ;; There must be a value following, no?
-	 (funcall delimiter-parser stream :args)))
+  (handler-case
+      (prog1 (funcall arg-parser stream
+		      `(keyword-argument-name ,arguments
+					      :keyword-documentation ,keyword-documentation
+					      :keyword-defaults ,keyword-defaults)
+		      :prompt nil)
+	     ;; There must be a value following, no?
+	     (funcall delimiter-parser stream :args))
+    (empty-completion-error ()
+     ;; If there is trailing whitespace that causes the completer to try
+     ;; to complete a null string, just give up and activate the command
+     (return-from parse-keyword nil))))
 
 #+++ignore	;this is slow and useless, don't bother
 (defun build-command (command-name &rest partial-command-args)
@@ -251,7 +260,7 @@
   (declare (ignore keys))
   (let ((command-name-unread t))
     (flet ((reverse-parser (stream presentation-type &rest args)
-	     (declare (dynamic-extent args) (ignore args))
+	     (declare (ignore args))
 	     (cond (command-name-unread
 		    (let ((command-name (pop args-to-go)))
 		      (setq command-name-unread nil)
@@ -342,7 +351,9 @@
 (defun accept-values-command-parser (command-name command-table stream partial-command
 				     &key own-window)
   (let ((*original-stream* nil)
-	(copy-partial-command nil))
+	copy-partial-command
+	(result nil)
+	result-index)
     (labels ((arg-parser (stream presentation-type &rest args)
 	       (declare (dynamic-extent args))
 	       ;; This code is to handle the case where a partial command has been
@@ -351,19 +362,38 @@
 	       (let* ((default (if copy-partial-command
 				   (pop copy-partial-command)
 				   *unsupplied-argument-marker*)))
+		 ;; Make a place to store the impending result.  We need to
+		 ;; resort to this so that we don't clobber changed fields
+		 ;; during each pass through the dialog.
+		 (incf result-index)
+		 (setq result (nconc result (list nil)))
 		 (with-presentation-type-decoded (type-name parameters) presentation-type
 		   (when (eq type-name 'command-name)
+		     ;; Side effect the result (same deal below)
+		     (setf (nth result-index result) command-name)
 		     (return-from arg-parser (values command-name presentation-type)))
 		   (cond ((not (unsupplied-argument-p default))
-			  (cond ((eq type-name 'keyword-argument-name) default)
-				(t (apply #'parse-normal-arg
-					  stream presentation-type
-					  :default default args))))
+			  (cond ((eq type-name 'keyword-argument-name) 
+				 (setf (nth result-index result) default)
+				 default)
+				(t (multiple-value-bind (arg type)
+				       (apply #'parse-normal-arg
+					      stream presentation-type
+					      :default default args)
+				     (setf (nth result-index result) arg)
+				     (values arg type)))))
 			 ((eq type-name 'keyword-argument-name)
-			  (intern (symbol-name (caar parameters)) *keyword-package*))
-			 (t (apply #'parse-normal-arg
-				   stream presentation-type
-				   :provide-default nil args))))))
+			  (let ((keyword
+				  (intern (symbol-name (caar parameters)) *keyword-package*)))
+			    (setf (nth result-index result) keyword)
+			    keyword))
+			 (t 
+			  (multiple-value-bind (arg type)
+			      (apply #'parse-normal-arg
+				     stream presentation-type
+				     :provide-default nil args)
+			    (setf (nth result-index result) arg)
+			    (values arg type)))))))
 	     (parse-normal-arg (stream arg-type &rest options)
 	       (declare (dynamic-extent options))
 	       (with-delimiter-gestures (*command-argument-delimiters*)
@@ -383,11 +413,15 @@
 			       :stream stream)
 		      (write-char #\: stream))
 		    (fresh-line stream)))
-		;; this copy is done because the accepting-values may/will run this
+		;; This copy is done because the accepting-values may/will run this
 		;; body several times.
-		(setq copy-partial-command (copy-list partial-command))
+		(setq copy-partial-command (or result
+					       (copy-list partial-command)))
+		(setq result nil
+		      result-index -1)
 		(invoke-command-parser-and-collect
-		  command-table #'arg-parser #'separate-args stream))))
+		  command-table #'arg-parser #'separate-args stream)
+		result)))
 	;; If the person clicked on the <Abort> exit box, the ABORT restart
 	;; will be invoked and we'll never get here.
 	command))))
@@ -403,7 +437,7 @@
 	   (let ((first-arg t))
 	     (flet
 	       ((menu-parser (stream presentation-type &rest args)
-		  (declare (dynamic-extent args) (ignore args))
+		  (declare (ignore args))
 		  (multiple-value-prog1
 		    ;; For subsequent command args it makes no sense to still be "within"
 		    ;; the inherited context because you can't "back up" to edit things.
@@ -453,7 +487,7 @@
        (partial-command command-table stream start-location &key for-accelerator)
   (declare (ignore start-location for-accelerator))
   (flet ((reverse-parser (stream presentation-type &rest args)
-	   (declare (dynamic-extent args) (ignore args))
+	   (declare (ignore args))
 	   (let ((arg-p partial-command)
 		 (arg (pop partial-command)))
 	     (cond ((and arg-p (not (unsupplied-argument-p arg)))
@@ -757,7 +791,8 @@
 	   (from-type command-name command-table
 	    &key (gesture ':select) tester
 		 documentation pointer-documentation
-		 (menu t) priority (echo t))
+		 (menu t) priority 
+		 (echo t) (maintain-history t))
 	   arglist
 	   &body body &environment env)
   #+Genera (declare (zwei:indentation 1 3 3 1))
@@ -789,7 +824,9 @@
 		     ,doc-string
 		     ;; The body supplied by the user returns a list of the
 		     ;; command's arguments
-		     (values (cons ',command-name ,@body) nil '(:echo ,echo))))
+		     (values (cons ',command-name ,@body)
+			     nil
+			     '(:echo ,echo :maintain-history ,maintain-history))))
 	`(define-presentation-translator-1 ,name
 	     (,from-type ,to-type ,command-table
 	      :gesture ,gesture
