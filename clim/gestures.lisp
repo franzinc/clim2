@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.16 92/10/28 11:31:40 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.17 92/11/06 18:59:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -178,31 +178,36 @@
 	(end-of-file-marker
 	  (return-from keyboard-event-matches-gesture-name-p nil)))
     (declare (type fixnum modifier-state))
-    (cond ((consp gesture-name)
-	   ;; If GESTURE-NAME is a cons, then it's really a gesture spec
-	   (or (multiple-value-bind (gkeysym gstate)
-		   (parse-gesture-spec gesture-name)
-		 (and (eq keysym gkeysym)
-		      (= modifier-state gstate)))
-	       (and port
-		    (let ((gesture-spec 
-			    (port-canonicalize-gesture-spec port gesture-name)))
-		      (and gesture-spec
-			   (or (and (eq keysym (car gesture-spec))
-				    (= modifier-state (cdr gesture-spec)))
-			       (equal gesture-spec
-				      (port-canonicalize-gesture-spec 
-					port keysym modifier-state))))))))
-	  (t
-	   (or (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
-		 (member gesture-name (cdr (assoc keysym bucket))))
-	       (let ((gesture-spec 
-		       (port-canonicalize-gesture-spec port keysym modifier-state)))
-		 (and gesture-spec
-		      (destructuring-bind (keysym . modifier-state) gesture-spec
-			(let ((bucket (aref *keysym-and-modifier-key->gesture*
-					    modifier-state)))
-			  (member gesture-name (cdr (assoc keysym bucket))))))))))))
+    (when (consp gesture-name)
+      ;; If GESTURE-NAME is a cons, then it might really be a gesture spec
+      (when (or (multiple-value-bind (gkeysym gstate)
+		    (parse-gesture-spec gesture-name)
+		  (and (eq keysym gkeysym)
+		       (= modifier-state gstate)))
+		(and port
+		     (let ((gesture-spec 
+			     (port-canonicalize-gesture-spec port gesture-name)))
+		       (and gesture-spec
+			    (or (and (eq keysym (car gesture-spec))
+				     (= modifier-state (cdr gesture-spec)))
+				(equal gesture-spec
+				       (port-canonicalize-gesture-spec 
+					 port keysym modifier-state)))))))
+	(return-from keyboard-event-matches-gesture-name-p t))
+      (when (null (cdr gesture-name))
+	;; On the other hand, it might be the user messing with us and giving
+	;; us a bogus keysym disguised as a gesture spec
+	(setq gesture-name (car gesture-name))))
+    (unless (consp gesture-name)
+      (or (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
+	    (member gesture-name (cdr (assoc keysym bucket))))
+	  (let ((gesture-spec 
+		  (port-canonicalize-gesture-spec port keysym modifier-state)))
+	    (and gesture-spec
+		 (destructuring-bind (keysym . modifier-state) gesture-spec
+		   (let ((bucket (aref *keysym-and-modifier-key->gesture*
+				       modifier-state)))
+		     (member gesture-name (cdr (assoc keysym bucket)))))))))))
 
 (defun-inline keyboard-event-p (x)
   (or (characterp x)

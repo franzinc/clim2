@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.17 92/10/28 11:31:42 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.18 92/11/06 18:59:45 cer Exp $
 
 (In-package :clim-internals)
 
@@ -282,9 +282,10 @@
 		       ;; Don't add the same node to the children more than
 		       ;; once, which can come up during redisplay
 		       (setq children (nconc children (list node))))))
-		 (let ((this-node (with-new-output-record 
-				      (stream 'standard-graph-node-output-record)
-				    (funcall object-printer object stream))))
+		 (let ((this-node 
+			 (with-stream-cursor-position-saved (stream)
+			   (with-new-output-record (stream 'standard-graph-node-output-record)
+			     (funcall object-printer object stream)))))
 		   (setf (graph-node-children this-node) children)
 		   (dolist (child (graph-node-children this-node))
 		     (setf (graph-node-parents child) (list this-node)))
@@ -430,9 +431,9 @@
 	       (map nil function (funcall inferior-producer node)))
 	     (new-node-function (parent-object parent-record child-object)
 	       (let ((child-record
-		       (with-new-output-record
-			   (stream 'standard-graph-node-output-record)
-			 (funcall object-printer child-object stream))))
+		       (with-stream-cursor-position-saved (stream)
+			 (with-new-output-record (stream 'standard-graph-node-output-record)
+			   (funcall object-printer child-object stream)))))
 		 (old-node-function parent-object parent-record child-object child-record)))
 	     (old-node-function (parent-object parent-record child-object child-record)
 	       (declare (ignore parent-object child-object))

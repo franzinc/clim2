@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.39 92/11/13 14:45:52 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.40 92/11/18 15:44:41 colin Exp $
 
 (in-package :clim-internals)
 
@@ -106,7 +106,9 @@
 	    (output-record-stream record) (output-record-parent record))
 	(with-bounding-rectangle* (left top right bottom) record
 	  (translate-positions xoff yoff left top right bottom)
-	  (move-and-resize-sheet gadget left top (- right left) (- bottom top)))))))
+	  (move-and-resize-sheet 
+	    gadget left top (- right left) (- bottom top)))))))
+
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record gadget-output-record) stream
@@ -280,15 +282,15 @@
       (call-next-method)
     +radio-box-view+))
 
-;(define-presentation-method gadget-includes-prompt-p 
-;			    ((type completion) (stream t) (view radio-box-view))
-;  nil)
+(define-presentation-method gadget-includes-prompt-p 
+			    ((type completion) (stream t) (view radio-box-view))
+  (not (null (getf (view-gadget-initargs view) :label))))
 
 (define-presentation-method accept-present-default 
-			    ((type completion) stream (view radio-box-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t)
-			     active-p)
+    ((type completion) stream (view radio-box-view)
+		       default default-supplied-p present-p query-identifier
+		       &key (prompt t)
+		       active-p)
   (declare (ignore present-p))
   (move-cursor-to-view-position stream view)
   (let ((current-selection nil))
@@ -299,60 +301,68 @@
 		 (activate-gadget radio-box)
 	       (deactivate-gadget radio-box))
 	     (map-over-sheets
-	       #'(lambda (sheet)
-		   (when (typep sheet 'toggle-button)
-		     (when (setf (gadget-value sheet)
-				 (and default-supplied-p
-				      (funcall test 
-					       (funcall value-key (gadget-id sheet))
-					       (funcall value-key default))))
-		       (setf (radio-box-current-selection radio-box) sheet))))
-	       radio-box)))
+	      #'(lambda (sheet)
+		  (when (typep sheet 'toggle-button)
+		    (when (setf (gadget-value sheet)
+			    (and default-supplied-p
+				 (funcall test 
+					  (funcall value-key (gadget-id sheet))
+					  (funcall value-key default))))
+		      (setf (radio-box-current-selection radio-box) sheet))))
+	      radio-box)))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let* ((toggle-options
-		 (getf (view-gadget-initargs view) :toggle-button-options))
+		(getf (view-gadget-initargs view) :toggle-button-options))
+	       (radio-box-label
+		(getf (view-gadget-initargs view) :label))
 	       (buttons
-		 (map 'list
-		      #'(lambda (element)
-			  (let ((button
-				  (apply #'make-pane 'toggle-button 
+		(map 'list
+		  #'(lambda (element)
+		      (let ((button
+			     (apply #'make-pane 'toggle-button 
 				    :label 
-				      (let ((name (funcall name-key element)))
-					(if (eq printer #'write-token)
-					    name
-					    (pixmap-from-menu-item stream name printer nil)))
+				    (let ((name (funcall name-key element)))
+				      (if (eq printer #'write-token)
+					  name
+					(pixmap-from-menu-item stream name printer nil)))
 				    :indicator-type
-				      (getf toggle-options :indicator-type :one-of)
+				    (getf toggle-options :indicator-type :one-of)
 				    :value
-				      (and default-supplied-p
-					   (funcall test 
-						    (funcall value-key element)
-						    (funcall value-key default)))
+				    (and default-supplied-p
+					 (funcall test 
+						  (funcall value-key element)
+						  (funcall value-key default)))
 				    :id element
 				    toggle-options)))
-			    (when (and default-supplied-p
-				       (funcall test 
-						(funcall value-key element)
-						(funcall value-key default)))
-			      (setq current-selection button))
-			    button))
-		      sequence))
+			(when (and default-supplied-p
+				   (funcall test 
+					    (funcall value-key element)
+					    (funcall value-key default)))
+			  (setq current-selection button))
+			button))
+		  sequence))
 	       (radio-box
-		 (apply #'make-pane 'radio-box
-			(append
-			  (remove-keywords (view-gadget-initargs view)
-					   '(:toggle-button-options))
-			  (list :label (and (stringp prompt) prompt)
-				:choices buttons 
-				:selection current-selection 
-				:client stream
-				:id query-identifier 
-				:value-changed-callback
-				  (make-accept-values-value-changed-callback
-				   stream query-identifier)
-				  :active active-p)))))
-	  (values (outlining () radio-box)
+		(apply #'make-pane 'radio-box
+		       (append
+			(remove-keywords (view-gadget-initargs view)
+					 '(:toggle-button-options))
+			(list :label (and (stringp prompt) prompt)
+			      :choices buttons 
+			      :selection current-selection 
+			      :client stream
+			      :id query-identifier 
+			      :value-changed-callback
+			      (make-accept-values-value-changed-callback
+			       stream query-identifier)
+			      :active active-p)))))
+	  (values (if radio-box-label
+		      (outlining ()
+				 (vertically ()
+				     (make-pane 'label-pane :label radio-box-label)
+				   radio-box))
+		    (outlining () radio-box))
 		  radio-box))))))
+
 
 
 ;;; Subset completion gadget
@@ -364,9 +374,9 @@
       (call-next-method)
     +check-box-view+))
 
-;(define-presentation-method gadget-includes-prompt-p 
-;			    ((type subset-completion) (stream t) (view check-box-view))
-;  nil)
+(define-presentation-method gadget-includes-prompt-p 
+			    ((type subset-completion) (stream t) (view check-box-view))
+  (not (null (getf (view-gadget-initargs view) :label))))
 
 (define-presentation-method accept-present-default 
 			    ((type subset-completion) stream (view check-box-view)
@@ -398,6 +408,8 @@
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let* ((toggle-options
 	       (getf (view-gadget-initargs view) :toggle-button-options))
+	     (check-box-label
+	       (getf (view-gadget-initargs view) :label))
 	     (current-selection nil)
 	     (buttons
 	       (map 'list
@@ -437,7 +449,12 @@
 				         (make-accept-values-value-changed-callback
 					  stream query-identifier)
 					 :active active-p)))))
-	(values (outlining () check-box)
+	(values (if check-box-label
+		    (outlining ()
+		      (vertically ()
+			(make-pane 'label-pane :label check-box-label)
+			check-box))
+		    (outlining () check-box))
 		check-box)))))
 
 
@@ -818,11 +835,20 @@
 
 ;;--- These should be defined in the standard DEFOPERATION way...
 
-(defmethod sheet-medium ((stream standard-encapsulating-stream))
-  (sheet-medium (encapsulating-stream-stream stream)))
+(defmethod sheet-region ((stream standard-encapsulating-stream))
+  (sheet-parent (encapsulating-stream-stream stream)))
+
+(defmethod sheet-transformation ((stream standard-encapsulating-stream))
+  (sheet-parent (encapsulating-stream-stream stream)))
 
 (defmethod sheet-parent ((stream standard-encapsulating-stream))
   (sheet-parent (encapsulating-stream-stream stream)))
+
+(defmethod sheet-children ((stream standard-encapsulating-stream))
+  (sheet-parent (encapsulating-stream-stream stream)))
+
+(defmethod sheet-medium ((stream standard-encapsulating-stream))
+  (sheet-medium (encapsulating-stream-stream stream)))
 
 (defmethod port ((stream standard-encapsulating-stream))
   (port (encapsulating-stream-stream stream)))

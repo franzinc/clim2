@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.19 92/11/09 19:55:03 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.20 92/11/13 14:46:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -352,6 +352,22 @@
 ;;  T,NIL   => Can't ever happen
 (defun presentation-subtypep (type putative-supertype)
   (declare (values subtype-p known-p))
+  (multiple-value-bind (subtype-p known-p)
+      (presentation-subtypep-1 type putative-supertype)
+    (when (and (eq subtype-p nil)
+	       (eq known-p t)
+	       (gethash (presentation-type-name putative-supertype)
+			*presentation-type-abbreviation-table*))
+      ;; One reason we might have gotten this result is that the supertype
+      ;; was an abbreviation, so it never was reached during the type walk.
+      ;; Check this out now.
+      (error "~S is a presentation type abbreviation, not the name of a presentation type"
+	     (presentation-type-name putative-supertype)))))
+
+;; The guts of the above, but faster since we don't worry about the case
+;; where a type abbreviation was passed in.
+(defun presentation-subtypep-1 (type putative-supertype)
+  (declare (values subtype-p known-p))
   (with-presentation-type-decoded (type-name type-parameters) type
     (with-presentation-type-decoded (supertype-name supertype-parameters) putative-supertype
 
@@ -389,34 +405,31 @@
 	    ((eq supertype-name 'nil)
 	     (values nil t))			;Nothing has NIL as a supertype
 	    ((eq type-name 'and)
-	     ;; Yes, that's really SOME, not EVERY.  For example,
+	     ;; Yes, we really call SOME, not EVERY.  For example,
 	     ;; (AND INTEGER (SATISFIES ODDP)) is a subtype of INTEGER
 	     (if (some #'(lambda (type)
 			   (with-presentation-type-decoded (type-name) type
 			     (unless (member type-name '(not satisfies))
-			       (presentation-subtypep type putative-supertype))))
+			       (presentation-subtypep-1 type putative-supertype))))
 		       type-parameters)
 		 (values t t)
 		 (values nil nil)))
-	    
 	    ((eq type-name 'or)
 	     (if (every #'(lambda (type)
-			    (presentation-subtypep type putative-supertype))
+			    (presentation-subtypep-1 type putative-supertype))
 			type-parameters)
 		 (values t t)
-	       (values nil nil)))
-	    
+		 (values nil nil)))
 	    ((eq supertype-name 'and)
 	     (if (every #'(lambda (supertype) 
-			    (with-presentation-type-decoded (type-name) type
+			    (with-presentation-type-decoded (type-name) supertype
 			      (unless (member type-name '(not satisfies))
-				(presentation-subtypep type supertype))))
+				(presentation-subtypep-1 type supertype))))
 			supertype-parameters)
 		 (values t t)
-	       (values nil nil)))
-
+		 (values nil nil)))
 	    ((eq supertype-name 'or)
-	     (if (some #'(lambda (supertype) (presentation-subtypep type supertype))
+	     (if (some #'(lambda (supertype) (presentation-subtypep-1 type supertype))
 		       supertype-parameters)
 		 (values t t)
 		 (values nil nil)))
@@ -425,7 +438,7 @@
 	     (flet ((psubtypep (ntype-name ntype)
 		      (when (eq ntype-name supertype-name)
 			;; Aside from parameters, type is a subtype of putative-supertype
-			(return-from presentation-subtypep
+			(return-from presentation-subtypep-1
 			  (cond ((null supertype-parameters)
 				 (values t t))	;Parameters can only restrict
 				((equal supertype-parameters
@@ -445,7 +458,7 @@
 				   (values subtype-p known-p))))))))
 	       (declare (dynamic-extent #'psubtypep))
 	       (map-over-presentation-type-supertypes type #'psubtypep))
-	     ;; Type is not even a subclass of putative-supertype
+	     ;; TYPE is not even a subclass of PUTATIVE-SUPERTYPE
 	     (values nil t))))))
 
 

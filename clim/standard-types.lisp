@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.18 92/11/06 19:00:31 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.19 92/11/13 14:46:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,7 @@
 		stream :acceptably acceptably))
 
 (define-presentation-method accept ((type t) stream (view textual-view) &key)
-  ;; Only allow the user to click on things if he did not supply any
+  ;; Allow the user to only click on things if he did not supply any
   ;; ACCEPT method for the type.  This is a perfectly reasonable thing
   ;; to do in direct-manipulation user interfaces.
   (with-delimiter-gestures (() :override t)
@@ -128,7 +128,7 @@
 	  ((eq type1 '*)
 	   (values nil t))
 	  (t
-	   (presentation-subtypep type1 type2)))))
+	   (presentation-subtypep-1 type1 type2)))))
 
 (define-presentation-method describe-presentation-type :after
 			    ((type complex) stream plural-count)
@@ -447,9 +447,9 @@
   (if (or (eq action :possibilities)
 	  (eq action :apropos-possibilities))
       (pathname-complete-1 string action default)
-    (multiple-value-bind (string success)
-	(fs:complete-pathname default string nil :newest :read)
-      (values string success (and success (pathname string)) 1))))
+      (multiple-value-bind (string success)
+	  (fs:complete-pathname default string nil :newest :read)
+	(values string success (and success (pathname string)) 1))))
 
 #+CCL-2
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
@@ -745,12 +745,10 @@
 	      " "
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (flet ((possibility-printer (possibility type stream)
-	     (declare (ignore type))
-	     (with-output-as-presentation (stream (funcall value-key (second possibility)) type)
-	       (funcall printer 
-			(funcall name-key (find (second possibility) sequence 
-						:key value-key :test test))
-			stream))))
+	     (let ((object (find (second possibility) sequence 
+				 :key value-key :test test)))
+	       (with-output-as-presentation (stream (list object) type)
+		 (funcall printer (funcall name-key object) stream)))))
       (declare (dynamic-extent #'possibility-printer))
       (loop
 	(let ((element
@@ -941,7 +939,7 @@
 (define-presentation-method presentation-subtypep ((subtype sequence) supertype)
   (let ((element-type-1 (with-presentation-type-parameters (sequence subtype) element-type))
 	(element-type-2 (with-presentation-type-parameters (sequence supertype) element-type)))
-    (presentation-subtypep element-type-1 element-type-2)))
+    (presentation-subtypep-1 element-type-1 element-type-2)))
 
 (define-presentation-method present (sequence (type sequence) stream (view textual-view)
 				     &rest options)
@@ -977,7 +975,7 @@
 			    (default (type sequence) &key default-type)
   ;; The default can be either a sequence or an element.  If it's an element,
   ;; coerce it to be a sequence consisting of that single element.
-  (unless (and (presentation-subtypep default-type type)
+  (unless (and (presentation-subtypep-1 default-type type)
 	       (presentation-typep default type))
     (with-presentation-type-parameters (sequence default-type)
       (setq default (list default)
@@ -1126,7 +1124,7 @@
 			   element-types)))
     (if (and (= (length element-types-1) (length element-types-2))
 	     (every #'(lambda (element-type-1 element-type-2)
-			(presentation-subtypep element-type-1 element-type-2))
+			(presentation-subtypep-1 element-type-1 element-type-2))
 		    element-types-1 element-types-2))
 	(values t t)
 	(values nil nil))))
@@ -1218,7 +1216,7 @@
   (with-presentation-type-decoded (nil subtypes) subtype
     (with-presentation-type-decoded (nil supertypes) supertype
       (if (every #'(lambda (subtype)
-		     (some #'(lambda (supertype) (presentation-subtypep subtype supertype))
+		     (some #'(lambda (supertype) (presentation-subtypep-1 subtype supertype))
 			   supertypes))
 		 subtypes)
 	  (values t t)
@@ -1361,8 +1359,8 @@
 		     (with-presentation-type-decoded (supertype-name) supertype
 		       (if (member supertype-name '(not satisfies))
 			   (member supertype subtypes :test #'equal)
-			 (some #'(lambda (subtype) (presentation-subtypep subtype supertype))
-			       subtypes))))
+			   (some #'(lambda (subtype) (presentation-subtypep-1 subtype supertype))
+				 subtypes))))
 		 supertypes)
 	  (values t t)
 	  (values nil nil)))))

@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
+;; $fiHeader: db-list.lisp,v 1.2 92/11/09 10:54:18 cer Exp $
 
-;; $fiHeader: db-stream.lisp,v 1.35 92/11/06 18:59:18 cer Exp $
+"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)	;yes, this file is in the Silica package
 
@@ -118,6 +118,7 @@
 		    :contents buttons)))
 	    (sheet-adopt-child pane inferiors)))))))
 
+;;--- This doesn't work right yet...
 (defmethod value-changed-callback :around 
 	   ((selection gadget) (client generic-list-pane) gadget-id value)
   (declare (ignore gadget-id))

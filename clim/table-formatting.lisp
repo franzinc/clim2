@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.14 92/10/28 11:32:09 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.15 92/11/06 19:00:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -538,18 +538,16 @@
   ;; FORMATTING-CELL, it would just work to slip the IF and simply call
   ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
   (let ((stream (encapsulated-stream stream)))
-    (multiple-value-bind (x y) (stream-cursor-position stream)
-      (prog1
-	(if (eq record-type 'standard-cell-output-record)
-	    (with-new-output-record (stream 'standard-cell-output-record nil
-				     :align-x align-x :align-y align-y
-				     :min-width min-width :min-height min-height)
-	      (funcall continuation stream))
-            (with-new-output-record (stream record-type nil
-				     :align-x align-x :align-y align-y
-				     :min-width min-width :min-height min-height)
-	      (funcall continuation stream)))
-	(stream-set-cursor-position stream x y)))))
+    (with-stream-cursor-position-saved (stream)
+      (if (eq record-type 'standard-cell-output-record)
+	  (with-new-output-record (stream 'standard-cell-output-record nil
+				   :align-x align-x :align-y align-y
+				   :min-width min-width :min-height min-height)
+	    (funcall continuation stream))
+	  (with-new-output-record (stream record-type nil
+				   :align-x align-x :align-y align-y
+				   :min-width min-width :min-height min-height)
+	    (funcall continuation stream))))))
 
 (defmethod invoke-formatting-cell :around ((stream output-recording-mixin) continuation
 					   &rest options)
@@ -622,8 +620,8 @@
     (flet ((count-cells (cell)
 	     (multiple-value-bind (width height) (bounding-rectangle-size cell)
 	       (declare (type coordinate width height))
-	       (maxf max-cell-width width)
-	       (maxf max-cell-height height)
+	       (maxf max-cell-width (max width (cell-min-width cell)))
+	       (maxf max-cell-height (max height (cell-min-height cell)))
 	       (incf ncells))))
       (declare (dynamic-extent #'count-cells))
       (map-over-item-list-cells menu #'count-cells))
@@ -707,8 +705,10 @@
 	    (flet ((size-cells (cell)
 		     (multiple-value-bind (width height) (bounding-rectangle-size cell)
 		       (declare (type coordinate width height))
-		       (maxf-or (column-width column-count) width)
-		       (maxf-or (row-height row-count) height))
+		       (maxf-or (column-width column-count) 
+				(max width (cell-min-width cell)))
+		       (maxf-or (row-height row-count)
+				(max height (cell-min-height cell))))
 		     (incf column-count)
 		     (when (= column-count ncolumns)
 		       (incf row-count)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.14 92/09/08 15:17:51 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.15 92/11/06 18:59:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -60,6 +60,7 @@
 		     slots))
 	 (defmethod ,medium-graphics-function* :around
 		    ((stream output-recording-mixin) ,@function-args)
+	   #+Genera (declare (sys:function-parent ,name define-graphics-recording))
 	   ,recording-hook		;call the recording hook first
 	   (when (stream-recording-p stream)
 	     ;; It's safe to call SHEET-MEDIUM because output recording
@@ -138,6 +139,7 @@
 						    (y-offset (coordinate 0)))
 	   (declare (type coordinate x-offset y-offset))
 	   (declare (ignore region))
+	   #+Genera (declare (sys:function-parent ,name define-graphics-recording))
 	   (with-slots (,@slots) record
 	     ;; We can call SHEET-MEDIUM because stream will be an output
 	     ;; recording stream or an encapsulating stream
@@ -180,6 +182,7 @@
 		 (declare (ignore doc-string))
 		 `((defmethod output-record-refined-position-test ((record ,class) ,@args)
 		     ,@declarations
+		     #+Genera (declare (sys:function-parent ,name define-graphics-recording))
 		     (block refined-position-test
 		       ,@body))))))
 
@@ -191,6 +194,7 @@
 		 (declare (ignore doc-string))
 		 `((defmethod highlight-output-record-1 ((record ,class) ,@args)
 		     ,@declarations
+		     #+Genera (declare (sys:function-parent ,name define-graphics-recording))
 		     (block highlighting-function
 		       ,@body))))))))))
 

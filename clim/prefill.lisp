@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.12 92/10/28 11:31:53 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.13 92/11/06 19:00:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -578,7 +578,7 @@
   (layout-graph-nodes
     (tree-graph-output-record t)
     (directed-graph-output-record t))
-  (map-over-menu-cells
+  (map-over-item-list-cells
     (standard-item-list-output-record t))
   (map-over-output-records-containing-position
     (t standard-tree-output-history t t)
@@ -1258,7 +1258,7 @@
   (layout-graph-nodes)
   (make-load-form
     (gray-color))
-  (map-over-menu-cells)
+  (map-over-item-list-cells)
   (map-over-output-records-containing-position)
   (map-over-output-records-overlapping-region)
   (map-over-row-cells)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.17 92/10/02 15:19:40 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.18 92/11/06 18:59:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,7 +19,6 @@
 
 
 ;; Noise strings and ACCEPT results
-
 
 (eval-when (compile load eval)
 (defstruct (noise-string (:constructor make-noise-string-1))

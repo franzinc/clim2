@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.44 92/11/13 14:45:44 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.45 92/11/18 15:44:32 colin Exp $
 
 (in-package :clim-internals)
 
@@ -11,7 +11,7 @@
 ;;; For historical reasons "AVV" means "accepting-values"...
 
 (defclass accept-values-stream
-    (standard-encapsulating-stream)
+	  (standard-encapsulating-stream)
     ((avv-record :initform nil)
      (avv-frame :initform nil)
      (align-prompts :initform nil :initarg :align-prompts)))
@@ -55,10 +55,13 @@
 	       :accessor accept-values-query-error-p))
   (:default-initargs :presentation nil))
 
-(defresource accept-values-stream (stream)
+(defresource accept-values-stream (stream &key align-prompts)
   :constructor (make-instance 'accept-values-stream :stream stream)
   :matcher 't					;any will suffice
-  :initializer (setf (slot-value accept-values-stream 'stream) stream))
+  :initializer
+    (progn
+      (setf (slot-value accept-values-stream 'stream) stream)
+      (setf (slot-value accept-values-stream 'align-prompts) align-prompts)))
 
 (defun find-accept-values-record (output-record)
   (do ((record output-record (output-record-parent record)))
@@ -308,7 +311,8 @@
 		 (run-frame-top-level frame))
 	     ;; Flush it so the GC can get rid of it
 	     (disown-frame (frame-manager frame) frame)))
-	 (using-resource (avv-stream accept-values-stream (or the-own-window stream))
+	 (using-resource (avv-stream accept-values-stream (or the-own-window stream)
+				     :align-prompts align-prompts)
 	   (let ((frame (make-application-frame (or frame-class 'accept-values)
 			  :calling-frame *application-frame*
 			  :stream avv-stream
@@ -323,7 +327,6 @@
 			  ;; sure that we share the sheet with the parent frame
 			  ;; in the case of "inlined" dialogs
 			  :top-level-sheet (frame-top-level-sheet *application-frame*))))
-	     (setf (slot-value avv-stream 'align-prompts) align-prompts)
 	     (when command-table
 	       (setf (frame-command-table frame) command-table))
 	     (unwind-protect
@@ -340,14 +343,14 @@
 (defmethod accept-values-top-level ((frame accept-values) &rest args)
   (declare (ignore args))
   (with-slots (stream continuation resynchronize-every-pass check-overlapping
-	        selected-item initially-select-query-identifier
+	       selected-item initially-select-query-identifier
 	       own-window own-window-properties exit-button-stream) frame
     (let* ((original-view (stream-default-view stream))
-	   (align-prompts (slot-value stream 'align-prompts))
 	   (return-values nil)
 	   (initial-query nil)
 	   exit-button-record
 	   avv avv-record
+	   (align-prompts (slot-value stream 'align-prompts))
 	   (properties own-window-properties)
 	   (own-window-x-position (pop properties))
 	   (own-window-y-position (pop properties))
@@ -722,8 +725,7 @@
     (map-queries avv-record)))
 
 #+Genera
-(define-accept-values-command (com-next-avv-choice :keystroke (:n :control))
-    ()
+(define-accept-values-command (com-next-avv-choice :keystroke (:n :control)) ()
   (with-slots (stream selected-item) *application-frame*
     (let ((avv-record (slot-value stream 'avv-record)))
       (cond ((null selected-item)
@@ -745,8 +747,7 @@
 			 (setq found-item t)))))))))))
 
 #+Genera
-(define-accept-values-command (com-previous-avv-choice :keystroke (:p :control))
-    ()
+(define-accept-values-command (com-previous-avv-choice :keystroke (:p :control)) ()
   (with-slots (stream selected-item) *application-frame*
     (let ((avv-record (slot-value stream 'avv-record)))
       (cond ((null selected-item)
@@ -786,8 +787,11 @@
       (setf value nil
 	    changed-p t))))
 
-(define-accept-values-command (com-exit-avv :keystroke :end)
-    ()
+
+(define-gesture-name :exit-dialog  :keyboard (:end))
+(define-gesture-name :abort-dialog :keyboard (:abort))
+
+(define-accept-values-command (com-exit-avv :keystroke :exit-dialog) ()
   (with-slots (stream) *application-frame*
     (let ((avv-record (slot-value stream 'avv-record))
 	  (query-ids nil))
@@ -804,8 +808,7 @@
 		       :style :error :exit-boxes '(:exit))
 	(frame-exit *application-frame*)))))
 
-(define-accept-values-command (com-abort-avv :keystroke :abort)
-    ()
+(define-accept-values-command (com-abort-avv :keystroke :abort-dialog) ()
   (abort))
 
 (define-presentation-translator abort-or-exit-avv
@@ -1054,16 +1057,16 @@
 ;; guaranteed that those queries will be valid at all times.
 (defun accept-values-pane-displayer (frame pane
 				     &key displayer
-					  align-prompts
 					  resynchronize-every-pass
-					  (check-overlapping t)
+					  (check-overlapping t) 
+					  align-prompts
 					  max-height max-width)
   (declare (ignore max-height max-width))
-   (setq align-prompts (ecase align-prompts
-			 ((t :right) :right)
-			 ((:left) :left)
-			 ((nil) nil)))
-   (let* ((stream-and-record (and (not *frame-layout-changing-p*)
+  (setq align-prompts (ecase align-prompts
+			((t :right) :right)
+			((:left) :left)
+			((nil) nil)))
+  (let* ((stream-and-record (and (not *frame-layout-changing-p*)
 				 (gethash pane *pane-to-avv-stream-table*)))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
@@ -1079,21 +1082,20 @@
 
 (defun accept-values-pane-displayer-1 (frame pane displayer align-prompts)
   (let ((avv-stream (make-instance 'accept-values-stream 
-				   :align-prompts align-prompts
-				   :stream pane))
+		      :stream pane :align-prompts align-prompts))
 	(avv-record nil))
     (setf (slot-value avv-stream 'avv-frame) frame)
     (letf-globally (((stream-default-view pane) 
 		     (frame-manager-dialog-view (frame-manager frame))))
       (setq avv-record
-	(updating-output (avv-stream)
-	    (with-new-output-record 
-		(avv-stream 'accept-values-output-record avv-record)
-	      (setf (slot-value avv-stream 'avv-record) avv-record)
-	      (if align-prompts
-		  (formatting-table (avv-stream)
+	    (updating-output (avv-stream)
+	      (with-new-output-record 
+		  (avv-stream 'accept-values-output-record avv-record)
+		(setf (slot-value avv-stream 'avv-record) avv-record)
+		(if align-prompts
+		    (formatting-table (avv-stream)
 		      (funcall displayer frame avv-stream))
-		(funcall displayer frame avv-stream))))))
+		    (funcall displayer frame avv-stream))))))
     (unless *sizing-application-frame*
       (setf (gethash pane *pane-to-avv-stream-table*)
 	    (cons avv-stream avv-record)))))

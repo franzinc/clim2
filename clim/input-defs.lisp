@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.14 92/09/22 19:37:16 cer Exp Locker: cer $
+;; $fiHeader: input-defs.lisp,v 1.15 92/09/24 09:39:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,6 +29,7 @@
      (position-changed :accessor pointer-position-changed)
      ;; In case the pointer's cursor needs to be managed more directly...
      (cursor :initform :default :reader pointer-cursor)
+     (override-cursor :initform nil :accessor pointer-cursor-override)
      (cursor-pattern :accessor pointer-cursor-pattern)
      (cursor-width :accessor pointer-cursor-width)
      (cursor-height :accessor pointer-cursor-height)
@@ -43,8 +44,9 @@
   (declaim (notinline pointer-sheet (setf pointer-sheet))))
 
 (defmethod (setf pointer-cursor) (cursor (pointer standard-pointer))
-  (port-set-pointer-cursor (port pointer) pointer cursor)
-  (setf (slot-value pointer 'cursor) cursor))
+  (let ((cursor (or (pointer-cursor-override pointer) cursor)))
+    (port-set-pointer-cursor (port pointer) pointer cursor)
+    (setf (slot-value pointer 'cursor) cursor)))
 
 (defmethod pointer-position ((pointer standard-pointer))
   (with-slots (x-position y-position) pointer

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.11 92/08/18 17:25:02 cer Exp $
+;; $fiHeader: histories.lisp,v 1.12 92/09/24 09:38:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -433,15 +433,15 @@
 
 (defmethod presentation-type-for-yanking ((history presentation-history))
   (with-slots (type) history
-    (or (and (presentation-subtypep
+    (or (and (presentation-subtypep-1
 	       *presentation-type-for-yanking*
 	       (presentation-history-type history))
 	     *presentation-type-for-yanking*)
 	(dolist (context *input-context*)
 	  ;; If there is an input context that is more specific than the type
 	  ;; provided by the history, use it.
-	  (when (presentation-subtypep (presentation-type-name (input-context-type context))
-				       type)
+	  (when (presentation-subtypep-1
+		  (presentation-type-name (input-context-type context)) type)
 	    (return-from presentation-type-for-yanking (input-context-type context))))
 	type)))
 
@@ -453,7 +453,7 @@
   (when (and (presentation-typep
 	       (presentation-history-element-object element)
 	       (presentation-history-element-type element))
-	     (presentation-subtypep
+	     (presentation-subtypep-1
 	       (presentation-history-element-type element)
 	       (presentation-history-type history)))
     (call-next-method)))

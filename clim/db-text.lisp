@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-text.lisp,v 1.4 92/10/28 11:31:32 cer Exp $
+;; $fiHeader: db-text.lisp,v 1.5 92/11/06 18:59:21 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -28,7 +28,9 @@
       (setf (window-visibility stream) nil)
       (setf (cursor-visibility (stream-text-cursor stream)) nil))))
 
-(defun do-text-editing (stream &key initial-contents (exit-gesture '(:end)))
+(defun do-text-editing (stream &key initial-contents clear (exit-gesture '(:end)))
+  (when clear
+    (window-clear stream))
   (with-input-focus (stream)
     (with-input-editing (stream :initial-contents initial-contents)
       (with-activation-gestures (exit-gesture :override t)
@@ -68,7 +70,9 @@
   (with-slots (armed) pane
     (unless armed
       (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+      (armed-callback pane (gadget-client pane) (gadget-id pane)))
+    (when (eq (port-input-focus-selection (port pane)) :sheet-under-pointer)
+      (edit-text-field pane))))
 
 (defmethod handle-event ((pane text-editor-mixin) (event pointer-exit-event))
   (with-slots (armed) pane
@@ -76,15 +80,18 @@
       (setf armed nil)
       (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
 
+(defun edit-text-field (pane)
+  (let ((string
+	  (do-text-editing pane :initial-contents (gadget-value pane) :clear t)))
+    (setf (gadget-value pane) string)))
+
 
 (defclass text-field-pane (text-field
 			   text-editor-mixin)
     ())
 
 (defmethod handle-event ((pane text-field-pane) (event pointer-button-press-event))
-  (let ((string
-	  (do-text-editing pane :initial-contents (gadget-value pane))))
-    (setf (gadget-value pane) string)))
+  (edit-text-field pane))
 
 
 (defclass text-editor-pane (text-editor
@@ -103,6 +110,4 @@
 
 (defmethod handle-event ((pane text-editor-pane) (event pointer-button-press-event))
   (when (gadget-editable-p pane)
-    (let ((string
-	    (do-text-editing pane :initial-contents (gadget-value pane))))
-      (setf (gadget-value pane) string))))
+    (edit-text-field pane)))

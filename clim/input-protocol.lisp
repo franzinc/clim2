@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.30 92/10/28 13:17:22 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.31 92/11/06 18:59:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -309,7 +309,7 @@
     (dolist (this-context *input-context*)
       (let* ((context (first this-context))
 	     (tag (second this-context)))
-	(when (presentation-subtypep 'command context)
+	(when (presentation-subtypep-1 'command context)
 	  (throw tag (values (second command) context)))))
     ;; If no command context applies, then we can do no better than execute here and
     ;; resynchronize

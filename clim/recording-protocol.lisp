@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.25 92/10/28 13:17:26 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.26 92/11/06 19:00:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -619,6 +619,8 @@
     record))
 
 (defun replay (record stream &optional region)
+  (when (null region)
+    (setq region (or (pane-viewport-region stream) (sheet-region stream))))
   (when (stream-drawing-p stream)
     (multiple-value-bind (x-offset y-offset)
 	(convert-from-relative-to-absolute-coordinates stream (output-record-parent record))
@@ -1107,6 +1109,8 @@
 	   (update-region stream rl rt rr rb)))))))
 
 (defmethod stream-replay ((stream output-recording-mixin) &optional region)
+  (when (null region)
+    (setq region (or (pane-viewport-region stream) (sheet-region stream))))
   (when (stream-drawing-p stream)
     (with-slots (output-record text-output-record record-p) stream
       (when (or output-record text-output-record)
@@ -1201,10 +1205,9 @@
 
 ;;; This method should cover a multitude of sins.
 (defmethod handle-repaint :after ((stream output-recording-mixin) region)
-  (let ((clear (region-intersection 
-		 region
-		 (or (pane-viewport-region stream)
-		     (sheet-region stream)))))
+  (let ((clear (region-intersection region
+				    (or (pane-viewport-region stream)
+					(sheet-region stream)))))
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
 	(with-bounding-rectangle* (left top right bottom) clear

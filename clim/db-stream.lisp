@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.35 92/11/06 18:59:18 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.36 92/11/09 10:54:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -55,11 +55,18 @@
 					&rest options
 					&key ink &allow-other-keys)
   (declare (dynamic-extent options))
-  (let ((medium (sheet-medium sheet)))
-    ;; Close the current output record if the drawing ink is changing
-    (unless (eq (medium-ink medium) ink)
+  (let* ((medium (sheet-medium sheet))
+	 (ink-changing (and ink (not (eq (medium-ink medium) ink)))))
+    (when ink-changing
+      ;; Close the current output record if the drawing ink is changing
       (stream-close-text-output-record sheet))
-    (apply #'invoke-with-drawing-options medium continuation options)))
+    (multiple-value-prog1
+      (apply #'invoke-with-drawing-options medium continuation options)
+      (when ink-changing
+	;; If it changed on the way in, it's changing back on the way out
+	;; This might create more text output records that it should, but
+	;; better to be safe than sorry
+	(stream-close-text-output-record sheet)))))
 
 (defmethod default-space-requirements ((pane clim-stream-sheet)
 				       &key (width 0 widthp)
@@ -349,7 +356,9 @@
 	    (setq pane `(vertically () ,label ,pane))))))
     `(let (,stream)
        (values 
-	 (outlining (:thickness 1) ,pane)
+	 (outlining (:thickness 1)
+	   (spacing (:thickness 1)
+	     ,pane))
 	 ,stream))))
 
 (defmacro make-clim-interactor-pane (&rest options)
@@ -412,7 +421,6 @@
 ;;--- Is there any way to do this?
 (defmethod (setf window-label) (label (stream clim-stream-sheet))
   nil)
-
 
 (defmethod (setf window-visibility) (visibility (stream clim-stream-sheet))
   (let ((frame (pane-frame stream)))

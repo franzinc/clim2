@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.9 92/10/01 08:51:17 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.10 92/11/06 18:59:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -34,7 +34,7 @@
 		     (eq context-name 'menu-item))
 	  ;; Either the types definitely match, or the types nominally match
 	  ;; and the object must be validated.
-	  (or (presentation-subtypep type context-type)
+	  (or (presentation-subtypep-1 type context-type)
 	      (and (not (null context-parameters))
 		   (presentation-typep object context-type))))))))
 
@@ -104,7 +104,7 @@
 				   options))))))))))
 
 (defun quote-expression-if-necessary (object type)
-  (if (and (not (presentation-subtypep type 'form))
+  (if (and (not (presentation-subtypep-1 type 'form))
 	   (or (consp object)
 	       (and (symbolp object)
 		    (not (keywordp object))

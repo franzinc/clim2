@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.17 92/11/06 18:58:57 cer Exp $
+;; $fiHeader: accept.lisp,v 1.18 92/11/09 19:54:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -264,7 +264,7 @@
 				      :object the-object :type (or the-type type))))
     #+compulsive-type-checking
     (when (and the-type (not (eq the-type type)))
-      (unless (presentation-subtypep the-type type)
+      (unless (presentation-subtypep-1 the-type type)
 	;; Catch a common bug by verifying that the returned type is a subtype
 	;; of the requested type
 	(cerror "Return a second value of ~*~*~*~S"

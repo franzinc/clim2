@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.10 92/11/06 19:00:17 cer Exp $
+;; $fiHeader: present.lisp,v 1.11 92/11/13 14:45:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,6 +15,7 @@
 		&allow-other-keys)
   (declare (dynamic-extent present-args))
   (declare (arglist object &optional (presentation-type (presentation-type-of object))
+		    &rest present-args
 		    &key (stream *standard-output*)
 			 (view (stream-default-view stream))
 			 (modifier nil) (acceptably nil)

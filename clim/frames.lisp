@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.49 92/11/06 18:59:35 cer Exp $
+;; $fiHeader: frames.lisp,v 1.50 92/11/09 10:54:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -711,15 +711,13 @@
   nil)
 
 
-
 ;;;
 
-(defmethod (setf frame-pretty-name) :before (nv (frame standard-application-frame))
-  (assert (typep nv 'string) ()
-    "The new pretty-name is not a string"))
+(defmethod (setf frame-pretty-name) :before (name (frame standard-application-frame))
+  (check-type name string))
 
-(defmethod (setf frame-pretty-name) :after (nv (frame standard-application-frame))
-  (declare (ignore nv))
+(defmethod (setf frame-pretty-name) :after (name (frame standard-application-frame))
+  (declare (ignore name))
   (let ((framem (frame-manager frame)))
     (when framem (frame-manager-note-pretty-name-changed framem frame))))
 
@@ -727,14 +725,13 @@
 						   (frame standard-application-frame))
   nil)
 
-;;;
-
-
+
+(eval-when (#-Allegro compile load eval)
 (define-condition frame-exit (condition)
   ((frame :initarg :frame :reader frame-exit-frame))
   (:report (lambda (condition stream)
 	     (format stream "Exit from frame ~A" (frame-exit-frame condition)))))
-
+)	;eval-when
 
 (defgeneric run-frame-top-level (frame &key &allow-other-keys))
 
@@ -1091,6 +1088,8 @@
 			 
 ;;; The contract of this is to replay the contents of STREAM within the region.
 (defmethod frame-replay ((frame standard-application-frame) stream &optional region)
+  (when (null region)
+    (setq region (or (pane-viewport-region stream) (sheet-region stream))))
   (stream-replay stream region)
   (force-output stream))
 

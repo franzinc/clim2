@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.9 92/09/24 09:39:31 cer Exp $
+;; $fiHeader: translators.lisp,v 1.10 92/11/06 19:00:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -328,11 +328,11 @@
 	       (translator-from-key (presentation-translator-from-type translator))
 	       (with-presentation-type-translator-key
 		 (translator-to-key (presentation-translator-to-type translator))
-		 (when (and (presentation-subtypep from-key translator-from-key)
+		 (when (and (presentation-subtypep-1 from-key translator-from-key)
 			    ;; PRESENTATION-SUBTYPEP will return T when the
 			    ;; translator is "context independent", that is,
 			    ;; translator-to-key is NIL.
-			    (presentation-subtypep translator-to-key to-key))
+			    (presentation-subtypep-1 translator-to-key to-key))
 		   ;; If we're looking for a translator from LMFS-PATHNAME to COMMAND
 		   ;; a PATHNAME->FOO-COMMAND translator should apply.
 		   (pushnew translator translators))))))
@@ -371,7 +371,7 @@
 			 (when (< low1 low2)
 			   (setf (car translators) translator2
 				 (car remaining) translator1)))
-			((presentation-subtypep type2 type1)
+			((presentation-subtypep-1 type2 type1)
 			 ;; The second type is more specific than the first, swap.
 			 (setf (car translators) translator2
 			       (car remaining) translator1)))))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.21 92/10/29 15:02:42 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.22 92/11/06 18:59:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -31,8 +31,9 @@
 	     (when keysym
 	       (if (zerop modifier-state)
 		   ;;--- What a kludge!  What should this really be?
-		   (member keysym '(:rubout :clear-input :escape :scroll :refresh :suspend
-					    :resume :page-up :page-down :clear :backspace))
+		   (member keysym '(:rubout :clear-input :escape 
+				    :scroll :refresh :suspend :resume
+				    :page-up :page-down :clear :backspace))
 		   (logtest modifier-state
 			    (make-modifier-state :control :meta :super :hyper)))))))
     (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
@@ -349,33 +350,33 @@
 (define-input-editor-command (com-ie-refresh :rescan nil)
 			     (stream)
   "Refresh the interactor window"
-  (stream-replay stream)
+  (window-refresh stream)
   (redraw-input-buffer stream))
 
 ;;--- It would be nice to have save/restore scroll position, and scroll searching
 (define-input-editor-command (com-ie-scroll-forward :rescan nil)
 			     (stream numeric-argument)
   "Scroll the display window forward"
-  (ie-scroll-window numeric-argument :up))
+  (ie-scroll-window numeric-argument :up stream))
 
 (define-input-editor-command (com-ie-scroll-backward :rescan nil)
 			     (stream numeric-argument)
   "Scroll the display window backward"
-  (ie-scroll-window numeric-argument :down))
+  (ie-scroll-window numeric-argument :down stream))
 
 (define-input-editor-command (com-ie-scroll-left :rescan nil)
 			     (stream numeric-argument)
   "Scroll the display window left"
-  (ie-scroll-window numeric-argument :left))
+  (ie-scroll-window numeric-argument :left stream))
 
 (define-input-editor-command (com-ie-scroll-right :rescan nil)
 			     (stream numeric-argument)
   "Scroll the display window right"
-  (ie-scroll-window numeric-argument :right))
+  (ie-scroll-window numeric-argument :right stream))
 
 ;; Scroll the frame's standard output stream in some direction by some amount, 
 ;; one screenful being the default.
-(defun ie-scroll-window (distance direction)
+(defun ie-scroll-window (distance direction &optional istream)
   (let* ((window (frame-standard-output *application-frame*))
 	 (history (and window
 		       (output-recording-stream-p window)
@@ -391,18 +392,32 @@
     (when (and window
 	       (pane-viewport window))
       (multiple-value-bind (x y) (window-viewport-position window)
-	(incf x (* (if (= distance 1)
-		       (bounding-rectangle-width (window-viewport window))
-		       (* distance (stream-character-width window #\0)))
-		   x-direction))
-	(incf y (* (if (= distance 1)
-		       (bounding-rectangle-height (window-viewport window))
-		       (* distance (stream-line-height window)))
-		   y-direction))
-	(with-bounding-rectangle* (hleft htop hright hbottom) history
- 	  (setq x (min (max hleft x) hright))
-	  (setq y (min (max htop y) hbottom)))
-	(window-set-viewport-position window x y)))))
+	(multiple-value-bind (width height)
+	    (bounding-rectangle-size (window-viewport window))
+	  (incf x (* (if (= distance 1)
+			 width
+			 (* distance (stream-character-width window #\0)))
+		     x-direction))
+	  (incf y (* (if (= distance 1)
+			 height
+			 (* distance (stream-line-height window)))
+		     y-direction))
+	  (with-bounding-rectangle* (hleft htop hright hbottom) history
+	    (setq x (min (max hleft x) hright))
+	    (setq y (min (max htop y) hbottom)))
+	  (window-set-viewport-position window x y)
+	  (when (and istream
+		     (eq window (encapsulating-stream-stream istream))
+		     (multiple-value-bind (x-pos y-pos)
+			 (input-buffer-input-position->cursor-position istream)
+		       (and (<= x x-pos (+ x width))
+			    (<= y y-pos (+ y height)))))
+	    ;; When we are scrolling the same window that we are doing input
+	    ;; editing on, redraw the input buffer.  Don't bother redrawing
+	    ;; if the input line is not on the screen.  This will redraw
+	    ;; more than it needs to, but who cares -- it's fast enough.
+	    (with-end-of-page-action (istream :allow)
+	      (redraw-input-buffer istream))))))))
 
 
 ;;; Some macrology for talking about the input-buffer

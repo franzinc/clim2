@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-menu.lisp,v 1.3 92/09/24 09:38:38 cer Exp $
+;; $fiHeader: db-menu.lisp,v 1.4 92/11/06 18:59:16 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -89,7 +89,7 @@
 
 (defmethod handle-event ((pane pull-down-menu-button) (event pointer-enter-event))
   (when (port pane)				;the menu is sometimes disabled...
-    (let* ((pointer (port-pointer (find-port)))
+    (let* ((pointer (port-pointer (port pane)))
 	   (pointer-button-state (pointer-button-state pointer)))
       (unless (= pointer-button-state 0)
 	(with-slots (armed) pane

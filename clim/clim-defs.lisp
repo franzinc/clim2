@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.15 92/09/24 09:38:28 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.16 92/11/06 18:59:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -187,7 +187,7 @@
     (dolist (clause clauses (nreverse new-clauses))
       (let ((type (first clause))
 	    (body (rest clause)))
-	(push `((presentation-subtypep ,pt-var ',type)
+	(push `((presentation-subtypep-1 ,pt-var ',type)
 		,@body)
 	      new-clauses)))))	;eval-when
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.6 92/07/27 11:03:00 cer Exp $
+;; $fiHeader: surround-output.lisp,v 1.7 92/10/02 15:20:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -27,6 +27,7 @@
 	   (defun ,name ,arglist 
 	     ,@(and ignores `((declare (ignore ,@ignores))))
 	     ,@declarations
+	     #+Genera (declare (sys:function-parent ,shape define-border-type))
 	     (with-identity-transformation (,(first arglist))
 	       ,@body))
 	   (let ((old (assoc ',shape *border-shape-drawer-alist*)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.17 92/10/28 11:31:26 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.18 92/11/06 18:59:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -296,7 +296,7 @@
   (let ((match nil))
     (dolist (context *input-context*)
       (let ((context-type (input-context-type context)))
-	(if (presentation-subtypep type context-type)
+	(if (presentation-subtypep-1 type context-type)
 	    (setq match context-type)
 	    (return))))
     match))

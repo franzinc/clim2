@@ -16,6 +16,8 @@
 	       :reader presentation-translator-feedback)
      (highlighting :initform nil :initarg :highlighting
 		   :reader presentation-translator-highlighting)
+     (pointer-cursor :initform nil :initarg :pointer-cursor
+		     :reader presentation-translator-pointer-cursor)
      ;; The body, tester, and documentation supplied by the programmer.
      ;; DEFINE-DRAG-AND-DROP-TRANSLATOR uses the other body, tester,
      ;; and documentaiton slots for its own purposes
@@ -41,7 +43,7 @@
 	   (from-type to-type destination-type command-table
 	    &key (gesture ':select) tester
 		 documentation (menu t) priority
-		 feedback highlighting)
+		 feedback highlighting pointer-cursor)
 	   arglist
 	   &body body)
   #+Genera (declare (zwei:indentation 1 3 3 1))
@@ -88,7 +90,8 @@
 		      :feedback ',feedback-name
 		      :highlighting ',highlighting-name
 		      ,@(when tester `(:real-tester ',tester-name))
-		      ,@(when documentation `(:real-documentation ',doc-name)))
+		      ,@(when documentation `(:real-documentation ',doc-name))
+		      :pointer-cursor ',pointer-cursor)
 		     ,*translator-function-arglist*
 		   (invoke-drag-and-drop-translator ,@*translator-function-arglist*))
 		 ,body-function
@@ -138,11 +141,17 @@
 	   (mapcar #'presentation-translator-destination-type translators))
 	 ;; Get the feedback and highlighting functions
 	 ;;--- This should really check to make sure that the feedback and
-	 ;;--- highlighting functions are the same for the set of translators
+	 ;;--- highlighting functions and the pointer cursor are the same for
+	 ;;--- the related set of translators
 	 (feedback
 	   (and translators (presentation-translator-feedback (first translators))))
 	 (highlighting
 	   (and translators (presentation-translator-highlighting (first translators))))
+	 (pointer-cursor
+	   (or (and translators (presentation-translator-pointer-cursor (first translators)))
+	       :move))
+	 (pointer (port-pointer (port window)))
+	 (old-pointer-cursor (pointer-cursor pointer))
 	 (initial-x x)
 	 (initial-y y)
 	 (last-x nil)
@@ -164,7 +173,7 @@
 	     (let* ((translator
 		      (find (presentation-type destination-presentation) translators
 			    :key #'presentation-translator-destination-type
-			    :test #'presentation-subtypep))
+			    :test #'presentation-subtypep-1))
 		    (tester
 		      (and translator (presentation-translator-real-tester translator))))
 	       (when (or (null tester)
@@ -175,89 +184,95 @@
 				  destination-presentation))
 		 translator))))
       (declare (dynamic-extent #'find-translator))
-      (macrolet ((feedback (window x y state)
-		   `(funcall feedback frame from-presentation ,window 
-				      initial-x initial-y ,x ,y ,state))
-		 (highlight (presentation window state)
-		   `(when ,presentation
-		      (funcall highlighting frame ,presentation ,window ,state))))
-	(block drag-presentation
-	  (tracking-pointer (window :context-type `((or ,@destination-types))
-				    :multiple-window t :highlight nil)
-	    (:presentation-button-press (presentation event)
-	     (unless finish-on-release
-	       (highlight destination last-window :unhighlight)
-	       (setq destination presentation
-		     destination-event event
-		     last-window (event-sheet event)
-		     last-x (pointer-event-x event)
-		     last-y (pointer-event-y event))
-	       (return-from drag-presentation)))
-	    (:pointer-button-press (event)
-	     (unless finish-on-release
-	       (highlight destination last-window :unhighlight)
-	       (setq destination nil
-		     destination-event event
-		     last-window (event-sheet event)
-		     last-x (pointer-event-x event)
-		     last-y (pointer-event-y event))
-	       (return-from drag-presentation)))
-	    (:presentation-button-release (presentation event)
-	     (when finish-on-release
-	       (highlight destination last-window :unhighlight)
-	       (setq destination presentation
-		     destination-event event
-		     last-window (event-sheet event)
-		     last-x (pointer-event-x event)
-		     last-y (pointer-event-y event))
-	       (return-from drag-presentation)))
-	    (:pointer-button-release (event)
-	     (when finish-on-release
-	       (highlight destination last-window :unhighlight)
-	       (setq destination nil
-		     destination-event event
-		     last-window (event-sheet event)
-		     last-x (pointer-event-x event)
-		     last-y (pointer-event-y event))
-	       (return-from drag-presentation)))
-	    (:presentation (presentation window x y)
-	     (when last-x
-	       (feedback last-window last-x last-y :unhighlight))
-	     (setq last-x x
-		   last-y y
-		   last-window window)
-	     (feedback window x y :highlight)
-	     (when (not (eq presentation destination))
-	       (highlight destination last-window :unhighlight)
-	       (setq destination presentation)
-	       (highlight presentation window :highlight)
-	       #+++ignore				;--- documentation
-	       (let ((translator (find-translator destination window x y)))
-		 (when translator
-		   (let ((documentation
-			   (presentation-translator-real-documentation translator)))
-		     (if (stringp documentation)
-			 (write-string documentation doc-stream)
-		         (funcall documentation 
-				  (presentation-object presentation) presentation context-type
-				  frame event window x y
-				  (presentation-object destination) destination
-				  doc-stream)))))))
-	    (:pointer-motion (window x y)
-			     (when (typep window 'clim-stream-sheet)
-			       (highlight destination last-window :unhighlight)
-			       (setq destination nil)
-			       (when last-x
-				 (feedback last-window last-x last-y :unhighlight))
-			       (setq last-x x
-				     last-y y
-				     last-window window)
-			       (feedback window x y :highlight)))))
-	(when last-x
-	  (feedback last-window last-x last-y :unhighlight)))
+      (letf-globally (((pointer-cursor-override pointer) pointer-cursor))
+	(setf (pointer-cursor pointer) pointer-cursor)
+	(macrolet ((feedback (window x y state)
+		     `(funcall feedback frame from-presentation ,window 
+					initial-x initial-y ,x ,y ,state))
+		   (highlight (presentation window state)
+		     `(when ,presentation
+			(funcall highlighting frame ,presentation ,window ,state))))
+	  (block drag-presentation
+	    (tracking-pointer (window :context-type `((or ,@destination-types))
+				      :multiple-window t :highlight nil)
+	      (:presentation-button-press (presentation event)
+	       (unless finish-on-release
+		 (highlight destination last-window :unhighlight)
+		 (setq destination presentation
+		       destination-event event
+		       last-window (event-sheet event)
+		       last-x (pointer-event-x event)
+		       last-y (pointer-event-y event))
+		 (return-from drag-presentation)))
+	      (:pointer-button-press (event)
+	       (unless finish-on-release
+		 (highlight destination last-window :unhighlight)
+		 (setq destination nil
+		       destination-event event
+		       last-window (event-sheet event)
+		       last-x (pointer-event-x event)
+		       last-y (pointer-event-y event))
+		 (return-from drag-presentation)))
+	      (:presentation-button-release (presentation event)
+	       (when finish-on-release
+		 (highlight destination last-window :unhighlight)
+		 (setq destination presentation
+		       destination-event event
+		       last-window (event-sheet event)
+		       last-x (pointer-event-x event)
+		       last-y (pointer-event-y event))
+		 (return-from drag-presentation)))
+	      (:pointer-button-release (event)
+	       (when finish-on-release
+		 (highlight destination last-window :unhighlight)
+		 (setq destination nil
+		       destination-event event
+		       last-window (event-sheet event)
+		       last-x (pointer-event-x event)
+		       last-y (pointer-event-y event))
+		 (return-from drag-presentation)))
+	      (:presentation (presentation window x y)
+	       (when last-x
+		 (feedback last-window last-x last-y :unhighlight))
+	       (setq last-x x
+		     last-y y
+		     last-window window)
+	       (feedback window x y :highlight)
+	       (when (not (eq presentation destination))
+		 (highlight destination last-window :unhighlight)
+		 (setq destination presentation)
+		 (highlight presentation window :highlight)
+		 #+++ignore				;--- documentation
+		 (let ((translator (find-translator destination window x y)))
+		   (when translator
+		     (let ((documentation
+			     (presentation-translator-real-documentation translator)))
+		       (if (stringp documentation)
+			   (write-string documentation doc-stream)
+			   (funcall documentation 
+				    (presentation-object presentation)
+				    presentation context-type
+				    frame event window x y
+				    (presentation-object destination) destination
+				    doc-stream)))))))
+	      (:pointer-motion (window x y)
+		(when (typep window 'clim-stream-sheet)	       
+		  (highlight destination last-window :unhighlight)
+		  (setq destination nil)
+		  (when last-x
+		    (feedback last-window last-x last-y :unhighlight))
+		  (setq last-x x
+			last-y y
+			last-window window)
+		  (feedback window x y :highlight)))))
+	  (when last-x
+	    (feedback last-window last-x last-y :unhighlight)))
+	(setf (pointer-cursor pointer) old-pointer-cursor))
       ;; The user has put down the presentation, figure out what to do
       ;;--- What if there is more than one translator?
-      (unless destination (setq destination *null-presentation*))
+      (unless destination 
+	;; No destination presentation?  Then use the null presentation
+	(setq destination *null-presentation*))
       (let ((translator (find-translator destination last-window last-x last-y)))
 	(when translator
 	  (multiple-value-bind (result-object result-type options)
@@ -270,7 +285,7 @@
 	    (dolist (this-context *input-context*)
 	      (let* ((context-type (input-context-type this-context))
 		     (tag (input-context-tag this-context)))
-		(when (presentation-subtypep result-type context-type)
+		(when (presentation-subtypep-1 result-type context-type)
 		  (throw tag
 		    (values result-object
 			    result-type
