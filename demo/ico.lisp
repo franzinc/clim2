@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.7 92/09/30 18:04:15 cer Exp Locker: cer $
+;; $fiHeader: ico.lisp,v 1.8 92/10/02 15:20:37 cer Exp Locker: cer $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -19,14 +19,24 @@
 ;;;
 ;;; ICO Frames
 ;;;
+(defparameter *background-color* +black+)
+(defparameter *line-color* +white+)
+(defparameter *face1-color* +red+)
+(defparameter *face2-color* +green+)
 
 (define-application-frame ico-frame ()
     ((ico-time-p :initform t)
+     (ico-buffers :initform 1)
+     (ico-color-group2 :initform nil)
+     (ico-color-group3 :initform nil)
+     (inks0 :initform (vector *background-color*))
+     (inks1 :initform (vector *line-color*))
+     (inks2 :initform (vector *face1-color*))
+     (inks3 :initform (vector *face2-color*))
      (ico-line-style :initform :thin)
      (draw-edges :initform t)
      (draw-faces :initform nil)
-     (ico-process :initform nil :accessor ico-process)
-     (ico-color-group :initform nil :accessor ico-color-group))
+     (ico-process :initform nil :accessor ico-process))
   (:command-table (ico-frame :inherit-from (accept-values-pane)))
   (:panes
     (target :application :width 400 :height 400)
@@ -41,24 +51,70 @@
 
 (defmethod display-options-pane ((frame ico-frame) pane &key max-width max-height)
   (declare (ignore max-width max-height))
-  (with-slots (ico-time-p ico-line-style draw-edges draw-faces) frame
-    (formatting-item-list (pane :n-rows 1)
-      (formatting-cell (pane)
-	(setf ico-time-p (accept 'boolean 
-				 :default ico-time-p
-				 :stream pane
-				 :prompt "Time")))
-      (formatting-cell (pane)
-	(let ((x (append (and draw-faces '(:faces))
-			 (and draw-edges '(:edges)))))
-	  (setf x (accept '(subset :faces :edges) :default x :stream pane :prompt "Choose"))
-	  (setf draw-edges (and (member :edges x) t)
-		draw-faces (and (member :faces x) t))))
-      (formatting-cell (pane)
-	(setf ico-line-style (accept '(member :thin :thick)
-				     :default ico-line-style
+  (formatting-item-list (pane :n-rows 1)
+      (with-slots (ico-time-p ico-buffers ico-line-style draw-edges draw-faces) frame
+	(formatting-cell (pane)
+	    (setf ico-time-p (accept 'boolean 
+				     :default ico-time-p
 				     :stream pane
-				     :prompt "Line Style"))))))
+				     :prompt "Time")))
+	(formatting-cell (pane)
+	    (let ((x (append (and draw-faces '(:faces))
+			     (and draw-edges '(:edges)))))
+	      (setf x (accept '(subset :faces :edges) :default x :stream pane :prompt "Choose"))
+	      (setf draw-edges (and (member :edges x) t)
+		    draw-faces (and (member :faces x) t))))
+	(formatting-cell (pane)
+	    (setf ico-line-style (accept '(member :thin :thick)
+					 :default ico-line-style
+					 :stream pane
+					 :prompt "Line Style")))
+	(formatting-cell (pane)
+	    (multiple-value-bind (buffering ptype changed)
+		(accept '(member :single :double :triple)
+			:default (svref #(:single :double :triple) (1- ico-buffers))
+			:stream pane
+			:prompt "Buffering")
+	      (declare (ignore ptype))
+	      (when changed
+		(with-slots (ico-color-group2 ico-color-group3
+			     inks0 inks1 inks2 inks3) frame    
+		  (case buffering
+		    (:single 
+		     (setf ico-buffers 1
+			   inks0 (vector *background-color*)
+			   inks1 (vector *line-color*)
+			   inks2 (vector *face1-color*)
+			   inks3 (vector *face2-color*)))
+		    (:double
+		     (let ((g (or ico-color-group2
+				  (setf ico-color-group2 (make-color-group 4 4)))))
+		       (setf ico-buffers 2
+			     inks0 (vector (group-color g 0 nil)
+					   (group-color g nil 0))
+			     inks1 (vector (group-color g 1 nil)
+					   (group-color g nil 1))
+			     inks2 (vector (group-color g 2 nil)
+					   (group-color g nil 2))
+			     inks3 (vector (group-color g 3 nil)
+					   (group-color g nil 3)))))
+		    (:triple
+		     (let ((g (or ico-color-group3
+				  (setf ico-color-group3 (make-color-group 4 4 4)))))
+		       (setf ico-buffers 3
+			     inks0 (vector (group-color g 0 nil nil)
+					   (group-color g nil 0 nil)
+					   (group-color g nil nil 0))
+			     inks1 (vector (group-color g 1 nil nil)
+					   (group-color g nil 1 nil)
+					   (group-color g nil nil 1))
+			     inks2 (vector (group-color g 2 nil nil)
+					   (group-color g nil 2 nil)
+					   (group-color g nil nil 2))
+			     inks3 (vector (group-color g 3 nil nil)
+					   (group-color g nil 3 nil)
+					   (group-color g nil nil 3)))))))))))))
+
 
 (define-ico-frame-command (com-ico-throw-ball :menu "Throw ball" :keystroke #\t) ()
   (with-application-frame (frame)
@@ -77,8 +133,6 @@
   (catch-ball frame))
 
 (defmethod throw-ball ((frame ico-frame))
-  (unless (ico-color-group frame)
-    (setf (ico-color-group frame) (make-color-group 4 4)))
   (unless (ico-process frame)
     (setf (ico-process frame)
 	  (clim-sys:make-process #'(lambda ()
@@ -123,15 +177,6 @@
 (defun run-ico (frame &optional (count 1000000))
   (let* ((pane  (frame-target frame))
 	 (medium (sheet-medium pane))
-	 (group (ico-color-group frame))
-	 (i0 (vector (group-color group 0 nil) (group-color group nil 0)))
-	 (i1 (vector (group-color group 1 nil) (group-color group nil 1)))
-	 (i2 (vector (group-color group 2 nil) (group-color group nil 2)))
-	 (i3 (vector (group-color group 3 nil) (group-color group nil 3)))
-	 (background-color +black+)
-	 (line-color +white+)
-	 (face1-color +red+)
-	 (face2-color +green+)
 	 (win-w (bounding-rectangle-width pane))
 	 (win-h (bounding-rectangle-height pane))
 	 (ico-x (floor (* (- win-w ico-w) 128) 256))
@@ -148,8 +193,8 @@
     (declare (integer win-w win-h)
 	     (integer ico-x ico-y ico-dx ico-dy xtop ytop prev-x prev-y)
 	     (special prev-x prev-y))
-
-    (with-slots (draw-faces draw-edges) frame
+    (with-slots (draw-faces draw-edges ico-buffers inks0 inks1 inks2 inks3)
+	frame
       (ecase *ico-mode*
 	#+abc
 	(:abc (clear-region medium +everywhere+))
@@ -167,25 +212,23 @@
 	#+genera
 	(:genera
 	  (setq drawable (medium-drawable medium))))
-
       (window-clear pane)
-      (draw-rectangle* medium 0 0 win-w win-h :ink (group-color group 0 0))
       (dotimes (i count)
-	(let* ((buffer (mod i 2)))
+	(let* ((ico-buffers ico-buffers)
+	       (inks0 inks0)
+	       (inks1 inks1)
+	       (inks2 inks2)
+	       (inks3 inks3)
+	       (buffer (mod i ico-buffers)))
 	  (multiple-value-setq (edges face-list)
 	    (calculate-ico ico-x ico-y draw-edges draw-faces edges face-list))
-
 	  ;; Draw ICO
 	  (ecase *ico-mode*
 	    #+clim
 	    (:clim
-	     
-	     (draw-rectangle* medium 0 0 win-w win-h :ink (svref i0
-								 buffer) :filled t)
-	     	     
-
+	     (draw-rectangle* medium 0 0 win-w win-h :ink (svref inks0 buffer) :filled t)
 	     (when draw-edges
-	       (draw-lines* medium edges :ink (svref i1 buffer)
+	       (draw-lines* medium edges :ink (svref inks1 buffer)
 			    :line-thickness 
 			    (ecase (slot-value frame 'ico-line-style)
 			      (:thick 5)
@@ -197,15 +240,16 @@
 				:closed t
 				:filled t
 				:ink (if (oddp (car f))
-					 (svref i2 buffer)
-				       (svref i3 buffer)))))
-	     (with-delayed-mutations
-	       (mutate-color (svref i0 buffer) background-color)
-	       (mutate-color (svref i1 buffer) line-color)
-	       (mutate-color (svref i2 buffer) face1-color)
-	       (mutate-color (svref i3 buffer) face2-color))
-	     #+ignore
+					 (svref inks2 buffer)
+				       (svref inks3 buffer)))))
+	     (when (> ico-buffers 1)
+	       (with-delayed-mutations
+		 (mutate-color (svref inks0 buffer) *background-color*)
+		 (mutate-color (svref inks1 buffer) *line-color*)
+		 (mutate-color (svref inks2 buffer) *face1-color*)
+		 (mutate-color (svref inks3 buffer) *face2-color*)))
 	     (silica:medium-force-output medium))
+	    
 	    #+xlib-ignore
 	    (:clx 
 	     (setf (xlib:gcontext-foreground gcontext) white)

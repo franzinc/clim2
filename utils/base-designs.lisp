@@ -5,7 +5,7 @@
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 "Portions Copyright (c) 1992 Franz, Inc.  All rights reserved."
 
-;;; $fiHeader$
+;;; $fiHeader: base-designs.lisp,v 1.1 92/09/30 18:02:42 cer Exp $
 
 ;;; Designs
 
@@ -91,19 +91,6 @@
 (defmethod make-load-form ((color mutable-color))
   (with-slots (color) color
     `(make-mutable-color ,color)))
-
-
-;;; Named Colors
-
-(defclass named-color (design)
-  ((name :type string :reader named-color-name :initarg :name)))
-
-(define-constructor make-named-color named-color (name)
-		    :name name)
-
-(defmethod make-load-form ((color named-color))
-  (with-slots (name) color
-    `(make-named-color ,name)))
 
 
 ;;; Color Groups

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.23 92/09/24 09:37:46 cer Exp $
+;; $fiHeader: medium.lisp,v 1.24 92/10/02 15:18:28 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -423,4 +423,33 @@
 ;; Generate the sheet->medium trampolines now
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
 		      `(sheet-medium ,standard-sheet-output-mixin))
+
+;;; not clear that these should be here.
+
+(defmethod sheet-palette ((sheet sheet))
+  (let* ((frame (pane-frame sheet))
+	 (framem (and frame (frame-manager frame))))
+    (if framem
+	(frame-manager-palette framem)
+      (port-default-palette (port sheet)))))
+
+(defmethod medium-palette ((medium medium))
+  (sheet-palette (medium-sheet medium)))
+
+;;; especially these - could be with other named-color stuff in
+;;; utils/designs but things like port, sheet, medium aren't known
+;;; there.
+
+(defmethod find-named-color (name (port port))
+  (find-named-color name (port-default-palette port)))
+
+(defmethod find-named-color (name (sheet sheet))
+  (find-named-color name (sheet-palette sheet)))
+
+(defmethod find-named-color (name (medium medium))
+  (find-named-color name (medium-palette medium)))
+
+
+
+
 

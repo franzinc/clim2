@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.27 92/09/30 11:45:34 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.28 92/10/02 15:20:54 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -438,12 +438,23 @@
 (defclass openlook-text-field (text-field xt-leaf-pane)
 	  ())
 
+;;-- Extreme hack alert
+
+(defmethod compose-space ((tf openlook-text-field) &key width height)
+  (declare (ignore width height))
+  (let ((string (gadget-value tf))
+	(font (tk::get-values (sheet-mirror tf) :font)))
+    (if (zerop (length string)) (setq string "fooofofofo"))
+    (make-space-requirement :width (* (length string) (tk::font-width font))
+			    :height (+ 5 (tk::font-height font)))))
+
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-text-field))
   (with-accessors ((value gadget-value)) sheet
     (values 'tk::text-field
 	    (append
+	     `(:chars-visible ,(if (zerop (length value)) 30 (length value)))
 	     (and value `(:string ,value))))))
 
 (defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))

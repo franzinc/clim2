@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.38 92/09/08 10:35:06 cer Exp $
+;; $fiHeader: test.lisp,v 1.39 92/09/24 09:39:44 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -34,7 +34,7 @@
       (make-pane 'push-button
         :label "press me"
 	:background +black+
-	:foreground +purple+
+	:foreground +cyan+
 	:text-style (make-text-style :serif :roman 20)))))
 
 

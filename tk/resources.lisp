@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.33 92/09/24 09:37:18 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.34 92/09/30 18:03:07 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -623,3 +623,7 @@
 (defmethod convert-resource-in ((parent t) (typep (eql 'char)) value)
   (cltl1:int-char value))
 
+(defmethod convert-resource-in ((parent t) (typep (eql 'font-struct)) value)
+  (make-instance 'font
+		 :display (widget-display parent)
+		 :foreign-address value))

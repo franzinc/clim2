@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.13 92/09/24 09:40:02 cer Exp Locker: cer $
+;; $fiHeader: address-book.lisp,v 1.14 92/09/30 18:04:06 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -42,6 +42,9 @@
 			     :address "Franz, Inc."
 			     :number "510-548-3600"))
   (add-address (make-address :name "John Irwin"
+			     :address "Franz, Inc."
+			     :number "510-548-3600"))
+  (add-address (make-address :name "Colin Meldrum"
 			     :address "Franz, Inc."
 			     :number "510-548-3600"))
   (add-address (make-address :name "Scott McKay"

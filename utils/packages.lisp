@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.31 92/09/30 18:03:24 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.32 92/10/02 15:18:52 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2028,59 +2028,35 @@
     contrasting-inks-limit
     design
     designp
+    find-named-color
+    group-color
+    make-color-group
     make-contrasting-inks
     make-flipping-ink
     make-gray-color
     make-ihs-color
+    make-mutable-color
     make-opacity
     make-rgb-color
+    mutable-color-color
+    mutate-color
     opacity
     opacity-value
     opacityp
-    
-    
-    named-color
-    make-named-color
-    named-color-name
-   
-    palette
-    *all-palettes*
-    basic-palette
-    make-palette
-    default-palette
-    port-default-palette
-    palette-color-cache
-    palette-mutable-color-cache
-    palette-color-group-cache
-    palette-delayed-mutations
-    color-cache
-    mutable-color-cache
-    color-group-cache
-    update-palette-entry
-    update-palette-entries
-    medium-palette
-    frame-manager-palette
-    
-    mutable-color
-    make-mutable-color
-    mutable-color-color
-    mutable-color-palettes
-    mutate-color
     with-delayed-mutations
-    *doing-delayed-mutations*
-    
-    color-group
-    color-group-layers
-    color-group-cache
-    color-group-mutable-array
 
-    map-over-group-colors
-    group-color
-    group-color-group
-    group-color-layers
-    make-color-group
-    make-group-color
-    mutables
+    ;; Palettes
+    
+    palette
+    palette-color-p
+    palette-mutable-p
+    palettep
+    make-palette
+    port-default-palette
+    medium-palette
+    sheet-palette
+    frame-palette
+    frame-manager-palette
     
     ;; Designs
     compose-in
@@ -3395,6 +3371,9 @@
     radians->degrees
 
     ;; From DESIGNS
+    color-group
+    color-group-layers
+    color-group-mutable-array
     color-luminosity
     composite-in
     composite-out
@@ -3409,16 +3388,23 @@
     flipping-ink
     gray-color
     gray-color-luminosity
+    group-color-group
+    group-color-layers
     ihs-color
     make-color-for-contrasting-ink
     make-design-from-output-record
     make-flipping-ink
     make-gray-color-for-contrasting-ink
+    map-over-group-colors    
+    mutable-color
+    mutable-color-palettes
     pattern
     rectangular-tile
     rgb-color
     stencil
-    stencil-array))
+    stencil-array
+    update-palette-entry
+    update-palette-entries))
 
 
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-silica
@@ -3446,6 +3432,7 @@
 
   (:export
     *all-drawing-options*
+    *all-palettes*
     *modifier-keys*
     *null-text-style*
     *pointer-buttons*
@@ -3457,6 +3444,7 @@
     add-sheet-callbacks
     all-drawing-options-lambda-list
     allocate-event
+    basic-palette
     basic-pixmap-medium
     bury-mirror
     canvas
@@ -3470,6 +3458,7 @@
     clear-space-requirement-caches-in-tree
     click-event
     client-overridability-mixin
+    color-p
     compute-gadget-label-size
     compute-list-pane-selected-items
     compute-menu-bar-pane
@@ -3478,6 +3467,7 @@
     compute-text-y-adjustment
     copy-event
     deallocate-event
+    default-palette
     default-space-requirements
     define-character-face
     define-character-face-added-mappings
@@ -3560,11 +3550,16 @@
     mirror-visible-p
     mirrored-sheet-mixin
     modifier-keysym
+    mutable-p
     mute-repainting-mixin
     non-drawing-option-keywords
     note-layout-mixin-region-changed
     one-of-pane
     option-pane
+    palette-color-cache
+    palette-mutable-color-cache
+    palette-color-group-cache
+    palette-delayed-mutations
     parse-gesture-spec
     pixmap
     pixmap-from-menu-item

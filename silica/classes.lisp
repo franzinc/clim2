@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.20 92/09/30 18:03:12 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.21 92/10/02 15:18:05 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -113,6 +113,8 @@
 
 (defclass basic-palette (palette)
   ((port :reader palette-port :initarg :port)
+   (color-p :reader palette-color-p :initarg :color-p)
+   (mutable-p :reader palette-mutable-p :initarg :mutable-p)
    (color-cache :initform (make-hash-table) :reader palette-color-cache)
    (mutable-color-cache :initform (make-hash-table) 
 			:reader palette-mutable-color-cache)

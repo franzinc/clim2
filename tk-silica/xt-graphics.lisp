@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.42 92/09/30 18:04:28 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.43 92/10/02 15:21:08 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -64,21 +64,28 @@
 
 (defclass xt-palette (basic-palette)
   ((colormap :reader palette-colormap :initarg :colormap)
-   (color-p :initarg :color-p)
+   (xcolor-cache :initform (make-hash-table) :reader palette-xcolor-cache)
+   (named-color-cache :initform (make-hash-table :test #'equalp) 
+		      :reader palette-named-color-cache)
    (white-pixel :initarg :white-pixel)
    (black-pixel :initarg :black-pixel)))
 
-(defmethod make-palette ((port xt-port) &key colormap)
+(defun make-xt-palette (port colormap)
   (let* ((display (port-display port))
 	 (screen (tk::display-screen-number display)))
-    (unless colormap
-      (setq colormap (tk::create-colormap display screen)))
     (make-instance 'xt-palette
 		   :port port
 		   :colormap colormap
+		   :mutable-p (and 
+			       (member (port-visual-class port)
+				       '(:gray-scale :pseudo-color :direct-color))
+			       t)
 		   :color-p (port-color-p port)
 		   :white-pixel (x11:xwhitepixel display screen)
 		   :black-pixel (x11:xblackpixel display screen))))
+
+(defmethod make-palette ((port xt-port) &key)
+  (make-xt-palette port (tk::create-colormap (port-display port))))
 
 #+ignore
 (defmethod (setf frame-manager-palette) :after 
@@ -90,24 +97,35 @@
 					   frame)))))
 	(setf (tk::window-colormap window) colormap)))))
 
-(defmethod medium-palette ((medium xt-medium))
-  (frame-manager-palette 
-   (frame-manager (pane-frame (medium-sheet medium)))))
-   
+(defun get-xcolor (color palette)
+  (let ((xcolor-cache (palette-xcolor-cache palette)))
+    (or (gethash color xcolor-cache)
+	(setf (gethash color xcolor-cache)
+	  (multiple-value-bind (red green blue)
+	      (color-rgb color)
+	    (let* ((x #.(1- (ash 1 16))))
+	      (make-instance 'tk::color
+			     :red (truncate (* x red))
+			     :green (truncate (* x green))
+			     :blue (truncate (* x blue)))))))))
+
+(defmethod find-named-color (name (palette xt-palette))
+  (let ((named-color-cache (palette-named-color-cache palette)))
+    (or (gethash name named-color-cache)
+	(setf (gethash name named-color-cache)
+	  (let ((xcolor (tk::lookup-color (palette-colormap palette) name))
+		(x #.(1- (ash 1 16))))
+	    (make-rgb-color (/ (x11:xcolor-red xcolor) x)
+			    (/ (x11:xcolor-green xcolor) x)
+			    (/ (x11:xcolor-blue xcolor) x)))))))
+
 (defmethod update-palette-entry ((palette xt-palette) pixel color)
-  (let ((xcolor (cdr (decode-true-color palette color))))
+  (let ((xcolor (get-xcolor color palette)))
+    (setf (x11:xcolor-pixel xcolor) pixel)
     (with-slots (colormap) palette
       (tk::store-color
        colormap
        xcolor))))
-
-(defmethod update-palette-entry ((palette xt-palette) pixel (color named-color))
-  (with-slots (colormap) palette
-    (tk::store-named-color
-     colormap
-     (named-color-name color)
-     pixel
-     #.(logior x11:dored x11:dogreen x11:doblue))))
 
 (defmethod update-palette-entries ((palette xt-palette) updates)
   (with-slots (colormap) palette
@@ -117,7 +135,7 @@
       (dotimes (i n)
 	(let ((pixel (aref updates j))
 	      (color (aref updates (1+ j))))
-	  (let ((xcolor (cdr (decode-true-color palette color))))
+	  (let ((xcolor (get-xcolor color palette)))
 	    (declare (ignore ignore))
 	    (setf (x11:xcolor-array-red xcolors i) (x11:xcolor-red xcolor)
 		  (x11:xcolor-array-green xcolors i) (x11:xcolor-green xcolor)
@@ -201,7 +219,6 @@
 			    (tk::object-display drawable))))
 	  (error "drawable and display do not match"))
 	(let* ((display (port-display port))
-	       (screen (tk::display-screen-number display))
 	       (drawable (or drawable
 			     (tk::display-root-window display))))
 	  (unless foreground-gcontext
@@ -388,7 +405,7 @@
 ;;; there otherwise make a gc using decode-color to get the foreground
 ;;; pixel value
 
-;;--- This is really on color, named-color, mutable-color, and group-color.
+;;--- This is really on color, mutable-color, and group-color.
 ;;--- Perhaps there should be a class like basic-color?
 
 (defmethod decode-ink ((ink design) (medium xt-medium))
@@ -519,7 +536,10 @@ and on color servers, unless using white or black")
 
 (defmethod decode-ink ((ink pattern) medium)
   (xt-decode-pattern ink medium))
-    
+
+(defmethod decode-color ((medium xt-medium) (design design))
+  (error "Drawing with design: ~A not yet implemented" design))
+
 (defmethod decode-color ((medium xt-medium) (x (eql +foreground-ink+)))
   (with-slots (foreground-gcontext) medium
     (tk::gcontext-foreground foreground-gcontext)))
@@ -534,30 +554,14 @@ and on color servers, unless using white or black")
       (decode-color stream +background-ink+)))
 
 (defmethod decode-color ((medium xt-medium) (color color))
-  (car (decode-true-color (medium-palette medium) color)))
-
-(defmethod decode-color ((medium xt-medium) (color named-color))
-  (car (decode-true-color (medium-palette medium) color)))
-
-;;; in this context a true-color means a named or and rgb (or equiv
-;;; ihs) color
-
-(defmethod decode-true-color ((palette xt-palette) (color color))
-  (let ((color-cache (palette-color-cache palette)))
+  (let* ((palette (medium-palette medium))
+	 (color-cache (palette-color-cache palette)))
     (or (gethash color color-cache)
 	(setf (gethash color color-cache)
 	  (with-slots (color-p white-pixel black-pixel) palette
 	    (cond (color-p
-		   (multiple-value-bind (red green blue)
-		       (color-rgb color)
-		     (let* ((x #.(1- (ash 1 16)))
-			    (xcolor (make-instance 'tk::color
-						   :red (truncate (* x red))
-						   :green (truncate (* x green))
-						   :blue (truncate (* x blue)))))
-		       (cons (tk::allocate-color
-			      (palette-colormap palette) xcolor)
-			     xcolor))))
+		   (tk::allocate-color
+		    (palette-colormap palette) (get-xcolor color palette)))
 		  ;;-- support gray-scale here
 		  (t
 		   (multiple-value-bind (r g b) (color-rgb color)
@@ -566,16 +570,6 @@ and on color servers, unless using white or black")
 			(if (> luminosity .5)
 			    white-pixel
 			  black-pixel)))))))))))
-
-(defmethod decode-true-color ((palette xt-palette) (color named-color))
-  (let ((color-cache (palette-color-cache palette)))
-    (or (gethash color color-cache)
-	(setf (gethash color color-cache)
-	   (let* ((colormap (palette-colormap palette))
-		  (xcolor (tk::lookup-color colormap
-					    (named-color-name color))))
-	     (cons (tk::allocate-color colormap xcolor)
-		   xcolor))))))
 
 (defmethod decode-color ((medium xt-medium) (color mutable-color))
   (let* ((palette (medium-palette medium))

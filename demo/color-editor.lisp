@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.4 92/10/02 09:22:38 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.5 92/10/02 15:20:34 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -14,7 +14,7 @@
   (display-color (pane-frame stream) stream))
 
 (define-application-frame color-chooser ()
-    ((color :accessor color :initform (make-rgb-color 0 0 0))
+    (color mutable-p
      red blue green
      intensity hue saturation)
   (:menu-bar nil)
@@ -78,11 +78,30 @@
 	  (vertically () display exit))
 	rgb ihs))))
 
+(defmethod run-frame-top-level :before ((frame color-chooser) &key)
+  (with-slots (mutable-p color) frame
+    (setf color
+      (if (setf mutable-p (palette-color-p (frame-palette frame)))
+	  (make-mutable-color :color +black+)
+	+black+))))
+
+(defmethod color ((frame color-chooser))
+  (with-slots (mutable-p color) frame
+    (if mutable-p
+	(mutable-color-color color)
+      color)))
+
+(defmethod (setf color) (new-color (frame color-chooser))
+  (with-slots (mutable-p color) frame
+    (if mutable-p
+	(mutate-color color new-color)
+      (setf color new-color))))
+
 (defmethod display-color ((frame color-chooser) stream)
   (with-bounding-rectangle* (left top right bottom) (window-viewport stream)
     (with-output-recording-options (stream :record nil)
       (draw-rectangle* stream left top right bottom
-		       :filled t :ink (color frame)))))
+		       :filled t :ink (slot-value frame 'color)))))
 
 (defmacro define-rgb-callbacks (color)
   (check-type color (member red green blue))
@@ -148,7 +167,10 @@
 
 (defmethod value-changed-callback :after ((slider slider) (client (eql 'color)) id value)
   (declare (ignore id value))
-  (redisplay-frame-pane (pane-frame slider) 'display))
+  (let ((frame (pane-frame slider)))
+    (with-slots (mutable-p) frame
+      (unless mutable-p
+	(redisplay-frame-pane (pane-frame slider) 'display)))))
 
 
 (defvar *color-choosers* nil)
@@ -166,7 +188,7 @@
 		 (push (cons port frame) *color-choosers*))
 	     frame)))
     (run-frame-top-level frame)
-    (color frame)))
+    (slot-value frame 'color)))
 
 (define-demo "Color Chooser" do-color-chooser)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.44 92/09/30 18:03:45 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.45 92/10/02 15:19:25 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -66,6 +66,9 @@
 
 (defmethod graft ((frame standard-application-frame))
   (graft (frame-manager frame)))
+
+(defmethod frame-palette ((frame standard-application-frame))
+  (frame-manager-palette (frame-manager frame)))
 
 ;;--- These should really be somewhere else
 (defmethod frame-manager ((stream standard-encapsulating-stream))

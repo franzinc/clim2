@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.16 92/09/24 09:40:14 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.17 92/10/02 15:20:47 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -83,7 +83,6 @@
 			   (cell-id (encode-puzzle-cell row column)))
 		      (updating-output (stream
 					:unique-id cell-id 
-					:cache-text #'equal
 					:cache-value value)
 			  (formatting-cell (stream :align-x :right)
 			      (unless (zerop value)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-activity.lisp,v 1.1 92/09/22 19:43:05 cer Exp $
+;; $fiHeader: demo-activity.lisp,v 1.2 92/10/02 15:20:36 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -47,7 +47,12 @@
   (incf *untitled-count*))
 
 (define-demo-app-command (com-select-frame :name t :menu t) 
-    ((frame `((member ,@(frame-manager-frames *activity*)) :name-key ,#'frame-pretty-name)))
+    ((frame `((member ,@(frame-manager-frames *activity*)) 
+	      ;;-- After a frame is deleted it ends not being a member
+	      ;;-- of the presentation type so you get bogus
+	      ;;-- presentations and  the find in the present method
+	      ;;-- returns nil
+	      :name-key ,#'(lambda (x) (and x (frame-pretty-name x))))))
   (select-activity-active-frame *activity* frame))
 
 (define-demo-app-command (com-funky-add :name t :menu t) 

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.50 92/10/01 08:25:05 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.51 92/10/02 15:20:51 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -104,13 +104,22 @@ OL_UNDEFS=misc/undefinedsymbols.olit
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl clim-debugol.fasl \
 	   clim-debugxm.fasl climps.fasl climgg.fasl # clim1compat.fasl
 
-CLIMOBJS= clim-motif_d.o clim-olit_d.o  clim-motif.o clim-olit.o stub-xt.o stub-x.o \
+PUBLIC_OBJS=  stub-xt.o stub-x.o \
 	  xlibsupport.o MyDrawingA.o \
 	  olsupport.o xtsupport.o
 
+OL_LICENSED_OBJS=clim-olit.o clim-olit_d.o
+XM_LICENSED_OBJS=clim-motif_d.o  clim-motif.o 
+
+CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
+
+INSTALLED_CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
+
+
 # These are linked into the distribution
-FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-olit_d.o \
-	    `pwd`/clim-motif.o `pwd`/clim-olit.o \
+# `pwd`/clim-olit_d.o \ `pwd`/clim-olit.o \
+
+FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-motif.o \
 	    `pwd`/stub-xt.o `pwd`/stub-x.o \
 	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
 
@@ -705,7 +714,7 @@ makeclimolfasls	: compile-ol cat-ol
 
 
 install_clim	:
-	cp $(CLIMOBJS) $(CLIMFASLS) $(DEST)
+	cp $(INSTALLED_CLIMOBJS) $(CLIMFASLS) $(DEST)
 
 # Link in the libraries & distribution object files with standard names
 

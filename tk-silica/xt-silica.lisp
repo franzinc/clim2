@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.48 92/09/30 18:04:31 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.49 92/10/02 15:21:11 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -107,7 +107,7 @@
 	      (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
 	      (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
 	      (slot-value port 'default-palette) 
-	      (make-palette port :colormap (tk::default-colormap (port-display port))))
+	      (make-xt-palette port (tk::default-colormap (port-display port))))
 	(let* ((screen (x11:xdefaultscreenofdisplay display))
 	       (bs-p (not (zerop (x11::screen-backing-store screen))))
 	       (su-p (not (zerop (x11::screen-save-unders screen))))
@@ -123,7 +123,8 @@
   (and *use-color*
        (> (port-depth port) 2)
        (member (port-visual-class port)
-	       '(:static-color :true-color :pseudo-color :direct-color))))
+	       '(:static-color :true-color :pseudo-color :direct-color))
+       t))
 
 (defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
 			     (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")

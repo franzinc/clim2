@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.5 92/08/18 17:24:05 cer Exp $
+;; $fiHeader: designs.lisp,v 1.6 92/09/30 18:03:18 cer Exp $
 
 (in-package :clim-utils)
 
@@ -29,65 +29,17 @@
 	(t (make-standard-opacity-1 opacity))))
 
 
-;;; Named Colors
-
-(defmethod print-object ((color named-color) stream)
-  (print-unreadable-object (color stream :type t :identity t)
-    (princ (named-color-name color) stream)))
-
-(defmacro define-named-color (color)
-  (let* ((sym (symbol-name color))
-	 (name (substitute #\space #\-
-			   (string-downcase
-			    (subseq sym 1 (1- (length sym)))))))
-    `(defconstant ,color
-	 (make-named-color ,name))))
-			 
-(defmacro define-named-colors (&rest colors)
-  `(progn
-     ,@(mapcar #'(lambda (color)
-		   `(define-named-color ,color)) colors)))
-
-(define-named-colors
-    +black+ +white+ +red+ +green+ +blue+ +cyan+ +magenta+ +yellow+
-    +snow+ +ghost-white+ +white-smoke+ +gainsboro+ +floral-white+
-    +old-lace+ +linen+ +antique-white+ +papaya-whip+ +blanched-almond+
-    +bisque+ +peach-puff+ +navajo-white+ +moccasin+ +cornsilk+ +ivory+
-    +lemon-chiffon+ +seashell+ +honeydew+ +mint-cream+ +azure+
-    +alice-blue+ +lavender+ +lavender-blush+ +misty-rose+
-    +dark-slate-gray+ +dim-gray+ +slate-gray+ +light-slate-gray+ +gray+
-    +light-gray+ +midnight-blue+ +navy-blue+ +cornflower-blue+
-    +dark-slate-blue+ +slate-blue+ +medium-slate-blue+ +light-slate-blue+
-    +medium-blue+ +royal-blue+ +dodger-blue+ +deep-sky-blue+ +sky-blue+
-    +light-sky-blue+ +steel-blue+ +light-steel-blue+ +light-blue+
-    +powder-blue+ +pale-turquoise+ +dark-turquoise+ +medium-turquoise+
-    +turquoise+ +light-cyan+ +cadet-blue+ +medium-aquamarine+ +aquamarine+
-    +dark-green+ +dark-olive-green+ +dark-sea-green+ +sea-green+
-    +medium-sea-green+ +light-sea-green+ +pale-green+ +spring-green+
-    +lawn-green+ +chartreuse+ +medium-spring-green+ +green-yellow+
-    +lime-green+ +yellow-green+ +forest-green+ +olive-drab+ +dark-khaki+
-    +khaki+ +pale-goldenrod+ +light-goldenrod-yellow+ +light-yellow+
-    +gold+ +light-goldenrod+ +goldenrod+ +dark-goldenrod+ +rosy-brown+
-    +indian-red+ +saddle-brown+ +sienna+ +peru+ +burlywood+ +beige+
-    +wheat+ +sandy-brown+ +tan+ +chocolate+ +firebrick+ +brown+
-    +dark-salmon+ +salmon+ +light-salmon+ +orange+ +dark-orange+ +coral+
-    +light-coral+ +tomato+ +orange-red+ +hot-pink+ +deep-pink+ +pink+
-    +light-pink+ +pale-violet-red+ +maroon+ +medium-violet-red+
-    +violet-red+ +violet+ +plum+ +orchid+ +medium-orchid+ +dark-orchid+
-    +dark-violet+ +blue-violet+ +purple+ +medium-purple+ +thistle+)
-
-
 ;;; Gray colors
 
-(defconstant rgb-black (make-gray-color-1 0f0))
-(defconstant rgb-white (make-gray-color-1 1f0))
+(defconstant +black+ (make-gray-color-1 0f0))
+(defconstant +white+ (make-gray-color-1 1f0))
 
 (defun make-gray-color (luminosity)
   #+Genera (declare lt:(side-effects simple reducible))
   (assert (and (numberp luminosity) (<= 0 luminosity 1)) (luminosity)
     "The luminosity ~S is not a number between 0 and 1" luminosity)
-  (cond ((= luminosity 0) rgb-black)
-	((= luminosity 1) rgb-white)
+  (cond ((= luminosity 0) +black+)
+	((= luminosity 1) +white+)
 	(t (make-gray-color-1 (float luminosity 0f0)))))
 
 (defmethod print-object ((color gray-color) stream)
@@ -121,7 +73,7 @@
 	  "The blue value ~S is not a number between 0 and 1" blue)
   (if (= red green blue)
       (make-gray-color red)
-      (make-rgb-color-1 (float red 0f0) (float green 0f0) (float blue 0f0))))
+    (make-rgb-color-1 (float red 0f0) (float green 0f0) (float blue 0f0))))
 
 (defmethod print-object ((color rgb-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -162,7 +114,7 @@
 	  "The hue value ~S is not a number between 0 and 1" hue)
   (assert (and (numberp saturation) (<= 0 saturation 1)) (saturation)
 	  "The saturation value ~S is not a number between 0 and 1" saturation)
-  (cond ((= intensity 0) rgb-black)
+  (cond ((= intensity 0) +black+)
 	(t
 	 (make-ihs-color-1 (float intensity 0f0) (float hue 0f0) (float saturation 0f0)))))
 
@@ -192,10 +144,24 @@
     (values intensity hue saturation)))
 
 
+(defmacro define-named-color (color r g b)
+  `(defconstant ,color 
+       (make-rgb-color-1 (float ,r 0f0) (float ,g 0f0) (float ,b 0f0))))
+
+;;; The primary colors
+
+(define-named-color +red+     1 0 0)
+(define-named-color +green+   0 1 0)
+(define-named-color +blue+    0 0 1)
+(define-named-color +cyan+    0 1 1)
+(define-named-color +magenta+ 1 0 1)
+(define-named-color +yellow+  1 1 0)
+
+
 ;;; Mutable Colors 
 
 (defun make-mutable-color (&key (color +black+))
-  (make-mutable-color-1 (ensure-color color)))
+  (make-mutable-color-1 color))
 
 (defmethod print-object ((color mutable-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -203,32 +169,24 @@
 
 (defvar *doing-delayed-mutations* nil)
 
-(defun mutate-mutable (mutable color)
+(defmethod mutate-mutable ((mutable mutable-color) (color color))
   (if *doing-delayed-mutations*
       (dolist (palette (mutable-color-palettes mutable))
-	(let ((cell (gethash mutable (palette-mutable-color-cache palette)))
-	      (mutations (palette-delayed-mutations palette)))
-	  (vector-push-extend cell mutations)
-	  (vector-push-extend color mutations)))
+	(let ((cell (gethash mutable (silica:palette-mutable-color-cache palette)))
+	      (mutations (silica:palette-delayed-mutations palette)))
+	  (excl:without-interrupts
+	    (vector-push-extend cell mutations)
+	    (vector-push-extend color mutations))))
     (dolist (palette (mutable-color-palettes mutable))
-      (let ((cell (gethash mutable (palette-mutable-color-cache palette))))
+      (let ((cell (gethash mutable (silica:palette-mutable-color-cache palette))))
 	(update-palette-entry palette cell color)))))
 
-(defun ensure-color (color)
-  (assert (or (typep color 'color)
-	      (typep color 'named-color))
-      (color)
-    "~S is not of type ~S or ~S" color 'color 'named-color)
-  color)
+(defmethod (setf mutable-color-color) :after ((color color) (mutable mutable-color))
+  (mutate-mutable mutable color))
 
-(defmethod (setf mutable-color-color) :before (color (mutable mutable-color))
-  (let ((color (ensure-color color)))
-    (mutate-mutable mutable color)))
-
-(defmethod mutate-color ((mutable mutable-color) color)
-  (let ((color (ensure-color color)))
-    (setf (slot-value mutable 'color) color)
-    (mutate-mutable mutable color)))
+(defmethod mutate-color ((mutable mutable-color) (color color))
+  (setf (slot-value mutable 'color) color)
+  (mutate-mutable mutable color))
 
 ;;; note that the actual color mutation occurs on exiting the outermost
 ;;; with-delayed-mutations
@@ -243,8 +201,8 @@
 	   ,@body
 	 (progn
 	   (unless ,outer-doing-delayed-mutations
-	     (dolist (,palette *all-palettes*)
-	       (let ((,mutations (palette-delayed-mutations ,palette)))
+	     (dolist (,palette silica:*all-palettes*)
+	       (let ((,mutations (silica:palette-delayed-mutations ,palette)))
 		 (update-palette-entries ,palette ,mutations)
 		 (setf (fill-pointer ,mutations) 0)))))))))
 
@@ -264,11 +222,10 @@
 	(setf (gethash layers cache)
 	  (make-group-color color-group layers)))))
 
-(defmethod mutate-color ((group-color group-color) color)
-  (let ((color (ensure-color color)))
-    (with-delayed-mutations
-	(dolist (mutable (group-color-mutables group-color))
-	  (mutate-mutable mutable color)))))
+(defmethod mutate-color ((group-color group-color) (color color))
+  (with-delayed-mutations
+      (dolist (mutable (group-color-mutables group-color))
+	(mutate-mutable mutable color))))
 
 ;;; group-color-mutables should not be exported to the user. It is important
 ;;; that these mutables are not drawn with. Instead the fully specified group
