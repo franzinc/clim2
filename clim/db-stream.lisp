@@ -689,8 +689,8 @@
 	 (port (port stream)))
     (setf (medium-foreground stream) foreground
 	  (medium-background stream) background
-	  (medium-default-text-style stream) (or default-text-style (port-default-text-style port))
-	  (medium-text-style stream) (or text-style (port-default-text-style port))
+	  (medium-default-text-style stream) (or default-text-style *default-text-style*)
+	  (medium-text-style stream) (or text-style *default-text-style*)
 	  (stream-vertical-spacing stream) vertical-spacing
 	  (stream-end-of-line-action stream) end-of-line-action
 	  (stream-end-of-page-action stream) end-of-page-action
