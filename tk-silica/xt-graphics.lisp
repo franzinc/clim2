@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.49 92/11/06 10:01:19 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.50 92/11/06 19:04:40 cer Exp $
 
 (in-package :tk-silica)
 
@@ -97,7 +97,7 @@
   (let ((frame (pane-frame (medium-sheet medium))))
     (if frame
 	(frame-palette frame)
-	(port-default-palette (port sheet)))))
+	(port-default-palette (port medium)))))
 
 #+ignore
 (defmethod (setf frame-manager-palette) :after 

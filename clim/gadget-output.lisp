@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.35 92/10/29 15:02:40 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.36 92/11/06 18:59:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -284,9 +284,9 @@
   ;;--- number of items, etc.
   +radio-box-view+)
 
-(define-presentation-method gadget-includes-prompt-p 
-			    ((type completion) (stream t) (view radio-box-view))
-  t)
+;(define-presentation-method gadget-includes-prompt-p 
+;			    ((type completion) (stream t) (view radio-box-view))
+;  nil)
 
 (define-presentation-method accept-present-default 
 			    ((type completion) stream (view radio-box-view)
@@ -349,11 +349,7 @@
 				:value-changed-callback
 				  (make-accept-values-value-changed-callback
 				    stream query-identifier))))))
-	  (values (if (stringp prompt)
-		      (vertically ()
-			(make-pane 'label-pane :label prompt)
-			(outlining () radio-box))
-		      (outlining () radio-box))
+	  (values (outlining () radio-box)
 		  radio-box))))))
 
 
@@ -364,9 +360,9 @@
 			     (framem standard-frame-manager) &key)
   +check-box-view+)
 
-(define-presentation-method gadget-includes-prompt-p 
-			    ((type subset-completion) (stream t) (view check-box-view))
-  t)
+;(define-presentation-method gadget-includes-prompt-p 
+;			    ((type subset-completion) (stream t) (view check-box-view))
+;  nil)
 
 (define-presentation-method accept-present-default 
 			    ((type subset-completion) stream (view check-box-view)
@@ -432,11 +428,7 @@
 				       :value-changed-callback
 				         (make-accept-values-value-changed-callback
 					   stream query-identifier))))))
-	(values (if (stringp prompt)
-		    (vertically ()
-		      (make-pane 'label-pane :label prompt)
-		      (outlining () check-box))
-		    (outlining () check-box))
+	(values (outlining () check-box)
 		check-box)))))
 
 

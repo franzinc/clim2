@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.48 92/10/28 11:31:36 cer Exp $
+;; $fiHeader: frames.lisp,v 1.49 92/11/06 18:59:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -711,10 +711,30 @@
   nil)
 
 
+
+;;;
+
+(defmethod (setf frame-pretty-name) :before (nv (frame standard-application-frame))
+  (assert (typep nv 'string) ()
+    "The new pretty-name is not a string"))
+
+(defmethod (setf frame-pretty-name) :after (nv (frame standard-application-frame))
+  (declare (ignore nv))
+  (let ((framem (frame-manager frame)))
+    (when framem (frame-manager-note-pretty-name-changed framem frame))))
+
+(defmethod frame-manager-note-pretty-name-changed ((framem standard-frame-manager) 
+						   (frame standard-application-frame))
+  nil)
+
+;;;
+
+
 (define-condition frame-exit (condition)
   ((frame :initarg :frame :reader frame-exit-frame))
   (:report (lambda (condition stream)
 	     (format stream "Exit from frame ~A" (frame-exit-frame condition)))))
+
 
 (defgeneric run-frame-top-level (frame &key &allow-other-keys))
 

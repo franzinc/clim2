@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.53 92/11/06 14:32:44 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.54 92/11/06 19:04:34 cer Exp $
 
 (in-package :xm-silica)
 
@@ -891,7 +891,7 @@
                          :selected-items ,selected-items))
                 :selection-policy 
                 ,(ecase mode
-                   (:exclusive :single-select)
+                   (:exclusive :browse-select)
                    (:nonexclusive :multiple-select))
                 ,@(and visible-items `(:visible-item-count ,visible-items))
                 :items ,(mapcar name-key items) 
@@ -901,10 +901,12 @@
   (declare (ignore item-count))
   (let ((item (funcall (set-gadget-value-key sheet) 
                        (nth (1- item-position) (set-gadget-items sheet)))))
-    (queue-value-changed-event 
-     widget sheet
-     (and (not (funcall (set-gadget-test sheet) item (gadget-value sheet)))
-          item))))
+    ;;-- In browse select mode you get told when it is clicked on
+    ;;-- even if it is already set.
+    (unless (funcall (set-gadget-test sheet) item (gadget-value sheet))
+      (queue-value-changed-event 
+       widget sheet
+       item))))
 
 (defun list-pane-multiple-selection-callback (widget item-positions sheet)
   (declare (ignore item-count))
@@ -920,7 +922,7 @@
 (defmethod add-sheet-callbacks ((port motif-port) (sheet motif-list-pane) (widget xt::xm-list))
   (ecase (list-pane-mode sheet)
       (:exclusive
-       (tk::add-callback widget :single-selection-callback
+       (tk::add-callback widget :browse-selection-callback
                          'list-pane-single-selection-callback sheet))
       (:nonexclusive
        (tk::add-callback widget :multiple-selection-callback 

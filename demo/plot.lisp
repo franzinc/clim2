@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.15 92/10/29 16:55:34 cer Exp $
+;; $fiHeader: plot.lisp,v 1.16 92/11/06 19:03:02 cer Exp $
 
 (in-package :clim-demo)
 
@@ -495,8 +495,9 @@
 	     :label "Options"
 	     :scroll-bars :both
 	     :display-function `(accept-values-pane-displayer
-				  :resynchronize-every-pass t
-				  :displayer display-options)
+				 :align-prompts t
+				 :resynchronize-every-pass t
+				 :displayer display-options)
 	     :width :compute :height :compute)
     (command :interactor :height '(5 :line)))
   (:pointer-documentation t)
@@ -797,6 +798,7 @@
 
 
 (defvar *plot-demos* nil)
+
 
 (defun do-plot-demo (&key (port (find-port)) (force nil))
   (let* ((framem (find-frame-manager :port port))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.18 92/10/07 14:43:39 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.19 92/10/28 11:33:01 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1259,11 +1259,10 @@
   '(or aircraft victor-airway route named-position ground-position))
 
 ;;; Delete <object>
-(define-flight-planner-command (com-delete-object :name t :menu "Delete")
+(define-flight-planner-command com-delete-object
     ((object 'concrete-object :prompt "Object")
-     &key
-     (presentation 't :default nil)
-     (window 't :default nil))
+     (presentation 't)
+     (window 't))
   (let ((stream (frame-standard-input *application-frame*)))
     (etypecase object
       (ground-position
@@ -1290,7 +1289,7 @@
 		     ;; So that we don't see the keyword arguments...
 		     (format stream "Delete Object ~A" object)))
     (object presentation window)
-  (list object :presentation presentation :window window))
+  (list object presentation window))
 
 ;;; Describe <object>
 (define-flight-planner-command (com-describe-object :name t :menu "Describe")
@@ -1410,13 +1409,13 @@
 
 (define-presentation-to-command-translator flight-plan
     (route com-flight-plan flight-planner
-     :gesture :describe
+     :gesture :edit
      :priority +1)
     (object)
   (list object))
 
 (define-flight-planner-command (com-show-distance :name t :menu t)
-    ((start 'route-start-object :gesture :select)
+    ((start 'route-start-object)
      (end 'route-start-object))
   (multiple-value-bind (distance tc)
       (geodesic (point-latitude start) 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.13 92/10/28 11:32:41 cer Exp Locker: cer $
+;; $fiHeader: genera-mirror.lisp,v 1.14 92/11/05 17:15:44 cer Exp $
 
 (in-package :genera-clim)
 
@@ -603,7 +603,6 @@
 			 (pointer (port-pointer port)))
 		     ;;----- There should be no need to do this
 		     ;;----- button up/down should have updated the state
-		     #+ignore
 		     (if (zerop mouse-buttons)
 			 (setf (pointer-button-state pointer) 0)
 			 (setf (pointer-button-state pointer)
@@ -628,7 +627,6 @@
 			 (pointer (port-pointer port)))
 		     ;;-- This looks bogus
 		     ;;-- Are there not multiple buttons??
-		     #+ignore
 		     (setf (pointer-button-state pointer) 0)
 		     (when sheet
 		       (distribute-event

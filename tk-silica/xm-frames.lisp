@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.36 92/11/05 17:15:59 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.37 92/11/06 19:04:31 cer Exp $
 
 (in-package :xm-silica)
 
@@ -269,15 +269,24 @@
 		      (second 
 		       (decode-gadget-background medium sheet x))))))))
 	(destructuring-bind
-	    (&key name pixmap clipping-mask) icon
+	    (&key (name (frame-pretty-name frame)) pixmap clipping-mask) icon
 	  ;;-- Dialog shells do not have :icon-name resource
-	  (when (and name (typep shell 'tk::top-level-shell))
+	  (when (typep shell 'tk::top-level-shell)
 	    (tk::set-values shell :icon-name name))
 	  (when pixmap
 	    (tk::set-values shell :icon-pixmap (decode-pixmap pixmap)))
 	  (when clipping-mask
 	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))
 
+(defmethod clim-internals::frame-manager-note-pretty-name-changed ((framem motif-frame-manager) 
+								   (frame standard-application-frame))
+  (let ((shell (frame-shell frame)))
+    (tk::set-values shell :title (frame-pretty-name frame))
+    (when (typep shell 'tk::top-level-shell)
+      (destructuring-bind (&key name &allow-other-keys) (clim-internals::frame-icon frame)
+	;;-- Dialog shells do not have :icon-name resource
+	(tk::set-values shell :icon-name (frame-pretty-name frame))))))
+	
 
 ;;;
 

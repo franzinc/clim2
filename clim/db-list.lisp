@@ -1,6 +1,8 @@
-u;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
+
+;; $fiHeader: db-stream.lisp,v 1.35 92/11/06 18:59:18 cer Exp $
 
 (in-package :silica)	;yes, this file is in the Silica package
 

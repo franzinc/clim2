@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.18 92/11/05 17:15:57 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.19 92/11/06 19:03:29 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -69,8 +69,8 @@
 
      (clim-defsys::load-system 'clim-demo)
 
-     (when (probe-file "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
-       (load "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+     (when (probe-file "climtoys/sysdcl.lisp")
+       (load "climtoys/sysdcl.lisp")
        (tenuring (clim-defsys::load-system 'clim-toys)))
      (ignore-errors (require :composer))
 

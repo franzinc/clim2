@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.59 92/11/05 19:24:25 cer Exp $
+# $fiHeader: Makefile,v 1.60 92/11/05 19:28:07 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -13,6 +13,7 @@ CLOPTS	= -qq
 TRAIN_TIMES=2
 
 TRAIN_LISP= \
+	(progn \
 	(load \"test/test.lisp\") \
 	(clim-user::train-clim-2  $(TRAIN_TIMES)) \
 	(clim-user::do-frame-tests) \
@@ -20,8 +21,8 @@ TRAIN_LISP= \
 	:output-file \
 	(if (excl::featurep :clim-motif) \"misc/clos-preloadxm.fasl\" \
 	    \"misc/clos-preloadol.fasl\") \
-	) \
-	(exit 0) 
+	)) \
+	(exit 0)
 
 TRAIN_TEXT = \
 	$(ECHO) "\
@@ -266,7 +267,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/item-list-manager.fasl \
                         clim/stream-trampolines.fasl
 
-GENERIC-GADGETS = clim/db-menu.fasl clim/db-text.fasl silica/db-button.fasl \
+GENERIC-GADGETS = clim/db-menu.fasl clim/db-list.fasl clim/db-text.fasl silica/db-button.fasl \
 	    silica/db-slider.fasl	   
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
@@ -672,7 +673,7 @@ BENCHMARK_FILE=nil
 
 benchmark:
 	$(ECHO) "\
-	(load \"/vapor/usr/tech/cer/stuff/climtoys/test-clim.lisp\") \
+	(load \"climtoys/test-clim.lisp\") \
 	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
 "  | $(CLIM) $(CLOPTS) -batch
 
@@ -681,7 +682,7 @@ PSVIEW=view
 
 testps :
 	$(ECHO) "\
-	(load \"/vapor/usr/tech/cer/stuff/climtoys/test-clim.lisp\") \
+	(load \"climtoys/test-clim.lisp\") \
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output :$(PSVIEW)) \
 "  | $(CLIM) $(CLOPTS) -batch

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.17 92/09/08 10:34:01 cer Exp $
+;; $fiHeader: callbacks.lisp,v 1.18 92/09/24 09:37:16 cer Exp $
 
 (in-package :tk)
 
@@ -125,7 +125,7 @@
 	    ("cancelCallback")        
 	    ("applyCallback")         
 	    ("okCallback")            
-	    ("browseSelectionCallback") 
+	    ("browseSelectionCallback" :single-selection) 
 	    ("singleSelectionCallback" :single-selection) 
 	    ("defaultActionCallback")   
 	    ("extendedSelectionCallback")

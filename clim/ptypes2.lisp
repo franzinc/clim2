@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.16 92/11/05 17:15:39 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.17 92/11/06 19:00:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -398,10 +398,23 @@
 		       type-parameters)
 		 (values t t)
 		 (values nil nil)))
+	    
 	    ((eq type-name 'or)
-	     (values nil nil))
+	     (if (every #'(lambda (type)
+			    (presentation-subtypep type putative-supertype))
+			type-parameters)
+		 (values t t)
+	       (values nil nil)))
+	    
 	    ((eq supertype-name 'and)
-	     (values nil nil))
+	     (if (every #'(lambda (supertype) 
+			    (with-presentation-type-decoded (type-name) type
+			      (unless (member type-name '(not satisfies))
+				(presentation-subtypep type supertype))))
+			supertype-parameters)
+		 (values t t)
+	       (values nil nil)))
+
 	    ((eq supertype-name 'or)
 	     (if (some #'(lambda (supertype) (presentation-subtypep type supertype))
 		       supertype-parameters)
