@@ -880,12 +880,12 @@ defaults to \cl{eql}.
 For example,
 
 \begin{verbatim}
-D,#TD1PsT[Begin using 006 escapes](1 0 (NIL 0) (SAGE:SANS-SERIF-BODY SAGE::TYPEWRITER :NORMAL) "CPTFONT")(make-pane 'list-pane
-0  1:value '("Lisp" "C++")
-0  1:mode :nonexclusive
-0  1:items '("Lisp" "Fortran" "C" "C++" "Cobol" "Ada")
-0  1:test 'string=)
-0\end{varbatim}
+(make-pane 'list-pane
+  :value '("Lisp" "C++")
+  :mode :nonexclusive
+  :items '("Lisp" "Fortran" "C" "C++" "Cobol" "Ada")
+  :test 'string=)
+\end{verbatim}
 
 \Defmethod {gadget-value} {(button \cl{list-pane})}
 
@@ -927,12 +927,12 @@ defaults to \cl{eql}.
 For example,
 
 \begin{verbatim}
-1(make-pane 'option-pane
-0  1:value '("Lisp" "C++")
-0  1:mode :nonexclusive
-0  1:items '("Lisp" "Fortran" "C" "C++" "Cobol" "Ada")
-0  1:test 'string=)
-0\end{varbatim}
+(make-pane 'option-pane
+  :value '("Lisp" "C++")
+  :mode :nonexclusive
+  :items '("Lisp" "Fortran" "C" "C++" "Cobol" "Ada")
+  :test 'string=)
+\end{verbatim}
 
 \Defmethod {gadget-value} {(button \cl{option-pane})}
 

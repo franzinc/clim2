@@ -5,3 +5,6 @@
 *.idx
 *.aux
 *.log
+*.ind
+*.ilg
+*.out

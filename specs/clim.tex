@@ -1,24 +1,52 @@
 % -*- Mode: LaTeX -*-
 
-\documentstyle{report}          % tried to use [twoside] to no avail  --SWM
+\documentclass{report}          % tried to use [twoside] to no avail
+                                % --SWM
 \pagestyle{headings}
+\usepackage{makeidx}
+\usepackage{epsfig}
+
+\makeatletter
+\renewenvironment{theindex}%
+  {\chapter{\indexname}
+  \begin{small}
+  \parindent 0pt
+  \parskip 0pt plus .3 pt
+  \relax
+  \let\item\@idxitem}
+  {\end{small}\clearpage}
+\makeatother
+
+%\usepackage{times}
+
+%% For PDF
+\renewcommand{\rmdefault}{phv}
+\renewcommand{\sfdefault}{phv}
+\renewcommand{\ttdefault}{pcr}
+\usepackage[ps2pdf,
+  pdftitle={CLIM II Specification},
+  pdfauthor={various},
+  colorlinks=true,linkcolor=blue,pagecolor=blue,
+  pdfstartview=FitBV,pdfview=FitBV]{hyperref}
+%% end PDF
+
 
 \title{Common Lisp Interface Manager \\
        CLIM II Specification}
 
-\author{Scott McKay ({\tentt SWM@Symbolics.COM}) \\
-        William York ({\tentt York@Lucid.COM}) \\ 
-        {\tenit with contributions by} \\
-        {\tenrm John Aspinall ({\tentt JGA@Symbolics.COM})} \\
-        {\tenrm Dennis Doughty ({\tentt Doughty@ILeaf.COM})} \\
-        {\tenrm Charles Hornig ({\tentt Hornig@ODI.COM})} \\
-        {\tenrm Richard Lamson ({\tentt RLamson\%UMAB.BitNet@MITVMA.MIT.EDU})} \\
-        {\tenrm David Linden ({\tentt Linden@CRL.DEC.COM})} \\
-        {\tenrm David Moon ({\tentt Moon@Cambridge.Apple.COM})} \\
-        {\tenrm Ramana Rao ({\tentt rao@PARC.Xerox.COM})} \\
-        {\tenrm Chris Richardson ({\tentt cer@Franz.COM})}}
+\author{Scott McKay ({\tt SWM@Symbolics.COM}) \\
+        William York ({\tt York@Lucid.COM}) \\ 
+        {\it with contributions by} \\
+        {\rm John Aspinall ({\tt JGA@Symbolics.COM})} \\
+        {\rm Dennis Doughty ({\tt Doughty@ILeaf.COM})} \\
+        {\rm Charles Hornig ({\tt Hornig@ODI.COM})} \\
+        {\rm Richard Lamson ({\tt RLamson\%UMAB.BitNet@MITVMA.MIT.EDU})} \\
+        {\rm David Linden ({\tt Linden@CRL.DEC.COM})} \\
+        {\rm David Moon ({\tt Moon@Cambridge.Apple.COM})} \\
+        {\rm Ramana Rao ({\tt rao@PARC.Xerox.COM})} \\
+        {\rm Chris Richardson ({\tt cer@Franz.COM})}}
 
-\date{\today}
+\date{Printed \today}
 \markright{CLIM II Specification}
 
 \makeindex
@@ -106,4 +134,6 @@
 \input{extensions.tex}
 \input{changes.tex}
 
+\part{Index}
+\printindex
 \end{document}
