@@ -1072,7 +1072,7 @@
 (define-xt-keysym (keysym 255 255) :rubout)
 (define-xt-keysym (keysym 255 008) :backspace)
 (define-xt-keysym (keysym 009 227) :page)
-(define-xt-keysym (keysym 255 010) :linefeed)
+;;(define-xt-keysym (keysym 255 010) :linefeed)
 (define-xt-keysym (keysym 255 027) :escape)
 ;;;---
 (define-xt-keysym (keysym 255 010) :newline)
