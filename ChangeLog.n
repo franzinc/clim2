@@ -11,6 +11,10 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.3.1 -- join from acl50 branch onto armysttr branch
+next merge tag: acl50_to_armysttr_merge2
+
+*******************************************************************************
 2.2.2.3 -- join from acl50 branch
 next merge tag: acl50_merge3
 
@@ -46,6 +50,14 @@ next merge tag: acl50_merge2
 2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
 (this should have been version 2.2.2.0, but was 2.2.1.17 instead)
 next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.33
+
+1998-11-03    <layer@HOBART>
+
+	* pre-silica/genera-implementation.lisp: remove ^Z character
+	because it was messing up new version of CVS
 
 *******************************************************************************
 2.2.1.32
