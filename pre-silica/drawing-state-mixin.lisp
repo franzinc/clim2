@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Id: drawing-state-mixin.lisp,v 1.9 1998/08/06 23:16:51 layer Exp $
+;; $Id: drawing-state-mixin.lisp,v 1.10 2000/06/08 19:16:55 layer Exp $
 
 (in-package :clim-internals)
 
@@ -86,7 +86,7 @@
      (transformation :initform +identity-transformation+ :accessor medium-transformation)
      (transformed-clipping-region :initform +everywhere+)
      (line-style :initform +default-line-style+ :accessor medium-line-style)
-     (+Y-upward-p :initform nil :accessor medium-+Y-upward-p)))
+     (+y-upward-p :initform nil :accessor medium-+y-upward-p)))
 
 (defmethod medium-clipping-region ((medium drawing-state-mixin))
   (with-slots (transformation transformed-clipping-region) medium

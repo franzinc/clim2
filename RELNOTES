@@ -13,4 +13,26 @@ developers or documentation.
 
 ************* add new entries below this line *********************************
 
-1. [bug/rfe#] ...summary...
+1. rfe3925. CLIM now works in a case-sensitive Lisp.  CLIM now will
+   work in two flavours of Lisp: `traditional' ANSI Lisp -- standard
+   CL symbols are uppercase, the reader converts non-escaped symbols
+   to uppercase; `modern' Lisp -- standard CL symbols are lowercase,
+   and the reader does no case conversion.  In the former case, all
+   exported CLIM symbols are uppercase as before; in the latter they
+   are lowercase.
+
+2. spr21587. On Windows platforms, NOTIFY-USER now always raises the
+   dialog box it creates to the top of the window stack.  Formerly it
+   could be buried behind other windows if the CLIM application frame
+   was itself buried.
+
+3. bug8764.  Lisp will not prompt you to be sure you want to exit Lisp
+   if CLIM timers have been used.  Previously if exited Lisp it would
+   ask you to confirm that you wanted to do so if you'd ever used a
+   timer.
+
+4. <norfe>. For Unix/Linux the CLIM debug fasls (clim-debug.fasl,
+   clim-debugwnn.fasl and clim-debuxm.fasl) are empty.  The debugging
+   code is now included in the normal fasls and the empty files
+   included for backwards compatibility.  In a future release they
+   will disappear.

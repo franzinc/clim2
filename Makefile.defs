@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.51 2000/05/01 21:43:18 layer Exp $
+# $Id: Makefile.defs,v 1.52 2000/06/08 19:16:51 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -7,13 +7,8 @@ CLIM		= clim.dxl
 
 SHARED_EXT = so
 
-ifeq ($(OS_NAME),windows)
-LISP	= ../src/lisp$(exe)
-DCL	= dcl
-else
 LISP	= ../src/lispi$(exe)
 DCL	= dcli
-endif
 
 # Set the case mode when building and dumping an image
 # case_mode:

@@ -11,6 +11,20 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.11
+
+2000-06-08  Kevin Layer  <layer@ultra>
+
+	* Makefile.defs: simplify LISP and DCL
+	* RELNOTES: added from Tim
+	* aclpc/acl-prel.lisp: fix from Tim (for the bug#)
+	* clim/stream-defprotocols.lisp,
+	* pre-silica/drawing-state-mixin.lisp: bug9018
+	* demo/sysdcl.lisp: fix from Tim
+	* misc/compile-1.lisp: fixes to allow this file to be compiled and
+	error reporting
+
+*******************************************************************************
 2.2.2.10 -- join from acl50 branch
 
 - changes from 2.2.1.69 to 2.2.1.77

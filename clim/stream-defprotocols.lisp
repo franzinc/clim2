@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: stream-defprotocols.lisp,v 1.20 2000/05/01 21:43:26 layer Exp $
+;; $Id: stream-defprotocols.lisp,v 1.21 2000/06/08 19:16:52 layer Exp $
 
 (in-package :clim-internals)
 
@@ -345,7 +345,7 @@
   medium-ink
   medium-transformation
   medium-line-style
-  medium-+Y-upward-p)
+  medium-+y-upward-p)
 
 (defoperation invoke-with-drawing-options drawing-state-mixin
   ((stream drawing-state-mixin) function &rest options))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.31 1999/02/25 08:23:31 layer Exp $
+;; $Id: sysdcl.lisp,v 1.32 2000/06/08 19:16:54 layer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -28,6 +28,8 @@
 (defsystem clim-demo
     (:default-pathname "clim2:;demo;")
   (:serial
+;;;   #+acl86win32 aclnt-clim
+   postscript-clim-stubs
    ("packages" (:module-class compile-always))
    ("demo-driver"     (:load-before-compile "packages"))
    ("listener"        (:load-before-compile "demo-driver" "packages"))

@@ -17,11 +17,9 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.37 2000/05/01 21:43:29 layer Exp $
+;; $Id: compile-1.lisp,v 1.38 2000/06/08 19:16:54 layer Exp $
 
 (in-package :user)
-
-(set-case-mode :case-insensitive-upper)
 
 ;;; This should not matter
 ;;; (setq *ignore-package-name-case* t)
@@ -33,6 +31,7 @@
 (eval-when (compile load eval) 
   (pushnew :acl86win32 *features*))
 
+#-(version>= 6 0)
 (setq comp:generate-call-count-code-switch
   (named-function |(> debug 1)|
 		  (lambda (safety size speed debug)
@@ -53,11 +52,11 @@
 	      (format nil 
 		      #+acl86win32 "~A**\\*.*" 
 		      #-acl86win32 "~A**/*.*"
-		      #.(directory-namestring 
-			 (make-pathname
-			  :directory
-			  (butlast (pathname-directory 
-				    *load-pathname*))))))))
+		      (directory-namestring 
+		       (make-pathname
+			:directory
+			(butlast (pathname-directory 
+				  *load-pathname*))))))))
 
 ;;;; system definitions we need
 ;;;
@@ -140,6 +139,10 @@
     ;; probably make this be just clim-demo + clim-tests.
     ()
   (:serial
+;;;   #+acl86win32
+;;;   "clim2:;aclpc;sysdcl"                ;get defsys for compile.  Ick.
+   #+acl86win32
+   "clim2:;aclpc;pkgdcl"                ;get package for compile.  Ick.
    clim-demo				;demo;sysdcl
    "clim2:;test;test-suite"             ;hack!
    ))
@@ -319,7 +322,7 @@
 		    (excl:tenuring
 		     (excl:load-system s))))
 		 ((not ignore-if-unknown)
-		  (error "System ~S not known" sys))
+		  (error "System ~S not known" s))
 		 (t nil))))
     (with-compilation-unit ()
       (cl sys)
@@ -329,7 +332,8 @@
       ;; the clim-homegrown and the clim-compatibility (from
       ;; compatibility;sysdcl) systems were not being bult on any
       ;; platform.
-      #+ics				;I hope this is the right test
+      #+(and allegro (not acl86win32))
+      ;;#+ics				;I hope this is the right test
       (cl 'wnn)
       (cl 'postscript-clim)
       (cl 'climdemo)
@@ -359,9 +363,9 @@
   (concatenate-system 'postscript-clim "clim2:;climps.fasl")
   ;; The wnn system depends on ics.  The debug system is just there
   ;; for backwards compatibility
-  #+ics
+  #+(and allegro (not acl86win32))
   (concatenate-system 'wnn-cat "clim2:;climwnn.fasl")
-  #+ics
+  #+(and allegro (not acl86win32))
   (concatenate-system 'empty-cat "clim2:;clim-debugwnn.fasl")
   ;; hpgl only on unix
   #-acl86win32

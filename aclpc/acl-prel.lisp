@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.11 2000/05/01 21:43:20 layer Exp $
+;; $Id: acl-prel.lisp,v 1.12 2000/06/08 19:16:51 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -348,16 +348,16 @@
 	       (setq rgb (medium-background medium))))
 	(multiple-value-bind (red green blue) (color-rgb rgb)
 	  (ct:cset windows:bitmapinfo bmi
-		   (windows::bmicolors (fixnum i) rgbreserved) 
+		   (windows::bmiColors (fixnum i) windows::rgbReserved) 
 		   0)
 	  (ct:cset windows:bitmapinfo bmi
-		   (windows::bmicolors (fixnum i) rgbred)
+		   (windows::bmiColors (fixnum i) windows::rgbRed)
 		   (floor (* 255 red)))
 	  (ct:cset windows:bitmapinfo bmi
-		   (windows::bmicolors (fixnum i) rgbblue)
+		   (windows::bmiColors (fixnum i) windows::rgbBlue)
 		   (floor (* 255 blue)))
 	  (ct:cset windows:bitmapinfo bmi
-		   (windows::bmicolors (fixnum i) rgbgreen)
+		   (windows::bmiColors (fixnum i) windows::rgbGreen)
 		   (floor (* 255 green))))))
     ;; return values
     (values bmi win:DIB_RGB_COLORS)))
