@@ -1,9 +1,9 @@
-# $fiHeader: Makefile,v 1.53 92/10/05 10:08:19 cer Exp $
+# $fiHeader: Makefile,v 1.54 92/10/07 14:43:56 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
 #CL	= /usr/tech/cer/cl/src/dcl
-CL	= /net/vapor/scm2/4.2.beta/src/dcl-stable
+CL	= /net/vapor/scm2/4.2.beta/src/dcl
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
@@ -16,7 +16,11 @@ TRAIN_LISP= (load \"tk-silica/test-clim.lisp\") \
 	(load \"test/test.lisp\") \
 	(clim-user::train-clim-2  $(TRAIN_TIMES)) \
 	(clim-user::do-frame-tests) \
-	(compile-file \"misc/clos-preload.cl\") \
+	(compile-file \"misc/clos-preload.cl\" \
+	:output-file \
+	(if (excl::featurep :clim-motif) \"misc/clos-preloadxm.fasl\" \
+	    \"misc/clos-preloadol.fasl\") \
+	) \
 	(exit 0) 
 
 TRAIN_TEXT = \

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.39 92/10/02 15:20:19 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.40 92/10/04 14:16:26 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -1650,71 +1650,91 @@ Luke Luck licks the lakes Luke's duck likes."))
   (graphics-dialog-internal stream t))
 
 (defun graphics-dialog-internal (stream &optional own-window)
-  (let ((square-dimension 100)
-	(draw-circle t)
-	(draw-square t)
-	(draw-point t)
-	(draw-/-diagonal t)
-	(draw-\\-diagonal t)
-	(line-thickness 1)
-	(line-thickness-units :normal))
-    (accepting-values (stream :own-window own-window :label "Graphics Dialog")
-      (setq square-dimension
+  (labels ((display-color (object stream)
+	     (with-room-for-graphics (stream)
+	       (draw-rectangle* stream 0 0 30 10 :ink
+				(color-name-color object))))
+	   (color-name-color (name)
+	     (ecase name
+	       (:red +red+)
+	       (:green +green+)
+	       (:blue +blue+))))
+    (let ((square-dimension 100)
+	  (draw-circle t)
+	  (draw-square t)
+	  (draw-point t)
+	  (draw-/-diagonal t)
+	  (draw-\\-diagonal t)
+	  (line-thickness 1)
+	  (color-name :red)
+	  (line-thickness-units :normal))
+      (accepting-values (stream :own-window own-window :label "Graphics Dialog")
+	  (setq square-dimension
 	    (accept 'number :stream stream
 		    :prompt "Size of square" :default square-dimension))
-      (terpri stream)
-      (setq draw-circle
-	    (accept 'boolean :stream stream
-		    :prompt "Draw the circle" :default draw-circle))
-      (terpri stream)
-      (setq draw-square
-	    (accept 'boolean :stream stream
-		    :prompt "Draw the square" :default draw-square))
-      (terpri stream)
-      (setq draw-point
-	    (accept 'boolean :stream stream
-		    :prompt "Draw point" :default draw-point))
-      (terpri stream)
-      (setq draw-/-diagonal
-	    (accept 'boolean :stream stream
-		    :prompt "Draw / diagonal" :default draw-/-diagonal))
-      (terpri stream)
-      (setq draw-\\-diagonal
-	    (accept 'boolean :stream stream
-		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
-      (terpri stream)
-      (setq line-thickness
-	    (accept 'number :stream stream
-		    :prompt "Line thickness" :default line-thickness))
-      (terpri stream)
-      (setq line-thickness-units
-	    (accept '(member :normal :point) :stream stream
-		    :prompt "Line style units" :default line-thickness-units))
-      (terpri stream)
-      (with-room-for-graphics (stream)
-	(let ((radius (/ square-dimension 2)))
-	  (with-drawing-options (stream :line-unit line-thickness-units
-					:line-thickness line-thickness)
-	    (when draw-square
-	      (draw-polygon* stream (list 0 0
-					  0 square-dimension
-					  square-dimension square-dimension
-					  square-dimension 0)
-			     :line-joint-shape :miter
-			     :filled nil))
-	    (when draw-circle
-	      (draw-circle* stream radius radius radius
-			    :filled nil))
-	    (when draw-point
-	      (draw-point* stream 
-			   (/ square-dimension 4)
-			   (/ square-dimension 2)))
-	    (when draw-/-diagonal
-	      (draw-line* stream 0 square-dimension square-dimension 0
-			  :line-cap-shape :round))
-	    (when draw-\\-diagonal
-	      (draw-line* stream 0 0 square-dimension square-dimension
-			  :line-cap-shape :round))))))))
+	(terpri stream)
+	(setq draw-circle
+	  (accept 'boolean :stream stream
+		  :prompt "Draw the circle" :default draw-circle))
+	(terpri stream)
+	(setq draw-square
+	  (accept 'boolean :stream stream
+		  :prompt "Draw the square" :default draw-square))
+	(terpri stream)
+	(setq draw-point
+	  (accept 'boolean :stream stream
+		  :prompt "Draw point" :default draw-point))
+	(terpri stream)
+	(setq draw-/-diagonal
+	  (accept 'boolean :stream stream
+		  :prompt "Draw / diagonal" :default draw-/-diagonal))
+	(terpri stream)
+	(setq draw-\\-diagonal
+	  (accept 'boolean :stream stream
+		  :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+	(terpri stream)
+	(setq line-thickness
+	  (accept 'number :stream stream
+		  :prompt "Line thickness" :default line-thickness))
+	(terpri stream)
+	(setq line-thickness-units
+	  (accept '(member :normal :point) :stream stream
+		  :prompt "Line style units" :default line-thickness-units))
+	(terpri stream)
+	(setq color-name 
+	  (accept `((completion (:red :green :blue))
+		    :name-key ,#'identity
+		    :printer ,#'display-color)
+		  :view '(radio-box-view 
+			  :toggle-button-options (:indicator-type nil))
+		  :stream stream
+		  :prompt "Color" :default color-name))
+	(terpri stream)
+	(with-drawing-options (stream :ink (color-name-color color-name))
+	  (with-room-for-graphics (stream)
+	    (let ((radius (/ square-dimension 2)))
+	      (with-drawing-options (stream :line-unit line-thickness-units
+					    :line-thickness line-thickness)
+		(when draw-square
+		  (draw-polygon* stream (list 0 0
+					      0 square-dimension
+					      square-dimension square-dimension
+					      square-dimension 0)
+				 :line-joint-shape :miter
+				 :filled nil))
+		(when draw-circle
+		  (draw-circle* stream radius radius radius
+				:filled nil))
+		(when draw-point
+		  (draw-point* stream 
+			       (/ square-dimension 4)
+			       (/ square-dimension 2)))
+		(when draw-/-diagonal
+		  (draw-line* stream 0 square-dimension square-dimension 0
+			      :line-cap-shape :round))
+		(when draw-\\-diagonal
+		  (draw-line* stream 0 0 square-dimension square-dimension
+			      :line-cap-shape :round))))))))))
 
 
 ;;;; Benchmarks

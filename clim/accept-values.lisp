@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.37 92/10/01 08:51:13 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.38 92/10/02 15:19:12 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -446,7 +446,7 @@
 		       (stream-ensure-cursor-visible stream)
 		       (replay avv stream)
 		       (run-avv)))
-	      (deactivate-all-gadgets avv-record)
+	      (unless own-window (deactivate-all-gadgets avv-record))
 	      (unless own-window
 		(move-cursor-beyond-output-record 
 		  (encapsulating-stream-stream stream) avv))))

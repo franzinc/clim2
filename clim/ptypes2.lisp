@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.12 92/09/24 09:39:19 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.13 92/10/02 15:19:55 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -483,13 +483,14 @@
 
 
 (define-default-presentation-method decode-indirect-view
-				    (presentation-type view framem)
-  (declare (ignore presentation-type framem))
+				    (presentation-type view framem &key query-identifier)
+  (declare (ignore presentation-type framem query-identifier))
   view)
 
-(defun decode-indirect-view (type view frame-manager)
-  (funcall-presentation-generic-function decode-indirect-view
-    type view frame-manager))
+(defun decode-indirect-view (type view frame-manager &rest args &key query-identifier)
+  (declare (ignore query-identifier))
+  (apply-presentation-generic-function decode-indirect-view
+     type view frame-manager args))
 
 
 ;;;; Refined position test and highlighting

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.15 92/08/18 17:25:27 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.16 92/09/08 15:18:22 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1630,7 +1630,7 @@
 
 (define-presentation-generic-function decode-indirect-view-method
                                       decode-indirect-view
-  (type-key parameters options type view frame-manager))
+  (type-key parameters options type view frame-manager &key))
 
 (define-presentation-generic-function presentation-refined-position-test-method
 				      presentation-refined-position-test

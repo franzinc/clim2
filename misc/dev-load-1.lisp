@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.14 92/09/30 11:45:31 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.15 92/09/30 18:04:24 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -100,4 +100,7 @@
 
   (tenuring
 	(ignore-errors
-	   (load "misc/clos-preload.fasl" :if-does-not-exist nil))))
+	 (load (case sys
+		 (motif-clim "misc/clos-preloadxm.fasl")
+		 (openlook-clim "misc/clos-preloadol"))
+	       :if-does-not-exist nil))))

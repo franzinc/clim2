@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.31 92/09/30 18:03:51 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.32 92/10/02 15:19:28 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -271,7 +271,7 @@
 ;;; Completion gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type completion) (view gadget-dialog-view) (framem standard-frame-manager))
+    ((type completion) (view gadget-dialog-view) (framem standard-frame-manager) &key)
   ;;--- We can be clever and return different views depending on the
   ;;--- number of items, etc.
   +radio-box-view+)
@@ -351,7 +351,8 @@
 ;;; Subset completion gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type subset-completion) (view gadget-dialog-view) (framem standard-frame-manager))
+			    ((type subset-completion) (view
+						       gadget-dialog-view) (framem standard-frame-manager) &key)
   +check-box-view+)
 
 (define-presentation-method gadget-includes-prompt-p 
@@ -433,7 +434,8 @@
 ;;; Boolean gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type boolean) (view gadget-dialog-view) (framem standard-frame-manager))
+			    ((type boolean) (view gadget-dialog-view)
+					    (framem standard-frame-manager) &key)
   +toggle-button-view+)
 
 (define-presentation-method gadget-includes-prompt-p 
@@ -497,6 +499,12 @@
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t))
   (declare (ignore present-p))
+  
+  (let* ((initargs (view-gadget-initargs view))
+	 (x (getf initargs :x))
+	 (y (getf initargs :y)))
+    (when (and x y) (stream-set-cursor-position stream x y)))
+  
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
@@ -558,7 +566,7 @@
 
 ;; The string case is straightforward
 (define-presentation-method decode-indirect-view
-			    ((type string) (view gadget-dialog-view) (framem standard-frame-manager))
+			    ((type string) (view gadget-dialog-view) (framem standard-frame-manager) &key)
   +text-field-view+)
 
 (define-presentation-method accept-present-default 

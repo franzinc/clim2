@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.49 92/09/30 11:45:38 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.50 92/10/02 15:21:01 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -92,6 +92,8 @@
        ((typep label 'tk::pixmap)
 	(unless (getf initargs :label-pixmap)
 	  (setf (getf initargs :label-pixmap) label)
+	  ;;-- Perhaps we need to stipple this?
+	  (setf (getf initargs :label-insensitive-pixmap) label)
 	  (setf (getf initargs :label-type) :pixmap))))
 
       (unless (getf initargs :alignment)
@@ -435,6 +437,8 @@
    ((popup-frame-p sheet)
     (values 'tk::xm-bulletin-board
 	    (list :margin-width 0 :margin-height 0
+		  ;; Prevents buttons from deactivating dialog
+		  :auto-unmanage nil
 		  ;; We specify NIL for accelerators otherwise the
 		  ;; bulletin board messes with the event handling of
 		  ;; its drawing area children

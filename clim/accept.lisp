@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.13 92/09/24 09:38:27 cer Exp Locker: cer $
+;; $fiHeader: accept.lisp,v 1.14 92/10/01 08:51:15 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -25,7 +25,7 @@
 		    (present-p nil) (active-p t))
   (declare (dynamic-extent accept-args))
   (declare (values object type))
-  (declare (ignore prompt-mode display-default query-identifier
+  (declare (ignore prompt-mode display-default
 		   activation-gestures additional-activation-gestures
 		   delimiter-gestures additional-delimiter-gestures 
 		   insert-default replace-input present-p active-p))
@@ -57,7 +57,7 @@
       ;; If the user wants a default, but provided none, go get it from the history
       (let ((history (if (typep history 'basic-history)
 			 history
-		         (presentation-type-history history))))
+		       (presentation-type-history history))))
 	(when history
 	  (let ((element (yank-from-history history)))
 	    (when element
@@ -80,16 +80,16 @@
     (null)
     (symbol (setq view (make-instance view)))
     (cons   (setq view (apply #'make-instance view))))
-  (setq view (decode-indirect-view type view (frame-manager stream)))
+  (setq view (decode-indirect-view type view (frame-manager stream) :query-identifier query-identifier))
 
   ;; Call methods to do the work
   (with-keywords-removed (accept-args accept-args '(:stream :view))
     (let ((query-identifier
-	    (apply #'prompt-for-accept
-		   (or *original-stream* stream) type view accept-args)))
+	   (apply #'prompt-for-accept
+		  (or *original-stream* stream) type view accept-args)))
       (apply #'stream-accept (or *original-stream* stream) type
-			     :view view :query-identifier query-identifier
-			     accept-args))))
+	     :view view :query-identifier query-identifier
+	     accept-args))))
 
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args)
   (declare (dynamic-extent accept-args))
