@@ -11,6 +11,11 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2000-02-25  Charles A. Cox  <cox@delta>
+
+	* utils/lisp-utilities.lisp: add ':strings-convert nil' to _free def.
+
+*******************************************************************************
 2000-01-31  Charles A. Cox  <cox@freezer>
 
 	* Makefile.defs: Build in euc locale.

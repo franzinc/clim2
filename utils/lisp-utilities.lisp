@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.41 1999/07/19 22:25:21 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.42 2000/02/26 01:09:59 cox Exp $
 
 (in-package :clim-utils)
 
@@ -1597,6 +1597,7 @@
   (ff:def-foreign-call (_free "free")
       ((data (* :char)))
     :call-direct t
+    :strings-convert nil		; cac 25feb00
     :arg-checking nil
     :returning :void))
 
