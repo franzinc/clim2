@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.39 92/12/17 15:33:40 cer Exp $
+;; $fiHeader: resources.lisp,v 1.40 93/01/11 15:45:46 colin Exp $
 
 (in-package :tk)
 
@@ -488,6 +488,12 @@
     (:vertical 1)
     (:horizontal 2)))
 
+#+dec3100
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-orientation)) value)
+  (ecase value
+    (:vertical 1)
+    (:horizontal 2)))
+
 (defmethod convert-resource-out ((parent t) (type (eql 'menu-widget)) value)
   value)
 
@@ -496,11 +502,19 @@
     (:pixmap 1)
     (:string 2)))
 
+#+:dec3100
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-label-type)) value)
+  (convert-resource-out parent 'label-type value))
+
 (defmethod convert-resource-out ((parent t) (type (eql 'alignment)) value)
   (ecase value
     (:center 1)
     (:beginning 0)
     (:end 2)))
+
+#+:dec3100
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-alignment)) value)
+  (convert-resource-out parent 'alignment value))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'alignment)) value)
   (ecase value

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.62 93/01/21 14:59:24 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.63 93/02/08 15:58:10 cer Exp $
 
 (in-package :xm-silica)
 
@@ -698,6 +698,7 @@
 							      (parent t)
 							      (sheet motif-row-column-gadget-mixin))
   (multiple-value-bind (class initargs)
+      (call-next-method)
       (let ((x (ecase (gadget-orientation sheet)
 		 (:vertical (gadget-columns sheet))
 		 (:horizontal (gadget-rows sheet)))))

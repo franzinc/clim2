@@ -1,0 +1,518 @@
+# $fiHeader: Makefile,v 1.74 93/02/10 10:04:04 cer Exp $
+#
+#  Makefile.defs for CLIM 2.0
+#
+
+CL	= /net/vapor/scm2/4.2.beta/src/dcl
+PWD	= /usr/tech/cer/stuff/clim-2.0
+DUMP-CL	= $(CL)
+CLOPTS	= -qq
+
+DEVICE	= /dev/null
+RM	= /bin/rm
+CAT	= /bin/cat
+ECHO	= /bin/echo
+TAGS	= /usr/fi/lib/emacs/etc/etags
+TMP	= /tmp
+MV	= /usr/fi/mv-nfs
+
+# Training
+
+TRAIN_TIMES=2
+# view, file, print
+PSVIEW=file
+
+FRAME_TESTS=t
+
+TRAIN_LISP= \
+	(load \"misc/train.lisp\") \
+	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) :psview :$(PSVIEW)) \
+	(exit 0)
+
+TRAIN_TEXT = \
+	$(ECHO) "\
+	$(TRAIN_LISP) \
+" | $(CLIM) $(CLOPTS) -batch \
+	; echo CLIM trained!!!!	
+
+# Info
+LOAD_SOURCE_FILE_INFO=t
+LOAD_XREF_INFO=nil
+RECORD_SOURCE_FILE_INFO=t
+RECORD_XREF_INFO=nil
+
+# Lisp optimization for compiling
+SPEED	= 3
+SAFETY	= 1
+# This next should be set to 1 for distribution
+DEBUG   = 2
+
+COMPILE_PRINT=nil 
+# Where to dump all clim images
+DUMP-CLIM = $(TMP)/clim.temp_`whoami`
+# Where images are then move to (can be same as DUMP-CLIM)
+CLIM	= ./slim
+CLIMOL= $(CLIM)
+CLIMXM= $(CLIM)
+
+
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD $(XINCLUDES)
+LDFLAGS=
+OLDSPACE = 15000000
+NEWSPACE = 5000000
+PREMALLOCS = '-m 401408'
+
+CLIM-SMALL	= ./slim-small
+
+PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
+DIRS0	=  tk tk-silica misc cloe climtoys
+DIRS	= $(PUBDIRS) xlib $(DIRS0)
+CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
+
+SRC_FILES = */*.lisp *.lisp Makefile Makefile.* misc/make-stub-file \
+	    misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.colit \
+	    misc/undefinedsymbols.motif misc/undefinedsymbols.cmotif misc/undefinedsymbols.xt \
+	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c \
+	    misc/clos-preload.cl misc/xtsupport.c
+
+DEST=/dev/null
+
+CL_SRC=/usr/tech/cer/cl/src
+OPENWINHOME=/usr/openwin-3.0
+
+
+DEBUGLIB=
+XLIBS= $(XTLIB) $(XLIB)
+
+OLCOPYLIB=/vapor/x11/olit-3.0/lib3/sun4
+OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
+LIBXOL=$(OLCOPYLIB)/libXol.a
+LIBXOL_d=$(LIBXOL)
+
+# This has to be kept consistent with xlib.lisp
+UNDEFS=misc/undefinedsymbols
+
+# This should be the same as load-xt
+XT_UNDEFS=misc/undefinedsymbols.xt
+
+# This should be the same as load-xm
+XM_UNDEFS=misc/undefinedsymbols.motif
+XMC_UNDEFS=misc/undefinedsymbols.cmotif
+
+# This should be the same as load-ol
+OL_UNDEFS=misc/undefinedsymbols.olit
+OLC_UNDEFS=misc/undefinedsymbols.colit
+
+# These are the fasls and the .o that form the product
+
+CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl clim-debugol.fasl \
+	   clim-debugxm.fasl climps.fasl climgg.fasl # clim1compat.fasl
+
+PUBLIC_OBJS=  stub-xt.o stub-x.o stub-olit.o stub-motif.o \
+	  xlibsupport.o MyDrawingA.o \
+	  olsupport.o xtsupport.o
+
+OL_LICENSED_OBJS = clim-olit.o clim-olit_d.o
+XM_LICENSED_OBJS = clim-motif_d.o clim-motif.o 
+
+MOTIF_OBJS= clim-motif_d.o clim-motif.o xtsupport.o stub-xt.o stub-x.o stub-x.o  xlibsupport.o MyDrawingA.o
+OPENLOOK_OBJS= clim-olit_d.o clim-olit.o xtsupport.o stub-xt.o stub-x.o stub-x.o olsupport.o  xlibsupport.o
+
+CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
+
+INSTALLED_CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
+
+
+# These are linked into the distribution
+# `pwd`/clim-olit_d.o \ `pwd`/clim-olit.o \
+
+#FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-motif.o \
+#	    `pwd`/stub-xt.o `pwd`/stub-x.o \
+#	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
+
+# These are built into xm-dcl and ol-dcl.
+COMPOSEROBJS= /scm/4.1/sparc/src/code/excldep.o /scm/4.1/sparc/src/code/socket.o \
+	      /scm/4.1/sparc/src/code/gc_cursor.o \
+	      /scm/4.1/sparc/src/code/unixsocket.o \
+	      /scm/4.1/sparc/src/code/io.o /scm/4.1/sparc/src/code/exclio.o \
+	      /scm/4.1/sparc/src/code/RunStatus.o
+
+MALLOCOBJS =
+# Uncomment to enable malloc debugging.
+#
+# MALLOCOBJS= $(PWD)/malloclib/malloc.o $(PWD)/malloclib/free.o $(PWD)/malloclib/realloc.o \
+#	    $(PWD)/malloclib/calloc.o $(PWD)/malloclib/string.o \
+#	    $(PWD)/malloclib/malloc_chk.o $(PWD)/malloclib/malloc_chn.o \
+#	    $(PWD)/malloclib/memory.o $(PWD)/malloclib/tostring.o \
+#	    $(PWD)/malloclib/m_perror.o $(PWD)/malloclib/m_init.o \
+#	    $(PWD)/malloclib/mallopt.o $(PWD)/malloclib/dump.o $(PWD)/malloclib/leak.o
+
+#
+# "Compile time objects" -- these go into clim-debug.fasl
+#
+DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
+	     xlib/x11-keysyms.fasl xlib/last.fasl \
+	     tk/xt-defs.fasl tk/xt-funs.fasl 
+
+XM-DEBUG-OBJS = tk/xm-defs.fasl tk/xm-funs.fasl
+OL-DEBUG-OBJS = tk/ol-defs.fasl tk/ol-funs.fasl
+
+#
+# "Load time objects" -- these go into clim.fasl
+#
+CLIM-UTILS-OBJS = utils/excl-verification.fasl \
+                   utils/lisp-package-fixups.fasl \
+                   utils/defpackage.fasl \
+                   utils/packages.fasl \
+                   utils/defun-utilities.fasl \
+                   utils/reader.fasl \
+                   utils/clos-patches.fasl \
+                   utils/clos.fasl \
+                   utils/utilities.fasl \
+                   utils/lisp-utilities.fasl \
+                   utils/processes.fasl \
+                   utils/queue.fasl \
+		   utils/timers.fasl \
+                   utils/protocols.fasl \
+                   utils/clim-streams.fasl \
+                   utils/excl-streams.fasl \
+                   utils/clim-macros.fasl \
+                   utils/transformations.fasl \
+                   utils/regions.fasl \
+                   utils/region-arithmetic.fasl \
+                   utils/extended-regions.fasl \
+		   utils/base-designs.fasl \
+                   utils/designs.fasl
+
+CLIM-SILICA-OBJS = silica/classes.fasl \
+                    silica/text-style.fasl \
+                    silica/macros.fasl \
+                    silica/sheet.fasl \
+                    silica/mirror.fasl \
+                    silica/event.fasl \
+                    silica/port.fasl \
+                    silica/medium.fasl \
+                    silica/framem.fasl \
+                    silica/graphics.fasl \
+		    silica/pixmaps.fasl \
+                    silica/std-sheet.fasl \
+                    silica/layout.fasl \
+                    silica/db-layout.fasl \
+                    silica/db-box.fasl \
+                    silica/db-table.fasl \
+                    silica/gadgets.fasl \
+                    silica/db-scroll.fasl \
+                    silica/db-border.fasl
+
+CLIM-STANDALONE-OBJS = clim/gestures.fasl \
+                        clim/defprotocol.fasl \
+                        clim/stream-defprotocols.fasl \
+                        clim/defresource.fasl \
+                        clim/temp-strings.fasl \
+                        clim/clim-defs.fasl \
+                        clim/stipples.fasl \
+                        clim/stream-class-defs.fasl \
+                        clim/interactive-defs.fasl \
+                        clim/cursor.fasl \
+                        clim/view-defs.fasl \
+                        clim/input-defs.fasl \
+                        clim/input-protocol.fasl \
+                        clim/output-protocol.fasl \
+                        clim/recording-protocol.fasl \
+			clim/recording-defs.fasl \
+			clim/text-recording.fasl \
+			clim/graphics-recording.fasl \
+                        clim/interactive-protocol.fasl \
+                        clim/input-editor-commands.fasl \
+                        clim/formatted-output-defs.fasl \
+                        clim/incremental-redisplay.fasl \
+                        clim/coordinate-sorted-set.fasl \
+			clim/r-tree.fasl \
+                        clim/window-stream.fasl \
+                        clim/pixmap-streams.fasl \
+                        clim/ptypes1.fasl \
+                        clim/completer.fasl \
+                        clim/presentations.fasl \
+                        clim/translators.fasl \
+                        clim/histories.fasl \
+                        clim/ptypes2.fasl \
+			clim/excl-presentations.fasl \
+                        clim/standard-types.fasl \
+                        clim/table-formatting.fasl \
+                        clim/graph-formatting.fasl \
+                        clim/surround-output.fasl \
+                        clim/text-formatting.fasl \
+                        clim/tracking-pointer.fasl \
+                        clim/dragging-output.fasl \
+                        clim/db-stream.fasl \
+                        clim/gadget-output.fasl \
+                        clim/accept.fasl \
+                        clim/present.fasl \
+                        clim/command.fasl \
+                        clim/command-processor.fasl \
+                        clim/basic-translators.fasl \
+                        clim/frames.fasl \
+			clim/default-frame.fasl \
+                        clim/activities.fasl \
+			clim/noting-progress.fasl \
+                        clim/menus.fasl \
+                        clim/accept-values.fasl \
+			clim/drag-and-drop.fasl \
+                        clim/item-list-manager.fasl \
+			postscript/pkgdcl.fasl \
+			postscript/postscript-s.fasl \
+                        clim/stream-trampolines.fasl
+
+GENERIC-GADGETS = clim/db-menu.fasl clim/db-list.fasl clim/db-text.fasl silica/db-button.fasl \
+	    silica/db-slider.fasl silica/scroll-pane.fasl
+
+XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
+
+
+LOAD-XM-OBJS=	tk/load-xm.fasl
+LOAD-OL-OBJS=	tk/load-ol.fasl
+
+XT-TK-OBJS =  	tk/pkg.fasl \
+                tk/foreign-obj.fasl \
+                tk/macros.fasl \
+                tk/xlib.fasl \
+                tk/font.fasl \
+                tk/gcontext.fasl \
+                tk/graphics.fasl \
+                tk/meta-tk.fasl \
+                tk/make-classes.fasl \
+                tk/foreign.fasl \
+                tk/widget.fasl \
+                tk/resources.fasl \
+                tk/event.fasl \
+                tk/callbacks.fasl \
+                tk/xt-classes.fasl \
+                tk/xt-init.fasl
+
+XM-TK-OBJS = tk/xm-classes.fasl \
+		tk/xm-callbacks.fasl \
+                tk/xm-init.fasl \
+                tk/xm-widgets.fasl \
+                tk/xm-font-list.fasl \
+                tk/xm-protocols.fasl \
+                tk/convenience.fasl \
+                tk/make-widget.fasl
+
+OL-CLIM-OBJS = tk/ol-classes.fasl \
+                tk/ol-init.fasl \
+		tk/ol-widgets.fasl \
+                tk/ol-callbacks.fasl \
+                tk/make-widget.fasl
+
+MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
+                   tk-silica/xt-silica.fasl \
+                   tk-silica/xm-silica.fasl \
+                   tk-silica/xt-graphics.fasl \
+                   tk-silica/xm-graphics.fasl \
+                   tk-silica/image.fasl \
+                   tk-silica/xt-frames.fasl \
+                   tk-silica/xm-frames.fasl \
+                   tk-silica/xm-dialogs.fasl \
+                   tk-silica/xt-gadgets.fasl \
+                   tk-silica/xm-gadgets.fasl \
+                   tk-silica/xm-menus.fasl \
+                   tk-silica/xt-pixmaps.fasl \
+                   tk-silica/xt-cursor.fasl \
+                   tk-silica/last.fasl
+
+
+OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
+                      tk-silica/xt-silica.fasl \
+                      tk-silica/ol-silica.fasl \
+                      tk-silica/xt-graphics.fasl \
+                      tk-silica/ol-graphics.fasl \
+                      tk-silica/image.fasl \
+                      tk-silica/xt-frames.fasl \
+                      tk-silica/ol-frames.fasl \
+                      tk-silica/xt-gadgets.fasl \
+                      tk-silica/ol-gadgets.fasl \
+		      tk-silica/xt-cursor.fasl \
+                      tk-silica/xt-pixmaps.fasl \
+		      tk-silica/last.fasl
+
+POSTSCRIPT_CLIM= postscript/postscript-port.fasl \
+	postscript/postscript-medium.fasl \
+	postscript/laserwriter-metrics.fasl 
+
+# Used for tags
+ALL_SRC =	   utils/excl-verification.lisp \
+                   utils/lisp-package-fixups.lisp \
+                   utils/defpackage.lisp \
+                   utils/packages.lisp \
+                   utils/defun-utilities.lisp \
+                   utils/reader.lisp \
+                   utils/clos-patches.lisp \
+                   utils/clos.lisp \
+                   utils/utilities.lisp \
+                   utils/lisp-utilities.lisp \
+                   utils/processes.lisp \
+                   utils/queue.lisp \
+                   utils/protocols.lisp \
+                   utils/clim-streams.lisp \
+                   utils/excl-streams.lisp \
+                   utils/clim-macros.lisp \
+                   utils/transformations.lisp \
+                   utils/regions.lisp \
+                   utils/region-arithmetic.lisp \
+                   utils/extended-regions.lisp \
+                   utils/designs.lisp \
+		    silica/classes.lisp \
+                    silica/text-style.lisp \
+                    silica/macros.lisp \
+                    silica/sheet.lisp \
+                    silica/mirror.lisp \
+                    silica/event.lisp \
+                    silica/port.lisp \
+                    silica/medium.lisp \
+                    silica/framem.lisp \
+                    silica/graphics.lisp \
+                    silica/pixmaps.lisp \
+                    silica/std-sheet.lisp \
+                    silica/layout.lisp \
+                    silica/db-layout.lisp \
+                    silica/db-box.lisp \
+                    silica/db-table.lisp \
+                    silica/gadgets.lisp \
+                    silica/db-border.lisp \
+                    silica/db-scroll.lisp \
+                    silica/db-button.lisp \
+                    silica/db-slider.lisp \
+			clim/gestures.lisp \
+                        clim/defprotocol.lisp \
+                        clim/stream-defprotocols.lisp \
+                        clim/defresource.lisp \
+                        clim/temp-strings.lisp \
+                        clim/clim-defs.lisp \
+                        clim/stipples.lisp \
+                        clim/stream-class-defs.lisp \
+                        clim/interactive-defs.lisp \
+                        clim/cursor.lisp \
+                        clim/view-defs.lisp \
+                        clim/input-defs.lisp \
+                        clim/input-protocol.lisp \
+                        clim/output-protocol.lisp \
+                        clim/recording-defs.lisp \
+                        clim/recording-protocol.lisp \
+                        clim/text-recording.lisp \
+                        clim/graphics-recording.lisp \
+                        clim/interactive-protocol.lisp \
+                        clim/input-editor-commands.lisp \
+                        clim/formatted-output-defs.lisp \
+                        clim/incremental-redisplay.lisp \
+                        clim/coordinate-sorted-set.lisp \
+                        clim/window-stream.lisp \
+                        clim/pixmap-streams.lisp \
+                        clim/ptypes1.lisp \
+                        clim/completer.lisp \
+                        clim/presentations.lisp \
+                        clim/translators.lisp \
+                        clim/histories.lisp \
+                        clim/ptypes2.lisp \
+                        clim/standard-types.lisp \
+                        clim/excl-presentations.lisp \
+                        clim/table-formatting.lisp \
+                        clim/graph-formatting.lisp \
+                        clim/surround-output.lisp \
+                        clim/text-formatting.lisp \
+                        clim/tracking-pointer.lisp \
+                        clim/dragging-output.lisp \
+                        clim/db-stream.lisp \
+                        clim/gadget-output.lisp \
+                        clim/accept.lisp \
+                        clim/present.lisp \
+                        clim/command.lisp \
+                        clim/command-processor.lisp \
+                        clim/basic-translators.lisp \
+                        clim/frames.lisp \
+                        clim/default-frame.lisp \
+                        clim/noting-progress.lisp \
+                        clim/menus.lisp \
+                        clim/accept-values.lisp \
+                        clim/drag-and-drop.lisp \
+                        clim/item-list-manager.lisp \
+                        clim/stream-trampolines.lisp \
+	     xlib/pkg.lisp \
+             xlib/ffi.lisp \
+             xlib/xlib-defs.lisp \
+             xlib/load-xlib.lisp \
+             xlib/xlib-funs.lisp \
+             xlib/x11-keysyms.lisp \
+             xlib/last.lisp \
+	      tk/load-xm.lisp \
+              tk/load-ol.lisp \
+	      tk/pkg.lisp \
+              tk/macros.lisp \
+              tk/xt-defs.lisp \
+              tk/foreign-obj.lisp \
+              tk/xlib.lisp \
+              tk/font.lisp \
+              tk/gcontext.lisp \
+              tk/graphics.lisp \
+              tk/meta-tk.lisp \
+              tk/make-classes.lisp \
+              tk/foreign.lisp \
+              tk/widget.lisp \
+              tk/resources.lisp \
+              tk/event.lisp \
+              tk/callbacks.lisp \
+              tk/xt-classes.lisp \
+              tk/xt-init.lisp \
+              tk/xm-defs.lisp \
+              tk/xm-classes.lisp \
+              tk/xm-callbacks.lisp \
+              tk/xt-funs.lisp \
+              tk/xm-funs.lisp \
+              tk/xm-classes.lisp \
+              tk/xm-init.lisp \
+              tk/xm-widgets.lisp \
+              tk/xm-font-list.lisp \
+              tk/xm-protocols.lisp \
+              tk/convenience.lisp \
+              tk/make-widget.lisp \
+		   tk-silica/pkg.lisp \
+                   tk-silica/xt-silica.lisp \
+                   tk-silica/xm-silica.lisp \
+                   tk-silica/xt-graphics.lisp \
+                   tk-silica/xm-graphics.lisp \
+                   tk-silica/image.lisp \
+                   tk-silica/xt-frames.lisp \
+                   tk-silica/xm-frames.lisp \
+                   tk-silica/xt-gadgets.lisp \
+                   tk-silica/xm-gadgets.lisp \
+                   tk-silica/xm-menus.lisp \
+                   tk-silica/xt-cursor.lisp \
+                   tk-silica/xt-pixmaps.lisp \
+	      tk/ol-defs.lisp \
+              tk/ol-funs.lisp \
+              tk/ol-classes.lisp \
+              tk/ol-init.lisp \
+              tk/ol-widgets.lisp \
+              tk/ol-callbacks.lisp \
+                      tk-silica/ol-silica.lisp \
+                      tk-silica/ol-graphics.lisp \
+                      tk-silica/ol-frames.lisp \
+                      tk-silica/ol-gadgets.lisp
+
+
+GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
+MOTIF-OBJS = $(LOAD-XM-OBJS) $(XT-TK-OBJS) $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 
+OPENLOOK-OBJS = $(LOAD-OL-OBJS) $(XT-TK-OBJS) $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
+
+make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
+	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
+	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
+	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
+	RECORD_XREF_INFO=${RECORD_XREF_INFO} \
+	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} DUMP-CLIM=${DUMP-CLIM} \
+	COMPILE_PRINT=${COMPILE_PRINT}
+
+CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl
+
+BENCHMARK_FILE=nil
+
+

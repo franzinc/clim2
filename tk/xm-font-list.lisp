@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.7 92/04/21 20:27:46 cer Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.8 92/11/20 08:46:19 cer Exp $
 
 (in-package :tk)
 
@@ -39,6 +39,10 @@
 			  font
 			  charset)))
     font-list))
+
+#+:dec3100
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-font-list)) value)
+  (convert-resource-out parent 'font-list value))
 
 (defmethod convert-resource-in (class (type (eql 'font-list)) value)
   (declare (ignore class))

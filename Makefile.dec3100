@@ -1,0 +1,16 @@
+# $fiHeader: Makefile,v 1.74 93/02/10 10:04:04 cer Exp $
+#
+#  Makefile.dec3100 for CLIM 2.0
+#
+
+include Makefile.defs
+
+MOTIFLIB=/usr/lib/DXM/lib/Xm/libXm.a
+MOTIFLIB_d=/usr/lib/DXM/lib/Xm/libXm.a
+XTLIB=/usr/lib/DXM/lib/Xt/libXt.a
+XLIB=/usr/lib/libX11.a
+MV=mv 
+XINCLUDES=-I/usr/lib/DXM/lib -I/usr/lib/DXM/lib/Xt
+TMP=.
+
+include Makefile.generic

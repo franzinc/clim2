@@ -1,6 +1,19 @@
-#include "/vapor/x11/R4/src/mit/lib/Xt/IntrinsicI.h"
+/* $fiHeader: xtsupport.c,v 1.1 92/08/19 10:23:08 cer Exp $ */
 
-/* $fiHeader$ */
+#ifdef sparc
+#include "IntrinsicI.h
+#endif
+
+#ifdef ultrix
+
+unsigned long XtAppIntervalNextTimer(app)
+{
+    return (1000);
+    }
+
+#endif
+
+#ifdef sparc
 
 /* Some systems running NTP daemons are known to return strange usec
  * values from gettimeofday.  At present (3/90) this has only been
@@ -87,4 +100,5 @@ unsigned long XtAppIntervalNextTimer(app)
     else 
 	return 0;
 	}
-	
+
+#endif
