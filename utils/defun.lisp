@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defun.lisp,v 1.5 92/05/22 19:27:09 cer Exp $
+;; $fiHeader: defun.lisp,v 1.6 92/07/20 15:59:37 cer Exp $
 
 (in-package :clim-utils)
 
@@ -231,8 +231,8 @@
   (setf (get 'defun 'zwei:definition-function-spec-type) 'zl:::scl:defun)
   (setf (get 'defun 'gprint::formatter) 
 	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
-  (push 'defun zwei:*irrelevant-functions*)
-  (push 'defun zwei:*irrelevant-defining-forms*))
+  (pushnew 'defun zwei:*irrelevant-functions*)
+  (pushnew 'defun zwei:*irrelevant-defining-forms*))
 
 
 ;;; FLET and LABELS.  Process (declare (dynamic-extent #'FOO)) by putting, e.g.,

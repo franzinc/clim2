@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.48 92/09/24 09:40:24 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.49 92/09/30 11:45:38 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -414,6 +414,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (defclass motif-top-level-sheet (xt-top-level-sheet)
 	  ())
 
@@ -439,11 +440,15 @@
 		  ;; its drawing area children
 		  :accelerators nil
 		  :resize-policy :none
-		  :name (string (frame-name (pane-frame sheet))))))
+		  :name (if (pane-frame sheet)
+			    (string (frame-name (pane-frame sheet)))
+			    "a CLIM pop-up"))))
    (t
     (values 'tk::xm-my-drawing-area 
 	    (list :resize-policy :none
-		  :name (string (frame-name (pane-frame sheet)))
+		  :name (if (pane-frame sheet)
+			    (string (frame-name (pane-frame sheet)))
+			    "a CLIM sheet")
 		  :margin-width 0 :margin-height 0)))))
 
 ;;;;;;;;;;;;;;;;
@@ -687,7 +692,6 @@
 						     (sheet motif-check-box))
   
   (values 'tk::xm-row-column nil))
-
 
 
 ;; Frame-viewport that we need because a sheet can have
@@ -982,8 +986,8 @@
 (defmethod frame-manager-notify-user ((framem motif-frame-manager)
 				      message-string 
 				      &key 
-				      (style :inform)
 				      text-style
+				      (style :inform)
 				      (frame nil frame-p)
 				      (associated-window
 					(if frame-p

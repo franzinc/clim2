@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.11 92/09/22 19:37:25 cer Exp Locker: cer $
+;; $fiHeader: table-formatting.lisp,v 1.12 92/09/30 11:45:07 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -265,9 +265,12 @@
       (declare (dynamic-extent #'count-rows #'count-cells))
       ;; calculate nrows & ncells (= ncells per row)
       (funcall table-mapper #'count-rows table))
-    ;; If there are no rows, COUNT-ROWS won't get invoked and NCELLS will be
-    ;; NIL.  This will give MAKE-ARRAY fits.
-    (when (null ncells) (setq ncells 0))
+    ;; If there are no rows, COUNT-ROWS won't get invoked and NCELLS
+    ;; will be NIL.  If all the rows and columns are empty, NCELLS will
+    ;; be 0.  In either case, that means we're done.
+    (when (or (null ncells) (= ncells 0))
+      (return-from adjust-table-cells
+	(tree-recompute-extent table)))
     (with-stack-array (row-array nrows :initial-element nil)
       (with-stack-array (column-array ncells :initial-element nil)
 	(let ((x-pos nil)

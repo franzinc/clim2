@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.14 92/09/22 19:37:23 cer Exp Locker: cer $
+;; $fiHeader: standard-types.lisp,v 1.15 92/09/24 09:39:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -107,12 +107,36 @@
   (simple-lisp-object-parser type stream))
 
 
-(define-presentation-type complex ()
+(define-presentation-type complex (&optional type)
   :inherit-from 'number
   :history number
   :description "complex number")
 
+(define-presentation-method presentation-typep (object (type complex))
+  (declare (ignore type))
+  (or (eq type '*)
+      (and (presentation-typep (realpart object) type)
+	   (presentation-typep (imagpart object) type))))
 
+(define-presentation-method presentation-subtypep ((type complex) putative-supertype)
+  (let ((type1
+	  (with-presentation-type-parameters (complex type) type))
+	(type2
+	  (with-presentation-type-parameters (complex putative-supertype) type)))
+    (cond ((eq type2 '*)
+	   (values t t))
+	  ((eq type1 '*)
+	   (values nil t))
+	  (t
+	   (presentation-subtypep type1 type2)))))
+
+(define-presentation-method describe-presentation-type :after
+			    ((type complex) stream plural-count)
+  (declare (ignore type plural-count))
+  (unless (eq type '*)
+    (format stream " whose components are ")
+    (describe-presentation-type type stream t)))
+  
 (define-presentation-type real (&optional low high)
   :options ((base 10 nil (integer 2 36))
 	    (radix nil nil boolean (:prompt "Display the base")))
@@ -146,7 +170,8 @@
 			 ((otherwise) `(t ,@(rest clause)))))
 		   clauses)))
 
-(define-presentation-method describe-presentation-type :after ((type real) stream plural-count)
+(define-presentation-method describe-presentation-type :after
+			    ((type real) stream plural-count)
   (declare (ignore plural-count))	;primary method gets it
   (describe-numeric-subrange low high stream base)
   (unless (= base 10)
@@ -359,7 +384,7 @@
   :inherit-from t			;enforce CL definition
   :history t
   :options ((default-type nil)
-	    (default-version #+allegro :unspecific #-allegro :newest)
+	    (default-version #-Allegro :newest #+Allegro :unspecific)
 	    (merge-default t)))
 
 ;;; PATHNAME is supposed to be a built-in-class, but since it's missing in Genera,
@@ -538,7 +563,7 @@
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (values
-    (completing-from-suggestions 
+   (completing-from-suggestions 
 	(stream :partial-completers partial-completers
 		:help-displays-possibilities (<= (length sequence) 10))
       (flet ((suggest-item (item)

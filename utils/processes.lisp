@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.9 92/09/08 10:34:30 cer Exp $
+;; $fiHeader: processes.lisp,v 1.10 92/09/24 09:38:06 cer Exp $
 
 (in-package :clim-utils)
 
@@ -190,15 +190,15 @@
   }
   )
 
-(defun destroy-process (p)
-  #+(or ccl) (declare (ignore p))
+(defun destroy-process (process)
+  #+(or ccl) (declare (ignore process))
   #{
-  Lucid      (lcl:kill-process p)
-  Allegro    (mp:process-kill p)
-  lispworks  (mp:process-kill p)
-  Xerox	     (il:del.process p)
-  Genera     (scl:process-kill p)
-  Minima     (minima:process-kill p)
+  Lucid      (lcl:kill-process process)
+  Allegro    (mp:process-kill process)
+  lispworks  (mp:process-kill process)
+  Xerox	     (il:del.process process)
+  Genera     (scl:process-kill process)
+  Minima     (minima:process-kill process)
   CCL-2	     nil
   otherwise  (warn "No implementation of DESTROY-PROCESS for this system.")
   }
@@ -271,9 +271,7 @@
   Cloe-Runtime nil
   Genera     (scl:process-wait wait-reason predicate)
   Minima     (minima:process-wait wait-reason predicate)
-  otherwise  (progn (compile-time-warn "Need an implementation for PROCESS-WAIT")
-		    (error "~S doesn't have a definition.  Args are ~S ~S"
-			   'process-wait wait-reason predicate))
+  otherwise  (warn "No implementation of PROCESS-WAIT for this system.")
   }
   )
 
@@ -291,25 +289,90 @@
   Lucid	     (lcl:process-wait-with-timeout wait-reason timeout predicate)
   Genera     (sys:process-wait-with-timeout wait-reason (* timeout 60.) predicate)
   CCL-2	     (ccl::process-wait-with-timeout wait-reason timeout predicate)
-  otherwise  (progn (compile-time-warn "Need an implementation for process-wait-with-timeout")
-		    (error "~S doesn't have a definition.  Args are ~S ~S ~S"
-			   'process-wait-with-timeout timeout wait-reason predicate))
+  otherwise  (warn "No implementation of PROCESS-WAIT-WITH-TIMEOUT for this system.")
   }
   )
 
-(defun process-interrupt (process closure)
+(defun process-interrupt (process function)
   (declare #+CCL-2 (ignore process))
   #{
-  Lucid     (lcl:interrupt-process process closure)
-  Allegro   (mp:process-interrupt process closure)
-  lispworks (mp:process-interrupt process closure)
-  Genera    (scl:process-interrupt process closure)
+  Lucid     (lcl:interrupt-process process function)
+  Allegro   (mp:process-interrupt process function)
+  lispworks (mp:process-interrupt process function)
+  Genera    (scl:process-interrupt process function)
   CCL-2     (let ((*current-process* :interrupt))
-	      (funcall closure))
-  Minima    (minima:process-interrupt process closure)
-  otherwise (progn
-	      (compile-time-warn "Need an implementation for process-interrupt")
-	      (error "~S doesn't have a definition.  Args are ~S ~S"
-		     'process-interrupt process closure))
+	      (funcall function))
+  Minima    (minima:process-interrupt process function)
+  otherwise (warn "No implementation of PROCESS-INTERRUPT for this system.")
+  }
+  )
+
+(defun restart-process (process)
+  #{
+  Lucid (lcl::restart-process process)
+  Allegro (mp:process-reset process)
+  lispworks (mp:process-reset process)
+  Genera (process:process-reset process)
+  Minima (minima:process-reset process)
+  otherwise (warn "No implementation of RESTART-PROCESS for this system.")
+  }
+  )
+
+(defun enable-process (process)
+  #{
+  Lucid (lcl::activate-process process)
+  Allegro (mp:process-enable process)
+  lispworks (mp:process-enable process)
+  Genera (process:process-enable process)
+  Minima (minima:process-enable process)
+  otherwise (warn "No implementation of ENABLE-PROCESS for this system.")
+  }
+  )
+
+(defun disable-process (process)
+  #{
+  Lucid (lcl::deactivate-process process)
+  Allegro (mp:process-disable process)
+  lispworks (mp:process-disable process)
+  Genera (process:process-disable process)
+  Minima (minima:process-disable process)
+  otherwise (warn "No implementation of DISABLE-PROCESS for this system.")
+  }
+  )
+
+(defun process-name (process)
+  #{
+  Lucid (lcl::process-name process)
+  Allegro (mp:process-name process)
+  lispworks (mp:process-name process)
+  Genera (process:process-name process)
+  Minima (minima:process-name process)
+  otherwise (warn "No implementation of PROCESS-NAME for this system.")
+  }
+  )
+
+(defun process-state (process)
+  #{
+  Lucid (lcl::process-state process)
+  Allegro (cond ((mp:process-active-p process) "active")
+		((mp:process-runnable-p process) "runnable")
+		(t "deactivated"))
+  lispworks (cond ((mp:process-active-p process) "active")
+		  ((mp:process-runnable-p process) "runnable")
+		  (t "deactivated"))
+  Genera (process:process-state process)
+  Minima (minima:process-state process)
+  otherwise (warn "No implementation of PROCESS-STATE for this system.")
+  }
+  )
+
+(defun process-whostate (process)
+  #{
+  Lucid (lcl::process-whostate process)
+  Allegro (mp:process-whostate process)
+  lispworks (mp:process-whostate process)
+  Genera (process:process-whostate process)
+  Minima (minima:process-whostate process)
+  otherwise (warn "No implementation of PROCESS-WHOSTATE for this system.")
   }
   )

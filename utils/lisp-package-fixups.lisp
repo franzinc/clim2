@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10 -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10 -*-
 
-;; $fiHeader: lisp-package-fixups.lisp,v 1.5 92/05/22 19:27:13 cer Exp $
+;; $fiHeader: lisp-package-fixups.lisp,v 1.6 92/07/01 15:45:32 cer Exp $
 
 #+ANSI-90 (in-package :cl-user)
 

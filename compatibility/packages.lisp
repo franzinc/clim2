@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.2 92/09/08 15:19:35 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.3 92/09/30 18:04:36 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -55,7 +55,6 @@
 	  map-over-output-record-elements-overlapping-region
 	  menu-view
 	  open-root-window
-	  open-window-stream
 	  output-record-element-count
 	  output-record-elements
 	  output-record-end-position*

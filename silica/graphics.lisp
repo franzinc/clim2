@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.19 92/09/08 15:16:43 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.20 92/09/24 09:37:42 cer Exp $
 
 (in-package :silica)
 
@@ -505,8 +505,9 @@
 		    &key (from-head nil) (to-head t) (head-length 10) (head-width 5)
 		    &allow-other-keys)
   (declare (dynamic-extent args))
-  (declare (arglist medium x1 y1 x2 y2
-		    (from-head nil) (to-head t) (head-length 10) (head-width 5)
+  (declare (arglist medium x1 y1 x2 y2 
+		    &rest args 
+		    &key (from-head nil) (to-head t) (head-length 10) (head-width 5)
 		    . #.(all-drawing-options-lambda-list :line-cap)))
   (flet ((draw-arrow ()
 	   (let* ((dx (- x2 x1))
@@ -548,7 +549,8 @@
 (defun draw-arrow (medium point1 point2 &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium x1 y1 x2 y2
-		    (from-head nil) (to-head t) (head-length 10) (head-width 5)
+		    &rest args
+		    &key (from-head nil) (to-head t) (head-length 10) (head-width 5)
 		    . #.(all-drawing-options-lambda-list :line-cap)))
   (apply #'draw-arrow* 
 	 medium (point-x point1) (point-y point1) (point-x point2) (point-y point2) args))
@@ -597,8 +599,9 @@
 			      &rest args &key (handedness :left) (closed t) &allow-other-keys)
   (declare (dynamic-extent args))
   (declare (arglist medium x1 y1 x2 y2 nsides
+		    &rest args
 		    &key (filled t) (handedness :left) (closed t)
-			 . #.(all-drawing-options-lambda-list :line-joint-cap)))
+		    . #.(all-drawing-options-lambda-list :line-joint-cap)))
   (let* ((theta (* (float (* pi (/ 2.0 nsides)) 0.0)
 		   (ecase handedness
 		     (:left +1)
@@ -623,8 +626,9 @@
 (defun draw-regular-polygon (medium point1 point2 nsides &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium point1 point2 nsides
+		    &rest args
 		    &key (handedness :left) (closed t) (filled t)
-			 . #.(all-drawing-options-lambda-list :line-joint-cap)))
+		    . #.(all-drawing-options-lambda-list :line-joint-cap)))
   (apply #'draw-regular-polygon* medium
 				 (point-x point1) (point-y point1)
 				 (point-x point2) (point-y point2)
@@ -633,6 +637,7 @@
 (defun draw-triangle (medium p1 p2 p3 &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium p1 p2 p3
+		    &rest args
 		    &key (filled t) . #.(all-drawing-options-lambda-list :line-joint)))
   (with-stack-list (points p1 p2 p3)
     (apply #'draw-polygon medium points :closed t args)))
@@ -640,6 +645,7 @@
 (defun draw-triangle* (medium x1 y1 x2 y2 x3 y3 &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium x1 y1 x2 y2 x3 y3
+		    &rest args
 		    &key (filled t) . #.(all-drawing-options-lambda-list :line-joint)))
   (with-stack-list (points x1 y1 x2 y2 x3 y3)
     (apply #'draw-polygon* medium points :closed t args)))
@@ -656,8 +662,9 @@
 (defun draw-circle (medium center radius &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium center radius
+		    &rest args
 		    &key start-angle end-angle (filled t)
-			 . #.(all-drawing-options-lambda-list :line-cap)))
+		    . #.(all-drawing-options-lambda-list :line-cap)))
   (apply #'draw-ellipse medium center radius 0 0 radius args))
 
 (define-compiler-macro draw-circle (medium center radius &rest args)
@@ -672,8 +679,9 @@
 (defun draw-circle* (medium center-x center-y radius &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium center-x center-y radius
+		    &rest args
 		    &key start-angle end-angle (filled t)
-		         . #.(all-drawing-options-lambda-list :line-cap)))
+		    . #.(all-drawing-options-lambda-list :line-cap)))
   (apply #'draw-ellipse* medium center-x center-y radius 0 0 radius args))
 
 (define-compiler-macro draw-circle* (medium center-x center-y radius &rest args)
@@ -691,6 +699,7 @@
 		   &rest args &key (filled t) &allow-other-keys)
   (declare (dynamic-extent args))
   (declare (arglist medium center-x center-y x-radius y-radius
+		    &rest args
 		    . #.(all-drawing-options-lambda-list :line-cap)))
   (flet ((draw-oval ()
 	   (multiple-value-bind (x-radius y-radius)
@@ -744,7 +753,8 @@
 (defun draw-oval (medium center x-radius y-radius &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium point x-radius y-radius
-		    . #.(all-drawing-options-lambda-list :line-cap)))
+	    &rest args
+	    . #.(all-drawing-options-lambda-list :line-cap)))
   (apply #'draw-oval* 
 	 medium (point-x center) (point-y center) x-radius y-radius args))
 

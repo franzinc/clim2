@@ -1,25 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: std-sheet.lisp,v 1.8 92/08/18 17:23:57 cer Exp $
+;; $fiHeader: std-sheet.lisp,v 1.9 92/09/24 09:37:53 cer Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
 
-;;--- This should probably be flushed
 (defclass standard-sheet 
-	  (permanent-medium-sheet-output-mixin
-	   mirrored-sheet-mixin
-	   sheet-multiple-child-mixin
+	  (sheet-multiple-child-mixin
 	   sheet-transformation-mixin
 	   standard-repainting-mixin
 	   standard-sheet-input-mixin
+	   permanent-medium-sheet-output-mixin
 	   basic-sheet)
     ())
 
+(defclass standard-mirrored-sheet 
+	  (mirrored-sheet-mixin
+	   standard-sheet)
+    ())
 
-;;--- This should probably be flushed
 (defclass simple-sheet
 	  (sheet-multiple-child-mixin 
 	   sheet-transformation-mixin
@@ -30,7 +31,10 @@
     ())
 
 
-(defmethod handle-event (sheet event)
-  (declare (ignore sheet event))
-  #+++ignore (warn "Ignoring event ~S on sheet ~S" sheet event)
-  nil)
+(defclass simple-pane 
+	  (sheet-permanently-enabled-mixin
+	   sheet-mute-input-mixin
+	   space-requirement-mixin
+	   space-requirement-cache-mixin
+	   basic-pane)
+    ())

@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.14 92/09/22 19:37:30 cer Exp Locker: cer $
+;; $fiHeader: defsystem.lisp,v 1.15 92/09/24 09:39:35 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -57,6 +57,7 @@
     *sysdcl-pathname-defaults*
     compile-system 
     defsystem
+    #+(or Genera Minima-Developer) import-into-sct
     load-system
     load-system-def
     set-system-source-file
@@ -89,6 +90,7 @@
 	  *sysdcl-pathname-defaults*
 	  compile-system 
 	  defsystem
+	  #+(or Genera Minima-Developer) import-into-sct
 	  load-system
 	  load-system-def
 	  set-system-source-file
@@ -498,7 +500,7 @@
 (defparameter lisp-file-types
   ;; Thanks to PCL for providing all this info
   #+Genera			      `("lisp" 		,si:*default-binary-file-type*)
-  #+Cloe-Runtime		      `("l"		"fas")
+  #+Cloe-Runtime		      `("lsp"		"fas")
   #+Minima			      `("lisp"		"mebin")
   #+lucid			      `(("lisp" "cl")   ,lcl:*load-binary-pathname-types*)
   #+Allegro			      `(("lisp" "cl")	"fasl")
@@ -710,6 +712,71 @@
 	  (make-path (first types) pathname))
 	(make-path types pathname))))
 
+(defun module-default-pathname (module defaults)
+  (let ((name (string (module-name module))))
+    #+Cloe-Runtime
+    (when (> (length name) 8)
+      (setf name (heuristicate-name-component name 8)))
+    (lisp:make-pathname :name name :defaults defaults)))
+
+#+Cloe-Runtime
+(progn
+
+;; Take a list of strings, and their total length, and trim them down to
+;; a target length.  Trims evenly from all the pieces, but if uneven,
+;; takes off more from the earlier strings.  Prefers to take pieces from
+;; strings by removing vowels.
+(defun heuristicate-name-component (name filename-length)
+  (loop with old-length = (length name)
+	for oi = -1 then i
+	while (< oi old-length)
+	for i = (or (position #\- name :start (1+ oi))
+		    old-length)
+	while (/= i oi)
+	for piece = (subseq name (1+ oi) i)
+	collect piece into pieces
+	sum (length piece) into length
+	finally
+	  (when (< filename-length length)
+	    (loop with remaining-length = length
+		  with max-length = (loop for p in pieces maximize (length p))
+		  for length-this-try downfrom (1- max-length)
+		  until (<= remaining-length filename-length)
+		  do (loop for p in pieces
+			   for l on pieces
+			   until (<= remaining-length filename-length)
+			   for remove-n = (max (- (length p) length-this-try) 0)
+			   for next-char = nil
+			     then (and (> (length shortened-string) 0)
+				       (char shortened-string 
+					     (1- (length shortened-string))))
+			   for shortened-string = (shorten-string p remove-n next-char)
+			   do (setf (car l) shortened-string)
+			      (decf remaining-length remove-n))))
+	  (return (apply #'concatenate 'string pieces))))
+
+(defun shorten-string (string remove-n &optional next-char)
+  (if (< remove-n 0)
+      string
+      (loop with str = (nreverse (coerce string 'list))
+	    ;; Double letters?  Prime candidate for removal.
+	    for nc = next-char then c
+	    for c in str
+	    for not-start-p = (cdr str) then (cdr not-start-p)
+	    for remove-p = (and (> remove-n 0)
+				(or (and not-start-p
+					 (member c '(#\a #\e #\i #\o #\u
+						     #\A #\E #\I #\O #\U)))
+				    (eql c nc)))
+	    when (not remove-p)
+	      collect c into list
+	    when remove-p
+	      do (decf remove-n)
+	    finally
+	      (return (coerce (nreverse (nthcdr remove-n list)) 'string)))))
+
+)	;#+Cloe-Runtime
+
 ;; Return the pathname of the source version of the module
 (defun module-src-path (module)
   (let ((pathname (module-pathname module))
@@ -717,12 +784,9 @@
 	(defaults (or (system-default-pathname (module-system module))
 		      *default-pathname-defaults*)))
     (cond ((null pathname)
-	   (add-pathname-type (lisp:make-pathname :name (string (module-name module))
-						  :defaults defaults)
-			      types))
+	   (add-pathname-type (module-default-pathname module defaults) types))
 	  ((null (pathname-type pathname))
-	   (add-pathname-type (merge-pathnames pathname defaults)
-			      types))
+	   (add-pathname-type (merge-pathnames pathname defaults) types))
 	  (t (merge-pathnames pathname defaults)))))
 
 
@@ -761,15 +825,11 @@
 		       (merge-pathnames sys-bin-default sys-default)
 		       sys-default))
          (result (cond ((and (null pathname) (null src-pathname))
-                        (add-pathname-type (lisp:make-pathname :name (string (module-name module))
-                                                               :defaults defaults)
-                                           types))
+                        (add-pathname-type (module-default-pathname module defaults) types))
                        ((null pathname)
-                        (add-pathname-type (merge-pathnames src-pathname defaults)
-                                           types))
+                        (add-pathname-type (merge-pathnames src-pathname defaults) types))
                        ((null (pathname-type pathname))
-                        (add-pathname-type (merge-pathnames pathname defaults)
-                                           types))
+                        (add-pathname-type (merge-pathnames pathname defaults) types))
                        (t (merge-pathnames pathname defaults)))))
     (when *auto-create-output-directories*
       (unless (directory-exists-p result)
@@ -1424,9 +1484,6 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
   "show a system definition in detail"
   (describe-system (or (lookup-system name)
 		       (error "No system description named ~a loaded." name))))
-
-#+(or Genera Minima-Developer)
-(export '(import-into-sct))
 
 #+(or Genera Minima-Developer)
 (defun import-into-sct (system &key (subsystem nil)

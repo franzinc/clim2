@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.43 92/09/30 11:44:59 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.44 92/09/30 18:03:45 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -54,8 +54,7 @@
 		:reader frame-resizable)
      (layout :initarg :layouts :reader frame-layouts)
      (top-level-process :initform nil)
-     (command-queue :initform (make-locking-queue) :reader
-		    frame-command-queue)
+     (command-queue :initform (make-locking-queue) :reader frame-command-queue)
      (input-buffer :initform nil :initarg :input-buffer :reader frame-input-buffer))
   (:default-initargs :pointer-documentation nil
 		     :layouts nil
@@ -104,7 +103,7 @@
 			   (frame standard-application-frame))
   (setf (frame-panes frame) nil))
 
-(eval-when (eval compile load)
+(eval-when (compile load eval)
 (defun define-application-frame-1 (name state-variables pane-descriptions
 				   &key top-level layouts
 					command-table disabled-commands)
@@ -558,6 +557,7 @@
 (defmethod frame-all-layouts ((frame standard-application-frame))
   (mapcar #'first (frame-layouts frame)))
 		 
+#+Genera (zwei:defindentation (make-application-frame 1 1))
 (defun make-application-frame (frame-name &rest options 
 			       &key frame-class
 				    enable pretty-name
@@ -630,8 +630,6 @@
   (destructuring-bind (&key left top width height &allow-other-keys)
       (frame-geometry frame)
     (ecase (frame-state frame)
-      (:shrunk 
-       (note-frame-deiconified (frame-manager frame) frame))
       (:enabled)
       ((:disabled :disowned)
        (let ((old-state (frame-state frame)))
@@ -652,7 +650,9 @@
 	   (layout-frame frame width height)
 	   (when (and left top)
 	     (move-sheet (frame-top-level-sheet frame) left top))
-	   (note-frame-enabled (frame-manager frame) frame)))))))
+	   (note-frame-enabled (frame-manager frame) frame))))
+      (:shrunk 
+        (note-frame-deiconified (frame-manager frame) frame)))))
 
 (defmethod iconify-frame ((frame standard-application-frame))
   (note-frame-iconified (frame-manager frame) frame))
@@ -673,16 +673,33 @@
   (declare (ignore ignore))
   nil)
 
-(defmethod note-frame-enabled ((framem standard-frame-manager)
-			       (frame standard-application-frame))
+(defmethod raise-frame ((frame standard-application-frame))
+  (raise-sheet (frame-top-level-sheet frame)))
+
+(defmethod bury-frame ((frame standard-application-frame))
+  (bury-sheet (frame-top-level-sheet frame)))
+
+(defmethod note-frame-enabled 
+	   ((framem standard-frame-manager) (frame standard-application-frame))
   )
 
-(defmethod note-frame-disabled ((framem standard-frame-manager)
-				(frame standard-application-frame))
+(defmethod note-frame-disabled 
+	   ((framem standard-frame-manager) (frame standard-application-frame))
   )
+
+(defmethod note-frame-iconified 
+	   ((framem standard-frame-manager) (frame standard-application-frame))
+  )
+
+(defmethod note-frame-deiconified
+	   ((framem standard-frame-manager) (frame standard-application-frame))
+  )
+
+
+(defgeneric run-frame-top-level (frame &key &allow-other-keys))
 
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
-(defmethod run-frame-top-level :around ((frame standard-application-frame))
+(defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
   (with-simple-restart (frame-exit "Exit ~A" (frame-pretty-name frame))
     (unwind-protect
 	(let (;; Reset the state of the input editor and the presentation
@@ -736,18 +753,27 @@
       ;; wrong frame.  Sigh.
       (disable-frame frame))))
 
-(defmethod run-frame-top-level ((frame standard-application-frame))
+(defmethod run-frame-top-level ((frame standard-application-frame) &rest args)
+  (declare (dynamic-extent args))
   (with-slots (top-level-process) frame
     (when top-level-process
       (cerror "Bludgeon ahead, assuming the risk"
 	      "The process ~S is already running the top-level function for frame ~S"
 	      top-level-process frame))
     (unwind-protect
-	(let ((top-level (frame-top-level frame)))
+	(let* ((top-level (frame-top-level frame))
+	       (tl-function (if (listp top-level) (first top-level) top-level))
+	       (tl-args (if (listp top-level) (rest top-level) nil)))
 	  (setq top-level-process (current-process))
-	  (if (atom top-level)
-	      (funcall top-level frame)
-	      (apply (first top-level) frame (rest top-level))))
+	  ;; Cons as little as possible
+	  (cond ((and (null args) (null tl-args))
+		 (funcall tl-function frame))
+		((null tl-args)
+		 (apply tl-function frame args))
+		((null args)
+		 (apply tl-function frame tl-args))
+		(t
+		 (apply tl-function frame (append args tl-args)))))
       (setq top-level-process nil))))
 
 (defmethod default-frame-top-level ((frame standard-application-frame)
@@ -1030,7 +1056,7 @@
 			       )
   (read-command (frame-command-table frame) :stream stream))
 
-#+++ignore				;--- install this?
+#+++ignore	;--- install this?
 (defmethod execute-frame-command :around ((frame standard-application-frame) command)
   (let ((top-level-process (slot-value frame 'top-level-process)))
     (if (and top-level-process
@@ -1078,9 +1104,9 @@
   (let* ((command (queue-pop (frame-command-queue frame))))
     (or command 
 	(handler-bind ((synchronous-command-event
-			#'(lambda (c)
-			    (return-from read-frame-command
-			      (synchronous-command-event-command c)))))
+			 #'(lambda (c)
+			     (return-from read-frame-command
+			       (synchronous-command-event-command c)))))
 	  (let ((*reading-frame-command* t))
 	    (call-next-method))))))
 	
@@ -1382,11 +1408,6 @@
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
 
-(defmethod raise-frame ((frame standard-application-frame))
-  (raise-sheet (frame-top-level-sheet frame)))
-
-(defmethod bury-frame ((frame standard-application-frame))
-  (bury-sheet (frame-top-level-sheet frame)))
-
 (defmethod port-note-frame-adopted ((port port) (frame standard-application-frame))
   nil)
+

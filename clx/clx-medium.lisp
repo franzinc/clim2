@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.11 92/09/08 15:17:11 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.12 92/09/24 09:38:12 cer Exp $
 
 (in-package :clx-clim)
 
@@ -8,7 +8,6 @@
 
 
 (defclass clx-medium (basic-medium)
-  ;;--- What happened to white-pixel and black pixel, from CLIM 1.0?
   ((drawable :initform nil :reader medium-drawable)
    (foreground-gcontext :initform nil)
    (foreground-pixel :initform nil)
@@ -65,8 +64,8 @@
 						      :function boole-xor)))
       (flet ((do-ground (ink gc)
 	       (setf (xlib:gcontext-fill-style gc) :solid)
-	       (setf (xlib:gcontext-foreground gc) (clx-decode-color medium ink))
-	       #+++ignore (setf (xlib:gcontext-plane-mask gc) #xffffffff)))
+	       #+++ignore (setf (xlib:gcontext-plane-mask gc) #xffffffff)
+	       (setf (xlib:gcontext-foreground gc) (clx-decode-color medium ink))))
 	(setf foreground-pixel
 	      (do-ground (medium-foreground medium) foreground-gcontext))
 	(setf background-pixel
@@ -78,7 +77,6 @@
 		   (logxor foreground-pixel background-pixel))
 	     #+++ignore (setf (xlib:gcontext-plane-mask flipping-gcontext) #xffffffff))
 	    (t (nyi)))
-      (setf (xlib:window-background drawable) background-pixel)
       (unless copy-gcontext
 	(setq copy-gcontext (xlib:create-gcontext :drawable drawable
 						  :exposures :off))))))
@@ -395,8 +393,7 @@
 					   ((<= depth 16) 'xlib::pixarray-16-element-type)
 					   ((<= depth 24) 'xlib::pixarray-24-element-type)
 					   (t 'xlib::pixarray-32-element-type)))))
-		(declare (type vector design-pixels)
-			 (simple-vector design-pixels))
+		(declare (simple-vector design-pixels))
 		;; Cache the decoded designs from the pattern
 		(do* ((num-designs (length designs))
 		      (n 0 (1+ n))
@@ -830,11 +827,8 @@
       (convert-to-device-coordinates transform left top right bottom)
       (when (< right left) (rotatef right left))
       (when (< bottom top) (rotatef bottom top))
-      (if (integerp background-pixel)
-	  (xlib:clear-area drawable
-			   :x left :y top :width (- right left) :height (- bottom top))
-	  (xlib:draw-rectangle drawable background-gcontext 
-			       left top (- right left) (- bottom top) t)))))
+      (xlib:draw-rectangle drawable background-gcontext 
+			   left top (- right left) (- bottom top) t))))
 
 
 (defmethod text-style-width ((text-style standard-text-style) (medium clx-medium))
@@ -874,5 +868,3 @@
   (let ((display (port-display (port medium))))
     (xlib:bell display)
     (xlib:display-force-output display)))
-
-

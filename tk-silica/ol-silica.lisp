@@ -20,11 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.13 92/08/18 17:54:24 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.14 92/09/22 19:38:05 cer Exp $
 
 (in-package :xm-silica)
 
-(defclass openlook-port (xt-port) ())
+(defclass openlook-port (xt-port) ()
+  (:default-initargs :deep-mirroring t))
 
 (defmethod find-port-type ((type (eql :openlook)))
   'openlook-port)
@@ -73,7 +74,6 @@
 (defclass openlook-geometry-manager (xt-geometry-manager) ())
 
 ;;--- This looks kinda like to motif-port method.
-
 (defmethod find-shell-class-and-initargs ((port openlook-port) sheet)
   (declare (ignore port))
   (cond ( ;;--- hack alert

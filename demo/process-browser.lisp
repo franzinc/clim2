@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: clim-demo -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
+
 ;;
 ;;				-[]-
 ;; 
@@ -20,21 +21,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: process-browser.lisp,v 1.1 92/09/08 10:39:08 cer Exp Locker: cer $
+;; $fiHeader: process-browser.lisp,v 1.2 92/09/30 11:45:26 cer Exp Locker: cer $
 
 
 (in-package :clim-demo)
 
 (define-application-frame process-browser ()
-			  ((timer :accessor process-browser-timer :initform nil)
-			   (delay :initarg :delay :accessor process-browser-delay))
+    ((timer :accessor process-browser-timer :initform nil)
+     (delay :initarg :delay :accessor process-browser-delay))
   (:panes
-   (processes :application
-	      :incremental-redisplay '(t :check-overlapping nil)
-	      :display-function 'display-processes
-	      :width :compute :height :compute))
+    (processes :application
+	       :incremental-redisplay '(t :check-overlapping nil)
+	       :display-function 'display-processes
+	       :width :compute :height :compute))
   (:layouts
-   (default processes))
+    (default processes))
   (:default-initargs :delay 5))
 
 (defmethod read-frame-command :around ((frame process-browser) &key)
@@ -43,7 +44,7 @@
 	(progn
 	  (install-process-browser-timer frame)
 	  (call-next-method))
-      (when timer (clim-utils::delete-timer timer)))))
+      (when timer (clim-utils:delete-timer timer)))))
 
 (defun install-process-browser-timer (frame)
   (with-accessors ((timer process-browser-timer)
@@ -53,25 +54,24 @@
 						    '(com-update-process-browser)
 						    :delay delay))))
 
+
 (define-process-browser-command (com-change-delay-browser :menu t)
     ()
   (let ((frame *application-frame*))
     (with-accessors ((timer process-browser-timer)
 		     (delay process-browser-delay)) frame
       (accepting-values (*query-io* :own-window t)
-			(setf delay (accept '(integer 1 *) 
-					    :prompt "Enter new delay"
-					    :default delay
-					    :stream *query-io*))
-			(terpri *query-io*)))))
+	(setf delay (accept '(integer 1 *) 
+			    :prompt "Enter new delay"
+			    :default delay
+			    :stream *query-io*))
+	(terpri *query-io*)))))
 
-(define-process-browser-command com-update-process-browser
-    ()
-  ;;-- We have to do this because of the asynchronous updates
+(define-process-browser-command com-update-process-browser ()
+  ;;--- We have to do this because of the asynchronous updates
   (unhighlight-highlighted-presentation *standard-output*))
 
-(define-process-browser-command (com-refresh-process-browser :menu t)
-    ()
+(define-process-browser-command (com-refresh-process-browser :menu t) ()
   (window-clear *standard-output*))
 
 #+:composer-v2.0
@@ -84,36 +84,36 @@
   (with-text-size (t :small)
     (let ((*standard-output* pane))
       (formatting-table ()
-	  (with-text-face (t :bold)
-	    (updating-output (t :unique-id 'headings)
-		(formatting-row ()
-		    (formatting-cell () (write-string "P"))
-		  (formatting-cell () (write-string "Dis"))
-		  (formatting-cell () (write-string "Sec"))
-		  (formatting-cell () (write-string "dSec"))
-		  (formatting-cell () (write-string "Priority"))
-		  (formatting-cell () (write-string "State"))
-		  (formatting-cell () (write-string "Name,Whostate,Arrest")))))
-	;;-- snarfed from toplevel.cl
-	(let* ((processes mp:*all-processes*)
+	(with-text-face (t :bold)
+	  (updating-output (t :unique-id 'headings)
+	    (formatting-row ()
+	      (formatting-cell () (write-string "P"))
+	      (formatting-cell () (write-string "Dis"))
+	      (formatting-cell () (write-string "Sec"))
+	      (formatting-cell () (write-string "dSec"))
+	      (formatting-cell () (write-string "Priority"))
+	      (formatting-cell () (write-string "State"))
+	      (formatting-cell () (write-string "Name,Whostate,Arrest")))))
+	;;--- snarfed from toplevel.cl
+	(let* ((processes (clim-sys:all-processes))
 	       (processes
-		(sort (mp:without-scheduling ;assure consistent data
-			(mapcar #'(lambda (p)
-				    (let* ((times  (mp::process-times-resumed p))
-					   (dtimes (- times (mp::process-times-resumed-1 p)))
-					   (msec   (mp::process-cpu-msec-used p))
-					   (dmsec  (- msec (mp::process-cpu-msec-used-1 p))))
-				      (prog1 (list* dtimes msec dmsec p)
-					(setf (mp::process-times-resumed-1 p) times
-					      (mp::process-cpu-msec-used-1 p) msec))))
-				processes))
-		      #'>= :key #'caddr)))
+		 (sort (clim-sys:without-scheduling	;assure consistent data
+			 (mapcar #'(lambda (p)
+				     (let* ((times  (mp::process-times-resumed p))
+					    (dtimes (- times (mp::process-times-resumed-1 p)))
+					    (msec   (mp::process-cpu-msec-used p))
+					    (dmsec  (- msec (mp::process-cpu-msec-used-1 p))))
+				       (prog1 (list* dtimes msec dmsec p)
+					      (setf (mp::process-times-resumed-1 p) times
+						    (mp::process-cpu-msec-used-1 p) msec))))
+				 processes))
+		       #'>= :key #'caddr)))
 	  (dolist (p processes)
 	    (destructuring-bind (times-resumed msec-used msec-used-d . process) p
 	      (let ((profilep 
-		     (let ((stack-group (mp::process-stack-group process)))
-		       (and stack-group
-			    (mp::profile-stack-group-p stack-group)))))
+		      (let ((stack-group (mp::process-stack-group process)))
+			(and stack-group
+			     (mp::profile-stack-group-p stack-group)))))
 		(updating-output (t :unique-id process 
 				    :cache-test #'equal
 				    :cache-value 
@@ -122,57 +122,50 @@
 					  (mp::process-active-p process)
 					  (mp::process-runnable-p process)
 					  (mp::process-wait-function process)
-					  (mp::process-name process)
-					  (mp::process-whostate process)
+					  (clim-sys:process-name process)
+					  (clim-sys:process-whostate process)
 					  (mp::process-arrest-reasons process)))
-		    (formatting-row ()
-			(with-output-as-presentation (t
-						      process
-						      'mp::process
-						      :single-box t)
-			  (updating-output (t :cache-value profilep)
-			      (formatting-cell ()
-				  (princ profilep)))
-			  (updating-output (t :cache-value times-resumed)
-			      (formatting-cell ()
-				  (princ times-resumed)))
-			  (updating-output (t :cache-value msec-used)
-			      (formatting-cell ()
-				  (princ (round msec-used 1000))))
-			  (updating-output (t :cache-value msec-used-d)
-			      (formatting-cell ()
-				  (princ (/ msec-used-d 1000.0))))
-			  (updating-output (t :cache-value (mp::process-priority process))
-			      (formatting-cell ()
-				  (princ (mp::process-priority process))))
+		  (formatting-row ()
+		    (with-output-as-presentation (t process 'mp::process
+						  :single-box t)
+		      (updating-output (t :cache-value profilep)
+			(formatting-cell ()
+			  (princ profilep)))
+		      (updating-output (t :cache-value times-resumed)
+			(formatting-cell ()
+			  (princ times-resumed)))
+		      (updating-output (t :cache-value msec-used)
+			(formatting-cell ()
+			  (princ (round msec-used 1000))))
+		      (updating-output (t :cache-value msec-used-d)
+			(formatting-cell ()
+			  (princ (/ msec-used-d 1000.0))))
+		      (updating-output (t :cache-value (mp::process-priority process))
+			(formatting-cell ()
+			  (princ (mp::process-priority process))))
+		      (let ((state
+			      (cond ((not (mp::process-active-p process)) "inactive")
+				    ((mp::process-runnable-p process) "runnable")
+				    ((mp::process-wait-function process) "waiting ")
+				    (t "   ?    "))))
+			(updating-output (t :cache-value state :cache-test #'equal)
+			  (formatting-cell ()
+			    (princ state))))
+		      (updating-output (t :cache-value (clim-sys:process-name process)
+					  :cache-test #'equal)
+			(formatting-cell ()
+			  (with-text-face (t :bold)
+			    (princ (clim-sys:process-name process)))))
+		      (updating-output (t :cache-value (clim-sys:process-whostate process))
+			(formatting-cell ()
+			  (princ (clim-sys:process-whostate process))))
+		      (updating-output (t :cache-value (mp::process-arrest-reasons process)
+					  :cache-test #'equal)
+			(formatting-cell ()
+			  (when (mp::process-arrest-reasons process)
+			    (princ (mp::process-arrest-reasons process))))))))))))))))
 
-			  (let ((state
-				 (cond ((not (mp::process-active-p process)) "inactive")
-				       ((mp::process-runnable-p process) "runnable")
-				       ((mp::process-wait-function process) "waiting ")
-				       (t "   ?    "))))
-			    (updating-output (t :cache-value state :cache-test #'equal)
-				(formatting-cell ()
-				    (princ state))))
-			
-			  (updating-output (t :cache-value
-					      (mp::process-name process)
-					      :cache-test #'equal)
-			      (formatting-cell ()
-				  (with-text-face (t :bold)
-				    (princ (mp::process-name process)))))
-			
-			  (updating-output (t :cache-value (mp::process-whostate process))
-			      (formatting-cell ()
-				  (princ (mp::process-whostate
-					  process))))
-			
-			  (updating-output (t :cache-value (mp::process-arrest-reasons process)
-					      :cache-test #'equal)
-			      (formatting-cell ()
-				  (when (mp::process-arrest-reasons process)
-				    (princ (mp::process-arrest-reasons process))))))))))))))))
-
+
 (defvar *process-browsers* nil)
 
 (defun do-process-browser (&key (port (find-port)) (force nil))
@@ -190,9 +183,3 @@
     (run-frame-top-level frame)))
 
 (define-demo "Process Browser" do-process-browser)
-
-
-
-
-
-  

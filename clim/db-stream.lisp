@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.31 92/09/24 09:38:39 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.32 92/09/30 11:44:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -335,12 +335,12 @@
 		      ,pane)))
       (when label
 	(setq pane `(vertically ()
-			,(if (stringp label)
-			     `(make-pane 'label-pane 
-					 :label ,label
-					 :max-width +fill+)
+		      ,(if (stringp label)
+			   `(make-pane 'label-pane 
+			      :label ,label
+			      :max-width +fill+)
 			   `(apply #'make-pane 'label-pane 
-					 :max-width +fill+ ,label))
+				   :max-width +fill+ ,label))
 		      ,pane)))
       `(let (,stream)
  	 (values 
@@ -407,9 +407,10 @@
   nil)
 
 (defmethod (setf window-visibility) (visibility (stream clim-stream-sheet))
-  (if visibility 
-      (enable-frame (pane-frame stream))
-      (disable-frame (pane-frame stream))))
+  (let ((frame (pane-frame stream)))
+    (if frame
+	(if visibility (enable-frame frame) (disable-frame frame))
+	(setf (sheet-enabled-p stream) visibility))))
 
 (defmethod window-visibility ((stream clim-stream-sheet))
   (mirror-visible-p (port stream) stream))
@@ -560,3 +561,52 @@
 	  (line-height (stream-line-height window)))
       (values (floor (- right left) char-width)
 	      (floor (- bottom top) line-height)))))
+
+
+;;; This is too useful to simply omit
+(defun open-window-stream (&key port left top right bottom width height
+				(foreground +black+) (background +white+)
+				(text-style *default-text-style*)
+				(default-text-style *default-text-style*)
+				(vertical-spacing 2)
+				(end-of-line-action :allow)
+				(end-of-page-action :allow)
+				output-record (draw t) (record t)
+				(initial-cursor-visibility :off)
+				text-margin default-text-margin
+				save-under input-buffer
+				(scroll-bars :vertical) borders label)
+  (when (or width height)
+    (assert (and (null right) (null bottom))))
+  (when (null left) (setq left 0))
+  (when (null top)  (setq top 0))
+  (when (or (null width) (null height))
+    (if (or (null right) (null bottom))
+	(setq width 100
+	      height 100)
+	(setq width (- right left)
+	      height (- bottom top))))
+  (let ((stream
+	  (let ((frame (make-application-frame 'menu-frame
+					       :parent (or port (find-port))
+					       :save-under save-under)))
+	    (slot-value frame 'menu))))
+    (setf (medium-foreground stream) foreground
+	  (medium-background stream) background
+	  (medium-default-text-style stream) default-text-style
+	  (medium-text-style stream) text-style
+	  (stream-vertical-spacing stream) vertical-spacing
+	  (stream-end-of-line-action stream) end-of-line-action
+	  (stream-end-of-page-action stream) end-of-page-action
+	  (stream-recording-p stream) record
+	  (stream-drawing-p stream) draw
+	  (cursor-visibility (stream-text-cursor stream)) initial-cursor-visibility
+	  (stream-text-margin stream) text-margin
+	  (stream-default-text-margin stream) default-text-margin)
+    (when output-record
+      (stream-output-history stream) (make-instance output-record))
+    (window-set-inside-size stream width height)
+    (window-set-viewport-position stream 0 0)
+    (position-sheet-carefully
+      (frame-top-level-sheet (pane-frame stream)) width height)
+    stream))

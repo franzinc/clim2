@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.17 92/09/22 19:37:52 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.18 92/09/24 09:40:15 cer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -16,14 +16,10 @@
   ("packages")
   ("demo-driver"     :load-before-compile ("packages"))
   ("listener"        :load-before-compile ("demo-driver" "packages"))
-  ("graphics-demos"  :load-before-compile ("demo-driver" "packages")
-		     :features (not Minima))
-  ("cad-demo"	     :load-before-compile ("demo-driver" "packages")
-		     :features (not Minima))
-  ("navdata"	     :load-before-compile ("packages")
-		     :features (not Minima))
-  ("navfun"          :load-before-compile ("demo-driver" "navdata" "packages")
-		     :features (not Minima))
+  ("graphics-demos"  :load-before-compile ("demo-driver" "packages"))
+  ("cad-demo"	     :load-before-compile ("demo-driver" "packages"))
+  ("navdata"	     :load-before-compile ("packages"))
+  ("navfun"          :load-before-compile ("demo-driver" "packages" "navdata"))
   ("puzzle"          :load-before-compile ("demo-driver" "packages"))
   ("address-book"    :load-before-compile ("demo-driver" "packages"))
   ("thinkadot"       :load-before-compile ("demo-driver" "packages"))
@@ -33,12 +29,12 @@
   ("bitmap-editor"   :load-before-compile ("demo-driver" "packages"))
   ("ico"	     :load-before-compile ("demo-driver" "packages"))
   ("browser"	     :load-before-compile ("demo-driver" "packages"))
+  ("peek-frame"      :load-before-compile ("demo-driver" "packages"))
   #+Allegro
   ("process-browser" :load-before-compile ("demo-driver" "packages"))
-  ("demo-activity" :load-before-compile ("demo-driver" "packages"))
-  ("bitmap-editor"    :load-before-compile ("demo-driver" "packages"))
+  ("custom-records"  :load-before-compile ("demo-driver" "packages"))
+  ("demo-activity"   :load-before-compile ("demo-driver" "packages"))
   ("demo-prefill"    :features (or Genera Cloe-Runtime)))
-
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 

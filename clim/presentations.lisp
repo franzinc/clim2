@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.16 92/09/22 19:37:22 cer Exp Locker: cer $
+;; $fiHeader: presentations.lisp,v 1.17 92/09/24 09:39:17 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-(define-protocol-class presentation (output-record))
+(define-protocol-class presentation ())
 
 (defclass standard-presentation
 	  (standard-sequence-output-record presentation)
@@ -139,7 +139,6 @@
 		:object nil :type 'blank-area :single-box nil)))
 	(setf (presentation-object null-presentation) null-presentation)
 	null-presentation))
-
 
 (defun window-cohorts-p (window-one window-two)
   ;; The best test for whether or not two windows care about each

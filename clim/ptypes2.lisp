@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.11 92/09/08 15:18:26 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.12 92/09/24 09:39:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -119,23 +119,105 @@
      (write-string description stream)
      (return-from default-describe-presentation-type nil))
     ((member 1)
-     (write-string (if (find (char description 0) "aeiou" :test #'char-equal) "an " "a ")
-		   stream)
+     (write-string (string-a-or-an description) stream)
      (write-string description stream)
      (return-from default-describe-presentation-type nil))
     ((member t))
     ((integer 2 *)
      (format stream "~R " plural-count)))
-  (let ((last (1- (length description))))
-    (cond ((char-equal (char description last) #\y)
-	   (write-string description stream :end last)
-	   (write-string "ies" stream))
-	  ((char-equal (char description last) #\s)
-	   (write-string description stream)
-	   (write-string "es" stream))
-	  (t
-	   (write-string description stream)
-	   (write-char #\s stream)))))
+  (write-string (string-pluralize description) stream))
+
+;; Returns the plural for the specified string
+(defun string-pluralize (string)
+  (let ((length (length string))
+	(pos (1+ (or (string-search-set '(#\Space #\Tab) string :from-end t) -1))))
+    (when (zerop length)
+      (return-from string-pluralize string))
+    (let* ((flush nil)
+	   (suffix nil)
+	   (last-char (aref string (1- length)))
+	   (penult-char (if (> length 1) (aref string (- length 2)) #\*)))
+      (cond ((and (char-equal last-char #\y)
+		  (not (find penult-char '(#\a #\e #\i #\o #\u) :test #'char-equal)))
+	     (setq flush 1
+		   suffix "ies"))
+	    ((or (string-equal string "ox"  :start1 pos)
+		 (string-equal string "vax" :start1 pos))
+	     (setq suffix "en"))
+	    ((or (and (char-equal last-char #\h)
+		      (find penult-char '(#\c #\s) :test #'char-equal))
+		 (find last-char '(#\s #\z #\x) :test #'char-equal))
+	     (setq suffix "es"))
+	    ((and (>= length 3)
+		  (string-equal string "man" :start1 (- length 3))
+		  (not (string-equal string "human" :start1 pos)))
+	     (setq flush 2
+		   suffix "en"))
+	    ((and (>= length 3)
+		  (string-equal string "ife" :start1 (- length 3)))
+	     (setq flush 2
+		   suffix "ves"))
+	    ((and (>= length 5)
+		  (string-equal string "child" :start1 (- length 5)))
+	     (setq suffix "ren"))
+	    (t (setq suffix "s")))
+      (concatenate 'string
+        (if flush (subseq string 0 (- length flush)) string)
+	suffix))))
+
+;; Returns an article to be used with the specified string
+(defun string-a-or-an (string)
+  (let* ((length (length string))
+	 (char (and (not (zerop length))
+		    (char string 0))))
+    (when (zerop length)
+      (return-from string-a-or-an ""))
+    (if (digit-char-p char)
+	;; Pronounce leading digits number!
+	(string-a-or-an (format nil "~:R" (parse-integer string :junk-allowed t)))
+	(cond ((or (string-equal string "one")
+		   (and (>= length 4)
+			(string-equal string "one " :end1 4)))
+	       "a ")
+	      ((or (= length 1)			;"an x", but "a xylophone"
+		   ;; "an fff" but "a frog"
+		   (not (string-search-set "aeiou" string))
+		   ;; "an xl400" but "a xylophone"
+		   (string-search-set "0123456789" string))
+	       (if (find char "aefhilmnorsx" :test #'char-equal) "an " "a "))
+	      (t
+	       (if (or (find char "aio" :test #'char-equal)
+		       ;; "an egg", but "a eunich"
+		       (and (char-equal char #\e)
+			    (not (string-equal string "eu" :end1 2)))
+		       ;; "an umbrella", but "a unicorn"
+		       ;; "a uniform", but "an uninformed ..."
+		       ;; And of course, "a unix".  We admittedly heuristicate
+		       (and (char-equal char #\u)
+			    (not (and (string-equal string "uni" :end1 3)
+				      (or (< length 5)
+					  (not (find (char string 4)
+						     ;; Treat "y" as a vowel here.
+						     ;; e.g., "unicycle"
+						     "bcdfghjklmnpqrstvwxz"
+						     :test #'char-equal)))))))
+		   "an "
+		   "a "))))))
+
+(defun string-search-set (char-set string &key (start 0) end from-end (test #'char-equal))
+  (let (#+(or Genera Minima) (string string))
+    (declare (type vector string))
+    (unless end
+      (setq end (length string)))
+    (if from-end
+	(do ((i (1- end) (1- i)))
+	    ((< i start) nil)
+	  (when (find (aref string i) char-set :test test)
+	    (return i)))
+	(do ((i start (1+ i)))
+	    ((>= i end) nil)
+	  (when (find (aref string i) char-set :test test) 
+	    (return i))))))
 
 
 ;;;; Histories

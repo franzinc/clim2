@@ -1,6 +1,6 @@
-;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.17 92/09/08 15:17:53 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.18 92/09/24 09:39:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -227,7 +227,6 @@
     (let* ((input-buffer (slot-value istream 'input-buffer))
 	   (stream (encapsulating-stream-stream istream))
 	   (medium (sheet-medium stream))
-	   (noisy-style (merge-text-styles *noise-string-style* style))
 	   (start 0)
 	   (end (fill-pointer input-buffer)))
       (setq max-x x)
@@ -250,10 +249,12 @@
 			(return-from index index))
 		      (setq cursor-x new-cursor-x))
 		  :noise-string
-		    (multiple-value-setq (cursor-x cursor-y height baseline)
-		      (do-text-screen-real-estate
-			stream #'true (noise-string-display-string noise-string) 0 nil
-			cursor-x cursor-y height baseline noisy-style max-x)))
+		    (let ((style (merge-text-styles
+				   (noise-string-text-style noise-string) style)))
+		      (multiple-value-setq (cursor-x cursor-y height baseline)
+			(do-text-screen-real-estate
+			  stream #'true (noise-string-display-string noise-string) 0 nil
+			  cursor-x cursor-y height baseline style max-x))))
 		nil)))
 	index))))
 
@@ -1295,24 +1296,26 @@
   com-ie-scroll-right          :ie-scroll-right
   com-ie-input-editor-help     :ie-input-editor-help)
 
-#+(or Allegro Lucid)
 (define-input-editor-gestures
-  (:ie-escape-1 :escape)
-  (:ie-escape-2 :x :control))
+  (:ie-prefix-1 :escape)
+  (:ie-prefix-2 :x :control))
+
+(assign-input-editor-key-bindings
+  (com-ie-swap-point-and-mark  (:ie-prefix-2 (:x :control))))
 
 #+(or Allegro Lucid)
 (assign-input-editor-key-bindings
-  com-ie-forward-word	       (:ie-escape-1 :f)
-  com-ie-backward-word	       (:ie-escape-1 :b)
-  com-ie-beginning-of-buffer   (:ie-escape-1 :\<)
-  com-ie-end-of-buffer	       (:ie-escape-1 :\>)
-  com-ie-delete-word	       (:ie-escape-1 :d)
-  com-ie-rubout-word	       (:ie-escape-1 :rubout)
-  com-ie-history-yank	       (:ie-escape-1 (:y :control))
-  com-ie-yank-next	       (:ie-escape-1 :y)
-  com-ie-scroll-backward       (:ie-escape-1 :v)
-  com-ie-show-arglist	       (:ie-escape-2 (:a :control))
-  com-ie-show-value	       (:ie-escape-2 (:v :control)))
+  com-ie-forward-word	       (:ie-prefix-1 :f)
+  com-ie-backward-word	       (:ie-prefix-1 :b)
+  com-ie-beginning-of-buffer   (:ie-prefix-1 :\<)
+  com-ie-end-of-buffer	       (:ie-prefix-1 :\>)
+  com-ie-delete-word	       (:ie-prefix-1 :d)
+  com-ie-rubout-word	       (:ie-prefix-1 :rubout)
+  com-ie-history-yank	       (:ie-prefix-1 (:y :control))
+  com-ie-yank-next	       (:ie-prefix-1 :y)
+  com-ie-scroll-backward       (:ie-prefix-1 :v)
+  com-ie-show-arglist	       (:ie-prefix-2 (:a :control))
+  com-ie-show-value	       (:ie-prefix-2 (:v :control)))
 
 
 ;;; Some Genera-specific stuff

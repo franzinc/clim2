@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: load-clim2.lisp,v 1.1 92/08/19 10:25:18 cer Exp $
+;; $fiHeader: load-clim2.lisp,v 1.2 92/09/08 15:18:41 cer Exp $
  
 (defun flush-clim ()
   (when (find-package 'clim-defsys)
@@ -13,7 +13,7 @@
 		 clim-conditions clim-shared clim-stream
 		 silica windshield on-x on-genera))
     (when (find-package pkg)
-      (pkg-kill pkg)))
+      (delete-package pkg)))
   (dolist (sys '(clim-utils clim-standalone clim clim-demo
 		 ;; CLIM 2.0
 		 clim-internals clim-silica genera-clim clx-clim postscript-clim
@@ -39,18 +39,19 @@
   (load #p"sys:clim;rel-2;genera;sysdcl")
   (load #p"sys:clim;rel-2;clx;sysdcl")
   (load #p"sys:clim;rel-2;postscript;sysdcl")
-  (sct:compile-system 'clim
-		      :query nil :recompile t :reload t
-		      :batch #p"sys:clim;rel-2;sys;clim.cwarns")
-  (sct:compile-system 'genera-clim :include-components nil
-		      :query nil :recompile t :reload t
-		      :batch #p"sys:clim;rel-2;sys;genera-clim.cwarns")
-  (sct:compile-system 'clx-clim :include-components nil
-		      :query nil :recompile t :reload t
-		      :batch #p"sys:clim;rel-2;sys;clx-clim.cwarns")
-  (sct:compile-system 'postscript-clim :include-components nil
-		      :query nil :recompile t :reload t
-		      :batch #p"sys:clim;rel-2;sys;postscript-clim.cwarns"))
+  (let ((other-keys '(:query nil :recompile t :reload t)))
+    (apply #'sct:compile-system 'clim
+				:batch #p"sys:clim;rel-2;sys;clim.cwarns"
+				other-keys)
+    (apply #'sct:compile-system 'genera-clim :include-components nil
+				:batch #p"sys:clim;rel-2;sys;genera-clim.cwarns"
+				other-keys)
+    (apply #'sct:compile-system 'clx-clim :include-components nil
+				:batch #p"sys:clim;rel-2;sys;clx-clim.cwarns"
+				other-keys)
+    (apply #'sct:compile-system 'postscript-clim :include-components nil
+				:batch #p"sys:clim;rel-2;sys;postscript-clim.cwarns"
+				other-keys)))
 
 (defun load-clim2 ()
   (unless (find-package 'clim-defsys)
@@ -59,25 +60,28 @@
   (load #p"sys:clim;rel-2;genera;sysdcl")
   (load #p"sys:clim;rel-2;clx;sysdcl")
   (load #p"sys:clim;rel-2;postscript;sysdcl")
-  (sct:load-system 'clim
-		   :query nil :reload t)
-  (sct:load-system 'genera-clim :include-components nil
-		   :query nil :reload t)
-  (sct:load-system 'clx-clim :include-components nil
-		   :query nil :reload t)
-  (sct:load-system 'postscript-clim :include-components nil
-		   :query nil :reload t))
+  (let ((other-keys '(:query nil :reload t)))
+    (apply #'sct:load-system 'clim
+			     other-keys)
+    (apply #'sct:load-system 'genera-clim :include-components nil
+			     other-keys)
+    (apply #'sct:load-system 'clx-clim :include-components nil
+			     other-keys)
+    (apply #'sct:load-system 'postscript-clim :include-components nil
+			     other-keys)))
 
 (defun compile-clim2-demo ()
   (load #p"sys:clim;rel-2;demo;sysdcl")
-  (sct:compile-system 'clim-demo
-		      :query nil :recompile t :reload t
-		      :batch #p"sys:clim;rel-2;sys;clim-demo.cwarns"))
+  (let ((other-keys '(:query nil :recompile t :reload t)))
+    (apply #'sct:compile-system 'clim-demo
+				:batch #p"sys:clim;rel-2;sys;clim-demo.cwarns"
+				other-keys)))
 
 (defun load-clim2-demo ()
   (load #p"sys:clim;rel-2;demo;sysdcl")
-  (sct:load-system 'clim-demo
-		   :query nil :reload t))
+  (let ((other-keys '(:query nil :reload t)))
+    (apply #'sct:load-system 'clim-demo
+			     other-keys)))
 
 (defun compile-clim2-tests ()
   (compile-file #p"sys:clim;rel-2;test;test-suite.lisp")

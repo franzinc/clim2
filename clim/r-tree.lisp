@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: r-tree.lisp,v 1.1 92/09/24 09:53:35 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+
 
 ;;; R tree output records
 

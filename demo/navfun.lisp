@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.15 92/09/24 09:40:10 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.16 92/09/30 11:45:22 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -1027,8 +1027,9 @@
    (display :application)
    (interactor :interactor :height '(5 :line)))
   (:layouts 
-   (default
-       (vertically () (3/4 display) (:fill interactor)))))
+    (default
+      (vertically () (3/4 display) (:fill interactor)))))
+
 
 (define-flight-planner-command (com-zoom-in :name t :menu t) ()
   (multiple-value-bind (longitude latitude)
@@ -1264,7 +1265,7 @@
      &key
      (presentation 't :default nil)
      (window 't :default nil))
-  (let ((stream (frame-error-output *application-frame*)))
+  (let ((stream (frame-standard-input *application-frame*)))
     (etypecase object
       (ground-position
 	(format stream "~&Deleting position ~a.~%" object)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.18 92/09/24 09:38:00 cer Exp Locker: cer $
+;; $fiHeader: lisp-utilities.lisp,v 1.19 92/09/30 18:03:22 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -119,11 +119,11 @@
 ;; Convert a number of arbitrary type into a COORDINATE
 (defmacro coordinate (x &optional (round-direction 'round))
   #-use-fixnum-coordinates (declare (ignore round-direction))
-  #+use-float-coordinates  `(the coordinate (float ,x 0f0))
+  #+use-float-coordinates `(the coordinate (float ,x 0f0))
   #+use-fixnum-coordinates (ecase round-direction
 			     (round
-			       #-Allegro `(the fixnum (values (floor (+ ,x .5f0))))
-			       #+Allegro `(the fixnum (round ,x)))
+			       #+(or Allegro Lucid) `(the fixnum (round ,x))
+			       #-(or Allegro Lucid) `(the fixnum (values (floor (+ ,x .5f0)))))
 			     (floor
 			       `(the fixnum (values (floor ,x))))
 			     (ceiling
@@ -131,7 +131,7 @@
   #-(or use-float-coordinates use-fixnum-coordinates) `,x)
 
 (defconstant +largest-coordinate+
-	     #+use-float-coordinates  (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0)
+	     #+use-float-coordinates (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0)
 	     #+use-fixnum-coordinates most-positive-fixnum
 	     #-(or use-float-coordinates use-fixnum-coordinates) most-positive-fixnum)
 
@@ -827,10 +827,16 @@
 		(nreverse args))
 	    nil)))
 
-(defun canonicalize-and-match-lambda-lists (canonical-order user-specified)
+(defun canonicalize-and-match-lambda-lists (canonical-order user-specified 
+					    &optional allow-user-keys)
   (declare (values lambda-list ignores))
-  (let ((new-lambda-list nil)
-	(ignores nil))
+  (let* ((new-lambda-list nil)
+	 (ignores nil)
+	 (rest-pos (or (position '&rest user-specified) (length user-specified)))
+	 (key-pos (or (position '&key user-specified) rest-pos))
+	 (rest-and-key (nthcdr (min rest-pos key-pos) user-specified)))
+    (when allow-user-keys
+      (setq user-specified (subseq user-specified 0 (min rest-pos key-pos))))
     (flet ((user-var-symbol (entry)
 	     ;; FOO | (FOO NIL) | ((:FOO BAR) NIL) | (FOO NIL FOO-P) | ((:FOO BAR) FOO-P) 
 	     ;;--- We don't support the FOO-P syntax yet.
@@ -864,7 +870,9 @@
       (when (set-difference user-specified '(&key &allow-other-keys))
 	(error "The arguments ~S aren't valid for this lambda list."
 	       user-specified))
-      (values (nreverse new-lambda-list)
+      (values (if allow-user-keys 
+		  (append (nreverse new-lambda-list) rest-and-key)
+		  (nreverse new-lambda-list))
 	      (nreverse ignores)))))
 
 
@@ -1212,7 +1220,9 @@
 	 (rational ,(convert min nil) ,(convert max nil)))))
 
 (defconstant *end-of-file-marker* :eof)
-(deftype end-of-file-marker () '(member :eof))
+(deftype end-of-file-marker () 
+  #+Allegro '(member :eof)
+  #-Allegro '(eql :eof))
 
 
 ;;; Use a lambda-list to extract arguments from a list and bind variables.

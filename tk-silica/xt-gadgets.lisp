@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.21 92/09/24 09:40:27 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.22 92/09/30 11:45:40 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -189,5 +189,4 @@
 	 (some #'(lambda (gesture)
 		   (clim-internals::keyboard-event-matches-gesture-name-p event gesture port))
 	       (top-level-sheet-accelerator-gestures (frame-top-level-sheet frame))))))
-
 

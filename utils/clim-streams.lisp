@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.5 92/07/08 16:29:29 cer Exp $
+;; $fiHeader: clim-streams.lisp,v 1.6 92/09/08 15:16:57 cer Exp $
 
 (in-package :clim-utils)
 
@@ -29,7 +29,8 @@
 (defmethod interactive-stream-p ((stream t))
   #+Genera (future-common-lisp:interactive-stream-p stream)
   #+Lucid (lucid::interactive-input-stream-p stream)
-  #-(or Genera Lucid) (lisp:interactive-stream-p stream))
+  #+Cloe-Runtime nil			;--- this can't be right --Hornig
+  #-(or Genera Lucid Cloe-Runtime) (lisp:interactive-stream-p stream))
 
 (defmethod interactive-stream-p ((stream standard-encapsulating-stream))
   (interactive-stream-p (encapsulating-stream-stream stream)))

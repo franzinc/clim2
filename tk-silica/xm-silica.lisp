@@ -18,13 +18,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.24 92/08/18 17:26:37 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.25 92/08/18 17:54:31 cer Exp $
 
 (in-package :xm-silica)
 
 ;; Motif specific stuff
 
-(defclass motif-port (xt-port) ())
+(defclass motif-port (xt-port) ()
+  (:default-initargs :deep-mirroring t))
 
 (defmethod find-port-type ((type (eql ':motif)))
   'motif-port)

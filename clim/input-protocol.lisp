@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.26 92/09/24 09:39:04 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.27 92/09/30 11:45:04 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -104,15 +104,13 @@
     (when cursor
       (setf (cursor-active cursor) nil))))
 
-(defmethod repaint-sheet :after ((stream input-protocol-mixin) medium (region nowhere))
-  (declare (ignore medium))
+(defvar *cursor-repaint-rectangle* (make-bounding-rectangle 0 0 0 0))
+
+(defmethod repaint-sheet :after ((stream input-protocol-mixin) (region nowhere))
   ;; Repainting nowhere, don't repaint the cursor
   )
 
-(defvar *cursor-repaint-rectangle* (make-bounding-rectangle 0 0 0 0))
-
-(defmethod repaint-sheet :after ((stream input-protocol-mixin) medium region)
-  (declare (ignore medium))
+(defmethod repaint-sheet :after ((stream input-protocol-mixin) region)
   (let ((cursor (stream-text-cursor stream))
 	(viewport (pane-viewport stream)))
     (when (and cursor viewport)
@@ -152,7 +150,7 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
 	(keysym (keyboard-event-key-name event)))
-    (cond ((and (characterp char) (standard-char-p char))
+    (cond ((and (characterp char) (ordinary-char-p char))
 	   (queue-put (stream-input-buffer stream) char))
 	  ((and keysym (not (typep keysym 'modifier-keysym)))
 	   (queue-put (stream-input-buffer stream) (copy-event event)))
@@ -323,8 +321,8 @@
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture window-repaint-event))
   ;; Handle synchronous repaint request
-  (repaint-sheet (event-sheet gesture) nil (window-event-region gesture))
-  ;; don't return.
+  (repaint-sheet (event-sheet gesture) (window-event-region gesture))
+  ;; Don't return.
   nil)
 
 (defmethod receive-gesture 
@@ -374,7 +372,7 @@
 			       stream)
 			      ((typep *standard-input* 'interactor-pane)
 			       *standard-input*)
-			      (t
+			      (frame
 			       (find-frame-pane-of-type frame 'interactor-pane))))
 		(cursor (and stream (stream-text-cursor stream))))
 	   (when (and cursor
@@ -387,7 +385,8 @@
 ;;; keyword :STREAM argument to *standard-input*.  The application can call
 ;;; stream-read-gesture directly.
 (defun read-gesture (&rest args &key (stream *standard-input*) &allow-other-keys)
-  (declare (arglist &key (stream *standard-input*)
+  (declare (arglist &rest args
+		    &key (stream *standard-input*)
 			 timeout peek-p input-wait-test input-wait-handler
 			 pointer-button-press-handler))
   (declare (dynamic-extent args))
@@ -412,13 +411,8 @@
       (setq gesture (stream-read-gesture (or *original-stream* stream)))
       (when (and (characterp gesture) (ordinary-char-p gesture))
 	(return-from stream-read-char gesture))
-      #+ignore
-      (when (and (typep gesture 'key-press-event)
-		 (characterp (keyboard-event-character gesture)))
-	(return-from stream-read-char (slot-value gesture 'character)))
       ;;--- Probably wrong.  It prevents the input editor from ever seeing
       ;;--- mouse clicks, for example.
-      #+ignore
       (beep stream))))
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)

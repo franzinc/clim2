@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.27 92/09/24 09:37:51 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.28 92/09/30 18:03:15 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -149,24 +149,19 @@
   (let ((parent (sheet-parent sheet)))
     (when parent
       (setf (sheet-children parent)
-	(nconc (delete sheet (sheet-children parent) :test #'eq)
-	       (list sheet)))))
+	    (nconc (delete sheet (sheet-children parent)) (list sheet)))))
   (when (sheet-direct-mirror sheet)
     (bury-mirror (port sheet) sheet)))
 
-
-
-
-
 (defmethod reorder-sheets ((parent basic-sheet) new-ordering)
-  ;; Errorcheck new-ordering.
+  ;; Error check new ordering.
   ;; This could be optimized if we can guarantee that the ordering of
-  ;; sheet-children is always kept up to date wrt the actual stacking
+  ;; SHEET-CHILDREN is always kept up to date wrt the actual stacking
   ;; order.  Unfortunately this is quite hard under X11 for top level windows.
   (assert (null (set-exclusive-or new-ordering (sheet-children parent)))
-      (new-ordering)
-    "Specified ordering ~S does not contain children of sheet ~S"
-    new-ordering parent)
+  	  (new-ordering)
+	  "Specified ordering ~S does not contain children of sheet ~S"
+	  new-ordering parent)
   (setf (sheet-children parent) new-ordering)
   (let ((port (port parent)))
     (dolist (child (reverse new-ordering))
@@ -466,33 +461,34 @@
 				       &key enabled)
   (setf (sheet-enabled-p sheet) enabled))
 
-
-
-
-
-
+
+;;; Sheet pointer cursors and pointer grabbing
 
 (defmethod (setf sheet-pointer-cursor) (cursor (sheet basic-sheet))
   (port-set-sheet-pointer-cursor (port sheet) sheet cursor)
-  (setf (slot-value sheet 'cursor) cursor))
+  (setf (slot-value sheet 'pointer-cursor) cursor))
+
+(defmethod port-set-sheet-pointer-cursor ((port basic-port) sheet cursor)
+  (declare (ignore sheet cursor))
+  nil)
 
 (defmacro with-pointer-grabbed ((sheet &rest options) &body body)
   `(flet ((with-pointer-grabbed-body () ,@body))
      (declare (dynamic-extent #'with-pointer-grabbed-body))
      (invoke-with-pointer-grabbed ,sheet #'with-pointer-grabbed-body ,@options)))
-	    
+
 (defun invoke-with-pointer-grabbed (sheet continuation &rest options)
+  (declare (dynamic-extent options))
   (apply #'port-invoke-with-pointer-grabbed (port sheet) sheet continuation options))
 
-(defmethod port-invoke-with-pointer-grabbed ((port port) (sheet basic-sheet) continuation &key)
-  (declare (ignore options))
+(defmethod port-invoke-with-pointer-grabbed 
+	   ((port basic-port) (sheet basic-sheet) continuation &key)
   (funcall continuation))
 
 (defmethod (setf sheet-grabbed-pointer-cursor) (cursor (sheet basic-sheet))
-  (port-set-sheet-grabbed-pointer-cursor (port sheet)
-					 sheet
-					 cursor))
+  (port-set-sheet-grabbed-pointer-cursor (port sheet) sheet cursor))
 
-(defmethod port-set-sheet-grabbed-pointer-cursor ((port port) (sheet basic-sheet) cursor)
+(defmethod port-set-sheet-grabbed-pointer-cursor
+	   ((port basic-port) (sheet basic-sheet) cursor)
   (declare (ignore cursor))
   nil)

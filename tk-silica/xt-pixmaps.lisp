@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.9 92/07/27 11:03:48 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.10 92/09/08 15:19:21 cer Exp $
 
 
 (in-package :xm-silica)
@@ -101,7 +101,7 @@
 			    (maxx (+ minx width))
 			    (maxy (+ miny height)))
 		       (let ((sheet (medium-sheet to-medium)))
-			 (dispatch-repaint
+			 (queue-repaint
 			   sheet
 			   (allocate-event 'window-repaint-event
 			     :native-region (make-bounding-rectangle minx miny maxx maxy)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.13 92/09/22 19:36:58 cer Exp Locker: cer $
+;; $fiHeader: clx-mirror.lisp,v 1.14 92/09/24 09:38:14 cer Exp $
 
 (in-package :clx-clim)
 
@@ -20,13 +20,13 @@
 	(sheet-native-region* sheet)
       (fix-coordinates left top right bottom)
       (let* ((clx-parent (sheet-mirror sheet))
-	     (save-under (getf (frame-properties (pane-frame sheet)) :save-under))
+	     (frame (pane-frame sheet))
+	     (save-under (and frame (getf (frame-properties frame) :save-under)))
 	     (mirror
 	       (xlib:create-window 
 		 :parent clx-parent
 		 :x left :y top
 		 :width (- right left) :height (- bottom top)
-		 :background (xlib:screen-white-pixel screen)
 		 :bit-gravity :north-west
 		 :save-under (if save-under :on nil)
 		 :event-mask 
@@ -329,7 +329,7 @@
 	   (event-window x y width height)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet
-	       (queue-repaint
+	       (handle-event
 		 sheet
 		 (allocate-event 'window-repaint-event
 		   ;;--- Should this be (MIRROR-REGION PORT SHEET), as

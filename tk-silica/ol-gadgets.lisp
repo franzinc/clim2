@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.26 92/09/24 09:40:20 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.27 92/09/30 11:45:34 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -283,7 +283,6 @@
 				     (car (second (car cbs)))
 				     frame))))
 	     
-	     
 	     (make-command-for-command-table-1 (mb item)
 	       (let* ((menu-pane (tk::get-values mb :menu-pane))
 		      (ct (find-command-table (second item)))
@@ -369,7 +368,7 @@
 			      command-table
 			      item))))))
 		  command-table)
-		 commands-and-buttons)))
+ 		 commands-and-buttons)))
       (make-menu-for-command-table
        (menu-bar-command-table sheet)
        mirror
@@ -676,6 +675,7 @@
       (:vertical (make-space-requirement 
 		  :width max-w 
 		  :height (+ sum-h (* spacing (1- (length children)))))))))
+
 ;;;
 
 
@@ -719,7 +719,6 @@
 (defmethod compose-space ((cb openlook-check-box) &key width height)
   (declare (ignore width height))
   (compose-space-for-radio/check-box cb 15))
-
 
 ;;
 
@@ -1389,3 +1388,4 @@
 		      :stream stream)
 	    (accept 'pathname :prompt "Pathname"
 		    :stream stream))))))
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.10 92/08/18 17:26:02 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.11 92/09/24 09:39:52 cer Exp $
 
 (in-package :genera-clim)
 
@@ -21,7 +21,8 @@
       (fix-coordinates left top right bottom)
       (let* ((genera-parent (sheet-mirror sheet))
 	     (name (format nil "CLIM window ~D" (incf *clim-window-count*)))
-	     (save-under (getf (frame-properties (pane-frame sheet)) :save-under))
+	     (frame (pane-frame sheet))
+	     (save-under (and frame (getf (frame-properties frame) :save-under)))
 	     (mirror
 	       (tv:make-window
 		 (if save-under 'temporary-genera-window 'genera-window)
@@ -316,15 +317,13 @@
   (unless (eq type ':use-old-bits)
     (unless *port-trigger*
       (let ((*port-trigger* t))
-	(with-sheet-medium (medium sheet)
-	  (repaint-sheet sheet medium (sheet-region sheet)))))))
+	(repaint-sheet sheet (sheet-region sheet))))))
 
 (scl:defmethod (tv:refresh-rectangle genera-window) (left top right bottom)
   (when (typep sheet 'clim-stream-sheet)
     (setf (clim-internals::stream-highlighted-presentation sheet) nil))
-  (with-sheet-medium (medium sheet)
-    ;;--- This is surely the wrong rectangle
-    (repaint-sheet sheet medium (make-bounding-rectangle left top right bottom))))
+  ;;--- This is surely the wrong rectangle
+  (repaint-sheet sheet (make-bounding-rectangle left top right bottom)))
 
 ;;; Called on position changes as well as size?
 (scl:defmethod (:change-of-size-or-margins genera-window :after) (&rest options)
@@ -360,7 +359,9 @@
 
 ;; This suffices to make c-m-Abort and c-m-Suspend work on CLIM windows.
 (scl:defmethod (:process genera-window) ()
-  (slot-value (pane-frame sheet) 'clim-internals::top-level-process))
+  (let ((frame (pane-frame sheet)))
+    (and frame
+	 (slot-value frame 'clim-internals::top-level-process))))
 
 ;; This makes the wholine, Function A, etc., the proper CLIM process, rather
 ;; than the CLIM event process.  This is because these guys look at

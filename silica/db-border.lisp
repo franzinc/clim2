@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.11 92/09/08 10:34:16 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.12 92/09/24 09:37:27 cer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -53,8 +53,9 @@
      ,@options))
 
 
-(defclass outlined-pane (border-pane)
-  ((background :initform +black+ :accessor pane-background)))
+(defclass outlined-pane (border-pane) ()
+  ;; Yes, the background for this pane is the default foreground color
+  (:default-initargs :background *default-pane-foreground*))
 
 (defmacro outlining ((&rest options &key thickness &allow-other-keys)
 		     &body contents)
@@ -65,7 +66,7 @@
 
 
 (defclass spacing-pane (border-pane) ()
-  (:default-initargs :thickness 2))
+  (:default-initargs :background *default-pane-background* :thickness 2))
 
 (defmacro spacing ((&rest options &key thickness &allow-other-keys) &body contents)
   (declare (ignore thickness))
@@ -79,7 +80,9 @@
 (defparameter *default-label-text-style* 
 	      (make-text-style :sans-serif :italic :small))
 
-(defclass label-pane (foreground-background-and-text-style-mixin labelled-gadget-mixin)
+(defclass label-pane 
+	  (foreground-background-and-text-style-mixin
+	   labelled-gadget-mixin)
     ()
   (:default-initargs :align-x :left
 		     ;; Supplying a text style here defeats the resource
@@ -109,3 +112,7 @@
 			 :align-x (gadget-alignment pane) :align-y :top))))
 
 
+;;; Separator panes
+
+(defclass separator (oriented-gadget-mixin) ())
+

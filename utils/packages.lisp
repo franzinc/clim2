@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.30 92/09/30 11:44:46 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.31 92/09/30 18:03:24 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -275,6 +275,7 @@
 
  #+Cloe-Runtime
  (:import-from cloe
+   destructuring-bind
    with-standard-io-syntax)
 
  #+Lucid
@@ -1463,22 +1464,31 @@
     
     ;; Processes
     all-processes
-    atomic-decf
-    atomic-incf
     current-process
     destroy-process
+    disable-process
+    enable-process
     make-process
     process-interrupt
+    process-name
+    process-state
     process-wait
     process-wait-with-timeout
+    process-whostate
     process-yield
-    without-scheduling
+    processp
+    restart-process
 
     ;; Locks
     make-lock
     make-recursive-lock
     with-lock-held
     with-recursive-lock-held
+
+    ;; Other synchronization
+    atomic-decf
+    atomic-incf
+    without-scheduling
 
     ;; SETF*
     defgeneric*
@@ -1724,7 +1734,6 @@
     dispatch-crossing-event
     dispatch-device-event
     dispatch-event
-    dispatch-repaint
     display-medium
     distribute-device-event
     distribute-event
@@ -1856,7 +1865,6 @@
     sheet-ancestor-p
     sheet-child
     sheet-children
-    sheet-cursor
     sheet-delta-transformation
     sheet-device-region
     sheet-device-transformation
@@ -1865,7 +1873,6 @@
     sheet-enabled-children
     sheet-enabled-p
     sheet-event-queue
-    sheet-grabbed-pointer-cursor
     sheet-grafted-p
     sheet-identity-transformation-mixin
     sheet-leaf-mixin
@@ -1931,7 +1938,6 @@
     with-drawing-options
     with-first-quadrant-coordinates
     with-local-coordinates
-    with-pointer-grabbed
     with-rotation
     with-scaling
     with-translation
@@ -2337,6 +2343,7 @@
     tracking-pointer
     unread-gesture
     with-input-focus
+    with-pointer-grabbed
     
     ;; Presentation types
     *input-context*
@@ -2702,8 +2709,8 @@
     make-application-frame
     note-command-disabled
     note-command-enabled
-    note-frame-disabled
     note-frame-deiconified
+    note-frame-disabled
     note-frame-enabled
     note-frame-iconified
     notify-user
@@ -2734,6 +2741,20 @@
     with-application-frame
     with-frame-manager
     
+    ;; Meta-frames, aka activities
+    *activity*
+    activity
+    activity-exit
+    activity-frame
+    activity-frame-window-close
+    activity-frame-window-select
+    activity-quit
+    frame-activity
+    select-activity-active-frame
+    start-application-frame
+    start-initial-application-frame
+    stop-application-frame
+
     ;; Progress notes
     *current-progress-note*
     dolist-noting-progress
@@ -3061,6 +3082,7 @@
     fix-coordinates
     hierarchical-menu-choose
     iconic-view
+    open-window-stream
     pointer-input-rectangle
     pointer-input-rectangle*
     pointer-place-rubber-band-line*
@@ -3472,6 +3494,7 @@
     find-port-type
     fit-region*-in-region*
     foreground-background-and-text-style-mixin
+    frame-input-buffer
     frame-manager-clear-progress-note
     frame-manager-default-exit-boxes
     frame-manager-display-help
@@ -3496,6 +3519,7 @@
     graft-pixel-height
     graft-pixel-width
     grid-pane
+    inhibit-updating-scroll-bars
     initialize-pull-down-menu
     intern-text-style
     invoke-callback-function
@@ -3563,6 +3587,7 @@
     port-glyph-for-character
     port-graft-class
     port-grafts
+    port-input-focus-selection
     port-invalidate-gesture-specs
     port-invoke-with-pointer-grabbed
     port-mirror->sheet-table
@@ -3571,7 +3596,6 @@
     port-note-gadget-activated
     port-note-gadget-deactivated
     port-process
-    port-set-pointer-cursor
     port-set-pointer-position
     port-set-sheet-pointer-cursor
     port-set-sheet-grabbed-pointer-cursor
@@ -3597,6 +3621,7 @@
     sheet-cached-device-region
     sheet-cached-device-transformation
     sheet-cursor
+    sheet-grabbed-pointer-cursor
     sheet-mute-input-mixin
     sheet-parent-mixin
     sheet-permanently-enabled-mixin

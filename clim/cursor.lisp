@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.17 92/08/21 16:33:45 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.18 92/09/08 15:17:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -175,6 +175,10 @@
 (defmethod port-note-cursor-change :after ((port basic-port) 
 					   cursor stream type old new)
   (declare (ignore old type cursor))
+  ;;--- This should really only do this when PORT-INPUT-FOCUS-SELECTION
+  ;;--- is :SHEET-UNDER-POINTER, since this causes the "wrong" thing to
+  ;;--- happen from the perspective of Genera users.  But where do we
+  ;;--- implement the :CLICK-TO-SELECT behavior?
   (setf (port-keyboard-input-focus port) (and new stream)))
 
 (defmethod port-note-cursor-change ((port basic-port) 

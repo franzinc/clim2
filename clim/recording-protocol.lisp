@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.21 92/09/08 15:18:29 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.22 92/09/24 09:39:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -116,6 +116,11 @@
   (with-bounding-rectangle* (x1 y1 x2 y2) record
     (call-next-method)
     (note-output-record-moved record (- left x1) (- top y1) (- right x2) (- bottom y2))))
+
+;; For people who roll their own from scratch
+(defmethod note-output-record-moved ((record t) dx1 dy1 dx2 dy2)
+  (declare (ignore dx1 dy1 dx2 dy2))
+  nil)
 
 (defmethod note-output-record-moved ((record output-record-element-mixin) dx1 dy1 dx2 dy2)
   (declare (ignore dx1 dy1 dx2 dy2))
@@ -645,6 +650,12 @@
     (replay-1 record x-offset y-offset)))
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
+(defmethod note-output-record-replayed ((record t) stream
+					&optional region x-offset y-offset)
+  (declare (ignore stream region x-offset y-offset))
+  nil)
+
+;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record output-record-mixin) stream
 					&optional region x-offset y-offset)
   (declare (ignore stream region x-offset y-offset))
@@ -774,6 +785,11 @@
   (when (output-record-stream record)
     (note-output-record-attached child (output-record-stream record))))
 
+;; For people who roll their own from scratch
+(defmethod note-output-record-attached ((record t) stream)
+  (declare (ignore stream))
+  nil)
+
 (defmethod note-output-record-attached ((record output-record-element-mixin) stream)
   (setf (output-record-stream record) stream))
 
@@ -803,6 +819,9 @@
       (when stream
 	(note-output-record-detached child)))))
 
+;; For people who roll their own from scratch
+(defmethod note-output-record-detached ((record t))
+  nil)
 
 (defmethod note-output-record-detached ((record output-record-element-mixin))
   (setf (output-record-stream record) nil))
@@ -1173,9 +1192,6 @@
 
 ;;; This method should cover a multitude of sins.
 (defmethod handle-repaint :after ((stream output-recording-mixin) region)
-  ;;--- Who should establish the clipping region?
-  ;;--- Is it here or in the REPAINT-SHEET method
-  ;; Who should clear the region?
   (let ((clear (region-intersection 
 		 region
 		 (or (pane-viewport-region stream)
@@ -1183,8 +1199,8 @@
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
 	(with-bounding-rectangle* (left top right bottom) clear
-	  (medium-clear-area medium left top right bottom)))
-      (stream-replay stream region))))
+	  (medium-clear-area medium left top right bottom)))))
+  (stream-replay stream region))
 
 
 ;;; Genera compatibility

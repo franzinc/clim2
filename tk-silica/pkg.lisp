@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: user -*-
+;; -*- mode: common-lisp; package: cl-user -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.6 92/07/01 15:48:02 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.7 92/07/27 19:30:23 cer Exp $
 
 (defpackage tk-silica
   (:nicknames xm-silica xt-silica)

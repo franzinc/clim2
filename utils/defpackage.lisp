@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defpackage.lisp,v 1.6 92/05/22 19:27:08 cer Exp $
+;; $fiHeader: defpackage.lisp,v 1.7 92/09/08 15:16:59 cer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 
@@ -120,7 +120,7 @@
 (defun perform-package-operation (operation symbol-names from-package into-package)
   (flet ((intern-symbol (name)
 	   (if from-package
-	       (intern (symbol-name name) from-package)
+	       (intern (string name) from-package)
 	       (string name))))
     (setf symbol-names
 	    (if (listp symbol-names)

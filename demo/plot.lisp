@@ -1,4 +1,4 @@
->;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
 ;;				-[]-
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.9 92/09/24 09:40:12 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.10 92/09/30 11:45:25 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -79,8 +79,10 @@
 (define-command-table plot-command-table)
 
 (define-presentation-translator select-graph-region
-    (graph-plot graph-region plot-command-table :gesture :select)
-  (x y window)
+    (graph-plot graph-region plot-command-table
+     :documentation "Select region"
+     :gesture :select)
+    (x y window)
   (let ((nx x)
 	(ny y)
 	(ox x)
@@ -91,24 +93,21 @@
 				:filled nil :ink +flipping-ink+)))
 	(declare (dynamic-extent #'draw-it))
 	(draw-it)
-	(clim-utils:letf-globally (((sheet-pointer-cursor window) (sheet-pointer-cursor window)))
+	(clim-utils:letf-globally (((sheet-pointer-cursor window)
+				    (sheet-pointer-cursor window)))
 	  (tracking-pointer (window)
 	    (:pointer-motion (x y)
-			     (draw-it) 
-			     (setq nx x ny y)
-			     (draw-it)
-			     (setf (sheet-pointer-cursor window)
-			       (if (< nx ox)
-				   (if (< ny oy)
-				       :upper-left
-				     :lower-left)
-				 (if (< ny oy)
-				       :upper-right
-				     :lower-right))))
-	    (:pointer-button-press (x y)
-				   (draw-it)
-				   (setq nx x ny y)
-				   (return (make-rectangle* ox oy nx ny)))))))))
+	     (draw-it) 
+	     (setq nx x ny y)
+	     (draw-it)
+	     (setf (sheet-pointer-cursor window)
+		   (if (< nx ox)
+		       (if (< ny oy) :upper-left :lower-left)
+		       (if (< ny oy) :upper-right :lower-right))))
+	    (:pointer-button-release (x y)
+	     (draw-it)
+	     (setq nx x ny y)
+	     (return (make-rectangle* ox oy nx ny)))))))))
 
 ;; Define a presentation translator from a graph-plot to a graph-region.
 ;; In that way we trivially write a command that will zoom into a
@@ -473,8 +472,8 @@
      (y-labels :initform  (copy-list '("Mexico City" "Tokyo" "New York"))))
   (:command-table (plot-demo :inherit-from (plot-command-table accept-values-pane)))
   (:panes 
-   (graph-window :application
-		 :label "Plot"
+    (graph-window :application
+		  :label "Plot"
 		  :display-function 'display-graph
 		  :incremental-redisplay t
 		  :end-of-line-action :allow
@@ -597,6 +596,50 @@
 			  (with-output-as-presentation (stream n 'number)
 			    (format stream "~2D" n)))))))))))))))
 
+(define-presentation-action drag-it-translator
+    (blank-area command plot-command-table 
+     :documentation "Drag scrolling"
+     :gesture :describe)
+    (window)
+  (let ((ox nil)
+	(oy nil)
+	;;--- We use this sheet because its a stable reference sheet.
+	;;--- We cannot use the window because its native transformation
+	;;--- changes as we go and than causes confusion
+	(sheet (frame-top-level-sheet (pane-frame window))))
+    (multiple-value-bind (minx miny maxx maxy) (viewport-range window)
+      (clim-utils:letf-globally (((sheet-pointer-cursor sheet) :move))
+	(tracking-pointer (sheet :multiple-window t)
+	  (:pointer-motion (x y)
+	   (multiple-value-bind (vx vy) (window-viewport-position window)
+	     (when ox
+	       (window-set-viewport-position
+		 window
+		 (min maxx (max minx (+ vx (- x ox))))		; +/-
+		 (min maxy (max miny (+ vy (- y oy))))))	; +/-
+	     (setq ox x oy y)))
+	  (:pointer-button-release (x y)
+	   (when ox
+	     (multiple-value-bind (vx vy) (window-viewport-position window)
+	       (window-set-viewport-position
+		 window
+		 (min maxx (max minx (+ vx (- x ox))))
+		 (min maxy (max miny (+ vy (- y oy))))))
+	     (return nil))))))))
+
+;; Return the range of values that make sense as arguments to WINDOW-SET-VIEWPORT-POSITION
+;;--- Perhaps this should be in CLIM
+(defun viewport-range (window)
+  (multiple-value-bind (vwidth vheight)
+      (bounding-rectangle-size (pane-viewport-region window))
+    (with-bounding-rectangle* (left top right bottom) 
+	(silica::viewport-contents-extent (pane-viewport window))
+      (let ((cwidth (- right left))
+	    (cheight (- bottom top)))
+	(values left top
+		(+ left (max 0 (- cwidth vwidth)))
+		(+ top (max 0 (- cheight vheight))))))))
+
 #+allegro
 (define-plot-demo-command (com-print-graph :name t :menu t)
     ((printer '(member :lw :lw2 :lw3)
@@ -613,53 +656,6 @@
     (setf (nth i (slot-value frame 'x-labels))
 	  (accept 'string
 		  :default (nth i (slot-value frame 'x-labels))))))
-
-
-
-(define-presentation-action drag-it-translator
-    (blank-area command plot-command-table 
-		:documentation "Drag"
-		:gesture :describe)
-  (window)
-  (let (ox oy
-	;;--- We use this sheet because its a stable reference sheet.
-	;;--- We cannot use the window because its native transformation
-	;;--- changes as we go and than causes confusion
-	(sheet (frame-top-level-sheet (pane-frame window))))
-    (multiple-value-bind (minx miny maxx maxy) (viewport-range window)
-      (clim-utils:letf-globally (((sheet-pointer-cursor sheet) :move))
-	(tracking-pointer (sheet :multiple-window t)
-	  (:pointer-motion (x y)
-			   (multiple-value-bind (vx vy) (window-viewport-position window)
-			     (when ox
-			       (window-set-viewport-position
-				window
-				(min maxx (max minx (+ vx (- x ox)))) ; +/-
-				(min maxy (max miny (+ vy (- y oy))))))  ; +/-
-			     (setq ox x oy y)))
-	  (:pointer-button-press (x y)
-				 (when ox
-				   (multiple-value-bind (vx vy) (window-viewport-position window)
-				     (window-set-viewport-position
-				      window
-				      (min maxx (max minx (+ vx (- x ox))))
-				      (min maxy (max miny (+ vy (- y oy))))))
-				   (return nil))))))))
-
-;;-- Perhaps this should be in clim.
-
-(defun viewport-range (window)
-  ;; Return the range of value that make sense as arguments to window-set-viewport-position
-  (multiple-value-bind (vwidth vheight)
-      (bounding-rectangle-size (pane-viewport-region window))
-    (with-bounding-rectangle* (left top right bottom) 
-	(silica::viewport-contents-extent (pane-viewport window))
-      (let ((cwidth (- right left))
-	    (cheight (- bottom top)))
-	(values left 
-		top
-		(+ left (max 0 (- cwidth vwidth)))
-		(+ top (max 0 (- cheight vheight))))))))
 
 (define-plot-demo-command (com-edit-y-label :name t :menu t)
     ((i 'y-label :gesture :select))
@@ -761,17 +757,19 @@
 		  (max (+ (aref plot-data i j) (- (random 10) 5)) 0))))
 	(redisplay-frame-pane frame (get-frame-pane frame 'graph-window))
 	(silica:medium-force-output (sheet-medium (get-frame-pane frame 'graph-window)))))))
+	
 
 (define-plot-demo-command (com-save-as-data :name t) ()
-  ;;-- It would be nice to be able to specify a default
-  ;;-- For the file and the directory
+  ;;--- It would be nice to be able to specify a default for the file
+  ;;--- and the directory
   (let ((file (select-file *application-frame* :title "Save Data")))
     (when file
       (when (and (probe-file file)
 		 (not (notify-user *application-frame* (format nil "Overwrite ~A" file)
 				   :style :warning)))
 	(return-from com-save-as-data))
-      (with-open-file (s file :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (with-open-file (s file :direction :output 
+			      :if-exists :supersede :if-does-not-exist :create)
 	(with-standard-io-syntax
 	  (with-slots (x-labels y-labels plot-data) *application-frame*
 	    (write x-labels :stream s)
@@ -782,12 +780,13 @@
 	    (terpri s)))))))
 	  
 (define-plot-demo-command (com-load-data :name t) ()
-  ;;-- It would be nice to ensure that user could only specify a file
-  ;;-- that exists
+  ;;--- It would be nice to ensure that user could only specify a file
+  ;;--- that exists
   (let ((file (select-file *application-frame* :title "Load Data")))
     (when file
       (unless (probe-file file)
-	(notify-user *application-frame* (format nil "File ~A does not exist" file) :style :error)
+	(notify-user *application-frame* (format nil "File ~A does not exist" file)
+		     :style :error)
 	(return-from com-load-data))
       (with-open-file (s file :direction :input)
 	(with-standard-io-syntax
@@ -814,5 +813,3 @@
     (run-frame-top-level frame)))
 
 (define-demo "Plotting Demo" do-plot-demo)
-
-

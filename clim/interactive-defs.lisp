@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.15 92/09/08 15:17:59 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.16 92/09/24 09:39:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,18 +19,34 @@
 
 
 ;; Noise strings and ACCEPT results
+
+
 (eval-when (compile load eval)
-(defstruct noise-string
+(defstruct (noise-string (:constructor make-noise-string-1))
   display-string
+  text-style
   unique-id)
 
-(defstruct (accept-result (:include noise-string))
+(defstruct (accept-result (:constructor make-accept-result-1)
+			  (:include noise-string))
   presentation-type
   presentation-object)
 )	;eval-when
 
-(defvar *noise-string-style* (make-text-style nil nil nil))
+(defvar *noise-string-style* (make-text-style nil nil :smaller))
+(defun-inline make-noise-string (&key display-string unique-id)
+  (make-noise-string-1 :display-string display-string 
+		       :text-style *noise-string-style*
+		       :unique-id unique-id))
 
+(defvar *accept-result-style* (make-text-style nil :italic nil))
+(defun-inline make-accept-result (&key display-string unique-id 
+				       presentation-type presentation-object)
+  (make-accept-result-1 :display-string display-string 
+			:text-style *accept-result-style*
+			:unique-id unique-id
+			:presentation-type presentation-type 
+			:presentation-object presentation-object))
 
 ;;--- Kludge for processing asynchronous presentation events...
 (defvar *input-buffer-empty* t)
@@ -224,9 +240,9 @@
 (defvar *accept-help* nil)
 
 (defmethod frame-manager-display-help 
-	   ((framem standard-frame-manager) frame stream continuation)
+	   (framem frame stream continuation)
   (declare (dynamic-extent continuation))
-  (declare (ignore frame))
+  (declare (ignore framem frame))
   (with-input-editor-typeout (stream :erase t)	;don't scribble over previous output
     (funcall continuation stream)))
 
@@ -234,7 +250,7 @@
   `(flet ((with-input-editor-help-body (,stream) ,@body))
      (declare (dynamic-extent #'with-input-editor-help-body))
      (let* ((frame (pane-frame stream))
-	    (framem (frame-manager frame)))
+	    (framem (and frame (frame-manager frame))))
        (frame-manager-display-help
 	 framem frame stream #'with-input-editor-help-body))))
 

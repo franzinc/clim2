@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-text.lisp,v 1.1 92/09/08 15:16:02 cer Exp $
+;; $fiHeader: db-text.lisp,v 1.2 92/09/24 09:38:42 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -29,12 +29,13 @@
       (setf (cursor-visibility (stream-text-cursor stream)) nil))))
 
 (defun do-text-editing (stream &key initial-contents (exit-gesture '(:end)))
-  (with-input-editing (stream :initial-contents initial-contents)
-    (with-activation-gestures (exit-gesture :override t)
-      (unwind-protect
-	  (read-token stream)
-	;; Eat the activation character
-	(read-gesture :stream stream :timeout 0)))))
+  (with-input-focus (stream)
+    (with-input-editing (stream :initial-contents initial-contents)
+      (with-activation-gestures (exit-gesture :override t)
+	(unwind-protect
+	    (read-token stream)
+	  ;; Eat the activation character
+	  (read-gesture :stream stream :timeout 0))))))
 
 
 ;;; Text field and text editor gadgets
@@ -44,7 +45,8 @@
 	  ;;--- It's awful that we need these to be CLIM streams
 	  (clim-stream-pane) 
     ()
-  (:default-initargs :draw-p t :record-p nil))
+  (:default-initargs :draw-p t :record-p nil
+		     :pointer-cursor :prompt))
 
 (defmethod handle-repaint :around ((pane text-editor-mixin) region)
   (declare (ignore region))
@@ -62,22 +64,11 @@
     (call-next-method))
   (deallocate-event event))
 
-(defmethod handle-event :around ((pane text-editor-mixin) (event pointer-enter-event))
-  (when (gadget-active-p pane)
-    (setf (pointer-cursor (port-pointer (port pane))) :prompt))
-  (call-next-method))
-
 (defmethod handle-event ((pane text-editor-mixin) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
       (setf armed t)
       (armed-callback pane (gadget-client pane) (gadget-id pane)))))
-
-(defmethod handle-event :around ((pane text-editor-mixin) (event pointer-exit-event))
-  (when (gadget-active-p pane)
-    ;;--- Should really restore the previous cursor...
-    (setf (pointer-cursor (port-pointer (port pane))) :default))
-  (call-next-method))
 
 (defmethod handle-event ((pane text-editor-mixin) (event pointer-exit-event))
   (with-slots (armed) pane

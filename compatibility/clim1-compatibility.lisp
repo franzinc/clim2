@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes; Patch-File: Yes -*-
 
-;; $fiHeader: clim1-compatibility.lisp,v 1.2 92/09/08 15:19:30 cer Exp $
+;; $fiHeader: clim1-compatibility.lisp,v 1.3 92/09/24 09:40:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -2263,34 +2263,6 @@
 			    :width width :height height
 			    :right-margin right-margin :bottom-margin bottom-margin
 			    :size-setter size-setter))
-
-
-(define-compatibility-function (open-window-stream make-clim-stream-pane)
-			       (&key parent
-				     left top right bottom width height
-				     (text-style *default-text-style*)
-				     (vertical-spacing 2)
-				     (end-of-line-action :allow)
-				     (end-of-page-action :allow)
-				     (background +white+)
-				     (foreground +black+)
-				     output-history 
-				     text-cursor text-margin
-				     label save-under 
-				     (scroll-bars :vertical)
-				     (class 'clim-stream-pane))
-  (with-look-and-feel-realization ()
-    (make-clim-stream-pane :type class
-			   :left left :top top :right right :bottom bottom
-			   :width width :height height
-			   :text-style text-style :vertical-spacing vertical-spacing
-			   :end-of-line-action end-of-line-action 
-			   :end-of-page-action end-of-page-action
-			   :background background :foreground foreground
-			   :output-history output-history
-			   :text-cursor text-cursor :text-margin text-margin
-			   :label label :save-under save-under
-			   :scroll-bars scroll-bars)))
 
 (define-compatibility-function (open-root-window find-port)
 			       (type &rest args)

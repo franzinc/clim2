@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: defun-utilities.lisp,v 1.6 92/03/04 16:20:13 cer Exp $
+;;; $fiHeader: defun-utilities.lisp,v 1.7 92/04/15 11:45:28 cer Exp $
 
 (in-package :clim-utils)
 
@@ -90,6 +90,6 @@
   (setf (get 'defun-inline 'zwei:definition-function-spec-type) 'zl:::scl:defun)
   (setf (get 'defun-inline 'gprint::formatter) 
 	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
-  (push 'defun-inline zwei:*irrelevant-functions*)
-  (push 'defun-inline zwei:*irrelevant-defining-forms*))
+  (pushnew 'defun-inline zwei:*irrelevant-functions*)
+  (pushnew 'defun-inline zwei:*irrelevant-defining-forms*))
 

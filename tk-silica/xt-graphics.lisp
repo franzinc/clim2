@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.41 92/09/30 11:45:41 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.42 92/09/30 18:04:28 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -223,6 +223,7 @@
 	  (recompute-gcs medium))))))
 
 
+
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
   (with-slots 
@@ -272,15 +273,17 @@
   ;;--- This should be a in silica method
   ;;--- This breaks the default-from-mirror-resource code when you
   ;;--- change the layout of a sheet
+  ;;--- Perhaps that should just setf slot-value instead
   #+ignore
   (repaint-sheet (medium-sheet medium) medium +everywhere+))
+
 
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
-  ;;-- The documentation sez we should repaint-the sheet here also
   )
+
 
 (defmethod (setf medium-ink) :after (ink (medium xt-medium))
   (declare (ignore ink))
@@ -1156,6 +1159,12 @@ and on color servers, unless using white or black")
 	(when (typep string-or-char 'character)
 	  (setq string-or-char (string string-or-char)))
 	(ecase align-x
+	  (:right
+	   (let ((dx (text-size sheet string-or-char
+				:text-style (medium-text-style medium)
+				:start start :end end)))
+	     (when towards-x (decf towards-x dx))
+	     (decf x dx)))
 	  (:center 
 	   (let ((dx (floor (text-size sheet string-or-char
 				       :text-style (medium-text-style medium)
@@ -1164,6 +1173,10 @@ and on color servers, unless using white or black")
 	     (decf x dx)))
 	  (:left nil))
 	(ecase align-y
+	  (:bottom
+	   (let ((dy (text-style-descent (medium-text-style medium) medium)))
+	     (decf y dy)
+	     (when towards-y (decf towards-y dy))))
 	  (:center 
 	   (let ((dy (- (text-style-descent (medium-text-style medium) medium)
 		      (floor (text-style-height (medium-text-style medium) medium) 2))))

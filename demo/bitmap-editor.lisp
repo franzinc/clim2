@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.3 92/09/24 09:40:04 cer Exp Locker: cer $
+;; $fiHeader: bitmap-editor.lisp,v 1.4 92/09/30 11:45:17 cer Exp Locker: cer $
 
 
 (in-package :clim-demo)
@@ -62,34 +62,33 @@
 	     (with-room-for-graphics (stream)
 	       (draw-rectangle* stream 0 0 30 10 :ink object))))
       (formatting-item-list (stream :n-columns 2)
-	  (formatting-cell (stream)
-	      (setf current-color
-		(position
-		 (accept `((completion ,colors)
-			   :name-key ,#'identity
-			   :printer ,#'display-color)
-			 :view '(clim-internals::radio-box-view 
-				 :orientation :vertical
-				 :toggle-button-options (:indicator-type nil))
-			 :stream stream
-			 :default (nth current-color colors)
-			 :prompt "Colors")
-		 colors)))
 	(formatting-cell (stream)
-	    (formatting-item-list (stream :n-columns 1)
-		(formatting-cell (stream)
-		    (accept-values-command-button (stream)
-		      "Add Color"
-		      (add-color-to-palette frame)))
-	      (formatting-cell (stream)
-		  (accept-values-command-button (stream)
-		    "Edit Color"
-		    (replace-current-color frame)))
-	      (formatting-cell (stream)
-		  (accept-values-command-button (stream)
-		    "Delete Color"
-		    (delete-current-color frame)))))))))
-
+	  (setf current-color
+		(position
+		  (accept `((completion ,colors)
+			    :name-key ,#'identity
+			    :printer ,#'display-color)
+			  :view '(radio-box-view 
+				   :orientation :vertical
+				   :toggle-button-options (:indicator-type nil))
+			  :stream stream
+			  :default (nth current-color colors)
+			  :prompt "Colors")
+		  colors)))
+	(formatting-cell (stream)
+	  (formatting-item-list (stream :n-columns 1)
+	    (formatting-cell (stream)
+	      (accept-values-command-button (stream)
+		  "Add Color"
+		(add-color-to-palette frame)))
+	    (formatting-cell (stream)
+	      (accept-values-command-button (stream)
+		  "Edit Color"
+		(replace-current-color frame)))
+	    (formatting-cell (stream)
+	      (accept-values-command-button (stream)
+		  "Delete Color"
+		(delete-current-color frame)))))))))
 
 
 (defun replace-current-color (frame)
@@ -114,7 +113,7 @@
 	 (rows (slot-value frame 'rows))
 	 (columns (slot-value frame 'columns))
 	 (cell-size (slot-value frame 'cell-size))
-	 (view '(clim-internals::slider-view :show-value-p t)))
+	 (view '(slider-view :show-value-p t)))
     (accepting-values (stream :own-window t :label "Editor options")
       (setq rows (accept '(integer 1 256) 
 			 :view view
@@ -183,10 +182,9 @@
       (window-clear stream)
       (surrounding-output-with-border (stream)
 	(draw-rectangle* stream 10 10 (+ 10 rows) (+ 10 columns)
-			 :ink 
-			 (make-pattern array colors))))))
+			 :ink (make-pattern array colors))))))
 
-(defmethod run-frame-top-level :before ((frame bitmap-editor))
+(defmethod run-frame-top-level :before ((frame bitmap-editor) &key)
   (display-everything frame))
 
 (defun display-everything (frame)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.31 92/09/08 15:16:35 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.32 92/09/24 09:37:33 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,7 +11,7 @@
 
 ;; The abstract scroller pane class
 ;;--- Need to be able to specify horizontal and vertical separately
-(defclass scroller-pane ()
+(defclass scroller-pane (foreground-background-and-text-style-mixin)
     ((scroll-bars :initarg :scroll-bars
 		  :reader scroller-pane-scroll-bar-policy)
      viewport
@@ -29,6 +29,7 @@
 				 client-space-requirement-mixin
 				 wrapping-space-mixin
 				 permanent-medium-sheet-output-mixin
+				 pane-repaint-background-mixin
 				 layout-pane)
     ())
 
@@ -48,6 +49,18 @@
 (defmethod pane-scroller ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
     (and viewport (viewport-scroller-pane viewport))))
+
+;;--- Use DEFOPERATION
+(defmethod pane-viewport ((sheet standard-encapsulating-stream))
+  (pane-viewport (encapsulating-stream-stream sheet)))
+
+;;--- Use DEFOPERATION
+(defmethod pane-viewport-region ((sheet standard-encapsulating-stream))
+  (pane-viewport-region (encapsulating-stream-stream sheet)))
+
+;;--- Use DEFOPERATION
+(defmethod pane-scroller ((sheet standard-encapsulating-stream))
+  (pane-scroller (encapsulating-stream-stream sheet)))
 
 (defmethod gadget-supplied-scrolling (frame-manager frame contents &rest ignore)
   (declare (ignore frame-manager frame ignore contents))
@@ -98,7 +111,8 @@
 	(progn
 	  (check-type scroll-bars
 		      (member :both :dynamic :vertical :horizontal))
-	  (with-slots (vertical-scroll-bar horizontal-scroll-bar (c contents) viewport) pane
+	  (with-slots (vertical-scroll-bar horizontal-scroll-bar
+		       (c contents) viewport foreground background) pane
 	    (with-look-and-feel-realization (frame-manager frame)
 	      (let ((verticalp
 		      (member scroll-bars '(:both :dynamic :vertical)))
@@ -110,12 +124,16 @@
 			     :orientation :vertical
 			     :id :vertical
 			     :client pane
+			     :background background
+ 			     :foreground foreground
 			     :shared-medium-sheet pane))
 		      horizontal-scroll-bar 	    
 		      (and horizontalp
 			   (make-pane 'scroll-bar 
 			     :orientation :horizontal
 			     :id :horizontal
+			     :background background
+ 			     :foreground foreground
 			     :client pane
 			     :shared-medium-sheet pane))
 		      c contents
@@ -139,29 +157,39 @@
 		;;--- Add callbacks
 		)))))))
 
+(defvar *inhibit-updating-scroll-bars* nil)
+(defmacro inhibit-updating-scroll-bars ((stream) &body body)
+  `(unwind-protect
+       (let ((*inhibit-updating-scroll-bars* t))
+	 ,@body)
+     (let ((viewport (pane-viewport ,stream)))
+       (when viewport
+	 (update-scroll-bars viewport)))))
+
 (defun update-scroll-bars (viewport)
-  ;;--- This is not the most efficient thing in the world
-  (let ((scroller (viewport-scroller-pane viewport)))
-    (multiple-value-bind (changedp
-			  hscroll-bar hscroll-bar-enabled-p
-			  vscroll-bar vscroll-bar-enabled-p)
-	(compute-dynamic-scroll-bar-values scroller)
-      (update-dynamic-scroll-bars
-	scroller changedp
-	hscroll-bar hscroll-bar-enabled-p 
-	vscroll-bar vscroll-bar-enabled-p t))
-    (with-bounding-rectangle* (left top right bottom) 
-	(viewport-contents-extent viewport)
-      (with-bounding-rectangle* (vleft vtop vright vbottom)
-	  (viewport-viewport-region viewport)
-	(let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
-	       (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
-	  (when vertical-scroll-bar
-	    (update-scroll-bar vertical-scroll-bar
-			       top bottom vtop vbottom))
-	  (when horizontal-scroll-bar
-	    (update-scroll-bar horizontal-scroll-bar
-			       left right vleft vright)))))))
+  (unless *inhibit-updating-scroll-bars*
+    ;;--- This is not the most efficient thing in the world
+    (let ((scroller (viewport-scroller-pane viewport)))
+      (multiple-value-bind (changedp
+			    hscroll-bar hscroll-bar-enabled-p
+			    vscroll-bar vscroll-bar-enabled-p)
+	  (compute-dynamic-scroll-bar-values scroller)
+	(update-dynamic-scroll-bars
+	  scroller changedp
+	  hscroll-bar hscroll-bar-enabled-p 
+	  vscroll-bar vscroll-bar-enabled-p t))
+      (with-bounding-rectangle* (left top right bottom) 
+	  (viewport-contents-extent viewport)
+	(with-bounding-rectangle* (vleft vtop vright vbottom)
+	    (viewport-viewport-region viewport)
+	  (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
+		 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
+	    (when vertical-scroll-bar
+	      (update-scroll-bar vertical-scroll-bar
+				 top bottom vtop vbottom))
+	    (when horizontal-scroll-bar
+	      (update-scroll-bar horizontal-scroll-bar
+				 left right vleft vright))))))))
 
 (defmethod note-sheet-grafted :before ((sheet scroll-bar))
   (setf (scroll-bar-current-size sheet) nil))
@@ -322,8 +350,9 @@
 		   (multiple-value-call #'medium-clear-area
 					medium (bounding-rectangle* region)))
 		 (replay (stream-output-history sheet) sheet region)))))
-	  (when (and (/= left x) (/= top y))
-	    (note-viewport-position-changed (pane-frame sheet) sheet)))))))
+	  (let ((frame (pane-frame sheet)))
+	    (when (and (/= left x) (/= top y) frame)
+	      (note-viewport-position-changed frame sheet))))))))
 
 (defmethod note-viewport-position-changed (frame pane)
   nil)
@@ -355,7 +384,8 @@
 (defmethod initialize-instance :after ((pane scroll-bar-pane)
 				       &key orientation shaft-thickness
 					    frame-manager frame)
-  (with-slots (min-target-pane max-target-pane shaft-pane shared-medium-sheet) pane
+  (with-slots (min-target-pane max-target-pane shaft-pane
+	       shared-medium-sheet foreground background) pane
     (with-look-and-feel-realization (frame-manager frame)
       (let ((inferiors
 	      (ecase orientation
@@ -368,6 +398,8 @@
 			      :end :less-than
 			      :width shaft-thickness
 			      :height shaft-thickness
+			      :background background
+			      :foreground foreground
 			      :shared-medium-sheet shared-medium-sheet))
 		      (setq shaft-pane 
 			    (make-pane 'scroll-bar-shaft-pane 
@@ -375,6 +407,8 @@
 			      :width shaft-thickness
 			      :height 0
 			      :max-height +fill+
+			      :background background
+			      :foreground foreground
 			      :shared-medium-sheet shared-medium-sheet))
 		      (setq max-target-pane
 			    (make-pane 'scroll-bar-target-pane
@@ -382,6 +416,8 @@
 			      :end :greater-than
 			      :width shaft-thickness
 			      :height shaft-thickness
+			      :background background
+			      :foreground foreground
 			      :shared-medium-sheet shared-medium-sheet)))))
 		(:horizontal
 		  (spacing (:thickness 1)
@@ -392,6 +428,8 @@
 			      :end :less-than
 			      :width shaft-thickness
 			      :height shaft-thickness
+			      :background background
+			      :foreground foreground
 			      :shared-medium-sheet shared-medium-sheet))
 		      (setq shaft-pane 
 			    (make-pane 'scroll-bar-shaft-pane
@@ -399,6 +437,8 @@
 			      :width 0
 			      :max-width +fill+
 			      :height shaft-thickness
+			      :background background
+			      :foreground foreground
 			      :shared-medium-sheet shared-medium-sheet))
 		      (setq max-target-pane
 			    (make-pane 'scroll-bar-target-pane
@@ -406,6 +446,8 @@
 			      :end :greater-than
 			      :width shaft-thickness
 			      :height shaft-thickness
+			      :background background
+			      :foreground foreground
 			      :shared-medium-sheet shared-medium-sheet))))))))
 	(sheet-adopt-child pane inferiors)))))
 
@@ -602,6 +644,8 @@
 	  (space-requirement-mixin
 	   sheet-single-child-mixin
 	   shared-medium-sheet-output-mixin
+	   foreground-background-and-text-style-mixin
+	   pane-repaint-background-mixin
 	   leaf-pane)
     ((end :initarg :end)
      (scroll-bar :initarg :scroll-bar)
@@ -610,7 +654,7 @@
 (defmethod initialize-instance :after ((pane scroll-bar-target-pane) &key end)
   (let* ((scroll-bar (slot-value pane 'scroll-bar))
 	 (orientation (gadget-orientation scroll-bar)))
-    (setf (sheet-cursor pane)
+    (setf (slot-value pane 'pointer-cursor)
 	  (ecase end
 	    (:less-than 
 	      (ecase orientation
@@ -625,30 +669,12 @@
 					     &key &allow-other-keys)
   (setf (slot-value pane 'coord-cache) nil))
 
-#+If-we-had-cheap-xforms...
-(defmethod sheet-region-changed :after ((pane scroll-bar-target-pane) &key)
-  (let ((cursor (sheet-cursor pane)))
-    (ecase cursor
-      ((:scroll-up :scroll-down) nil)
-      (:scroll-left
-	(let ((xform +identity-transformation+))
-	  (setq xform (compose-with-rotation xform pi/2 :reuse xform))
-	  (setq xform (compose-with-translation xform (bounding-rectangle-width pane) 0 
-						:reuse xform))
-	  (setf (sheet-transformation pane) xform)))
-      (:scroll-right
-	(let ((xform +identity-transformation+))
-	  (setq xform (compose-with-rotation xform (- pi/2) :reuse xform))
-	  (setq xform (compose-with-translation xform 0 (bounding-rectangle-height pane)
-						:reuse xform))
-	  (setf (sheet-transformation pane) xform))))))
-
 (defmethod handle-repaint ((pane scroll-bar-target-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
       (draw-rectangle* medium left top (1- right) (1- bottom)
-		       :filled nil))
+		       :filled nil :ink (medium-foreground medium)))
     (draw-target pane medium)))
 
 ;;; You can pass :FILLED T to this in order to highlight the target when clicked on...
@@ -656,7 +682,7 @@
 			&key filled (ink +foreground-ink+))
   (let ((coord-cache (slot-value pane 'coord-cache)))
     (unless coord-cache
-      (let ((identity (sheet-cursor pane)))
+      (let ((identity (sheet-pointer-cursor pane)))
 	(setq coord-cache
 	      (setf (slot-value pane 'coord-cache)
 		    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -688,6 +714,8 @@
 	  (space-requirement-mixin
 	   sheet-single-child-mixin
 	   shared-medium-sheet-output-mixin
+	   foreground-background-and-text-style-mixin
+	   pane-repaint-background-mixin
 	   leaf-pane)
     ((scroll-bar :initarg :scroll-bar)
      (needs-erase :initform nil)))
@@ -695,17 +723,17 @@
 (defmethod initialize-instance :after ((pane scroll-bar-shaft-pane) &key)
   (let* ((scroll-bar (slot-value pane 'scroll-bar))
 	 (orientation (gadget-orientation scroll-bar)))
-    (setf (sheet-cursor pane)
+    (setf (slot-value pane 'pointer-cursor)
 	  (ecase orientation
-	    (:horizontal ':horizontal-scroll)
-	    (:vertical ':vertical-scroll)))))
+	    (:horizontal :horizontal-scroll)
+	    (:vertical :vertical-scroll)))))
 
 (defmethod handle-repaint ((pane scroll-bar-shaft-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
       (draw-rectangle* medium left top (1- right) (1- bottom)
-		       :filled nil))
+		       :filled nil :ink (medium-foreground medium)))
     (draw-thumb pane medium)))
 
 (defparameter *scroll-bar-thumb-ink* (make-gray-color 2/3))
@@ -723,7 +751,7 @@
 	 (max-value (gadget-max-value scroll-bar))
 	 (gadget-size (or (scroll-bar-current-size scroll-bar) 0))
 	 (gadget-range (abs (- max-value min-value)))
-	 (identity (sheet-cursor pane)))
+	 (identity (sheet-pointer-cursor pane)))
     (flet ((draw-car (medium left top right bottom which)
 	     (decf right) (decf bottom)
 	     (draw-rectangle* medium left top right bottom
@@ -828,26 +856,6 @@
       (#.+pointer-middle-button+
        (scroll-elevator-callback
 	 scroll-bar client id orientation x y)))))
-
-(defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
-  (setf (pointer-cursor (port-pointer (port pane)))
-	(if (eq (gadget-orientation (slot-value pane 'scroll-bar)) :vertical)
-	    :vertical-scroll
-	    :horizontal-scroll)))
-
-(defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-exit-event))
-  ;;--- Should really restore the previous cursor...
-  (setf (pointer-cursor (port-pointer (port pane))) :default))
-
-(defmethod handle-event ((pane scroll-bar-target-pane) (event pointer-enter-event))
-  (setf (pointer-cursor (port-pointer (port pane)))
-	(if (eq (gadget-orientation (slot-value pane 'scroll-bar)) :vertical)
-	    (if (eq (slot-value pane 'end) :less-than) :scroll-up :scroll-down)
-	    (if (eq (slot-value pane 'end) :less-than) :scroll-left :scroll-right))))
-
-(defmethod handle-event ((pane scroll-bar-target-pane) (event pointer-exit-event))
-  ;;--- Should really restore the previous cursor...
-  (setf (pointer-cursor (port-pointer (port pane))) :default))
 
 (defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-event))
   (deallocate-event event))

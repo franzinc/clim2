@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.30 92/09/30 11:45:02 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.31 92/09/30 18:03:51 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -120,7 +120,7 @@
   (declare (ignore stream x-offset y-offset))
   (let ((gadget (output-record-gadget record)))
     (when (port gadget)
-      (repaint-sheet gadget nil region))))
+      (repaint-sheet gadget region))))
 
 
 ;; Need to add the gadget to the stream
@@ -152,8 +152,8 @@
   ;;--- (PANE-FRAME STREAM) or *APPLICATION-FRAME*?
   (let* ((frame (pane-frame stream))
 	 (framem (frame-manager frame)))
-    (assert frame)
-    (assert framem)
+    (assert (and frame framem) ()
+	    "There must be both a frame and frame manager active")
     (multiple-value-bind (x y) (stream-cursor-position stream)
       (let* (gadget
 	     (record
@@ -179,8 +179,8 @@
   (with-keywords-removed (args args '(:update-gadget))
     (let* ((frame (pane-frame stream))
 	   (framem (frame-manager frame)))
-      (assert frame)
-      (assert framem)
+      (assert (and frame framem) ()
+	      "There must be both a frame and frame manager active")
       (multiple-value-bind (x y) (stream-cursor-position stream)
 	(let* (new
 	       gadget
@@ -365,24 +365,36 @@
   (declare (ignore present-p))
   (flet ((update-gadget (record gadget check-box)
 	   (declare (ignore record gadget))
-	   (map-over-sheets
-	     #'(lambda (sheet)
-		 (when (typep sheet 'toggle-button)
-		   (setf (gadget-value sheet)
-			 (and default-supplied-p
-			      (member (gadget-id sheet) default
-				      :test test 
-				      ;;--- Should the value-key be used?
-				      :key value-key) 
-			      t))))
-	     check-box)))
+	   (let ((current-selection nil))
+	     (map-over-sheets
+	      #'(lambda (sheet)
+		  (when (typep sheet 'toggle-button)
+		    (let ((value 
+			   (and default-supplied-p
+				(member (gadget-id sheet) default
+					:test test 
+					;;--- Should the value-key be used?
+					:key value-key) 
+				t)))
+		      (when value (push sheet current-selection))
+		      (setf (gadget-value sheet) value))))
+	      check-box)
+	     (setf (check-box-current-selection check-box) current-selection))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let* ((toggle-options
-	       (getf (view-gadget-initargs view) :toggle-button-options))
+	      (getf (view-gadget-initargs view)
+		    :toggle-button-options))
+	     (current-selection nil)
 	     (buttons
 	       (map 'list
 		    #'(lambda (element)
 			(let* ((value (funcall value-key element))
+			       (actual-value (and default-supplied-p
+					  (member value default
+						  :test test 
+						  ;;--- Should the value-key be used?
+						  :key value-key) 
+					  t))
 			       (button
 				 (apply #'make-pane 'toggle-button 
 				   :label
@@ -392,15 +404,10 @@
 					   (pixmap-from-menu-item stream name printer nil)))
 				   :indicator-type
 				     (getf toggle-options :indicator-type :some-of)
-				   :value
-				     (and default-supplied-p
-					  (member value default
-						  :test test 
-						  ;;--- Should the value-key be used?
-						  :key value-key) 
-					  t)
+				   :value actual-value
 				   :id value
 				   toggle-options)))
+			  (when actual-value (push button current-selection))
 			  button))
 		    sequence))
 	     (check-box (apply #'make-pane 'check-box
@@ -409,6 +416,7 @@
 						  '(:toggle-button-options))
 				 (list :label (and (stringp prompt) prompt)
 				       :choices buttons
+				       :current-selection current-selection
 				       :client stream 
 				       :id query-identifier
 				       :value-changed-callback

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.27 92/09/22 19:36:40 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.28 92/09/30 18:03:09 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -528,10 +528,10 @@
 
 
 (defun event-type (event)
-  (declare (optimize (speed 3) (safety 0)))
   (elt *event-types* (x11::xevent-type event)))
 
 (defun encode-event-mask (mask)
+  (declare (optimize (speed 3) (safety 0)))
   (cond ((integerp mask)
 	 mask)
 	((listp mask)

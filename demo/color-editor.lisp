@@ -1,11 +1,17 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.3 92/09/30 18:04:10 cer Exp Locker: cer $
+;; $fiHeader: color-editor.lisp,v 1.4 92/10/02 09:22:38 cer Exp $
 
 (in-package :clim-demo)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
+
+(defclass color-chooser-pane (clim-stream-pane) ())
+
+(defmethod handle-repaint :after ((stream color-chooser-pane) region)
+  (declare (ignore region))
+  (display-color (pane-frame stream) stream))
 
 (define-application-frame color-chooser ()
     ((color :accessor color :initform (make-rgb-color 0 0 0))
@@ -13,11 +19,12 @@
      intensity hue saturation)
   (:menu-bar nil)
   (:panes 
-    (display :application
-	     :scroll-bars nil
-	     :display-function 'display-color
-	     ;; Make sure we don't have a useless cursor blinking away...
-	     :initial-cursor-visibility nil)
+    (display (make-clim-stream-pane 
+	       :type 'color-chooser-pane
+	       :scroll-bars nil
+	       :display-function 'display-color
+	       ;; Make sure we don't have a useless cursor blinking away...
+	       :initial-cursor-visibility nil))
     (exit push-button 
 	  :label "Exit"
 	  :activate-callback #'(lambda (button)
@@ -73,8 +80,9 @@
 
 (defmethod display-color ((frame color-chooser) stream)
   (with-bounding-rectangle* (left top right bottom) (window-viewport stream)
-    (draw-rectangle* stream left top right bottom
-		       :filled t :ink (color frame))))
+    (with-output-recording-options (stream :record nil)
+      (draw-rectangle* stream left top right bottom
+		       :filled t :ink (color frame)))))
 
 (defmacro define-rgb-callbacks (color)
   (check-type color (member red green blue))
@@ -161,3 +169,4 @@
     (color frame)))
 
 (define-demo "Color Chooser" do-color-chooser)
+

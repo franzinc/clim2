@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: user -*-
+;; -*- mode: common-lisp; package: cl-user -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.12 92/08/18 17:53:43 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.13 92/09/22 19:36:35 cer Exp $
 
 (defpackage :tk
   ;;-- No we really need

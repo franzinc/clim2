@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: extended-regions.lisp,v 1.2 92/04/15 11:45:29 cer Exp $
+;; $fiHeader: extended-regions.lisp,v 1.3 92/05/07 13:11:37 cer Exp $
 
 (in-package :clim-utils)
 
@@ -140,6 +140,26 @@
 (defclass polygon-mixin ()
     ((coords :type vector :initarg :coords)
      (points :type vector :initarg :points :reader polygon-points)))
+
+(defmethod slot-unbound (class (polygon polygon-mixin) (slot (eql 'points)))
+  (declare (ignore class))
+  (let* ((coords (slot-value polygon 'coords))
+	 (npoints (/ (length coords) 2))
+	 (points (make-array npoints :fill-pointer nil)))
+    (dotimes (i npoints)
+      (setf (aref points i) (make-point (aref coords (+ (* i 2) 0))
+					(aref coords (+ (* i 2) 1)))))
+    (setf (slot-value polygon 'points) points)))
+
+(defmethod slot-unbound (class (polygon polygon-mixin) (slot (eql 'coords)))
+  (declare (ignore class))
+  (let* ((points (slot-value polygon 'points))
+	 (npoints (length points))
+	 (coords (make-array (* npoints 2) :fill-pointer nil)))
+    (dotimes (i npoints)
+      (setf (aref coords (+ (* i 2) 0)) (point-x (aref points i))
+	    (aref coords (+ (* i 2) 1)) (point-y (aref points i))))
+    (setf (slot-value polygon 'coords) coords)))
 
 (defmethod map-over-polygon-coordinates (function (polygon polygon-mixin))
   (with-slots (coords points) polygon

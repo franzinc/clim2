@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.17 92/09/08 10:35:32 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.18 92/09/22 19:38:14 cer Exp $
 
 
 (in-package :xm-silica)
@@ -51,16 +51,14 @@
 		   'clim-internals::pointer-documentation-pane
 		   :max-width +fill+
 		   ;;--- This should be one line height in some text style
-		   :height 15)))
-	   (application-panes (call-next-method)))
+		   :height 15))))
       (cond ((and menu-bar-pane pointer-doc-pane)
-	     (vertically () menu-bar-pane application-panes pointer-doc-pane))
+	     (vertically () menu-bar-pane pane pointer-doc-pane))
 	    (menu-bar-pane
-	     (vertically () menu-bar-pane application-panes))
+	     (vertically () menu-bar-pane pane))
 	    (pointer-doc-pane
-	     (vertically () application-panes pointer-doc-pane))
-	    (t
-	     application-panes)))))
+	     (vertically () pane pointer-doc-pane))
+	    (t pane)))))
 
 
 ;;;
@@ -81,7 +79,8 @@
      :sheet (frame-top-level-sheet frame))))
 
 (defmethod handle-event (sheet (event window-manager-delete-event))
-  (frame-exit (pane-frame sheet)))
+  (and (pane-frame sheet)
+       (frame-exit (pane-frame sheet))))
 
 ;;; Menu code
 

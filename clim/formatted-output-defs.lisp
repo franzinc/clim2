@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: formatted-output-defs.lisp,v 1.4 92/08/18 17:24:51 cer Exp $
+;; $fiHeader: formatted-output-defs.lisp,v 1.5 92/09/24 09:38:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -70,14 +70,19 @@
 
 
 (defmacro surrounding-output-with-border ((&optional stream
-					   &key (shape ':rectangle) (move-cursor t))
+					   &rest drawing-options
+					   &key (shape ':rectangle) (move-cursor t)
+					   &allow-other-keys)
 					  &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
+  (declare (ignore move-cursor))
   (default-output-stream stream surrounding-output-with-border)
-  `(flet ((surrounding-output-with-border-body (,stream) ,@body))
-     (declare (dynamic-extent #'surrounding-output-with-border-body))
-     (invoke-surrounding-output-with-border ,stream #'surrounding-output-with-border-body 
-					    ,shape :move-cursor ,move-cursor)))
+  (with-keywords-removed (drawing-options drawing-options '(:shape))
+    `(flet ((surrounding-output-with-border-body (,stream) ,@body))
+       (declare (dynamic-extent #'surrounding-output-with-border-body))
+       (invoke-surrounding-output-with-border
+	 ,stream #'surrounding-output-with-border-body ,shape
+	 ,@(copy-list drawing-options)))))
 
 (defmacro filling-output ((&optional stream &rest keys
 			   &key (fill-width '(80 :character))

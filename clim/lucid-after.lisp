@@ -22,7 +22,7 @@
 (in-package :lucid)
 
 
-;;; $fiHeader$
+;;; $fiHeader: lucid-after.lisp,v 1.1 92/02/24 13:18:28 cer Exp $
 ;;; Workaround for a disksave/hash bug.  
 ;;;
 (defun rehash-ptypes ()
@@ -47,6 +47,10 @@
 (eval-when (load)
   (pushnew :clim-2-0 *features*)
   (defparameter *clim-repacking-date* (universal-time-string (get-universal-time)))
-  ;;;(precompile-generic-functions)
+  #+ignore				;breaks in 2.0
+  (unless (member :application *features*)
+    (precompile-generic-functions))
   ;;(clos-system:revalidate-all-mki-optimizations)
   )
+
+(lucid::add-patchable-product :clim 20000)

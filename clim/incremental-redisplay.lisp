@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.12 92/08/21 16:33:49 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.13 92/09/24 09:38:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -325,24 +325,26 @@
 	    (output-record-position record))
       (declare (type coordinate x y))
       (with-end-of-page-action (stream :allow)
-	(with-stream-cursor-position-saved (stream)
-	  (stream-set-cursor-position
-	    stream (+ sup-x x) (+ sup-y y))
-	  (with-stream-redisplaying (stream)
-	    (let ((parent (output-record-parent record)))
-	      ;; Need to delete it, because its bounding rectangle is about to be bashed.
-	      ;; It will be reinserted, as a matter of course.  Watch out for when
-	      ;; the parent is NIL or when the record didn't really get inserted into
-	      ;; the parent, which can happen if a user aborts a redisplay.
-	      (when parent
-		(delete-output-record record parent nil))
-	      (flet ((redisplay-new-output-records (parent)
-		       (declare (ignore parent))
-		       (with-output-recording-options (stream :draw nil) 
-			 (compute-new-output-records record stream))))
-		(declare (dynamic-extent #'redisplay-new-output-records))
-		(with-output-record-1 #'redisplay-new-output-records
-				      stream parent sup-x sup-y))))))
+	(with-end-of-line-action (stream :allow)
+	  (with-stream-cursor-position-saved (stream)
+	    (stream-set-cursor-position stream (+ sup-x x) (+ sup-y y))
+	    (with-stream-redisplaying (stream)
+	      (let ((parent (output-record-parent record)))
+		;; Need to delete it, because its bounding rectangle is
+		;; about to be bashed.  It will be reinserted, as a matter
+		;; of course.  Watch out for when the parent is NIL or
+		;; when the record didn't really get inserted into the
+		;; parent, which can happen if a user aborts a redisplay.
+		(inhibit-updating-scroll-bars (stream)
+		  (when parent
+		    (delete-output-record record parent nil))
+		  (flet ((redisplay-new-output-records (parent)
+			   (declare (ignore parent))
+			   (with-output-recording-options (stream :draw nil) 
+			     (compute-new-output-records record stream))))
+		    (declare (dynamic-extent #'redisplay-new-output-records))
+		    (with-output-record-1 #'redisplay-new-output-records
+					  stream parent sup-x sup-y))))))))
       (multiple-value-bind (erases moves draws erase-overlapping move-overlapping)
 	  (compute-difference-set record t)
 	(when check-overlapping

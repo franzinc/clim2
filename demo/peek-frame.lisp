@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: peek-frame.lisp,v 1.1 92/10/01 10:03:37 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -252,7 +252,7 @@ Revised and stripped down by Scott McKay (SWM@Symbolics.COM) for CLIM 2.0.
 	  (stream display-pane)
 	  (framem (frame-manager *application-frame*)))
       (clim-utils:letf-globally (((frame-manager-dialog-view framem) +gadget-dialog-view+))
-	(accepting-values (stream :own-window t)
+	(accepting-values (stream :own-window t :label "Peek Options")
 	  (setq gc (accept 'boolean :stream stream
 			   :default gc :prompt "Show GC"))
 	  (terpri stream)

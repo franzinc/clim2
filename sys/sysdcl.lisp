@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.27 92/09/24 09:39:37 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.28 92/09/30 18:03:56 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -91,10 +91,13 @@
 (defun frob-pathname (subdir
 		      &optional (dir #+Allegro excl::*source-pathname*
 				     #+Lucid lcl::*source-pathname*
-				     #-(or Allegro Lucid) (or *compile-file-pathname*
-							      *load-pathname*)))
+				     #+Cloe-Runtime #p"E:\\CLIM2\\SYS\\SYSDCL.LSP"
+				     #-(or Allegro Lucid Cloe-Runtime)
+				     (or *compile-file-pathname*
+					 *load-pathname*)))
   (namestring
     (make-pathname
+      :defaults dir
       :directory (append (butlast (pathname-directory dir)) (list subdir)))))
 
 #+Genera
@@ -136,11 +139,9 @@
 
   ;; Establish a uniform stream model
   ("clim-streams")
-  (#-Cloe-Runtime "cl-stream-classes" #+Cloe-Runtime "clstrcla"
-   :features (not clim-uses-lisp-stream-classes))
+  ("cl-stream-classes" :features (not clim-uses-lisp-stream-classes))
   ("minima-stream-classes" :features Minima)
-  (#-Cloe-Runtime "cl-stream-functions" #+Cloe-Runtime "clstrfun"
-   :features (and (not clim-uses-lisp-stream-functions) (not Lucid)))
+  ("cl-stream-functions" :features (and (not clim-uses-lisp-stream-functions) (not Lucid)))
   ("lucid-stream-functions" :features Lucid)
   ("genera-streams" :features Genera)
   ("excl-streams" :features Allegro)
@@ -210,7 +211,7 @@
   
   ;; Definitions and protocols
   ("stream-class-defs")
-  (#-Cloe-Runtime "interactive-defs" #+Cloe-Runtime "int-defs")
+  ("interactive-defs")
   ("cursor")
   ("view-defs")
   ("input-defs")
@@ -231,7 +232,7 @@
    :load-before-compile ("graphics-recording"))
 
   ;; Input editing
-  (#-Cloe-Runtime "interactive-protocol" #+Cloe-Runtime "int-prot"
+  ("interactive-protocol"
    :load-before-compile ("clim-defs"))
   ("input-editor-commands")
 
@@ -258,7 +259,7 @@
    :load-before-compile ("presentations"))
   ("ptypes2"
    :load-before-compile ("translators"))
-  (#-Cloe-Runtime "standard-types" #+Cloe-Runtime "std-typs"
+  ("standard-types"
    :load-before-compile ("ptypes2"))
   ("excl-presentations"
    :load-before-compile ("presentations")
@@ -297,7 +298,7 @@
   ("frames" 
    :load-before-compile ("clim-defs" "command-processor"))
   ("default-frame" 
-      :load-before-compile ("frames"))
+   :load-before-compile ("frames"))
   ("activities" 
    :load-before-compile ("frames"))
   ("db-menu"
@@ -523,6 +524,7 @@
 	   "genera-clim"
 	   "clx-clim"
 	   "postscript-clim"
+	   "cloe-clim"
 	   "motif-clim"
 	   "openlook-clim"
 	   "clim-demo"))

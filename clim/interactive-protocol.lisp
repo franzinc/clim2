@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.17 92/09/08 15:18:04 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.18 92/09/24 09:39:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -153,8 +153,7 @@
 	  (start-y cursor-y)
 	  (input-buffer (slot-value istream 'input-buffer))
 	  (insertion-pointer (slot-value istream 'insertion-pointer))
-	  (stream (encapsulating-stream-stream istream))
-	  (noisy-style (merge-text-styles *noise-string-style* style)))
+	  (stream (encapsulating-stream-stream istream)))
       (unless start-position (setf start-position insertion-pointer))
       (unless end-position (setf end-position (fill-pointer input-buffer)))
       ;; cursor-X, cursor-Y are right if the start position is the insertion position.
@@ -167,14 +166,17 @@
       ;; OK, now we know our cursor-(X,Y) and the line height.  Now scan things from here.
       (do-input-buffer-pieces (input-buffer :start start-position :end end-position)
 			      (from to noise-string)
-        :normal (multiple-value-setq (cursor-x cursor-y height baseline)
-		  (do-text-screen-real-estate
-		    stream continuation input-buffer from to
-		    cursor-x cursor-y height baseline style max-x))
-	:noise-string (multiple-value-setq (cursor-x cursor-y height baseline)
-			(do-text-screen-real-estate
-			  stream continuation (noise-string-display-string noise-string) 0 nil
-			  cursor-x cursor-y height baseline noisy-style max-x)))
+        :normal
+	  (multiple-value-setq (cursor-x cursor-y height baseline)
+	    (do-text-screen-real-estate
+	      stream continuation input-buffer from to
+	      cursor-x cursor-y height baseline style max-x))
+	:noise-string
+	  (let ((style (merge-text-styles (noise-string-text-style noise-string) style)))
+	    (multiple-value-setq (cursor-x cursor-y height baseline)
+	      (do-text-screen-real-estate
+		stream continuation (noise-string-display-string noise-string) 0 nil
+		cursor-x cursor-y height baseline style max-x))))
       (values cursor-x cursor-y start-x start-y height baseline))))
 
 (defmethod prompt-for-accept ((istream input-editing-stream-mixin) type (view view)
@@ -192,8 +194,11 @@
 	    (noise-string nil))
 	(cond ((and (typep next-char 'noise-string)
 		    (eql (noise-string-unique-id next-char) query-identifier))
-	       (setq noise-string next-char)	;---so what do we do with NOISE-STRING?
-	       (incf scan-pointer))
+	       (incf scan-pointer)
+	       (setq noise-string next-char)
+	       ;;---so what do we do with NOISE-STRING?
+	       ;;--- returning it seems like a good idea.
+	       (noise-string-unique-id next-char))
 	      (t (when (< scan-pointer insertion-pointer)
 		   #+++ignore (error "Trying to make a noise string while rescanning")
 		   (return-from prompt-for-accept (values)))
@@ -215,8 +220,10 @@
 		 (vector-push-extend noise-string input-buffer)
 		 (incf scan-pointer)
 		 (incf insertion-pointer)
-		 (with-text-style (istream *noise-string-style*)
-		   (write-string (noise-string-display-string noise-string) istream))))))))
+		 (with-text-style (istream (noise-string-text-style noise-string))
+		   (write-string (noise-string-display-string
+				  noise-string) istream))
+		 (noise-string-unique-id noise-string)))))))
 
 (defmethod stream-accept ((istream input-editing-stream-mixin)
 			  type &rest args &key query-identifier &allow-other-keys)
@@ -231,7 +238,7 @@
     (let ((next-char (and (< scan-pointer insertion-pointer)
 			  (aref input-buffer scan-pointer))))
       (cond ((and (typep next-char 'accept-result)
-		  (eql (accept-result-unique-id next-char) query-identifier))
+		  (eql (noise-string-unique-id next-char) query-identifier))
 	     (incf scan-pointer)
 	     (values (accept-result-presentation-object next-char)
 		     (accept-result-presentation-type next-char)))
@@ -256,12 +263,14 @@
     (macrolet ((do-part (from &optional to)
 		 `(do-input-buffer-pieces (input-buffer :start ,from :end ,to)
 					  (start-index end-index noise-string)
-		   :normal (with-temporary-substring (buf input-buffer start-index end-index)
-			     (replace buf input-buffer :start2 start-index :end2 end-index)
-			     (write-string buf stream))
-		   :noise-string (with-text-style (stream *noise-string-style*)
-				   (write-string (noise-string-display-string noise-string)
-						 stream)))))
+		   :normal
+		     (with-temporary-substring (buf input-buffer start-index end-index)
+		       (replace buf input-buffer :start2 start-index :end2 end-index)
+		       (write-string buf stream))
+		   :noise-string
+		     (with-text-style (stream (noise-string-text-style noise-string))
+		       (write-string (noise-string-display-string noise-string)
+				     stream)))))
       ;;--- If I were smart, I'd probably be able to figure out how to
       ;;--- do this more effectively.  I.e., the insertion pointer would
       ;;--- already be at the right place.  However, that will require a
@@ -725,7 +734,7 @@
 					      :presentation-type type
 					      :presentation-object object)))
 		;; Set the printed representation of that blip as best we can
-		(setf (accept-result-display-string blip)
+		(setf (noise-string-display-string blip)
 		      (handler-case
 			(let ((*print-readably* nil))
 			  (present-to-string object type
@@ -737,8 +746,8 @@
 		  (vector-push-extend blip input-buffer)
 		  (incf insertion-pointer)
 		  (incf scan-pointer)
-		  (with-text-style (istream *noise-string-style*)
-		    (write-string (accept-result-display-string blip) istream))
+		  (with-text-style (istream (noise-string-text-style blip))
+		    (write-string (noise-string-display-string blip) istream))
 		  (return-from presentation-replace-input insertion-pointer)))))))
     (replace-input istream input-string
 		   :buffer-start buffer-start :rescan rescan)))
@@ -871,7 +880,7 @@
 	(vector-push-extend noise-string input-buffer)
 	(incf scan-pointer)
 	(incf insertion-pointer)
-	(with-text-style (istream *noise-string-style*)
+	(with-text-style (istream (noise-string-text-style noise-string))
 	  (write-string (noise-string-display-string noise-string) istream))))))
 
 

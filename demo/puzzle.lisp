@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.15 92/09/22 19:37:50 cer Exp Locker: cer $
+;; $fiHeader: puzzle.lisp,v 1.16 92/09/24 09:40:14 cer Exp $
 
 (in-package :clim-demo)
 
@@ -30,7 +30,7 @@
 (defmethod frame-standard-output ((puzzle puzzle))
   (get-frame-pane puzzle 'display))
 
-(defmethod run-frame-top-level :before ((puzzle puzzle))
+(defmethod run-frame-top-level :before ((puzzle puzzle) &key)
   (initialize-puzzle puzzle))
 
 (defmethod read-frame-command ((puzzle puzzle) &key (stream *standard-input*))
@@ -75,19 +75,21 @@
     ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
     (stream-set-cursor-position stream 0 0)
     (updating-output (stream)
-      (formatting-table (stream)
-	(dotimes (row 4)
-	  (formatting-row (stream)
-	    (dotimes (column 4)
-	      (let ((value (aref puzzle-array row column)))
-		(updating-output (stream
-				   :unique-id (encode-puzzle-cell row column)
-				   :cache-value value)
-		  (formatting-cell (stream :align-x :right)
-		    (unless (zerop value)
-		      (with-output-as-presentation 
-			  (stream (encode-puzzle-cell row column) 'puzzle-cell)
-			(format stream "~2D" value)))))))))))))
+	(formatting-table (stream)
+	    (dotimes (row 4)
+	      (formatting-row (stream)
+		  (dotimes (column 4)
+		    (let* ((value (aref puzzle-array row column))
+			   (cell-id (encode-puzzle-cell row column)))
+		      (updating-output (stream
+					:unique-id cell-id 
+					:cache-text #'equal
+					:cache-value value)
+			  (formatting-cell (stream :align-x :right)
+			      (unless (zerop value)
+				(with-output-as-presentation 
+				    (stream cell-id 'puzzle-cell)
+				  (format stream "~2D" value)))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)
@@ -136,12 +138,15 @@
 (define-presentation-to-command-translator move-cell
     (puzzle-cell com-move-cell puzzle
      :documentation "Move cell"
-     :tester ((object)
-	      (multiple-value-bind (r c)
-		  (decode-puzzle-cell object)
-		(cell-adjacent-to-open-cell (puzzle-puzzle *application-frame*) r c))))
+     :tester ((object) (cell-moveable-p object)))
     (object)
   (list object))
+
+(defun cell-moveable-p (object)
+  (multiple-value-bind (r c)
+      (decode-puzzle-cell object)
+    (cell-adjacent-to-open-cell (puzzle-puzzle
+				 *application-frame*) r c)))
 
 (define-puzzle-command (com-scramble :menu t)
     ()

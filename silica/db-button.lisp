@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.15 92/09/08 15:16:33 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.16 92/09/24 09:37:29 cer Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -27,7 +27,8 @@ toggle button base. This way they can share the draw code.
     ;;  NIL ==> the button is not armed
     ;;  T   ==> the button is armed, waiting for a pointer button press
     ;;  :ACTIVE ==> the button is armed, waiting for a pointer button release
-    ((armed :initform nil)))
+    ((armed :initform nil))
+  (:default-initargs :pointer-cursor :button))
 
 ;; General highlight-by-inverting method
 (defmethod highlight-button ((pane button-pane-mixin) medium)
@@ -42,11 +43,6 @@ toggle button base. This way they can share the draw code.
     (call-next-method))
   (deallocate-event event))
 
-(defmethod handle-event :around ((pane button-pane-mixin) (event pointer-enter-event))
-  (when (gadget-active-p pane)
-    (setf (pointer-cursor (port-pointer (port pane))) :button))
-  (call-next-method))
-
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
@@ -58,12 +54,6 @@ toggle button base. This way they can share the draw code.
 	       (highlight-button pane medium)))
 	    (t (setf armed t)))
       (armed-callback pane (gadget-client pane) (gadget-id pane)))))
-
-(defmethod handle-event :around ((pane button-pane-mixin) (event pointer-exit-event))
-  (when (gadget-active-p pane)
-    ;;--- Should really restore the previous cursor...
-    (setf (pointer-cursor (port-pointer (port pane))) :default))
-  (call-next-method))
 
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-exit-event))
   (with-slots (armed) pane

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.16 92/09/08 10:35:11 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.17 92/09/22 19:37:44 cer Exp $
 
 (in-package :clim-demo)
 
@@ -536,7 +536,7 @@
     (design-area :application))
   (:pointer-documentation t)
   (:layouts
-   (default design-area)))
+    (default design-area)))
 
 (defmethod initialize-instance :around ((cd cad-demo) &key)
   (call-next-method)
@@ -786,12 +786,7 @@
 ;;; Commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;--- A good exercise for the reader would be to use a partial
-;;;--- command parser to read the type and position as the arguments.
-;;; cos we currently have to do it in the command body.
-
-(define-cad-demo-command (com-create-component :menu "Create" :keystroke #\C)
-    ()
+(define-cad-demo-command (com-create-component :menu "Create" :keystroke #\C) ()
   (let* ((window (get-frame-pane *application-frame* 'design-area))
 	 (type (menu-choose *component-types*
 			    :associated-window (window-root window)

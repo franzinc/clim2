@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.37 92/09/30 11:45:10 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.38 92/09/30 18:04:00 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -336,13 +336,13 @@ people, shall not perish from the earth.
 (define-test (region-equal-tests graphics) (stream)
   "Exercise REGION-EQUAL."
   (formatting-table (stream :x-spacing "  ")
-      (abbreviated-regions-column-headings
-       *test-regions-for-region-equal* stream 'region-equal)
+    (abbreviated-regions-column-headings
+      *test-regions-for-region-equal* stream 'region-equal)
     (dolist (region1 *test-regions-for-region-equal*)
       (formatting-row (stream)
-	  (formatting-cell (stream :align-x :right)
-	      (with-text-face (stream :italic)
-		(format stream "~A" region1)))
+	(formatting-cell (stream :align-x :right)
+	  (with-text-face (stream :italic)
+	    (format stream "~A" region1)))
 	(dolist (region2 *test-regions-for-region-equal*)
 	  (formatting-cell (stream :align-x :center)
 	    (handler-case			;guard against unimplemented cases
@@ -389,18 +389,18 @@ people, shall not perish from the earth.
     (setq regions (nreverse regions)
 	  positions (nreverse positions))
     (formatting-table (stream :x-spacing "  ")
-	(formatting-row (stream)
-	    (formatting-cell (stream)
-		(declare (ignore stream))) ;make a column for the row headings
-	  (dolist (position positions)
-	    (formatting-cell (stream) 
-		(with-text-face (stream :italic)
-		  (format stream "(~D,~D)" (first position) (second position))))))
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (declare (ignore stream)))		;make a column for the row headings
+	(dolist (position positions)
+	  (formatting-cell (stream) 
+	    (with-text-face (stream :italic)
+	      (format stream "(~D,~D)" (first position) (second position))))))
       (dolist (region regions)
 	(formatting-row (stream)
-	    (formatting-cell (stream :align-x :right)
-		(with-text-face (stream :italic)
-		  (format stream "~A" region)))
+	  (formatting-cell (stream :align-x :right)
+	    (with-text-face (stream :italic)
+	      (format stream "~A" region)))
 	  (dolist (position positions)
 	    (let ((res (find-if #'(lambda (result-entry)
 				    (and (equal (first result-entry) region)
@@ -410,7 +410,7 @@ people, shall not perish from the earth.
 		  (y (second position)))
 	      (with-output-as-presentation 
 		  (stream `(region-contains-position-p ,region ,x ,y) 'form
-			  :single-box t)
+		   :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (when res
 		    (handler-case		;guard against unimplemented cases
@@ -460,16 +460,16 @@ people, shall not perish from the earth.
 		 (return-from lookup-result (fourth result))))
 	     (or (equal region1 region2) :none)))
       (formatting-table (stream :x-spacing "  ")
-	  (abbreviated-regions-column-headings regions stream 'region-contains-region-p)
+	(abbreviated-regions-column-headings regions stream 'region-contains-region-p)
 	(dolist (region1 regions)
 	  (formatting-row (stream)
-	      (formatting-cell (stream :align-x :right)
-		  (with-text-face (stream :italic)
-		    (format stream "~A" region1)))
+	    (formatting-cell (stream :align-x :right)
+	      (with-text-face (stream :italic)
+		(format stream "~A" region1)))
 	    (dolist (region2 regions)
 	      (with-output-as-presentation 
 		  (stream `(region-contains-region-p ,region1 ,region2) 'form
-			  :single-box t)
+		   :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (handler-case			;guard against unimplemented cases
 		      (let ((res (lookup-result region1 region2))
@@ -667,22 +667,22 @@ people, shall not perish from the earth.
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 400 :towards-y 200))
     (with-output-as-presentation (stream 2 'form) 
-      (with-text-style (stream '(nil :italic :larger))
-	(draw-text* stream "Some fox jumped over something" 200 200
-		    :towards-x 200 :towards-y 400)))
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 200 :towards-y 400
+		  :text-style '(nil :italic :large)))
     (with-output-as-presentation (stream 3 'form) 
-      (with-text-style (stream '(nil :bold :huge))
-	(draw-text* stream "Some fox jumped over something" 200 200
-		    :towards-x 0 :towards-y 200)))
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 0 :towards-y 200
+		  :text-style '(nil :bold :large)))
     (with-output-as-presentation (stream 4 'form) 
-      (with-text-style (stream '(nil :bold :small))
-	(draw-text* stream "Some fox jumped over something" 200 200
-		    :towards-x 200 :towards-y 0)))
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 200 :towards-y 0
+		  :text-style '(nil :bold :small)))
     (do ((x 300 (+ x 20)))
 	((> x 1000))
       (with-output-as-presentation (stream 4 'form) 
 	(draw-text* stream "Dont be silly in the City." x 200
-		      :towards-x x :towards-y 0)))))
+		    :towards-x x :towards-y 0)))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -1035,14 +1035,17 @@ people, shall not perish from the earth.
 	    (draw-rectangle* stream -20 -20 20 20)))))))
 
 (define-test (simple-borders formatted-output) (stream)
-  "Show the three types of canned borders."
+  "Show several types of canned borders."
   (stream-set-cursor-position stream 10 10)
   (surrounding-output-with-border (stream :shape :rectangle)
     (write-string "a rectangle" stream))
   (stream-set-cursor-position stream 10 30)
+  (surrounding-output-with-border (stream :shape :rectangle :ink +yellow+ :filled t)
+    (write-string "a filled rectangle" stream))
+  (stream-set-cursor-position stream 10 50)
   (surrounding-output-with-border (stream :shape :drop-shadow)
     (write-string "a dropshadow" stream))
-  (stream-set-cursor-position stream 10 50)
+  (stream-set-cursor-position stream 10 70)
   (surrounding-output-with-border (stream :shape :underline)
     (write-string "an underline" stream)))
 
@@ -1111,8 +1114,8 @@ people, shall not perish from the earth.
 	(let ((text (format nil "~A" (clos::class-name o))))
 	  (multiple-value-bind (width height) (text-size s text)
 	    (with-new-output-record (s)
-	    (draw-rectangle* s 0 0 width height :filled t :ink +red+)
-	    (draw-text* s text 0 0 :align-x :left :align-y :top)))))
+	      (draw-rectangle* s 0 0 width height :filled t :ink +red+)
+	      (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
     #'clos::class-direct-subclasses
     :stream stream
     :merge-duplicates t))

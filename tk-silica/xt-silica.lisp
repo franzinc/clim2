@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.47 92/09/30 11:45:43 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.48 92/09/30 18:04:31 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -40,7 +40,8 @@
      (visual-class :accessor port-visual-class)
      (cursor-font :initform nil)
      (cursor-cache :initform nil))
-  (:default-initargs :allow-loose-text-style-size-mapping t)
+  (:default-initargs :allow-loose-text-style-size-mapping t
+		     :deep-mirroring t)
   (:documentation "The port for X intrinsics based ports"))
 
 (defmethod port-type ((port xt-port))
@@ -556,7 +557,7 @@
     #+ignore
     (format excl:*initial-terminal-io* "Got expose event ~s~%"
 	    (tk::event-type event))
-    (dispatch-repaint
+    (queue-repaint
       sheet
       (allocate-event 'window-repaint-event
 	:native-region (make-bounding-rectangle minx miny maxx maxy)
@@ -698,7 +699,8 @@
   (sheet-mirror sheet))
 
 (defmethod find-shell-of-calling-frame ((sheet basic-sheet))
-  (find-shell-of-calling-frame (pane-frame sheet)))
+  (and (pane-frame sheet)
+       (find-shell-of-calling-frame (pane-frame sheet))))
 
 (defmethod find-shell-of-calling-frame ((frame application-frame))
   (let (cf)
@@ -725,8 +727,10 @@
 	(class initargs)
 	(call-next-method)
       (values class
-	      `(:allow-shell-resize ,(clim-internals::frame-resizable (pane-frame sheet))
+	      `(:allow-shell-resize ,(and (pane-frame sheet)
+					(clim-internals::frame-resizable (pane-frame sheet)))
 				    ,@initargs :colormap ,colormap)))))
+
 
 (defmethod enable-mirror ((port xt-port) (sheet t))
   (let ((mirror (sheet-mirror sheet)))
@@ -935,7 +939,7 @@
   (typep frame '(or clim-internals::menu-frame clim-internals::accept-values-own-window)))
 
 (defmethod popup-frame-p ((sheet basic-sheet))
-  (let ((frame  (pane-frame sheet)))
+  (let ((frame (pane-frame sheet)))
     (and frame
 	 (popup-frame-p frame))))
 
@@ -1066,9 +1070,9 @@
 (define-xt-keysym (keysym 255 008) :backspace)
 (define-xt-keysym (keysym 009 227) :page)
 (define-xt-keysym (keysym 255 010) :linefeed)
+(define-xt-keysym (keysym 255 027) :escape)
 ;;;---
 (define-xt-keysym (keysym 255 010) :newline)
-(define-xt-keysym (keysym 255 027) :escape)
 
 ;; Other useful characters
 (define-xt-keysym (keysym 255 087) :end)
@@ -1448,7 +1452,6 @@ the geometry of the children. Instead the parent has control. "))
        (fix-coordinate y)))))
 
 
-
 (defmethod raise-mirror ((port xt-port) sheet)
   (x11:xraisewindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
 
@@ -1464,6 +1467,7 @@ the geometry of the children. Instead the parent has control. "))
   ;; Compensate for the top-level-sheet's mirror not being the right window.
   (x11:xlowerwindow (port-display port)
 		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
+
 
 (defmethod enable-mirror ((port xt-port) (sheet top-level-sheet))
   (let* ((mirror (sheet-mirror sheet))
@@ -1526,7 +1530,7 @@ the geometry of the children. Instead the parent has control. "))
 	  (:vertical-thumb 112)
 	  (:horizontal-thumb 114)
 	  (:button 132)
-	  (:prompt 92)
+	  (:prompt 132)
 	  (:move 52)
 	  (:position 34)))
 
@@ -1535,9 +1539,12 @@ the geometry of the children. Instead the parent has control. "))
 (defmethod port-set-pointer-cursor ((port xt-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
     (let* ((cursor (and cursor (realize-cursor port cursor)))
-	   (widget (sheet-direct-mirror (frame-top-level-sheet 
-					 (pane-frame (pointer-sheet pointer)))))
-	   (window (tk::widget-window widget nil)))
+	   (widget (sheet-direct-mirror 
+		     (let ((frame (pane-frame (pointer-sheet pointer))))
+		       (if frame
+			   (frame-top-level-sheet frame)
+			   (pointer-sheet pointer)))))
+	   (window (and widget (tk::widget-window widget nil))))
       (when window
 	(if cursor
 	    (x11:xdefinecursor
@@ -1549,7 +1556,7 @@ the geometry of the children. Instead the parent has control. "))
 
 
 (defmethod port-set-sheet-pointer-cursor ((port xt-port) sheet cursor)
-  (unless (eq (silica::sheet-pointer-cursor sheet)  cursor)
+  (unless (eq (sheet-pointer-cursor sheet)  cursor)
     (let* ((cursor (and cursor (realize-cursor port cursor)))
 	   (widget (sheet-mirror sheet))
 	   (window (tk::widget-window widget nil)))

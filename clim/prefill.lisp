@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.9 92/09/08 15:18:13 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.10 92/09/24 09:39:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1124,11 +1124,11 @@
     (polygon-output-record line-output-record)
     (polygon-output-record rectangle-output-record))
   (repaint-sheet
-    (top-level-sheet t standard-bounding-rectangle)
-    (interactor-pane t standard-bounding-rectangle)
-    (command-menu-pane t standard-bounding-rectangle)
-    (application-pane t standard-bounding-rectangle)
-    (clim-stream-pane t standard-bounding-rectangle))
+    (top-level-sheet standard-bounding-rectangle)
+    (interactor-pane standard-bounding-rectangle)
+    (command-menu-pane standard-bounding-rectangle)
+    (application-pane standard-bounding-rectangle)
+    (clim-stream-pane standard-bounding-rectangle))
   (replay-output-record
     (standard-tree-output-history t)
     (standard-item-list-output-record t)
@@ -2334,20 +2334,20 @@
   (region-intersection
     (slider-pane t))
   (repaint-sheet
-    (vbox-pane t t)
-    (outlined-pane t t)
-    (scroller-pane t t)
-    (table-pane t t)
-    (scroll-bar-pane t t)
-    (spacing-pane t t)
-    (hbox-pane t t)
-    (scroll-bar-target-pane t t)
-    (scroll-bar-shaft-pane t t)
-    (viewport t t)
-    (slider-pane t t)
-    (radio-box-pane t t)
-    (toggle-button-pane t t)
-    (push-button-pane t t))
+    (vbox-pane t)
+    (outlined-pane t)
+    (scroller-pane t)
+    (table-pane t)
+    (scroll-bar-pane t)
+    (spacing-pane t)
+    (hbox-pane t)
+    (scroll-bar-target-pane t)
+    (scroll-bar-shaft-pane t)
+    (viewport t)
+    (slider-pane t)
+    (radio-box-pane t)
+    (toggle-button-pane t)
+    (push-button-pane t))
   (resize-sheet
     (top-level-sheet t t)
     (vbox-pane t t)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.14 92/09/22 19:36:59 cer Exp Locker: cer $
+;; $fiHeader: clx-port.lisp,v 1.15 92/09/24 09:38:15 cer Exp $
 
 (in-package :clx-clim)
 
@@ -513,6 +513,41 @@
 (define-clx-keysym xlib::left-hyper-keysym    :left-hyper)
 (define-clx-keysym xlib::right-hyper-keysym   :right-hyper)
 
+;; Non-standard keys found on Sun keyboards
+
+(define-clx-keysym (xlib::keysym 255 #xB3) :f1)
+(define-clx-keysym (xlib::keysym 255 #xBF) :f2)
+(define-clx-keysym (xlib::keysym 255 #xC0) :f3)
+(define-clx-keysym (xlib::keysym 255 #xC1) :f4)
+(define-clx-keysym (xlib::keysym 255 #xC2) :f5)
+(define-clx-keysym (xlib::keysym 255 #xC3) :f6)
+(define-clx-keysym (xlib::keysym 255 #xC4) :f7)
+(define-clx-keysym (xlib::keysym 255 #xC5) :f8)
+(define-clx-keysym (xlib::keysym 255 #xC6) :f9)
+(define-clx-keysym (xlib::keysym 255 #xC7) :f10)
+
+(define-clx-keysym (xlib::keysym 255 #xC8) :l1)
+(define-clx-keysym (xlib::keysym 255 #xC9) :l2)
+(define-clx-keysym (xlib::keysym 255 #xCA) :l3)
+(define-clx-keysym (xlib::keysym 255 #xCB) :l4)
+(define-clx-keysym (xlib::keysym 255 #xCC) :l5)
+(define-clx-keysym (xlib::keysym 255 #xCD) :l6)
+(define-clx-keysym (xlib::keysym 255 #xCE) :l7)
+(define-clx-keysym (xlib::keysym 255 #xCF) :l8)
+(define-clx-keysym (xlib::keysym 255 #xD0) :l9)
+(define-clx-keysym (xlib::keysym 255 #xD1) :l10)
+
+(define-clx-keysym (xlib::keysym 255 #xD2) :r1)
+(define-clx-keysym (xlib::keysym 255 #xD3) :r2)
+(define-clx-keysym (xlib::keysym 255 #xD4) :r3)
+(define-clx-keysym (xlib::keysym 255 #xD5) :r4)
+(define-clx-keysym (xlib::keysym 255 #xD6) :r5)
+(define-clx-keysym (xlib::keysym 255 #xD7) :r6)
+(define-clx-keysym (xlib::keysym 255 #xD8) :r7)
+(define-clx-keysym (xlib::keysym 255 #xD9) :r8)
+(define-clx-keysym (xlib::keysym 255 #xDA) :r9)
+(define-clx-keysym (xlib::keysym 255 #xDB) :r10)
+
 
 (defvar *clx-cursor-type-alist*
 	'((:default 132)
@@ -545,6 +580,14 @@
       (xlib:display-force-output display)))
   cursor)
 
+(defmethod port-set-sheet-pointer-cursor ((port clx-port) sheet cursor)
+  (unless (eq (sheet-pointer-cursor sheet) cursor)
+    (with-slots (display) port
+      (setf (xlib:window-cursor (sheet-mirror sheet))
+	    (realize-cursor port cursor))
+      (xlib:display-force-output display)))
+  cursor)
+
 (defmethod realize-cursor :around ((port clx-port) cursor)
   (with-slots (cursor-cache) port
     (or (getf cursor-cache cursor)
@@ -567,7 +610,6 @@
       :foreground (xlib:make-color :red   0.0 :green 0.0 :blue  0.0)
       :background (xlib:make-color :red   1.0 :green 1.0 :blue  1.0))))
 
-
 ;;--- We need something like PORT-SET-POINTER-POSITION
 (defmethod set-cursor-location ((port clx-port) sheet x y)
   (xlib:warp-pointer (sheet-mirror sheet)

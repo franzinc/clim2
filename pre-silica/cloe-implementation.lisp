@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-implementation.lisp,v 1.5 92/05/18 14:03:39 cer Exp Locker: cer $
+;; $fiHeader: cloe-implementation.lisp,v 1.6 92/07/01 15:48:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -9,6 +9,7 @@
 
 ;;; Support for the shared class DC.
 
+(defvar *cloe-device*)
 (defvar *dc*)
 
 (defvar *current-pen*)
@@ -187,17 +188,23 @@
 
 (defclass cloe-root-window
 	  (window-stream)
-    ()
-  (:default-initargs :input-buffer nil :display-device-type *cloe-device* :left 0 :top 0))
+    ())
 
-(defmethod initialize-instance :after ((stream cloe-root-window) &key)
-  (unless win::*windows-enabled*
-    (win::start-windows))
-  (with-slots (right bottom) stream
+(defmethod initialize-instance :before ((stream cloe-root-window) &key)
+  (unless win::*windows-channel*
+    (win::connect-to-winfe))
+  (with-slots (left top right bottom) stream
+    (setf left 0 top 0)
     (multiple-value-setq (right bottom)
       (win::get-screen-size)))
   (initialize-dc)
-  (setf (stream-pointers stream) (list (make-instance 'standard-pointer :root stream))))
+  (setf (slot-value stream 'display-device-type)
+	(make-instance 'cloe-display-device
+		       :logpixelsy (win::get-device-caps *dc* 90))))
+
+(defmethod initialize-instance :after ((stream cloe-root-window) &key)
+  (setf (stream-pointers stream)
+	(list (make-instance 'standard-pointer :root stream))))
 
 (defmethod window-margins ((stream cloe-root-window))
   (values 0 0 0 0))
@@ -206,6 +213,9 @@
   (values 0 0 0 0))
 
 (defmethod window-stream-class-name ((stream cloe-root-window))
+  'cloe-window-stream)
+
+(defmethod menu-class-name ((stream cloe-root-window))
   'cloe-window-stream)
 
 (defmethod close ((stream cloe-root-window) &key abort)
@@ -237,8 +247,11 @@
      (pending-scrolls :initform (make-queue))
      (background-dc-image)
      (foreground-dc-image)
-     (modifier-state :initform 0 :reader window-modifier-state))
-  (:default-initargs :display-device-type *cloe-device*))
+     (modifier-state :initform 0 :reader window-modifier-state)))
+
+(defmethod initialize-instance :before ((stream cloe-window-stream) &key parent)
+  (setf (slot-value stream 'display-device-type)
+	(slot-value parent 'display-device-type)))
 
 (defmethod initialize-instance :after ((stream cloe-window-stream) &key parent
 				       label (scroll-bars :both) (borders t) save-under)
@@ -290,12 +303,6 @@
       (setf right (+ left event-width margin-width))
       (setf bottom (+ top event-height margin-height)))
     nil))
-
-(defmethod (setf window-label) :after (new-label (stream cloe-window-stream))
-  (when (consp new-label)
-    (setf new-label (first new-label)))
-  (with-slots (window) stream
-    (win::set-window-text window (or new-label "CLIM"))))
 
 (defmethod implementation-pixels-per-point ((stream cloe-window-stream))
   1)
@@ -740,7 +747,7 @@
 	     (fixed-width-p (= max-w average-w))
 	     (escapement-x (if fixed-width-p
 			       average-w
-			       (aref (cloe-font-font-width-table cloe-font) (- index 32))))
+			       (aref (cloe-font-font-width-table cloe-font) index)))
 	     (escapement-y 0)
 	     (bb-y (+ (cloe-font-height cloe-font)
 		      (cloe-font-external-leading cloe-font)))
@@ -841,158 +848,115 @@
 	 (cloe-font-maximum-character-width font)))))
 
 
-(defclass cloe-device (display-device)
-     ((font->cloe-font-mapping :initform (make-hash-table))))
-
-(defmethod text-style-mapping :around ((device cloe-device) style
-				       &optional (character-set *standard-character-set*)
-						 window)
-  (let ((font-name (call-next-method))
-	(hash-table (slot-value device 'font->cloe-font-mapping)))
-    (or (gethash font-name hash-table)
-	(setf (gethash font-name hash-table)
-	      (let ((name (string font-name))
-		    (here 0))
-		(labels ((token ()
-			   (unless here (error "Ran off end of name in font parser: ~A" name))
-			   (let ((new-here (position #\- name :test #'char-equal :start here)))
-			     (prog1 (subseq name here new-here)
-				    (setf here (and new-here (1+ new-here))))))
-			 (integer ()
-			   (parse-integer (token))))
-		  (let* ((face-name (token))
-			 (height (integer))
-			 (width (integer))
-			 (weight (integer))
-			 (italic (integer))
-			 (win-font (win::create-font height width 0 0 weight italic
-						     0 0 0 0 0 0 0 face-name)))
-		    (select-font win-font)
-		    (multiple-value-bind (height ascent descent
-					  internal-leading external-leading
-					  average-character-width maximum-character-width
-					  weight italic underlined struckout
-					  first-character last-character default-character
-					  break-character p&f character-set overhang
-					  aspect-x aspect-y)
-			(win::get-text-metrics *dc*)
-		      (declare (ignore p&f aspect-x aspect-y))
-		      (let ((cf
-			      (make-cloe-font
-				:index win-font :height height :ascent ascent
-				:descent descent
-				:internal-leading internal-leading
-				:external-leading external-leading
-				:average-character-width average-character-width
-				:maximum-character-width maximum-character-width
-				:weight weight :italic italic
-				:underlined underlined :struckout struckout
-				:first-character first-character
-				:last-character last-character
-				:default-character default-character
-				:break-character break-character
-				:overhang overhang)))
-			(unless (= average-character-width
-				   maximum-character-width)
-			  (initialize-font-width-table cf window))
-			cf)))))))))
-
-
-;;; Font names are "Family-height-width-weight-italic"; must be strings because case matters.
-(define-display-device *cloe-device* cloe-device
-  :font-for-undefined-style "Helv-10-10-400-0")
-
-;;; More to come, obviously.
-(define-text-style-mappings *cloe-device* *standard-character-set*
-  (:family :fix (:face :roman (:size 22 "Courier-22-30-400-0"
-				     16 "Courier-16-10-400-0"
-				     12 "Courier-12-8-400-0"
-				     12 "Courier-10-8-400-0"
-				      7 "Courier-8-6-400-0"
-				      6 "Courier-6-5-400-0")
-		       :bold (:size 22 "Courier-22-30-700-0"
-				    16 "Courier-16-10-700-0"
-				    12 "Courier-12-8-700-0"
-				    10 "Courier-10-8-700-0"
-				     8 "Courier-8-6-700-0"
-				     6 "Courier-6-5-700-0")
-		       :italic (:size 22 "Courier-22-30-400-1"
-				      16 "Courier-16-10-400-1"
-				      12 "Courier-12-8-400-1"
-				      10  "Courier-10-8-400-1"
-				       8 "Courier-8-6-400-1"
-				       6 "Courier-6-5-400-1")
-		       (:bold :italic) (:size 22 "Courier-22-30-700-1"
-					      16 "Courier-16-10-700-1"
-					      12 "Courier-12-8-700-1"
-					      10  "Courier-10-8-700-1"
-					       8 "Courier-8-6-700-1"
-					       6 "Courier-6-5-700-1"))))
-
-(define-text-style-mappings *cloe-device* *standard-character-set*
-  (:family :sans-serif (:face :roman (:size 22 "Helv-22-30-400-0"
-					    16 "Helv-16-10-400-0"
-					    12 "Helv-12-8-400-0"
-					    10 "Helv-10-8-400-0"
-					     8 "Helv-8-6-400-0"
-					     6 "Helv-6-5-400-0")
-			      :bold (:size 22 "Helv-22-30-700-0"
-					   16 "Helv-16-10-700-0"
-					   12 "Helv-12-8-700-0"
-					   10 "Helv-10-8-700-0"
-					    8 "Helv-8-6-700-0"
-					    6 "Helv-6-5-700-0")
-			      :italic (:size 22 "Helv-22-30-400-1"
-					     16 "Helv-16-10-400-1"
-					     12 "Helv-12-8-400-1"
-					     10 "Helv-10-8-400-1"
-					      8 "Helv-8-6-400-1"
-					      6 "Helv-6-5-400-1")
-			      (:bold :italic) (:size 22 "Helv-22-30-700-1"
-						     16 "Helv-16-10-700-1"
-						     12 "Helv-12-8-700-1"
-						     10 "Helv-10-8-700-1"
-						      8 "Helv-8-6-700-1"
-						      6 "Helv-6-5-700-1"))))
-
-(define-text-style-mappings *cloe-device* *standard-character-set*
-  (:family :serif (:face :roman (:size 22 "TMS RMN-22-30-400-0"
-				       16 "TMS RMN-16-10-400-0"
-				       12 "TMS RMN-12-8-400-0"
-				       10 "TMS RMN-10-8-400-0"
-				        8 "TMS RMN-8-6-400-0"
-				        6 "TMS RMN-6-5-400-0")
-			 :bold (:size 22 "TMS RMN-22-10-700-0"
-				      16 "TMS RMN-16-10-700-0"
-				      12 "TMS RMN-12-8-700-0"
-				      10 "TMS RMN-10-8-700-0"
-				       8 "TMS RMN-8-6-700-0"
-				       6 "TMS RMN-6-5-700-0")
-			 :italic (:size 22 "TMS RMN-22-30-400-1"
-					16 "TMS RMN-16-10-400-1"
-					12 "TMS RMN-12-8-400-1"
-					10 "TMS RMN-10-8-400-1"
-					 8 "TMS RMN-8-6-400-1"
-					 6 "TMS RMN-6-5-400-1")
-			 (:bold :italic) (:size 22 "TMS RMN-22-30-700-1"
-						16 "TMS RMN-16-10-700-1"
-						12 "TMS RMN-12-8-700-1"
-						10 "TMS RMN-10-8-700-1"
-						 8 "TMS RMN-8-6-700-1"
-						 6 "TMS RMN-6-5-700-1"))))
-
 (defparameter *cloe-logical-size-alist*
 	      '((:tiny       6)
-		(:very-small 8)
-		(:small	     10)
-		(:normal     12)
-		(:large	     16)
-		(:very-large 22)))
+		(:very-small 7)
+		(:small	     8)
+		(:normal     10)
+		(:large	     12)
+		(:very-large 18)))
 
-(defmethod standardize-text-style ((display-device cloe-device) style 
-				   &optional (character-set *standard-character-set*))
-  (standardize-text-style-1
-    display-device style character-set *cloe-logical-size-alist*))
+(defclass cloe-display-device ()
+    ((text-style->cloe-font-mapping :initform (make-hash-table))
+     (logpixelsy :initform 72 :initarg :logpixelsy)))
+
+(defmethod text-style-mapping
+	   ((device cloe-display-device) character-set (style text-style) window)
+  (declare (ignore character-set))
+  (let ((hash-table (slot-value device 'text-style->cloe-font-mapping)))
+    (or (gethash style hash-table)
+	(setf (gethash style hash-table)
+	      (multiple-value-bind (weight italic)
+		  (let ((face (text-style-face style)))
+		    (typecase face
+		      (cons
+			(values (if (member :bold face) 700 400)
+				(member :italic face)))
+		      (otherwise
+			(case face
+			  (:roman (values 400 nil))
+			  (:bold (values 700 nil))
+			  (:italic (values 400 t))
+			  (otherwise (values 400 nil))))))
+		(multiple-value-bind (family face-name)
+		    (case (text-style-family style)
+		      (:fix (values #x35 nil))
+		      (:serif (values #x16 nil))
+		      (:sans-serif (values #x26 nil))
+		      (otherwise (values 0 nil)))
+		  (let ((point-size
+			  (let ((size (text-style-size style)))
+			    (typecase size
+			      (number
+				size)
+			      (otherwise
+				(or (second (assoc size *cloe-logical-size-alist*)) 12))))))
+		    (make-windows-font 
+		      window 
+		      (- (round (* point-size (slot-value device 'logpixelsy))
+				72))
+		      :weight weight :italic italic
+		      :pitch-and-family family :face face-name))))))))
+
+(defmethod text-style-mapping
+	   ((device cloe-display-device) character-set (style device-font) window)
+  (declare (ignore character-set))
+  (unless (eql device (device-font-display-device style))
+    (error "An attempt was made to map device font ~S on device ~S, ~@
+	    but it is defined for device ~S"
+	   style device (device-font-display-device style)))
+  (let ((hash-table (slot-value device 'text-style->cloe-font-mapping)))
+    (or (gethash style hash-table)
+	(setf (gethash style hash-table)
+	      (let ((args (device-font-name style)))
+		(apply #'make-windows-font window 
+		       (- (round (* (pop args) (slot-value device 'logpixelsy))
+				 72))
+		       args))))))
+
+(defun make-windows-font
+       (window height &key (width 0) (escapement 0) (orientation 0)
+			   (weight 400) (italic nil) (underline nil) (strikeout nil)
+			   (charset 0) (output-precision 0) (clip-precision 0)
+			   (quality 2) (pitch-and-family 0) (face nil))
+  (let ((win-font
+	  (win::create-font height width escapement orientation weight
+			    (if italic 1 0) (if underline 1 0)
+			    (if strikeout 1 0) charset
+			    output-precision clip-precision quality
+			    pitch-and-family (or face ""))))
+    (select-font win-font)
+    (multiple-value-bind (height ascent descent
+			  internal-leading external-leading
+			  average-character-width maximum-character-width
+			  weight italic underlined struckout
+			  first-character last-character default-character
+			  break-character p&f character-set overhang
+			  aspect-x aspect-y)
+	(win::get-text-metrics window)
+      (declare (ignore p&f aspect-x aspect-y))
+      (make-cloe-font
+	:index win-font :height height :ascent ascent :descent descent
+	:internal-leading internal-leading :external-leading external-leading
+	:average-character-width average-character-width
+	:maximum-character-width maximum-character-width
+	:weight weight :italic italic 
+	:underlined underlined :struckout struckout
+	:first-character first-character :last-character last-character
+	:default-character default-character :break-character break-character
+	:overhang overhang
+	:font-width-table (and (/= average-character-width
+				   maximum-character-width)
+			       (let ((array (make-array (1+ last-character))))
+				 (with-temporary-string (string :length 1)
+				   (setf (fill-pointer string) 1)
+				   (loop for i from first-character to last-character do
+				     (setf (aref string 0) (code-char i))
+				     (multiple-value-bind (width height)
+					 (win::get-text-extent window string)
+				       (declare (ignore height))
+				       (setf (aref array i) width))))
+				 array))))))
 
 
 ;;; These should really be defined in CL-STREAM, but doing it causes CLOE to

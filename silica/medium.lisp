@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.22 92/09/08 15:16:46 cer Exp $
+;; $fiHeader: medium.lisp,v 1.23 92/09/24 09:37:46 cer Exp $
 
 (in-package :silica)
 
@@ -53,14 +53,19 @@
 	;; related that ENGRAFT-MEDIUM shouldn't do anything useful.
 	(letf-globally (((sheet-medium sheet) medium)
 			((medium-sheet medium) sheet))
+	  ;; Be sure any clipping regions are decached
+	  (setf (medium-clipping-region medium) +everywhere+)
 	  (funcall continuation medium))
-	(call-next-method))))
+      (call-next-method))))
 
 ;;--- Use DEFOPERATION
 (defmethod invoke-with-sheet-medium ((stream standard-encapsulating-stream) continuation)
   (declare (dynamic-extent continuation))
   (invoke-with-sheet-medium (encapsulating-stream-stream stream) continuation))
 
+;; Note that we do not degraft the medium.  This is because we don't
+;; want to release any of the medium's resource (GCs, etc).  If you want
+;; the medium degrafted, just do it yourself.
 (defun invoke-with-sheet-medium-bound (sheet medium continuation)
   (declare (dynamic-extent continuation))
   (cond ((sheet-medium sheet)
@@ -84,6 +89,48 @@
 (defgeneric medium-beep (medium))
 
 (defgeneric port-glyph-for-character (port character style &optional our-font))
+
+
+(defvar *default-pane-foreground* +black+)
+(defvar *default-pane-background* +white+)
+
+(defclass foreground-background-and-text-style-mixin ()
+    ((foreground :initform nil :initarg :foreground
+		 :accessor pane-foreground)
+     (background :initform nil :initarg :background
+		 :accessor pane-background)
+     (text-style :initform *default-text-style* :initarg :text-style
+		 :accessor pane-text-style)))
+
+(defmethod initialize-instance :after ((pane foreground-background-and-text-style-mixin)
+				       &key &allow-other-keys)
+  (with-slots (text-style) pane
+    ;; Convert the text style if necesary
+    (etypecase text-style
+      (cons (setq text-style (parse-text-style text-style)))
+      (text-style nil)
+      (null))))
+
+(defmethod engraft-medium :after
+	   ((medium basic-medium) port (sheet foreground-background-and-text-style-mixin))
+  (declare (ignore port))
+  (setf (slot-value medium 'text-style)
+	(parse-text-style (slot-value medium 'text-style)))
+  (setf (slot-value medium 'default-text-style) 
+	(parse-text-style (slot-value medium 'default-text-style))))
+
+
+(defclass pane-repaint-background-mixin () ())
+
+(defmethod handle-repaint ((pane pane-repaint-background-mixin) region)
+  (let ((clear (region-intersection 
+		 region
+		 (or (pane-viewport-region pane)
+		     (sheet-region pane)))))
+    (unless (eq clear +nowhere+)
+      (with-sheet-medium (medium pane)
+	(with-bounding-rectangle* (left top right bottom) clear
+	  (medium-clear-area medium left top right bottom))))))
 
 
 ;;; Line styles

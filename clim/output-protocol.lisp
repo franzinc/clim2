@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.23 92/09/22 19:37:19 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.24 92/09/24 09:39:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -79,7 +79,7 @@
   (when text-margin
     (setq text-margin (process-spacing-arg stream text-margin 'stream-text-margin))
     (setf (slot-value stream 'text-margin) text-margin)))
-    
+
 (defmethod (setf medium-foreground) :after (new-value (stream output-protocol-mixin))
   (let ((medium (sheet-medium stream)))
     ;; Watch out for uninitialized MEDIUM slot.
@@ -107,14 +107,18 @@
   (with-slots (silica::foreground silica::background
 	       silica::text-style silica::default-text-style 
 	       silica::merged-text-style-valid) medium
-    (setf silica::foreground (or (medium-foreground stream)
-				 (setf (slot-value stream 'foreground) +black+))
- 	  silica::background (or (medium-background stream)
- 				 (setf (slot-value stream 'background) +white+))
-	  silica::default-text-style (or (medium-default-text-style stream)
-					 (setf (slot-value stream 'default-text-style)
-					       *default-text-style*))
-	  silica::text-style silica::default-text-style
+    (setf silica::foreground 
+	    (or (medium-foreground stream)
+		(setf (slot-value stream 'foreground) silica::*default-pane-foreground*))
+ 	  silica::background 
+	    (or (medium-background stream)
+		(setf (slot-value stream 'background) silica::*default-pane-background*))
+	  silica::default-text-style
+	    (parse-text-style (or (medium-default-text-style stream)
+				  (setf (slot-value stream 'default-text-style)
+					*default-text-style*)))
+	  silica::text-style 
+	    (parse-text-style silica::default-text-style)
 	  silica::merged-text-style-valid nil)))
 
 ;;--- I sure don't like having to do this to make string streams work
@@ -294,14 +298,11 @@
       (port-glyph-for-character (port output-stream) #\Space
 				(medium-merged-text-style output-stream))
     (declare (ignore origin-x origin-y))
-    ;;--- This is pretty dubious stuff
     #-Symbolics
     (multiple-value-bind (column remainder)
-	(floor (slot-value output-stream 'cursor-x) space-width)
-      (and (= remainder 0)
-	   column))
-    #+Symbolics
-    ;; Better to return a rational number than NIL. 
+ 	(floor (slot-value output-stream 'cursor-x) space-width)
+      (and (= remainder 0) column))
+    #+Symbolics		;Symbolics prefers to return a rational number to NIL
     (/ (slot-value output-stream 'cursor-x) space-width)))
 
 (defmethod stream-advance-to-column ((output-stream output-protocol-mixin) column)
@@ -625,6 +626,7 @@
 (defmethod stream-string-output-size ((stream output-protocol-mixin)
 				      string &key (start 0) end text-style)
   (declare (values last-x largest-x last-y total-height baseline))
+  (when (characterp string) (setq string (string string)))
   (unless end (setf end (length string)))
   (let ((style (or text-style (medium-merged-text-style stream)))
 	(cursor-x (coordinate 0))

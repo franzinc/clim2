@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.14 92/08/18 17:24:58 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.15 92/09/24 09:38:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -168,7 +168,7 @@
 				     (merge-duplicates nil)
 				     (duplicate-key #'identity key-supplied-p)
 				     (duplicate-test #'eql)
-				     (arc-drawer #'draw-line*)
+				     (arc-drawer #'draw-linear-arc)
 				     (arc-drawing-options nil)
 				     (graph-type (if merge-duplicates :digraph :tree))
 				     (generation-separation
@@ -222,6 +222,11 @@
       (when move-cursor
 	(move-cursor-beyond-output-record stream graph-record))
       graph-record)))
+
+(defun draw-linear-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
+  (declare (dynamic-extent drawing-options))
+  (declare (ignore from-node to-node))
+  (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
 
 
 ;;; Tree graphs
@@ -360,8 +365,8 @@
 				   (child-attachment-position child)
 				 (translate-coordinates xoff yoff
 				   parent-x parent-y child-x child-y)
-				 ;;--- This really needs to pass the objects, too
 				 (apply arc-drawer stream
+					nil nil	;--- should be from-node and to-node
 					parent-x parent-y child-x child-y
 					arc-drawing-options))))))
 		  (declare (dynamic-extent #'draw-edges))
@@ -594,8 +599,8 @@
 				     (funcall child-attach child)
 				   (translate-coordinates xoff yoff
 				     parent-x parent-y child-x child-y)
-				   ;;--- This really needs to pass the objects, too
 				   (apply arc-drawer stream 
+					  nil nil	;--- should be from-node and to-node
 					  parent-x parent-y child-x child-y
 					  arc-drawing-options))))))
 		    (declare (dynamic-extent #'draw-edge)) 

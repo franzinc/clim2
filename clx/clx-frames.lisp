@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-frames.lisp,v 1.9 92/08/18 17:24:21 cer Exp $
+;; $fiHeader: clx-frames.lisp,v 1.10 92/09/24 09:38:11 cer Exp $
 
 (in-package :clx-clim)
 
@@ -26,50 +26,3 @@
 	      (compute-menu-bar-pane frame menu-bar)
 	      pane)
 	    pane)))))
-
-(defmethod frame-manager-notify-user
-	   ((framem clx-frame-manager) message-string 
-	    &key (style :inform)
-		 (frame nil frame-p)
-		 (associated-window
-		   (if frame-p
-		       (frame-top-level-sheet frame)
-		       (graft framem)))
-		 (title "Notify user")
-		 documentation
-		 (exit-boxes '(:exit :abort :help))
-		 (name title)
-		 text-style)
-  (declare (ignore style documentation name))
-  (let ((stream associated-window))
-    (accepting-values (stream :exit-boxes exit-boxes :label title
-			      :own-window t)
-      (with-text-style (stream text-style)
-	(write-string message-string stream)))))
-
-;;--- We can do better than this
-(defmethod frame-manager-select-file 
-	   ((framem clx-frame-manager)
-	    &key (default nil default-p)
-		 (frame nil frame-p)
-		 (associated-window
-		   (if frame-p
-		       (frame-top-level-sheet frame)
-		       (graft framem)))
-		 (title "Select a file")
-		 documentation
-		 file-search-proc
-		 directory-list-label
-		 file-list-label
-		 (exit-boxes '(:exit :abort :help))
-		 (name title))
-  (declare (ignore style documentation name
-		   file-search-proc directory-list-label file-list-label))
-  (let ((stream associated-window))
-    (accepting-values (stream :exit-boxes exit-boxes :label title
-			      :own-window t)
-      (values
-	(accept 'pathname :prompt "Enter a pathname"
-		:stream stream
-		:default default 
-		:provide-default (not default-p))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.19 92/09/24 09:37:25 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.20 92/09/30 18:03:12 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -32,6 +32,8 @@
 		      :type (member :sheet-under-pointer :click-to-select))
      (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
 		  :reader port-trace-thing)
+     (deep-mirroring :initform nil :initarg :deep-mirroring
+		     :reader port-deep-mirroring)
      (medium-cache :initform nil :accessor port-medium-cache)
      ;; this slot can go as caches are now on a per palette rather
      ;; then per port basis (cim)
@@ -59,19 +61,19 @@
 )	;locally
 
 
-
 (define-protocol-class sheet ())
 
 (defclass basic-sheet (sheet)
-	  ((port :initform nil :reader port)
-	   (graft :initform nil :reader graft)
-	   (parent :initform nil 
-		   :accessor sheet-parent)
-	   (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
-		   :accessor sheet-region)
-	   (enabledp :initform nil :accessor sheet-enabled-p)
-	   ;;-- Is this the best place
-	   (cursor :initform nil :reader sheet-pointer-cursor)))
+    ((port :initform nil :reader port)
+     (graft :initform nil :reader graft)
+     (parent :initform nil 
+	     :accessor sheet-parent)
+     (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
+	     :accessor sheet-region)
+     (enabledp :initform nil :accessor sheet-enabled-p)
+     ;;--- Is this the best place for this?
+     (pointer-cursor :initarg :pointer-cursor :initform nil
+		     :reader sheet-pointer-cursor)))
 
 
 (define-protocol-class medium ())

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.6 92/09/08 15:19:26 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.7 92/09/24 09:40:39 cer Exp Locker: cer $
 
 (in-package :postscript-clim)
 
@@ -556,7 +556,9 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (assert (= bottom (1+ top)))
   (unless (zerop (rem right 8))
     (error "Sorry, can't hack right /= 0 (mod 8); you have ~D" right))
-  (with-stack-array (arr (array-total-size raster) :element-type '(unsigned-byte 8)
+  (with-stack-array (arr (array-total-size raster) 
+			 ;;--- used to be '(unsigned-byte 8)
+			 :element-type (array-element-type raster)
 						   :displaced-to raster)
     (with-temporary-string (buf :length 100)
       (let ((bytes-per-row (truncate (array-dimension raster 1) 8))

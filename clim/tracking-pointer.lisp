@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.12 92/08/19 18:05:12 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.13 92/09/24 09:39:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -133,7 +133,13 @@
 		      (highlight-presentation
 		        highlighted-presentation highlighted-presentation-type
 		        highlighted-presentation-window :unhighlight))
-		    (setq highlighted-presentation nil))))
+		    (setq highlighted-presentation nil)))
+	       (find-presentation (window x y &key event)
+		 `(if (eq context-type t)
+		      (find-innermost-presentation ,window ,x ,y)
+		      (frame-find-innermost-applicable-presentation
+			*application-frame* *input-context*
+			,window ,x ,y ,@(and event `(:event ,event))))))
       (unwind-protect
 	  (loop
 	    ;; Handle pointer motion
@@ -150,9 +156,7 @@
 		    (when (or presentation-motion-function highlight)
 		      (let ((presentation
 			      (and (output-recording-stream-p current-window)
-				   (frame-find-innermost-applicable-presentation
-				     *application-frame* *input-context*
-				     current-window x y))))
+				   (find-presentation current-window x y))))
 			(when presentation
 			  (when highlight
 			    (unless (eq presentation highlighted-presentation)
@@ -226,8 +230,7 @@
 				   (let* ((window (event-sheet gesture))
 					  (presentation
 					    (and (output-recording-stream-p window)
-						 (frame-find-innermost-applicable-presentation
-						   *application-frame* *input-context*
+						 (find-presentation 
 						   window px py :event gesture))))
 				     (when presentation
 				       (funcall presentation-press-function
@@ -241,8 +244,7 @@
 				   (let* ((window (event-sheet gesture))
 					  (presentation
 					    (and (output-recording-stream-p window)
-						 (frame-find-innermost-applicable-presentation
-						   *application-frame* *input-context*
+						 (find-presentation
 						   window px py :event gesture))))
 				     (when presentation
 				       (funcall presentation-release-function
@@ -255,6 +257,54 @@
 	(unhighlight)
 	(when last-window
 	  (unhighlight-highlighted-presentation last-window))))))
+
+;; This is like FIND-INNERMOST-APPLICABLE-PRESENTATION, except that it
+;; finds the innermost presentation irrespective of the input context
+;; and any translators that might be around.
+(defun find-innermost-presentation (stream x y)
+  (let ((x (coordinate x))
+	(y (coordinate y)))
+    (declare (type coordinate x y))
+    (labels 
+      ((mapper (record presentations x-offset y-offset)
+	 (declare (type coordinate x-offset y-offset))
+	 (multiple-value-bind (sensitive superior-sensitive inferior-presentation)
+	     (if (presentationp record)
+		 ;;--- This should call PRESENTATION-REFINED-POSITION-TEST
+		 (if (output-record-refined-position-test 
+		       record (- x x-offset) (- y y-offset))
+		     (let ((displayed (displayed-output-record-p record))
+			   (single-box (presentation-single-box record)))
+		       (if (or (eq single-box t) (eq single-box :position))
+			   (values t displayed nil)
+			   (values nil displayed record)))
+		     (values nil nil nil))
+		 (values nil
+			 (and presentations
+			      (dolist (presentation presentations nil)
+				(unless (null presentation) (return t)))
+			      (displayed-output-record-p record)
+			      (output-record-refined-position-test
+				record (- x x-offset) (- y y-offset)))
+			 nil))
+	   (with-stack-list* (more-presentations inferior-presentation presentations)
+	     (when inferior-presentation
+	       (setq presentations more-presentations))
+	     (multiple-value-bind (dx dy) (output-record-position record)
+	       (map-over-output-records-containing-position 
+		 #'mapper record x y
+		 (- x-offset) (- y-offset)
+		 presentations (+ x-offset dx) (+ y-offset dy)))
+	     (when sensitive
+	       (return-from find-innermost-presentation record))
+	     (when superior-sensitive
+	       (do* ((presentations presentations (cdr presentations))
+		     (presentation (car presentations) (car presentations)))
+		    ((null presentations))
+		 (when presentation
+		   (return-from find-innermost-presentation presentation))))))))
+      (declare (dynamic-extent #'mapper))
+      (mapper (stream-output-history stream) nil (coordinate 0) (coordinate 0)))))
 
 
 ;;; Miscellaneous utilities

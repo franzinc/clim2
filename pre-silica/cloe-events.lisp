@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-events.lisp,v 1.3 92/05/18 14:03:38 cer Exp Locker: cer $
+;; $fiHeader: cloe-events.lisp,v 1.4 92/07/01 15:48:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -176,7 +176,7 @@
       ;; commonly-desired exception is a timeout, which we provide directly.
       (when (and input-wait-test (funcall input-wait-test original-stream))
 	(return-from cloe-event-handler :input-wait-test))
-      (win::await-response -1 nil t)
+      (win::await-response -1 t t)
       ;; we do this here, rather than in vanilla event
       ;; to provide for better synchronization.
       (cloe-process-all-deferred-events)

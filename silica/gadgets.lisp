@@ -1,37 +1,11 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.34 92/09/08 15:16:41 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.35 92/09/24 09:37:40 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
-
-
-;;--- Some method for ENGRAFT-MEDIUM needs to set these into the medium,
-;;--- especially for temporary-medium sheets.
-(defclass foreground-background-and-text-style-mixin ()
-    ((foreground :initform nil :initarg :foreground
-		 :accessor pane-foreground)
-     (background :initform nil :initarg :background
-		 :accessor pane-background)
-     (text-style :initform *default-text-style* :initarg :text-style
-		 :accessor pane-text-style)))
-
-(defmethod initialize-instance :after ((pane foreground-background-and-text-style-mixin)
-				       &key &allow-other-keys)
-  (with-slots (text-style) pane
-    ;; Convert the text style if necesary
-    (etypecase text-style
-      (cons (setq text-style (parse-text-style text-style)))
-      (text-style nil)
-      (null))))
-
-(defun-inline invoke-callback-function (function &rest args)
-  (declare (dynamic-extent args))
-  (if (consp function)
-      (apply (car function) (append args (cdr function)))
-      (apply function args)))
 
 
 (defclass gadget (foreground-background-and-text-style-mixin)
@@ -45,6 +19,12 @@
   (:default-initargs :active t))
 
 ;;; Arming and disarming
+
+(defun-inline invoke-callback-function (function &rest args)
+  (declare (dynamic-extent args))
+  (if (consp function)
+      (apply (car function) (append args (cdr function)))
+      (apply function args)))
 
 (defmethod armed-callback :around ((gadget gadget) (client t) (id t))
   (let ((callback (gadget-armed-callback gadget)))
@@ -344,8 +324,11 @@
  	    :accessor radio-box-current-selection)))
 
 (defmethod initialize-instance :after ((rb radio-box) &key choices)
-  (let ((frame (pane-frame rb)))
-    (with-look-and-feel-realization ((frame-manager frame) frame)
+  (let* ((frame (pane-frame rb))
+	 (framem (frame-manager frame)))
+    (assert (and frame framem) ()
+	    "There must be both a frame and frame manager active")
+    (with-look-and-feel-realization (framem frame)
       (dolist (button choices)
 	(if (panep button)
 	    ;; Adopt the button.  Some framems will disown the button
@@ -385,8 +368,11 @@
  	    :accessor check-box-current-selection)))
 
 (defmethod initialize-instance :after ((cb check-box) &key choices)
-  (let ((frame (pane-frame cb)))
-    (with-look-and-feel-realization ((frame-manager frame) frame)
+  (let* ((frame (pane-frame cb))
+	 (framem (frame-manager frame)))
+    (assert (and frame framem) ()
+	    "There must be both a frame and frame manager active")
+    (with-look-and-feel-realization (framem frame)
       (dolist (button choices)
 	(if (panep button)
 	    ;; Adopt the button.  Some framems will disown the button
@@ -409,7 +395,7 @@
   (if (eq value t)
       (pushnew selection (check-box-current-selection client))
       (setf (check-box-current-selection client)
-	    (delete selection (check-box-current-selection client))))
+	    (remove selection (check-box-current-selection client))))
   (value-changed-callback
     client (gadget-client client) (gadget-id client) (check-box-current-selection client))
   (call-next-method))
@@ -662,9 +648,4 @@
 (defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
   (drag-callback
    gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
-
-
-;;; Separator panes
-
-(defclass separator (oriented-gadget-mixin) ())
 

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.49 92/09/30 18:04:18 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.50 92/10/01 08:25:05 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -650,6 +650,17 @@ benchmark:
 	(load \"tk-silica/test-clim.lisp\") \
 	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
 "  | $(CLIM) $(CLOPTS) -batch
+
+
+PSVIEW=view
+
+testps :
+	$(ECHO) "\
+	(load \"tk-silica/test-clim.lisp\") \
+	(load \"test/postscript-tests.lisp\") \
+	(clim-user::run-postscript-tests :output :$(PSVIEW)) \
+"  | $(CLIM) $(CLOPTS) -batch
+
 
 echo-train:
 	-$(ECHO) "$(TRAIN_LISP)"

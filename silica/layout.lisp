@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.26 92/09/24 09:37:43 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.27 92/09/30 11:44:39 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -219,18 +219,6 @@
 
 (defmethod pane-frame ((sheet basic-sheet)) nil)
 
-(defclass pane-background-mixin () 
-    ((background :initform +white+ :accessor pane-background)))
-
-;;--- This is conceptually what we need, but it hasn't been tested.
-;;--- Look carefully at who uses PANE-BACKGROUND-MIXIN first...
-#+++ignore
-(defmethod handle-repaint ((pane pane-background-mixin) region)
-  (with-sheet-medium (medium pane)
-    (multiple-value-call #'draw-rectangle*
-      medium (bounding-rectangle* (sheet-region pane))
-      :ink (pane-background pane))))
-
 ;(defclass list-contents-mixin ()
 ;    ((contents :initform nil)
 ;     (nslots :initform nil :initarg :nslots)
@@ -359,7 +347,7 @@
 ;;---   STREAM-READ-GESTURE
 
 (defmethod note-layout-mixin-region-changed ((pane top-level-sheet) &key port)
-  (if port
+  (if (and port (pane-frame pane))
       ;; We do this because if the WM has resized us then we want to
       ;; do the complete LAYOUT-FRAME thing including clearing caches
       ;; etc etc.

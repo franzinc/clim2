@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.12 92/09/08 15:18:55 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.13 92/09/24 09:39:55 cer Exp $
 
 (in-package :genera-clim)
 
@@ -476,6 +476,41 @@
 (define-genera-keysym #\Suspend :suspend)
 (define-genera-keysym #\Resume	:resume)
 
+;; The rest of Genera's wierdo characters
+(define-genera-keysym #\alpha :alpha)
+(define-genera-keysym #\beta :beta)
+(define-genera-keysym #\gamma :gamma)
+(define-genera-keysym #\delta :delta)
+(define-genera-keysym #\epsilon :epsilon)
+(define-genera-keysym #\lambda :lambda)
+(define-genera-keysym #\pi :pi)
+(define-genera-keysym #\not-equal :not-equal)
+(define-genera-keysym #\less-or-equal :less-or-equal)
+(define-genera-keysym #\greater-or-equal :greater-or-equal)
+(define-genera-keysym #\and-sign :and-sign)
+(define-genera-keysym #\or-sign :or-sign)
+(define-genera-keysym #\not-sign :not-sign)
+(define-genera-keysym #\equivalence :equivalence)
+(define-genera-keysym #\universal-quantifier :universal-quantifier)
+(define-genera-keysym #\existential-quantifier :existential-quantifier)
+(define-genera-keysym #\integral :integral)
+(define-genera-keysym #\partial-delta :partial-delta)
+(define-genera-keysym #\infinity :infinity)
+(define-genera-keysym #\left-arrow :left-arrow)
+(define-genera-keysym #\right-arrow :right-arrow)
+(define-genera-keysym #\up-arrow :up-arrow)
+(define-genera-keysym #\down-arrow :down-arrow)
+(define-genera-keysym #\double-arrow :double-arrow)
+(define-genera-keysym #\left-horseshoe :left-horseshoe)
+(define-genera-keysym #\right-horseshoe :right-horseshoe)
+(define-genera-keysym #\up-horseshoe :up-horseshoe)
+(define-genera-keysym #\down-horseshoe :down-horseshoe)
+(define-genera-keysym #\plus-minus :plus-minus)
+(define-genera-keysym #\circle-plus :circle-plus)
+(define-genera-keysym #\circle-cross :circle-cross)
+(define-genera-keysym #\lozenge :lozenge)
+(define-genera-keysym #\center-dot :center-dot)
+
 
 (defvar *genera-cursor-type-alist*
 	'((:default #\mouse:nw-arrow)
@@ -503,6 +538,18 @@
 		    #\mouse:ne-arrow)))
       ;; Note that this means that CLIM requires DW for the nonce...
       ;; It would be trivial to encode this information in the above methods, though
+      (let ((entry (assoc char dw::*mouse-blinker-characters*))
+	    (x 0) (y 0))
+	(when entry
+	  (scl:destructuring-bind (nil xx yy &optional nil) entry
+	    (setq x xx y yy)))
+	(tv:mouse-set-blinker-definition ':character x y ':on ':set-character char))))
+  cursor)
+
+(defmethod port-set-sheet-pointer-cursor ((port genera-port) sheet cursor)
+  (unless (eq (sheet-pointer-cursor sheet) cursor)
+    (let ((char (or (second (assoc cursor *genera-cursor-type-alist*))
+		    #\mouse:ne-arrow)))
       (let ((entry (assoc char dw::*mouse-blinker-characters*))
 	    (x 0) (y 0))
 	(when entry

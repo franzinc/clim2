@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: user -*-
+;; -*- mode: common-lisp; package: cl-user -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.6 92/03/09 17:41:34 cer Exp Locker: cer $
+;; $fiHeader: pkg.lisp,v 1.7 92/05/22 19:27:25 cer Exp $
 
 
 (defpackage :x11

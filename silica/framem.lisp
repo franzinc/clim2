@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.17 92/09/30 11:44:38 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.18 92/09/30 18:03:14 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -87,26 +87,18 @@
 	   (dolist (frame-manager (port-frame-managers port))
 	     (mapc function (frame-manager-frames frame-manager)))))))
 
-
-;; Things like the Genera and CLX frame managers create a CLIM stream pane
-;; that simply use DISPLAY-COMMAND-MENU.
-(defmethod frame-wrapper ((framem standard-frame-manager) frame pane)
-  (declare (ignore frame))
-  pane)
-
 (defmethod adopt-frame :before ((framem standard-frame-manager) frame)
   (assert (null (frame-manager frame)))
   (setf (frame-manager frame) framem))
 
 (defmethod adopt-frame ((framem standard-frame-manager) frame)
   (generate-panes framem frame)
-  (when (frame-p?anes frame)
+  (when (frame-panes frame)
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet
-                      :event-queue (clim-internals::frame-input-buffer frame)
+		      :event-queue (frame-input-buffer frame)
 		      :user-specified-position-p (frame-user-specified-position-p frame)
-
 		      :user-specified-size-p (frame-user-specified-size-p frame)
 		      :region (multiple-value-bind (width height)
 				  (bounding-rectangle-size top-pane)
@@ -115,8 +107,6 @@
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))
-
-
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)
@@ -146,6 +136,12 @@
 
 (defmethod note-frame-disabled :after ((framem standard-frame-manager) frame)
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
+
+(defmethod note-frame-iconified :after ((framem standard-frame-manager) frame)
+  (setf (frame-state frame) :shrunk))
+
+(defmethod note-frame-deiconified :after ((framem standard-frame-manager) frame)
+  (setf (frame-state frame) :enabled))
 
 (defmethod update-frame-settings ((framem standard-frame-manager) frame)
   (declare (ignore frame))
@@ -212,9 +208,3 @@
   (declare (ignore realizer type))
   (declare (non-dynamic-extent options))
   options)
-
-(defmethod note-frame-iconified ((framem standard-frame-manager) frame)
-  (setf (frame-state frame) :shrunk))
-
-(defmethod note-frame-deiconified ((framem standard-frame-manager) frame)
-  (setf (frame-state frame) :enabled))

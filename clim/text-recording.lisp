@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.12 92/09/22 19:37:28 cer Exp Locker: cer $
+;; $fiHeader: text-recording.lisp,v 1.13 92/09/24 09:39:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -55,8 +55,6 @@
 		    (string ink clipping-region wrapped-p style baseline)
   :ink ink :string string :clipping-region clipping-region :wrapped-p wrapped-p
   :initial-style style :current-style style :baseline baseline)
-
-
 
 (defmethod print-object ((object standard-text-output-record) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -446,8 +444,8 @@
 
 
 (defun find-text-baseline (record stream)
-  ;; This finds the lowest baseline of the text in RECORD, which will be slower than, say,
-  ;; the first baseline but more likely to look good with misaligned things.
+  ;; This finds the lowest baseline of the text in RECORD, which will be slower than,
+  ;; say, the first baseline but more likely to look good with misaligned things.
   (let ((baseline (coordinate 0))
 	(style (medium-default-text-style stream)))
     (declare (type coordinate baseline))

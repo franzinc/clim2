@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.19 92/09/08 15:16:50 cer Exp $
+;; $fiHeader: port.lisp,v 1.20 92/09/24 09:37:50 cer Exp $
 
 (in-package :silica)
 
@@ -31,19 +31,19 @@
 			(return-from find-port port))))
   (make-port :server-path server-path))
 
-#+Allegro
-(progn
-  (defun reset-ports ()
-    ;;--
-    (setq *ports* nil))
-  (push `(:eval reset-ports) excl::*restart-actions*))
-  
 #+Genera
 (scl:add-initialization "Reset ports"
   '(progn
      (dolist (port *ports*)
        (destroy-port port)))
   '(before-cold))
+
+#+Allegro
+(progn
+  (defun reset-ports ()
+    ;;--- Should this do more?
+    (setq *ports* nil))
+  (push `(:eval reset-ports) excl::*restart-actions*))
 
 (defun port-match (port server-path)
   (equal (port-server-path port) server-path))

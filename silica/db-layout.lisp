@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.24 92/09/08 10:34:18 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.25 92/09/24 09:37:31 cer Exp $
 
 (in-package :silica)
 
@@ -122,12 +122,13 @@
 (defmethod change-space-requirements :around ((pane layout-mixin) 
 					      &key resize-frame &allow-other-keys)
   (call-next-method)
-  (if *inside-changing-space-requirements*
-      (push (if resize-frame (pane-frame pane) (sheet-parent pane))
-	    (cdr *inside-changing-space-requirements*))
-      (if resize-frame
-	  (layout-frame (pane-frame pane))
-	  (note-space-requirement-changed (sheet-parent pane) pane))))
+  (let ((frame (pane-frame pane)))
+    (if *inside-changing-space-requirements*
+	(push (if (and frame resize-frame) frame (sheet-parent pane))
+	      (cdr *inside-changing-space-requirements*))
+	(if (and frame resize-frame)
+	    (layout-frame frame)
+	    (note-space-requirement-changed (sheet-parent pane) pane)))))
 
 
 (defun space-requirement-combine (function sr1 sr2)
@@ -649,10 +650,9 @@
       (nreverse sizes))))
 
 
-;;; Most of the layout panes should inherit from this
-
+;; Most of the layout panes should inherit from this
 (defclass layout-pane (sheet-mute-input-mixin
-		       pane-background-mixin
+		       foreground-background-and-text-style-mixin
 		       space-requirement-mixin
 		       space-requirement-cache-mixin
 		       sheet-permanently-enabled-mixin
