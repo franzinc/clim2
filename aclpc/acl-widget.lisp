@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.15 2000/07/06 20:46:01 layer Exp $
+;; $Id: acl-widget.lisp,v 1.15.24.1 2000/10/03 11:20:40 cley Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -515,7 +515,8 @@
 (defmethod text-edit-flags ((sheet mswin-text-edit))
   (logior 
    (if (gadget-editable-p sheet) 0 win:ES_READONLY)
-   win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER
+   (if (gadget-word-wrap sheet) 0  win:ES_AUTOHSCROLL)
+   win:ES_LEFT win:WS_BORDER
    win:ES_MULTILINE win:ES_AUTOVSCROLL))
 
 (defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-text-edit))

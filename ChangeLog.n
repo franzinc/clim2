@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.5.7
+
+2000-09-12 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-widget.lisp: added support for word-wrap.
+
+*******************************************************************************
 2.2.2.21.5.6
 
 2000-09-20 tfb@cley.com (Tim Bradshaw)
