@@ -11,7 +11,7 @@ XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include
-MOTIFXTRAOS=
+MOTIFXTRAOS=-lgen
 
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 

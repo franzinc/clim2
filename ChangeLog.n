@@ -1,3 +1,11 @@
+Tue Feb  8 11:20:08 1994  George Jacob  (georgej@lava)
+
+* Makefile.sun4-svr4: Used MOTIFXTRAOS for ucl.clim rule
+
+* Makefile.generic: Extended ucl.clim rule to handle Solaris2
+
+* Makefile.cobjs-svr4: Re-instated MAIN_OBJ rule (for static libraries)
+
 Tue Jan 11 15:30:15 1994  George Jacob  (georgej@lava)
 
 * utils/excl-verification.lisp: Changed version to CLIM2.0

@@ -326,9 +326,9 @@ xm-dcl	: stub-x.o stub-xt.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl ;\
 	/bin/mv ucl.climsave ucl
 
-ucl.clim: stub-x.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
+ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ;\
-	make ucl_xtras='$(PWD)/stub-x.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
+	make ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MOTIFXTRAOS) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
 	/bin/mv ucl ucl.clim ; /bin/mv ucl.climsave ucl ; /bin/mv dcl.climsave dcl
 
 dcl	: 
