@@ -10,6 +10,13 @@ If there are user-visible changes in this commit, then list the
 <standard changelog date stamp>
 	* <changes go here...>
 
+*******************************************************************************2.2.2.11 tfb@cley.com (Tim Bradshaw) Thu Jun  8 01:10:26 2000
+
+	* aclpc/acl-prel.lisp: case fix for bug9014
+	* demo/sysdcl.lisp: build fixes
+	* misc/compile-1.lisp: same
+	* Makefile.defs: build fixes / acl6?
+
 *******************************************************************************
 2.2.2.10 -- join from acl50 branch
 
