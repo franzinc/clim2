@@ -1414,15 +1414,6 @@
     (object)
   (list object))
 
-(define-flight-planner-command (com-foo-it :name t :menu t)
-    ((start 'route-start-object)&key (blah 'number))
-  (print (cons start blah)))
-
-(define-presentation-to-command-translator foo-it
-    (route-start-object com-foo-it flight-planner
-			:gesture nil)
-  (object)
-  (list object :blah *unsupplied-argument-marker*))
 
 
 (define-flight-planner-command (com-show-distance :name t :menu t)
