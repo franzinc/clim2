@@ -36,3 +36,42 @@ developers or documentation.
    code is now included in the normal fasls and the empty files
    included for backwards compatibility.  In a future release they
    will disappear.
+
+5. <norfe>.  CLIM has been changed so that, the standard frame
+   top-level loop defaultly rebinds *error-output* to itself, and not
+   to one of the frame panes.  This is an incompatible change, which
+   was made to stop problems when Lisp messages (unrelated to the CLIM
+   application) were getting printed to CLIM panes.  This is at best
+   annoying, and at worst can cause errors in incremental redisplay.
+
+   Rather than hard-wire this change, it is controlled by an argument
+   to make-application-frame / make-instance of
+   standard-application-frame:
+
+   (make-application-frame ... :non-frame-stream-names <name list>)
+
+   Will cause the default top-level loop to rebind the values of the
+   standard streams named in <name list> to themselves, not to CLIM
+   panes, even when there are suitable panes available. The default
+   case is as if you said:
+
+   (make-application-frame ... :non-frame-stream-names '(*error-output*))
+
+   And you can inhibit the new behaviour by saying:
+
+   (make-application-frame ... :non-frame-stream-names '())
+
+   or providing this as a default-initarg in a frame class definition.
+
+   Note that this behaviour is controlled in terms of stream *names*
+   not streams, and in fact it is more general than just
+   *error-output*.  The names that make sense in the list are
+   *standard-output*, *standard-output*, *error-output*, *query-io*
+   and *pointer-documentation-output*.
+
+   The behaviour of the generic functions frame-standard-output,
+   frame-standard-input, frame-query-io, frame-error-output and
+   frame-pointer-documentation-output are altered by this change.  If
+   the corresponding stream will be rebound to its old value in the
+   frame, the methods defined on standard-application-frame for these
+   generic functions will return nil rather than a stream.

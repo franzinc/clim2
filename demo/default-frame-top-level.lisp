@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: default-frame-top-level.lisp,v 1.4 1998/08/06 23:16:25 layer Exp $
+;; $Id: default-frame-top-level.lisp,v 1.5 2000/06/26 17:42:07 layer Exp $
 
 (in-package :clim-internals)
 
@@ -31,11 +31,11 @@
     (let* ((*standard-output*
 	    (or (frame-standard-output frame) *standard-output*))
 	   (*standard-input*
-	    (or (frame-standard-input frame) *standard-output*))
+	    (or (frame-standard-input frame) *standard-input*))
 	   (*query-io*
-	    (or (frame-query-io frame) *standard-input*))
+	    (or (frame-query-io frame) *query-io*))
 	   (*error-output*
-	    (or (frame-error-output frame) *standard-output*))
+	    (or (frame-error-output frame) *error-output*))
 	   (*pointer-documentation-output*
 	    (frame-pointer-documentation-output frame))
 	   (interactor

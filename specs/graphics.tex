@@ -231,7 +231,7 @@ inside of the figure is on is used to decide.  These are the triangles that CLIM
 implementations should attempt to draw in this case.
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=two-triangles.ps}}\else\vspace{2.25in}\fi
+\centerline{\epsfig{file=two-triangles.epsi}}
 \caption{\label{two-triangles} Pixel assignment with boundary on decision points.}
 \end{figure}
 
@@ -247,7 +247,7 @@ we must apply the same rule uniformly for all figures, we have no choice but to
 pick only two of the four points, leading to an undesirable lopsided figure.
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=corner-circle.ps}}\else\vspace{2.5in}\fi
+\centerline{\epsfig{file=corner-circle.epsi}}
 \caption{\label{corner-circle} Choosing any two of the shaded pixels causes asymmetry.}
 \end{figure}
 
@@ -265,7 +265,7 @@ and circle overlaid with the following code:
 \end{verbatim}
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=inscribed-circle.ps}}\else\vspace{2.5in}\fi
+\centerline{\epsfig{file=inscribed-circle.epsi}}
 \caption{\label{inscribed-circle} Two forms of a circle inscribed in a rectangle.}
 \end{figure}
 
@@ -275,7 +275,7 @@ Figure~\ref{correct-circle}.  It is this shape that CLIM implementations should
 attempt to draw.
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=correct-circle.ps}}\else\vspace{2.5in}\fi
+\centerline{\epsfig{file=correct-circle.epsi}}
 \caption{\label{correct-circle} An aesthetically pleasing circle.}
 \end{figure}
 
@@ -301,7 +301,7 @@ lines that are a single device unit wide.  The right-hand line is drawn as a
 tilted rectangle, the left as the ``thinnest visible'' line.
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=thin-lines.ps}}\else\vspace{2.5in}\fi
+\centerline{\epsfig{file=thin-lines.epsi}}
 \caption{\label{thin-lines} Two examples of lines of thickness 1.}
 \end{figure}
 
@@ -312,7 +312,7 @@ faster on some platforms.  The two rasterizations depicted in
 Figure~\ref{thick-lines} are both reasonable.
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=thick-lines.ps}}\else\vspace{2.5in}\fi
+\centerline{\epsfig{file=thick-lines.epsi}}
 \caption{\label{thick-lines} Two examples of lines of thickness 2.}
 \end{figure}
 
@@ -326,7 +326,7 @@ centers have the figure immediately above them.  This definition makes it
 simpler to draw rectilinear borders around rectilinear areas.
 
 \begin{figure}
-\ifpsfig\centerline{\psfig{figure=horizontal-lines.ps}}\else\vspace{2.25in}\fi
+\centerline{\epsfig{file=horizontal-lines.epsi}}
 \caption{\label{horizontal-lines} Two possible definitions of horizontal lines. 
 Left figure is X11 definition.}
 \end{figure}

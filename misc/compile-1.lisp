@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.38 2000/06/08 19:16:54 layer Exp $
+;; $Id: compile-1.lisp,v 1.39 2000/06/26 17:42:07 layer Exp $
 
 (in-package :user)
 
@@ -332,8 +332,8 @@
       ;; the clim-homegrown and the clim-compatibility (from
       ;; compatibility;sysdcl) systems were not being bult on any
       ;; platform.
-      #+(and allegro (not acl86win32))
-      ;;#+ics				;I hope this is the right test
+      ;; I am not sure if this is the right test...
+      #+(and allegro ics (not acl86win32))
       (cl 'wnn)
       (cl 'postscript-clim)
       (cl 'climdemo)
@@ -363,9 +363,9 @@
   (concatenate-system 'postscript-clim "clim2:;climps.fasl")
   ;; The wnn system depends on ics.  The debug system is just there
   ;; for backwards compatibility
-  #+(and allegro (not acl86win32))
+  #+(and allegro ics (not acl86win32))
   (concatenate-system 'wnn-cat "clim2:;climwnn.fasl")
-  #+(and allegro (not acl86win32))
+  #+(and allegro ics (not acl86win32))
   (concatenate-system 'empty-cat "clim2:;clim-debugwnn.fasl")
   ;; hpgl only on unix
   #-acl86win32

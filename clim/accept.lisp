@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept.lisp,v 1.29 1998/08/06 23:15:50 layer Exp $
+;; $Id: accept.lisp,v 1.30 2000/06/26 17:42:07 layer Exp $
 
 (in-package :clim-internals)
 
@@ -445,17 +445,22 @@
 				     input-wait-test input-wait-handler
 				     pointer-button-press-handler)
   (declare (ignore input-wait-test input-wait-handler pointer-button-press-handler))
+  ;; avoid using STREAM-x functions to reduce Gray stream dependence,
+  ;; tfb 13-jun-2000
   (let ((char (if (eq timeout 0)
-		  (stream-read-char-no-hang stream)
-		  (stream-read-char stream))))
+
+		  (read-char-no-hang stream nil ':eof)
+		  (read-char stream nil ':eof))))
     (when (and char peek-p)
-      (stream-unread-char stream char))
+      (unread-char char stream))
     char))
 
 (defmethod stream-unread-gesture ((stream t) gesture)
   (unless (eq gesture *end-of-file-marker*)
     (check-type gesture character)
-    (stream-unread-char stream gesture)))
+    ;; avoid using STREAM-x functions to reduce Gray stream dependence,
+    ;; tfb 13-jun-2000
+    (unread-char gesture stream)))
 
 (defmethod stream-accept ((stream t) type &rest accept-args
 			  &key view &allow-other-keys)

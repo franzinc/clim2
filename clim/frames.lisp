@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.95 2000/05/01 21:43:23 layer Exp $
+;; $Id: frames.lisp,v 1.96 2000/06/26 17:42:07 layer Exp $
 
 (in-package :clim-internals)
 
@@ -25,6 +25,15 @@
 ;;; Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 (define-protocol-class application-frame ())
+
+(defvar *default-non-frame-stream-names*
+    ;; This is a list of stream *names* which will defaultly not be
+    ;; rebound to frame-specific values.  For Allegro we need to not
+    ;; bind *STANDARD-ERROR* as noise output happens on that.
+    ;; Actually I think it might be correct to not rebind
+    ;; *STANDARD-ERROR* at all.
+    '(#+allegro *error-output*
+      ))
 
 (defclass standard-application-frame (application-frame)
     ((name :initarg :name :accessor frame-name)
@@ -75,7 +84,9 @@
      (command-queue :initform (make-locking-queue) :reader frame-command-queue)
      (input-buffer :initform nil :initarg :input-buffer :reader frame-input-buffer)
      (pane-to-avv-stream-table :initform nil :accessor frame-pane-to-avv-stream-table)
-     (actual-pointer-documentation-pane :initform nil :accessor frame-actual-pointer-documentation-pane))
+     (actual-pointer-documentation-pane :initform nil :accessor frame-actual-pointer-documentation-pane)  
+     (non-frame-stream-names :initform *default-non-frame-stream-names*
+			     :initarg :non-frame-stream-names))
   (:default-initargs :pointer-documentation nil
                      :layouts nil
                      :resize-frame nil
@@ -896,11 +907,11 @@
     (let* ((*standard-output*
 	    (or (frame-standard-output frame) *standard-output*))
 	   (*standard-input*
-	    (or (frame-standard-input frame) *standard-output*))
+	    (or (frame-standard-input frame) *standard-input*))
 	   (*query-io*
-	    (or (frame-query-io frame) *standard-input*))
+	    (or (frame-query-io frame) *query-io*))
 	   (*error-output*
-	    (or (frame-error-output frame) *standard-output*))
+	    (or (frame-error-output frame) *error-output*))
 	   (*pointer-documentation-output*
 	    (frame-pointer-documentation-output frame))
 	   (interactor
@@ -1459,22 +1470,37 @@
                    (frame-top-level-sheet frame)))
 
 (defmethod frame-standard-output ((frame standard-application-frame))
-  (or (find-frame-pane-of-type frame 'application-pane)
-      (find-frame-pane-of-type frame 'interactor-pane)))
+  (if (not (member '*standard-output* (slot-value frame 
+						  'non-frame-stream-names)))
+      (or 
+       (find-frame-pane-of-type frame 'application-pane)
+       (find-frame-pane-of-type frame 'interactor-pane))
+      nil))
 
 (defmethod frame-standard-input ((frame standard-application-frame))
-  (or (find-frame-pane-of-type frame 'interactor-pane)
-      (frame-standard-output frame)))
-
+  (if (not (member '*standard-input* (slot-value frame 
+						  'non-frame-stream-names)))
+      (or (find-frame-pane-of-type frame 'interactor-pane)
+	  (frame-standard-output frame))))
+  
 (defmethod frame-query-io ((frame standard-application-frame))
-  (or (frame-standard-input frame)
-      (frame-standard-output frame)))
+  (if (not (member '*query-io* (slot-value frame 
+					   'non-frame-stream-names)))
+      (or (frame-standard-input frame)
+	  (frame-standard-output frame))
+      nil))
 
 (defmethod frame-error-output ((frame standard-application-frame))
-  (frame-standard-output frame))
+  (if (not (member '*error-output* (slot-value frame
+					       'non-frame-stream-names)))
+      (frame-standard-output frame)
+      nil))
 
 (defmethod frame-pointer-documentation-output ((frame standard-application-frame))
-  (find-frame-pane-of-type frame 'pointer-documentation-pane))
+  (if (not (member '*pointer-documentation-output* 
+		   (slot-value frame 'non-frame-stream-names)))
+      (find-frame-pane-of-type frame 'pointer-documentation-pane)
+      nil))
 
 ;;--- This causes direct-manipulation and menu-driven applications not to
 ;;--- maintain histories.  Is there a better heuristic?

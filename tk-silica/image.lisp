@@ -15,11 +15,13 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: image.lisp,v 1.26 1999/02/25 08:23:44 layer Exp $
+;; $Id: image.lisp,v 1.27 2000/06/26 17:42:14 layer Exp $
 
 (in-package :xm-silica)
 
 ;; make-pattern-from-bitmap-file and read-bitmap-file constitute the API
+
+;; write-bitmap-file is partially broken
 
 (defparameter *bitmap-file-types*
     '((:bitmap nil "xbm")
@@ -115,18 +117,23 @@
 (defmethod read-image-file ((format t) pathname palette)
   (multiple-value-bind (format filter)
       (compute-filter-for-bitmap-format format)
-    (let* ((truename (truename pathname))
-	   (command (format nil "cat ~A | ~A" truename filter)))
+    (let* ((tempname (system:make-temp-file-name))
+	   (truename (truename pathname))
+	   (command (format nil "cat ~A | ~A" tempname filter)))
       (unwind-protect
-	  (with-open-stream (fstream (excl:run-shell-command
-				      command
-				      :wait nil
-				      :output :stream))
-	    (handler-case (read-image-file format fstream palette)
-	      (error (c)
-		(error "Unable to read image file: ~s, \"~a\" ~
-			while executing ~s." pathname c command))))
-	(sys:os-wait)))))
+	  (progn
+	    (system:copy-file truename tempname
+			      :link t)
+	    (with-open-stream (fstream (excl:run-shell-command
+					command
+					:wait nil
+					:output :stream))
+	      (handler-case (read-image-file format fstream palette)
+		(error (c)
+		  (error "Unable to read image file: ~s (from ~s), \"~a\" ~
+			while executing ~s." tempname pathname c command)))))
+	(sys:os-wait)
+	(delete-file tempname)))))
 
 (defmethod write-image-file ((format t) pathname array designs)
   (multiple-value-bind (format read-filter filter)
@@ -134,28 +141,33 @@
     (declare (ignore read-filter))
     ;; copied from code/streamc.cl - basically a truename but without
     ;; the probe-file
-    (let* ((truename (translate-logical-pathname
+    (let* ((tempname (system:make-temp-file-name))
+	   (truename (translate-logical-pathname
 		      (merge-pathnames (pathname pathname))))
-	   (command (format nil "~A > ~A" filter truename)))
+	   (command (format nil "~A > ~A" filter tempname)))
       (unwind-protect
-	  (with-open-stream (fstream (excl:run-shell-command
-				      command
-				      :wait nil
-				      :input :stream))
-	    (handler-case (write-image-file format fstream array designs)
-	      (error (c)
-		(error "Unable to write image file: ~s, \"~a\" ~
-			while executing ~s." pathname c command))))
-	(sys:os-wait)))))
+	  (progn
+	    (with-open-stream (fstream (excl:run-shell-command
+					command
+					:wait nil
+					:input :stream))
+	      (handler-case (write-image-file format fstream array designs)
+		(error (c)
+		  (error "Unable to write image file: ~s (from ~s), \"~a\" ~
+			while executing ~s." tempname pathname c command))))
+	    (system:copy-file tempname truename))
+	(sys:os-wait)
+	(delete-file tempname)))))
+	 
 
 (defmethod compute-filter-for-bitmap-format (format)
   (error "Dont know how to convert from the format ~A" format))
 
 (defmethod compute-filter-for-bitmap-format ((format (eql :gif)))
-  (values :pixmap "giftoppm | ppmtoxpm" "xpmtoppm | ppmtogif"))
+  (values :pixmap-3 "giftopnm | ppmtoxpm" "xpmtoppm | ppmtogif"))
 
 (defmethod compute-filter-for-bitmap-format ((format (eql :tiff)))
-  (values :pixmap "tifftopnm | ppmtoxpm" "xpmtoppm | pnmtotiff"))
+  (values :pixmap-3 "tifftopnm | ppmtoxpm" "xpmtoppm | pnmtotiff"))
 
 ;;;
 
