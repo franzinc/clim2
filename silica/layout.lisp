@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: layout.lisp,v 1.35.22.3 1998/12/17 00:19:35 layer Exp $
+;; $Id: layout.lisp,v 1.35.22.4 2000/04/19 20:24:27 layer Exp $
 
 (in-package :silica)
 
@@ -170,7 +170,7 @@
           (oheight (- bottom top)))
       (if (or (/= owidth width)
               (/= oheight height)
-              #+Allegro
+              #+allegro
               (mirror-needs-changing-p sheet left top width height))
           ;; It should be safe to modify the sheet's region, since
           ;; each sheet gets a fresh region when it is created

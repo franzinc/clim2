@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkgdcl.lisp,v 1.1.22.7 1999/03/31 18:49:30 layer Exp $
+;; $Id: pkgdcl.lisp,v 1.1.22.8 2000/04/19 20:24:17 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -50,5 +50,5 @@
  
 (eval-when (compile load eval)
   (pushnew :aclmerge *features*)
-  (pushnew :OS-THREADS *features*))
+  (pushnew :os-threads *features*))
 

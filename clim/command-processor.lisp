@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: command-processor.lisp,v 1.26.22.4 1999/11/16 15:09:13 layer Exp $
+;; $Id: command-processor.lisp,v 1.26.22.5 2000/04/19 20:24:18 layer Exp $
 
 (in-package :clim-internals)
 
@@ -707,7 +707,7 @@
     (multiple-value-bind (object type)
         (with-input-context (command-type) (command command-presentation-type nil options)
              (with-input-context (form-type) (form form-presentation-type nil options)
-                  (let ((gesture (read-gesture :stream stream :peek-p T)))
+                  (let ((gesture (read-gesture :stream stream :peek-p t)))
                     (cond ((and (characterp gesture)
                                 (find gesture *command-dispatchers* :test #'char-equal))
                            (read-gesture :stream stream)        ;get out the colon

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 1.32.22.4 1999/11/16 15:09:16 layer Exp $
+;; $Id: graphics.lisp,v 1.32.22.5 2000/04/19 20:24:26 layer Exp $
 
 (in-package :silica)
 
@@ -391,12 +391,12 @@
                                         distances-to-transform
                                         position-sequences-to-transform
                                         medium-method-body)
-  (let* ((spread-name (intern (format nil "~A*" name)))
-         (continuation-name (intern (format nil "~A-~A*" 'call name)))
+  (let* ((spread-name (fintern "~A*" name))
+         (continuation-name (fintern "~A-~A*" 'call name))
          (drawing-options
            (all-drawing-options-lambda-list drawing-options))
          (medium-graphics-function-name
-           (intern (format nil "~A~A*" 'medium- name))))
+           (fintern "~A~A*" 'medium- name)))
     (multiple-value-bind (unspread-argument-names spread-arguments
                           spread-argument-names keyword-argument-names
                           unspread-other-keyword-arguments

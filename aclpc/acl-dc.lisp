@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.4.8.17 2000/02/03 15:26:22 layer Exp $
+;; $Id: acl-dc.lisp,v 1.4.8.18 2000/04/19 20:24:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -104,7 +104,7 @@
     (setf *null-pen* (win:GetStockObject win:NULL_PEN))
     (setf *black-pen* (win:GetStockObject win:BLACK_PEN))
     (setf *ltgray-pen* 
-      (createPen win:PS_SOLID 1 (win:GetSysColor win:COLOR_BTNFACE)))
+      (CreatePen win:PS_SOLID 1 (win:GetSysColor win:COLOR_BTNFACE)))
     ;;
     (setf *null-brush* (win:GetStockObject win:NULL_BRUSH))
     (setf *black-brush* (win:GetStockObject win:BLACK_BRUSH))
@@ -187,7 +187,7 @@
 	   ;; available at any given time, failure to release
 	   ;; a device context can prevent other applications
 	   ;; from accessing a device context."  Microsoft document.
-	   (setq ,dc (getDc ,window))
+	   (setq ,dc (GetDC ,window))
 	   ,@body)
        (unless (zerop ,dc)
 	 (ReleaseDC ,window ,dc)))))
@@ -251,15 +251,15 @@
 	(setq text-color #xffffff))		; black
       (setq pen
 	(setq created-pen
-	  (createPen (if dashes win:PS_DASH win:PS_SOLID)
+	  (CreatePen (if dashes win:PS_DASH win:PS_SOLID)
 		     thickness
 		     text-color))))
-    (when (valid-handle pen) (selectobject dc pen))
+    (when (valid-handle pen) (SelectObject dc pen))
     (if dashes
 	(SetBkMode dc win:TRANSPARENT)
       (SetBkMode dc win:OPAQUE))
-    (when (valid-handle brush) (selectobject dc brush))
-    (when rop2 (SetRop2 dc rop2))
+    (when (valid-handle brush) (SelectObject dc brush))
+    (when rop2 (SetROP2 dc rop2))
     created-pen))
 
 (defun set-dc-for-filling (dc image &optional xorg yorg)
@@ -269,7 +269,7 @@
 	(brush (dc-image-brush image))
 	(pen *null-pen*)
 	(rop2 (dc-image-rop2 image)))
-    (when (valid-handle pen) (selectobject dc pen))
+    (when (valid-handle pen) (SelectObject dc pen))
     (when background-color
       (cond ((minusp background-color)
 	     ;; This affects brushes created with CreateHatchBrush.
@@ -282,8 +282,8 @@
       (when (and xorg yorg)
 	;; Is this working?  JPM.
 	(win:SetBrushOrgEx dc xorg yorg 0))
-      (selectobject dc brush))
-    (when rop2  (SetRop2 dc rop2))
+      (SelectObject dc brush))
+    (when rop2  (SetROP2 dc rop2))
     t))
 
 (defun set-dc-for-ink-1 (dc image line-style &optional xorg yorg)
@@ -307,7 +307,7 @@
 					      ,xorg ,yorg))
 	   ,@body)
        (when (valid-handle ..winpen..)
-	 (when (valid-handle *black-pen*) (selectobject ,dc *black-pen*))
+	 (when (valid-handle *black-pen*) (SelectObject ,dc *black-pen*))
 	 (or (win:DeleteObject ..winpen..) 
 	     (error "with-set-dc-for-ink: DeleteObject"))))))
 
@@ -322,7 +322,7 @@
 	 (brush (dc-image-brush image))
 	 (pen (dc-image-solid-1-pen image)))
     (win:SetMapMode dc win:MM_TEXT)
-    (when (valid-handle font) (selectobject dc font))
+    (when (valid-handle font) (SelectObject dc font))
     ;; Seems like we never want opaque background. JPM.
     #+ignore				
     (cond ((not background-color)
@@ -336,7 +336,7 @@
     (when (valid-handle brush) (SelectObject dc brush))
     (when (valid-handle pen) (SelectObject dc pen))
     (when text-color (SetTextColor dc text-color))
-    ;; SetRop2 has no effect on text.  If you want to use
+    ;; SetROP2 has no effect on text.  If you want to use
     ;; one, you have to draw into a bitmap and biblt that.
     t))
 

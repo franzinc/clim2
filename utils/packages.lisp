@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.84.8.59 2000/02/03 15:26:29 layer Exp $
+;; $Id: packages.lisp,v 1.84.8.60 2000/04/19 20:24:33 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -26,10 +26,10 @@
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
 (defpackage clim-lisp
-  #+Allegro (:implementation-packages :clim-lisp :clim-utils)
+  #+allegro (:implementation-packages :clim-lisp :clim-utils)
   ;; 28Jan97 added allegro package for aclpc since mop stuff was moved
   ;; there in 3.0.1 -tjm
- (:use common-lisp #+Allegro clos #+Allegro stream #+aclpc allegro)
+ (:use common-lisp #+allegro clos #+allegro stream #+aclpc allegro)
 
  ;; Import these symbols so that we can define methods for them.
  (:shadow pathname truename)
@@ -37,7 +37,7 @@
  ;; Shadow this everywhere to make it a generic function
  (:shadow interactive-stream-p)
 
- #+Allegro
+ #+allegro
  (:import-from :excl #:non-dynamic-extent)
 
  (:export
@@ -1100,7 +1100,7 @@
 ;; Define the CLIM-SYS package
 (defpackage clim-sys
   (:use)				;use nothing
-  #+Allegro
+  #+allegro
   (:import-from :excl #:non-dynamic-extent)
   (:export
     ;; Resources
@@ -1151,9 +1151,9 @@
 ;; Define the CLIM package
 (defpackage clim
   (:use)                                ;use nothing
-  #+Allegro
+  #+allegro
   (:import-from :excl #:non-dynamic-extent)
-  #+Allegro (:implementation-packages
+  #+allegro (:implementation-packages
              :silica
              :clim-utils
              :clim-silica
@@ -2697,13 +2697,13 @@
     windowp
     window-top-level-window))
 
-#+Allegro
+#+allegro
 (excl:ics-target-case
 (:+ics
 
 (defpackage clim
   (:use)
-  #+Allegro
+  #+allegro
   (:import-from :excl #:non-dynamic-extent)
   ;; should these all be exported from the clim package?
 
@@ -2727,13 +2727,13 @@
 
 ;; Now define all of the implementation packages
 (defpackage clim-utils
-  #+Allegro (:implementation-packages :clim-utils :clim-silica
+  #+allegro (:implementation-packages :clim-utils :clim-silica
 			    :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim)
 
-  #+Allegro
+  #+allegro
   (:import-from :excl #:non-dynamic-extent)
-  #+Allegro (:import-from excl
+  #+allegro (:import-from excl
     arglist)
 
   (:export
@@ -2781,6 +2781,7 @@
     fast-abs
     find-class-that-works
     fintern
+    package-fintern
     flatten-arglist
     follow-synonym-stream
     funcallable-p
@@ -3003,10 +3004,10 @@
 
 (defpackage clim-silica
    (:nicknames silica pyrex)
-   #+Allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
+   #+allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim clim-utils)
 
-  #+Allegro
+  #+allegro
   (:import-from :excl #:non-dynamic-extent)
   (:shadowing-import-from clim-utils
     defun
@@ -3249,14 +3250,14 @@
     with-mouse-grabbed-in-window
     wrapping-space-mixin))
 
-#+Allegro
+#+allegro
 (excl:ics-target-case
 (:+ics
 
 (defpackage clim-silica
   (:use)
 
-  #+Allegro
+  #+allegro
   (:import-from :excl #:non-dynamic-extent)
   (:export
    *kanji-servers*
@@ -3266,8 +3267,8 @@
 
 (defpackage clim-internals
   (:use        :clim-lisp :clim-sys :clim :clim-utils :clim-silica)
-  #+Allegro (:implementation-packages :clim-internals :xt-silica)
-  #+Allegro
+  #+allegro (:implementation-packages :clim-internals :xt-silica)
+  #+allegro
   (:import-from :excl #:non-dynamic-extent))
 
 
@@ -3276,7 +3277,7 @@
 (defpackage clim-user
   (:use clim-lisp clim))
 
-#+Allegro
+#+allegro
 (flet ((lock-package (package)
 	 (setq package (find-package package))
 	 (setf (package-definition-lock package) t)))
@@ -3294,7 +3295,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 72)
+(cl:defvar *clim-build-version* 75)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

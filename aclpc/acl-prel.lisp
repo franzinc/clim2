@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.16 1999/10/04 18:43:44 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.17 2000/04/19 20:24:17 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -444,7 +444,7 @@
 	 ;; in the system's message table.  Where are they?  If we had
 	 ;; a handle to the relevant module, we could specify that
 	 ;; to FormatMessage in order to search a module's message table.
-	 (chars (formatmessage flags
+	 (chars (FormatMessage flags
 			       0 errno 0 
 			       pointer 0 0)))
     (values (if (plusp chars)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-defs.lisp,v 1.28.22.4 1999/11/16 15:09:15 layer Exp $
+;; $Id: interactive-defs.lisp,v 1.28.22.5 2000/04/19 20:24:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -226,12 +226,12 @@
 ;; context that allows rescanning, etc.
 
 (defvar *default-input-editing-stream-class*
-#+Allegro
+#+allegro
     (excl:ics-target-case
      (:+ics #+mswindows 'standard-input-editing-stream
 	    #-mswindows 'japanese-input-editing-stream)
      (:-ics 'standard-input-editing-stream))
-#-Allegro
+#-allegro
 	'standard-input-editing-stream)
 
 (defmacro with-input-editing ((&optional stream

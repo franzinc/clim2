@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 1.95.8.5 1999/03/01 17:48:02 layer Exp $
+;; $Id: xt-graphics.lisp,v 1.95.8.6 2000/04/19 20:24:31 layer Exp $
 
 (in-package :tk-silica)
 
@@ -1544,21 +1544,21 @@
 
     (let ((y-factor 0)
 	  (x-factor 1))
-      (WHEN (AND TOWARDS-X TOWARDS-Y)
-	(LET ((XXX (- TOWARDS-X X))
-	      (YYY (- TOWARDS-Y Y)))
-	  (COND ((ZEROP YYY)
-		 (SETQ Y-FACTOR 0)
-		 (SETQ X-FACTOR (IF (MINUSP XXX) -1 1)))
-		((ZEROP XXX)
-		 (SETQ X-FACTOR 0)
-		 (SETQ Y-FACTOR (IF (MINUSP YYY) -1 1)))
-		(T
-		 ;; THIS BRANCH IS RATHER EXPENSIVE.
-		 ;; AVOID THESE CALLS IF THE CALCULATION IS TRIVIAL. JPM.
-		 (LET ((ALPHA (ATAN YYY XXX)))
-		   (SETQ Y-FACTOR (SIN ALPHA))
-		   (SETQ X-FACTOR (COS ALPHA)))))))
+      (when (and towards-x towards-y)
+	(let ((xxx (- towards-x x))
+	      (yyy (- towards-y y)))
+	  (cond ((zerop yyy)
+		 (setq y-factor 0)
+		 (setq x-factor (if (minusp xxx) -1 1)))
+		((zerop xxx)
+		 (setq x-factor 0)
+		 (setq y-factor (if (minusp yyy) -1 1)))
+		(t
+		 ;; this branch is rather expensive.
+		 ;; avoid these calls if the calculation is trivial. jpm.
+		 (let ((alpha (atan yyy xxx)))
+		   (setq y-factor (sin alpha))
+		   (setq x-factor (cos alpha)))))))
 
       (flet ((process-element (codeset start end)
 	       (let ((drawable (medium-drawable medium))
@@ -1857,10 +1857,10 @@
 (defun find-rotated-text-pixmap (port font rotation)
   (let ((x nil))
     ;; Don't cons a hash key...JPM.
-    (DOLIST (ITEM (PORT-ROTATED-FONT-CACHE PORT))
-      (LET ((KEY (CAR ITEM)))
-	(WHEN (AND (EQUAL (CAR KEY) FONT) (EQUAL (SECOND KEY) ROTATION))
-	  (SETQ X ITEM))))
+    (dolist (item (port-rotated-font-cache port))
+      (let ((key (car item)))
+	(when (and (equal (car key) font) (equal (second key) rotation))
+	  (setq x item))))
     (when x
       (return-from find-rotated-text-pixmap (values-list (cdr x))))
     (multiple-value-bind

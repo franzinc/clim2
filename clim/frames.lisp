@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.13 2000/02/03 15:26:27 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.14 2000/04/19 20:24:18 layer Exp $
 
 (in-package :clim-internals)
 
@@ -938,7 +938,7 @@
 	      ;;; This needs to happen after the 
 	      ;;; call to redisplay-frame-panes
 	      ;;; but only do it the first time.
-	      (force-refresh-avv-streams FRAME)
+	      (force-refresh-avv-streams frame)
 	      (setq *avv-refreshed* t))
 	    (when interactor
 	      (fresh-line *standard-input*)
@@ -1434,7 +1434,7 @@
          (y (pointer-event-y button-press-event))
          (highlighted-presentation (highlighted-presentation window nil))
          (input-context *input-context*))
-    #+Allegro
+    #+allegro
     (when (and *click-outside-menu-handler*
                 (output-recording-stream-p window)
                 (not (region-contains-position-p (stream-output-history window) x y)))
@@ -1606,7 +1606,7 @@ modifier-state)
         (flet ((document-translator (translator presentation context-type
                                      button-names separator)
                  ;; Assumes 6 modifier keys and the reverse ordering of
-*MODIFIER-KEYS*
+*modifier-keys*
                  (let ((bit #b100000)
                        (shift-name '(:double :hyper :super :meta :control
 :shift)))

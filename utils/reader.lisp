@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: reader.lisp,v 1.9.22.2 1998/07/06 23:10:31 layer Exp $
+;; $Id: reader.lisp,v 1.9.22.3 2000/04/19 20:24:35 layer Exp $
 
 (in-package :clim-utils)
 
@@ -67,7 +67,7 @@
 					 (error "It is illegal to specify #{ ... } clauses after OTHERWISE: ~S"
 							feature))
 				   (when (eq feature 'otherwise)
-					 (setq found-otherwise T))
+					 (setq found-otherwise t))
 				   (push feature features-so-far)
 				   (cond (found-it
 						   (let ((*read-suppress* t))

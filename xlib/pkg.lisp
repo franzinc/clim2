@@ -15,9 +15,12 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkg.lisp,v 1.13.22.1 1998/07/06 23:10:37 layer Exp $
+;; $Id: pkg.lisp,v 1.13.22.2 2000/04/19 20:24:35 layer Exp $
 
 (defpackage :x11
+  ;; I don't know if this is OK (can we assume clim-utils?).  In any
+  ;; case we want that definition of fintern.
+  (:import-from :clim-utils #:fintern)
   ;; These next two import symbols when loading from clim.fasl.
   (:export #:int #:short)
   (:export #:screen #:depth #:visual #:colormap

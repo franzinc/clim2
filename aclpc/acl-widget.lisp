@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.25 2000/02/03 15:26:23 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.26 2000/04/19 20:24:17 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -757,7 +757,7 @@
 	     window win:WM_SETFONT 
 	     (acl-clim::acl-font-index font) 0))))
       
-      (setf (original-pane-foreground SHEET) 
+      (setf (original-pane-foreground sheet) 
 	(or (pane-foreground sheet)
 	    (let ((resources (acl-clim::port-default-resources port)))
 	      (getf resources :foreground))))
@@ -807,7 +807,7 @@
       (win:SetBkMode hdc win:OPAQUE)
       (win:SetBkColor hdc bg)
       (win:SetTextColor hdc fg)
-      (win:SetRop2 hdc win:R2_COPYPEN)
+      (win:SetROP2 hdc win:R2_COPYPEN)
       (let* ((dc-image 
 	      (with-sheet-medium (m pane)
 		(acl-clim::dc-image-for-ink 
@@ -820,7 +820,7 @@
 			  win:BDR_SUNKEN
 			win:BDR_RAISED)
 		      (+ win:BF_RECT win:BF_MIDDLE))
-	(win:rectangle hdc 1 1 (- bwidth 2) (- bheight 2))
+	(win:Rectangle hdc 1 1 (- bwidth 2) (- bheight 2))
 	(let ((pixmap (slot-value pane 'pixmap))
 	      (label (gadget-label pane)))
 	  (cond (pixmap
@@ -841,7 +841,7 @@
 			  (text-style (medium-merged-text-style medium))
 			  (font (text-style-mapping port text-style))
 			  (index (acl-clim::acl-font-index font)))
-		     (when (acl-clim::valid-handle index) (win:selectobject hdc index))
+		     (when (acl-clim::valid-handle index) (win:SelectObject hdc index))
 		     (multiple-value-bind (cstr len)
 			 (silica::xlat-newline-return label)
 		       (multiple-value-bind (width height) 
@@ -894,18 +894,18 @@
 	(win:SetWindowText mirror str)))))
 
 (defmethod (setf pane-background) :after (clr (pane hpbutton-pane))
-  (declare (ignore CLR))
+  (declare (ignore clr))
   (with-slots (mirror) pane
     (when mirror
       ;;; Work-around to force button to refresh.
-      (win:SetWindowText mirror (or (gadget-label PANE) "")))))
+      (win:SetWindowText mirror (or (gadget-label pane) "")))))
 
 (defmethod (setf pane-foreground) :after (clr (pane hpbutton-pane))
-  (declare (ignore CLR))
+  (declare (ignore clr))
   (with-slots (mirror) pane
     (when mirror
       ;;; Work-around to force button to refresh.
-      (win:SetWindowText mirror (or (gadget-label PANE) "")))))
+      (win:SetWindowText mirror (or (gadget-label pane) "")))))
 
 (defmethod note-gadget-activated :after ((client t)
 					 (gadget hpbutton-pane))
@@ -1033,7 +1033,7 @@
     (win:SetBkMode hdc win:OPAQUE)
     (win:SetBkColor hdc (acl-clim::color->wincolor (pane-background pane)))
     (win:SetTextColor hdc (acl-clim::color->wincolor (pane-foreground pane)))
-    (win:SetRop2 hdc win:R2_COPYPEN)
+    (win:SetROP2 hdc win:R2_COPYPEN)
     (let* ((dc-image 
 	    (with-sheet-medium (m pane)
 	      (acl-clim::dc-image-for-ink 
@@ -1047,7 +1047,7 @@
 		      win:BDR_RAISED)
 		    (+ win:BF_RECT win:BF_MIDDLE))
       (let ((margin 1))
-	(win:rectangle hdc margin margin 
+	(win:Rectangle hdc margin margin 
 		       (- bwidth margin margin) (- bheight margin margin)))
       (let* ((pixmap (slot-value pane 'pixmap)))
 	(when pixmap
@@ -1211,7 +1211,7 @@
 					 hwnd win:CB_GETITEMHEIGHT -1 0))
 		  *combo-box-maximum-height*)))
     (win:SetWindowPos hwnd
-		      (ct:null-handle win:HWND) ; we really want win:HWND_TOP
+		      (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
 		      left top
 		      (- right left)
 		      height 
@@ -1397,7 +1397,7 @@
       (multiple-value-bind (min max) (gadget-range* sb)
 	(setf value (max min (min max value))); sanity check
 	(decf value min)
-	(let* ((struct (ct:ccallocate win:SCROLLINFO))
+	(let* ((struct (ct:ccallocate win:scrollinfo))
 	       (page
 		(floor 
 		 (* acl-clim::*win-scroll-grain* 
@@ -1810,5 +1810,5 @@
 
 (defmethod (setf gadget-label) :after 
 	   ((new-label string) (gadget labelled-gadget-mixin))
-  (handle-repaint gadget T)
+  (handle-repaint gadget t)
   )

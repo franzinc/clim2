@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: stream-defprotocols.lisp,v 1.17.22.2 1998/07/06 23:09:06 layer Exp $
+;; $Id: stream-defprotocols.lisp,v 1.17.22.3 2000/04/19 20:24:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -30,31 +30,31 @@
 
 (defoperation stream-read-char fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-unread-char fundamental-input-stream
   ((stream fundamental-input-stream) character)
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-read-char-no-hang fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-peek-char fundamental-input-stream
   ((stream fundamental-input-stream))  
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-listen fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-read-line fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-clear-input fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 ;;; The next three Genera-only generic functions allow CLIM streams to accept these
 ;;; Genera messages that do not have arguments compatible with the Gray functions.
@@ -160,11 +160,11 @@
 ;;; This is not responsible for wrapping text.
 (defoperation stream-write-char fundamental-character-output-stream 
   ((stream fundamental-character-output-stream) char)
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-write-string fundamental-character-output-stream
   ((stream fundamental-character-output-stream) string &optional (start 0) end)
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-draw-lozenged-character fundamental-character-output-stream
   ((stream fundamental-character-output-stream)
@@ -172,35 +172,35 @@
 
 (defoperation stream-terpri fundamental-character-output-stream
   ((stream fundamental-character-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-fresh-line fundamental-character-output-stream
   ((stream fundamental-character-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-force-output fundamental-output-stream
   ((stream fundamental-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-finish-output fundamental-output-stream
   ((stream fundamental-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-clear-output fundamental-output-stream
   ((stream fundamental-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-line-column fundamental-output-stream
   ((stream fundamental-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-start-line-p fundamental-output-stream
   ((stream fundamental-output-stream))
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-next-tab-column fundamental-character-output-stream 
   ((stream fundamental-character-output-stream) cursor-x style)
-  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+  #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-scan-string-for-writing fundamental-character-output-stream
   ((stream fundamental-character-output-stream) 
@@ -210,10 +210,10 @@
   ((stream fundamental-character-output-stream) 
    medium character style cursor-x max-x))
 
-#+Allegro
+#+allegro
 (defoperation excl::stream-interactive-force-output fundamental-output-stream
   ((stream fundamental-output-stream))
-    #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+    #+clim-uses-lisp-stream-functions (:no-defgeneric t))
 
 #+Genera
 ;; FORMAT calls this directly

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-protocol.lisp,v 1.37.22.2 1998/07/06 23:09:02 layer Exp $
+;; $Id: interactive-protocol.lisp,v 1.37.22.3 2000/04/19 20:24:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -998,9 +998,9 @@
 (defmethod stream-supports-input-editing ((stream fundamental-stream)) t)
 
 ;; It really sucks that we have to write T when we mean STRING-INPUT-STREAM
-#-Allegro
+#-allegro
 (defmethod stream-supports-input-editing ((stream t)) nil)
-#+Allegro
+#+allegro
 (defmethod stream-supports-input-editing ((stream excl::string-input-stream)) nil)
 
 #+Genera

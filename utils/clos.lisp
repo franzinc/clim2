@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos.lisp,v 1.12.22.4 1999/01/14 19:04:19 layer Exp $
+;; $Id: clos.lisp,v 1.12.22.5 2000/04/19 20:24:32 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -40,11 +40,11 @@
 #+(and PCL (not VDPCL))
 (pushnew 'compile pcl::*defclass-times*)
 
-#+Allegro-v4.0-constructors
+#+allegro-v4.0-constructors
 (defmacro define-constructor (name class lambda-list &body initargs)
   `(clos::defconstructor ,name ,class ,lambda-list ,@initargs))
 
-#-(or PCL Allegro-v4.0-constructors)
+#-(or PCL allegro-v4.0-constructors)
 ;; NB: any &REST argument is declared to have dynamic extent!
 (defmacro define-constructor (name class lambda-list &body initargs)
   (let ((rest-arg (member '&rest lambda-list)))
@@ -252,11 +252,13 @@
 	    (setf old-p t))))
       (return-from make-setf*-function-name (values writer old-p)))
     (values (setf (get accessor-name 'setf-function-name)
-		  (intern (format nil "~A ~A:~A" 
-			    'setf*
-			    (package-name (symbol-package accessor-name))
-			    accessor-name)
-			  (find-package 'clim-utils)))
+		  (package-fintern (find-package 'clim-utils)
+				   "~A ~A:~A"
+				   'setf*
+				   (package-name 
+				    (symbol-package accessor-name))
+				   accessor-name))
+
 	    nil)))
 
 (defun expand-defsetf-for-defmethod*

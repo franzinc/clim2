@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.9 1999/04/14 23:08:19 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.10 2000/04/19 20:24:12 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -13,6 +13,35 @@ DCL	= dcl
 else
 LISP	= ../src/lispi$(exe)
 DCL	= dcli
+endif
+
+# Set the case mode when building and dumping an image
+# case_mode:
+#	ansi -- traditional case-insensitive upper-case CL
+#	modern -- case-sensitive lower-case CL
+case_mode = modern
+
+ifeq ($(case_mode),ansi)
+CASE_MODE		= :case-insensitive-upper
+endif
+
+ifeq ($(case_mode),modern)
+CASE_MODE		= :case-sensitive-lower
+endif
+
+ifndef CASE_MODE
+..........................case_mode not defined or bad value...................
+endif
+
+# This controls whether patches are loaded before dumping an image.
+# They should be loaded except during development
+# load_patches:
+#	yes -- load them
+#	no -- don't load
+load_patches = yes
+
+ifeq ($(load_patches),no)
+STOP_PATCHES = '(pushnew :clim-dont-load-patches *features*)'
 endif
 
 CL	= $(LISP) -I $(DCL)
@@ -104,131 +133,19 @@ PRODUCT-OBJS=	$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
 
 ICS-PRODUCT-FASLS= $(PRODUCT-WNN-FASLS)
 ICS-PRODUCT-OBJS=  $(STATIC-WNN-OBJS)
+else
 
-GENERIC-FASLS= \
-	utils/excl-verification.fasl utils/packages.fasl \
-	utils/defun-utilities.fasl utils/reader.fasl \
-	utils/clos-patches.fasl utils/clos.fasl utils/utilities.fasl \
-	utils/lisp-utilities.fasl utils/processes.fasl utils/queue.fasl \
-	utils/timers.fasl utils/protocols.fasl utils/clim-streams.fasl \
-	utils/excl-streams.fasl utils/clim-macros.fasl \
-	utils/transformations.fasl utils/regions.fasl \
-	utils/region-arithmetic.fasl utils/extended-regions.fasl \
-	utils/base-designs.fasl utils/designs.fasl \
-	silica/classes.fasl silica/text-style.fasl silica/macros.fasl \
-	silica/sheet.fasl silica/mirror.fasl silica/event.fasl \
-	silica/port.fasl silica/medium.fasl silica/framem.fasl \
-	silica/graphics.fasl silica/pixmaps.fasl silica/std-sheet.fasl \
-	silica/layout.fasl silica/db-layout.fasl silica/db-box.fasl \
-	silica/db-table.fasl silica/gadgets.fasl silica/db-scroll.fasl \
-	silica/db-border.fasl \
-	clim/gestures.fasl clim/defprotocol.fasl \
-	clim/stream-defprotocols.fasl clim/defresource.fasl \
-	clim/temp-strings.fasl clim/clim-defs.fasl \
-	clim/stream-class-defs.fasl clim/interactive-defs.fasl \
-	clim/cursor.fasl clim/view-defs.fasl clim/input-defs.fasl \
-	clim/input-protocol.fasl clim/output-protocol.fasl \
-	clim/recording-protocol.fasl clim/recording-defs.fasl \
-	clim/text-recording.fasl clim/graphics-recording.fasl \
-	clim/interactive-protocol.fasl clim/input-editor-commands.fasl \
-        clim/japanese-input-editor.fasl \
-	clim/formatted-output-defs.fasl clim/incremental-redisplay.fasl \
-	clim/coordinate-sorted-set.fasl clim/r-tree.fasl \
-	clim/window-stream.fasl clim/pixmap-streams.fasl \
-	clim/ptypes1.fasl clim/completer.fasl clim/presentations.fasl \
-	clim/translators.fasl clim/histories.fasl clim/ptypes2.fasl \
-	clim/excl-presentations.fasl clim/standard-types.fasl \
-	clim/table-formatting.fasl clim/graph-formatting.fasl \
-	clim/surround-output.fasl clim/text-formatting.fasl \
-	clim/tracking-pointer.fasl clim/dragging-output.fasl \
-	clim/db-stream.fasl clim/gadget-output.fasl clim/accept.fasl \
-	clim/present.fasl clim/command.fasl clim/command-processor.fasl \
-	clim/basic-translators.fasl clim/frames.fasl clim/panes.fasl \
-	clim/default-frame.fasl clim/activities.fasl clim/db-menu.fasl \
-	clim/noting-progress.fasl clim/menus.fasl clim/accept-values.fasl \
-	clim/drag-and-drop.fasl clim/item-list-manager.fasl \
-	postscript/pkgdcl.fasl postscript/postscript-s.fasl \
-	clim/stream-trampolines.fasl \
-	xlib/pkg.fasl xlib/load-xlib.fasl xlib/xlib-defs.fasl
+# this is for Windows.
+# I don't know if we need the other things too.
 
-DEMO-FASLS= \
-	demo/packages.fasl demo/demo-driver.fasl demo/listener.fasl \
-	demo/graphics-demos.fasl demo/cad-demo.fasl demo/navdata.fasl \
-	demo/navfun.fasl demo/puzzle.fasl demo/address-book.fasl \
-	demo/thinkadot.fasl demo/plot.fasl demo/color-editor.fasl \
-	demo/graphics-editor.fasl demo/japanese-graphics-editor.fasl \
-	demo/bitmap-editor.fasl demo/ico.fasl \
-	demo/browser.fasl demo/peek-frame.fasl demo/process-browser.fasl \
-	demo/custom-records.fasl demo/demo-activity.fasl \
-	test/test-suite.fasl demo/demo-last.fasl
+PRODUCT-GENERIC-FASLS = \
+	climg.fasl climdemo.fasl climps.fasl
 
-# not used anymore
-#HOMEGROWN-GADGET-FASLS= \
-#	homegrown/db-menu.fasl homegrown/db-list.fasl \
-#	homegrown/db-text.fasl homegrown/db-button.fasl \
-#	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
-#	homegrown/db-label.fasl homegrown/last.fasl
+PRODUCT-WIN32-FASLS = climnt.fasl
 
-GENERIC-XT-FASLS= \
-	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xt-defs.fasl \
-	tk/xlib.fasl \
-	tk/font.fasl tk/gcontext.fasl tk/graphics.fasl tk/meta-tk.fasl \
-	tk/make-classes.fasl tk/foreign.fasl tk/widget.fasl \
-	tk/resources.fasl tk/event.fasl tk/callbacks.fasl \
-	tk/xt-classes.fasl tk/xt-init.fasl
+SYSTEM=		aclnt-clim
 
-XM-FASLS= \
-	tk/load-xm.fasl $(GENERIC-XT-FASLS) \
-	tk/xm-classes.fasl tk/xm-callbacks.fasl tk/xm-init.fasl \
-	tk/xm-widgets.fasl tk/xm-font-list.fasl tk/xm-protocols.fasl \
-	tk/convenience.fasl tk/make-widget.fasl \
-	tk/xm-defs.fasl \
-	tk-silica/pkg.fasl tk-silica/xt-silica.fasl \
-	tk-silica/xt-stipples.fasl tk-silica/xm-silica.fasl \
-	tk-silica/xt-graphics.fasl tk-silica/image.fasl \
-	tk-silica/xt-frames.fasl tk-silica/xm-frames.fasl \
-	tk-silica/xm-dialogs.fasl tk-silica/xt-gadgets.fasl \
-	tk-silica/xm-gadgets.fasl tk-silica/xt-pixmaps.fasl \
-	tk-silica/gc-cursor.fasl \
-	utils/last.fasl
-
-OL-FASLS= \
-	tk/load-ol.fasl $(GENERIC-XT-FASLS) \
-	tk/ol-classes.fasl tk/ol-init.fasl tk/ol-widgets.fasl \
-	tk/ol-callbacks.fasl tk/make-widget.fasl \
-	tk-silica/pkg.fasl tk-silica/xt-silica.fasl \
-	tk-silica/xt-stipples.fasl tk-silica/ol-silica.fasl \
-	tk-silica/xt-graphics.fasl tk-silica/image.fasl \
-	tk-silica/xt-frames.fasl tk-silica/ol-frames.fasl \
-	tk-silica/xt-gadgets.fasl tk-silica/ol-gadgets.fasl \
-	tk-silica/xt-pixmaps.fasl tk-silica/gc-cursor.fasl \
-	tk-silica/last.fasl
-
-WNN-FASLS= \
-	wnn/load-wnn.fasl wnn/pkg.fasl wnn/jserver.fasl
-
-
-POSTSCRIPT-FASLS= \
-	postscript/postscript-port.fasl postscript/postscript-medium.fasl \
-	postscript/laserwriter-metrics.fasl
-
-HPGL-FASLS= \
-	hpgl/pkg.fasl hpgl/hpgl-port.fasl hpgl/hpgl-medium.fasl
-
-CLIM1COMPAT-FASLS= \
-	 compatibility/packages.fasl compatibility/clim1-compatibility.fasl
-
-# "Compile time objects" -- these go into clim-debug.fasl
-#
-DEBUG-FASLS = \
-	xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
-	xlib/x11-keysyms.fasl tk/xt-defs.fasl tk/xt-funs.fasl \
-	xlib/last.fasl
-
-XM-DEBUG-FASLS = tk/xm-funs.fasl 
-OL-DEBUG-FASLS = tk/ol-defs.fasl tk/ol-funs.fasl
-
-WNN-DEBUG-FASLS = wnn/jl-defs.fasl wnn/jl-funs.fasl
+PRODUCT-FASLS = $(PRODUCT-GENERIC-FASLS) $(PRODUCT-WIN32-FASLS)
 endif
 
 # not used anymore

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.24 1999/11/16 15:09:10 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.25 2000/04/19 20:24:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -550,10 +550,10 @@
   (let* ((sheet (frame-top-level-sheet frame))
 	 (tooltip-control (tooltip-control sheet))
 	 (toolinfo (ct:ccallocate toolinfo))
-	 (TTM_ADDTOOL #+ics #.(+ win:wm_user 50) ;; TTM_ADDTOOLW
-		      #-ics #.(+ win:wm_user 4)  ;; TTM_ADDTOOLA
+	 (TTM_ADDTOOL #+ics #.(+ win:WM_USER 50) ;; TTM_ADDTOOLW
+		      #-ics #.(+ win:WM_USER 4)  ;; TTM_ADDTOOLA
 		      )
-	 (TTM_ACTIVATE #.(+ win:wm_user 1))
+	 (TTM_ACTIVATE #.(+ win:WM_USER 1))
 	 (TTF_IDISHWND 1)
 	 (TTS_ALWAYSTIP 1)
 	 (status nil))
@@ -655,10 +655,10 @@ to be run from another."
   nil)
 
 (defmethod note-frame-iconified ((framem acl-frame-manager) frame)
-  (win:closewindow (sheet-mirror (frame-top-level-sheet frame))))
+  (win:CloseWindow (sheet-mirror (frame-top-level-sheet frame))))
 
 (defmethod note-frame-deiconified ((framem acl-frame-manager) frame)
-  (win:openicon (sheet-mirror (frame-top-level-sheet frame))))
+  (win:OpenIcon (sheet-mirror (frame-top-level-sheet frame))))
 
 (defmethod accept-values-pane-p ((object t)) nil)
 (defmethod accept-values-pane-p ((object accept-values-pane)) t)
@@ -716,21 +716,21 @@ to be run from another."
 
 (defun select-messagebox-icon (style)
   ;; Decides which Windows icon matches this (standardized) style. 
-  (if (member style '#.`(,win:mb_iconinformation
-			 ,win:mb_iconquestion
-			 ,win:mb_iconexclamation
-			 ,win:mb_iconstop
-			 ,win:mb_iconhand ; ?
-			 ,win:mb_iconasterisk ; ?
+  (if (member style '#.`(,win:MB_ICONINFORMATION
+			 ,win:MB_ICONQUESTION
+			 ,win:MB_ICONEXCLAMATION
+			 ,win:MB_ICONSTOP
+			 ,win:MB_ICONHAND ; ?
+			 ,win:MB_ICONASTERISK ; ?
 			 ))
       style				; user knows what they want
     (case style
-      (:message win:mb_iconinformation)
-      (:inform win:mb_iconinformation)
-      (:question win:mb_iconquestion)
-      ((:warn :warning) win:mb_iconexclamation)
-      (:error win:mb_iconstop)
-      (otherwise win:mb_iconinformation))))
+      (:message win:MB_ICONINFORMATION)
+      (:inform win:MB_ICONINFORMATION)
+      (:question win:MB_ICONQUESTION)
+      ((:warn :warning) win:MB_ICONEXCLAMATION)
+      (:error win:MB_ICONSTOP)
+      (otherwise win:MB_ICONINFORMATION))))
 
 (defun select-messagebox-buttons (exit-boxes)
   ;; Decides which predefined button collection to use.
@@ -739,12 +739,12 @@ to be run from another."
   ;; Return NIL if nothing seems to match, and the caller should
   ;; fall back on the more general, but less pretty, accepting values.
   (if (atom exit-boxes)
-      (when (member exit-boxes '#.`(,win:mb_ok
-				    ,win:mb_okcancel
-				    ,win:mb_yesno
-				    ,win:mb_retrycancel
-				    ,win:mb_yesnocancel
-				    ,win:mb_abortretryignore))
+      (when (member exit-boxes '#.`(,win:MB_OK
+				    ,win:MB_OKCANCEL
+				    ,win:MB_YESNO
+				    ,win:MB_RETRYCANCEL
+				    ,win:MB_YESNOCANCEL
+				    ,win:MB_ABORTRETRYIGNORE))
 	exit-boxes)			; user knows what they want
     (flet ((find-label (text)
 	     (dolist (box exit-boxes)
@@ -763,26 +763,26 @@ to be run from another."
 	       (cond ((and (find-label "Yes")
 			   (find-label "No")
 			   (find-label "Cancel"))
-		      win:mb_yesnocancel)
+		      win:MB_YESNOCANCEL)
 		     ((and (find-label "Abort")
 			   (find-label "Retry")
 			   (find-label "Ignore"))
-		      win:mb_abortretryignore)))
+		      win:MB_ABORTRETRYIGNORE)))
 	      ((= number 2)
 	       (cond ((or (find-naked-key :abort)
 			  (find-label "Cancel"))
 		      (cond ((or (find-naked-key :exit)
 				 (find-label "OK"))
-			     win:mb_okcancel)
+			     win:MB_OKCANCEL)
 			    ((find-label "Retry")
-			     win:mb_retrycancel)))
+			     win:MB_RETRYCANCEL)))
 		     ((and (find-label "Yes")
 			   (find-label "No"))
-		      win:mb_yesno)))
+		      win:MB_YESNO)))
 	      ((= number 1)
 	       (when (or (find-naked-key :exit)
 			 (find-label "OK"))
-		 win:mb_ok)))))))
+		 win:MB_OK)))))))
 
 (defun select-messagebox-result (code button-style exit-boxes)
   ;; Most ports assume the notify-user exit boxes are limited
@@ -806,14 +806,14 @@ to be run from another."
 	   (cond ((= code win:IDRETRY) (or (find-label "Retry") :exit))
 		 ((= code win:IDCANCEL) (or (find-label "Cancel") :abort))))
 	  ((= button-style win:MB_OKCANCEL)
-	   (cond ((= code win:idok) (or (find-label "OK") :exit))
+	   (cond ((= code win:IDOK) (or (find-label "OK") :exit))
 		 ((= code win:IDCANCEL) (or (find-label "Cancel") :abort))))
 	  ((= button-style win:MB_YESNOCANCEL)
 	   (cond ((= code win:IDYES) (or (find-label "Yes") :exit))
 		 ((= code win:IDNO) (or (find-label "No") :no))
 		 ((= code win:IDCANCEL) (or (find-label "Cancel") :abort))))
 	  ((= button-style win:MB_ABORTRETRYIGNORE)
-	   (cond ((= code win:idabort) (or (find-label "Abort") :abort))
+	   (cond ((= code win:IDABORT) (or (find-label "Abort") :abort))
 		 ((= code win:IDRETRY) (or (find-label "Retry") :retry))
 		 ((= code win:IDIGNORE) (or (find-label "Ignore") :exit)))))))
 
@@ -939,20 +939,20 @@ to be run from another."
   ;; the native menu without any fluff.
   (declare (ignore text-style cache
 		   cache-test cache-value
-		   id-test unique-id label
+		   id-test unique-id
 		   foreground background))
   (if (or presentation-type ;; foreground background  
-	  row-wise n-columns n-rows scroll-bars)
+	  row-wise n-columns n-rows scroll-bars label)
       (call-next-method)
     #+simple-but-sure
     (apply #'call-next-method framem items :scroll-bars nil keys)
     (let ((popmenu (win:CreatePopupMenu))
 	  (submenus nil)
-	  (flags (logior win:tpm_returncmd ; return the selection
-			 win:tpm_nonotify ; don't notify clim
+	  (flags (logior win:TPM_RETURNCMD ; return the selection
+			 win:TPM_NONOTIFY ; don't notify clim
 			 (if (eq gesture :menu) 
-			     win:tpm_rightbutton
-			   win:tpm_leftbutton)))
+			     win:TPM_RIGHTBUTTON
+			   win:TPM_LEFTBUTTON)))
 	  (rect 0)
 	  (tick 0)
 	  (alist nil)
@@ -962,7 +962,7 @@ to be run from another."
       (unless (and x-position y-position)
 	;; Get screen coordinates of pointer.
 	(let ((point (ct:ccallocate win:point)))
-	  (or (win:getCursorPos point)
+	  (or (win:GetCursorPos point)
 	      (check-last-error "GetCursorPos"))
 	  (setq x-position (ct:cref win:point point x))
 	  (setq y-position (ct:cref win:point point y))))
@@ -977,12 +977,12 @@ to be run from another."
       ;; is sometimes never exposed.  TrackPopupMenu returns 0.  
       ;; But most of the time this seems to work... 5/98 JPM.
       (setq code
-	(win:trackpopupmenu
+	(win:TrackPopupMenu
 	 popmenu flags x-position y-position 
 	 0				; reserved, must be zero
 	 (sheet-mirror associated-window) rect))
-      (win:destroymenu popmenu)
-      (dolist (submenu submenus) (win:destroymenu submenu))
+      (win:DestroyMenu popmenu)
+      (dolist (submenu submenus) (win:DestroyMenu submenu))
       (cond ((zerop code)		; no item is selected
 	     nil)
 	    (t
@@ -1138,28 +1138,28 @@ to be run from another."
 	  (excl:with-native-string (prompt-string (string prompt))
 
 	    (ct:csets win:openfilename open-file-struct
-		      lstructsize (ct:sizeof win:openfilename)
-		      hwndowner (or (and stream (sheet-mirror stream))
+		      lStructSize (ct:sizeof win:openfilename)
+		      hwndOwner (or (and stream (sheet-mirror stream))
 				    0)
-		      hinstance 0	; no custom dialog
-		      lpstrfilter file-filter-string
-		      lpstrcustomfilter 0 
-		      nmaxcustfilter 0 ;; length of custom filter string
-		      nfilterindex 0	; zero means use custom-filter if supplied
+		      hInstance 0	; no custom dialog
+		      lpstrFilter file-filter-string
+		      lpstrCustomFilter 0 
+		      nMaxCustFilter 0 ;; length of custom filter string
+		      nFilterIndex 0	; zero means use custom-filter if supplied
 					; otherwise the first filter in the list
-		      lpstrfile s1
-		      nmaxfile *scratch-string-length*
-		      lpstrfiletitle 0 
-		      nmaxfiletitle 0
-		      lpstrinitialdir initial-dir-string
-		      lpstrtitle prompt-string
-		      flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
-		      nfileoffset 0
-		      nfileextension 0 
-		      lpstrdefext 0
-		      lcustdata 0
-		      lpfnhook 0
-		      lptemplatename 0)))))
+		      lpstrFile s1
+		      nMaxFile *scratch-string-length*
+		      lpstrFileTitle 0 
+		      nMaxFileTitle 0
+		      lpstrInitialDir initial-dir-string
+		      lpstrTitle prompt-string
+		      Flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
+		      nFileOffset 0
+		      nFileExtension 0 
+		      lpstrDefExt 0
+		      lCustData 0
+		      lpfnHook 0
+		      lpTemplateName 0)))))
     (let* ((result 
 	    (if save-p
 		(win:GetSaveFileName open-file-struct)
@@ -1182,8 +1182,8 @@ to be run from another."
 (defun get-directory (sheet title)
   (let* ((info (ct:ccallocate browseinfo)))
     (ct:csets browseinfo info
-	      hwndowner (or (and sheet (sheet-mirror sheet)) 0)
-	      pidlroot 0
+	      hwndOwner (or (and sheet (sheet-mirror sheet)) 0)
+	      pidlRoot 0
 	      pszDisplayName 0
 	      lpszTitle (string-to-foreign title)
 	      ulflags 0
@@ -1438,12 +1438,12 @@ to be run from another."
 (defmethod port-move-frame ((port acl-port) frame x y)
   (let ((sheet (frame-top-level-sheet frame)))
     (fix-coordinates x y)
-    (or (win:setWindowPos (sheet-mirror sheet)
+    (or (win:SetWindowPos (sheet-mirror sheet)
 			  (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
 			  x y 0 0
-			  (logior win:swp_noactivate
-				  win:swp_nozorder
-				  win:swp_nosize))
+			  (logior win:SWP_NOACTIVATE
+				  win:SWP_NOZORDER
+				  win:SWP_NOSIZE))
 	(acl-clim::check-last-error "SetWindowPos"))))
 
 (defmethod accept-values-frame-p ((object t)) nil)
@@ -1506,7 +1506,7 @@ to be run from another."
 	 (mirror (when sheet (sheet-direct-mirror sheet))))
     (when mirror
       ;; Validate the window handle to give a better error message.
-      (or (win:iswindow mirror)
+      (or (win:IsWindow mirror)
 	  (error "The window handle ~S is not valid.  Frame
 ~S cannot be enabled.  It is likely that
 Windows has destroyed it automatically as a
@@ -1559,7 +1559,7 @@ in a second Lisp process.  This frame cannot be reused."
 	;; ----
 	;; Actually, the code below repaints the entire frame. 
 	;; Shouldn't we free wrect? JPM.
-	(or (win:getClientRect handle wrect)
+	(or (win:GetClientRect handle wrect)
 	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
 	    (acl-clim::check-last-error "InvalidateRect"))
@@ -1586,12 +1586,12 @@ in a second Lisp process.  This frame cannot be reused."
 
 ;; Obsolete I think.
 (defun frame-set-position (frame x y)
-  (win:setWindowPos (sheet-mirror (frame-top-level-sheet frame))
+  (win:SetWindowPos (sheet-mirror (frame-top-level-sheet frame))
      0					; we really want win:HWND_TOP
      x y 0 0
-     (logior win:swp_noactivate
-	     win:swp_nozorder
-	     win:swp_nosize)))
+     (logior win:SWP_NOACTIVATE
+	     win:SWP_NOZORDER
+	     win:SWP_NOSIZE)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Printer support
@@ -1617,7 +1617,7 @@ in a second Lisp process.  This frame cannot be reused."
 
 (defun print-postscript (filename printer)
   ;; Print a file as postscript.
-  ;; 'printer' is an hdc
+  ;; 'printer' is an hDC
   (assert (stringp filename))
   (assert (acl-clim::valid-handle printer))
   (let ((code 1)
@@ -1657,7 +1657,7 @@ in a second Lisp process.  This frame cannot be reused."
 
 (defun print-ascii (filename printer &key (xmargin 5) (ymargin 5))
   ;; Print a file as plain ascii text.
-  ;; 'printer' is an hdc
+  ;; 'printer' is an hDC
   (assert (stringp filename))
   (assert (acl-clim::valid-handle printer))
   (let ((code 0)
@@ -1750,38 +1750,38 @@ in a second Lisp process.  This frame cannot be reused."
 	      lStructSize (ct:sizeof win:printdlg)
 	      hwndOwner hwnd
 	      hDevMode 0
-	      hdevnames 0        
-	      hdc 0
-	      flags (logior 
+	      hDevNames 0        
+	      hDC 0
+	      Flags (logior 
 		     ;; check the collate box
-		     (if collate-p win:pd_collate 0)
+		     (if collate-p win:PD_COLLATE 0)
 		     ;; disable the printtofile check box
-		     (if disable-print-to-file win:pd_disableprinttofile 0)
+		     (if disable-print-to-file win:PD_DISABLEPRINTTOFILE 0)
 		     ;; hide the printtofile check box
-		     (if hide-print-to-file win:pd_hideprinttofile 0)
+		     (if hide-print-to-file win:PD_HIDEPRINTTOFILE 0)
 		     ;; disable the pages radio button
-		     (if nopagenums win:pd_nopagenums 0)
+		     (if nopagenums win:PD_NOPAGENUMS 0)
 		     ;; disable the selection radio button
-		     (if noselection win:pd_noselection 0)
+		     (if noselection win:PD_NOSELECTION 0)
 		     ;; Prevents warning message from being displayed
 		     ;; when there is no default printer.
-		     (if nowarning win:pd_nowarning 0)
+		     (if nowarning win:PD_NOWARNING 0)
 		     ;; selects the pages radio button
-		     (if (or from-page to-page) win:pd_pagenums win:pd_allpages)
+		     (if (or from-page to-page) win:PD_PAGENUMS win:PD_ALLPAGES)
 		     ;; selects the printtofile check box
-		     (if print-to-file-p win:pd_printtofile 0)
+		     (if print-to-file-p win:PD_PRINTTOFILE 0)
 		     ;; suppress the dialog box
-		     (if nodialog win:psd_returndefault 0)
+		     (if nodialog win:PSD_RETURNDEFAULT 0)
 		     ;; selects the selection radio button
-		     (if selection win:pd_selection 0)
+		     (if selection win:PD_SELECTION 0)
 		     ;; return a device context to the printer
-		     win:pd_returndc)
-	      nfrompage (or from-page #xffff)
-	      ntopage (or to-page #xffff)
-	      nminpage (or min-page 1)
-	      nmaxpage (or max-page #xffff)
-	      ncopies (or ncopies 1))
-    (cond ((not (win:PrintDlg printdlg)) 
+		     win:PD_RETURNDC)
+	      nFromPage (or from-page #xffff)
+	      nToPage (or to-page #xffff)
+	      nMinPage (or min-page 1)
+	      nMaxPage (or max-page #xffff)
+	      nCopies (or ncopies 1))
+    (cond ((not (win:PrintDlg printdlg))
 	   ;; User cancelled, or there was an error.
 	   (let ((code (win:CommDlgExtendedError)))
 	     (if (zerop code) 
@@ -1789,7 +1789,7 @@ in a second Lisp process.  This frame cannot be reused."
 	       ;; Code will be among CDERR_* or PDERR_* families
 	       (error "PrintDlg failed with error code ~A" code))))
 	  (t
-	   (let ((hdc (ct:cref win:printdlg printdlg hdc)))
+	   (let ((hdc (ct:cref win:printdlg printdlg hDC)))
 	     (unwind-protect
 		 (ecase (determine-print-file-type filename)
 		   (:postscript 

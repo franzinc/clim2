@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: sysdcl.lisp,v 1.4.22.1 1998/07/06 23:09:38 layer Exp $
+;; $Id: sysdcl.lisp,v 1.4.22.2 2000/04/19 20:24:24 layer Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
+(in-package #-ansi-90 :user #+ansi-90 :cl-user)
 
 "Copyright (c) 1993 Franz Inc. All rights reserved"
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: completer.lisp,v 1.17.22.3 1999/01/11 17:57:55 layer Exp $
+;; $Id: completer.lisp,v 1.17.22.4 2000/04/19 20:24:18 layer Exp $
 
 (in-package :clim-internals)
 
@@ -392,7 +392,7 @@
                   (cutoff (let ((start 0)
                                 (cutoff nil))
                             (dotimes (i nchunks cutoff)
-                              #-(or Genera Minima Allegro aclpc) (declare (ignore i))
+                              #-(or Genera Minima allegro aclpc) (declare (ignore i))
                               (let ((new (position-if #'delimiter-p completion :start start)))
                                 (unless new (return nil))
                                 (setq cutoff new

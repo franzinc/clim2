@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graph-formatting.lisp,v 1.34.22.3 1999/11/16 15:09:15 layer Exp $
+;; $Id: graph-formatting.lisp,v 1.34.22.4 2000/04/19 20:24:19 layer Exp $
 
 (in-package :clim-internals)
 
@@ -191,7 +191,7 @@
                                       *default-generation-separation*)
                                     (within-generation-separation
                                       *default-within-generation-separation*)
-                                    (maximize-generations #+Allegro t #-Allegro nil)
+                                    (maximize-generations #+allegro t #-allegro nil)
                                     (store-objects t) (move-cursor t))
   (declare (dynamic-extent keys object-printer inferior-producer)
            (ignore stream orientation center-nodes cutoff-depth
@@ -219,7 +219,7 @@
                                        *default-generation-separation*)
                                      (within-generation-separation
                                        *default-within-generation-separation*)
-                                     (maximize-generations #+Allegro t #-Allegro nil)
+                                     (maximize-generations #+allegro t #-allegro nil)
                                      ;; These `offpage' connector print functions
                                      ;; should receive more useful id in addition
                                      ;; to an identification number, such as the

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: presentations.lisp,v 1.23.22.3 1999/11/16 15:09:15 layer Exp $
+;; $Id: presentations.lisp,v 1.23.22.4 2000/04/19 20:24:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -201,7 +201,7 @@
                      ;; This is more like the pointer moving than anything else.
                      (/= old-state
                          (setf old-state (window-modifier-state stream)))))))
-          #-Allegro (declare (dynamic-extent #'pointer-motion-pending))
+          #-allegro (declare (dynamic-extent #'pointer-motion-pending))
           (let ((*input-wait-handler* #'highlight-presentation-of-context-type)
                 (*input-wait-test* #'pointer-motion-pending)
                 (*pointer-button-press-handler* #'input-context-button-press-handler))

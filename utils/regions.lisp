@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: regions.lisp,v 1.21.22.2 1998/07/06 23:10:31 layer Exp $
+;; $Id: regions.lisp,v 1.21.22.3 2000/04/19 20:24:35 layer Exp $
 
 (in-package :clim-utils)
 
@@ -942,7 +942,7 @@
 	 (values 0.0 a d 0.0))
 	((and (zerop a) (zerop d))
 	 (values pi/2 b (- c) 0.0))
-	(T
+	(t
 	 (let* ((d+a (+ d a)) (a-d (- a d))
 		(c+b (+ c b)) (c-b (- c b))
 		(sx+sy (sqrt (+ (square d+a) (square c-b))))

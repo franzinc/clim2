@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 1.42.22.2 1998/07/06 23:09:55 layer Exp $
+;; $Id: event.lisp,v 1.42.22.3 2000/04/19 20:24:25 layer Exp $
 
 (in-package :silica)
 
@@ -714,9 +714,9 @@
   ;; Gosh, this macro is bad style, and violates the MOP.
   ;; Piling warts upon warts, we have to force finalization at
   ;; macroexpand time... - smh 18may93
-  (#+Allegro clos:finalize-inheritance 
+  (#+allegro clos:finalize-inheritance 
    #+aclpc acl:finalize-inheritance
-   #-(or Allegro aclpc) cl:finalize-inheritance
+   #-(or allegro aclpc) cl:finalize-inheritance
    (find-class event-class)) ;smh 18may93
   (let* ((slots #+aclpc  (acl:class-slots (find-class event-class))
                 #-(or CCL-2 aclpc) (clos:class-slots (find-class event-class))
@@ -755,7 +755,7 @@
 (define-event-resource pointer-enter-event 20)
 (define-event-resource pointer-exit-event 20)
 (define-event-resource pointer-button-press-event 10)
-(define-event-resource Pointer-button-release-event 10)
+(define-event-resource pointer-button-release-event 10)
 (define-event-resource key-press-event 10)
 (define-event-resource key-release-event 10)
 (define-event-resource window-configuration-event 10)

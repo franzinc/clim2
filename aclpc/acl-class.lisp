@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.18 1999/10/04 18:43:40 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.19 2000/04/19 20:24:12 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -139,9 +139,9 @@
 (defvar *clim-ctrl-arg-struct* nil)
 (defvar *tooltip-relay-struct* nil)
 
-(defstruct (PCCStructure 
+(defstruct (pccstructure 
 	    (:print-function print-pccstructure)
-	    (:predicate PCCStructurep))
+	    (:predicate pccstructurep))
   (type-tag 0)
   (data-length 0)
   (data-pointer 0)
@@ -906,7 +906,7 @@
       (#.win:WM_GETMINMAXINFO
        (ongetminmaxinfo window msg wparam lparam))
       (#.win:EN_UPDATE
-       (OnUpdateText window msg wparam lparam))
+       (onupdatetext window msg wparam lparam))
       ;; character typed
       ((#.win:WM_KEYDOWN 
 	#.win:WM_SYSKEYDOWN
@@ -932,7 +932,7 @@
       (#.win:WM_INITMENUPOPUP
        (oninitmenupopup window msg wparam lparam))
       (#.win:WM_NCHITTEST
-       (OnNcHitTest window msg wparam lparam))
+       (onnchittest window msg wparam lparam))
       (#.win:WM_NOTIFY
        (message-default window msg wparam lparam))
       (otherwise

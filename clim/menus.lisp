@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: menus.lisp,v 1.51.22.3 1998/07/06 23:09:03 layer Exp $
+;; $Id: menus.lisp,v 1.51.22.4 2000/04/19 20:24:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -405,14 +405,14 @@
                                      (default-presentation nil)
                                      pointer-documentation menu-type)
   (declare (ignore menu-type))
-  (flet (#+Allegro
+  (flet (#+allegro
          (abort-menu-handler ()
            (return-from menu-choose-from-drawer nil)))
-    #+Allegro (declare (dynamic-extent #'abort-menu-handler))
+    #+allegro (declare (dynamic-extent #'abort-menu-handler))
     (with-clim-state-reset (:all t
                                  :additional-bindings
-                                 #+Allegro ((*click-outside-menu-handler* #'abort-menu-handler))
-                                 #-Allegro nil)
+                                 #+allegro ((*click-outside-menu-handler* #'abort-menu-handler))
+                                 #-allegro nil)
       ;; We could make the drawer a lexical closure, but that would then
       ;; partially defeat the purpose of the uid and cache-value
       ;; because we'd cons the closure whether or not we ran it.
@@ -451,7 +451,7 @@
                     (window-visibility menu) t))
             ;;--- If we have windows with backing store then we dont get
             ;;--- exposure event and so nothing appears
-            #+Allegro (replay (stream-output-history menu) menu)
+            #+allegro (replay (stream-output-history menu) menu)
             (stream-set-input-focus menu)
             (when default-presentation
               (with-bounding-rectangle* (left top right bottom) default-presentation
@@ -460,7 +460,7 @@
             ;; Pointer documentation usually adds no information, and slows things
             ;; down in a big way, which is why we defaultly disable it.
             (let ((*pointer-documentation-output* pointer-documentation))
-              (with-input-context (presentation-type :override T)
+              (with-input-context (presentation-type :override t)
                 (object type gesture)
                 (labels ((input-wait-test (menu)
                            ;; Wake up if the menu becomes buried, or if highlighting
@@ -485,7 +485,7 @@
                   ;; Await exposure before going any further, since X can get
                   ;; to the call to READ-GESTURE before the menu is visible.
                   (when *abort-menus-when-buried*
-                    #-Silica (wait-for-window-exposed menu))
+                    #-silica (wait-for-window-exposed menu))
                   (with-mouse-grabbed-in-window (menu)
                     (loop
                       (read-gesture :stream menu

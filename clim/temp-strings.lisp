@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: temp-strings.lisp,v 1.9.22.3 1998/12/17 00:19:14 layer Exp $
+;; $Id: temp-strings.lisp,v 1.9.22.4 2000/04/19 20:24:20 layer Exp $
 
 (in-package :clim-internals)
 
@@ -42,7 +42,7 @@
 
 (defun temporary-string-p (string)
   (with-resource-rd ('temporary-string RD)
-    (dovector (ts (RD-objects RD))
+    (dovector (ts (rd-objects RD))
       (when (eq (os-object ts) string)
         (return-from temporary-string-p t)))))
 

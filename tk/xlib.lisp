@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.59.22.7 1999/01/11 17:57:56 layer Exp $
+;; $Id: xlib.lisp,v 1.59.22.8 2000/04/19 20:24:30 layer Exp $
 
 (in-package :tk)
 
@@ -506,7 +506,7 @@
 (def-foreign-array-resource xsegment-array make-xsegment-array)
 (def-foreign-array-resource xpoint-array make-xpoint-array)
 (def-foreign-array-resource xrectangle-array make-xrectangle-array)
-(def-foreign-array-resource xarc-array Make-xarc-array)
+(def-foreign-array-resource xarc-array make-xarc-array)
 
 (defun store-colors (colormap colors ncolors)
   (x11:xstorecolors

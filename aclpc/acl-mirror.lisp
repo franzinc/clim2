@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.16 1999/11/16 15:09:10 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.17 2000/04/19 20:24:15 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -417,7 +417,7 @@
 	(multiple-value-bind (left top right bottom)
 	    (mirror-native-edges* *acl-port* sheet)
 	  (declare (special *clim-icon*))
-	  (let ((dc (GetDc mirror)))
+	  (let ((dc (GetDC mirror)))
 	    (unless (zerop dc)
 	      (win:DrawIcon dc 0 0 *clim-icon*)
 	      (ReleaseDC mirror dc))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 1.28.8.3 2000/02/03 15:26:27 layer Exp $
+;; $Id: postscript-port.lisp,v 1.28.8.4 2000/04/19 20:24:25 layer Exp $
 
 (provide :climps)
 
@@ -357,7 +357,7 @@
   ;; Lifted from definition of LGP:FAST-PRINT-NUM in SYS:HARDCOPY;POSTSCRIPT.LISP
   (if (and (not (zerop n))
 	   (< -1 n 1))
-      (format stream "~F" (COERCE N 'SINGLE-FLOAT)) ; no double-float exponent markers
+      (format stream "~F" (coerce n 'single-float)) ; no double-float exponent markers
       (multiple-value-bind (integer frac)
 	  (etypecase n
 	    (integer (values (abs n) 0))
@@ -1148,7 +1148,7 @@ end } def
 (defmethod medium-draw-postscript-literal* ((medium postscript-medium) string x y)
   x y
   (let ((printer-stream (slot-value medium 'printer-stream)))
-    (format printer-stream "~A~%" STRING)))
+    (format printer-stream "~A~%" string)))
 
 
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clim-streams.lisp,v 1.12.22.2 1998/07/06 23:10:26 layer Exp $
+;; $Id: clim-streams.lisp,v 1.12.22.3 2000/04/19 20:24:32 layer Exp $
 
 (in-package :clim-utils)
 
@@ -35,7 +35,7 @@
           (encapsulating-stream)
     ((stream :initarg :stream
              :reader encapsulating-stream-stream))
-  #+Allegro (:default-initargs :element-type 'character))
+  #+allegro (:default-initargs :element-type 'character))
 
 ;; Return the encapsulated stream corresponding to STREAM.
 ;; If you change GENERATE-STREAM-PROTOCOL-TRAMPOLINES to maintain a more complex

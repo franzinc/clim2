@@ -1,12 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: pkgdcl.lisp,v 1.9.22.1 1998/07/06 23:09:42 layer Exp $
+;; $Id: pkgdcl.lisp,v 1.9.22.2 2000/04/19 20:24:25 layer Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
+(in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage postscript-clim
+(#-ansi-90 clim-lisp::defpackage #+ansi-90 defpackage postscript-clim
   (:use clim-lisp clim-sys clim clim-utils clim-silica)
 
   (:shadowing-import-from clim-utils
@@ -14,11 +14,11 @@
     flet labels
     defgeneric defmethod
     dynamic-extent
-    #-(or Allegro Lucid) non-dynamic-extent)
+    #-(or allegro Lucid) non-dynamic-extent)
 
-  #+(and Allegro (not (version>= 4 1)))
+  #+(and allegro (not (version>= 4 1)))
   (:shadowing-import-from clim-utils
     with-slots))
 
-#+Allegro
+#+allegro
 (setf (package-lock (find-package :postscript-clim)) t)

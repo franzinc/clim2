@@ -19,15 +19,13 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: dev-load-1.lisp,v 1.39.22.2 1998/07/06 23:09:40 layer Exp $
+;; $Id: dev-load-1.lisp,v 1.39.22.3 2000/04/19 20:24:24 layer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 ;; Forgive them, lord, for they know not what they do.
 (pushnew :ansi-90 *features*)
-
-(set-case-mode :case-insensitive-lower)
 
 (tenuring
  (let ((*load-source-file-info* t)
@@ -36,8 +34,7 @@
    (load "clim2:;sys;sysdcl")))
 
 (defun load-it (sys &key load-composer)
-  (let ((excl::*update-entry-points* nil)
-	(*load-source-file-info* t)
+  (let ((*load-source-file-info* t)
 	(*record-source-file-info* t)
 	(*load-xref-info* nil)
 	(excl:*global-gc-behavior* nil))

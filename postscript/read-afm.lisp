@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: read-afm.lisp,v 1.4.22.2 1998/12/17 00:19:29 layer Exp $
+;; $Id: read-afm.lisp,v 1.4.22.3 2000/04/19 20:24:25 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -98,7 +98,7 @@
     (let ((height (- (fourth bounding-box) (second bounding-box))))
       `((,(symbol-name name) 1000 ,bounding-box)
 	,@(cond ((null fixed-pitch)
-		 (mapcan #'(lambda (X)
+		 (mapcan #'(lambda (x)
 			     (destructuring-bind (code width name . ignore) x
 			       (declare (ignore ignore))
 			       (and (plusp code)

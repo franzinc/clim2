@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics-recording.lisp,v 1.30.22.2 1998/07/06 23:09:01 layer Exp $
+;; $Id: graphics-recording.lisp,v 1.30.22.3 2000/04/19 20:24:19 layer Exp $
 
 (in-package :clim-internals)
 
@@ -51,12 +51,12 @@
     (setq distances-to-transform
           (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
                   distances-to-transform))
-    (let* ((class 
-             (intern (format nil "~A-~A"
-                       (remove-word-from-string "DRAW-" name) 'output-record)))
+    (let* ((class (fintern "~A-~A" 
+			   (remove-word-from-string "DRAW-" name)
+			   'output-record))
            (constructor (fintern "~A-~A" 'make class))
-           (medium-graphics-function*
-             (intern (format nil "~A~A*" 'medium- name)))
+           (medium-graphics-function* (fintern "~A~A*"
+					       'medium- name))
            (superclasses '(output-record-element-mixin 
                            graphics-displayed-output-record))
            (slots

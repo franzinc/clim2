@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun-utilities.lisp,v 1.12.22.5 1999/06/02 21:43:35 layer Exp $
+;; $Id: defun-utilities.lisp,v 1.12.22.6 2000/04/19 20:24:32 layer Exp $
 
 (in-package :clim-utils)
 
@@ -24,7 +24,7 @@
 
 ;;; Useful proclamations, very early on
 
-#+(or CCL-2 Allegro Minima)	;not part of ANSI CL, but they're nice to have around
+#+(or CCL-2 allegro Minima)	;not part of ANSI CL, but they're nice to have around
 (eval-when (compile load eval)
   (proclaim '(declaration values))
   (proclaim '(declaration arglist)))
@@ -80,13 +80,13 @@
 (defmacro define-group (name type &body body)
   `(sys:multiple-definition ,name ,type ,@body))
 
-#+(and Allegro (not acl86win32) (version>= 4 1))
+#+(and allegro (not acl86win32) (version>= 4 1))
 (defmacro define-group (name type &body body)
   `(progn
      (excl::record-source-file ',name :type ',type)
      ,@body))
 
-#-(or Genera (and (not acl86win32) (and Allegro (version>= 4 1))))
+#-(or Genera (and (not acl86win32) (and allegro (version>= 4 1))))
 (defmacro define-group (name type &body body)
   (declare (ignore name type))
   `(progn ,@body))

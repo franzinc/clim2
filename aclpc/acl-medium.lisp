@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.25 2000/02/03 15:26:22 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.26 2000/04/19 20:24:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -117,7 +117,7 @@
 		      mleft mtop mright mbottom))))))
 	   (when valid
 	     (fix-coordinates cleft ctop cright cbottom)
-	     (setq winrgn (createRectRgn cleft ctop cright cbottom))
+	     (setq winrgn (CreateRectRgn cleft ctop cright cbottom))
 	     (let ((val1 (and (valid-handle winrgn)
 			      (SelectObject dc winrgn))))
 	       (values val1
@@ -159,7 +159,7 @@
   *ltgray-image*)
 
 (defmethod color-rgb ((color (eql +ltgray+)))
-  (color-rgb (wincolor->color (win:getSysColor win:COLOR_BTNFACE))))
+  (color-rgb (wincolor->color (win:GetSysColor win:COLOR_BTNFACE))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +foreground-ink+)))
   (declare (values image created-bitmap created-mask-bitmap))
@@ -222,7 +222,7 @@
 	(setf (gethash ink cache)
 	  (let ((color (color->wincolor ink medium)))
 	    (declare (fixnum color))
-	    (let ((pen (win:CreatePen win:ps_solid 1 color))
+	    (let ((pen (win:CreatePen win:PS_SOLID 1 color))
 		  (brush (win:CreateSolidBrush color)))
 	      (make-dc-image :solid-1-pen pen
 			     :brush brush
@@ -460,7 +460,7 @@
 		       (created-mask-bitmap nil))
 		   (multiple-value-setq (dc-image created-bitmap created-mask-bitmap)
 		     (dc-image-for-transparent-pattern medium ink array designs))
-		   (loop for DCI in dc-image
+		   (loop for dci in dc-image
 		       do (setf (dc-image-brush dci) 
 			    (win:CreatePatternBrush (dc-image-bitmap dci))))
 		   (values dc-image
@@ -553,8 +553,8 @@ draw icons and mouse cursors on the screen.
 		   (image2 (dc-image-for-ink medium ink2))
 		   (color (logxor (dc-image-text-color image1)
 				  (dc-image-text-color image2))))
-	      (unless (and (eq (dc-image-rop2 image1) win:r2_copypen)
-			   (eq (dc-image-rop2 image2) win:r2_copypen)
+	      (unless (and (eq (dc-image-rop2 image1) win:R2_COPYPEN)
+			   (eq (dc-image-rop2 image2) win:R2_COPYPEN)
 			   (null (dc-image-bitmap image1))
 			   (null (dc-image-bitmap image2)))
 		(nyi))
@@ -592,8 +592,8 @@ draw icons and mouse cursors on the screen.
 		(convert-to-device-coordinates transform x y))
 	      (with-set-dc-for-ink (dc medium ink line-style)
 		;;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
-		(win:moveToEx dc x y null)
-		(win:lineTo dc (+ x 1) (+ y 1))
+		(win:MoveToEx dc x y null)
+		(win:LineTo dc (+ x 1) (+ y 1))
 		(when (valid-handle old) (SelectObject dc old))
 		))))))))
 
@@ -617,8 +617,8 @@ draw icons and mouse cursors on the screen.
 			(y (elt position-seq j)))
 		    (convert-to-device-coordinates transform x y)
 					;(win:rectangle dc x y x y)
-		    (win:moveToEx dc x y null)
-		    (win:lineTo dc (+ x 1) (+ y 1))))
+		    (win:MoveToEx dc x y null)
+		    (win:LineTo dc (+ x 1) (+ y 1))))
 		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-line* ((medium acl-medium) x1 y1 x2 y2)
@@ -634,8 +634,8 @@ draw icons and mouse cursors on the screen.
 		   (line-style (medium-line-style medium)))
 	      (convert-to-device-coordinates transform x1 y1 x2 y2)
 	      (with-set-dc-for-ink (dc medium ink line-style)
-		(win:moveToEx dc x1 y1 null)
-		(win:lineTo dc x2 y2)
+		(win:MoveToEx dc x1 y1 null)
+		(win:LineTo dc x2 y2)
 		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
@@ -659,21 +659,21 @@ draw icons and mouse cursors on the screen.
 		   (line-style (medium-line-style medium)))
 	      (with-set-dc-for-ink (dc medium ink line-style)
 		(let ((init t))
-		  (declare (optimize (speed 3) (safety 0)))
-		  (labels ((visit1 (x y)
-			     (fix-coordinates x y)
-			     (cond (init
-				    (win:MoveToEx dc x y null)
-				    (setq init nil))
-				   (t
-				    (win:LineTo dc x y))))
-			   (visit2 (x y)
-			     (convert-to-device-coordinates transform x y)
-			     (cond (init
-				    (win:MoveToEx dc x y null)
-				    (setq init nil))
-				   (t
-				    (win:LineTo dc x y)))))
+  		  (declare (optimize (speed 3) (safety 0)))
+  		  (labels ((visit1 (x y)
+  			     (fix-coordinates x y)
+ 			     (cond (init
+ 				    (win:MoveToEx dc x y null)
+ 				    (setq init nil))
+ 				   (t
+ 				    (win:LineTo dc x y))))
+  			   (visit2 (x y)
+  			     (convert-to-device-coordinates transform x y)
+ 			     (cond (init
+ 				    (win:MoveToEx dc x y null)
+ 				    (setq init nil))
+ 				   (t
+ 				    (win:LineTo dc x y)))))
 		    (declare (dynamic-extent #'visit1 #'visit2))
 		    (if (identity-transformation-p transform)
 			(silica:map-position-sequence #'visit1 position-seq)
@@ -788,8 +788,8 @@ draw icons and mouse cursors on the screen.
 		    (when (< right left) (rotatef right left))
 		    (when (< bottom top) (rotatef bottom top))
 		    (if filled
-			(win:rectangle dc left top (1+ right) (1+ bottom))
-		      (win:rectangle dc left top right bottom))))
+			(win:Rectangle dc left top (1+ right) (1+ bottom))
+		      (win:Rectangle dc left top right bottom))))
 		(when (valid-handle old) (SelectObject dc old))))))))))
 
 (defparameter *point-vector* 
@@ -856,8 +856,8 @@ draw icons and mouse cursors on the screen.
 			       (and closed (not filled)))
     (with-set-dc-for-ink (dc medium ink line-style)
       (if filled
-	  (win:polygon dc point-vector numpoints)
-	(win:polyline dc point-vector numpoints))
+	  (win:Polygon dc point-vector numpoints)
+	(win:Polyline dc point-vector numpoints))
       (when (valid-handle old) (SelectObject dc old))
       t)))
 
@@ -921,10 +921,10 @@ draw icons and mouse cursors on the screen.
 			   (and (= start-angle 0)
 				(= end-angle 2pi))
 			   ;; drawing a full ellipse
-			   (win:ellipse dc left top right bottom))
+			   (win:Ellipse dc left top right bottom))
 			  ((null line-style)
 			   ;; drawing a pie slice
-			   (win:pie
+			   (win:Pie
 			    dc left top right bottom
 			    (round (1- (+ center-x (* (cos start-angle) x-radius))))
 			    (round (1- (- center-y (* (sin start-angle) y-radius))))
@@ -932,7 +932,7 @@ draw icons and mouse cursors on the screen.
 			    (round (1- (- center-y (* (sin end-angle) y-radius))))))
 			  (t
 			   ;; drawing an arc
-			   (win:arc
+			   (win:Arc
 			    dc left top right bottom
 			    (round (1- (+ center-x (* (cos start-angle) x-radius))))
 			    (round (1- (- center-y (* (sin start-angle) y-radius))))
@@ -1017,7 +1017,7 @@ draw icons and mouse cursors on the screen.
 		(when (valid-handle hbm) (setq oldbm (SelectObject cdc hbm)))
 		;; Set the bitmap to black, then draw the text in white.
 		(with-set-dc-for-text (cdc medium +black+ (acl-font-index font))
-		  (win:rectangle cdc 0 0 width height)
+		  (win:Rectangle cdc 0 0 width height)
 		  (win:SetTextColor dc 0) ; white
 		  (with-set-dc-for-text (cdc medium +white+ (acl-font-index font))
 		    (multiple-value-bind (cstr len)
@@ -1148,7 +1148,7 @@ draw icons and mouse cursors on the screen.
        (acl-font-maximum-character-width font))))
 
 (defmethod medium-beep ((medium acl-medium))
-  (win:messageBeep win:MB_OK))
+  (win:MessageBeep win:MB_OK))
 
 (defmethod medium-force-output ((medium acl-medium))
   )

@@ -11,6 +11,148 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.75
+
+2000-04-19 tfb@cley.com
+
+Revision of the build system to be a bit less insane, and the same for
+Windows and Unix
+
+* Makefile.defs: remove the huge lists of fasls that were used to cat
+  things together
+* Makefle.generic: make windows and unix do the same thing -- loading
+  misc/compile-1 and then saying compile-it.  cat target now also runs
+  lisp but says concatenate-it.  No more rules for all the fasl files,
+  only Lisp knows how to build them.  The makefile only knows what
+  ones should be there.
+* misc/compile-1.lisp: complete revision of this file, now used by
+  windows & unix to build clim.  It now loads a bunch of sysdcl files
+  to get all the declarations needed loaded, and also defines some
+  special-purpose systems itself, which are used for contenating
+  things.  New concatenate-it function which is called from the
+  makefile and deals with concatenating things into the large product
+  fasls.
+* misc/dev-load-1.lisp: remove obsolete binding of
+  excl::*update-entry-points*.
+* postscript/sysdcl.lisp: factored out declaration into two, one of
+  which is the stubs and can be dumped with a generic CLIM, causing
+  the whole thing to get autoloaded.
+* sys/compile.lisp: made it give an error on load (this was the old NT
+  compile & cat file).
+* sys/sysdcl.lisp: removed scroll-pane from windows build (it was bing
+  compiled but not dumped before).  Stopped clim-standalone depending
+  on clim-utils as it already does indirectly through clim-silica.
+
+*******************************************************************************
+2.2.1.74
+
+2000-04-06 tfb@cley.com
+
+More case fixes, fixes to intern / fintern calls
+
+* utils/lisp-utilities.lisp: new package-fintern function, define
+  fintern to use that (strange argument order)
+* utils/packages.lisp: export package-fintern from clim-utils
+* clim/graphics-recording.lisp: fix calls to intern to use fintern
+* xlib/pkg.lisp: import the clim-utils version of fintern (not sure
+  this is completely legit)
+* xlib/ffi.lisp: nuke bogus fintern now we use the clim-utils one
+* tk/pkg.lisp: import fintern, package-fintern (?)
+* tk/macros.lisp: fix internery
+* silica/graphics.lisp: (intern (format nil ...)) -> fintern
+* utils/clos.lisp: same
+* utils/macros.lisp: same
+* aclpc/acl-port.lisp: somewhat dubious fix to keysym stuff in
+  *char->keysym*
+
+*******************************************************************************
+2.2.1.73
+
+2000-03-30 tfb@cley.com
+
+Large number of changes for case-sensitive Lisp.
+
+* Makefile.defs: changes to allow case_mode=ansi/modern and
+  load_clim_patches=yes/no arguments to make.
+* Makefile.generic: same.
+* aclpc/acl-class.lisp: correct case for winapi names, some caps/lower
+  fixes for things like (let (X) ... x)
+* aclpc/acl-dc.lisp: same
+* aclpc/acl-frames.lisp: same
+* aclpc/acl-medium.lisp: same
+* aclpc/acl-mirror.lisp: same
+* aclpc/acl-port.lisp: same
+* aclpc/acl-prel.lisp: same
+* aclpc/acl-scroll.lisp: same
+* aclpc/acl-widget.lisp: same
+* aclpc/pkgdcl.lisp: feature (:os-threads) lowercased
+* clim/command-processor.lisp: T -> t
+* clim/completer.lisp: feature :Allegro -> :allegro
+* clim/defresource.lisp: same
+* clim/frames.lisp: :Allegro -> :allegro, caps/lower fixes
+* clim/gestures.lisp: caps/lower fixes
+* clim/graph-formatting.lisp: feature :Allegro -> :allegro
+* clim/histories.lisp: same
+* clim/input-editor-commands.lisp: same
+* clim/input-protocol.lisp: feature :Silica -> silica
+* clim/interactive-defs.lisp: feature :Allegro -> :allegro
+* clim/interactive-protocol.lisp: same
+* clim/menus.lisp: same
+* clim/panes.lisp: same
+* clim/pixmap-streams.lisp: same
+* clim/presentations.lisp: same
+* clim/ptypes1.lisp: same
+* clim/standard-types.lisp: same
+* clim/stream-class-defs.lisp: same
+* clim/stream/defprotocols.lisp: feature
+  :CLIM-uses-lisp-stream-functions -> :clim-uses-lisp-stream-functions
+* clim/temp-strings.lisp: caps/lower fixes
+* clim/tracking-pointer.lisp: feature :Allegro -> :allegro
+* clim/window-stream.lisp: feature :Silica -> silica
+* demo/browser.lisp: feature :Allegro -> :allegro
+* demo/listener.lisp: same
+* demo/winlisp.lisp: same
+* hpgl/pkg.lisp: same
+* hpgl/sysdcl.lisp: feature :ANSI-90 -> :ansi-90
+* misc/compile-1.lisp: remove set-case-mode
+* misc/dev-load-1/lisp: same
+* postscript/pkgdcl.lisp: features :ANSI-90 -> :ansi-90, :Allegro ->
+  :allegro
+* postscript/postscript-port.lisp: caps/lower fixes
+* postscript/read-afm.lisp: caps/lower fixes
+* postscript/sysdcl.lisp: features :ANSI-90 -> :ansi-90, :Allegro ->
+  :allegro
+* silica/event.lisp: feature :Allegro -> :allegro, caps/lower fixes
+* silica/layout.lisp: feature :Allegro -> :allegro
+* silica/port.lisp: feature :Allegro -> :allegro
+* silica/text-style.lisp: feature :Allegro -> :allegro
+* sys/compile.lisp: remove set-case-mode
+* sys/sysdcl.lisp: features :Allegro -> :allegro, CLIM-ANSI-Conditions
+  -> clim-ansi-conditions, ANSI-90 -> ansi-90
+* tk/xlib.lisp: caps/lower fixes
+* tk-silica/xt-graphics.lisp: whole bunch of code lowercased
+* utils/clim-macros.lisp: caps/lower.lisp
+* utils/clim-streams.lisp: feature :Allegro -> :allegro
+* utils/clos.lisp: feature :Allegro -> :allegro,
+  :Allegro-v4.0-constructors -> :allegro-v4.0-constructors
+* utils/defun-utilities.lisp: feature :Allegro -> :allegro
+* utils/designs.lisp: feature :Allegro -> :allegro
+* utils/last.lisp: add :clim-dont-load-patches feature to inhibit
+  patch loading for development (controlled ultimately by makefile
+  variables).
+* utils/lisp-utilities.lisp: feature :ANSI-90 -> :ansi-90
+* utils/packages.lisp: feature :Allegro -> :allegro, increment version
+* utils/processes.lisp: feature :Allegro -> :allegro
+* utils/reader.lisp: caps/lower fixes
+* utils/regions.lisp: caps/lower fixes
+* utils/utilities.lisp: feature :Allegro -> :allegro
+* xlib/xlib-defs.lisp: lowercase many X symbols (all of this X stuff
+  uses obsolescent interfaces in Allegro & should be updated)
+
+*******************************************************************************
+cvs acl50 branch tag: pre_Tim_Bradshaw_case_build_hacking
+
+*******************************************************************************
 2.2.1.72
 
 1999-12-02  ncramer@pointandclicksolutions.com

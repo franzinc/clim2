@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: port.lisp,v 1.38.22.3 1999/06/09 21:29:54 layer Exp $
+;; $Id: port.lisp,v 1.38.22.4 2000/04/19 20:24:28 layer Exp $
 
 (in-package :silica)
 
@@ -26,12 +26,12 @@
 
 ;; Ports and grafts
 
-(defvar *default-server-path* #+(and Allegro (not Microsoft-32)) '(:motif)
+(defvar *default-server-path* #+(and allegro (not microsoft-32)) '(:motif)
                               #+Lucid '(:clx)
                               #+Genera `(:genera)
                               #+Cloe-Runtime `(:cloe)
-                              #+(and Allegro Microsoft-32) '(:aclpc)
-                              #-(or Allegro Lucid Genera Cloe-Runtime) nil)
+                              #+(and allegro microsoft-32) '(:aclpc)
+                              #-(or allegro Lucid Genera Cloe-Runtime) nil)
 
 
 (defvar *ports* nil)
@@ -66,7 +66,7 @@
        (restart-port port)))
   '(warm))
 
-#+Allegro
+#+allegro
 (progn
   (defun reset-ports ()
     ;;--- Should this do more?
