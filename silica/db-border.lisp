@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.18 93/03/18 14:37:39 colin Exp $
+;; $fiHeader: db-border.lisp,v 1.19 93/03/25 15:40:25 colin Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -133,27 +133,6 @@
 		 (vertically () ,lvar ,cvar)))))))
 
 
-(defclass generic-label-pane 
-	  (label-pane
-	   space-requirement-mixin
-	   leaf-pane)
-    ()
-  (:default-initargs :align-x :left
-		     :text-style *default-label-text-style*))
-
-(defmethod compose-space ((pane generic-label-pane) &key width height)
-  (declare (ignore width height))
-  (multiple-value-bind (width height)
-      (compute-gadget-label-size pane)
-    (make-space-requirement :width width :height height)))
-  
-(defmethod handle-repaint ((pane generic-label-pane) region)
-  (declare (ignore region))			;not worth checking
-  (with-sheet-medium (medium pane)
-    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
-      (declare (ignore right bottom))
-      (draw-gadget-label pane medium left top
-			 :align-x (gadget-alignment pane) :align-y :top))))
 
 
 ;;; Separator panes

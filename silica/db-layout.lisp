@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.30 93/03/19 09:44:36 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.31 93/03/31 10:39:31 cer Exp $
 
 (in-package :silica)
 
@@ -90,7 +90,7 @@
 
 (defvar *inside-changing-space-requirements* nil)
 
-(defun invoke-with-changing-space-requirements (continuation &key resize-frame layout)
+(defun invoke-with-changing-space-requirements (continuation &key resize-frame (layout t))
   (let ((old-inside-changing-space-requirements 
 	  *inside-changing-space-requirements*)
 	(*inside-changing-space-requirements* 

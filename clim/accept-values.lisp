@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.58 93/04/02 13:35:55 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.59 93/04/07 09:06:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -480,7 +480,7 @@
 					     (or (/= width vwidth) (/= height vheight))))))))
 			 (size-panes-appropriately)))))
 		 (size-panes-appropriately ()
-		   (changing-space-requirements ()
+		   (changing-space-requirements (:layout t)
 		     ;; We really want to specify the min/max sizes of
 		     ;; the exit-button pane also
 		     (size-frame-from-contents exit-button-stream

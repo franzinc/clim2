@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.36 93/03/04 19:01:15 colin Exp $
+;; $fiHeader: sysdcl.lisp,v 1.38 93/04/16 09:26:26 layer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -191,6 +191,8 @@
   ("db-scroll")
   ("scroll-pane")
   ("db-button")
+  ("db-label"
+   :load-before-compile ("db-border"))
   ("db-slider"))
 
 (clim-defsys:defsystem clim-standalone

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.70 93/04/02 13:37:26 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.71 93/04/07 09:07:22 cer Exp $
 
 (in-package :xm-silica)
 
@@ -868,6 +868,9 @@
                                    mirrored-sheet-mixin
                                    basic-pane)
           ())
+
+(defmethod silica::always-propagate-region-changes-p ((sheet xm-frame-viewport-mixin))
+  t)
 
 (defclass xm-frame-viewport (xm-frame-viewport-mixin) ())
 

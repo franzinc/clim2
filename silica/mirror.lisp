@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: mirror.lisp,v 1.28 92/10/02 15:18:29 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.29 93/02/08 15:57:34 cer Exp $
 
 (in-package :silica)
 
@@ -366,7 +366,9 @@
 	 (parent (sheet-parent sheet))
 	 (sheet-to-parent (sheet-transformation sheet))
 	 (parent-to-native (sheet-native-transformation parent))
-	 (region-changed-p nil)
+	 ;;-- What does this really mean. Surely something has changed
+	 ;;-- then we should propagate stuff down [clim2bug376]
+	 (region-changed-p (always-propagate-region-changes-p sheet))
 	 (transformation-changed-p nil))
     ;; Sheet in parent space
     (multiple-value-bind (ominx ominy omaxx omaxy)
@@ -411,6 +413,9 @@
 	  (note-sheet-region-changed sheet :port-did-it t))
 	(when transformation-changed-p
 	  (note-sheet-transformation-changed sheet :port-did-it t))))))
+
+(defmethod always-propagate-region-changes-p ((sheet mirrored-sheet-mixin))
+  nil)
 
 (defmethod handle-event ((sheet mirrored-sheet-mixin)
 			 (event window-configuration-event))

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.48 93/03/31 10:39:36 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.49 93/04/08 13:18:00 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -161,58 +161,7 @@
 	(format stream "~A" (slot-value object 'label)))
       (call-next-method)))
 
-(defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
-  (let ((label (gadget-label pane)))
-    (etypecase label
-      (string
-	(let ((text-style (slot-value pane 'text-style)))
-	  (with-sheet-medium (medium pane)
-	    (multiple-value-bind (width height)
-		(text-size medium label :text-style text-style)
-	      (values (+ width (text-style-width text-style medium))
-		      (+ height (floor (text-style-height text-style medium) 2)))))))
-      (null (values 0 0))
-      (pattern
-	(values (pattern-width label) (pattern-height label)))
-      (pixmap
-	(values (pixmap-width label) (pixmap-height label))))))
 
-(defmethod draw-gadget-label ((pane labelled-gadget-mixin) medium x y
-			      &key (align-x (gadget-alignment pane))
-				   (align-y :baseline))
-  (let ((label (gadget-label pane)))
-    (etypecase label
-      (string
-	(let ((text-style (slot-value pane 'text-style)))
-	  (draw-text* medium label x y
-		      :text-style text-style
-		      :align-x align-x :align-y align-y)))
-      (null)      
-      (pattern
-	(let ((width (pattern-width label))
-	      (height (pattern-height label)))
-	  (ecase align-x
-	    (:left)
-	    (:right (decf x width))
-	    (:center (decf x (floor width 2))))
-	  (ecase align-y
-	    ((:top :baseline))
-	    (:bottom (decf x height))
-	    (:center (decf x (floor height 2))))
-	  (draw-pattern* medium label x y)))
-      (pixmap
-	(let ((width (pixmap-width label))
-	      (height (pixmap-height label)))
-	  (ecase align-x
-	    (:left)
-	    (:right (decf x width))
-	    (:center (decf x (floor width 2))))
-	  (ecase align-y
-	    ((:top :baseline))
-	    (:bottom (decf x height))
-	    (:center (decf x (floor height 2))))
-	  (copy-from-pixmap label 0 0 width height
-			    medium x y))))))
 
 
 ;;--- We might want a way of changing the range and the value together.

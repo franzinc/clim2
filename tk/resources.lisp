@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.41 93/03/01 14:26:28 cer Exp $
+;; $fiHeader: resources.lisp,v 1.43 93/04/16 09:26:38 layer Exp $
 
 (in-package :tk)
 
@@ -690,3 +690,8 @@
 					  (:etched-out 6) 
 					  (:in 7)
 					  (:out 8)))
+
+
+(define-enumerated-resource ol-wrap-mode  ((:wrap-off 74) 
+					   (:wrap-any 75)
+					   (:wrap-white-space 76)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.41 93/03/19 09:43:40 cer Exp $
+;; $fiHeader: menus.lisp,v 1.42 93/03/31 10:38:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,7 +14,7 @@
 
 (define-application-frame menu-frame ()
   (menu 
-   (label  :initform nil :accessor menu-frame-label)
+   (label :initarg :label :initform nil :accessor menu-frame-label)
    (scroll-bars :initarg :scroll-bars 
 		:initform t
 		:reader menu-frame-scroll-bars))
@@ -43,8 +43,9 @@
        *application-frame*))
 
 ;; Returns a stream that corresponds to the pane holding the menu
-(defmethod frame-manager-get-menu ((framem standard-frame-manager) &key scroll-bars)
+(defmethod frame-manager-get-menu ((framem standard-frame-manager) &key scroll-bars label)
   (let ((frame (make-application-frame 'menu-frame
+				       :label label
 				       :scroll-bars scroll-bars
 				       :frame-manager framem
 				       :save-under t)))
@@ -54,14 +55,15 @@
     (values (slot-value frame 'menu) frame)))
 
 (defresource menu (associated-window root &key label (scroll-bars t))
-  :constructor 
-    (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
-      (frame-manager-get-menu framem :scroll-bars scroll-bars))
-    :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
-		  (eq (not label) (not (menu-frame-label (pane-frame menu))))
-		  (eq (frame-manager menu) (frame-manager root)))
-  :deinitializer (window-clear menu)
-  :initializer (initialize-menu (port menu) menu :label label))
+	     :constructor 
+	     (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
+	       (frame-manager-get-menu framem :scroll-bars scroll-bars :label label))
+	     :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
+			   (eq (not label) (not (menu-frame-label (pane-frame menu))))
+			   (eq (frame-manager menu) (frame-manager root)))
+	       
+	     :deinitializer (window-clear menu)
+	     :initializer (initialize-menu (port menu) menu :label label))
 
 (defmethod initialize-menu ((port basic-port) menu &key label)
   ;;--- Should this flush the menu's event queue?
