@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/postscript-medium.lisp,v 1.20.22.1 1998/05/19 01:04:53 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-medium.lisp,v 1.20.22.2 1998/05/26 16:08:10 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -290,7 +290,10 @@
 	      (ps-pos-op medium "lineto" ex ey)))))
       (annotating-postscript (medium printer-stream)
 	(format printer-stream "        (medium-draw-polygon* ~A ...)"
-	  position-seq)))))
+		position-seq)))))
+
+(defun nyi ()
+  (error "This postscript operation is NYI (Not Yet Implemented)."))
 
 (defmethod medium-draw-ellipse* ((medium postscript-medium)
 				 center-x center-y

@@ -29,29 +29,19 @@
 	      (rtop (min from-y to-y))
 	      (rright (+ (max from-x to-x) width))
 	      (rbottom (+ (max from-y to-y) height)))
-          (let ((scrollrect (ct:callocate win:rect
-					; win::left rleft 
-					; win::top rtop 
-					; win::right rright
-					; win::bottom rbottom
-                             ))
-                (cliprect (ct:callocate win:rect 
-                              ; win::left rleft
-                              ; win::top rtop 
-						      ; win::right rright
-						      ; win::bottom rbottom
-                             )))
-            (setf (ct::cref win::rect scrollrect win::left) rleft)
-            (setf (ct::cref win::rect cliprect win::left) rleft)
-            (setf (ct::cref win::rect scrollrect win::top) rtop)
-            (setf (ct::cref win::rect cliprect win::top) rtop)
-            (setf (ct::cref win::rect scrollrect win::right) rright)
-            (setf (ct::cref win::rect cliprect win::right) rright)
-            (setf (ct::cref win::rect scrollrect win::bottom) rbottom)
-            (setf (ct::cref win::rect cliprect win::bottom) rbottom)
+          (let ((scrollrect (ct:callocate win:rect))
+                (cliprect (ct:callocate win:rect)))
+            (setf (ct:cref win:rect scrollrect win::left) rleft)
+            (setf (ct:cref win:rect cliprect win::left) rleft)
+            (setf (ct:cref win:rect scrollrect win::top) rtop)
+            (setf (ct:cref win:rect cliprect win::top) rtop)
+            (setf (ct:cref win:rect scrollrect win::right) rright)
+            (setf (ct:cref win:rect cliprect win::right) rright)
+            (setf (ct:cref win:rect scrollrect win::bottom) rbottom)
+            (setf (ct:cref win:rect cliprect win::bottom) rbottom)
             (win::scrollDc dc (- to-x from-x) (- to-y from-y)
-		          scrollrect cliprect (ct::null-handle win::hrgn)
-			  #+aclpc ct::null #-aclpc 0)
+		          scrollrect cliprect (ct:null-handle win::hrgn)
+			  #+aclpc ct:null #-aclpc 0)
 		      )))))))
 
 ;; changed bop->winop to return the val let variable rather than the
@@ -59,29 +49,25 @@
 ;; the function. (sdj 9/27/96)
 
 (defun bop->winop (bop)
-  (let ((val
-         (cond
-	  ((eq bop boole-1)     #xcc0020) ; srccopy
-	  ((eq bop boole-2)     #xaa0029) ;
-	  ((eq bop boole-clr)   #xff0062) ; whiteness
-	  ((eq bop boole-set)   #x42)	; blackness
-	  ((eq bop boole-c1)    #x330008) ; notsrccopy
-	  ((eq bop boole-c2)    #x550009) ; dstinvert
-	  ((eq bop boole-and)   #x8800c6) ; srcand
-	  ((eq bop boole-ior)   #xee0086) ; srcpaint
-	  ((eq bop boole-xor)   #x660046) ; srcinvert
-	  ((eq bop boole-eqv)   #x990066) ;
-	  ((eq bop boole-nand)  #x7700e6) ; 
-	  ((eq bop boole-nor)   #x1100a6) ; notsrcerase
-	  ((eq bop boole-andc1) #x220326) ;
-	  ((eq bop boole-andc2) #x440328) ; srcerase
-	  ((eq bop boole-orc1)  #xbb0226) ; mergepaint 
-	  ((eq bop boole-orc2)  #xdd0228) ;
-	  (t win:srccopy)
-	  ))
-	#+ignore
-        (winop (ct:ccallocate :long)))
-    val))
+  (cond
+   ((eq bop boole-1)     #xcc0020)	; srccopy
+   ((eq bop boole-2)     #xaa0029)	;
+   ((eq bop boole-clr)   #xff0062)	; whiteness
+   ((eq bop boole-set)   #x42)		; blackness
+   ((eq bop boole-c1)    #x330008)	; notsrccopy
+   ((eq bop boole-c2)    #x550009)	; dstinvert
+   ((eq bop boole-and)   #x8800c6)	; srcand
+   ((eq bop boole-ior)   #xee0086)	; srcpaint
+   ((eq bop boole-xor)   #x660046)	; srcinvert
+   ((eq bop boole-eqv)   #x990066)	;
+   ((eq bop boole-nand)  #x7700e6)	; 
+   ((eq bop boole-nor)   #x1100a6)	; notsrcerase
+   ((eq bop boole-andc1) #x220326)	;
+   ((eq bop boole-andc2) #x440328)	; srcerase
+   ((eq bop boole-orc1)  #xbb0226)	; mergepaint 
+   ((eq bop boole-orc2)  #xdd0228)	;
+   (t win:srccopy)
+   ))
 
 ;;; consider caching instance in port
 (defmethod port-allocate-pixmap ((port acl-port) medium width height)
@@ -100,9 +86,7 @@
       :width width
       :height height
       :cdc cdc
-      :original-bitmap obitmap    
-      )))
-
+      :original-bitmap obitmap)))
      
 (defmethod port-deallocate-pixmap ((port acl-port) (pixmap acl-pixmap))
   (with-slots (bitmap cdc original-bitmap) pixmap

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.8.22.1 1998/05/19 01:04:47 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.8.22.2 1998/05/26 16:08:08 layer Exp $
 
 (in-package :clim-user)
 
@@ -444,7 +444,7 @@
       (vertically () (1/5 caption) (4/5 display)))))
 
 (defmethod frame-standard-output ((frame scigraph))
-  (get-frame-pane *application-frame* 'display))
+  (get-frame-pane frame 'display))
 
 (define-scigraph-command (com-exit-scigraph :menu "Exit") ()
   (frame-exit *application-frame*))

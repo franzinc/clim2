@@ -173,7 +173,7 @@
    (depth :initarg :depth)
    (x-margin :initarg :x-margin)
    (y-margin :initarg :y-margin)
-   (default-window-procedure :initform (ct::callocate (:void *)))
+   (default-window-procedure :initform (ct:callocate (:void *)))
    ;; needed for text-editor
    (ncolumns :initarg :ncolumns
 	     :accessor gadget-columns)
@@ -312,26 +312,16 @@
 		  (when (char= (char str i) #\Newline)
 		    (incf nl)))
 		nl))
-	 (cstr (ct::callocate (:char *) :size (+ 1 nnl subsize)))
+	 (cstr (ct:callocate (:char *) :size (+ 1 nnl subsize)))
 	 (pos 0))
-    #+acl86win32
     (dotimes (i subsize)
       (when (char= (char str i) #\Newline)
-	(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
+	(ct:cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
 	(incf pos))
-      (ct::cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
+      (ct:cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
       (incf pos))
-    #+aclpc
-    (dotimes (i subsize)
-      (cond ((char= (char str i) #\Newline)
-	     (ct::cset (:char *) cstr ((fixnum pos)) 13)
-	     (incf pos)
-	     (ct::cset (:char *) cstr ((fixnum pos)) 10)
-	     (incf pos))
-	    (t (ct::cset (:char *) cstr ((fixnum pos)) (char-int (char str i)))
-	       (incf pos))))
     ;; terminate with null
-    (ct::cset #+acl86win32 (:char 256) #+aclpc (:char *) cstr ((fixnum pos)) 0)
+    (ct:cset (:char 256) cstr ((fixnum pos)) 0)
     cstr))
 
 ;; pr Aug97
@@ -339,16 +329,14 @@
   (let* ((subsize (length str))
 	 (nnl (let ((nl 0))
 		(dotimes (i subsize)
-		  #+acl86win32 (when (char= (char str i) #\Return) (incf nl))
-		  #+aclpc (when (= (char-int (char str i)) 13) (incf nl)))
+		  (when (char= (char str i) #\Return) (incf nl)) )
 		(- nl)))
 	 (cstr (make-string (+ nnl subsize)))
 	 (pos 0))
     (dotimes (i subsize)
-      (unless #+acl86win32 (char= (char str i) #\Return)
-	      #+aclpc (= (char-int (char str i)) 13)
-	 (setf (char cstr pos) (char str i))
-	 (incf pos)))
+      (unless (char= (char str i) #\Return)
+	(setf (char cstr pos) (char str i))
+	(incf pos)))
     cstr))
 
 ;; added back with mods by pr 1May97 (from whence?) -tjm 23May97
@@ -676,7 +664,7 @@
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
-      (win:InvalidateRect mirror ct::hnull win:true)))) ;; make sure it updates
+      (win:InvalidateRect mirror ct:hnull win:true)))) ;; make sure it updates
 
 ;;--- The idea is the the option pane itself is a pushbutton which, when
 ;;--- pressed, pops up a menu containing the options.
@@ -882,7 +870,7 @@
 		    ;; right (cim 9/25/96)
 		    (win:sendMessage hwnd win::CB_GETITEMHEIGHT -1 0))))
     (win::setWindowPos hwnd
-		       (ct::null-handle win:hwnd) ; we really want win:HWND_TOP
+		       (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
 		       left top
 		       (- right left)
 		       height #| (- bottom top) |#
@@ -904,7 +892,7 @@
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (win:SendMessage mirror win:CB_INSERTSTRING pos str)))
       ;; make sure it updates
-      (win:InvalidateRect mirror ct::hnull win:true)
+      (win:InvalidateRect mirror ct:hnull win:true)
       (note-sheet-region-changed pane))))
 
 
@@ -1039,7 +1027,7 @@
 	       (win-pos (floor (* (- acl-clim::*win-scroll-grain* 
 				     slider-size)
 				  (/ (- value min) (- range slider-size))))))
-	  (ct::csets
+	  (ct:csets
 	   win::scrollinfo scrollinfo-struct
 	   win::cbSize (ct:sizeof win::scrollinfo)
 	   win::fMask #.(logior 

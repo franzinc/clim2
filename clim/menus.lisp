@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.51.22.1 1998/05/19 01:04:34 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.51.22.2 1998/05/26 16:08:06 layer Exp $
 
 (in-package :clim-internals)
 
@@ -380,20 +380,6 @@
 ;;  2) Using that type to find a printer for PRESENT purposes
 ;;  3) Presenting a different set of choices based on the type, or graying over things
 ;;     that are of different types.  See example below
-#+acl86win32
-(defun input-wait-test (menu)
-  ;; Wake up if the menu becomes buried, or if highlighting
-  ;; is needed.
-  ;;--- This screws up in Allegro because querying the server
-  ;;--- in the wait function screws event handling.
-  ;; on nt there is no server round trip so
-  ;; it's safe to check window-visibility
-  ;; (cim 9/16/96)
-  (or #-(and Allegro (not acl86win32)) 
-      (and *abort-menus-when-buried*
-           (not (window-visibility menu)))
-      (pointer-motion-pending menu)))
-
 (defun menu-choose-from-drawer (menu presentation-type drawer
                                 &key x-position y-position
                                      cache unique-id (id-test #'equal) 
@@ -460,8 +446,7 @@
             (let ((*pointer-documentation-output* pointer-documentation))
               (with-input-context (presentation-type :override T)
                 (object type gesture)
-                (labels (#-acl86win32
-                         (input-wait-test (menu)
+                (labels ((input-wait-test (menu)
                            ;; Wake up if the menu becomes buried, or if highlighting
                            ;; is needed.
                            ;;--- This screws up in Allegro because querying the server
@@ -470,34 +455,30 @@
                            ;; on nt there is no server round trip so
                            ;; it's safe to check window-visibility
                            ;; (cim 9/16/96)
-                           (or #-(and Allegro (not acl86win32))
-                               (and *abort-menus-when-buried*
+                           (or (and *abort-menus-when-buried*
                                     (not (window-visibility menu)))
                                (pointer-motion-pending menu)))
                          (input-wait-handler (menu)
                            ;; Abort if the menu becomes buried
-                           #-(and Allegro (not acl86win32))
                            (when (and *abort-menus-when-buried*
                                       (not (window-visibility menu)))
                              (return-from menu-choose-from-drawer nil))
                            ;; Take care of highlighting
                            (highlight-presentation-of-context-type menu)))
-                  #-Allegro
                   (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
                   ;; Await exposure before going any further, since X can get
                   ;; to the call to READ-GESTURE before the menu is visible.
                   (when *abort-menus-when-buried*
                     #-Silica (wait-for-window-exposed menu))
                   (with-mouse-grabbed-in-window (menu)
-                    #+(or aclpc acl86win32) (beep menu)
                     (loop
-                      #+(or aclpc acl86win32); fix for menu aborting
-                      (unless (window-visibility menu)
-                        (return-from menu-choose-from-drawer nil))
                       (read-gesture :stream menu
                                     :input-wait-test #'input-wait-test
                                     :input-wait-handler #'input-wait-handler)
-                      #-(or aclpc acl86win32) (beep menu))))
+		      ;; Silly user typed a character at a window.
+		      ;; Admonish now.
+		      #+ignore
+                      (beep menu))))
                 (t (values object gesture)))))
         (unless leave-menu-visible
           (setf (window-visibility menu) nil))

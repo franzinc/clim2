@@ -11,6 +11,18 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.17 (from pnc)
+
+Tues May 26 9:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+        * silica/classes: Fix default back/fore of medium (for NT)
+        * postscript/postscript-medium: define nyi
+        * demo/custom-records: fix little bug
+        * clim/menus: cleanup
+        * aclpc/*.lisp: Cleaned up, reduced compiler warnings,
+          and fixed several bugs found during testing
+
+*******************************************************************************
 2.2.1.16
 
 Mon May 18 18:00:43 1998  Kevin Layer  <layer@ultra>

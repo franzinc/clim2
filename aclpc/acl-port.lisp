@@ -186,6 +186,31 @@
     :color-p color-p
     :dynamic-p dynamic-p))
 
+(defclass acl-device-color (device-color) ())
+
+(defmethod make-device-color ((palette acl-palette) pixel)
+  (make-instance 'acl-device-color 
+    :palette palette
+    :pixel pixel))
+
+(defmethod device-color-color ((color acl-device-color))
+  (wincolor->color (device-color-pixel color)))
+
+(defmethod silica::port-set-pane-background ((port acl-port) pane medium ink)
+  (declare (ignore pane))
+  ;; Invoked :after (setf pane-background)
+  (setf (medium-background medium) ink))
+
+(defmethod silica::port-set-pane-foreground ((port acl-port) pane medium ink)
+  (declare (ignore pane))
+  ;; Invoked :after (setf pane-foreground)
+  (setf (medium-foreground medium) ink))
+
+(defmethod silica::port-set-pane-text-style ((port acl-port) pane medium style)
+  (declare (ignore pane))
+  ;; Invoked :after (setf pane-text-style)
+  (setf (medium-text-style medium) style))
+
 (defmethod initialize-instance :before ((port acl-port) &key)
   (ensure-clim-initialized)
   (unless (null *acl-port*)
@@ -212,13 +237,12 @@
     ;; get-sheet-resources:
     (setf (port-default-resources port)
       `(:background 
-	,(wincolor->color (win:getSysColor win:color_btnface))
+	,+ltgray+
 	:foreground
 	,(wincolor->color (win:getSysColor win:color_windowtext))))
     ;; Panes that don't have a direct mirror will use this as
     ;; the default background:
-    (setq silica:*default-pane-background* 
-      (wincolor->color (win:getSysColor win:color_btnface)))
+    (setq silica:*default-pane-background* +ltgray+)
     ))
 
 (defmethod destroy-port :before ((port acl-port))
@@ -429,6 +453,8 @@
       (values index acl-font escapement-x escapement-y
 	      origin-x origin-y bb-x bb-y))))
 
+;; The second element of each item is passed to
+;; LoadCursor and SetCursor.
 (defvar *win-cursor-type-alist*
     `((:appstarting ,win:idc_appstarting)
       (:default ,win:IDC_ARROW)
@@ -450,13 +476,21 @@
 
 (defmethod port-set-sheet-pointer-cursor ((port acl-port) sheet cursor)
   (unless (eq (sheet-pointer-cursor sheet) cursor)
+    #+ignore
     (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    ;; SetCursor doesn't seem to be the right thing.
+    ;; Each time the mouse moves, Windows sets the cursor back
+    ;; to the default for the class and then sends a WM_SETCURSOR
+    ;; message where we get a chance to SetCursor again.  
+    (win:setClassLong (sheet-mirror sheet) 
+		      -12		; GCL_HCURSOR
+		      (realize-cursor port cursor))
     )
   cursor)
 
 (defmethod realize-cursor ((port acl-port) (cursor symbol))
   (let ((cursor (or (second (assoc cursor *win-cursor-type-alist*))
-		    :default)))
+		    win:IDC_ARROW)))
     (realize-cursor port cursor)))
 
 (defvar *loaded-cursors* nil)

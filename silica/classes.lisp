@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/classes.lisp,v 1.39.22.1 1998/05/19 01:04:55 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/classes.lisp,v 1.39.22.2 1998/05/26 16:08:11 layer Exp $
 
 (in-package :silica)
 
@@ -98,16 +98,19 @@
 
 (define-protocol-class medium ())
 
-(locally
-(declare (special *default-text-style*))
+(locally (declare (special *default-text-style*
+			   *default-pane-foreground*
+			   *default-pane-background*))
 
 ;; This is called BASIC-MEDIUM rather than STANDARD-MEDIUM because the class
 ;; cannot be used as-is.  It has to be specialized for each implementation.
 (defclass basic-medium (medium)
     ((port :initarg :port :reader port)
      (sheet :initarg :sheet :initform nil :accessor medium-sheet)
-     (foreground :initform +black+ :accessor medium-foreground)
-     (background :initform +white+ :accessor medium-background)
+     (foreground :initform *default-pane-background*
+		 :accessor medium-foreground)
+     (background :initform *default-pane-foreground*
+		 :accessor medium-background)
      (ink :initform +foreground-ink+ :accessor medium-ink)
      (text-style :initform nil :accessor medium-text-style)
      (default-text-style :initform *default-text-style*

@@ -224,29 +224,21 @@
       (make-array 2048 :fill-pointer t :element-type 'character)))
 
 (defun nstringify (x)
+  ;; This function is now a misnomer.  It is not destructive.
   (typecase x
     (simple-string x)
-    (string 
-     (let ((new-length 
-	    (min (length x) (length nstringify-buffer))))
-       (ncopy-vector nstringify-buffer x 0 0 new-length)
-       (set-strlen nstringify-buffer new-length)
-       nstringify-buffer))
+    (string (coerce x 'simple-string))
     (null "")
-    (t (nprin1-to-string x))))
+    (t (prin1-to-string x))))
 
 (defun nstringify-for-control (x)
+  ;; This function is now a misnomer.  It is not destructive.
   (typecase x
     ((not symbol)
      (nstringify x))
     (null "")
     (t
-     (let* ((symbol-name (symbol-name x))
-	    (new-length 
-	     (min (length symbol-name) #.(length nstringify-buffer))))
-       (ncopy-vector nstringify-buffer symbol-name 0 0 new-length)
-       (set-strlen nstringify-buffer new-length)
-       (nstring-capitalize nstringify-buffer :end new-length)))))
+     (string-upcase (nstringify x)))))
 
 (defun schar-byte (string index)
   (if (< index (length string))
@@ -450,14 +442,13 @@ to be run from another."
     (when menu-handle
       (win::EnableMenuItem menu-handle command-id flag))))
 
-;; moved the SetForegroundWindow call from an around method on
-;; realize-mirror to the following method to stop the focus moving
-;; when the window wasn't yet visible (cim 10/3/96) 
-
 (defmethod note-frame-enabled :around ((framem acl-frame-manager) frame)
   (call-next-method)
   (let ((*in-layout-avp* *in-layout-avp*)
 	(sheet (frame-top-level-sheet frame))
+	#+nevermind
+	(parent (and *application-frame*
+		     (frame-top-level-sheet *application-frame*)))
 	(avp nil))
     (when sheet
       (map-over-sheets #'(lambda (sheet)
@@ -465,11 +456,24 @@ to be run from another."
 			     (setf avp t)))
 		       sheet)
       (setf *in-layout-avp* avp)
-      (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
-      ;; On Windows95, this call often fails when enabling a menu-frame.
-      ;; But the menu shows up after a few seconds anyway.  So that is
-      ;; why it would be bad to check the return status of this guy.
-      (win:SetForegroundWindow (sheet-mirror sheet)))))
+      (setf (sheet-enabled-p sheet) t)
+      ;; Put the window somewhere other than the bottom of the Z order.
+      ;; Avoid putting the window on top of all windows, if possible,
+      ;; to avoid de-selecting another activity that the user 
+      ;; is trying to keep selected.  This window probably ought to
+      ;; be the topmost clim window but not necessarily the topmost
+      ;; of all windows.
+      #+nevermind
+      (win:setWindowPos (sheet-mirror sheet) 
+			(cond ((not parent) win:HWND_TOP)
+			      ((typep frame 'clim-internals::menu-frame) 
+			       win:HWND_TOPMOST)
+			      (t (sheet-mirror parent)))
+			0 0 0 0		; x y width height
+			(logior win:swp_nomove ; ignore x y
+				win:swp_nosize ; ignore width height
+				))
+      (raise-sheet sheet))))
 
 (defmethod note-frame-layout-changed :after ((framem acl-frame-manager) frame)
   ;; added this to workaround some bugs with new layouts not being
@@ -654,8 +658,9 @@ to be run from another."
 
 (defun do-one-menu-item (popmenu item printer tick alist submenus)
   (flet ((print-item (item)
-	   (with-output-to-string (stream)
-	     (funcall (or printer #'print-menu-item) item stream))))
+	   (silica::xlat-newline-return 
+	    (with-output-to-string (stream)
+	      (funcall (or printer #'print-menu-item) item stream)))))
     (declare (dynamic-extent #'print-item))
     (incf tick)
     (ecase (clim-internals::menu-item-type item)
@@ -704,20 +709,22 @@ to be run from another."
 	  x-position
 	  y-position
 	  scroll-bars)
-  (declare (ignore text-style
-		   gesture cache-test cache-value
+  (declare (ignore text-style cache
+		   cache-test cache-value
 		   id-test unique-id label))
-  ;; What we oughta do here is implement a real Win32 menu.
-  ;; Think about calling CreatePopupMenu
-  (if (or presentation-type foreground background cache row-wise 
+  (if (or presentation-type foreground background row-wise 
 	  n-columns n-rows scroll-bars)
       (call-next-method)
     #+simple-but-sure
     (apply #'call-next-method framem items :scroll-bars nil keys)
-    (let ((popmenu (win::CreatePopupMenu))
+    (let ((popmenu (win:CreatePopupMenu))
 	  (submenus nil)
-	  (flags (logior win:tpm_returncmd win:tpm_nonotify
-			 win:tpm_leftbutton win:tpm_rightbutton))
+	  (flags (logior win:tpm_returncmd ; return the selection
+			 win:tpm_nonotify ; don't notify clim
+			 (if (eq gesture :menu) 
+			     win:tpm_rightbutton
+			   win:tpm_leftbutton)))
+	  (rect 0)
 	  (tick 0)
 	  (alist nil)
 	  (code 0))
@@ -737,13 +744,20 @@ to be run from another."
 		     (do-one-menu-item popmenu item printer 
 				       tick alist submenus)))
 	   items)
+      ;; Bug here, exhibited by CAD Demo Create, that menu
+      ;; is sometimes never exposed.  TrackPopupMenu returns 0.  
+      ;; But most of the time this seems to work... 5/98 JPM.
       (setq code
 	(win:trackpopupmenu
-	 popmenu flags x-position y-position 0 
-	 (sheet-mirror associated-window) 0))
+	 popmenu flags x-position y-position 
+	 0				; reserved, must be zero
+	 (sheet-mirror associated-window) rect))
       (win:destroymenu popmenu)
       (dolist (submenu submenus) (win:destroymenu submenu))
-      (second (assoc code alist)))))
+      (cond ((zerop code)		; no item is selected
+	     nil)
+	    (t
+	     (second (assoc code alist)))))))
 
 (defun make-filter-string (dotted-pair)
   (format nil "~a (~a)~a~a~a"

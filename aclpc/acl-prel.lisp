@@ -14,40 +14,42 @@
 
 (declaim (special *hinst*))
 
+(defun combobox-scroll-bars (items)
+  ;; If there are many items, you won't be able 
+  ;; to see them without a scroll bar.
+  (if (> (length items) 30) :vertical nil))
+
 (defun hcombo-open (parent id left top width height 
-		    &key (mode :exclusive)
-			 (items nil)
+		    &key (items nil)
 			 (value nil)
 			 (name-key #'identity)
-			 (border3d t)
-			 (sorted nil)
-			 (label ""))
-  (declare (ignore sorted border3d mode height id))
+			 (label "")
+			 (scroll-mode (combobox-scroll-bars items)))
+  (declare (ignore id))
   (let* ((hwnd
 	  (win:CreateWindowEx 0		; extended-style
-			  "COMBOBOX"	; classname
-			  (nstringify label) ; windowname
-			  (logior
-			   win:WS_CHILD
-			   win:CBS_DROPDOWNLIST)
-			  0 0 0 0
-			  parent (ct::null-handle win::hmenu)
-			  *hinst* (symbol-name (gensym)))))
+			      "COMBOBOX" ; classname
+			      (nstringify label) ; windowname
+			      (logior
+			       (if (member scroll-mode '(:vertical :both)) win:WS_VSCROLL 0)
+			       (if (member scroll-mode '(:horizontal :both)) win:WS_HSCROLL 0)
+			       win:WS_CHILD
+			       win:CBS_DROPDOWNLIST)
+			      0 0 0 0
+			      parent (ct::null-handle win::hmenu)
+			      *hinst* (symbol-name (gensym)))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
-		      left top width 250 ;height
-		      0
-		      ;;#.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)
-		      )
+			  left top width height
+			  0
+			  ;;#.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)
+			  )
 	(let* ((index -1)
-	       (item-name "")
-	       ;;(cstr (ct::callocate (:char *) :size 256))
-	       ;;(subsize 0)
-	       )
+	       (item-name ""))
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
 	    (incf index)
@@ -297,7 +299,7 @@
 (defconstant +rgb-bitmapinfo+
     (ct:callocate win:bitmapinfo :size +bitmapinfosize+))
 
-(defun acl-bitmapinfo (colors width height)
+(defun acl-bitmapinfo (colors width height medium)
   (assert (< (length colors) +maxcolors+))
   ;; returns the appropriate bitmapinfo and DIB_XXX_COLORS constant
   (let ((bitcount +bits-per-pixel+)
@@ -317,6 +319,10 @@
 	      )
     (dotimes (i (length colors))
       (let ((rgb (aref colors i)))
+	(cond ((eq rgb +foreground-ink+)
+	       (setq rgb (medium-foreground medium)))
+	      ((eq rgb +background-ink+)
+	       (setq rgb (medium-background medium))))
 	(multiple-value-bind (red green blue) (color-rgb rgb)
 	  (ct:cset windows:bitmapinfo bmi
 		   (windows::bmicolors (fixnum i) rgbreserved) 
@@ -333,12 +339,12 @@
     ;; return values
     (values bmi win:DIB_RGB_COLORS)))
 
-(defmethod get-texture (device-context pixel-map colors)
+(defmethod get-texture (device-context pixel-map colors medium)
   (let* ((width (array-dimension pixel-map 1))
 	 (height (array-dimension pixel-map 0))
 	 texture-handle)
     (multiple-value-bind (bitmapinfo dib-mode)
-	(acl-bitmapinfo colors width height)
+	(acl-bitmapinfo colors width height medium)
       (setq texture-handle
 	(win:CreateDIBitmap
 	 device-context
@@ -351,41 +357,6 @@
 	(error "CreateDIBitmap: error"))
       texture-handle)))
 
-
-;;; clipboard support
-#|| +++ broken (ct::callocate handle)
-(defconstant clphdata (ct::callocate handle))
-(defconstant clppdata (ct::callocate (:void *)))
-
-
-(defun lisp->clipboard (object)
-  (let ((*inside-convert-clipboard-from-lisp* t))
-    (when (OpenClipboard (ct:null-handle hwnd))
-      (unwind-protect
-	(add-string-to-clipboard object)
-	(CloseClipboard))))) 
-
-(defmethod clipboard->lisp ()
-  (when (OpenClipboard (ct:null-handle hwnd))
-    (unwind-protect
-      (progn
-	(GetClipboardData CF_TEXT clphdata)
-	(unless (ct:null-handle-p handle clphdata)
-	  (GlobalLock clphdata clppdata)  
-	  (unless (null-cpointer-p clppdata)
-	    (let* ((raw-clpsize (GlobalSize clphdata :static))
-		   (clpsize 
-		     (if (fixnump raw-clpsize)
-		       raw-clpsize
-		       most-positive-fixnum))
-		   (string (make-string clpsize)))
-	      (far-peek string clppdata 0 clpsize)
-	      (GlobalUnlock clphdata)
-	      (shorten-vector string (strlen string))
-	      string))))
-      (CloseClipboard))))
-||#
-
 ;;; about box support
 
 (defun pop-up-about-climap-dialog (frame &rest ignoreargs)
@@ -394,4 +365,72 @@
 			    (clim-internals::frame-pretty-name frame)
 			    (lisp-implementation-version))
 		    :exit-boxes '((:exit "OK"))
-		    :title (format nil "About ~A" (clim-internals::frame-pretty-name frame))))
+		    :title (format nil "About ~A" 
+				   (clim-internals::frame-pretty-name frame))))
+
+(defun check-last-error (name &key (action :error))
+  ;; All the calls to GetLastError should probably
+  ;; be changed to go through here.
+  (let ((code (win:getlasterror)))
+    (cond ((zerop code) nil)
+	  ((eq action :error)
+	   (error "~A: system error ~A" name code))
+	  ((eq action :warn)
+	   (warn "~A: system error ~A" name code)
+	   code)
+	  (t code))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Clipboard Support
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This seems to work, but CLIM doesn't really use it
+;; other than in one of the CLIM Demos.
+
+(defun lisp->clipboard (object &key (printer #'prin1-to-string)
+				    (format win:CF_TEXT))
+  ;; Can't open clipboard if somebody else has it open.
+  (if (win:OpenClipboard (ct:null-handle hwnd))
+      (unwind-protect
+	  (let* ((string 
+		   (let ((*print-readably* t))
+		     (funcall printer object)))
+		 (cstring nil)
+		 (l (length string))
+		 (hmem (win:GlobalAlloc (logior win:GMEM_MOVEABLE
+						win:GMEM_DDESHARE)
+					(1+ l)))
+		 (mem (win:GlobalLock hmem)))
+	    (setq cstring (ff:string-to-char* string mem))
+	    (win:GlobalUnlock hmem)
+	    ;; After calling SetClipboardData, the
+	    ;; clipboard owns hMem.  It must not be 
+	    ;; modified or freed.
+	    (or (win:emptyclipboard)
+		(check-last-error "EmptyClipboard"))
+	    (win:SetClipboardData format hmem)
+	    (ff:free-fobject-c cstring)
+	    t)
+	(win:CloseClipboard))
+    (check-last-error "OpenClipboard")))
+
+(defun clipboard->lisp (&key (parser #'read-from-string)
+			     (format win:CF_TEXT))
+  ;; Can't open clipboard if somebody else has it open.
+  (if (win:OpenClipboard (ct:null-handle hwnd))
+      (unwind-protect
+	  (let ((hmem (win:GetClipboardData format))
+		(string nil))
+	    ;; The clipboard owns hMem.  The application must
+	    ;; not modify it, free it, or rely on it's value being
+	    ;; stable after closing the clipboard.
+	    (when (zerop hmem)
+	      (check-last-error "GetClipboardData"))
+	    (setq string (ct:handle-value win:handle hmem))
+	    (cond ((zerop string) (values nil nil))
+		  (t
+		   (when (integerp string)
+		     (setq string (ff:char*-to-string string)))
+		   (values (funcall parser string) string))))
+	(win:CloseClipboard))
+    (check-last-error "OpenClipboard")))

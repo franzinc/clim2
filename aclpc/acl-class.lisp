@@ -101,12 +101,6 @@
 	  (ct::null-handle win::hinst)
 	  (ct::ccallocate (char *) :initial-value win:IDI_APPLICATION))))
 
-;;;;; This is disgusting.  Object-oriented programs shouldn't do this. JPM.
-;;;(eval-when (compile load eval)
-;;;   ;;mm: 11Jan95 - this is defined later in  ???
-;;;   (unless (ignore-errors (find-class 'silica::hlist-pane))
-;;;      (defclass silica::hlist-pane () ())))
-
 ;;; Gather up the argument information and invoke the window procedure.
 ;;; +++ at some point merge this in with the cg mechanism for lisp
 ;;; windows.
@@ -1032,7 +1026,7 @@
                  win::hinstance  *hinst*
                  win::hicon icon 
                  win::hcursor hcursor
-                 win::hbrbackground (1+ win:color_window)
+                 win::hbrbackground (1+ win:color_btnface)
                  win::lpszmenuname ct::hnull ;*menu-name*
                  win::lpszclassname (ff:string-to-char* *clim-class*)
                  win::hIconSm icon)
