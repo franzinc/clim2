@@ -11,6 +11,17 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.20.3
+
+2000-07-13 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-class.lisp: make it easier to trace windows messages,
+	  and fix a case bug in the stuff that mapped from numbers to
+	  names.  New variable
+	  acl-clim::*windows-message-trace-output* determined where
+	  traced messages go, defaultly it is excl:*initial-terminal-io*.
+
+*******************************************************************************
 2.2.2.20.2
 
 2000-07-12 tfb@cley.com (Tim Bradshaw)
