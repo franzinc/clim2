@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.48 92/09/30 11:45:28 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.49 92/09/30 18:04:18 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -45,6 +45,9 @@ PREMALLOCS = '-m 401408'
 
 # Name of dumped lisp
 CLIM	= ./slim
+CLIMOL= $(CLIM)
+CLIMXM= $(CLIM)
+
 CLIM-SMALL	= ./slim-small
 
 PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
@@ -606,10 +609,10 @@ clim-xm:	FORCE $(CLIMOBJS)
 	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
-	ls -lLt $(CLIM) >> Clim-sizes.n
-	size $(CLIM) >> Clim-sizes.n
-	ls -lLt $(CLIM)
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMXM)
+	ls -lLt $(CLIMXM) >> Clim-sizes.n
+	size $(CLIMXM) >> Clim-sizes.n
+	ls -lLt $(CLIMXM)
 	echo CLIM-XM built!!!!	
 
 clim-ol:	FORCE $(CLIMOBJS)
@@ -620,10 +623,10 @@ clim-ol:	FORCE $(CLIMOBJS)
 	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-ol.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
-	ls -lLt $(CLIM) >> Clim-sizes.n
-	size $(CLIM) >> Clim-sizes.n
-	ls -lLt $(CLIM)
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMOL)
+	ls -lLt $(CLIMOL) >> Clim-sizes.n
+	size $(CLIMOL) >> Clim-sizes.n
+	ls -lLt $(CLIMOL)
 	echo CLIM-OL built!!!!		
 
 clim-small:	FORCE
@@ -659,7 +662,7 @@ cleanobjs:
 
 clean:
 	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f $(CLIMFASLS) \
-l	  $(CLIMOBJS) slim slim-small
+	  $(CLIMOBJS) stub-motif.o stub-olit.o slim slim-small
 
 
 cheapclean:
