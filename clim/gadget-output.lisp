@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.45 93/03/04 18:59:54 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.46 93/03/25 15:39:40 colin Exp $
 
 (in-package :clim-internals)
 
@@ -690,7 +690,7 @@
 	  (declare (ignore type))
 	  ;; we can put this back in when we handle ol text-fields
 	  ;; correctly (see tk-silica/ol-gadgets)
-	  #+ignore (assert (= index (length new-value)))
+	  (assert (= index (length new-value)))
 	  object)
 	(error () 
 	 (setf (accept-values-query-error-p query) t))
