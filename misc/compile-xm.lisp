@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-xm.lisp,v 1.4 92/03/04 16:23:11 cer Exp Locker: cer $
+;; $fiHeader: compile-xm.lisp,v 1.5 92/03/09 17:42:03 cer Exp Locker: cer $
 
 (in-package :user)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.3 92/02/24 13:07:52 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.4 92/03/04 16:21:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -11,29 +11,41 @@
 ;;; an input editor.  This may prove to be a foolish decision down the pike.
 
 (eval-when (compile load eval)
-(defvar *ie-command-arglist* '(stream input-buffer character numeric-argument))
+(defvar *ie-command-arglist* '(stream input-buffer gesture numeric-argument))
 )
 
-;; CHARS is either a single character, or a list of characters.  FUNCTION is
-;; the function that implements an input editor command.  This associates
-;; the character(s) with the command.
-(defun add-input-editor-command (characters function)
-  (flet ((add-aarray-entry (char thing aarray)
-	   (let ((old (find char aarray :key #'first)))
+;; GESTURES is either a gesture name, or a list of gesture names.  FUNCTION
+;; is the function that implements an input editor command.  This associates
+;; the gesture(s) with the command.
+(defun add-input-editor-command (gestures function)
+  (flet ((add-aarray-entry (gesture thing aarray)
+	   (let ((old (find gesture aarray :key #'first)))
 	     (if old
 		 (setf (second old) thing)
-	         (vector-push-extend (list char thing) aarray)))))
-    (declare (dynamic-extent #'add-aarray-entry))
-    (cond ((characterp characters)
-	   (assert (not (ordinary-char-p characters)))
-	   (add-aarray-entry characters function *input-editor-command-aarray*))
+	         (vector-push-extend (list gesture thing) aarray))))
+	 ;; Does the gesture correspond to some character with any bucky
+	 ;; bits on, or some other non-standard non-printing character?
+	 (bucky-char-p (gesture)
+	   (multiple-value-bind (keysym modifier-state)
+	       (gesture-name-keysym-and-modifiers gesture)
+	     (if (zerop modifier-state)
+		 ;;--- What should this really be?
+		 (member keysym '(:rubout :clear-input :scroll))
+		 (logtest modifier-state
+			  #.(logior +control-key+ +meta-key+ +super-key+ +hyper-key+))))))
+    (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
+    (cond ((atom gestures)
+	   (assert (bucky-char-p gestures) (gestures)
+		   "~S does not correspond to a bucky character" gestures)
+	   (add-aarray-entry gestures function *input-editor-command-aarray*))
 	  (t
-	   (assert (> (length characters) 1))
-	   (assert (not (ordinary-char-p (first characters))))
-	   ;; We've got a command that wil be bound to a sequence of characters,
+	   (assert (> (length gestures) 1))
+	   (assert (bucky-char-p (first gestures)) (gestures)
+		   "~S does not correspond to a bucky character" gestures)
+	   ;; We've got a command that wil be bound to a sequence of gestures,
 	   ;; so set up the prefix tables.
 	   (let ((aarray *input-editor-command-aarray*))
-	     (dorest (rest characters)
+	     (dorest (rest gestures)
 	       (let* ((prefix (first rest))
 		      (rest (rest rest)))
 		 (if (null rest)
@@ -44,81 +56,56 @@
 			 (add-aarray-entry prefix subaarray aarray))
 		       (setq aarray subaarray))))))))))
 
-(defmacro assign-input-editor-key-bindings (&body functions-and-keystrokes)
-  (let ((forms nil))
-    (loop
-      (when (null functions-and-keystrokes) (return))
-      (let* ((function (pop functions-and-keystrokes))
-	     (keystrokes (pop functions-and-keystrokes)))
-	(when keystrokes
-	  (push `(add-input-editor-command ',keystrokes ',function)
-		forms))))
-    `(progn ,@(nreverse forms))))
-
-;; These need to be defined before being used, otherwise they would
-;; live in CLOE-IMPLMENTATION
-#+Cloe-Runtime
-(eval-when (compile load)
-	   
-;; Define the new key chars for Cloe CLIM.  Regular Cloe defines 0-127, we define
-;; 128-139 as the F-keys (F1 thru F12), 140 for c-sh-A, and 141 as c-sh-V
-(sys::define-character-name "F1" 128)
-(sys::define-character-name "F2" 129)
-(sys::define-character-name "F3" 130)
-(sys::define-character-name "F4" 131)
-(sys::define-character-name "F5" 132)
-(sys::define-character-name "F6" 133)
-(sys::define-character-name "F7" 134)
-(sys::define-character-name "F8" 135)
-(sys::define-character-name "F9" 136)
-;; Note windows traps F10 as alt-space. Why?
-(sys::define-character-name "F10" 137)
-(sys::define-character-name "F11" 138)
-(sys::define-character-name "F12" 139)
-(sys::define-character-name "Arglist" 140)
-(sys::define-character-name "ShowValue" 141)
-
-)	;eval-when
 
 ;; When T, the input editor should handle help and completion.  Otherwise,
 ;; something like COMPLETE-INPUT will do it for us.
 (defvar *ie-help-enabled* t)
 
-;; These need to be on a per-implementation basis, naturally
-;;--- If you change these, change *MAGIC-COMPLETION-CHARACTERS* too
-(defvar *completion-gestures* #+Genera '(#\Complete #\Tab)
-			      #-Genera '(#\Tab))
-(defvar *help-gestures* '(#+Genera #\Help
-			  #+Cloe-Runtime #\F1
-			  #+CCL-2 #\^E))
-(defvar *possibilities-gestures* `(#+Genera  #\c-?
-				   #+Lucid   #\control-\?
-				   #+Allegro #\c-?
-				   #+CCL-2   ,(extended-char #\? :control :shift)))
+(define-gesture-name :complete :keyboard (:tab))
+(define-gesture-name :complete :keyboard (:complete))
+(define-gesture-name :help     :keyboard (:help))
+(define-gesture-name :possibilities :keyboard (:? :shift :control))
 
-(defun lookup-input-editor-command (character aarray)
+;; These need to be on a per-implementation basis, naturally
+;;--- If you change these, change *MAGIC-COMPLETION-GESTURES* too
+(defvar *completion-gestures* '(:complete))
+(defvar *help-gestures* '(:help))
+(defvar *possibilities-gestures* '(:possibilities))
+
+(defun lookup-input-editor-command (gesture aarray)
   ;; Need to handle the help and possibilities commands specially so
   ;; that they work correctly inside of COMPLETE-INPUT
-  (cond ((and *ie-help-enabled* (member character *help-gestures*))
+  (cond ((and *ie-help-enabled* 
+	      (member gesture *help-gestures*
+		      :test #'keyboard-event-matches-gesture-name-p))
 	 'com-ie-help)
-	((and *ie-help-enabled* (member character *possibilities-gestures*))
+	((and *ie-help-enabled*
+	      (member gesture *possibilities-gestures*
+		      :test #'keyboard-event-matches-gesture-name-p))
 	 'com-ie-possibilities)
-	((and *ie-help-enabled* (member character *completion-gestures*))
+	((and *ie-help-enabled*
+	      (member gesture *completion-gestures*
+		      :test #'keyboard-event-matches-gesture-name-p))
 	 'com-ie-complete)
 	(t
-	 (let ((code (char-code character))
-	       (bits (char-bits character)))
+	 (let* ((keysym (keyboard-event-key-name gesture))
+		(modifier-state (event-modifier-state gesture))
+		(bucky-p
+		  (logtest modifier-state
+			   #.(logior +control-key+ +meta-key+ +super-key+ +hyper-key+))))
 	   (cond ((and (eq aarray *input-editor-command-aarray*)
-		       (not (zerop bits))
-		       (<= (char-code #\0) code (char-code #\9)))
+		       bucky-p
+		       (member keysym '(:0 :1 :2 :3 :4 :5 :6 :7 :8 :9)))
 		  ;; A numeric argument...
-		  (- code (char-code #\0)))
+		  (position keysym '(:0 :1 :2 :3 :4 :5 :6 :7 :8 :9)))
 		 ((and (eq aarray *input-editor-command-aarray*)
-		       (not (zerop bits))
-		       (= code (char-code #\-)))
+		       bucky-p
+		       (eq keysym ':-))		;a smiley face indeed!
 		  -1)
 		 (t
-		  (second (find character aarray :key #'first))))))))
+		  (second (find gesture aarray 
+				:key #'first 
+				:test #'keyboard-event-matches-gesture-name-p))))))))
 
 (defmacro define-input-editor-command ((name &key (rescan T) (type 'motion) history)
 				       arglist &body body)
@@ -140,45 +127,53 @@
 (scl:defprop define-input-editor-command zwei:defselect-function-spec-finder
 	     zwei:definition-function-spec-finder)
 
-(defmethod stream-process-gesture ((istream input-editing-stream-mixin) gesture type)
+(defmethod stream-process-gesture ((istream input-editing-stream-mixin)
+				   gesture type)
+  (values gesture type))
+
+;; No input editing commands are standard characters...
+(defmethod stream-process-gesture ((istream input-editing-stream-mixin)
+				   (gesture character) type)
+  (with-slots (last-command-type command-state) istream
+    (setq last-command-type 'character
+	  command-state *input-editor-command-aarray*))
+  (values gesture type))
+
+(defmethod stream-process-gesture ((istream input-editing-stream-mixin) 
+				   (gesture key-press-event) type)
   (with-slots (numeric-argument last-command-type command-state) istream
-    (cond ((characterp gesture)
-	   ;; The COMMAND-STATE slot holds the current IE command aarray,
-	   ;; and gets updated when we see a prefix characters (e.g., ESC)
-	   (let ((command (unless (activation-gesture-p gesture)
-			    (lookup-input-editor-command gesture command-state))))
-	     (cond ((numberp command)
-		    (cond ((null numeric-argument)
-			   (setq numeric-argument command))
-			  ((= command -1)
-			   (setq numeric-argument (- numeric-argument)))
-			  (t
-			   (setq numeric-argument (+ (* numeric-argument 10) command))))
-		    ;; Numeric arguments don't affect LAST-COMMAND-TYPE
-		    (return-from stream-process-gesture nil))
-		   ((arrayp command)
-		    ;; A prefix character, update the state and return
-		    (setq command-state command)
-		    (return-from stream-process-gesture nil))
-		   (command
-		    (let ((argument (or numeric-argument 1)))
-		      (setq numeric-argument nil
-			    command-state *input-editor-command-aarray*)
-		      (funcall command
-			       istream (slot-value istream 'input-buffer) gesture argument))
-		    (return-from stream-process-gesture nil))
-		   ((not (eq command-state *input-editor-command-aarray*))
-		    (beep istream)
-		    (setq numeric-argument nil
-			  command-state *input-editor-command-aarray*)
-		    (return-from stream-process-gesture nil))
+    ;; The COMMAND-STATE slot holds the current IE command aarray, and
+    ;; gets updated when we see a prefix (such as ESC or c-X)
+    (let ((command (unless (activation-gesture-p gesture)
+		     (lookup-input-editor-command gesture command-state))))
+      (cond ((numberp command)
+	     (cond ((null numeric-argument)
+		    (setq numeric-argument command))
+		   ((= command -1)
+		    (setq numeric-argument (- numeric-argument)))
 		   (t
-		    (setq last-command-type 'character
-			  command-state *input-editor-command-aarray*)))))
-	  (t
-	   (setq numeric-argument nil
-		 last-command-type 'gesture
-		 command-state *input-editor-command-aarray*))))
+		    (setq numeric-argument (+ (* numeric-argument 10) command))))
+	     ;; Numeric arguments don't affect LAST-COMMAND-TYPE
+	     (return-from stream-process-gesture nil))
+	    ((arrayp command)
+	     ;; A prefix, update the state and return
+	     (setq command-state command)
+	     (return-from stream-process-gesture nil))
+	    (command
+	     (let ((argument (or numeric-argument 1)))
+	       (setq numeric-argument nil
+		     command-state *input-editor-command-aarray*)
+	       (funcall command
+			istream (slot-value istream 'input-buffer) gesture argument))
+	     (return-from stream-process-gesture nil))
+	    ((not (eq command-state *input-editor-command-aarray*))
+	     (beep istream)
+	     (setq numeric-argument nil
+		   command-state *input-editor-command-aarray*)
+	     (return-from stream-process-gesture nil))
+	    (t
+	     (setq last-command-type 'character
+		   command-state *input-editor-command-aarray*)))))
   (values gesture type))
 
 
@@ -658,206 +653,83 @@
         (beep))))
 
 
-;;; Per-platform key bindings
+;;; Key bindings
 
-#+Genera
-(assign-input-editor-key-bindings
-  com-ie-ctrl-g		       #\c-G
-  com-ie-universal-argument    #\c-U
-  com-ie-forward-character     #\c-F
-  com-ie-forward-word	       #\m-F
-  com-ie-backward-character    #\c-B
-  com-ie-backward-word	       #\m-B
-  com-ie-beginning-of-buffer   #\m-<
-  com-ie-end-of-buffer	       #\m->
-  com-ie-beginning-of-line     #\c-A
-  com-ie-end-of-line	       #\c-E
-  com-ie-next-line	       #\c-N
-  com-ie-previous-line	       #\c-P
-  com-ie-rubout		       #\Rubout
-  com-ie-delete-character      #\c-D
-  com-ie-rubout-word	       #\m-Rubout
-  com-ie-delete-word	       #\m-D
-  com-ie-clear-input	       #\Clear-Input
-  com-ie-kill-line	       #\c-K
-  com-ie-make-room	       #\c-O
-  com-ie-transpose-characters  #\c-T
-  com-ie-show-arglist	       #\c-sh-A
-  com-ie-show-value	       #\c-sh-V
-  com-ie-kill-ring-yank	       #\c-Y
-  com-ie-history-yank	       #\c-m-Y
-  com-ie-yank-next	       #\m-Y
-  com-ie-scroll-forward	       #\Scroll
-  com-ie-scroll-backward       #\meta-Scroll
-  com-ie-scroll-forward	       #\c-V
-  com-ie-scroll-backward       #\meta-V)
+(defmacro define-input-editor-gestures (&body gestures)
+  `(progn
+     ,@(mapcar #'(lambda (gesture) 
+		   (let ((name (first gesture))
+			 (gesture-spec (rest gesture)))
+		     `(add-gesture-name ,name :keyboard ',gesture-spec :unique nil)))
+	       gestures)))
 
-#+Cloe-Runtime
-(assign-input-editor-key-bindings
-  com-ie-ctrl-g		       #\BEL
-  com-ie-universal-argument    nil    
-  com-ie-beginning-of-buffer   #\m-<
-  com-ie-end-of-buffer	       #\m->
-  com-ie-forward-character     #\ACK
-  com-ie-forward-word	       #\m-F
-  com-ie-backward-character    #\STX
-  com-ie-backward-word	       #\m-B
-  com-ie-beginning-of-line     #\SOH
-  com-ie-end-of-line	       #\ENQ
-  com-ie-next-line	       #\SO
-  com-ie-previous-line	       #\DLE
-  com-ie-rubout		       #\Rubout
-  com-ie-delete-character      #\Eot
-  com-ie-rubout-word	       #\m-Rubout
-  com-ie-delete-word	       #\m-D
-  com-ie-clear-input	       #\Del
-  com-ie-kill-line	       #\Vt
-  com-ie-make-room	       nil
-  com-ie-transpose-characters  #\DC4
-  com-ie-show-arglist	       #\Arglist
-  com-ie-show-value	       #\ShowValue
-  com-ie-kill-ring-yank	       #\EM
-  com-ie-history-yank	       #\F3
-  com-ie-yank-next	       #\m-Y
-  com-ie-scroll-forward        #\Syn
-  com-ie-scroll-backward       #\m-V)
+(define-input-editor-gestures
+  (:ie-abort                :g  :control)
+  (:ie-universal-argument   :u  :control)
+  (:ie-forward-character    :f  :control)
+  (:ie-forward-word	    :f  :meta)
+  (:ie-backward-character   :b  :control)
+  (:ie-backward-word	    :b  :meta)
+  (:ie-beginning-of-buffer  :\< :meta)
+  (:ie-end-of-buffer	    :\> :meta)
+  (:ie-beginning-of-line    :a  :control)
+  (:ie-end-of-line	    :e  :control)
+  (:ie-next-line	    :n  :control)
+  (:ie-previous-line	    :p  :control)
+  (:ie-delete-character	    :d  :control)
+  (:ie-delete-word	    :d  :meta)
+  (:ie-rubout-character     :rubout)
+  (:ie-rubout-word	    :rubout :meta)
+  (:ie-kill-line	    :k  :control)
+  (:ie-clear-input	    :clear-input)
+  (:ie-make-room	    :o  :control)
+  (:ie-transpose-characters :t  :control)
+  (:ie-show-arglist	    :a  :control :shift)
+  (:ie-show-value	    :v  :control :shift)
+  (:ie-kill-ring-yank	    :y  :control)
+  (:ie-history-yank	    :y  :control :meta)
+  (:ie-yank-next	    :y  :meta)
+  (:ie-scroll-forward	    :v  :control)
+  (:ie-scroll-backward	    :v  :meta)
+  (:ie-scroll-forward	    :scroll)
+  (:ie-scroll-backward	    :scroll :meta))
 
-#+Minima-Runtime
-(assign-input-editor-key-bindings
-  com-ie-rubout		       #\Rubout)
-
-#+Lucid
-(assign-input-editor-key-bindings
-  com-ie-ctrl-g		       #\Control-\g
-  com-ie-universal-argument    #\Control-\u
-  com-ie-forward-character     #\Control-\f
-  com-ie-forward-word	       #\Meta-\f
-  com-ie-backward-character    #\Control-\b
-  com-ie-backward-word	       #\Meta-\b
-  com-ie-beginning-of-buffer   #\Meta-<
-  com-ie-end-of-buffer	       #\Meta->
-  com-ie-beginning-of-line     #\Control-\a
-  com-ie-end-of-line	       #\Control-\e
-  com-ie-next-line	       #\Control-\n
-  com-ie-previous-line	       #\Control-\p
-  com-ie-rubout		       #\Rubout
-  com-ie-delete-character      #\Control-\d
-  com-ie-rubout-word	       #\Meta-Rubout
-  com-ie-delete-word	       #\Meta-\d
-  com-ie-clear-input	       #\Control-Meta-Rubout
-  com-ie-kill-line	       #\Control-\k
-  com-ie-make-room	       #\Control-\o
-  com-ie-transpose-characters  #\Control-\t
-  com-ie-show-arglist	       #\Control-\A
-  com-ie-show-value	       #\Control-\V
-  com-ie-kill-ring-yank	       #\Control-\y
-  com-ie-history-yank	       #\Control-Meta-\y
-  com-ie-yank-next	       #\Meta-\y
-  com-ie-scroll-forward	       #\Control-\v
-  com-ie-scroll-backward       #\Meta-\v)
-
-#+(and Allegro (not Silica))
-;; Like above but lowercase characters
-(assign-input-editor-key-bindings
-  com-ie-ctrl-g		       #\c-\g
-  com-ie-universal-argument    nil
-  com-ie-forward-character     #\c-\f
-  com-ie-forward-word	       #\meta-\f
-  com-ie-backward-character    #\c-\b
-  com-ie-backward-word	       #\meta-\b
-  com-ie-beginning-of-buffer   #\meta-\<
-  com-ie-end-of-buffer	       #\meta-\>
-  com-ie-beginning-of-line     #\c-\a
-  com-ie-end-of-line	       #\c-\e
-  com-ie-next-line	       #\c-\n
-  com-ie-previous-line	       #\c-\p
-  com-ie-rubout		       #\rubout
-  com-ie-delete-character      #\c-\d
-  com-ie-rubout-word	       #\meta-rubout
-  com-ie-delete-word	       #\meta-d
-  com-ie-clear-input	       #\c-\u
-  com-ie-kill-line	       #\c-\k
-  com-ie-make-room	       #\c-\o
-  com-ie-transpose-characters  #\c-\t
-  com-ie-show-arglist	       (#\c-\x #\c-\a)
-  com-ie-show-value	       (#\c-\x #\c-\v)
-  com-ie-kill-ring-yank	       #\c-\y
-  com-ie-history-yank	       #\control-meta-\y
-  com-ie-yank-next	       #\meta-\y
-  com-ie-scroll-forward	       #\c-\v
-  com-ie-scroll-backward       #\meta-\v)
-
-;;--- Until the keyboard event processor works...
-#+(and Allegro Silica)
-(assign-input-editor-key-bindings
-  com-ie-ctrl-g		       #\^g
-  com-ie-universal-argument    nil
-  com-ie-forward-character     #\^f
-  com-ie-forward-word	       #\meta-\f
-  com-ie-backward-character    #\^b
-  com-ie-backward-word	       #\meta-\b
-  com-ie-beginning-of-buffer   #\meta-\<
-  com-ie-end-of-buffer	       #\meta-\>
-  com-ie-beginning-of-line     #\^a
-  com-ie-end-of-line	       #\^e
-  com-ie-next-line	       #\^n
-  com-ie-previous-line	       #\^p
-  com-ie-rubout		       #\rubout
-  com-ie-rubout                #\backspace
-  com-ie-rubout                #\c-\h
-  com-ie-delete-character      #\^d
-  com-ie-rubout-word	       #\meta-rubout
-  com-ie-delete-word	       #\meta-d
-  com-ie-clear-input	       #\^u
-  com-ie-kill-line	       #\^k
-  com-ie-make-room	       #\^o
-  com-ie-transpose-characters  #\^t
-  com-ie-show-arglist	       (#\^x #\^a)
-  com-ie-show-value	       (#\^x #\^v)
-  com-ie-kill-ring-yank	       #\^y
-  com-ie-history-yank	       #\control-meta-\y
-  com-ie-yank-next	       #\meta-\y
-  com-ie-scroll-forward	       #\^v
-  com-ie-scroll-backward       #\meta-\v)
-
-#+CCL-2
-(defmacro assign-input-editor-key-bindings-ccl (&body functions-and-keystrokes)
+(defmacro assign-input-editor-key-bindings (&body functions-and-gestures)
   (let ((forms nil))
     (loop
-      (when (null functions-and-keystrokes) (return))
-      (let* ((function (pop functions-and-keystrokes))
-             (keystroke (pop functions-and-keystrokes)))
-        (when keystroke
-          (push `(add-input-editor-command ,keystroke ',function)
-                forms))))
+      (when (null functions-and-gestures) (return))
+      (let* ((function (pop functions-and-gestures))
+	     (gesture (pop functions-and-gestures)))
+	(when gesture
+	  (push `(add-input-editor-command ',gesture ',function)
+		forms))))
     `(progn ,@(nreverse forms))))
 
-#+CCL-2
-(assign-input-editor-key-bindings-ccl
-  com-ie-ctrl-g		       (extended-char #\g :control)
-  com-ie-universal-argument    (extended-char #\u :control)
-  com-ie-forward-character     (extended-char #\f :control)
-  com-ie-forward-word	       (extended-char #\f :meta)
-  com-ie-backward-character    (extended-char #\b :control)
-  com-ie-backward-word	       (extended-char #\b :meta)
-  com-ie-beginning-of-buffer   (extended-char #\< :meta)
-  com-ie-end-of-buffer	       (extended-char #\> :meta)
-  com-ie-beginning-of-line     (extended-char #\a :control)
-  com-ie-end-of-line	       (extended-char #\e :control)
-  com-ie-next-line	       (extended-char #\n :control)
-  com-ie-previous-line	       (extended-char #\p :control)
-  com-ie-rubout		       #\Rubout
-  com-ie-delete-character      (extended-char #\d :control)
-  com-ie-rubout-word	       (extended-char #\Rubout :meta)
-  com-ie-delete-word	       (extended-char #\d :meta)
-  com-ie-clear-input	       (extended-char #\Rubout :control :meta)
-  com-ie-kill-line	       (extended-char #\k :control)
-  com-ie-make-room	       (extended-char #\o :control)
-  com-ie-transpose-characters  (extended-char #\t :control)
-  com-ie-show-arglist	       (extended-char #\A :control :shift)
-  com-ie-show-value	       (extended-char #\V :control :shift)
-  com-ie-kill-ring-yank	       (extended-char #\y :control)
-  com-ie-history-yank	       (extended-char #\y :control :meta)
-  com-ie-yank-next	       (extended-char #\y :meta)
-  com-ie-scroll-forward	       (extended-char #\v :control)
-  com-ie-scroll-backward       (extended-char #\v :meta))
+(assign-input-editor-key-bindings
+  com-ie-ctrl-g		       :ie-abort
+  com-ie-universal-argument    :ie-universal-argument
+  com-ie-forward-character     :ie-forward-character
+  com-ie-forward-word	       :ie-forward-word
+  com-ie-backward-character    :ie-backward-character
+  com-ie-backward-word	       :ie-backward-word
+  com-ie-beginning-of-buffer   :ie-beginning-of-buffer
+  com-ie-end-of-buffer	       :ie-end-of-buffer
+  com-ie-beginning-of-line     :ie-beginning-of-line
+  com-ie-end-of-line	       :ie-end-of-line
+  com-ie-next-line	       :ie-next-line
+  com-ie-previous-line	       :ie-previous-line
+  com-ie-delete-character      :ie-delete-character
+  com-ie-delete-word	       :ie-delete-word
+  com-ie-rubout		       :ie-rubout-character
+  com-ie-rubout-word	       :ie-rubout-word
+  com-ie-clear-input	       :ie-clear-input
+  com-ie-kill-line	       :ie-kill-line
+  com-ie-make-room	       :ie-make-room
+  com-ie-transpose-characters  :ie-transpose-characters
+  com-ie-show-arglist	       :ie-show-arglist
+  com-ie-show-value	       :ie-show-value
+  com-ie-kill-ring-yank	       :ie-kill-ring-yank
+  com-ie-history-yank	       :ie-history-yank
+  com-ie-yank-next	       :ie-yank-next
+  com-ie-scroll-forward	       :ie-scroll-forward
+  com-ie-scroll-backward       :ie-scroll-backward)

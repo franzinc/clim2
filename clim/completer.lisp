@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.3 92/02/24 13:07:09 cer Exp $
+;; $fiHeader: completer.lisp,v 1.4 92/03/04 16:21:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -41,8 +41,8 @@
 		      (and (eq action :help) help-displays-possibilities)))))
       (declare (dynamic-extent #'completion-help))
       (with-accept-help ((:subhelp #'completion-help))
-       ;; Keep the input editor from handling help and possibilities characters.
-       ;; They will get treated as activation characters, thus ensuring that 
+       ;; Keep the input editor from handling help and possibilities gestures.
+       ;; They will get treated as activation gestures, thus ensuring that 
        ;; STUFF-SO-FAR will be accurate when we display the possibilities.
        (let ((*ie-help-enabled* nil)
 	     (location (input-position stream))
@@ -63,14 +63,18 @@
 	    (extend-vector stuff-so-far token)
 	    (cond ((null ch)
 		   (error "Null ch?"))
-		  ((characterp ch)
-		   (cond ((member ch *help-gestures*)
+		  ((keyboard-event-p ch)
+		   (cond ((member ch *help-gestures* 
+				  :test #'keyboard-event-matches-gesture-name-p)
 			  (setq completion-mode ':help))
-			 ((member ch *possibilities-gestures*)
+			 ((member ch *possibilities-gestures* 
+				  :test #'keyboard-event-matches-gesture-name-p)
 			  (setq completion-mode ':possibilities))
-			 ((member ch *completion-gestures*)
+			 ((member ch *completion-gestures*
+				  :test #'keyboard-event-matches-gesture-name-p)
 			  (setq completion-mode ':complete-maximal))
-			 ((member ch partial-completers :test #'char-equal)
+			 ((member ch partial-completers 
+				  :test #'keyboard-event-matches-gesture-name-p)
 			  (setq completion-mode ':complete-limited
 				unread t extend t return 'if-completed))
 			 ;; What about "overloaded" partial completers??

@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
 
-;; $fiHeader: coral-char-bits.lisp,v 1.2 92/01/31 15:16:24 cer Exp $
+;; $fiHeader: coral-char-bits.lisp,v 1.3 92/02/24 13:05:27 cer Exp $
 
 (in-package :clim-utils)
 
@@ -29,7 +29,7 @@
   (declare (fixnum ch1 ch2))
   ;; Really gross!
   (ccl::require-type ch1 'character)
-  (ccl::require-type ch2'character)
+  (ccl::require-type ch2 'character)
   (= ch1 ch2))
 
 (defmacro shadow-char-p-function (name)
@@ -43,5 +43,3 @@
 (shadow-char-p-function graphic-char-p)
 (shadow-char-p-function standard-char-p)
 (shadow-char-p-function alpha-char-p)
-
-;; --- do we need to shadow ALPHANUMERICP ?

@@ -1,6 +1,6 @@
  ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.4 92/02/24 13:05:40 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.5 92/03/04 16:20:15 cer Exp $
 
 (in-package :clim-utils)
 
@@ -89,11 +89,6 @@
 	      forms)))))
 
 
-;;--- Yes, this is a kludge.  I promise we'll fix it.
-(deftype extended-char ()
-  #+(or Minima CCL-2) 'character
-  #-(or Minima CCL-2) 'string-char)
-
 ;;; Characters that are ordinary text rather than potential input editor commands.
 ;;; Note that GRAPHIC-CHAR-P is true of #\Space
 (defun ordinary-char-p (char)
@@ -208,10 +203,13 @@
 		(apply #'lisp:format () format-string format-args))))))
 
 (defvar *gensymbol* 0)
+
+(eval-when (compile load eval)
 (defun gensymbol (&rest parts)
   (declare (dynamic-extent parts))
   (when (null parts) (setf parts '(gensymbol)))
   (make-symbol (lisp:format nil "~{~A-~}~D" parts (incf *gensymbol*))))
+)	;eval-when
 
 ;;; For macro writers; you can have your GENSYMBOLs start at 1.  Use
 ;;; this in the macro, not in its expansion...
@@ -648,7 +646,7 @@
      ,@body))
 
 (defmacro writing-clauses (&body body)
-  (let ((clauses-var (make-symbol "CLAUSES")))
+  (let ((clauses-var (gensymbol 'clauses)))
     `(let ((,clauses-var nil))
        (macrolet ((clause (clause)
 		    `(push ,clause ,',clauses-var)))
@@ -821,8 +819,10 @@
 ;;; objects which have the right properties flavors mixed in.
 (defmacro define-class-mixture-and-resource (name (&key initializer initial-copies)
 					     &body specs)
-  (let ((matcher-function-name (make-symbol (lisp:format nil "~A-MATCHER" name)))
-	(constructor-function-name (make-symbol (lisp:format nil "~A-CONSTRUCTOR" name))))
+  (let ((matcher-function-name 
+	  (make-symbol (lisp:format nil "~A-~A" name 'matcher)))
+	(constructor-function-name
+	  (make-symbol (lisp:format nil "~A-~A" name 'constructor))))
     `(define-group ,name define-class-mixture-and-resource
        (define-class-mixture ,name ,@specs)
        (defun ,matcher-function-name (object os &rest args)
@@ -956,7 +956,8 @@
   (unless (eq property :property)
     (warn "Using ~S to define a function named ~S, which is not a property"
 	  'defun-property (list property symbol indicator)))
-  (let ((function-name (make-symbol (lisp:format nil "~A-~A-PROPERTY" symbol indicator))))
+  (let ((function-name 
+	  (make-symbol (lisp:format nil "~A-~A-~A" symbol indicator 'property))))
     `(progn (defun ,function-name ,lambda-list ,@body)
 	    (eval-when (load eval) (setf (get ',symbol ',indicator) #',function-name)))))
 
@@ -965,10 +966,10 @@
 				   substring-form
 				   &body char-clauses)
   (let ((special-characters ())
-	(next-var (make-symbol "NEXT"))
-	(string-var (if (symbolp string) string (make-symbol "STRING")))
-	(end-var (make-symbol "END"))
-	(char-var (or char-var (make-symbol "THE-CHAR"))))
+	(next-var (gensymbol 'next))
+	(string-var (if (symbolp string) string (gensymbol 'string)))
+	(end-var (gensymbol 'end))
+	(char-var (or char-var (gensymbol 'the-char))))
     (dolist (char-clause char-clauses)
       (let ((chars (first char-clause)))
 	(if (atom chars)

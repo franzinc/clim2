@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.4 92/02/24 13:07:56 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.5 92/03/04 16:21:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,27 +14,33 @@
 (defvar *pointer-button-press-handler* nil)
 
 
-(defparameter *abort-gestures* '(#+Genera #\Abort
-				 #+Cloe-Runtime #\Escape
-				 #+Lucid #\control-\z
-				 #+Allegro #\c-\z
-				 ;;--- Until the keyboard event processor works...
-				 #+(and Allegro Silica) #\^z))
+(define-gesture-name :abort :keyboard 
+  #+Genera (:abort)
+  #+Cloe-Runtime (:escape)
+  #-(or Genera Cloe-Runtime) (:z :control))
+
+(defparameter *abort-gestures* '(:abort))
 
 (defvar *accelerator-gestures* nil)
 (defvar *accelerator-numeric-argument* nil)
 
+(define-gesture-name :newline :keyboard (:newline))
+(define-gesture-name :return  :keyboard (:return))
+(define-gesture-name :end     :keyboard (:end))
+
+;;--- Kludge until gesture matching working properly.
+;;--- That is, the standard characters should match their own keysyms,
+;;--- such as :A and #\A, :NEWLINE and #\Newline, and so on.
+(define-gesture-name :newline :keyboard (#\Newline))
+
 ;; Activation gestures terminate the entire input line.  They are usually
-;; non-printing characters such as Return or End.
+;; non-printing characters such as #\Newline or #\End.
 (defvar *activation-gestures* nil)
 
-;; Until we have a real per-implementation key table, we don't
-;; know whether the implementation puts #\Newline or #\Return on the
-;; key marked "Return".
-(defvar *standard-activation-gestures* '(#+Genera #\End #\Newline #\Return))
+(defvar *standard-activation-gestures* '(:newline :return :end))
 
 (defmacro with-activation-gestures ((additional-gestures &key override) &body body)
-  (when (characterp additional-gestures)
+  (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
   `(with-stack-list* (*activation-gestures*
 		       ,additional-gestures
@@ -47,7 +53,8 @@
 (defun activation-gesture-p (gesture)
   (dolist (set *activation-gestures*)
     (when (if (listp set)
-	      (member gesture set)
+	      (member gesture set 
+		      :test #'keyboard-event-matches-gesture-name-p)
 	      (funcall set gesture))
       (return-from activation-gesture-p t))))
 
@@ -66,11 +73,11 @@
 
 
 ;; Delimiter gestures terminate a field in an input line.  They are usually
-;; printing characters such as Space or Tab
+;; printing characters such as #\Space or #\Tab
 (defvar *delimiter-gestures* nil)
 
 (defmacro with-delimiter-gestures ((additional-gestures &key override) &body body)
-  (when (characterp additional-gestures)
+  (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
   `(with-stack-list* (*delimiter-gestures*
 		       ,additional-gestures
@@ -83,7 +90,8 @@
 (defun delimiter-gesture-p (gesture)
   (dolist (set *delimiter-gestures*)
     (when (if (listp set)
-	      (member gesture set)
+	      (member gesture set 
+		      :test #'keyboard-event-matches-gesture-name-p)
 	      (funcall set gesture))
       (return-from delimiter-gesture-p t))))
 
@@ -105,7 +113,7 @@
 
 (defparameter *quotation-character* #\")
 
-;; READ-TOKEN reads characters until it encounters an activation character,
+;; READ-TOKEN reads characters until it encounters an activation gesture,
 ;; a delimiter character, or something else (like a mouse click).
 (defun read-token (stream &key input-wait-handler pointer-button-press-handler 
 			       click-only timeout)

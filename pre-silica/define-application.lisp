@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: define-application.lisp,v 1.2 92/02/24 13:07:19 cer Exp $
+;; $fiHeader: define-application.lisp,v 1.3 92/03/04 16:21:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1181,9 +1181,12 @@
 (defun redisplay-frame-pane-1 (frame pane description &optional force-p)
   (let* ((options (pane-descriptor-options description))
 	 (display-function (getf options :display-function))
-	 (incremental-redisplay (getf options :incremental-redisplay))
+	 (ir (getf options :incremental-redisplay))
+	 (redisplay-p (if (listp ir) (first ir) ir))
+	 (check-overlapping (or (atom ir)	;default is T
+				(getf (rest ir) :check-overlapping t)))
 	 (redisplay-record
-	   (and incremental-redisplay
+	   (and redisplay-p
 		(let ((history (stream-output-history pane)))
 		  (when history
 		    #+compulsive-redisplay
@@ -1211,13 +1214,14 @@
 		 (return
 		   (cond (display-function
 			  ;; If there's a display function, call it to generate new contents.
-			  (cond (incremental-redisplay
+			  (cond (redisplay-p
 				 (cond ((or (null redisplay-record) force-p)
 					(when force-p
 					  (window-clear pane))
 					(call-redisplay-function
 					  display-function frame pane))
-				       (t (redisplay redisplay-record pane))))
+				       (t (redisplay redisplay-record pane
+						     :check-overlapping check-overlapping))))
 				((or force-p
 				     (getf options :display-after-commands t))
 				 (unless (and (not force-p)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.4 92/02/24 13:08:43 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.5 92/03/04 16:22:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -266,7 +266,7 @@
 		    (block process-gesture
 		      (cond ((null gesture)
 			     (return-from input-wait))
-			    ((characterp gesture)
+			    ((keyboard-event-p gesture)
 			     (when keyboard-function
 			       (funcall keyboard-function gesture)
 			       (return-from process-gesture)))

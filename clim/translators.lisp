@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.3 92/02/24 13:08:45 cer Exp $
+;; $fiHeader: translators.lisp,v 1.4 92/03/04 16:22:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -445,12 +445,15 @@
 
 ;; Returns the higherst priority translator that matches the presentation
 ;; in this context, or NIL if there is no matching translator.
+;; Returns a second value of T if there was any translator that matched
+;; on everything except for the gesture, and the menu translator matched
+;; (that is, a second value of T means that the menu translator will apply)
 (defun presentation-matches-context-type (presentation context-type
 					  frame window x y
 					  &key event (modifier-state 0)
 					       #+CLIM-1-compatibility
 					       (shift-mask 0 shift-mask-p))
-  (declare (values translator))
+  (declare (values translator any-match-p))
   #+CLIM-1-compatibility
   (when shift-mask-p
     (setq modifier-state shift-mask))
@@ -467,22 +470,30 @@
 						frame event window x y)))
 	  (when (and by-gesture by-tester)
 	    ;; Matched by both gesture and by the tester, we're done
-	    (return-from presentation-matches-context-type translator))
+	    (return-from presentation-matches-context-type
+	      (values translator t)))
 	  (when by-tester
-	    ;; We matched by the tester, it's OK to try the menu translator.
-	    (setq one-matched t))))
+	    ;; We matched by the tester, it's OK to try the menu translator
+	    ;; unless the translator is not supposed to be in a menu.
+	    (setq one-matched (or one-matched 
+				  (presentation-translator-menu translator))))))
       ;; If EVENT is non-NIL, then we are running on behalf of the user having
       ;; pressed a pointer button, which means that some translator must have
       ;; matched during the test phase, which means that the PRESENTATION-MENU
       ;; translator might be applicable, even though no others were found.
-      (when (and event one-matched
-		 *presentation-menu-translator*
-		 (test-presentation-translator *presentation-menu-translator*
-					       presentation context-type
-					       frame window x y
-					       :event event))
-	(return-from presentation-matches-context-type *presentation-menu-translator*))))
-  nil)
+      (let ((menu-applicable
+	      (and one-matched
+		   *presentation-menu-translator*
+		   (test-presentation-translator *presentation-menu-translator*
+						 presentation context-type
+						 frame window x y
+						 :modifier-state modifier-state
+						 :event event))))
+	   (if (and event menu-applicable)
+	       (values *presentation-menu-translator* t)
+	       (values nil (and one-matched
+				(presentation-translator-matches-event
+				  *presentation-menu-translator* event modifier-state))))))))
 
 ;; When FASTP is T, that means "as soon as you find a matching translator, return
 ;; that translator".  Otherwise, return a list of all applicable translators.

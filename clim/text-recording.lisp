@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.1 92/02/24 13:18:29 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.2 92/03/04 16:22:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -394,6 +394,62 @@
 	      (output-record-set-old-start-cursor-position*
 		text old-start-x old-start-y))))))))
 
+(defmethod get-text-output-record ((stream output-recording-mixin) style)
+  (let ((default-style (medium-default-text-style stream)))
+    (let ((record (stream-text-output-record stream)))
+      (when record
+	;; If we're changing styles mid-stream, need to convert this
+	;; text record to the more expensive form
+	(when (and (not (eq style default-style))
+		   (not (typep record 'styled-text-output-record)))
+	  (setq record (stylize-text-output-record record default-style stream)))
+	(return-from get-text-output-record record)))
+    (let* ((string (make-array 16 :element-type 'character	;--- 16?
+				  :fill-pointer 0 :adjustable t))
+	   (record (if (not (eq style default-style))
+		       (make-styled-text-output-record (medium-ink stream) string)
+		       (make-standard-text-output-record (medium-ink stream) string))))
+      (setf (stream-text-output-record stream) record)
+      (multiple-value-bind (abs-x abs-y)
+	  (point-position*
+	    (stream-output-history-position stream))
+	(declare (type coordinate abs-x abs-y))
+	(multiple-value-bind (cx cy) (stream-cursor-position* stream)
+	  (declare (type coordinate cx cy))
+	  (output-record-set-start-cursor-position*
+	    record (- cx abs-x) (- cy abs-y))))
+      ;; Moved to STREAM-CLOSE-TEXT-OUTPUT-RECORD, since we don't need this thing
+      ;; in the history until then.  This should save an extra recompute-extent call
+      ;; (one in here, one when the string is added).
+      ;; (stream-add-output-record stream record)
+      record)))
+
+;; The cost of stylizing an existing record is actually fairly low, and we
+;; don't do it very often, because of the optimization in GET-TEXT-OUTPUT-RECORD
+;; that creates a stylized record as early as possible.
+(defmethod stylize-text-output-record ((record standard-text-output-record) style stream)
+  (with-slots (ink string wrapped-p left top right bottom
+	       start-x start-y end-x end-y) record
+    (let* (#+Silica (port (port stream))
+	   (new-record (make-styled-text-output-record-1
+			 ink string wrapped-p
+			 style (- (text-style-height style #-Silica stream #+Silica port)
+				  (text-style-descent style #-Silica stream #+Silica port)))))
+      (with-slots ((new-left left) (new-top top) (new-right right) (new-bottom bottom)
+		   (new-sx start-x) (new-sy start-y) (new-ex end-x) (new-ey end-y)
+		   (new-wrapped-p wrapped-p)) new-record
+	(setq new-left left
+	      new-top top
+	      new-right right
+	      new-bottom bottom
+	      new-sx start-x
+	      new-sy start-y
+	      new-ex end-x
+	      new-ey end-y))
+      (setf (stream-text-output-record stream) new-record)
+      new-record)))
+
+
 (defun find-text-baseline (record stream)
   ;; This finds the lowest baseline of the text in RECORD, which will be slower than, say,
   ;; the first baseline but more likely to look good with misaligned things.
@@ -421,27 +477,48 @@
       (find-or-recurse record 0))
     baseline)) 
 
-;; The cost of stylizing an existing record is actually fairly low, and we
-;; don't do it very often, because of the optimization in GET-TEXT-OUTPUT-RECORD
-;; that creates a stylized record as early as possible.
-(defmethod stylize-text-output-record ((record standard-text-output-record) style stream)
-  (with-slots (ink string wrapped-p left top right bottom
-	       start-x start-y end-x end-y) record
-    (let* (#+Silica (port (port stream))
-	   (new-record (make-styled-text-output-record-1
-			 ink string wrapped-p
-			 style (- (text-style-height style #-Silica stream #+Silica port)
-				  (text-style-descent style #-Silica stream #+Silica port)))))
-      (with-slots ((new-left left) (new-top top) (new-right right) (new-bottom bottom)
-		   (new-sx start-x) (new-sy start-y) (new-ex end-x) (new-ey end-y)
-		   (new-wrapped-p wrapped-p)) new-record
-	(setq new-left left
-	      new-top top
-	      new-right right
-	      new-bottom bottom
-	      new-sx start-x
-	      new-sy start-y
-	      new-ex end-x
-	      new-ey end-y))
-      (setf (stream-text-output-record stream) new-record)
-      new-record)))
+;; Copy just the text from the window to the stream.  If REGION is supplied,
+;; only the text overlapping that region is copied.
+;; This loses information about text styles, presentations, and graphics, and
+;; doesn't deal perfectly with tab characters and changing baselines.
+(defun copy-textual-output-history (window stream &optional region)
+  (let* ((char-width (stream-character-width window #\space))
+	 (line-height (stream-line-height window))
+	 (history (stream-output-history window))
+	 (array (make-array (ceiling (bounding-rectangle-height history) line-height)
+			    :fill-pointer 0 :adjustable t :initial-element nil)))
+    (labels ((collect (record x-offset y-offset)
+	       (multiple-value-bind (start-x start-y)
+		   (output-record-start-cursor-position* record)
+		 (translate-positions x-offset y-offset start-x start-y)
+		 (when (typep record 'standard-text-output-record)
+		   (vector-push-extend (list* start-y start-x (slot-value record 'string))
+				       array))
+		 (map-over-output-records-overlapping-region
+		   #'collect record region 
+		   (- x-offset) (- y-offset) start-x start-y))))
+      (declare (dynamic-extent #'collect))
+      (collect history 0 0))
+    (sort array #'(lambda (r1 r2)
+		    (or (< (first r1) (first r2))
+			(and (= (first r1) (first r2))
+			     (< (second r1) (second r2))))))
+    (let ((current-x 0)
+	  (current-y (first (aref array 0))))
+      (dotimes (i (fill-pointer array))
+	(let* ((item (aref array i))
+	       (y (pop item))
+	       (x (pop item)))
+	  (unless (= y current-y)
+	    (dotimes (j (round (- y current-y) line-height))
+	      #-(or Allegro Minima) (declare (ignore j))
+	      (terpri stream)
+	      (setq current-x 0))
+	    (setq current-y y))
+	  (unless (= x current-x)
+	    (dotimes (j (round (- x current-x) char-width))
+	      #-(or Allegro Minima) (declare (ignore j))
+	      (write-char #\space stream))
+	    (setq current-x x))
+	  (write-string item stream)
+	  (incf current-x (stream-string-width window item)))))))

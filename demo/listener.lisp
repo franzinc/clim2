@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.5 92/03/04 16:23:00 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.6 92/03/06 09:08:54 cer Exp $
 
 (in-package :clim-demo)
 
@@ -90,11 +90,12 @@
 				     &key keystrokes listener-depth (prompt "=> "))
   (catch-abort-gestures ("Return to ~A command level ~D"
 			 (frame-pretty-name frame) listener-depth)
-    ;; Eat any abort characters that might be hanging around.
+    ;; Eat any abort gestures that might be hanging around.
     ;; We need to do this because COMMAND-OR-FORM is wierd.
-    (let* ((abort-chars *abort-gestures*)
+    (let* ((abort-gestures *abort-gestures*)
 	   (*abort-gestures* nil))
-      (when (member (stream-read-gesture *standard-input* :timeout 0 :peek-p t) abort-chars)
+      ;;--- What test does this need?
+      (when (member (stream-read-gesture *standard-input* :timeout 0 :peek-p t) abort-gestures)
 	(stream-read-gesture *standard-input* :timeout 0)))
     (fresh-line *standard-input*)
     (multiple-value-bind (command-or-form type numeric-arg)
@@ -118,7 +119,7 @@
       (when (eq type :keystroke)
 	(let ((command (lookup-keystroke-command-item command-or-form command-table 
 						      :numeric-argument numeric-arg)))
-	  (unless (characterp command)
+	  (unless (clim-internals::keyboard-gesture-p command)
 	    (when (partial-command-p command)
 	      (setq command (funcall *partial-command-parser*
 				     command command-table *standard-input* nil
@@ -291,7 +292,8 @@
   (window-clear (frame-standard-output *application-frame*)))
 
 #+Genera
-(add-keystroke-to-command-table 'lisp-listener #\c-m-L :command 'com-clear-output-history)
+(add-keystroke-to-command-table 
+  'lisp-listener '(:l :control :meta) :command 'com-clear-output-history)
 
 #-Minima (progn
 
@@ -519,8 +521,7 @@
 	 (ll (cdr entry)))
     (when (or (null ll) reinit)
       (setq ll (make-application-frame 'lisp-listener
-				       :parent root
-				       :width 500 :height 500))
+				       :width 600 :height 500))
       (if entry
 	  (setf (cdr entry) ll)
 	  (push (cons root ll) *listeners*)))

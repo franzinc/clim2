@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.9 92/03/04 16:19:41 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.10 92/03/06 14:17:30 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -100,7 +100,7 @@
 (defclass labelled-gadget ()
     ((label :initarg :label
 	    :accessor gadget-label)
-     (alignment :initarg :halign ;;--- compat hack
+     (alignment :initarg :halign		;--- compatibility hack
 		:initarg :alignment
 		:accessor gadget-alignment))
   (:default-initargs :label nil))
@@ -148,10 +148,6 @@
 ;;; Push-button
 (defclass push-button 
 	  (action-gadget labelled-gadget) 
-	  ())
-
-(defclass label-pane 
-	  (labelled-gadget) 
     ())
 
 
@@ -167,6 +163,11 @@
 	  (value-gadget labelled-gadget) 
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :reader gadget-indicator-type)))
+
+
+(defclass label-pane
+	  (labelled-gadget)
+    ())
 
 
 ;;; Caption

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.3 92/02/24 13:06:53 cer Exp $
+;; $fiHeader: accept.lisp,v 1.4 92/03/04 16:21:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -246,9 +246,9 @@
     ;; The input has been parsed, moused, or defaulted.
     ;; If we are still inside a WITH-INPUT-EDITING at an outer level, leave the
     ;; delimiter in the stream.  But if this was the top level of input, eat
-    ;; the activation character instead of leaving it in the stream.
-    ;; Don't eat the activation character on streams that can't ever support
-    ;; input editing, such as string streams.
+    ;; the activation gesture instead of leaving it in the stream. Don't eat
+    ;; the activation gesture on streams that can't ever support input editing,
+    ;; such as string streams.
     ;;--- This is really lousy.  We need a coherent theory here.
     (when activated
       (when (and (not (input-editing-stream-p stream))

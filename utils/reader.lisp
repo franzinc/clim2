@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: reader.lisp,v 1.4 92/01/31 15:07:27 cer Exp $
+;; $fiHeader: reader.lisp,v 1.5 92/02/24 13:05:53 cer Exp $
 
 (in-package :clim-utils)
 
@@ -11,7 +11,7 @@
 
 ;;; Tool to temporarily add a macro character.
 (defmacro with-macro-character ((char function) &body body)
-  (let ((existing (make-symbol "EXISTING")))
+  (let ((existing (make-symbol (symbol-name 'existing))))
     `(let ((,existing (get-macro-character ,char)))
        (unwind-protect
 	   (progn

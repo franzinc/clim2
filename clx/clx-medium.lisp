@@ -3,7 +3,7 @@
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: clx-medium.lisp,v 1.2 92/02/24 13:23:46 cer Exp $
+;;; $fiHeader: clx-medium.lisp,v 1.3 92/03/04 16:20:52 cer Exp $
 
 
 (defclass clx-medium (medium)
@@ -294,8 +294,15 @@
 		(error "Pattern designs other than colors are not supported yet.")))
 	    (let* ((design-pixels (make-array (length designs)))
 		   (depth (xlib:screen-root-depth screen))
-		   (image-data (make-array (list height width)
-					   :element-type `(unsigned-byte ,depth))))
+		   (image-data 
+		     (make-array (list height width)
+				 :element-type
+				   (cond ((= depth 1) 'xlib::pixarray-1-element-type)
+					 ((<= depth 4) 'xlib::pixarray-4-element-type)
+					 ((<= depth 8) 'xlib::pixarray-8-element-type)
+					 ((<= depth 16) 'xlib::pixarray-16-element-type)
+					 ((<= depth 24) 'xlib::pixarray-24-element-type)
+					 (t 'xlib::pixarray-32-element-type)))))
 	      (declare #+Genera (sys:array-register design-pixels)
 		       (simple-vector design-pixels))
 	      ;; Cache the decoded designs from the pattern
@@ -321,7 +328,6 @@
 		(setf (xlib:gcontext-tile gc)
 		      (let ((image
 			      (xlib:create-image :depth depth
-						 :bits-per-pixel depth
 						 :data image-data
 						 :width width :height height))
 			    (pixmap
@@ -423,9 +429,6 @@
     (convert-to-device-coordinates transform x y)
     (let ((thickness (line-style-thickness line-style))
 	  (gc (clx-decode-ink ink medium)))
-      (ecase (line-style-unit line-style)
-	((:normal :point)
-	 (setf thickness (* thickness points-to-pixels))))
       (if (< thickness 2)
 	  (xlib:draw-point drawable gc x y)
 	  (let ((thickness (round thickness)))
@@ -440,8 +443,8 @@
       x1 y1 x2 y2)
     (xlib:draw-line drawable
 		    (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
-				    (min start-x end-x) (min start-y end-y))
-		    start-x start-y end-x end-y)))
+				    (min x1 x2) (min y1 y2))
+		    x1 y1 x2 y2)))
 
 (defmethod port-draw-rectangle* ((port clx-port) sheet medium
 				 left top right bottom filled)
@@ -454,7 +457,7 @@
     (xlib:draw-rectangle drawable 
 			 (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
 					 left top)
-			 left top (- right left) (- bottom top) (null line-style))))
+			 left top (- right left) (- bottom top) filled)))
 
 (defmethod port-draw-polygon* ((port clx-port) sheet medium points closed filled)
   (let ((transform (sheet-device-transformation sheet))
@@ -465,7 +468,7 @@
 	  (miny most-positive-fixnum)
 	  (points (copy-list points)))
       (declare (fixnum minx miny))
-      (do* ((points points (cddr points))a)
+      (do* ((points points (cddr points)))
 	   ((null points))
 	(let ((x (first points))
 	      (y (second points)))
@@ -479,7 +482,7 @@
       (xlib:draw-lines drawable 
 		       (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
 				       minx miny)
-		       points :fill-p (null line-style)))))
+		       points :fill-p filled))))
 
 (defmethod port-draw-ellipse* ((port clx-port) sheet medium
 			       center-x center-y
@@ -534,7 +537,7 @@
 		       (- center-x x-radius) (- center-y y-radius)
 		       (* x-radius 2) (* y-radius 2)
 		       ;; CLX measures the second angle relative to the first
-		       start-angle angle-size (null line-style))))))
+		       start-angle angle-size filled)))))
 
 (defmethod port-draw-string* ((port clx-port) sheet medium
 			      string x y start end align-x align-y)
@@ -547,7 +550,7 @@
       (setq end (length string)))
     (let* ((font (if text-style
 		     (text-style-mapping port text-style)
-		     (clx-get-default-font medium)))
+		     (clx-get-default-font port medium)))
 	   (ascent (xlib:font-ascent font))
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
@@ -568,7 +571,7 @@
     (convert-to-device-coordinates transform x y)
     (let* ((font (if text-style
 		     (text-style-mapping port text-style)
-		     (clx-get-default-font medium)))
+		     (clx-get-default-font port medium)))
 	   (ascent (xlib:font-ascent font))
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
@@ -659,7 +662,8 @@
       (with-sheet-medium (medium from-sheet)
 	(let ((width (- from-right from-left))
 	      (height (- from-bottom from-top))
-	      (drawable (slot-value medium 'drawable)))
+	      (drawable (slot-value medium 'drawable))
+	      (copy-gc (slot-value medium 'copy-gcontext)))
 	  (xlib:copy-area drawable copy-gc
 			  from-left from-top width height drawable
 			  to-left to-top))))))

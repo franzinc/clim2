@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.1 92/01/31 14:25:28 cer Exp $
+;; $fiHeader: clim-streams.lisp,v 1.2 92/02/24 13:05:20 cer Exp $
 
 (in-package :clim-utils)
 
@@ -19,6 +19,6 @@
 	  (encapsulating-stream)
     ((stream :initarg :stream
 	     :reader encapsulating-stream-stream))
-  #+Allegro (:default-initargs :element-type 'extended-char))
+  #+Allegro (:default-initargs :element-type 'character))
 
 

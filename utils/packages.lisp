@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.5 92/03/04 16:20:19 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.4 92/02/24 13:05:46 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2318,7 +2318,6 @@
     viewp
     with-input-context
     with-output-as-presentation
-    with-output-as-gadget
     with-presentation-type-decoded
     with-presentation-type-options
     with-presentation-type-parameters
@@ -2579,9 +2578,7 @@
     gadget-label
     gadget-orientation
     gadget-value
-    label-pane
     menu-bar
-    notify-user
     note-gadget-activated
     note-gadget-deactivated
     push-button
@@ -2986,7 +2983,6 @@
     doseq
     dovector
     evacuate-list
-    extended-char
     find-class-that-works
     fintern
     flatten-arglist
@@ -3189,7 +3185,9 @@
   (:export
     *all-drawing-options*
     *default-text-style*
+    *modifier-keys*
     *null-text-style*
+    *pointer-buttons*
     *standard-character-set* 
     *undefined-text-style* 
     +highlighting-line-style+

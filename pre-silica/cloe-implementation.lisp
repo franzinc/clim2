@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-implementation.lisp,v 1.1 92/01/31 14:27:40 cer Exp $
+;; $fiHeader: cloe-implementation.lisp,v 1.2 92/02/24 13:07:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -44,6 +44,31 @@
   (rop2 win::r2_copypen)
   text-color
   background-color)
+
+;;;
+
+(eval-when (compile load eval)
+	   
+;; Define the new key chars for Cloe CLIM.  Regular Cloe defines 0-127, we define
+;; 128-139 as the F-keys (F1 thru F12), 140 for c-sh-A, and 141 as c-sh-V
+(sys::define-character-name "F1" 128)
+(sys::define-character-name "F2" 129)
+(sys::define-character-name "F3" 130)
+(sys::define-character-name "F4" 131)
+(sys::define-character-name "F5" 132)
+(sys::define-character-name "F6" 133)
+(sys::define-character-name "F7" 134)
+(sys::define-character-name "F8" 135)
+(sys::define-character-name "F9" 136)
+;; Note windows traps F10 as alt-space. Why?
+(sys::define-character-name "F10" 137)
+(sys::define-character-name "F11" 138)
+(sys::define-character-name "F12" 139)
+(sys::define-character-name "Arglist" 140)
+(sys::define-character-name "ShowValue" 141)
+
+)	;eval-when
+
 
 ;;;
 

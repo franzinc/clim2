@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.4 92/02/24 13:07:25 cer Exp $
+;; $fiHeader: dragging-output.lisp,v 1.5 92/03/04 16:21:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,7 @@
 (defun drag-output-record (stream output-record
 			   &key (repaint t) (erase #'erase-output-record) feedback
 				(finish-on-release nil))
-  (declare (values final-x final-y))
+  (declare (values final-x final-y delta-x delta-y))
   (let (last-x last-y
 	(delta-x 0)
 	(delta-y 0)

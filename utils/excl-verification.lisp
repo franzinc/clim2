@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: excl-verification.lisp,v 1.2 92/01/31 14:52:38 cer Exp $
+;; $fiHeader: excl-verification.lisp,v 1.4 92/02/24 13:05:36 cer Exp $
 
 (in-package :sys)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.4 92/02/24 13:05:00 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.5 92/03/04 16:19:56 cer Exp $
 
 (in-package :silica)
 
@@ -76,7 +76,8 @@
 
 (defun initialize-text-style-tables ()
   (setf *null-text-style* (make-text-style-1 nil nil nil 0)
-	*undefined-text-style* (make-text-style-1 (make-symbol "UNDEFINED") nil nil 1)
+	*undefined-text-style* 
+	  (make-text-style-1 (make-symbol (symbol-name 'undefined)) nil nil 1)
 	*next-text-style-index* 2
 	*text-style-index-table*
 	  (make-array maximum-text-style-index 
@@ -553,28 +554,7 @@
     (dolist (spec specs)
       (load-specs nil nil nil spec))))
 
-;(defclass display-device ()
-;    ((name :initarg :name :reader display-device-name)
-;     (undefined-text-style :initform *undefined-text-style* 
-;			   :accessor device-undefined-text-style)
-;     ;; When this is true, the text style -> device font mapping is done
-;     ;; loosely.  That is, the actual screen size of the font need not be
-;     ;; exactly what the user has asked for.  Instead the closest fit is
-;     ;; chosen.  This is necessary in X11 because different screen sizes &
-;     ;; resolutions result in fonts having *actual displayed sizes* that
-;     ;; are not exactly what the fonts were designed for.  Loose text style
-;     ;; mapping is done by having the mapping table ignore size when hashing.
-;     ;; Thus each bucket is a list of fonts with the same family and face,
-;     ;; but different sizes.  They are kept sorted small to large.
-;     (allow-loose-text-style-size-mapping 
-;       :initform nil :initarg :allow-loose-text-style-size-mapping)
-;     ;; When ALLOW-LOOSE-TEXT-STYLE-SIZE-MAPPING is true, this should be
-;     ;; an EQUAL hash table!
-;     (mapping-table 
-;       :initform (make-hash-table) :initarg :mapping-table)))
-;
-;(defvar *display-devices* nil)
-;
+;;--- I think we need to preserve some of this, no?
 ;(defmethod initialize-instance :after
 ;	   ((device display-device) &key font-for-undefined-style)
 ;  (push-unique device *display-devices* :key #'display-device-name)
@@ -587,10 +567,6 @@
 ;    (add-text-style-mapping
 ;      device *standard-character-set* *undefined-text-style*
 ;      font-for-undefined-style)))
-;
-;(defmethod print-object ((device display-device) stream)
-;  (print-unreadable-object (device stream :type t :identity t)
-;    (format stream "~A" (slot-value device 'name))))
 
 (defmethod (setf text-style-mapping)
 	   (mapping (device port) style 

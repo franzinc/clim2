@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.10 92/03/06 09:08:28 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.11 92/03/06 14:17:31 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -264,7 +264,7 @@
 		     (- bottom top))))
 	(when (or (/= sc-x 1.0)
 		  (/= sc-y 1.0)
-		  (not (zerop  tr-x))
+		  (not (zerop tr-x))
 		  (not (zerop tr-y)))
 	  (let (#+Allegro (*error-output* excl::*initial-terminal-io*))
 	    (warn "Mirror scaling ~S,~S,~S,~S" 

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.5 92/02/26 10:23:16 cer Exp $
+;; $fiHeader: classes.lisp,v 1.6 92/03/04 16:19:23 cer Exp $
 
 (in-package :silica)
 
@@ -120,11 +120,13 @@
 
 (define-event-class keyboard-event (device-event)
   ((key-name :reader keyboard-event-key-name :initarg :key-name)
+   ;; This is NIL for keyboard events that don't correspond to
+   ;; characters in the standard CL character set
    (character :reader keyboard-event-character :initarg :character)))
-
 
 (define-event-class key-press-event (keyboard-event) ())
 (define-event-class key-release-event (keyboard-event) ())
+
 
 (define-event-class pointer-event (device-event)
   ((x :reader pointer-event-x :initarg :x)
@@ -153,6 +155,7 @@
 (define-event-class pointer-exit-event (pointer-motion-or-boundary-event) ())
 (define-event-class pointer-enter-event (pointer-motion-or-boundary-event) ())
 
+
 (define-event-class window-event (event)
   ((region :reader window-event-region :initarg :region)
    (native-region :reader window-event-native-region :initarg :native-region)
@@ -163,10 +166,41 @@
 (define-event-class window-configuration-event (window-event) ())
 (define-event-class window-repaint-event (window-event) ())
 
+
 (define-event-class window-manager-event (event) 
   ((sheet :reader event-sheet :initarg :sheet)))
 (define-event-class window-manager-delete-event (window-manager-event) ())
 
+
 (define-event-class timer-event (event) ())
 
 
+;;; Values used in event objects
+
+(defconstant +pointer-left-button+   (ash 1 8))
+(defconstant +pointer-middle-button+ (ash 1 9))
+(defconstant +pointer-right-button+  (ash 1 10))
+
+;; The order of this must match the values above
+(defconstant *pointer-buttons* '#(:left :middle :right))
+
+(deftype button-name () '(member :left :middle :right))
+
+(defconstant +shift-key+   (ash 1 0))
+(defconstant +control-key+ (ash 1 1))
+(defconstant +meta-key+    (ash 1 2))
+(defconstant +super-key+   (ash 1 3))
+(defconstant +hyper-key+   (ash 1 4))
+
+;; The order of this must match the values above
+(defconstant *modifier-keys* '#(:shift :control :meta :super :hyper))
+
+(deftype shift-keysym   () '(member :left-shift :right-shift))
+(deftype control-keysym () '(member :left-control :right-control))
+(deftype meta-keysym    () '(member :left-meta :right-meta))
+(deftype super-keysym   () '(member :left-super :right-super))
+(deftype hyper-keysym   () '(member :left-hyper :right-hyper))
+(deftype lock-keysym    () '(member :caps-lock :shift-lock :mode-lock))
+
+(deftype modifier-keysym ()
+  '(or shift-keysym control-keysym meta-keysym super-keysym hyper-keysym lock-keysym))

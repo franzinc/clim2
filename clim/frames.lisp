@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.8 92/02/24 13:07:30 cer Exp $
+;; ;; $fiHeader: frames.lisp,v 1.9 92/03/04 16:21:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -580,32 +580,48 @@
 					       force-p)))
 		   (frame-top-level-sheet frame)))
 
-;;--- This needs to be more beefy, like in CLIM 1.0
-;;--- And what about CLIM 0.9's PANE-NEEDS-REDISPLAY, etc?
+;;--- What about CLIM 0.9's PANE-NEEDS-REDISPLAY, etc?
+;;--- What about CLIM 1.0's :DISPLAY-AFTER-COMMANDS :NO-CLEAR?
 (defun redisplay-frame-pane (frame pane &key force-p)
   (when (symbolp pane)
     (setq pane (get-frame-pane frame pane)))
   (when (pane-display-function pane)
-    (let* ((ird (slot-value pane 'incremental-redisplay-p))
-	   (history (and ird (stream-output-history pane)))
-	   (record (and history
-			(> (output-record-count history) 0)
-			(output-record-element history 0))))
+    (let* ((ir (slot-value pane 'incremental-redisplay-p))
+	   (redisplay-p (if (listp ir) (first ir) ir))
+	   (check-overlapping (or (atom ir)	;default is T
+				  (getf (rest ir) :check-overlapping t))))
       (with-simple-restart (nil "Skip redisplaying pane ~S" pane)
 	(loop
 	  (with-simple-restart (nil "Retry displaying pane ~S" pane)
 	    (return
-	      (cond ((and ird (or force-p (null record)))
-		     (when force-p
-		       (window-clear pane))
-		     (updating-output (pane)
-		       (invoke-pane-redisplay-function frame pane)))
-		    (ird
-		     (redisplay record pane))
-		    (t
-		     (invoke-pane-redisplay-function frame pane))))))))))
+	      (let ((redisplay-record
+		      (and redisplay-p
+			   (let ((history (stream-output-history pane)))
+			     (when history
+			       #+compulsive-redisplay
+			       (when (> (output-record-count history) 1)
+				 (cerror "Clear the output history and proceed"
+					 "There is more than one element in this redisplay pane")
+				 (window-clear pane))
+			       (unless (zerop (output-record-count history))
+				 (output-record-element history 0)))))))
+		(cond ((and redisplay-p
+			    (or force-p (null redisplay-record)))
+		       (when force-p
+			 (window-clear pane))
+		       (invoke-pane-redisplay-function frame pane))
+		      (redisplay-p
+		       (redisplay redisplay-record pane 
+				  :check-overlapping check-overlapping))
+		      (t
+		       (invoke-pane-display-function frame pane)))))))))))
 
 (defun invoke-pane-redisplay-function (frame pane &rest args)
+  (declare (dynamic-extent args))
+  (updating-output (pane)
+    (apply #'invoke-pane-display-function frame pane args)))
+
+(defun invoke-pane-display-function (frame pane &rest args)
   (declare (dynamic-extent args))
   (let* ((df (pane-display-function pane))
 	 (display-args (if (listp df) (rest df) nil))
@@ -740,6 +756,11 @@
 ;;--- maintain histories.  Is there a better heuristic?
 (defmethod frame-maintain-presentation-histories ((frame standard-application-frame))
   (not (null (find-frame-pane-of-type frame 'interactor-pane))))
+
+;;--- What should this really do?
+#+Allegro
+(defun notify-user (&rest ignore) 
+  (format excl::*initial-terminal-io* "Notify ~a~%" ignore))
 
 
 ;;; Pointer documentation
@@ -904,8 +925,3 @@
 
 #+Genera
 (defmethod mouse-documentation-window ((window window-stream)) nil)
-
-;;--- What should this do?
-
-(defun notify-user (&rest ignore) 
-  (format excl::*initial-terminal-io* "Notify ~a~%" ignore))

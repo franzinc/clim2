@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.11 92/03/06 14:17:37 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.12 92/03/09 17:41:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -53,6 +53,7 @@
 	 (,ignore &key ((:display ,display)
 			(or (sys::getenv "DISPLAY")
 			    "localhost:0")))
+	 ,path
 	 (declare (ignore ,ignore))
        ,@body)))
        

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.6 92/03/04 16:22:34 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.6 92/03/04 16:22:34 cer Exp $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -8,7 +8,9 @@
 
 (eval-when (compile load eval)
 
-;; Tell the world that we're here
+;;; Tell the world that we're here
+  ;;------------- This needs to be in the CLIM.fasl also.
+  
 (pushnew :clim *features*)
 (pushnew :clim-2 *features*)
 (pushnew :clim-2.0 *features*)
@@ -242,8 +244,10 @@
   ("window-protocol" :features (not Silica))
 
   ;; Output recording
-  ("recording-protocol"
+  ("recording-defs"
    :load-before-compile ("clim-defs"))
+  ("recording-protocol"
+   :load-before-compile ("recording-defs"))
   ("text-recording"
    :load-before-compile ("recording-protocol"))
   ("graphics-recording"
@@ -406,13 +410,12 @@
 #+(and Silica Allegro)
 (defsys:defsystem xlib-clim
     (:default-pathname (frob-pathname "xlib")
-     :default-binary-pathname (frob-pathname "xlib")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
+	:default-binary-pathname (frob-pathname "xlib")
+	:needed-systems (clim-standalone)
+	:load-before-compile (clim-standalone))
   ("pkg")
-  #+ignore
-  ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
-				    "xlib/last.lisp")))
+  #+++ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
+					       "xlib/last.lisp")))
   ("ffi")
   ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to compile...
   ("xlib-funs" :load-before-compile ("ffi"))

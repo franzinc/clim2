@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.4 92/02/24 13:04:46 cer Exp $
+;; $fiHeader: macros.lisp,v 1.5 92/03/04 16:19:46 cer Exp $
 
 (in-package :silica)
 
@@ -61,5 +61,6 @@
 
 (defmacro realize-pane (&whole form pane-class &rest pane-options)
   (declare (ignore pane-class pane-options))
-  (error "Realize-pane not inside a with-look-and-feel-realization")
+  (error "~S not inside a call to ~S"
+	 'realize-pane 'with-look-and-feel-realization)
   form)

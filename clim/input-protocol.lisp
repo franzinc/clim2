@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.7 92/02/28 09:17:49 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.8 92/03/04 16:21:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -57,7 +57,9 @@
 ;;; Our implementation of the extended-input protocol.
 (defclass input-protocol-mixin
 	 (basic-extended-input-protocol)
-    ((pointer-motion-pending :initform nil)
+    (#+++ignore (input-buffer :accessor stream-input-buffer
+			      :initarg :input-buffer)
+     (pointer-motion-pending :initform nil)
      (text-cursor :accessor stream-text-cursor
 		  :initarg :text-cursor))
   (:default-initargs
@@ -156,18 +158,18 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
 	(keysym (keyboard-event-key-name event)))
-    ;; this probably wants to be STRING-CHAR-P, but that will still require some thought.
-    (cond ((and char (characterp char))
+    ;;--- This probably wants to be STRING-CHAR-P...
+    (cond ((and char (standard-char-p char))
 	   (queue-put (stream-input-buffer stream) char))
-	  ((and keysym (not (typep keysym 'modifier-keysym))
-	   (queue-put (stream-input-buffer stream) (copy-event event))))
+	  ((and keysym (not (typep keysym 'modifier-keysym)))
+	   (queue-put (stream-input-buffer stream) (copy-event event)))
 	  (keysym
 	   ;; must be a shift keysym
 	   ;; must update the pointer shifts.
 	   (let ((pointer (stream-primary-pointer stream)))
 	     (when pointer
 	       (setf (pointer-button-state pointer) 
-		 (event-modifier-state event))))))))
+		     (event-modifier-state event))))))))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-release-event))
   ;;--- key state table?  Not unless all sheets are helping maintain it.
@@ -179,9 +181,10 @@
 	  (setf (pointer-button-state pointer) (event-modifier-state event))))))
   nil)
 
-;;; --- need to modularize stream implementation into fundamental and extended layers
-;;; so that we can tell when to queue up non-characters into the stream.
-;;; These don't need to set pointer-motion-pending because they synchronize through the io buffer.
+;;;--- need to modularize stream implementation into fundamental and extended
+;;;--- layers so that we can tell when to queue up non-characters into the
+;;;--- stream.  These don't need to set pointer-motion-pending because they
+;;;--- synchronize through the io buffer.
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-button-press-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
@@ -428,26 +431,31 @@
   ;; don't translate it
   gesture)
 
-(defmethod receive-gesture :around
+(defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture character))
-  (cond ((member gesture *accelerator-gestures*)
+  (process-abort-or-accelerator-gesture stream gesture)
+  gesture)
+
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture key-press-event))
+  (process-abort-or-accelerator-gesture stream gesture)
+  gesture)
+
+(defun process-abort-or-accelerator-gesture (stream gesture)
+  (cond ((member gesture *accelerator-gestures*
+		 :test #'keyboard-event-matches-gesture-name-p)
 	 (signal 'accelerator-gesture
 		 :event gesture
 		 :numeric-argument (or *accelerator-numeric-argument* 1)))
-	((member gesture *abort-gestures*)
+	((member gesture *abort-gestures*
+		 :test #'keyboard-event-matches-gesture-name-p)
 	 (let ((cursor (slot-value stream 'text-cursor)))
 	   (when (and cursor
 		      (cursor-active cursor))
 	     (write-string "[Abort]" stream)
 	     (force-output stream)))
-	 (error 'abort-gesture :event gesture))
-	(t (call-next-method))))
+	 (error 'abort-gesture :event gesture))))
 
-(defmethod receive-gesture :around
-	   ((stream input-protocol-mixin) (gesture key-press-event))
-  ;;--- What about Abort gestures that aren't characters?
-  (call-next-method))
- 
 ;;; This function is just a convenience for the programmer, defaulting the
 ;;; keyword :STREAM argument to *standard-input*.  The application can call
 ;;; stream-read-gesture directly.

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.3 92/02/24 13:07:05 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.4 92/03/04 16:21:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,7 +15,8 @@
 ;;; What separates command args.
 (defparameter *command-argument-delimiters* '(#\Space))
 
-(defparameter *command-previewers* '(#+Genera #\m-Complete))
+(define-gesture-name :preview-command :keyboard (:complete :meta))
+(defparameter *command-previewers* '(:preview-command))
 
 ;; This is around only to provide a input context "wall" during parsing
 (define-presentation-type command-arguments ())
@@ -46,7 +47,8 @@
 	     (multiple-value-bind (command final-delimiter)
 		 (invoke-command-name-parser-and-collect-1 
 		   command-name arg-parser delimiter-parser stream)
-	       (if (member final-delimiter *command-previewers*)
+	       (if (member final-delimiter *command-previewers*
+			   :test #'keyboard-event-matches-gesture-name-p)
 		   (with-input-editor-typeout (stream)
 		     (accept-values-command-parser
 		       command-name command-table 
@@ -97,9 +99,9 @@
     (when (and activation-p (activation-gesture-p delimiter))
       (unread-gesture delimiter :stream stream)
       (when echo-space
-	;; If we're not finished yet, leave the activation character for later,
-	;; insert a space in front of it, and read past the space.  Something like
-	;; the echo of a default will come after the space.
+	;; If we're not finished yet, leave the activation gesture for later,
+	;; insert a space in front of it, and read past the space.  Something
+	;; like the echo of a default will come after the space.
 	;; Must REPLACE-INPUT after UNREAD-GESTURE so the delimiter is unread
 	;; into the input editor's buffer, not the underlying stream's buffer.
 	(when (input-editing-stream-p stream)
@@ -183,12 +185,12 @@
 		      (when (activation-gesture-p char)
 			(return char))
 		      (unless (whitespace-char-p char)
-			(simple-parse-error "Extraneous character seen")))))
+			(simple-parse-error "Extraneous character seen at end of line")))))
 		 ((eq args-to-go :keywords)
 		  ;; Reached before reading the first keyword argument
 		  ;; If this is a command with no positional arguments, the preceding call
-		  ;; should have had args-to-go = (&key ...), but actually had :args
-		  ;; Compensate for that by checking for an activation character now
+		  ;; should have had args-to-go = (&key ...), but actually had :ARGS.
+		  ;; Compensate for that by checking for an activation gesture now
 		  (let ((char (read-gesture :stream stream :timeout 0)))
 		    (when char
 		      (unread-gesture char :stream stream)
@@ -388,11 +390,12 @@
 					 (read-gesture :stream stream :timeout timeout))))
 				 (when (eq numeric-arg :timeout)
 				   (return-from menu-command-parser nil))
-				 (when (characterp keystroke)
-				   (let ((command (lookup-keystroke-command-item
-						    keystroke command-table
-						    :test #'char-equal
-						    :numeric-argument numeric-arg)))
+				 (when (keyboard-event-p keystroke)
+				   (let ((command 
+					   (lookup-keystroke-command-item
+					     keystroke command-table
+					     :test #'keyboard-event-matches-gesture-name-p
+					     :numeric-argument numeric-arg)))
 				     (when (presentation-typep command command-type)
 				       (return-from menu-command-parser
 					 (values command command-type)))))
@@ -665,7 +668,7 @@
 			  (command-unparser *command-unparser*)
 			  (partial-command-parser *partial-command-parser*)
 			  (use-keystrokes nil)
-			  (keystroke-test #'eql))
+			  (keystroke-test #'keyboard-event-matches-gesture-name-p))
   (if use-keystrokes
       (with-command-table-keystrokes (keystrokes command-table)
 	(read-command-using-keystrokes command-table keystrokes
@@ -687,7 +690,7 @@
 					   (command-parser *command-parser*)
 					   (command-unparser *command-unparser*)
 					   (partial-command-parser *partial-command-parser*)
-					   (keystroke-test #'eql))
+					   (keystroke-test #'keyboard-event-matches-gesture-name-p))
   (let ((*command-parser* command-parser)
 	(*command-unparser* command-unparser)
 	(*partial-command-parser* partial-command-parser))
@@ -703,7 +706,7 @@
 	    (let ((*accelerator-gestures* keystrokes))
 	      (accept `(command :command-table ,command-table)
 		      :stream stream :prompt nil))))
-      (if (characterp command)
+      (if (keyboard-event-p command)
 	  (let ((command (lookup-keystroke-command-item command command-table
 							:test keystroke-test
 							:numeric-argument numeric-arg)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.3 92/02/24 13:05:55 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.4 92/03/04 16:20:22 cer Exp $
 
 (in-package :clim-utils)
 
@@ -123,8 +123,8 @@
 ;;; General region difference
 
 (defclass standard-region-difference (region-set area)
-    ((region1 :type region :initarg region1)
-     (region2 :type region :initarg region2)
+    ((region1 :type region :initarg :region1)
+     (region2 :type region :initarg :region2)
      (regions :type list)))
 
 (define-constructor make-region-difference standard-region-difference

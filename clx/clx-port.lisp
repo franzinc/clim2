@@ -3,7 +3,7 @@
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
-;;; $fiHeader: clx-port.lisp,v 1.2 92/02/24 13:23:53 cer Exp $
+;;; $fiHeader: clx-port.lisp,v 1.3 92/03/04 16:20:55 cer Exp $
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
 
@@ -171,10 +171,10 @@
 
 ;;; Text styles for CLX windows
 
-(defvar *clx-font-families* 
-	'((:fix "*-courier-*")
-	  (:sans-serif "*-helvetica-*")
-	  (:serif "*-charter-*" "*-new century schoolbook-*" "*-times-*")))
+(defvar *clx-font-families*
+	'((:fix "-*-courier-*")
+	  (:sans-serif "-*-helvetica-*")
+	  (:serif "-*-charter-*" "-*-new century schoolbook-*" "-*-times-*")))
 
 (defvar *clx-fallback-font* "8x13"
   "When non NIL and nothing better exists use this as the fallback font")

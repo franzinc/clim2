@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.6 92/03/04 16:19:51 cer Exp Locker: cer $
+;; $fiHeader: port.lisp,v 1.7 92/03/09 17:41:14 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -114,14 +114,15 @@
 			(server-path *default-server-path*)
 			(orientation :default)
 			(units :device))
-  (unless port (setq port (find-port :server-paths server-path)))
+  (unless port
+    (setq port (find-port :server-path server-path)))
   (map-over-grafts #'(lambda (graft)
 		       (when (graft-matches-spec graft orientation units)
 			 (return-from find-graft graft)))
 		   port)
   (make-instance (port-graft-class port)
 		 :port port
-		 :orientation  orientation 
+		 :orientation orientation 
 		 :units units))
 
 (defun graft-matches-spec (graft orientation units)

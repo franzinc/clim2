@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.4 92/02/24 13:07:57 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.5 92/03/04 16:21:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -32,7 +32,7 @@
 (defclass input-editing-stream-mixin
 	  (standard-encapsulating-stream input-editing-stream)
       ;; The fill-pointer of INPUT-BUFFER is the "high water" mark,
-      ;; that is, it points past the last character in the buffer.
+      ;; that is, it points past the last thing in the buffer.
      ((input-buffer :initform (make-array 100 :fill-pointer 0 :adjustable t)
 		    :accessor input-editor-buffer)
       ;; SCAN-POINTER (or INPUT-POSITION) is the point at which
@@ -47,8 +47,8 @@
       ;; input that was already typed in response to some editing command.
       (rescanning-p :accessor rescanning-p :initform nil)
       (rescan-queued :initform nil)
-      ;; A buffer for an activation character to process.  Conceptually,
-      ;; the activation character lives at the end of the input buffer.
+      ;; A buffer for an activation gesture to process.  Conceptually,
+      ;; the activation gesture lives at the end of the input buffer.
       (activation-gesture :initform nil)
       ;; State for prefixed commands, holds a command aarray
       (command-state :initform nil)
@@ -61,7 +61,7 @@
       (last-command-type :initform nil)))
 
 ;; The structure of *INPUT-EDITOR-COMMAND-AARRAY* is an alist that associates
-;; a character with either an input editor command, in the case of a "prefix",
+;; a gesture with either an input editor command, in the case of a "prefix",
 ;; another alist.  It is purposely not adjustable for performance reasons.
 ;; If you overflow, make another bigger one.
 ;; Perhaps the input-editor command table [or alist] should be a conceptual
@@ -110,8 +110,8 @@
 				  (start-index-var end-index-var noise-string-var)
 				  &key normal noise-string)
   #+Genera (declare (zwei:indentation 2 1))
-  (let ((end-var (make-symbol "END"))
-	(next-var (make-symbol "NEXT")))
+  (let ((end-var '#:end)
+	(next-var '#:next))
     `(let ((,start-index-var ,start)
 	   (,end-var (or ,end (length ,input-buffer)))
 	   (,end-index-var 0)
@@ -376,8 +376,8 @@
 
 (defmethod stream-unread-gesture ((istream input-editing-stream-mixin) gesture)
   (with-slots (input-buffer scan-pointer activation-gesture stream) istream
-    (when (characterp gesture)
-      ;; If it's an activation character, store it in the input editor's
+    (when (characterp gesture)		;no general keyboard events here...
+      ;; If it's an activation gesture, store it in the input editor's
       ;; slot rather than sending it back to the underlying stream.
       (when (activation-gesture-p gesture)
 	(when activation-gesture
@@ -506,10 +506,10 @@
 			  (return-from stream-read-gesture
 			    (values new-thing new-type)))
 			 ((activation-gesture-p new-thing)
-			  ;; If we got an activation character, we must first finish
+			  ;; If we got an activation gesture, we must first finish
 			  ;; scanning the input line, moving the insertion-pointer
 			  ;; to the end and finishing rescanning.  Only then can we
-			  ;; return the activation character.
+			  ;; return the activation gesture.
 			  (cond ((= insertion-pointer (fill-pointer input-buffer))
 				 (return-from stream-read-gesture
 				   (values new-thing new-type)))
@@ -904,11 +904,11 @@
 	    (let ((sys:rubout-handler :read))
 	      (funcall continuation stream)))
 	  ;; On the way out, swallow the unread delimiter, since the Genera input
-	  ;; editor discards activation characters on the way out
+	  ;; editor discards activation gestures on the way out.
 	  ;; This breaks some cases of read-preserving-whitespace, which could be
-	  ;; fixed by only discarding activation characters, but there's no way
-	  ;; to tell here if a character was an activation character, so trying to
-	  ;; fix read-preserving-whitespace would only break more important things
+	  ;; fixed by only discarding activation gestures, but there's no way to
+	  ;; tell here if a character was an activation gesture, so trying to fix
+	  ;; read-preserving-whitespace would only break more important things
 	  (stream-read-char-no-hang stream))))))
 
 #+Genera

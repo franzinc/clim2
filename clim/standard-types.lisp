@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.3 92/02/24 13:08:26 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.4 92/03/04 16:22:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1431,7 +1431,8 @@
 		  (let ((char (read-char stream)))
 		    (vector-push-extend char input-buffer)))
 		 (t
-		  (when (activation-gesture-p char)	;wasn't really an activation char
+		  (when (activation-gesture-p char)
+		    ;; I guess it wasn't really an activation gesture...
 		    (unless (rescanning-p stream)
 		      (replace-input stream (string char))))
 		  (vector-push-extend char input-buffer)

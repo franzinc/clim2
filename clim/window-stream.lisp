@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.3 92/01/31 14:59:02 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.4 92/02/24 13:08:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -140,7 +140,7 @@
 	  port-type *port-types*)
   (let ((port-type (second (assoc port-type *port-types*))))
     (let ((port (apply #'find-port :port-type port-type creation-args)))
-      (values (find-graft :port port :origin :nw) port))))
+      (values (find-graft :port port :orientation :nw) port))))
 
 #+Silica
 (defun open-window-stream (&rest args &key parent left top right bottom width height

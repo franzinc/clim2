@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defpackage.lisp,v 1.3 92/02/24 13:05:29 cer Exp $
+;; $fiHeader: defpackage.lisp,v 1.4 92/03/04 16:20:11 cer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 
@@ -43,7 +43,7 @@
 	  (nicknames (get-option :nicknames))
 	  #+Genera (prefix-name (car (get-option :prefix-name)))
 	  (size (get-option :size))
-	  (package-var (make-symbol "PACKAGE")))
+	  (package-var '#:package))
       (let ((bad-option
 	      (find-if-not #'(lambda (opt)
 			       (lisp:member opt '(:use :nicknames :size #+Genera :prefix-name

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-application.lisp,v 1.2 92/02/24 13:07:17 cer Exp $
+;; $fiHeader: default-application.lisp,v 1.3 92/03/04 16:21:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -36,7 +36,8 @@
     (throw-highlighted-presentation 
       (or (and (output-recording-stream-p window)
 	       (frame-find-innermost-applicable-presentation
-		 frame input-context window x y))
+		 frame input-context window x y
+		 :event button-press-event))
 	  *null-presentation*)
       input-context
       button-press-event)))
@@ -45,8 +46,11 @@
 ;;; satisfying the input context specified by TYPE.  Everything that looks for a
 ;;; presentation goes through this so that applications can specialize it.
 (defmethod frame-find-innermost-applicable-presentation
-	   ((frame standard-application-frame) input-context stream x y)
-  (find-innermost-applicable-presentation input-context stream x y))
+	   ((frame standard-application-frame) input-context stream x y &key event)
+  (find-innermost-applicable-presentation
+    input-context stream x y
+    :frame frame
+    :modifier-state (window-modifier-state stream) :event event))
 
 ;;; The contract of this is to replay the contents of STREAM within the region.
 (defmethod frame-replay ((frame standard-application-frame) stream &optional region)
@@ -106,7 +110,9 @@
        (frame presentation input-context window x y stream)
   (let ((modifier-state (window-modifier-state window)))
     (declare (fixnum modifier-state))
-    (multiple-value-bind (left left-context middle middle-context right right-context)
+    (multiple-value-bind (left   left-presentation   left-context
+			  middle middle-presentation middle-context
+			  right  right-presentation  right-context)
 	(find-applicable-translators-for-documentation presentation input-context
 						       frame window x y modifier-state)
       (let* ((*print-length* 3)
@@ -115,7 +121,8 @@
 	     (*print-array* nil)
 	     (*print-readably* nil)
 	     (*print-pretty* nil))
-	(flet ((document-translator (translator context-type button-name separator)
+	(flet ((document-translator (translator presentation context-type
+				     button-name separator)
 		 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
 		 (let ((bit #o20)
 		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
@@ -143,17 +150,18 @@
 				      (setq middle nil)
 				      "L,M: ")
 				     (t "L: "))))
-	      (document-translator left left-context button-name
-				   (if (or middle right) "; " "."))))
+	      (document-translator left left-presentation left-context
+				   button-name (if (or middle right) "; " "."))))
 	  (when middle
 	    (let ((button-name (cond ((eq middle right)
 				      (setq right nil)
 				      "M,R: ")
 				     (t "M: "))))
-	      (document-translator middle middle-context button-name
-				   (if right "; " "."))))
+	      (document-translator middle middle-presentation middle-context
+				   button-name (if right "; " "."))))
 	  (when right
-	    (document-translator right right-context "R: " "."))
+	    (document-translator right right-presentation right-context
+				 "R: " "."))
 	  ;; Return non-NIL if any pointer documentation was produced
 	  (or left middle right))))))
 
@@ -161,12 +169,14 @@
 (defun find-applicable-translators-for-documentation
        (presentation input-context frame window x y modifier-state)
   ;; Assume a maximum of three pointer buttons
-  (let ((left nil)   (left-context nil)
-	(middle nil) (middle-context nil)
-	(right nil)  (right-context nil))
-    (macrolet ((match (translator context-type button)
-		 (let ((button-translator (intern (symbol-name button)))
-		       (button-context (fintern "~A-~A" (symbol-name button) 'context)))
+  (let ((left nil)   (left-presentation nil)   (left-context nil)
+	(middle nil) (middle-presentation nil) (middle-context nil)
+	(right nil)  (right-presentation nil)  (right-context nil))
+    (macrolet ((match (translator presentation context-type button)
+		 (let* ((symbol (symbol-name button))
+			(button-translator (intern symbol))
+			(button-presentation (fintern "~A-~A" symbol 'presentation))
+			(button-context (fintern "~A-~A" symbol 'context)))
 		   `(when (and (or (null ,button-translator)
 				   (> (presentation-translator-priority ,translator)
 				      (presentation-translator-priority ,button-translator)))
@@ -174,6 +184,7 @@
 				 (button-index ,button) modifier-state
 				 (presentation-translator-gesture-name ,translator)))
 		      (setq ,button-translator ,translator
+			    ,button-presentation ,presentation
 			    ,button-context ,context-type)))))
       (do ((presentation presentation
 			 (parent-presentation-with-shared-box presentation window)))
@@ -189,21 +200,21 @@
 							presentation context-type
 							frame window x y
 							:modifier-state modifier-state)
-		      (match translator context-type :left)
-		      (match translator context-type :middle)
-		      (match translator context-type :right)))))
+		      (match translator presentation context-type :left)
+		      (match translator presentation context-type :middle)
+		      (match translator presentation context-type :right)))))
 	      (when (and (or left middle right)
 			 *presentation-menu-translator*
 			 (test-presentation-translator *presentation-menu-translator*
 						       presentation context-type
 						       frame window x y
 						       :modifier-state modifier-state))
-		(match *presentation-menu-translator* context-type :left)
-		(match *presentation-menu-translator* context-type :middle)
-		(match *presentation-menu-translator* context-type :right)))))))
-    (values left   left-context
-	    middle middle-context
-	    right  right-context)))
+		(match *presentation-menu-translator* presentation context-type :left)
+		(match *presentation-menu-translator* presentation context-type :middle)
+		(match *presentation-menu-translator* presentation context-type :right)))))))
+    (values left   left-presentation   left-context
+	    middle middle-presentation middle-context
+	    right  right-presentation  right-context)))
 
 #+Genera
 (defmethod mouse-documentation-window ((window window-stream)) nil)

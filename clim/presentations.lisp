@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.5 92/02/24 13:08:18 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.6 92/03/04 16:22:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -339,12 +339,15 @@
 	     ;; a translator from it to the input context.
 	     (dolist (context input-context)
 	       (let ((context-type (input-context-type context)))
-		 (when (presentation-matches-context-type presentation context-type
-							  frame stream x y
-							  :event event
-							  :modifier-state modifier-state)
-		   (return-from find-innermost-applicable-presentation
-		     presentation))))))
+		 (multiple-value-bind (translator any-match-p)
+		     (presentation-matches-context-type presentation context-type
+							frame stream x y
+							:event event
+							:modifier-state modifier-state)
+		   (declare (ignore translator))
+		   (when any-match-p
+		     (return-from find-innermost-applicable-presentation
+		       presentation)))))))
     (declare (dynamic-extent #'mapper #'test))
     (mapper (stream-output-history stream) nil 0 0)))
 

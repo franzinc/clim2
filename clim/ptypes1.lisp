@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.6 92/02/28 09:17:51 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.7 92/03/04 16:22:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1167,13 +1167,13 @@
 		    (unless (or (constantp parameters-massager) (symbolp parameters-massager)
 				(member (second (assoc to-class class-bindings-used))
 					'(0 1 nil)))
-		      (let ((temp (make-symbol (format nil "~A-PARAMETERS" supertype))))
+		      (let ((temp (make-symbol (format nil "~A-~A" supertype 'parameters))))
 			(push (list temp parameters-massager) bindings)
 			(setq parameters-massager temp)))
 		    (unless (or (constantp options-massager) (symbolp options-massager)
 				(member (third (assoc to-class class-bindings-used))
 					'(0 1 nil)))
-		      (let ((temp (make-symbol (format nil "~A-OPTIONS" supertype))))
+		      (let ((temp (make-symbol (format nil "~A-~A" supertype 'options))))
 			(push (list temp options-massager) bindings)
 			(setq options-massager temp))))
 		  (push (list to-class parameters-massager options-massager) alist)))))))

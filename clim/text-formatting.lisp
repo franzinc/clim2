@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.4 92/02/24 13:08:40 cer Exp $
+;; $fiHeader: text-formatting.lisp,v 1.5 92/03/04 16:22:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -133,7 +133,7 @@
 
 (defresource filling-stream (stream fill-width break-characters prefix prefix-width)
   :constructor (make-instance 'filling-stream
-			      :buffer (make-array 100 :element-type 'extended-char
+			      :buffer (make-array 100 :element-type 'character
 						      :fill-pointer 0
 						      :adjustable t))
   :matcher 't

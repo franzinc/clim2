@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-implementation.lisp,v 1.2 92/02/24 13:07:02 cer Exp $
+;; $fiHeader: clx-implementation.lisp,v 1.3 92/03/04 16:21:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,9 +15,10 @@
 
 (defvar *window-manager-border-size* 2)
 
-(defvar *clx-font-families* '((:fix "*-courier-*")
-			      (:sans-serif "*-helvetica-*")
-			      (:serif "*-charter-*" "*-new century schoolbook-*" "*-times-*")))
+(defvar *clx-font-families*
+	'((:fix "-*-courier-*")
+	  (:sans-serif "-*-helvetica-*")
+	  (:serif "-*-charter-*" "-*-new century schoolbook-*" "-*-times-*")))
 
 (defvar *clx-white-color* (xlib:make-color :red 1 :blue 1 :green 1))
 (defvar *clx-black-color* (xlib:make-color :red 0 :blue 0 :green 0))
@@ -506,8 +507,8 @@
 		 ;; the event is about any other windows (e.g. intermediaries inserted
 		 ;; by the window manger), then it's talking about something beyond
 		 ;; our sphere of influence and we ignore it.
-		 (cond ((eq parent (clx-stream-window (window-parent ws)))
-			(with-slots (left top right bottom) ws
+		 (with-slots (left top right bottom) ws
+		   (cond ((eq parent (clx-stream-window (window-parent ws)))
 			  (let ((border-width
 				  ;;--- This is technically more correct, but it doesn't
 				  ;;--- account for the title bar, and generally messes
@@ -518,9 +519,19 @@
 			      (window-note-size-or-position-change
 				ws (- x border-width) (- y border-width)
 				(+ x (- right left) border-width)
-				(+ y (- bottom top) border-width)))))
-			(setf (slot-value ws 'reparented-p) nil))
-		       (t (setf (slot-value ws 'reparented-p) t)))
+				(+ y (- bottom top) border-width))))
+			  (setf (slot-value ws 'reparented-p) nil))
+			 (t			  
+			  (multiple-value-setq (x y)
+			    (xlib:translate-coordinates
+			      window 0 0 (clx-stream-window (window-parent ws))))
+			  (let ((border-width 0))
+			    (window-note-size-or-position-change
+			      ws
+			      (- x border-width) (- y border-width)
+			      (+ x (- right left) border-width)
+			      (+ y (- bottom top) border-width)))
+			  (setf (slot-value ws 'reparented-p) t))))
 		 t)
 		((:configure-notify) (window width height x y send-event-p border-width)
 		 (setq ws (getf (xlib:window-plist window) 'stream))	;test form
@@ -1520,8 +1531,15 @@
 		(error "Pattern designs other than colors are not supported yet.")))
 	    (let* ((design-pixels (make-array (length designs)))
 		   (depth (xlib:screen-root-depth screen))
-		   (image-data (make-array (list height width)
-					   :element-type `(unsigned-byte ,depth))))
+		   (image-data 
+		     (make-array (list height width)
+				 :element-type
+				   (cond ((= depth 1) 'xlib::pixarray-1-element-type)
+					 ((<= depth 4) 'xlib::pixarray-4-element-type)
+					 ((<= depth 8) 'xlib::pixarray-8-element-type)
+					 ((<= depth 16) 'xlib::pixarray-16-element-type)
+					 ((<= depth 24) 'xlib::pixarray-24-element-type)
+					 (t 'xlib::pixarray-32-element-type)))))
 	      (declare #+Genera (sys:array-register design-pixels)
 		       (simple-vector design-pixels))
 	      ;; Cache the decoded designs from the pattern
@@ -1547,7 +1565,6 @@
 		(setf (xlib:gcontext-tile gc)
 		      (let ((image
 			      (xlib:create-image :depth depth
-						 :bits-per-pixel depth
 						 :data image-data
 						 :width width :height height))
 			    (pixmap

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.14 92/03/02 18:38:46 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.15 92/03/09 17:42:01 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -92,6 +92,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/input-protocol.fasl \
                         clim/output-protocol.fasl \
                         clim/recording-protocol.fasl \
+			clim/recording-defs.fasl \
 			clim/text-recording.fasl \
 			clim/graphics-recording.fasl \
                         clim/interactive-protocol.fasl \

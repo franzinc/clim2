@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.13 92/03/04 16:22:00 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.14 92/03/06 09:08:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -268,6 +268,19 @@
 	(with-text-style (stream style)
 	  (write-string string stream))
 	(write-string string stream))))
+
+(defclass static-menu ()
+    ((name :initarg :name)
+     (menu-contents :initarg :menu-contents)
+     (default-presentation :initarg :default-presentation)
+     (root-window :initarg :root-window)
+     ;; In case we need to "compile" the menu on the fly
+     (items :initarg :items)
+     (default-item :initarg :default-item)
+     (default-style :initarg :default-style)
+     (printer :initarg :printer)
+     (presentation-type :initarg :presentation-type)
+     (drawer-args :initarg :drawer-args)))
 
 (defgeneric menu-choose (items &rest keys
 			 &key associated-window default-item default-style
@@ -544,19 +557,6 @@
 
 
 ;;; Static menus
-
-(defclass static-menu ()
-    ((name :initarg :name)
-     (menu-contents :initarg :menu-contents)
-     (default-presentation :initarg :default-presentation)
-     (root-window :initarg :root-window)
-     ;; In case we need to "compile" the menu on the fly
-     (items :initarg :items)
-     (default-item :initarg :default-item)
-     (default-style :initarg :default-style)
-     (printer :initarg :printer)
-     (presentation-type :initarg :presentation-type)
-     (drawer-args :initarg :drawer-args)))
 
 (defmethod print-object ((static-menu static-menu) stream)
   (print-unreadable-object (static-menu stream :type t :identity t)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.9 92/03/04 16:21:04 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.9 92/03/04 16:21:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -361,7 +361,7 @@
 					     :stream command-stream
 					     :command-parser 'menu-command-parser
 					     :use-keystrokes t)))))
-		     (if (and command (not (characterp command)))
+		     (if (and command (not (keyboard-event-p command)))
 			 (execute-frame-command frame command)
 			 (beep stream)))
 		   (when (or resynchronize-every-pass (slot-value avv-record 'resynchronize))
@@ -558,7 +558,7 @@
     (map-queries avv-record)))
 
 #+Genera
-(define-accept-values-command (com-next-avv-choice :keystroke #\c-N)
+(define-accept-values-command (com-next-avv-choice :keystroke (:n :control))
     ()
   (with-slots (stream selected-item) *application-frame*
     (let ((avv-record (slot-value stream 'avv-record)))
@@ -581,7 +581,7 @@
 			 (setq found-item t)))))))))))
 
 #+Genera
-(define-accept-values-command (com-previous-avv-choice :keystroke #\c-P)
+(define-accept-values-command (com-previous-avv-choice :keystroke (:p :control))
     ()
   (with-slots (stream selected-item) *application-frame*
     (let ((avv-record (slot-value stream 'avv-record)))
@@ -593,7 +593,7 @@
 	     )))))
 
 #+Genera
-(add-keystroke-to-command-table 'accept-values #\c-E :function
+(add-keystroke-to-command-table 'accept-values '(:e :control) :function
   #'(lambda (gesture numeric-argument)
       (declare (ignore gesture numeric-argument))
       (with-slots (selected-item) *application-frame*
@@ -622,15 +622,11 @@
       (setf value nil
 	    changed-p t))))
 
-(define-accept-values-command (com-exit-avv :keystroke #+Genera #\End
-						       ;; what the key labelled END gives
-						       #+CCL-2 #\^D
-						       #-(or Genera CCL-2) nil)
+(define-accept-values-command (com-exit-avv :keystroke :end)
     ()
   (invoke-restart 'frame-exit))
 
-(define-accept-values-command (com-abort-avv :keystroke #+Genera #\Abort
-							#-Genera nil)
+(define-accept-values-command (com-abort-avv :keystroke :abort)
     ()
   (abort))
 
@@ -1078,7 +1074,7 @@
 
 (defmethod value-changed-callback ((gadget radio-box)
 				   (client accept-values-stream) id new-value)
-  (do-avv-command new-value client id))
+  (do-avv-command (gadget-id new-value) client id))
 
 (defun do-avv-command (new-value client id)
   (throw-highlighted-presentation

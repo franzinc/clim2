@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.9 92/03/06 09:08:25 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.10 92/03/09 17:40:58 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -203,8 +203,7 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
   (if value 1 0))
 
-(defmethod convert-resource-out ((parent  t) (type (eql 'string))
-				 value)
+(defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
   (string-to-char* value))
 
 (define-enumerated-resource dialog-style (:modeless
@@ -226,8 +225,7 @@
 				value)
   (not (zerop (ash value -24))))
 
-(defmethod convert-resource-in ((parent t) (type (eql 'cardinal))
-				value)
+(defmethod convert-resource-in ((parent t) (type (eql 'cardinal)) value)
   value)
 
 ;; We have to do this because we pass a pointer to :unsigned-long but
@@ -254,12 +252,10 @@
 (defmethod convert-resource-in ((parent t) (type (eql 'pixel)) value)
   value)
 
-(defmethod convert-resource-out ((parent t) (type (eql
-						   'horizontal-position))  value)
+(defmethod convert-resource-out ((parent t) (type (eql 'horizontal-position))  value)
   value)
 
-(defmethod convert-resource-out ((parent t) (type (eql
-						   'vertical-position))  value)
+(defmethod convert-resource-out ((parent t) (type (eql 'vertical-position))  value)
   value)
 
 (define-enumerated-resource resize-policy (:none :grow :any))
@@ -274,14 +270,12 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'shell-vert-dim)) x) x)
 (defmethod convert-resource-out ((parent t) (type (eql 'shell-vert-pos)) x) x)
 (defmethod convert-resource-out ((parent t) (type (eql 'shell-horiz-dim)) x) x)
-(defmethod convert-resource-out ((parent t) (type (eql
-						   'shell-horiz-pos)) x) x)
+(defmethod convert-resource-out ((parent t) (type (eql 'shell-horiz-pos)) x) x)
 
 (defmethod convert-resource-in ((parent t) (type (eql 'shell-vert-dim)) x) x)
 (defmethod convert-resource-in ((parent t) (type (eql 'shell-vert-pos)) x) x)
 (defmethod convert-resource-in ((parent t) (type (eql 'shell-horiz-dim)) x) x)
-(defmethod convert-resource-in ((parent t) (type (eql
-						  'shell-horiz-pos)) x) x)
+(defmethod convert-resource-in ((parent t) (type (eql 'shell-horiz-pos)) x) x)
 
 
 (define-enumerated-resource delete-response (:destroy :unmap :do-nothing))
@@ -338,8 +332,7 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'position)) value)
   value)
 
-(defmethod convert-resource-in ((parent t) (type (eql 'position))
-				value)
+(defmethod convert-resource-in ((parent t) (type (eql 'position)) value)
   (convert-16bit-resource-in value))
 
 (defun convert-16bit-resource-in (value)
@@ -352,8 +345,7 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'dimension)) value)
   value)
 
-(defmethod convert-resource-in ((parent t) (type (eql 'dimension))
-				value)
+(defmethod convert-resource-in ((parent t) (type (eql 'dimension)) value)
   (ash value -16))
 
 ;; from OpenLook.h

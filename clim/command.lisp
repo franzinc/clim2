@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.4 92/03/04 16:21:15 cer Exp Locker: cer $
+;; $fiHeader: command.lisp,v 1.5 92/03/06 09:08:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -47,7 +47,7 @@
 ;; COMMANDS is a table of all the commands in this command table, which maps from the
 ;; command name to the command-line name.
 ;; COMMAND-LINE-NAMES is a sorted set that maps from command-line names to command names.
-;; MENU is a mapping from menu names and accelerator characters to menu items, stored
+;; MENU is a mapping from menu names and accelerator gestures to menu items, stored
 ;; in the form (MENU-NAME KEYSTROKE COMMAND-MENU-ITEM), where the menu item is of the
 ;; form (TYPE VALUE . OPTIONS).  MENU-TICK is incremented when MENU changes.
 ;; TRANSLATORS is the set of presentation translators for this command table.
@@ -195,13 +195,15 @@
     (nstring-capitalize (nsubstitute #\Space #\- name))))
 
 (defun add-command-to-command-table (command-name command-table
-				     &key name menu keystroke (test #'eql) (errorp t))
+				     &key name menu keystroke (test #'gesture-eql) (errorp t))
   (check-type command-name symbol)
   (setq command-table (find-command-table command-table))
   (when (eq name t)
     (setq name (command-name-from-symbol command-name)))
   (check-type name (or string null))
-  (check-type keystroke (or character null))	;---gesture spec
+  (when keystroke
+    (assert (keyboard-gesture-spec-p keystroke) (keystroke)
+	    "~S is not a keyboard gesture spec" keystroke))
   (when (command-present-in-command-table-p command-name command-table)
     (when errorp
       (cerror "Remove the command and proceed"
@@ -396,7 +398,9 @@
 					    text-style (errorp t))
   (check-type string (or string null))
   (check-type type (member :command :function :menu :divider))
-  (check-type keystroke (or character null))	;---gesture spec
+  (when keystroke
+    (assert (keyboard-gesture-spec-p keystroke) (keystroke)
+	    "~S is not a keyboard gesture spec" keystroke))
   (check-type documentation (or string null))
   (setq command-table (find-command-table command-table))
   (let ((old-item (and string (find-menu-item string command-table :errorp nil))))
@@ -669,30 +673,31 @@
 
 ;;; Keystroke accelerators
 
-(defun add-keystroke-to-command-table (command-table character type value
-				       &key documentation (test #'eql) (errorp t))
-  (check-type character character)		;---gesture spec
+(defun add-keystroke-to-command-table (command-table keystroke type value
+				       &key documentation (test #'gesture-eql) (errorp t))
+  (assert (keyboard-gesture-spec-p keystroke) (keystroke)
+	  "~S is not a keyboard gesture spec" keystroke)
   (check-type type (member :command :function :menu))
   (check-type documentation (or string null))
   (setq command-table (find-command-table command-table))
-  (let ((old-item (find-keystroke-item character command-table
+  (let ((old-item (find-keystroke-item keystroke command-table
 				       :test test :errorp nil)))
     (when old-item
       (when errorp
 	(cerror "Remove the keystroke item and proceed"
 		'command-already-present
 		:format-string "Keystroke item ~S already present in ~S"
-		:format-args (list character command-table)))
-	(remove-keystroke-from-command-table command-table character :test test)))
+		:format-args (list keystroke command-table)))
+	(remove-keystroke-from-command-table command-table keystroke :test test)))
   (add-menu-item-to-command-table command-table nil type value
 				  :documentation documentation
-				  :keystroke character :errorp nil))
+				  :keystroke keystroke :errorp nil))
 
-(defun remove-keystroke-from-command-table (command-table character
-					    &key (test #'eql) (errorp t))
+(defun remove-keystroke-from-command-table (command-table keystroke
+					    &key (test #'gesture-eql) (errorp t))
   (setq command-table (find-command-table command-table))
   (with-slots (menu keystrokes) command-table
-    (let ((index (position character menu :key #'second :test test)))
+    (let ((index (position keystroke menu :key #'second :test test)))
       (cond (index
 	     (let ((element (aref menu index)))
 	       ;; Don't remove the whole item if there's a menu-name,
@@ -708,7 +713,7 @@
 	     (when errorp
 	       (error 'command-not-present
 		      :format-string "Keystroke item ~S not present in ~S"
-		      :format-args (list character command-table))))))))
+		      :format-args (list keystroke command-table))))))))
 
 (defun map-over-command-table-keystrokes (function command-table)
   (declare (dynamic-extent function))
@@ -717,14 +722,14 @@
 		 (apply function entry)))
        (slot-value (find-command-table command-table) 'menu)))
 
-(defun find-keystroke-item (character command-table &key (test #'eql) (errorp t))
+(defun find-keystroke-item (keystroke command-table &key (test #'gesture-eql) (errorp t))
   (declare (values menu-item command-table))
   (let* ((command-table (find-command-table command-table))
 	 (entry (block find-entry
-		  ;; Do it the hard way so that CHAR-EQUAL doesn't see NILs
+		  ;; Do it the hard way so that GESTURE-EQL doesn't see NILs
 		  (map nil #'(lambda (entry)
 			       (when (and (second entry)
-					  (funcall test character (second entry)))
+					  (funcall test keystroke (second entry)))
 				 (return-from find-entry entry)))
 		       (slot-value command-table 'menu)))))
     (when entry
@@ -733,15 +738,15 @@
   (when errorp
     (error 'command-not-present
 	   :format-string "Keystroke ~S has no menu item present in ~S"
-	   :format-args (list character command-table))))
+	   :format-args (list keystroke command-table))))
 
-(defun lookup-keystroke-item (character command-table &key (test #'eql))
+(defun lookup-keystroke-item (keystroke command-table &key (test #'gesture-eql))
   (declare (values menu-item command-table))
   (labels ((map-menu (command-table)
 	     (map nil #'(lambda (entry)
 			  (let ((item (third entry)))
 			    (when (and (second entry)
-				       (funcall test character (second entry)))
+				       (funcall test keystroke (second entry)))
 			      (return-from lookup-keystroke-item
 				(values item command-table)))
 			    (when (and (eq (command-menu-item-type item) ':menu)
@@ -757,10 +762,10 @@
     (map-menu (find-command-table command-table))))
 
 ;; Return a command associated with a keystroke iff it is enabled.
-;; Otherwise, return the keystroke character.
-(defun lookup-keystroke-command-item (character command-table
-				      &key (test #'eql) (numeric-argument 1))
-  (let ((item (lookup-keystroke-item character command-table :test test)))
+;; Otherwise, return the keystroke keystroke.
+(defun lookup-keystroke-command-item (keystroke command-table
+				      &key (test #'gesture-eql) (numeric-argument 1))
+  (let ((item (lookup-keystroke-item keystroke command-table :test test)))
     (when item
       (let* ((type (command-menu-item-type item))
 	     (command 
@@ -770,7 +775,7 @@
 	(when (command-enabled (command-name command) *application-frame*)
 	  (return-from lookup-keystroke-command-item
 	    (substitute-numeric-argument-marker command numeric-argument))))))
-  character)
+  keystroke)
 
 (defmacro with-command-table-keystrokes ((keystrokes-var command-table) &body body)
   (let ((comtab '#:command-table))
