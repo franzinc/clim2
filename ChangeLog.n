@@ -13,6 +13,55 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 post release patches:
 
+2002-05-22  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc 
+        * clim/frames.lisp
+	  spr25783/bug11886 - Make accepting-values handle documented
+                   values for :right-margin :bottom-margin.
+        * clim/command.lisp
+	  spr25469/bug11650 - Add missing error-format arg in
+                   find-command-table.
+        * tk-silica/xm-gadgets.lisp
+	  spr25487/bug11666 - Force label-less toggle-switch widget to
+                   have a simple (blank) label to ensure correct sizing
+                   under Motif2.1
+        * clim/input-defs.lisp
+	  spr25911/bug11991 - Modify the behavior of stream-set-pointer-position
+                   so that the position is set relative to the stream's
+                   co-ordinate system, as per the methods documentation.
+                   (The actual modification occurs in the method
+                   set-sheet-pointer-position.)
+        * tk-silica/xt-silica.lisp
+	  spr25913/bug11992 - On Motif, fix bug where the special
+                   scrollable-menus always came up in the same place.
+                   Now they come up at the pointer.
+        * aclpc/acl-frames.lisp
+	  spr25894/bug11993 - On Window: Fix menu-choose so that second
+                   returned value is the menu-item itself.
+        * aclpc/acl-class.lisp
+	  aclpc/acl-port.lisp
+	  spr25546/bug11687 - In Windows, ensure Clim is properly reset after
+                   a acl-port is destroyed.
+        * clim/accept.lisp
+          spr26071/bug12082 - Fix bug where stream-read-gesture attempts to
+                   unread :eof in certain cases.
+        * clim/accept.lisp
+          spr25912/bug12083 - Fix bug on windows where selecting commands
+                   from completion menu sometimes goes into infinite loop.
+        * aclpc/acl-port.lisp
+	  aclpc/acl-class.lisp
+	  spr25900/bug12116 - Correct behavior of meta-key for
+                   mouse-gestures on Windows.
+        * clim/input-editor-commands.lisp
+	  spr25914/bug12120 - Do rescan-immediate after input-editor
+                   delete/rubout commands in order to ensure the correct input-context.
+        * clim/stream-defprotocols.lisp
+	  spr26133/bug12119 - Add the defoperation form for
+                   medium-draw-bezier-curve*.
+
+*******************************************************************************
+post release patches:
+
 2002-01-03  Nichael Cramer <ncramer@pointnclick.com>
     from pnc for bug11562/spr25133:
         * tk-silica/xm-frames.lisp

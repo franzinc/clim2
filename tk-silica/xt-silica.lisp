@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.3.2.3 2001/09/18 16:36:45 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.3.2.4 2002/05/23 15:58:25 layer Exp $
 
 (in-package :xm-silica)
 
@@ -2109,9 +2109,17 @@ the geometry of the children. Instead the parent has control. "))
    ;; this is to make sure that position-sheet-carefully works
    ;; correctly on Motif for _both_ dialogs and regular frames
    ;; (cim 12/13/94)
-   (if (popup-frame-p frame)
-       (sheet-direct-mirror (frame-top-level-sheet frame))
-     (frame-shell frame))
+   (cond ((typep frame 'tk-silica::motif-menu-frame)
+	  ;; spr25913
+	  ;; For this type of frame, calling set-values on the 
+	  ;; sheet-direct-mirror does not cause the frame to move.
+	  ;; For now, be paranoid and specialize only on the 
+	  ;; specific class.
+	  (frame-shell frame))
+	 ((popup-frame-p frame)
+	  (sheet-direct-mirror (frame-top-level-sheet frame)))
+	 (t 
+	  (frame-shell frame)))
    :x x :y y))
 
 (defmethod port-resize-frame ((port xt-port) frame width height)

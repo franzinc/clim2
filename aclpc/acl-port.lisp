@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.12.24.1 2000/10/05 18:02:10 layer Exp $
+;; $Id: acl-port.lisp,v 1.12.24.1.2.1 2002/05/23 15:58:25 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -321,6 +321,13 @@
     (when (eq port *acl-port*)
       (setq *port-mirror-sheet-alist* nil)
       (setf *acl-port* nil))))
+
+(defmethod destroy-port :after ((port acl-port))
+  ;; spr25546
+  ;; See documentation for the :before method above.
+  ;; Do this as an :after method to avoid collisions during 
+  ;; other clean-up operations.
+  (reset-aclpc-clim))
 
 (defstruct (acl-font)
   index
@@ -904,6 +911,19 @@ or (:style . (family face size))")
     (if double 
 	(logior state (make-modifier-state :double))
       state)))
+
+;;; SPR25900 --pnc
+;;; Windows handles the meta/alt key differently from the
+;;; other modifier keys.  In particular, on mouse-keys, only
+;;; information about the control and shift keys is included.
+;;; So, we get the information about the meta/alt key from
+;;; the variable *modstate*, set in onkeydown (in aclpc/acl-class.lisp)
+(defun windows-mask->modifier-state+ (mask &optional double)
+  (let ((state (windows-mask->modifier-state mask double)))
+    (when (and *modstate*
+               (modstate-meta *modstate*))
+      (setq state (logior state (make-modifier-state :meta))))
+    state))
 
 (defmethod event-handler ((port acl-port) args)
   (declare (ignore args))
