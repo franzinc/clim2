@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-funs.lisp,v 1.20.22.1 1998/07/06 23:10:14 layer Exp $
+;; $Id: xm-funs.lisp,v 1.20.22.2 2001/04/06 03:47:51 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -51,6 +51,15 @@
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
     :return-type :fixnum)
+
+;;; New method to support Motif2.1
+(defforeign 'xm_string_free
+    :entry-point (ff:convert-to-lang "XmStringFree")
+    :call-direct t 
+    :callback nil
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :void)
 
 (defforeign 'xm_get_pixmap
     :entry-point (ff:convert-to-lang "XmGetPixmap")

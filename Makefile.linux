@@ -1,4 +1,4 @@
-# $Id: Makefile.linux,v 1.1.2.1 1998/05/29 16:01:29 layer Exp $
+# $Id: Makefile.linux,v 1.1.2.2 2001/04/06 03:47:51 layer Exp $
 
 include Makefile.defs
 
@@ -6,7 +6,7 @@ Makefile=Makefile.linux
 
 XINCLUDES=-I/usr/X11R6/include
 
-TKLIB=-lXm -lXpm -lXext
+TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt
 XLIB=-lX11
 
