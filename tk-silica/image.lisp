@@ -1,4 +1,3 @@
-
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[]-
@@ -21,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.10 1993/05/13 16:24:49 cer Exp $
+;; $fiHeader: image.lisp,v 1.11 1993/06/02 18:42:18 cer Exp $
 
 
 (in-package :xm-silica)

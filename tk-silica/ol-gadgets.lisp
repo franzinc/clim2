@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.52 1993/06/02 18:42:21 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.53 1993/06/04 16:07:10 cer Exp $
 
 
 (in-package :xm-silica)
@@ -455,6 +455,24 @@
        mirror
        t))
     mirror))
+
+(defmethod set-button-accelerator-from-keystroke ((menubar openlook-menu-bar) button keystroke)
+  (when keystroke 
+    (record-accelerator menubar keystroke)
+    (multiple-value-bind (accel accel-text)
+	(get-accelerator-text keystroke t)
+      (dolist (modifier (cdr keystroke))
+	(setq accel-text
+	  (concatenate 'string 
+	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
+	    accel-text))
+	(setq accel
+	  (concatenate 'string 
+	    (case modifier (:control "c") (:meta "a") (t ""))
+	    accel)))
+      (tk::set-values button 
+		      :accelerator accel
+		      :accelerator-text accel-text))))
 
 (defun command-button-callback-ol (button frame command-table item)
   (command-button-callback button nil frame command-table item))

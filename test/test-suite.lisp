@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.65 1993/05/25 20:42:10 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.66 1993/06/02 18:42:06 cer Exp $
 
 (in-package :clim-user)
 
@@ -2000,7 +2000,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		      :prompt "Line thickness" :default line-thickness))
 	(terpri stream)
 	(setq line-thickness-units
-	      (accept '(member :normal :point) :stream stream
+	  (accept '(member :normal :point) :stream stream
 		      :prompt "Line style units" :default line-thickness-units))
 	(terpri stream)
 	(setq color-name 

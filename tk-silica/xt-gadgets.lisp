@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.33 1993/05/05 01:40:35 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.34 1993/06/02 18:42:36 cer Exp $
 
 (in-package :xm-silica)
 
@@ -290,30 +290,18 @@
       ((#\, :\, ) "comma")
       ))
 
-(defun get-accelerator-text (keystroke)
+(defun get-accelerator-text (keystroke &optional olit)
   (let ((key (car keystroke)))
     (let ((x (assoc key *funny-accelerator-characters* 
 		    :test #'member)))
       (if x
-	  (values (format nil "<Key>~A"  (second x))
+	  (values (if olit 
+		      (format nil "<~A>"  (second x))
+		      (format nil "<Key>~A"  (second x)))
 		  (format nil "~A" key))
-	(values (format nil "<Key>~A" key)
+	(values (if olit 
+		    (format nil "<~A>" key)
+		  (format nil "<Key>~A" key))
 		(format nil "~A" key))))))
 
-(defmethod set-button-accelerator-from-keystroke ((menubar menu-bar) button keystroke)
-  (when keystroke 
-    (record-accelerator menubar keystroke)
-    (multiple-value-bind (accel accel-text)
-	(get-accelerator-text keystroke)
-      (dolist (modifier (cdr keystroke))
-        (setq accel-text
-          (concatenate 'string 
-            (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
-            accel-text))
-        (setq accel
-          (concatenate 'string 
-            (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
-            accel)))
-      (tk::set-values button 
-                      :accelerator accel
-                      :accelerator-text accel-text))))
+

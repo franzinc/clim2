@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.57 1993/05/25 20:42:34 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.58 1993/06/02 18:42:27 cer Exp $
 
 (in-package :xm-silica)
 
@@ -282,6 +282,24 @@
       (make-menu-for-command-table
 	 ct mirror (not flatp)))
     mirror))
+
+(defmethod set-button-accelerator-from-keystroke ((menubar motif-menu-bar) button keystroke)
+  (when keystroke 
+    (record-accelerator menubar keystroke)
+    (multiple-value-bind (accel accel-text)
+	(get-accelerator-text keystroke)
+      (dolist (modifier (cdr keystroke))
+        (setq accel-text
+          (concatenate 'string 
+            (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
+            accel-text))
+        (setq accel
+          (concatenate 'string 
+            (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
+            accel)))
+      (tk::set-values button 
+                      :accelerator accel
+                      :accelerator-text accel-text))))
 
 (defun display-motif-help (widget framem documentation)
   (frame-manager-notify-user 

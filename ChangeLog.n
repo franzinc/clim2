@@ -1,4 +1,16 @@
 -------------------------------------------------------------------------------
+from cer: Tue Jun 22 17:12:03 PDT 1993
+
+test/test-driver.lisp		Replaced xsync call by xm-silica::port-finish-output
+test/test-suite.lisp		reindent
+tk/event.lisp			debugging
+tk-silica/image.lisp		
+tk-silica/ol-gadgets.lisp		Added set-button-accelerator-from-keystroke
+tk-silica/xm-frames.lisp		Added set-button-accelerator-from-keystroke
+tk-silica/xt-gadgets.lisp		Removed set-button-accelerator-from-keystroke
+tk-silica/xt-graphics.lisp		Added port-finish-output
+
+-------------------------------------------------------------------------------
 from cer: Mon Jun 21 13:43:34 PDT 1993
 
 Makefile.defs			Use devel.13

@@ -87,10 +87,8 @@
 (defvar *default-input-state-timeout* 300)
 (defun wait-for-clim-input-state (invocation &optional (timeout *default-input-state-timeout*))
   (let ((process (invocation-process invocation)))
-    ;;-- there really should be a port-finish-output
     (let ((port (port (invocation-frame invocation))))
-      (when port
-	(x11:xsync (tk-silica::port-display port) 0)))
+      (when port (xm-silica::port-finish-output port)))
     (mp:process-allow-schedule)
     (if timeout
 	(let ((done nil))

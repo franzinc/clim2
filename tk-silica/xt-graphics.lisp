@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.74 1993/05/25 20:42:45 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.75 1993/06/21 20:51:38 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1753,6 +1753,8 @@
 (defmethod medium-finish-output ((medium xt-medium))
   (x11:xsync (port-display (port medium)) 0))
 
+(defmethod port-finish-output ((port xt-port))
+  (x11:xsync (port-display port) 0))
 
 (defmacro with-medium-state-cached ((medium) &body body)
   `(prog ,medium ,@body))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.17 1993/05/13 16:24:34 cer Exp $
+;; $fiHeader: event.lisp,v 1.18 1993/05/25 20:42:16 cer Exp $
 
 (in-package :tk)
 
@@ -85,12 +85,13 @@
 
 (defun process-one-event (context mask reason)
   (cond ((plusp mask)
+
 	 #+debug
 	 (when (logtest mask *xt-im-xevent*)
 	   (let ((event (x11:make-xevent)))
 	     (unless (zerop (xt_app_peek_event context event))
-	       (when (eq (event-type event) :key-press)
-		 (break)))))
+	       (print (event-type event) excl:*initial-terminal-io*))))
+
 	 (xt_app_process_event
 	  context
 	  ;; Because of a feature in the OLIT toolkit we need to
@@ -160,6 +161,9 @@
 				 (continue-to-dispatch
 				  :unsigned-long))
   (declare (ignore continue-to-dispatch))
+
+  #+ignore (print (event-type event) excl:*initial-terminal-io*)
+
   (let* ((widget (find-object-from-address widget))
 	 (eh-info (or (assoc client-data (widget-event-handler-data widget))
 		      (error "Cannot find event-handler info ~S,~S"
