@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.17 1999/06/09 21:29:47 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.18 1999/06/18 19:41:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -445,13 +445,10 @@
 		       (created-bitmap nil)
 		       (created-mask-bitmap nil))
 		   (multiple-value-setq (dc-image created-bitmap created-mask-bitmap)
-		     (dc-image-for-transparent-pattern medium ink array designs))		     
-		     
+		     (dc-image-for-transparent-pattern medium ink array designs))
 		   (loop for DCI in dc-image
 		       do (setf (dc-image-brush dci) 
-			    #+someday
-			    (win:CreatePatternBrush (dc-image-bitmap dci))
-			    (pattern-to-hatchbrush ink)))
+			    (win:CreatePatternBrush (dc-image-bitmap dci))))
 		   (values dc-image
 			   created-bitmap
 			   created-mask-bitmap)))
@@ -459,8 +456,6 @@
 		 (setq array (byte-align-pixmap array))
 		 (let ((dc-image nil)
 		       (created-bitmap nil))
-		   ;; win95: creating brushes from patterns larger than
-		   ;; 8x8 is not supported.
 		   (multiple-value-setq (dc-image created-bitmap)
 		     (dc-image-for-multi-color-pattern medium ink array designs))
 		   (setf (dc-image-brush dc-image)
@@ -508,20 +503,30 @@ draw icons and mouse cursors on the screen.
   ;; The only case we handle right now is stipples
   (let ((cache (port-dc-cache (port medium))))
     (or (gethash ink cache)
-	(multiple-value-bind (image created-bitmap created-mask-bitmap)
-	    (dc-image-for-ink medium (decode-rectangular-tile ink))
-	  ;; The brush of PATTERN is used as the tile.
-	  (when (and (atom image)
-		     (null created-bitmap)
-		     (null created-mask-bitmap))
-	    (setf (gethash ink cache) image))
-	  ;; It is not cached if it is a cons, to be consistent with
-	  ;; the non-caching behavior of patterns with transparent
-	  ;; inks.
-	  ;; Also, don't cache if it generated a bitmap or mask.
-	  (values image 
-		  created-bitmap
-		  created-mask-bitmap)))))
+	(let ((pattern (decode-rectangular-tile ink)))
+	  (multiple-value-bind (image created-bitmap created-mask-bitmap)
+	      (dc-image-for-ink medium pattern)
+	    ;; The brush of PATTERN is used as the tile.
+	    (cond ((and (atom image)
+			(null created-bitmap)
+			(null created-mask-bitmap))
+		   ;; It is not cached if it is a cons, to be consistent with
+		   ;; the non-caching behavior of patterns with transparent
+		   ;; inks.
+		   ;; Also, don't cache if it generated a bitmap or mask.
+		   (setf (gethash ink cache) image))
+		  ((consp image)
+		   ;; It is a transparent rectangular tile.  These don't
+		   ;; work right now, so lets use a Windows hatchbrush
+		   ;; for now.  We can cache a hatchbrush I think.
+		   (dolist (dci image)
+		     (setf (dc-image-background-color dci) -1); transparent
+		     (setf (dc-image-brush dci) 
+		       (pattern-to-hatchbrush pattern)))
+		   (setf (gethash ink cache) image)))
+	    (values image 
+		    created-bitmap
+		    created-mask-bitmap))))))
 
 (defun nyi ()
   (error "This NT CLIM operation is NYI (Not Yet Implemented)."))
@@ -537,8 +542,8 @@ draw icons and mouse cursors on the screen.
 		   (image2 (dc-image-for-ink medium ink2))
 		   (color (logxor (dc-image-text-color image1)
 				  (dc-image-text-color image2))))
-	      (unless (and (eql (dc-image-rop2 image1) win:r2_copypen)
-			   (eql (dc-image-rop2 image2) win:r2_copypen)
+	      (unless (and (eq (dc-image-rop2 image1) win:r2_copypen)
+			   (eq (dc-image-rop2 image2) win:r2_copypen)
 			   (null (dc-image-bitmap image1))
 			   (null (dc-image-bitmap image2)))
 		(nyi))
@@ -585,11 +590,12 @@ draw icons and mouse cursors on the screen.
 	  (let* ((sheet (medium-sheet medium))
 		 (transform (sheet-device-transformation sheet))
 		 (ink (medium-ink medium))
-		 (line-style (medium-line-style medium)))
+		 (line-style (medium-line-style medium))
+		 (L (length position-seq)))
 	    (with-set-dc-for-ink (dc medium ink line-style)
 	      (do ((i 0 (+ i 2))
 		   (j 1 (+ j 2)))
-		  ((>= i (length position-seq)))
+		  ((>= i L))
 		(let ((x (elt position-seq i))
 		      (y (elt position-seq j)))
 		  (convert-to-device-coordinates transform x y)
@@ -659,7 +665,8 @@ draw icons and mouse cursors on the screen.
 	   (optimize (speed 3) (safety 0)))
   (let ((window (medium-drawable medium)))
     (with-medium-dc (medium dc) 
-      (with-selected-acl-dc (old) (medium window dc)
+      (with-selected-acl-dc (old) 
+	(medium window dc)
 	(when old
 	  (let* ((sheet (medium-sheet medium))
 		 (transform (sheet-device-transformation sheet))
@@ -676,62 +683,52 @@ draw icons and mouse cursors on the screen.
 		   ;; this case is needed to correctly render patterns
 		   ;; larger than 8x8, due to limitations of CreatePatternBrush.
 		   (let ((cdc nil))
-		     (with-dc-image-for-ink (dc-image) (medium ink)
+		     (with-dc-image-for-ink (dc-image) 
+		       (medium ink)
 			
-			;; Create compatable memory dc
-			(setq cdc (win:createcompatibledc dc))
-			(assert (valid-handle cdc))	
-		(cond ((listp dc-image)
-			       ;; This is the case of a pattern that contains transparent ink.
-			       ;; Windows does not support transparent ink directly.
-			       ;; You can do this by creating two pictures, 
-			       ;; one with white in the transparent area (The Picture)
-			       ;; and the other with black in the transparent area. (The Mask)
-			       ;; Then use the bitblt API to blit the picture with
-			       ;; the SRCAND (&h8800c6) flag.  Then blit the mask in the 
-			       ;; same location with the SRCOR (&hee0086) flag.
-			       (let* ((dci-pict (first dc-image))
-				      (dci-mask (second dc-image))
-				      (pictbm (dc-image-bitmap dci-pict))
-				      (maskbm (dc-image-bitmap dci-mask)))
-				 ;; select a (Device-Dependent) bitmap into the dc
-				 (when (valid-handle pictbm) (SelectObject cdc pictbm))
-				 ;; Copy bitmap from memory dc to screen dc
-				 (win:bitblt dc left top (- right left) (- bottom top)
-					     cdc 0 0 
-					     win:SRCAND)
-				 (when (valid-handle maskbm) (SelectObject cdc maskbm))
-				 (win:bitblt dc left top (- right left) (- bottom top)
-					     cdc 0 0 
-					     acl-clim::SRCOR) 
-				 ))
-			      (t
-			       ;; select a (Device-Dependent) bitmap into the dc
-			       (let ((bm (dc-image-bitmap dc-image)))
-				 (when (valid-handle bm) (SelectObject cdc bm)))
-			       ;; Copy bitmap from memory dc to screen dc
-			       (win:bitblt dc left top (- right left) (- bottom top)
-					   cdc 0 0 win:SRCCOPY)))
-					    ;; Delete memory dc
-					    (win:deletedc cdc)
-		   (when (valid-handle old) (SelectObject dc old))))
+		       ;; Create compatable memory dc
+		       (setq cdc (win:createcompatibledc dc))
+		       (assert (valid-handle cdc))	
+		       (cond ((listp dc-image)
+			      ;; This is the case of a pattern that contains transparent ink.
+			      ;; Windows does not support transparent ink directly.
+			      ;; You can do this by creating two pictures, 
+			      ;; one with white in the transparent area (The Picture)
+			      ;; and the other with black in the transparent area. (The Mask)
+			      ;; Then use the bitblt API to blit the picture with
+			      ;; the SRCAND (&h8800c6) flag.  Then blit the mask in the 
+			      ;; same location with the SRCOR (&hee0086) flag.
+			      (let* ((dci-pict (first dc-image))
+				     (dci-mask (second dc-image))
+				     (pictbm (dc-image-bitmap dci-pict))
+				     (maskbm (dc-image-bitmap dci-mask)))
+				;; select a (Device-Dependent) bitmap into the dc
+				(when (valid-handle pictbm) (SelectObject cdc pictbm))
+				;; Copy bitmap from memory dc to screen dc
+				(win:bitblt dc left top (- right left) (- bottom top)
+					    cdc 0 0 
+					    win:SRCAND)
+			 
+				(when (valid-handle maskbm) (SelectObject cdc maskbm))
+				(win:bitblt dc left top (- right left) (- bottom top)
+					    cdc 0 0 
+					    acl-clim::SRCOR)))
+			     (t
+			      ;; select a (Device-Dependent) bitmap into the dc
+			      (let ((bm (dc-image-bitmap dc-image)))
+				(when (valid-handle bm) (SelectObject cdc bm)))
+			      ;; Copy bitmap from memory dc to screen dc
+			      (win:bitblt dc left top (- right left) (- bottom top)
+					  cdc 0 0 win:SRCCOPY)))
+		       ;; Delete memory dc
+		       (win:deletedc cdc)
+		       (when (valid-handle old) (SelectObject dc old))))
 		   t)
-		  #+ign
-		  ((typep ink 'rectangular-tile)
-		   (with-set-dc-for-ink (dc medium ink nil left top)
-		     (let ((dc-image (dc-image-for-ink medium ink))
-			   (udrect (ff:allocate-fobject 'win:rect :foreign-static-gc nil)))
-		       (setf (ct:cref win:rect udrect left) left)
-		       (setf (ct:cref win:rect udrect right) right)
-		       (setf (ct:cref win:rect udrect top) top)
-		       (setf (ct:cref win:rect udrect bottom) bottom)
-		       (when (consp dc-image) (setq dc-image (second dc-image)))
-		       (win:FillRect dc udrect (dc-image-brush dc-image)))))
 		  (t
 		   (let ((*the-dc* dc))
 		     (with-set-dc-for-ink (dc medium ink
-					  (if filled nil line-style)
-					  left top)
+					      (if filled nil line-style)
+					      left top)
 		       (if filled
 			   (win:rectangle dc left top (1+ right) (1+ bottom))
 			 (win:rectangle dc left top right bottom))
@@ -765,30 +762,34 @@ draw icons and mouse cursors on the screen.
 		    (win:rectangle dc left top right bottom))))
 	      (when (valid-handle old) (SelectObject dc old)))))))))
 
-(defvar *point-vector* (ff:allocate-fobject `(:array :long 100)))
+(defparameter *point-vector* (ff:allocate-fobject `(:array :long 100) :foreign-static-gc))
+
+(defun set-point (vector i x)
+  (declare (optimize (speed 3) (safety 0))
+	   (type (SIMPLE-ARRAY EXCL:FOREIGN (101)) vector)
+	   (fixnum i) 
+	   (type excl:foreign x))
+  #+ign
+  (setf (ff:fslot-value-typed '(:array :long 1) :foreign-static-gc
+			      vector i) 
+    x)
+  (setf (aref vector (1+ i)) x)
+  )
 
 (defun fill-point-vector (vector transform position-seq closed)
-  ;;(declare (optimize (speed 3) (safety 0)))
+  (declare (optimize (speed 3) (safety 0)))
   (let ((i 0))
     (labels ((visit1 (x y)
 	       (fix-coordinates x y)
-	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					   vector i) 
-		 x)
+	       (set-point vector i x)
 	       (incf i)
-	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					   vector i) 
-		 y)
+	       (set-point vector i y)
 	       (incf i))
 	     (visit2 (x y)
 	       (convert-to-device-coordinates transform x y)
-	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					   vector i) 
-		 x)
+	       (set-point vector i x)
 	       (incf i)
-	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					   vector i) 
-		 y)
+	       (set-point vector i y)
 	       (incf i)))
       (declare (dynamic-extent #'visit1 #'visit2))
       (if (identity-transformation-p transform)
@@ -796,15 +797,13 @@ draw icons and mouse cursors on the screen.
 	  (silica:map-position-sequence #'visit2 position-seq))
       (when closed
 	;; Make the first point be the last.
-	(setf (ff:fslot-value-typed '(:array :long 1) :foreign
-				    vector i)
-	  (ff:fslot-value-typed '(:array :long 1) :foreign
-				vector 0))
+	(set-point vector i 
+		   (ff:fslot-value-typed '(:array :long 1) :foreign
+					 vector 0))
 	(incf i)
-	(setf (ff:fslot-value-typed '(:array :long 1) :foreign
-				    vector i)
-	  (ff:fslot-value-typed '(:array :long 1) :foreign
-				vector 1))
+	(set-point vector i 
+		   (ff:fslot-value-typed '(:array :long 1) :foreign
+					 vector 1))
 	(incf i))
       i)))
 
@@ -837,9 +836,10 @@ draw icons and mouse cursors on the screen.
 	(length (length position-seq)))
     (assert (evenp length))
     (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-			    (when old
-			      (draw-polygon-1 medium position-seq dc filled closed old))))))
+      (with-selected-acl-dc (old) 
+	(medium window dc)
+	(when old
+	  (draw-polygon-1 medium position-seq dc filled closed old))))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))
@@ -1049,42 +1049,9 @@ draw icons and mouse cursors on the screen.
 (defmethod medium-draw-character* ((medium acl-medium)
 				   char x y align-x align-y
 				   towards-x towards-y transform-glyphs)
-  (declare (ignore transform-glyphs))
-  (let ((window (medium-drawable medium)))
-    (with-medium-dc (medium dc)
-      (with-selected-acl-dc (old) (medium window dc)
-	(when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (text-style (medium-merged-text-style medium)))
-	    (convert-to-device-coordinates transform x y)
-	    (when towards-x
-	      (convert-to-device-coordinates transform towards-x towards-y))
-	    (let* ((font (text-style-mapping (port medium) text-style))
-		   (height (acl-font-height font))
-		   (descent (acl-font-descent font))
-		   (ascent (acl-font-ascent font)))
-	      (let ((x-adjust 
-		     (compute-text-x-adjustment align-x medium char text-style))
-		    (y-adjust
-		     (compute-text-y-adjustment align-y descent ascent height)))
-		(incf x x-adjust)
-		(incf y y-adjust)
-		(when towards-x
-		  (incf towards-x x-adjust)
-		  (incf towards-y y-adjust)))
-	      (decf y ascent)		;text is positioned by its top left on acl
-	      (with-set-dc-for-text (dc medium ink (acl-font-index font))
-		(or (excl:with-native-string (cstr (make-string
-						    1
-						    :initial-element char))
-		      (win:TextOut dc x y cstr 1))
-		    (check-last-error "TextOut" :action :warn))
-
-		(when (valid-handle old) (SelectObject dc old))))))))))
-
-
+  (medium-draw-string* medium (make-string 1 :initial-element char)
+		       x y 0 1 align-x align-y towards-x towards-y
+		       transform-glyphs))
 
 (defmethod medium-draw-text* ((medium acl-medium)
 			      string-or-char x y start end

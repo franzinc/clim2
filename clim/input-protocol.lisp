@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-protocol.lisp,v 1.51.22.3 1998/12/17 00:19:10 layer Exp $
+;; $Id: input-protocol.lisp,v 1.51.22.4 1999/06/18 19:41:44 layer Exp $
 
 (in-package :clim-internals)
 
@@ -628,7 +628,7 @@
                           (> (get-internal-real-time) end-time))
                  (setq flag :timeout))
                flag))
-        #-Allegro (declare (dynamic-extent #'waiter))
+	(declare (dynamic-extent #'waiter))
         (port-event-wait (port stream) #'waiter 
           :wait-reason "Clim Input"
           :timeout timeout)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.19 1999/06/09 22:37:18 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.20 1999/06/18 19:41:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -36,8 +36,7 @@
 
 (defclass acl-frame-manager (standard-frame-manager)
     ((msmenubart :initarg :msmenubart :reader msmenubart))
-  (:default-initargs :dialog-view #+ignore +textual-dialog-view+
-		     +gadget-dialog-view+
+  (:default-initargs :dialog-view +gadget-dialog-view+
 		     :msmenubart t))
 
 (defmethod make-frame-manager ((port acl-port) &key palette)
@@ -568,7 +567,7 @@
 		uid (sheet-mirror s)
 		;;rect 0
 		hinst *hinst*
-		lpsztext -1 ;(coerce (string (type-of s)) 'simple-string)
+		lpsztext -1 
 		#+ign
 		(lisp-string-to-scratch-c-string 
 		 (princ-to-string label)))
@@ -1593,9 +1592,23 @@ in a second Lisp process.  This frame cannot be reused."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Printer support
 
-(ff:defun-foreign-callable printer-abort-proc (hdc code)
-  (declare (ignore hdc code))
-  1)
+(defun setup-escape-buffer (buffer code string)
+  (let ((length (length string)))
+    (assert (< length 1024))
+    ;; The header is the size of a "word"
+    (setf (ff:fslot-value-c '(:array char 1) buffer 0) 
+      (ldb (byte 8 0) code))
+    (setf (ff:fslot-value-c '(:array char 1) buffer 1) 
+      (ldb (byte 8 8) code))
+    (setf (ff:fslot-value-c '(:array char 1) buffer 2) 
+      (ldb (byte 8 16) code))
+    (setf (ff:fslot-value-c '(:array char 1) buffer 3) 
+      (ldb (byte 8 24) code))
+    ;; The rest is the actual string.
+    (dotimes (i length)
+      (setf (ff:fslot-value-c '(:array char 1) buffer (+ i 4))
+	(char-code (char string i))))
+    buffer))
 
 (defun print-postscript (filename printer)
   ;; Print a file as postscript.
@@ -1603,21 +1616,25 @@ in a second Lisp process.  This frame cannot be reused."
   (assert (stringp filename))
   (assert (acl-clim::valid-handle printer))
   (let ((code 1)
+	(buffer (ff:allocate-fobject-c '(:array :char 1024)))
 	(prcode 4115 #+ig win:POSTSCRIPT_PASSTHROUGH)
-	(pointer (ct:callocate :long))
 	(isa-psprinter t)
-	(docinfo (ct:ccallocate win:docinfo)))
-    (ct:csets win:docinfo docinfo
-	      cbSize (ct:sizeof win:docinfo)
-	      lpszDocName (coerce filename 'simple-string)
-	      lpszOutput 0
-	      lpszDataType 0
-	      fwType 0)
-    (setf (aref pointer 0) prcode)
+	(docinfo (ff:allocate-fobject 'win:docinfo :foreign-static-gc)))
+
+    (setf (ct:cref win:docinfo docinfo cbSize) (ct:sizeof win:docinfo))
+    #+ignore
+    (excl:with-native-string (cstr filename)
+      (setf (ct:cref win:docinfo docinfo lpszDocName) cstr))
+    (setf (ct:cref win:docinfo docinfo lpszDocName) 
+      (ff:string-to-char* filename))
+    (setf (ct:cref win:docinfo docinfo lpszOutput) 0)
+    (setf (ct:cref win:docinfo docinfo lpszDatatype) 0)
+    (setf (ct:cref win:docinfo docinfo fwType) 0)
+    
+    (setup-escape-buffer buffer prcode "")
     (setq isa-psprinter
       (plusp (win:Escape printer win:QUERYESCSUPPORT 
-
-			 (ct:sizeof :long) pointer 0)))
+			 4 buffer 0)))
     (unless isa-psprinter
       (return-from print-postscript :error-postscript-not-supported))
     (or (plusp (win:StartDoc printer docinfo))
@@ -1626,43 +1643,50 @@ in a second Lisp process.  This frame cannot be reused."
       (loop 
 	(let ((line (read-line stream nil nil nil)))
 	  (unless line (return))
-	  (multiple-value-bind (string i)
-	      (silica::xlat-newline-return line)
-	    (excl:with-native-string (cstr string)
-	      (win:Escape printer prcode i cstr 0))))))
+	  (setup-escape-buffer buffer (length line) line)
+	  (win:Escape printer prcode (+ (length line) 4) buffer 0))))
     (setq code (win:EndDoc printer))
     (cond ((plusp code) nil)
 	  (t (acl-clim::check-last-error "EndDoc")
 	     :error))))
 
-(defun print-ascii (filename printer)
+(defun print-ascii (filename printer &key (xmargin 5) (ymargin 5))
   ;; Print a file as plain ascii text.
   ;; 'printer' is an hdc
   (assert (stringp filename))
   (assert (acl-clim::valid-handle printer))
   (let ((code 0)
-	(x 0)
-	(y 0)
+	(x xmargin)
+	(y ymargin)
 	(currentline 0)
 	(lines-per-page nil)
 	(pagesize (win:GetDeviceCaps printer win:VERTRES))
 	(line-height 12)
+	(char-width 12)
 	(textmetric (ct:ccallocate win:textmetric))
-	(docinfo (ct:ccallocate win:docinfo)))
+	(docinfo (ff:allocate-fobject 'win:docinfo :foreign-static-gc)))
     (or (win:GetTextMetrics printer textmetric)
 	(acl-clim::check-last-error "GetTextMetrics"))
     (setq line-height 
       (+ (ct:cref win:textmetric textmetric tmHeight)
 	 (ct:cref win:textmetric textmetric tmExternalLeading)))
+    (setq char-width (ct:cref win:textmetric textmetric tmMaxCharWidth))
+    (setq ymargin (* ymargin line-height))
+    (setq xmargin (* xmargin char-width))
+    (setq x xmargin y ymargin)
+
     (setf (ct:cref win:docinfo docinfo cbSize) (ct:sizeof win:docinfo))
-    (setf (ct:cref win:docinfo docinfo lpszDocName) (acl-clim::nstringify filename))
-    (setf (ct:cref win:docinfo docinfo lpszOutput) 0)
-    (setq lines-per-page (1- (truncate pagesize line-height)))
-    
     #+ignore
-    (win:SetAbortProc printer 
-		      (ff:register-function 'printer-abort-proc 
-					    :reuse :return-value))
+    (excl:with-native-string (cstr filename)
+      (setf (ct:cref win:docinfo docinfo lpszDocName) cstr))
+    (setf (ct:cref win:docinfo docinfo lpszDocName) 
+      (ff:string-to-char* filename))
+    (setf (ct:cref win:docinfo docinfo lpszOutput) 0)
+    (setf (ct:cref win:docinfo docinfo lpszDatatype) 0)
+    (setf (ct:cref win:docinfo docinfo fwType) 0)
+    
+    (decf pagesize (+ ymargin ymargin))    
+    (setq lines-per-page (1- (truncate pagesize line-height)))
     
     (or (plusp (win:StartDoc printer docinfo))
 	(acl-clim::check-last-error "StartDoc"))
@@ -1682,7 +1706,7 @@ in a second Lisp process.  This frame cannot be reused."
 	      (win:EndPage printer)
 	      (win:StartPage printer)
 	      (setq currentline 1)
-	      (setq y 0))
+	      (setq y ymargin))
 	    )))
       (win:EndPage printer))
     (setq code (win:EndDoc printer))
@@ -1796,10 +1820,11 @@ in a second Lisp process.  This frame cannot be reused."
 	       (win:DeleteDC hdc)
 	       ))))))
 
-(defmethod print-file (frame filename &rest options)
-  (declare (dynamic-extent options))
-  (when frame
-    (setf (getf options :frame) frame))
-  (apply #'frame-manager-print-file
-	 (or (and frame (frame-manager frame)) (find-frame-manager)) 
-	 filename options))
+#+ignore
+(defun tester ()
+  (with-open-file (s "c:/tester.ps" :direction :output
+		   :if-exists :supersede)
+    (clim:with-output-to-postscript-stream (stream s)
+      ;(clim:draw-line* stream 0 0 100 100)
+      ;(clim:draw-line* stream 0 100 100 0)
+      (clim:draw-text* stream "Tester" 50 50))))

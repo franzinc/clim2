@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.4.8.9 1999/01/29 00:41:42 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.4.8.10 1999/06/18 19:41:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -117,6 +117,10 @@
 (defmethod gadget-supplies-scrolling-p ((sheet t)) nil)
 (defmethod gadget-supplies-scrolling-p ((sheet hlist-pane)) t)
 (defmethod gadget-supplies-scrolling-p ((sheet acl-clim::acl-text-editor-pane)) t)
+
+(defmethod acl-clim::sheet-wants-default-pointer 
+    ((object silica::mswin-scroller-pane))
+  (acl-clim::sheet-wants-default-pointer (slot-value object 'contents)))
 
 (defmethod handle-event ((pane mswin-scroller-pane) 
 			 (event scrollbar-event))

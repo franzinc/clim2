@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.97.8.6 1999/06/11 18:11:56 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.97.8.7 1999/06/18 19:41:47 layer Exp $
 
 (in-package :xm-silica)
 
@@ -2222,3 +2222,15 @@
     (ff:register-foreign-callable
      'xm-silica::file-search-proc-callback :reuse)))
 
+
+(defmethod frame-manager-print-file
+    ((framem motif-frame-manager) filename
+     &key 	  
+     (frame nil frame-p)
+     (associated-window
+      (if frame-p
+	  (frame-top-level-sheet frame)
+	(graft framem)))
+     &allow-other-keys)
+  (declare (ignore filename associated-window))
+  (error "not yet implemented for UNIX"))

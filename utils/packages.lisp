@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.84.8.48 1999/06/11 18:11:57 layer Exp $
+;; $Id: packages.lisp,v 1.84.8.49 1999/06/18 19:41:49 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3294,7 +3294,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 60)
+(cl:defvar *clim-build-version* 61)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

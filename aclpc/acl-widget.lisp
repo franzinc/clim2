@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.18 1999/06/09 21:29:50 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.19 1999/06/18 19:41:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -57,13 +57,10 @@
 ;;; list panes
 
 (defclass hlist-pane
-	  (
-	   ;;mm: to keep track of Windows gadget ids
-	   acl-gadget-id-mixin   
+	  (acl-gadget-id-mixin   
            mirrored-sheet-mixin
 	   list-pane
 	   sheet-permanently-enabled-mixin
-	   ; try without this sheet-mute-input-mixin
 	   space-requirement-mixin
 	   basic-pane)
   ()
@@ -116,10 +113,9 @@
 		(incf i)))
 	  (let ((i (position value items
 			     :key value-key :test test)))
-	    (when i 
-	      (acl-clim::frame-send-message
-	       (pane-frame pane)
-	       hwnd win:LB_SETCURSEL i 0))))
+	    (acl-clim::frame-send-message
+	     (pane-frame pane)
+	     hwnd win:LB_SETCURSEL (or i -1) 0)))
 	))))
 
 (defmethod handle-event :after ((pane hlist-pane) (event pointer-event))
@@ -137,13 +133,14 @@
 	(tsh 0))
     (with-slots (items name-key text-style) pane
       (with-sheet-medium (medium pane)
-	(multiple-value-setq (name-width tsh)
-	  (text-size medium "Frobnitz" :text-style text-style))
 	(dolist (item items)
 	  (multiple-value-bind (w h)
 	      (text-size medium (funcall name-key item) :text-style text-style)
-	    (declare (ignore h))
-	    (setq name-width (max name-width w))))))
+	    (setq name-width (max name-width w))
+	    (setq tsh (max h tsh))))
+	(when (and (zerop tsh) (zerop name-width))
+	  (multiple-value-setq (name-width tsh)
+	    (text-size medium "Frobnitz" :text-style text-style)))))
     (values name-width tsh)))
     
 (defmethod compose-space ((pane hlist-pane) &key width height)
@@ -158,9 +155,9 @@
 	  )
       (multiple-value-setq (name-width tsh)
 	(compute-set-gadget-dimensions pane))
-      (setq name-height (* (if visible-items visible-items (max (length items) 1))
+      (setq name-height (* (or visible-items (max (length items) 1))
                            tsh))
-      (if (and (> iwid 0) #||(null items)||#)
+      (if (> iwid 0)
           (setq name-width iwid)
           (setq name-width (max name-width iwid)))
       (setq name-height (max name-height ihgt))
@@ -168,18 +165,17 @@
         :width (+ name-width 20)
         :height name-height))))
 
-;;; When items are set in an hlist-pane the  mirror must be
-;;; made to update its appearance appropriately.
 (defmethod (setf set-gadget-items) :before (items (pane hlist-pane))
+  ;; When items are set in an hlist-pane the  mirror must be
+  ;; made to update its appearance appropriately.
   (with-slots (name-key mirror) pane
     (when mirror
       (acl-clim::frame-send-message
        (pane-frame pane)
        mirror win:LB_RESETCONTENT 0 0)
       (dolist (item items)
-	(let ((str (acl-clim::nstringify (funcall name-key item)))
+	(let ((str (funcall name-key item))
 	      (pos (position item items)))
-	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (excl:with-native-string (str str)
 	    (acl-clim::frame-send-message
 	     (pane-frame pane)
@@ -230,9 +226,9 @@
   (declare (ignore region))
   nil)
 
-;; text-editor is one of the few things that you can specify:
-;;    :width '(4 :character)
 (defun process-width-specification (sheet width)
+  ;; text-editor is one of the few things that you can specify:
+  ;;    :width '(4 :character)
   (typecase width
     (cons
      (assert (eq (second width) :character))
@@ -253,9 +249,9 @@
 	 (+ border margin w margin border))))
     (otherwise width)))
 
-;; text-editor is one of the few things that you can specify:
-;;    :height '(4 :line)
 (defun process-height-specification (sheet height)
+  ;; text-editor is one of the few things that you can specify:
+  ;;    :height '(4 :line)
   (typecase height
     (cons
      (assert (eq (second height) :line))
@@ -279,9 +275,9 @@
 
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
   (declare (ignore width height))
-  ;;; Note that text-editors are scrolled by  being given 
-  ;;; a scroller-pane as a parent, but they have their own 
-  ;;; "interior" scrollbars (this is different than text-fields.)
+  ;; Note that text-editors are scrolled by  being given 
+  ;; a scroller-pane as a parent, but they have their own 
+  ;; "interior" scrollbars (this is different than text-fields.)
   (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) pane
     (let* ((par (sheet-parent pane))
 	   (scroll-mode (and (acl-clim::scroller-pane-p par)
@@ -1557,6 +1553,10 @@
                                        &key label &allow-other-keys)
   (declare (ignore label))
    )
+
+(defmethod acl-clim::sheet-wants-default-pointer 
+    ((object acl-clim::acl-text-editor-pane)) 
+  t)
 
 ;; new code to deal with resources - ie background foreground and
 ;; text-stlye for various windows controls (cim 10/12/96)

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.14 1999/06/09 21:29:49 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.15 1999/06/18 19:41:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -47,7 +47,7 @@
   (declare (ignore id))
   (let* ((hwnd
 	  (excl:with-native-string (x "COMBOBOX")
-	    (excl:with-native-string (label (nstringify label))
+	    (excl:with-native-string (label label)
 	      (win:CreateWindowEx 
 	       0			; extended-style
 	       x			; classname
@@ -125,7 +125,7 @@
 	 (exstyle win:WS_EX_CLIENTEDGE)
 	 (hwnd
 	  (excl:with-native-string (classname "LISTBOX")
-	    (excl:with-native-string (windowname (nstringify label))
+	    (excl:with-native-string (windowname label)
 	      (win:CreateWindowEx exstyle
 				  classname ; classname
 				  windowname ; windowname
@@ -150,12 +150,6 @@
 	       )
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
-	    #+ignore
-	    (setf subsize (length item-name))
-	    #+ignore
-	    (dotimes (i subsize)
-	      (ct:cset (:char 256) cstr ((fixnum i))
-		       (char-int (char item-name i))))
 	    (incf index)
 	    (excl:with-native-string (item-name item-name)
 	      (win:SendMessage hwnd win:LB_INSERTSTRING index item-name))
@@ -179,7 +173,6 @@
 	    (when i 
 	      (win:SendMessage 
 	       hwnd win:LB_SETCURSEL i 0))))
-
 	;; we put in the 20% hack because
 	;; compute-set-gadget-dimensions in acl-widg is
 	;; inherently wrong - see the comment (cim 9/25/96)
@@ -193,7 +186,7 @@
 (defun scrollbar-open (parent left top width height orientation)
   (let* ((hwnd
 	  (excl:with-native-string (classname "SCROLLBAR")
-	    (excl:with-native-string (windowname (nstringify ""))
+	    (excl:with-native-string (windowname "")
 	      (win:CreateWindowEx 
 	       0			; style
 	       classname		; classname
@@ -239,7 +232,7 @@
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
 	  (excl:with-native-string (classname "BUTTON")
-	    (excl:with-native-string (windowname (nstringify nlabel) )
+	    (excl:with-native-string (windowname nlabel)
 	      (win:CreateWindowEx 0
 				  classname ; classname
 				  windowname ; windowname
@@ -277,7 +270,7 @@
   (declare (ignore id))
   (let* ((hwnd
 	  (excl:with-native-string (classname "EDIT")
-	    (excl:with-native-string (windowname (nstringify label))
+	    (excl:with-native-string (windowname label)
 	      (win:CreateWindowEx 
 	       win:WS_EX_CLIENTEDGE
 	       classname		; classname

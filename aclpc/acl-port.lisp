@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.15 1999/06/09 21:29:47 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.16 1999/06/18 19:41:41 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -671,17 +671,16 @@
 	(setf (getf cursor-cache cursor)
 	  (call-next-method)))))
 
-;; pointer-grabbing - how do you do this on windows? - the following
-;; simply deals with the handling of the cursor keyword (cim 10/14/96)
-
-;; I think you do this on windows by using SetCapture
-;; and ReleaseCapture.  JPM 5/98.
-
 (defmethod port-invoke-with-pointer-grabbed
     ((port acl-port) (sheet basic-sheet) continuation
      &key cursor &allow-other-keys)
   (clim-utils:letf-globally (((port-grab-cursor port) cursor))
-    (funcall continuation)))
+    (unwind-protect
+	(with-sheet-medium (medium sheet)
+	  (win:SetCapture (medium-drawable medium))
+	  (set-cursor sheet cursor)
+	  (funcall continuation))
+      (win:ReleaseCapture))))
 
 ;; X and Y are in native coordinates
 (defmethod port-set-pointer-position ((port acl-port) pointer x y)
@@ -758,7 +757,7 @@
 		(eq y pointer-y))
 	   nil)
 	  (t
-	   #+debug
+	  #+debug
 	   (format *trace-output* 
 		   "~% Was ~A ~A ~A IS ~A ~A ~A~%"
 		   pointer-sheet pointer-x pointer-y
@@ -772,9 +771,13 @@
 (defmethod flush-pointer-motion ((port acl-port))
   (with-slots (event-queue motion-pending pointer-sheet pointer-x pointer-y)
       port
-    (when pointer-sheet
+    (when (and pointer-sheet motion-pending)
       (let ((pointer (port-pointer port)))
 	(when pointer
+	  #+debug
+	  (format *trace-output* 
+		  "~% IS ~A ~A ~A~%"
+		  pointer-x pointer-y pointer-sheet)
 	  (queue-put event-queue
 		     (allocate-event 'pointer-motion-event
 				     :native-x pointer-x
@@ -895,11 +898,20 @@
 				    native-region)))
         (call-next-method)))))
 
+(defvar *system-version* nil)
+
 (defun get-system-version ()
-  "Use win:GetVersion to determine the operating system being used."
-  (let* ((v (win:GetVersion))
-         (vh (hiword v)))
-    (if (>= vh 0) :winnt :win31)))
+  "Use win:GetVersionEx to determine the operating system being used."
+  (or *system-version*
+      (setq *system-version*
+	(let ((v (ff:allocate-fobject 'win::osversioninfo)))
+	  (setf (ct:cref win::osversioninfo v dwOSVersionInfoSize) 
+	    (ct:sizeof win::osversioninfo))
+	  (win::GetVersionEx v)
+	  (case (ct:cref win::osversioninfo v dwPlatformID)
+	    (#.WIN::VER_PLATFORM_WIN32_WINDOWS :win9598)
+	    (#.WIN::VER_PLATFORM_WIN32S :win31)
+	    (#.WIN::VER_PLATFORM_WIN32_NT :winnt))))))
 
 (defun silica::acl-mirror-with-focus ()
   (acl-port-mirror-with-focus *acl-port*))

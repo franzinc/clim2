@@ -11,6 +11,21 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.61
+
+1999-06-18  Jeff Morrill  <jmorrill@pointnclick.com> 
+* aclpc/*.lisp: numerous changes that affect performance;
+  added PRINT-FILE function for windows (postscript still doesnt work).
+* clim/clim-defs: Change the treatment of input focus; a frame
+  no longer grabs the input focus away from another frame when
+  it goes through the command loop.  This means that you have
+  to click on an interactor pane before you can type into it.
+* clim/input-protocol: added dynamic-extent declaration
+* demo/ico: turn off output recording and get rid of some junk
+* tk-silica/xm-gadgets: added default print-file function
+  that does nothing for unix
+
+*******************************************************************************
 2.2.1.60
 
 1999-06-11  Kevin Layer  <layer@ultra>

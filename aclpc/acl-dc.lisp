@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.4.8.13 1999/06/09 21:29:47 layer Exp $
+;; $Id: acl-dc.lisp,v 1.4.8.14 1999/06/18 19:41:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -185,12 +185,11 @@
        (setf *created-bitmap* nil)
        (win:DeleteDC ,cdc))))
 
-(defun valid-handle (handle &optional stuff)
-  (declare (ignore stuff)
-	   (fixnum handle)
-	   (optimize (speed 3) (safety 0)))
-  (when (and handle (not (zerop handle)))
-    (if (< -100 handle 100) nil t)))
+(defmacro valid-handle (handle)
+  `(let ((h ,handle))
+     (declare (fixnum h)
+	      (optimize (speed 3) (safety 0)))
+     (and h (not (zerop h)) (not (< -100 h 100)))))
   
 (defun check-handle (handle)
   (when (or (not (valid-handle handle)))

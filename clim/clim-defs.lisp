@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clim-defs.lisp,v 1.26.22.2 1998/07/06 23:08:55 layer Exp $
+;; $Id: clim-defs.lisp,v 1.26.22.3 1999/06/18 19:41:44 layer Exp $
 
 (in-package :clim-internals)
 
@@ -249,15 +249,51 @@
          (expand-presentation-type-abbreviation ,type) ,override
          #'body-continuation #'context-continuation))))
 
+;;; A problem can arise if the a command is launched asynchronous
+;;; (e.g. the command is launched by the program, not as the 
+;;; result of user-input).
+;;; Specifically, the input-focus can be snatched away from the
+;;; current user frame.
+;;;
+;;; The current rules are:
+;;; 1] On entry, note the original input-focus.
+;;;    Only set the input-focus to a new value if the frame
+;;;    of the new-input-focus is the same as the frame of 
+;;;    the original- input-focus.
+;;;    (I.e. don't snatch the input focus away if we are, for
+;;;    example, running an asynchronously launched command.)
+;;; 
+;;; 2] On exit, note the then current input-focus.
+;;;    Only re-set the input-focus to the original-input-focus
+;;;    if the frame of the now-current-input-focus is the
+;;;    same as the "new" value set above.
+;;;    (I.e. worry whether the input focus has been swapped 
+;;;    out from under us while we were waiting.)
+;;; 
 (defmacro with-input-focus ((stream &optional (doit t)) &body body)
-  (let ((old-input-focus '#:old-input-focus))
-    `(let ((,old-input-focus nil))
+  (let ((old-input-focus '#:old-input-focus)
+	(orig-input-focus '#:orig-input-focus)
+	(orig-input-focus-frame '#:orig-input-focus-frame)
+	(stream-frame '#:stream-frame)
+	)
+    `(let* ((,old-input-focus nil)
+	    (,stream-frame (and ,stream
+				(pane-frame ,stream)))
+	    (,orig-input-focus (and ,stream
+				    (port-keyboard-input-focus (port ,stream))))
+	    (,orig-input-focus-frame (and ,orig-input-focus
+					  (pane-frame ,orig-input-focus))))
        (unwind-protect
            (progn
-             (when ,doit
+             (when (and ,doit
+			(eq ,stream-frame 
+			    ,orig-input-focus-frame))
                (setq ,old-input-focus (stream-set-input-focus ,stream)))
              ,@body)
-         (when ,old-input-focus
+         (when (and ,old-input-focus
+		    (port-keyboard-input-focus (port ,stream))
+		    (eql (pane-frame (port-keyboard-input-focus (port ,stream)))
+			 ,stream-frame))
            (stream-restore-input-focus ,stream ,old-input-focus))))))
 
 
