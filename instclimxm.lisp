@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Thu Feb 27 12:39:07 1992 by layer]-
+;;				-[Fri Apr 16 11:55:04 1993 by layer]-
 ;; 
 ;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -23,17 +23,17 @@
 ;; $fiHeader: instclimxm.lisp,v 1.5 92/08/21 16:34:15 cer Exp $
 
 ;;
-;; Load CLIM
+;; Load the Motif version of CLIM
 ;;
 
 (in-package :system)
 
+#-svr4
+(progn
+  (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
+  (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a"))
 
-(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
+(load-application (require :climxm) :devel system::*devel*)
 
-(load-application (require :climxm) 
-		  :devel system::*devel*)
-
-(format t "~&; Finished loading CLIM~%")
+(format t "~&; Finished loading CLIM XM~%")
 (force-output)

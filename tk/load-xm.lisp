@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Thu Apr 15 17:05:21 1993 by layer]-
+;;				-[Fri Apr 16 17:38:25 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -28,7 +28,8 @@
 (require :climg)
 
 #+svr4
-(load "climxm.so")
+(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+  (load "climxm.so"))
 
 #-svr4
 (progn

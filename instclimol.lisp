@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Thu Feb 27 12:39:07 1992 by layer]-
+;;				-[Fri Apr 16 11:55:09 1993 by layer]-
 ;; 
 ;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -23,17 +23,17 @@
 ;; $fiHeader: instclimol.lisp,v 1.4 92/08/18 17:54:20 cer Exp Locker: cer $
 
 ;;
-;; Load CLIM
+;; Load the OpenLook version of CLIM
 ;;
 
 (in-package :system)
 
+#-svr4
+(progn
+  (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
+  (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a"))
 
-(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
+(load-application (require :climol) :devel system::*devel*)
 
-(load-application (require :climol)
-		  :devel system::*devel*)
-
-(format t "~&; Finished loading CLIM~%")
+(format t "~&; Finished loading CLIM OL~%")
 (force-output)

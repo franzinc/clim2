@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SYS; Base: 10; Lowercase: Yes -*-
 ;;
-;;				-[]-
+;;				-[Tue Apr 27 18:31:42 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -59,7 +59,7 @@ You do not have patches ~{~S ~}"
 	   dont-have)))
 
 (defvar *clim-version* 
-    '("CLIM 2.0.beta.0"
+    '("CLIM 2.0.beta2.0"
       "$fiHeader: excl-verification.lisp,v 1.14 92/07/01 15:45:31 cer Exp Locker: cer $"))
 
 (si::rcsnote (first *clim-version*) (second *clim-version*))

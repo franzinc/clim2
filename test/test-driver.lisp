@@ -585,12 +585,11 @@
 ;;; This should be at the end:
 ;;; make the training selective.
 
-(locally 
-  (declare (special si::*clos-preload-packages*))
- (setq si::*clos-preload-packages* 
-   (mapcar #'find-package '(:clim :clim-utils :clim-internals :silica :tk :xm-silica))))
+(locally (declare (special si::*clos-preload-packages*))
+  (setq si::*clos-preload-packages* 
+    (mapcar #'find-package
+	    '(:clim :clim-utils :clim-internals :silica :tk :xm-silica))))
 
 ;; This stops warnings happening asynchronously and causing confusion.
 
 (setq excl:*global-gc-behavior* nil)
-

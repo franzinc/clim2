@@ -9,6 +9,8 @@ XLIB-CLIM-OBJS = xlib/pkg.fasl
 MOTIF_OBJS= climxm.so
 OPENLOOK_OBJS= climol.so
 CLIMOBJS= climxm.so climol.so
+INSTALLED_CLIMOBJS= $(CLIMOBJS) xlibsupport.o xtsupport.o olsupport.o \
+		MyDrawingA.o
 
 MOTIFLIB=/usr/lib/libXm$(DEBUGLIB).a
 MOTIFLIB_d=/usr/lib/libXm.a
