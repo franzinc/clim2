@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-gadgets.lisp,v 1.95 1997/02/05 01:54:03 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-gadgets.lisp,v 1.96 1997/05/31 01:00:46 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -1562,7 +1562,8 @@
 					 :help))
                                       (name :notify-user)
 				      x-position
-				      y-position)
+				      y-position
+				      (abort-on-cancel-p nil))
   (let* ((initargs (find-widget-resource-initargs-for-sheet
 		    (port framem) associated-window
 		    :foreground foreground :background background
@@ -1620,7 +1621,9 @@
 		   #'(lambda () (or result (not (tk::is-managed-p dialog))))
 		   "Waiting for dialog")))
 	    (tk::destroy-widget dialog))
-	  (car result))))))
+	  (or (car result)
+	      (and abort-on-cancel-p
+		   (abort))))))))
 
 (defun process-exit-boxes (framem
 			   associated-window

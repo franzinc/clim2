@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-frames.lisp,v 1.74 1997/02/05 01:54:00 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-frames.lisp,v 1.75 1997/05/31 01:00:45 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -144,7 +144,9 @@
 	  #+ignore (remove-keywords
 		    (find-widget-resource-initargs-for-sheet port sheet)
 		    '(:font-list)))
-	 (menu-text-style (pane-text-style sheet))
+	 ;; menu-text-style used to be (pane-text-style sheet)
+	 ;; changed 28May97 -tjm
+	 (menu-text-style clim-internals::*default-menu-text-style*)
 	 (frame (pane-frame sheet))
 	 (top-command-table (or (menu-bar-command-table sheet)
 				(frame-command-table frame)))
@@ -377,7 +379,9 @@
 		     port associated-window
 		     :foreground foreground :background background)
 		    '(:font-list)))
-	 (default-text-style (sheet-text-style port associated-window))
+	 ;; default-text-style used to be (sheet-text-style port associated-window)
+	 ;; changed 28May97 -tjm
+	 (default-text-style clim-internals::*default-menu-text-style*)
 	 (menu-text-style (if text-style
 			      (merge-text-styles text-style
 						 default-text-style)
@@ -409,7 +413,8 @@
 		      initargs)))
 
     (when label
-      (let ((title (if (atom label) label (car label))))
+      (let ((title (if (atom label) label (car label)))
+	    (menu-text-style clim-internals::*default-menu-label-text-style*))
 	(check-type title string)
 	(destructuring-bind (&key text-style) (and (listp label) (cdr label))
 	  (apply #'make-instance 'xt::xm-label

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.33 1997/02/07 00:20:53 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.34 1997/05/31 01:00:31 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -1278,13 +1278,13 @@ This may confused the input editor" gestures))
   (:ie-scroll-right            :scroll :super :meta)
   (:ie-input-editor-help    :help :control))
 
-#-(or (and (not microsoft-32) Allegro) Lucid)
+#-(or (and (not acl86win32) Allegro) Lucid)
 (define-input-editor-gestures
   (:ie-show-arglist            :a   :control :shift)
   (:ie-show-value            :v   :control :shift)
   (:ie-show-documentation   :d   :control :shift))
 
-#+(or (and (not microsoft-32) Allegro) Lucid)
+#+(or (and (not acl86win32) Allegro) Lucid)
 (define-input-editor-gestures
   (:ie-show-arglist            :a   :meta :shift)
   (:ie-show-value            :v   :meta :shift)
@@ -1391,7 +1391,7 @@ This may confused the input editor" gestures))
 (assign-input-editor-key-bindings
   (com-ie-swap-point-and-mark  (:ie-prefix-2 (:x :control))))
 
-#+(or (and Allegro (not microsoft-32)) Lucid)
+#+(or (and Allegro (not acl86win32)) Lucid)
 (assign-input-editor-key-bindings
   com-ie-forward-word               (:ie-prefix-1 :f)
   com-ie-backward-word               (:ie-prefix-1 :b)
@@ -1469,7 +1469,7 @@ This may confused the input editor" gestures))
 
 )        ;#+Genera
 
-#+(and Allegro (not microsoft-32))
+#+(and Allegro (not acl86win32))
 (progn
   (define-input-editor-gestures
       (:left-arrow :left-arrow)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;;; $Header: /repo/cvs.copy/clim2/utils/defun-utilities.lisp,v 1.11 1997/02/05 01:54:47 tomj Exp $
+;;; $Header: /repo/cvs.copy/clim2/utils/defun-utilities.lisp,v 1.12 1997/05/31 01:00:48 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -64,7 +64,7 @@
 (defmacro define-group (name type &body body)
   `(sys:multiple-definition ,name ,type ,@body))
 
-#+(and Allegro (not microsoft-32) (version>= 4 1))
+#+(and Allegro (not acl86win32) (version>= 4 1))
 (defmacro define-group (name type &body body)
   `(progn
      (excl::record-source-file ',name :type ',type)

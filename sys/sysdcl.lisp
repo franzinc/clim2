@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.54 1997/05/24 03:52:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.55 1997/05/31 01:00:39 tomj Exp $
 
 (in-package :cl-user)
 
@@ -182,6 +182,10 @@
    "gadgets"
    "db-border"
    "db-scroll"
+   #+acl86win32 "scroll-pane"
+   #+acl86win32 "db-button"
+   #+acl86win32 "db-label"
+   #+acl86win32 ("db-slider" (:load-before-compile "db-border"))
    ))
 
 (defsystem clim-standalone

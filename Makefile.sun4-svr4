@@ -1,9 +1,12 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.13 1997/02/05 01:42:08 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.14 1997/05/31 01:00:23 tomj Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
 
 include Makefile.defs
+#CL_HOME=/fi/scm/4.3/sunos5/src
+CL=$(CL_HOME)/dcl
+CLIM_HOME=$(CL_HOME)
 
 Makefile=Makefile.sun4-svr4
 

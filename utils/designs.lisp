@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/designs.lisp,v 1.22 1997/02/05 01:54:50 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/designs.lisp,v 1.23 1997/05/31 01:00:51 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -360,7 +360,7 @@
       (values best-color
 	      best-distance))))
 
-#-(or aclpc (and allegro microsoft-32)) 
+#-(or aclpc acl86win32)
 (defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
   (let ((colors-done nil)
@@ -375,10 +375,10 @@
 	    (deallocate-color color palette))
 	  (error condition))))))
 
-#+(or aclpc (and allegro microsoft-32)) 
+#+(or aclpc acl86win32)
 (defgeneric add-colors-to-palette (palette &rest colors))
 
-#+(or aclpc (and allegro microsoft-32)) 
+#+(or aclpc acl86win32)
 (defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
   (let ((colors-done nil))
@@ -392,7 +392,7 @@
 	   (deallocate-color color palette))
 	 (error condition))))))
 
-#+(or aclpc (and allegro microsoft-32)) 
+#+(or aclpc acl86win32)
 (defgeneric remove-colors-from-palette (palette &rest colors))
 
 (defmethod remove-colors-from-palette ((palette basic-palette) &rest colors)
@@ -478,7 +478,7 @@
 	      (make-dynamic-color +black+)))
     set))
 
-#+(or aclpc (and allegro microsoft-32)) (defgeneric layered-color (set &rest layers))
+#+aclpc (defgeneric layered-color (set &rest layers))
 
 (defmethod layered-color ((set layered-color-set) &rest layers)
   (declare (dynamic-extent layers))
@@ -690,7 +690,7 @@
 ;;; Compatibility with the old stipple feature, perhaps temporary until
 ;;; rendering of tiles and patterns is fully implemented
 ;;; This could be done with methods, but there is very little point to that
-#-(or aclpc (and allegro microsoft-32))
+#-(or aclpc acl86win32)
 (defun decode-tile-as-stipple (rectangular-tile)
   (declare (values array width height))
   (multiple-value-bind (pattern width height)
@@ -705,7 +705,7 @@
 		   (eq (aref designs 1) +foreground-ink+))
 	  (values array width height))))))
 
-#+(or aclpc (and allegro microsoft-32))
+#+(or aclpc acl86win32)
 (defun decode-tile-as-stipple (rectangular-tile)
   (declare (values array width height))
   (multiple-value-bind (pattern width height)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.11 1997/02/14 23:57:18 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.12 1997/05/31 01:00:49 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -356,9 +356,9 @@
     #+PCL `(pcl::method ,function-name ,@qualifiers ,specifier-list)
     #-PCL `(#-aclpc clos:method #+aclpc cl:method ,function-name ,specifier-list ,@qualifiers)))
 
-#+(and Allegro (not microsoft-32) (version>= 4 1))
+#+(and Allegro (not acl86win32) (version>= 4 1))
 (eval-when (compile load eval) (cltl1::require :scm))
-#+(and Allegro (not microsoft-32) (version>= 4 1))
+#+(and Allegro (not acl86win32) (version>= 4 1))
 (scm::define-simple-parser defmethod scm::defmethod-parser)
 
 #+Genera

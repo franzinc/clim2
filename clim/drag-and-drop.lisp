@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/drag-and-drop.lisp,v 1.15 1997/02/07 00:20:51 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/drag-and-drop.lisp,v 1.16 1997/05/31 01:00:29 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -154,9 +154,9 @@
 		:move))
 	   (finish-on-release
 	    (and translators (presentation-translator-finish-on-release (first translators))))
-	   ;;--- needed this when we were calling (setf pointer-cursor)
+	   ;;--- spr15619: needed this when we were calling (setf pointer-cursor)
 	   ;;--- to change the mouse pointer to :move during the drag;
-	   ;;--- now we use sheet-pointer-cursor
+	   ;;--- now we use sheet-pointer-cursor.
 	   #+ignore (pointer (port-pointer (port window)))
 	   #+ignore (old-pointer-cursor (pointer-cursor pointer))
 	   (initial-x x)
@@ -195,17 +195,18 @@
 	;;--- when drop initiated an accepting-values, (setf pointer-cursor)
 	;;--- was losing, ie changing the cursor back to default on the wrong frame
 	(letf-globally ((#+ignore (pointer-cursor-override pointer)
-				  ;; why doesn't this work?
-				  #+ignore (sheet-pointer-cursor window)
-				  ;; calling sheet-pointer-cursor on the
-				  ;; top-level sheet is not quite right,
-				  ;; since we only want to change this for
-				  ;; the appropriate pane, not the whole
-				  ;; frame, but this is better than before
-				  ;;           1-24-97 tjm (w/colin) for spr15619
-				  #-ignore (sheet-pointer-cursor 
-					    (frame-top-level-sheet frame))
-				  pointer-cursor))
+			 ;; why doesn't this work?
+			 #+ignore (sheet-pointer-cursor window)
+			 ;; calling sheet-pointer-cursor on the top-level
+			 ;; sheet is not quite right, since we only want to
+			 ;; change this for the appropriate pane, not the
+			 ;; whole frame, but this at least ensures that the
+			 ;; pointer cursor will always revert to its
+			 ;; previous shape.
+			 ;;       1-24-97 tjm (w/colin) for spr15619
+			 #-ignore (sheet-pointer-cursor 
+				   (frame-top-level-sheet frame))
+			 pointer-cursor))
 	  #+ignore (setf (pointer-cursor pointer) pointer-cursor)
 	  (macrolet ((feedback (window x y state)
 		       `(funcall feedback frame from-presentation ,window
@@ -215,8 +216,13 @@
 				   (output-recording-stream-p ,window))
 			  (funcall highlighting frame ,presentation ,window ,state))))
 	    (block drag-presentation
+	      ;; :multiple-window t below was changed by colin (to nil) in
+	      ;; post-4.3 sources, since he had promised this to a customer
+	      ;; as a fix for something (spr?) but this breaks
+	      ;; functionality which is needed by other customers.
+	      ;;  cf spr15818    7feb97 --tjm 
 	      (tracking-pointer (window :context-type `((or ,@destination-types))
-					:multiple-window nil :highlight nil)
+					:multiple-window t :highlight nil)
 		(:presentation-button-press (presentation event)
 		 (unless finish-on-release
 		   (setq destination-event event
@@ -275,7 +281,7 @@
 	    (highlight destination last-window :unhighlight)
 	    (when last-x
 	      (feedback last-window last-x last-y :unhighlight)))
-	  ;; see above
+	  ;; see above "now we use ..."
 	  #+ignore (setf (pointer-cursor pointer) old-pointer-cursor))
 	;; The user has put down the presentation, figure out what to do
 	;;--- What if there is more than one translator?

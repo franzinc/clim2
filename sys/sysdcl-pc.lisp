@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl-pc.lisp,v 1.3 1997/05/24 03:52:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl-pc.lisp,v 1.4 1997/05/31 01:00:38 tomj Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -208,12 +208,9 @@
   ("formatted-output-defs")
   ("recording-protocol" ;  :short-name "rprotoco"
    :load-before-compile ("recording-defs"))
-  ("text-recording"
-   :load-before-compile ("recording-protocol"))
-  ("graphics-recording"
-   :load-before-compile ("recording-protocol"))
-  ("design-recording"
-   :load-before-compile ("graphics-recording"))
+  ("text-recording" :load-before-compile ("recording-protocol"))
+  ("graphics-recording" :load-before-compile ("recording-protocol"))
+  ("design-recording" :load-before-compile ("graphics-recording"))
 
   ;; Input editing
   ("interactive-protocol" ;  :short-name "iprotoco"
@@ -231,75 +228,46 @@
   ("pixmap-streams")
 
   ;; Presentation types
-  ("ptypes1"
-   :load-before-compile ("clim-defs"))
-  ("completer"
-   :load-before-compile ("ptypes1"))
-  ("presentations"
-   :load-before-compile ("ptypes1"))
-  ("translators"
-   :load-before-compile ("presentations"))
-  ("histories"
-   :load-before-compile ("presentations"))
-  ("ptypes2"
-   :load-before-compile ("translators"))
-  ("standard-types"
-   :load-before-compile ("ptypes2"))
-  ("excl-presentations"
-   :load-before-compile ("presentations")
-   :features Allegro)
+  ("ptypes1" :load-before-compile ("clim-defs"))
+  ("completer" :load-before-compile ("ptypes1"))
+  ("presentations" :load-before-compile ("ptypes1"))
+  ("translators" :load-before-compile ("presentations"))
+  ("histories" :load-before-compile ("presentations"))
+  ("ptypes2" :load-before-compile ("translators"))
+  ("standard-types" :load-before-compile ("ptypes2"))
+  ("excl-presentations" :load-before-compile ("presentations") :features Allegro)
 
   ;; Formatted output
-  ("table-formatting"
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
-  ("graph-formatting"
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
-  ("surround-output" 
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
-  ("text-formatting"
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("table-formatting" :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("graph-formatting" :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("surround-output" :load-before-compile ("clim-defs" "incremental-redisplay"))
+  ("text-formatting" :load-before-compile ("clim-defs" "incremental-redisplay"))
 
   ;; Pointer tracking
   ("tracking-pointer")
-  ("dragging-output"
-   :load-before-compile ("tracking-pointer"))
+  ("dragging-output" :load-before-compile ("tracking-pointer"))
 
   ;; Gadgets
   ("db-stream")
   ("gadget-output")
 
   ;; Application building substrate
-  ("accept"
-   :load-before-compile ("clim-defs" "ptypes2"))
-  ("present"
-   :load-before-compile ("clim-defs" "ptypes2"))
-  ("command"
-   :load-before-compile ("clim-defs" "ptypes2"))
-  ("command-processor"
-   :load-before-compile ("clim-defs" "command"))
-  ("basic-translators"
-   :load-before-compile ("ptypes2" "command"))
-  ("frames" 
-   :load-before-compile ("clim-defs" "command-processor"))
+  ("accept" :load-before-compile ("clim-defs" "ptypes2"))
+  ("present" :load-before-compile ("clim-defs" "ptypes2"))
+  ("command" :load-before-compile ("clim-defs" "ptypes2"))
+  ("command-processor" :load-before-compile ("clim-defs" "command"))
+  ("basic-translators" :load-before-compile ("ptypes2" "command"))
+  ("frames" :load-before-compile ("clim-defs" "command-processor"))
   ("panes" :load-before-compile ("frames"))
-  ("default-frame" 
-   :load-before-compile ("frames"))
-  ("activities" 
-   :load-before-compile ("frames"))
-  ("db-menu"
-   :load-before-compile ("frames"))
-  ("db-list"
-   :load-before-compile ("db-menu"))
-  ("db-text"
-   :load-before-compile ("frames"))
-  ("noting-progress"
-   :load-before-compile ("frames"))
-  ("menus"
-   :load-before-compile ("defresource" "clim-defs"))
-  ("accept-values"
-   :load-before-compile ("clim-defs" "incremental-redisplay" "frames"))
-  ("drag-and-drop" 
-   :load-before-compile ("frames"))
+  ("default-frame" :load-before-compile ("frames"))
+  ("activities" :load-before-compile ("frames"))
+  ("db-menu" :load-before-compile ("frames"))
+  ("db-list" :load-before-compile ("db-menu"))
+  ("db-text" :load-before-compile ("frames"))
+  ("noting-progress" :load-before-compile ("frames"))
+  ("menus" :load-before-compile ("defresource" "clim-defs"))
+  ("accept-values" :load-before-compile ("clim-defs" "incremental-redisplay" "frames"))
+  ("drag-and-drop" :load-before-compile ("frames"))
   ("item-list-manager")
 
   ;; Bootstrap everything

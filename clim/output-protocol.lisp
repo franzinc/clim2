@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/output-protocol.lisp,v 1.44 1997/02/05 01:44:19 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/output-protocol.lisp,v 1.45 1997/05/31 01:00:31 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -433,7 +433,7 @@
   (let ((text-style (merge-text-styles '(nil nil :very-small) 
                                        *default-text-style*))
         (ink (medium-ink stream))
-        (name (char-name character)))
+        (name (char-name #-aclpc character #+aclpc char)))
     (setq name (if name
                    (string-upcase name)
                    #+Genera (format nil "~O" (char-code character))
@@ -516,7 +516,8 @@
     (declare (type coordinate cursor-x cursor-y baseline height max-x))
     (unless (or draw-p record-p)
       (return-from stream-write-string string))        ;No deeds to do
-    (let* ((medium (sheet-medium stream)))
+    (let* ((medium (sheet-medium stream))
+	   (baseline-diff nil))
       (with-cursor-state (stream nil)
         (loop
           (multiple-value-bind (write-char next-char-index
@@ -525,26 +526,26 @@
                 stream medium string start end style cursor-x max-x glyph-buffer)
             (declare (type coordinate new-cursor-x new-baseline new-height))
             (declare (ignore font))
+	    (setf baseline-diff (max 0 (- baseline new-baseline)))
             (when record-p
               (stream-add-string-output
                 stream string start next-char-index style
                 (- new-cursor-x cursor-x) new-height new-baseline))
             (when draw-p
               (when (< baseline new-baseline)
-                (stream-note-line-height-change stream baseline new-baseline height
-                                                cursor-x cursor-y)
-                (setf baseline new-baseline))
+		(stream-note-line-height-change stream baseline new-baseline height
+						cursor-x cursor-y))
               (let ((amount (the fixnum (- next-char-index start))))
                 (unless (zerop amount)
                   ;;--- Need DRAW-GLYPHS, which will take a port-specific font
                   ;;--- object, as well as the :INK option.
                   (with-identity-transformation (medium)
                     (draw-text* medium string
-                                cursor-x (+ cursor-y (- baseline new-baseline))
+                                cursor-x (+ cursor-y baseline-diff)
                                 :text-style style
                                 :start start :end next-char-index
                                 :align-x :left :align-y :top)))))
-            (setf baseline (max baseline new-baseline)
+            (setf baseline (if (zerop baseline) new-baseline baseline)
                   height (max height new-height)
                   cursor-x new-cursor-x)
             (when (>= next-char-index end)

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-graphics.lisp,v 1.93 1997/02/05 01:54:14 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-graphics.lisp,v 1.94 1997/05/31 01:00:46 tomj Exp $
 
 (in-package :tk-silica)
 
@@ -504,22 +504,11 @@
 		       device-clip-region-tick)
 		   (null ink-clip-region))
 	(setf (tk::gcontext-clip-mask gc)
-	  (macrolet ((region-rectangle (region)
-		       `(with-bounding-rectangle* (left top right bottom) ,region
-		          (list (fix-coordinate left) (fix-coordinate top)
-				(fix-coordinate (- right left))
-				(fix-coordinate (- bottom top))))))
-	    (etypecase device-clip-region
-	      (everywhere :none)
-	      (nowhere nil)
-	      (standard-rectangle-set
-	       (let ((regions (region-set-regions device-clip-region))
-		     (rectangles nil))
-		 (dolist (region regions)
-		   (push (region-rectangle region) rectangles))
-		 rectangles))
-	      (standard-bounding-rectangle
-	       (list (region-rectangle device-clip-region))))))
+	  (etypecase device-clip-region
+	    (everywhere :none)
+	    (nowhere nil)
+	    (standard-rectangle-set device-clip-region)
+	    (standard-bounding-rectangle device-clip-region)))
 	(setf (ink-gcontext-last-clip-region-tick gc) device-clip-region-tick))))
 
   ;; tile and stipple origin

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.80 1997/02/05 01:42:38 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.81 1997/05/31 01:00:29 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -861,7 +861,7 @@
 (defmethod accept-values-query-edit-value ((query accept-values-query) stream &key modify)
   (with-slots (presentation-type value changed-p prompt presentation) query
     (let ((stream (encapsulating-stream-stream stream))
-          (*editting-field-p* t))
+          (*editting-field-p* stream))
       (with-stream-cursor-position-saved (stream)
         (multiple-value-bind (xoff yoff)
             (convert-from-relative-to-absolute-coordinates
@@ -970,9 +970,24 @@
             changed-p t))))
 
 (define-gesture-name :exit-dialog  :keyboard (:end))
-#+allegro
-(define-gesture-name :exit-dialog  :keyboard (:newline) :unique nil)
 (define-gesture-name :abort-dialog :keyboard (:abort))
+
+(define-gesture-name :default-dialog  :keyboard (:newline))
+
+;; com-default-avv gets run when the "default" gesture is activated. On
+;; Motif this is when the user hits "return". In most cases we don't need
+;; to do anything because the :default-button mechanism should cause the
+;; correct command to be run - but to maintain compatibility with
+;; non-gadget style dialogs we check for +textual-dialog-view+ and then "do
+;; the Symbolics thing". (cim/tomj 5/21/97)
+
+(define-accept-values-command (com-default-avv :keystroke :default-dialog) ()
+  (let ((frame *application-frame*))
+    (with-slots (stream) frame
+      (when (eq (stream-default-view stream)
+		+textual-dialog-view+)
+	(com-exit-avv)))))
+
 
 (define-accept-values-command (com-exit-avv :keystroke :exit-dialog) ()
   (let ((frame *application-frame*))
@@ -1514,7 +1529,7 @@
 
 (defun handle-exit-box-callback (gadget)
   (if *editting-field-p*
-      (beep)
+      (beep *editting-field-p*)
     (let ((id (gadget-id gadget)))
       (case id
         (:exit (com-exit-avv))

@@ -625,18 +625,18 @@ stipples are not supported yet."))
 		     ;; drawing a pie slice
 		     (win::pie
 		       dc left top right bottom
-		       (round (+ (* (cos end-angle) x-radius) center-x))
-		       (round (+ (* (sin end-angle) y-radius) center-y))
-		       (round (+ (* (cos start-angle) x-radius) center-x))
-		       (round (+ (* (sin start-angle) y-radius) center-y))))
+		       (round (+ center-x (* (cos start-angle) x-radius)))
+		       (round (- center-y (* (sin start-angle) y-radius)))
+		       (round (+ center-x (* (cos end-angle) x-radius)))
+		       (round (- center-y (* (sin end-angle) y-radius)))))
 		    (t
 		      ;; drawing an arc
 		      (win::arc
 			dc left top right bottom
-			(round (+ (* (cos end-angle) x-radius) center-x))
-			(round (+ (* (sin end-angle) y-radius) center-y))
-			(round (+ (* (cos start-angle) x-radius) center-x))
-			(round (+ (* (sin start-angle) y-radius) center-y)))))
+			(round (+ center-x (* (cos start-angle) x-radius)))
+			(round (- center-y (* (sin start-angle) y-radius)))
+			(round (+ center-x (* (cos end-angle) x-radius)))
+			(round (- center-y (* (sin end-angle) y-radius))))))
 	      )))))))
 
 (defmethod medium-draw-string* ((medium acl-medium)

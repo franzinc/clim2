@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.37 1997/02/05 01:51:15 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.38 1997/05/31 01:00:36 tomj Exp $
 
 (in-package :silica)
 
@@ -10,7 +10,7 @@
 
 ;; Ports and grafts
 
-(defvar *default-server-path* #+(and Allegro (not microsoft-32)) '(:motif)
+(defvar *default-server-path* #+(and Allegro (not acl86win32)) '(:motif)
                               #+Lucid '(:clx)
                               #+Genera `(:genera)
                               #+Cloe-Runtime `(:cloe)

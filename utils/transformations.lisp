@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/transformations.lisp,v 1.13 1997/02/05 01:55:24 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/transformations.lisp,v 1.14 1997/05/31 01:00:53 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -696,16 +696,18 @@
       (declare (type single-float tx ty))
       (values (coordinate (+ x tx)) (coordinate (+ y ty))))))
 
+;; coordinates *would* be single floats if we compiled with feature use-float-coordinates
+;; ... why *don't* we?
 (defmethod transform-position ((transform standard-transformation) x y)
+;;  (declare (optimize (speed 3) (safety 1) (debug 0)))
   (declare (type real x y))
-  (let ((x (coordinate x))
-	(y (coordinate y)))
-    (declare (type coordinate x y))
+  (let ((x #-ignore (float x 0f0) #+ignore (coordinate x))
+	(y #-ignore (float y 0f0) #+ignore (coordinate y)))
+    (declare (type #-ignore single-float #+ignore coordinate x y))
     (with-slots (mxx mxy myx myy tx ty) transform
       (declare (type single-float mxx mxy myx myy tx ty))
-      (values (coordinate (+ (* x mxx) (* y mxy) tx))
-	      (coordinate (+ (* x myx) (* y myy) ty))))))
-
+      (values (the #-ignore single-float #+ignore coordinate (+ (* x mxx) (* y mxy) tx))
+	      (the #-ignore single-float #+ignore coordinate (+ (* x myx) (* y myy) ty))))))
 
 (defmethod untransform-position ((transform identity-transformation) x y)
   (declare (type real x y))

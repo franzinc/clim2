@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/region-arithmetic.lisp,v 1.16 1997/02/05 01:55:18 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/region-arithmetic.lisp,v 1.17 1997/05/31 01:00:52 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -100,6 +100,13 @@
   (if (region-intersects-region-p point path) point +nowhere+))
 (define-symmetric-region-method region-intersection ((point point) (area area))
   (if (region-intersects-region-p point area) point +nowhere+))
+;; this looks fishy to me-- what if the path and area are like so:
+;;      +-----+
+;;      |   --+-----
+;;      |     |
+;;      +-----+   then the path is *not* the intersection!
+;; and in fact the spec backs me up on this
+#+ignore ;; tjm 17Mar97
 (define-symmetric-region-method region-intersection ((path path) (area area))
   (if (region-intersects-region-p path area) path +nowhere+))
 
@@ -166,7 +173,9 @@
 (defmethod region-difference ((area area) (path path)) area)
 
 (defmethod region-difference ((region1 region) (region2 region))
-  (make-region-difference region1 region2))
+  (if (region-intersects-region-p region1 region2)
+      (make-region-difference region1 region2)
+    region1))
 
 
 ;;; Simple rectangle (LTRB) arithmetic

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.50 1997/02/05 01:44:15 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.51 1997/05/31 01:00:31 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -9,8 +9,10 @@
 
 (defvar *abort-menus-when-buried* t)
 
-(defparameter *default-menu-text-style* (make-text-style :fix :roman :normal))
-(defparameter *default-menu-label-text-style* (make-text-style :fix :italic :normal))
+(defparameter *default-menu-text-style* (make-text-style :sans-serif :roman :small))
+(defparameter *default-menu-label-text-style*
+    (merge-text-styles (make-text-style nil :italic nil)
+		       *default-menu-text-style*))
 
 (define-application-frame menu-frame ()
   (menu
@@ -309,7 +311,7 @@
                                            (medium-background associated-window))
               (medium-foreground menu) (or foreground
                                            (medium-foreground associated-window)))
-        (with-text-style (menu text-style)
+        (with-text-style (menu (or text-style *default-menu-text-style*))
           (with-end-of-line-action (menu :allow)
             (loop
               (multiple-value-bind (item gesture)
@@ -462,13 +464,13 @@
                            ;; on nt there is no server round trip so
                            ;; it's safe to check window-visibility
                            ;; (cim 9/16/96)
-                           (or #-(and Allegro (not microsoft-32)) 
+                           (or #-(and Allegro (not acl86win32))
                                (and *abort-menus-when-buried*
                                     (not (window-visibility menu)))
                                (pointer-motion-pending menu)))
                          (input-wait-handler (menu)
                            ;; Abort if the menu becomes buried
-                           #-(and Allegro (not microsoft-32))
+                           #-(and Allegro (not acl86win32))
                            (when (and *abort-menus-when-buried*
                                       (not (window-visibility menu)))
                              (return-from menu-choose-from-drawer nil))

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.106 1997/02/07 00:21:04 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.107 1997/05/31 01:00:47 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -163,10 +163,10 @@
     `(
       ;; ascii
       (0 "fixed"
-	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
-	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
-	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
-		 "-*-times-*-*-*-*-*-*-*-*-*-*-*-*"))
+	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-iso8859-1")
+	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-iso8859-1")
+	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-iso8859-1"
+		 "-*-times-*-*-*-*-*-*-*-*-*-*-iso8859-1"))
 
       ,@(excl:ics-target-case
 	 (:+ics

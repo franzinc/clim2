@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/gcontext.lisp,v 1.31 1997/02/05 01:52:44 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/gcontext.lisp,v 1.32 1997/05/31 01:00:42 tomj Exp $
 
 (in-package :tk)
 
@@ -349,6 +349,44 @@
    (object-display gc)
    gc
    nv))
+
+;; granted, this isn't the right thing to do, but it saves us from some
+;; nasty consing -tjm 11Apr97
+(defmethod (setf gcontext-clip-mask) ((nv clim-utils::standard-bounding-rectangle) (gc gcontext))
+  (let ((rs (x11:make-xrectangle-array :number 1)))
+    (clim-utils::with-bounding-rectangle* (left top right bottom) nv
+      (setf (x11:xrectangle-array-x rs 0) (clim-utils::fix-coordinate left)
+	    (x11:xrectangle-array-y rs 0) (clim-utils::fix-coordinate top)
+	    (x11:xrectangle-array-width rs 0) (clim-utils::fix-coordinate (- right left))
+	    (x11:xrectangle-array-height rs 0) (clim-utils::fix-coordinate (- bottom top))))
+    (x11:xsetcliprectangles
+     (object-display gc)
+     gc
+     0
+     0
+     rs
+     1
+     x11:unsorted)))
+
+(defmethod (setf gcontext-clip-mask) ((nv clim-utils::standard-rectangle-set) (gc gcontext))
+  (let* ((rectangles (clim-utils::region-set-regions nv))
+	 (n (length rectangles))
+	 (rs (x11:make-xrectangle-array :number n)))
+    (dotimes (i n)
+      (let ((r (nth i rectangles)))
+	(clim-utils::with-bounding-rectangle* (left top right bottom) r
+	  (setf (x11:xrectangle-array-x rs i) (clim-utils::fix-coordinate left)
+		(x11:xrectangle-array-y rs i) (clim-utils::fix-coordinate top)
+		(x11:xrectangle-array-width rs i) (clim-utils::fix-coordinate (- right left))
+		(x11:xrectangle-array-height rs i) (clim-utils::fix-coordinate (- bottom top))))))
+    (x11:xsetcliprectangles
+     (object-display gc)
+     gc
+     0
+     0
+     rs
+     n
+     x11:unsorted)))
 
 (defmethod (setf gcontext-clip-mask) ((nv list) (gc gcontext))
   (let* ((n (length nv))

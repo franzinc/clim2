@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.54 1997/02/05 01:50:50 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.55 1997/05/31 01:00:34 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -106,6 +106,9 @@
           hscroll-bar hscroll-bar-enabled-p
           vscroll-bar vscroll-bar-enabled-p t))
 
+      ;; tjm 15Mar97 otherwise most recent text-output-record not
+      ;; considered (spr15933)
+      (stream-force-output (sheet-child viewport))
       (with-bounding-rectangle* (left top right bottom)
           (viewport-contents-extent viewport)
         (with-bounding-rectangle* (vleft vtop vright vbottom)

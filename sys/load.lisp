@@ -1,6 +1,6 @@
 (in-package :user)
 
-#+(and Allegro microsoft-32)
+#+(and Allegro (or microsoft-32 mswindows))
 (eval-when (compile load eval) (push :acl86win32 *features*))
 
 #+acl86win32
@@ -42,23 +42,22 @@
 
 (let (#+acl86win32 (excl::*enable-package-locked-errors* nil))
 
+(load (climpath "aclpc\\sysdcl.lisp"))
+
 #+aclpc (clim-defsystem:load-system "aclpc-clim")
 #+acl86win32 (load-system 'aclnt-clim)
 
-;;; to make a non-demo-loaded version, comment the following
-#+aclpc (load (climpath "test\\test-suite.fsl"))
-#+acl86win32 (load (climpath "test\\test-suite.fasl"))
-
-#+aclpc (load (climpath "demo\\sysdcl-pc.lisp"))
-#+acl86win32 (load (climpath "demo\\sysdcl.lisp"))
+(unless (and (boundp *no-clim-demos*) *no-clim-demos*)
+  #+aclpc (load (climpath "test\\test-suite.fsl"))
+  #+acl86win32 (load (climpath "test\\test-suite.fasl"))
+  #+aclpc (load (climpath "demo\\sysdcl-pc.lisp"))
+  #+acl86win32 (load (climpath "demo\\sysdcl.lisp"))
+  #+aclpc (clim-defsystem:load-system "clim-demo")
+  #+acl86win32 (load-system 'clim-demo))
 
 ) ;; end let #+acl86win32 (excl::*enable-package-locked-errors* nil)
 
-#-acl86win32
-(clim-defsystem:load-system "clim-demo")
-
 ;;; Remove this feature for the final world.
-
 #+acl86win32-uses-clim-defsystem
 (setq *features* (delete :defsystem *features*))
 

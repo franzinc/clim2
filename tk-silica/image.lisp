@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/image.lisp,v 1.21 1997/02/05 01:53:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/image.lisp,v 1.22 1997/05/31 01:00:45 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -267,7 +267,11 @@
 	     (if palette
 		 (find-named-color x palette)
 	       x)))
-      (let* ((codes (make-array (expt char-code-limit chars-per-pixel)))
+      ;;--- char-code-limit is 2^16, but the chars in xpm palettes will
+      ;;--- always be printable ascii.  use of char-code-limit here was
+      ;;--- creating prohibitively large arrays.  -tjm 3Mar97
+      (let* ((xpm-char-code-limit 256)
+	     (codes (make-array (expt xpm-char-code-limit chars-per-pixel)))
 	     (designs
 	      (do ((color-specs (read-strings) (cddr color-specs))
 		   (designs nil)
@@ -278,7 +282,7 @@
 		      (key 0))
 		  (dotimes (i chars-per-pixel)
 		    (setq key (+ (char-code (schar code i))
-				 (* key char-code-limit))))
+				 (* key xpm-char-code-limit))))
 		  (setf (svref codes key) index)
 		  (push color designs))))
 	     (array (make-array (list height width)))
@@ -293,7 +297,7 @@
 	       (let ((key 0))
 		 (dotimes (i chars-per-pixel)
 		   (setq key (+ (char-code (schar row index))
-				(* key char-code-limit)))
+				(* key xpm-char-code-limit)))
 		   (incf index))
 		 (setf (aref array i j) (svref codes key)))))
 	   (incf i)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.84 1997/02/05 01:43:30 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.85 1997/05/31 01:00:30 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -1037,6 +1037,7 @@
   ;; First display all the :accept-values panes, then display the rest.
   ;; We do this to ensure that all side-effects from :accept-values panes
   ;; have taken place.
+  (when *frame-layout-changing-p* (setq force-p t))
   (map-over-sheets #'(lambda (sheet)
                        (when (typep sheet 'accept-values-pane)
                          (redisplay-frame-pane frame sheet :force-p force-p)))
@@ -1063,8 +1064,6 @@
     (with-simple-restart (skip-pane-redisplay "Skip redisplaying pane ~S" pane)
       (loop
         (with-simple-restart (retry-pane-redisplay "Retry displaying pane ~S" pane)
-          (when *frame-layout-changing-p*
-            (setq force-p t))
           (unless *sizing-application-frame*
             (unless (member pane (slot-value frame 'initialized-panes))
               (setq force-p t)

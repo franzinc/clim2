@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/text-recording.lisp,v 1.21 1997/02/05 01:45:12 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/text-recording.lisp,v 1.22 1997/05/31 01:00:32 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -404,20 +404,22 @@
         (return-from get-text-output-record record)))
     (let* ((string (make-array 16 :element-type #+ANSI-90 'character #-ANSI-90 'string-char
                                   :fill-pointer 0 :adjustable t))
-           (record (if (not (eq style default-style))
-                       (make-styled-text-output-record 
-                         string (medium-ink stream) (medium-clipping-region stream))
-                       (make-standard-text-output-record
-                         string (medium-ink stream) (medium-clipping-region stream)))))
+           (record (if (eq style default-style)
+		     (make-standard-text-output-record
+		      string (medium-ink stream) (medium-clipping-region stream))
+		     (make-styled-text-output-record 
+		      string (medium-ink stream) (medium-clipping-region stream)))))
       (setf (stream-text-output-record stream) record)
-      (multiple-value-bind (abs-x abs-y)
-          (point-position
-            (stream-output-history-position stream))
-        (declare (type coordinate abs-x abs-y))
-        (multiple-value-bind (cx cy) (stream-cursor-position stream)
-          (declare (type coordinate cx cy))
-          (output-record-set-start-cursor-position
-            record (- cx abs-x) (- cy abs-y))))
+      (let ((baseline-diff (min 0 (- (text-style-ascent style (sheet-medium stream))
+				     (stream-baseline stream)))))
+	(multiple-value-bind (abs-x abs-y)
+	    (point-position
+	     (stream-output-history-position stream))
+	  (declare (type coordinate abs-x abs-y))
+	  (multiple-value-bind (cx cy) (stream-cursor-position stream)
+	    (declare (type coordinate cx cy))
+	    (output-record-set-start-cursor-position
+	     record (- cx abs-x) (- cy abs-y baseline-diff)))))
       ;; Moved to STREAM-CLOSE-TEXT-OUTPUT-RECORD, since we don't need this thing
       ;; in the history until then.  This should save an extra recompute-extent call
       ;; (one in here, one when the string is added).

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-stream.lisp,v 1.64 1997/02/14 23:57:01 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-stream.lisp,v 1.65 1997/05/31 01:00:29 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -372,11 +372,13 @@
 (defclass application-pane (clim-stream-pane) ())
 
 #-aclpc
-;; apparently aclpc needs to do this in silica/framem.lisp since it refers
-;; to the class in a note-frame-enabled method   -tjm 12Feb97
+;; apparently aclpc needs to do this in silica/framem.lisp instead since it
+;; refers to the class in a note-frame-enabled method -tjm 12Feb97
 (defclass accept-values-pane (clim-stream-pane) ())
 
-(defclass pointer-documentation-pane (clim-stream-pane) ())
+(defclass pointer-documentation-pane (clim-stream-pane) ()
+  (:default-initargs
+      :text-style *default-menu-text-style*))
 
 (defclass title-pane (clim-stream-pane)
     ((display-string :initform nil :initarg :display-string)))

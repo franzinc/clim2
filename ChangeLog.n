@@ -11,6 +11,54 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Fri May 30 17:49:18 PDT 1997  Tom McClure <tomj@romeo>
+
+	* aclpc/acl-medium.lisp
+		- ellipse drawing fixes
+	* clim/accept-values.lisp
+		- made default action (when you hit enter) work better
+	* clim/db-stream.lisp
+		- pointer-documentation pane now defaults to menu font
+	* clim/drag-and-drop.lisp
+		- returned multiple-window drag-and-drop functionality
+	* clim/input-editor-commands.lisp, clim/menus.lisp,
+	  silica/port.lisp, test/test-suite.lisp,
+	  utils/defun-utilities.lisp, utils/defun.lisp,
+	  utils/designs.lisp
+		- removed references to obsolete feature microsoft-32
+	* clim/menus.lisp, xm/xm-frames.lisp
+		- fixed *default-menu-text-style*
+	* clim/output-protocol.lisp
+		- fixed aclpc char v. character bug
+	* clim/output-protocol.lisp, clim/text-recording.lisp
+		- fixed text baseline calculations
+	* silica/db-scroll.lisp
+		- most recent text output wasn't resizing extent
+	* sys/compile.lisp, sys/load.lisp
+		- major housecleaning
+	* tk/gcontext.lisp, tk-silica/xt-graphics.lisp,
+	  utils/transformations.lisp
+		- optimized transform-position
+	* tk/image.lisp
+		- xpm pixmaps were being written out with huge chars
+	* xm/xm-gadgets.lisp
+		- added option abort-on-cancel-p to notify-user
+	* tk-silica/xt-silica.lisp
+		- gave clim fonts explicit iso8859-1 encoding
+	* utils/base-designs.lisp
+		- removed aclpc ink constant weirdness from nt
+	* utils/extended-regions.lisp
+		- added many missing region methods
+		- fixed bugs in map-over-polygon-xxx and
+		  region-intersection for lines
+	* utils/region-arithmetic.lisp
+		- made path/area stuff agree with spec
+		- small optimization in make-region-difference
+	* utils/regions.lisp
+		- bounding-rectangles of partial ellipses fixed
+
+
+*******************************************************************************
 Documentation changes:	none
 Tests for new features:	no new features
 

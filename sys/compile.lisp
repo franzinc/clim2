@@ -1,6 +1,6 @@
 (in-package :user)
 
-#+(and Allegro microsoft-32)
+#+(and Allegro (or microsoft-32 mswindows))
 (eval-when (compile load eval) (push :acl86win32 *features*))
 
 #+acl86win32

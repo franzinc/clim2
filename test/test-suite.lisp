@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/test/test-suite.lisp,v 1.80 1997/02/05 01:52:20 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/test/test-suite.lisp,v 1.81 1997/05/31 01:00:40 tomj Exp $
 
 (in-package :clim-user)
 
@@ -1941,10 +1941,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 (define-drag-and-drop-translator test-suite-dnd-blank
-    (drag-source string drop-target presentations
-                 :drag-documentation "Don't drop now"
+    (integer string blank-area presentations
+                 :drag-documentation ((object destination-object stream)
+                                      (format stream "Hello ~s on ~s" object destination-object))
                  :pointer-documentation "bar bar"
-                 :documentation "Documentatoin")
+                 :documentation "Documentation")
   ()
   (format nil "Dragged to blank area"))
 
@@ -2206,7 +2207,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 (define-test (gadgets-dialog menus-and-dialogs) (stream)
-  "An own-window ACCEPTING-VALUES dialog that has lots of gadgets inside of it."
+  "An ACCEPTING-VALUES dialog that has lots of gadgets inside of it."
   (gadgets-dialog-internal stream nil))
 
 (define-test (ozone-dialog menus-and-dialogs) (stream)
@@ -3400,9 +3401,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"
   (without-clim-input
-    (if #+(allegro (not microsoft-32))
-                (typep (port stream) 'xm-silica::xt-port)
-            #-(allegro (not microsoft-32)) nil
+   (if #-(or aclpc acl86win32) (typep (port stream) 'xm-silica::xt-port)
+       #+(or aclpc acl86win32) nil
         (sleep 0.1) ;; Avoid division by zero!
         (menu-choose '(("Red" :value +red+)
                        ("Green" :value +green+)
@@ -3419,9 +3419,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (cached-menu-choose :iterations 10) (stream)
   "Pop up a cached menu of colors"
   (without-clim-input
-    (if #+(and allegro (not microsoft-32))
-                (typep (port stream) 'xm-silica::xt-port)
-            #-(and allegro (not microsoft-32)) nil
+   (if #-(or aclpc acl86win32) (typep (port stream) 'xm-silica::xt-port)
+       #+(or aclpc acl86win32) nil
         (sleep 0.1) ;; Avoid division by zero!
         (menu-choose '(("Red" :value +red+)
                        ("Green" :value +green+)
@@ -3528,7 +3527,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-application-frame clim-tests ()
     ((history-class :initarg :history-class
-                    :initform 'standard-tree-output-history
+                    :initform 'standard-sequence-output-history
                     :reader clim-tests-history-class))
   (:command-table (clim-tests
                    :inherit-from (graphics

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/regions.lisp,v 1.20 1997/02/07 00:21:08 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/regions.lisp,v 1.21 1997/05/31 01:00:52 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -838,6 +838,8 @@
     (map-over-region-set-regions #'contains-position-p region-set))
   nil)
 
+;; what if none of the chunks contain the other-region but they do as a whole?
+;; can we cover that case with strategic use of region-difference? -tjm 17Mar97
 (defmethod region-contains-region-p ((region-set region-set) (other-region region))
   (flet ((contains-region-p (region)
 	   (when (region-contains-region-p region other-region)
@@ -989,11 +991,11 @@
 	     (bottom (max y1 y2)))
 	(when (angle-between-angles-p pi-single-float theta-1 theta-2)
 	  (minf left (- x-radius)))
-	(when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
+	(when (angle-between-angles-p pi/2 theta-1 theta-2)
 	  (minf top (- y-radius)))
 	(when (angle-between-angles-p 0 theta-1 theta-2)
 	  (maxf right x-radius))
-	(when (angle-between-angles-p pi/2 theta-1 theta-2)
+	(when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
 	  (maxf bottom y-radius))
 	(when filled
 	  (minf left 0)
