@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-gadgets.lisp,v 1.49.6.1 2000/07/19 18:53:14 layer Exp $
+;; $Id: xt-gadgets.lisp,v 1.49.6.2 2000/09/05 19:06:46 layer Exp $
 
 (in-package :xm-silica)
 
@@ -212,7 +212,10 @@
 
 ;;; scroll bar utilities
 
-(defvar *scroll-bar-quantization* most-positive-fixnum)
+(defvar *scroll-bar-quantization* 
+    ;; must be a 32-bit quantity.
+    (min most-positive-fixnum 
+	 (1- (expt 2 31))))
 
 (defun convert-scroll-bar-value-out (scroll-bar value)
   (multiple-value-bind

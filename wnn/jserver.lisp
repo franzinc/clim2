@@ -1,7 +1,5 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
-;;				-[Mon Jul  6 15:35:40 1998 by layer]-
-;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jserver.lisp,v 1.5.36.1 2000/07/19 18:53:15 layer Exp $
+;; $Id: jserver.lisp,v 1.5.36.2 2000/09/05 19:06:48 layer Exp $
 
 (in-package :wnn)
 

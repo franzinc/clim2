@@ -15,28 +15,28 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-init.lisp,v 1.26.34.1 2000/07/19 18:53:11 layer Exp $
+;; $Id: ol-init.lisp,v 1.26.34.2 2000/09/05 19:06:43 layer Exp $
 
 (in-package :tk)
 
 (defun ol-initialize ()
   (ol_toolkit_initialize))
 
-(defun-c-callable ol-error-handler ((message :unsigned-long))
+(defun-c-callable ol-error-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
     (error "OLit: ~A" (excl:native-to-string message))))
 
 
-(defun-c-callable ol-warning-handler ((message :unsigned-long))
+(defun-c-callable ol-warning-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
     (warn "OLit: ~A" (excl:native-to-string message))))
 
-(defun-c-callable ol-error-va-handler ((message :unsigned-long))
+(defun-c-callable ol-error-va-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
     (error "OLit: ~A" (excl:native-to-string message))))
 
 
-(defun-c-callable ol-warning-va-handler ((message :unsigned-long))
+(defun-c-callable ol-warning-va-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
     (warn "OLit: ~A" (excl:native-to-string message))))
 

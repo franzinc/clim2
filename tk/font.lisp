@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.24.34.1 2000/07/19 18:53:11 layer Exp $
+;; $Id: font.lisp,v 1.24.34.2 2000/09/05 19:06:42 layer Exp $
 
 (in-package :tk)
 

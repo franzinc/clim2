@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 1.47.34.1 2000/07/19 18:53:12 layer Exp $
+;; $Id: widget.lisp,v 1.47.34.2 2000/09/05 19:06:44 layer Exp $
 
 (in-package :tk)
 

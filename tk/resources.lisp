@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.63.34.1 2000/07/19 18:53:12 layer Exp $
+;; $Id: resources.lisp,v 1.63.34.2 2000/09/05 19:06:43 layer Exp $
 
 (in-package :tk)
 

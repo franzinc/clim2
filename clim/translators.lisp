@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: translators.lisp,v 1.19 2000/05/01 21:43:26 layer Exp $
+;; $Id: translators.lisp,v 1.19.24.1 2000/09/05 19:06:41 layer Exp $
 
 (in-package :clim-internals)
 
@@ -147,25 +147,6 @@
            ,arglist
          ,@body))))
 
-(defun warn-if-presentation-type-specifier-invalid (enclosing-form form env
-                                                    &optional constant)
-  (labels ((check (type)
-             (warn-if-presentation-type-specifier-invalid-1 type env #'complain))
-           (complain (thing string)
-             (warn "~S is ~A~@[ in ~S~].~%It appears in a call to ~S."
-                   thing string
-                   (unless (and (consp form)
-                                (eq (first form) 'quote)
-                                (eq (second form) thing))
-                     form)
-                   (first enclosing-form))
-             t))
-    (declare (dynamic-extent #'check #'complain))
-    (if constant
-        (check form)
-        (when (constantp form #+(or Genera Minima) env)
-          (check (eval form #+Genera env))))))
-
 (defun warn-if-presentation-type-specifier-invalid-1 (type env complain)
   (declare (dynamic-extent complain))
   ;; Don't call expand-presentation-type-abbreviation because it signals an
@@ -195,6 +176,25 @@
                         parameters)))
             ((not (presentation-type-specifier-p type env))
              (funcall complain type "an invalid presentation type specifier"))))))
+
+(defun warn-if-presentation-type-specifier-invalid (enclosing-form form env
+                                                    &optional constant)
+  (labels ((check (type)
+             (warn-if-presentation-type-specifier-invalid-1 type env #'complain))
+           (complain (thing string)
+             (warn "~S is ~A~@[ in ~S~].~%It appears in a call to ~S."
+                   thing string
+                   (unless (and (consp form)
+                                (eq (first form) 'quote)
+                                (eq (second form) thing))
+                     form)
+                   (first enclosing-form))
+             t))
+    (declare (dynamic-extent #'check #'complain))
+    (if constant
+        (check form)
+        (when (constantp form #+(or Genera Minima) env)
+          (check (eval form #+Genera env))))))
 
 #+Genera
 (scl:defprop define-presentation-action define-presentation-translator
@@ -387,6 +387,12 @@
                     (t
                      ;; Already popped above
                      translators)))))))))
+
+#+allegro
+(excl:defun-proto map-over-command-table-translators (function 
+						      command-table &key
+						      (inherited t))
+  (declare (dynamic-extent function)))
 
 ;;--- This traverses a lot of very non-local data structures (presentation types,
 ;;--- translators, command tables, etc).  What can we do to localize them?

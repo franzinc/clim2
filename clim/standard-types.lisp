@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: standard-types.lisp,v 1.42 2000/05/01 21:43:26 layer Exp $
+;; $Id: standard-types.lisp,v 1.42.24.1 2000/09/05 19:06:40 layer Exp $
 
 (in-package :clim-internals)
 
@@ -601,6 +601,17 @@
          (declare (dynamic-extent #'suggest-item))
          (map nil #'suggest-item sequence))))))
 
+#+allegro
+(excl:defun-proto accept-values-choose-from-sequence (stream 
+						      sequence key 
+						      selected-value
+						      tester
+						      type 
+						      query-identifier
+						      select-action
+						      highlighting-function)
+  (declare (dynamic-extent select-action highlighting-function)))
+
 (define-presentation-method accept-present-default ((type completion) stream
                                                     (view dialog-view-mixin)
                                                     default default-supplied-p
@@ -835,6 +846,15 @@
          (replace-input stream echo-string-before-blip))
        (presentation-replace-input stream object type view)
        (values :accepted object type))))
+
+#+allegro
+(excl:defun-proto accept-values-choose-from-subset (stream
+						    sequence key 
+						    selected-value tester
+						    type query-identifier
+						    select-action 
+						    highlighting-function)
+  (declare (dynamic-extent select-action highlighting-function)))
 
 (define-presentation-method accept-present-default ((type subset-completion)
                                                     stream (view dialog-view-mixin)
