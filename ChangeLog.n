@@ -11,6 +11,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.14
+
+Mon Apr 27 16:21:48 1998  Kevin Layer  <layer@ultra>
+
+	* utils/packages.lisp: fix hacking of excl::*version-info*
+
+*******************************************************************************
 Thu Apr 16 11:55:08 1998  Kevin Layer  <layer@ultra>
 
 	* Makefile: add default HOST for aix/rs6000
