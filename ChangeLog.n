@@ -58,6 +58,11 @@ join from acl62 to trunk on 12/11/03
 next join tag: acl62_to_trunk_via_layer48_merge_121003
 *******************************************************************************
 
+2004-05-27  Charles A. Cox  <cox@gemini>
+
+	* ChangeLog.n: Add cvs Revision marker to help track cvs versions
+	sent to Kido.
+
 2003-12-23  Kevin Layer  <layer@crikey>
 
 	* Makefile.linux: add dmalloc debugging stuff, turned off by
@@ -5933,4 +5938,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10 $
+$Revision: 2.10.4.1 $
