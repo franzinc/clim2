@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
-;;				-[Thu Aug 19 18:38:51 1993 by colin]-
+;;				-[Mon Sep 13 18:25:58 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.77 1993/07/27 01:55:47 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.78 1993/09/07 21:47:23 colin Exp $
 
 (in-package :tk-silica)
 
@@ -151,10 +151,7 @@
     (setq name (substitute #\space #\- (string name)))
     (or (gethash name named-color-cache)
 	(setf (gethash name named-color-cache)
-	  ;; we use parse-color rather than lookup-color here because
-	  ;; it also understands about #rgb format. in R5 we should
-	  ;; change this to lookup-color
-	  (let ((xcolor (tk::parse-color (palette-colormap palette) name))
+	  (let ((xcolor (tk::lookup-color (palette-colormap palette) name))
 		(x #.(1- (ash 1 16))))
 	    (if xcolor
 		(make-rgb-color (/ (x11:xcolor-red xcolor) x)

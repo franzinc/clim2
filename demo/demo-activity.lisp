@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-activity.lisp,v 1.6 1993/05/13 16:23:38 cer Exp $
+;; $fiHeader: demo-activity.lisp,v 1.7 1993/06/04 16:06:29 cer Exp $
 
 (in-package :clim-demo)
 
@@ -70,20 +70,5 @@
   `(,object))
 
 
-(defvar *activity-demos* nil)
 
-(defun do-activity-demo (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *activity-demos*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-instance 'demo-activity
-			     :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *activity-demos*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Activity Demo" do-activity-demo)
+(define-demo "Activity Demo" activity-frame)

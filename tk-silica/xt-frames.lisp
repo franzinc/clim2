@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Thu Aug 26 18:34:07 1993 by colin]-
+;;				-[Wed Sep  8 11:40:41 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.38 1993/08/12 16:05:10 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.39 1993/09/07 21:47:14 colin Exp $
 
 
 (in-package :xm-silica)
@@ -251,12 +251,12 @@
   (let ((graft (graft framem))
 	(shell (sheet-shell (frame-top-level-sheet frame))))
     (let* ((sr (compose-space (frame-top-level-sheet frame)))
-	   (width (fix-coordinate (space-requirement-min-width sr)))
-	   (height (fix-coordinate (space-requirement-min-height sr))))
+	   (width (space-requirement-min-width sr))
+	   (height (space-requirement-min-height sr)))
       (clim-internals::limit-size-to-graft width height graft)
       (tk::set-values shell
-		      :min-width width
-		      :min-height height))
+		      :min-width (fix-coordinate width)
+		      :min-height (fix-coordinate height)))
 
     (let ((geo (clim-internals::frame-geometry frame)))
       (destructuring-bind

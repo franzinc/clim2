@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: custom-records.lisp,v 1.3 92/12/03 10:28:36 cer Exp $
+;; $fiHeader: custom-records.lisp,v 1.4 1993/07/22 15:38:27 cer Exp $
 
 (in-package :clim-user)
 
@@ -508,21 +508,6 @@
       (terpri stream))))
 
 
-(defvar *scigraphs* nil)
 
-(defun do-scigraph (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *scigraphs*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'scigraph
-			     :left 200 :top 100 :width 600 :height 500
-			     :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *scigraphs*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(clim-demo:define-demo "Custom Output Records" do-scigraph)
+(clim-demo:define-demo "Custom Output Records" scigraph
+  :left 200 :top 100 :width 600 :height 500)

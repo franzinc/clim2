@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.22 92/12/03 10:28:33 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.23 1993/07/27 01:45:14 colin Exp $
 
 (in-package :clim-demo)
 
@@ -880,21 +880,5 @@ but first get better menu formatting!
 ||#
 
 
-(defvar *cad-demos* nil)
 
-(defun do-cad-demo (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *cad-demos*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'cad-demo
-						   :frame-manager framem
-						   :width 700 :height 600)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *cad-demos*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "CAD Demo" do-cad-demo)
+(define-demo "CAD Demo" cad-demo :width 700 :height 600)

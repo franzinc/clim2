@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.20 1993/05/25 20:41:33 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.21 1993/06/02 18:41:24 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -623,23 +623,6 @@
 	      (car layouts)))))
 
 
-(defvar *graphics-editors* nil)
-
-(defun do-graphics-editor (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *graphics-editors*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'graphics-editor
-						   :frame-manager framem
-						   :left 100 :top 100
-						   :width 800 :height 500)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *graphics-editors*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Graphics Editor" do-graphics-editor)
+(define-demo "Graphics Editor" graphics-editor
+  :left 100 :top 100 :width 800 :height 500)
 

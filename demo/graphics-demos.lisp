@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.13 92/12/16 16:47:32 cer Exp $
+;; $fiHeader: graphics-demos.lisp,v 1.14 1993/07/27 01:45:28 colin Exp $
 
 (in-package :clim-demo)
 
@@ -240,20 +240,5 @@ to the window in which it is displayed."
 	(write-string text window)))))
 
 
-(defvar *graphics-demos* nil)
 
-(defun do-graphics-demo (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *graphics-demos*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'graphics-demo
-						   :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *graphics-demos*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Graphics Demos" do-graphics-demo)
+(define-demo "Graphics Demos" graphics-demo)

@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.4 1993/07/22 15:39:09 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.5 1993/08/12 16:04:30 cer Exp $
 
 (define-frame-test test-puzzle-demo (clim-demo::puzzle)
   (
@@ -217,15 +217,13 @@
 
 (defun run-all-demos ()
   (dolist (demo clim-demo::*demos*)
-    (let ((fn (cdr demo)))
-      (unless (functionp fn)
-	(handler-case (mp::with-timeout (20)
-			(funcall fn :force t))
-	  (error (c)
-	    (note-test-failed fn c))
-	  (:no-error (&rest ignore)
-	    (declare (ignore ignore))
-	    (note-test-succeeded fn)))))))
+    (handler-case (mp::with-timeout (20)
+		    (clim-demo::run-demo demo :force t))
+      (error (c)
+	(note-test-failed (clim-demo::demo-class demo) c))
+      (:no-error (&rest ignore)
+	(declare (ignore ignore))
+	(note-test-succeeded (clim-demo::demo-class demo))))))
 
 ;;-- I dont know whether this is the best place for this?
 

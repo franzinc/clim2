@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: peek-frame.lisp,v 1.4 93/03/19 09:44:12 cer Exp $
+;; $fiHeader: peek-frame.lisp,v 1.5 1993/07/27 01:45:54 colin Exp $
 
 (in-package :clim-user)
 
@@ -319,21 +319,5 @@ Revised and stripped down by Scott McKay (SWM@Symbolics.COM) for CLIM 2.0.
       (close pipe))))
 
 
-(defvar *peek-frames* nil)
 
-(defun do-peek (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *peek-frames*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'peek-frame
-			     :width 700 :height 450
-			     :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *peek-frames*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(clim-demo:define-demo "Peek" do-peek)
+(clim-demo:define-demo "Peek" peek-frame :width 700 :height 450)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.19 93/01/18 13:54:57 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.20 1993/07/27 01:45:06 colin Exp $
 
 (in-package :clim-demo)
 
@@ -198,22 +198,5 @@
     (setf (address-number address) new-number)))
 
 
-(defvar *address-books* nil)
 
-(defun do-address-book (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *address-books*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'address-book
-						   :frame-manager framem
-						   :left 100
-						   :width 400 :height 300)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *address-books*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Address Book" do-address-book)
+(define-demo "Address Book" address-book :left 100 :width 400 :height 300)

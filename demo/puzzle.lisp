@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.22 92/11/06 19:03:05 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.23 1993/07/27 01:46:05 colin Exp $
 
 (in-package :clim-demo)
 
@@ -173,21 +173,5 @@
   (frame-exit *application-frame*))
 
 
-(defvar *puzzles* nil)
 
-(defun do-puzzle (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *puzzles*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'puzzle
-						   :left 200 :top 100
-						   :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *puzzles*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "15 Puzzle" do-puzzle)
+(define-demo "15 Puzzle" puzzle :left 200 :top 100)

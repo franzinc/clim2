@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[Mon Aug 23 14:13:24 1993 by colin]-
+;;				-[Mon Sep 13 17:55:50 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.26 1993/08/12 16:03:37 cer Exp $
+;; $fiHeader: plot.lisp,v 1.27 1993/09/07 21:46:27 colin Exp $
 
 (in-package :clim-demo)
 
@@ -810,20 +810,5 @@
 	    (setf plot-data (read s))))))))
 
 
-(defvar *plot-demos* nil)
 
-(defun do-plot-demo (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *plot-demos*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'plot-demo
-						   :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *plot-demos*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Plotting Demo" do-plot-demo)
+(define-demo "Plotting Demo" plot-demo)

@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.22 93/04/23 09:17:50 cer Exp $
+;; $fiHeader: browser.lisp,v 1.23 1993/07/22 15:38:20 cer Exp $
 
 (in-package :clim-browser)
 
@@ -1460,21 +1460,5 @@
     (frame-exit frame)))
 
 
-(defvar *browsers* nil)
 
-(defun do-browser (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *browsers*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'browser
-						   :frame-manager framem
-						   :width 800 :height 700)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *browsers*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Graphical Browser" do-browser)
+(define-demo "Graphical Browser" browser :width 800 :height 700)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.25 1993/07/22 15:38:31 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.26 1993/07/27 01:45:39 colin Exp $
 
 (in-package :clim-demo)
 
@@ -1651,21 +1651,5 @@
   t)
 
 
-(defvar *flight-planners* nil)
 
-(defun do-flight-planner (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *flight-planners*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'flight-planner
-						   :frame-manager framem
-						   :width 1000 :height 800)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *flight-planners*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Flight Planner" do-flight-planner)
+(define-demo "Flight Planner" flight-planner :width 1000 :height 800)

@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[]-
+;;				-[Mon Sep 13 17:55:07 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: palette.lisp,v 1.3 92/10/07 14:43:43 cer Exp $
+;; $fiHeader: palette.lisp,v 1.4 1993/07/27 01:45:51 colin Exp $
 
 
 (in-package :clim-demo)
@@ -59,12 +59,6 @@ text field gadget"
 	text-field text-editor list-pane option-pane))))
 
 
-(defvar *gadget-demo* nil)
 
-(defun do-gadget-demo (&optional force)
-  (run-frame-top-level 
-    (or (and (not force) *gadget-demo*)
-	(setq *gadget-demo* (make-application-frame 'gadget-demo)))))
-
-(define-demo "Gadget demo" (do-gadget-demo))
+(define-demo "Gadget demo" gadget-demo)
 

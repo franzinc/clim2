@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[]-
+;;				-[Mon Sep 13 17:56:12 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: process-browser.lisp,v 1.6 92/11/05 17:15:51 cer Exp $
+;; $fiHeader: process-browser.lisp,v 1.7 1993/07/27 01:46:02 colin Exp $
 
 
 (in-package :clim-demo)
@@ -168,20 +168,5 @@
 			    (princ (mp::process-arrest-reasons process))))))))))))))))
 
 
-(defvar *process-browsers* nil)
 
-(defun do-process-browser (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *process-browsers*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'process-browser
-						   :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *process-browsers*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Process Browser" do-process-browser)
+(define-demo "Process Browser" process-browser)

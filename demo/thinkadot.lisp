@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.13 92/10/07 14:43:52 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.14 1993/07/27 01:46:11 colin Exp $
 
 (in-package :clim-demo)
 
@@ -177,22 +177,6 @@
   (frame-exit *application-frame*))
 
 
-(defvar *thinkadots* nil)
 
-(defun do-thinkadot (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *thinkadots*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'thinkadot
-						   :frame-manager framem
-						   :left 100 :top 100
-						   :width 300 :height 340)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *thinkadots*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Thinkadot" do-thinkadot)
+(define-demo "Thinkadot" thinkadot
+  :left 100 :top 100 :width 300 :height 340)

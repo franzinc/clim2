@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.23 93/01/11 15:44:58 colin Exp $
+;; $fiHeader: demo-driver.lisp,v 1.24 1993/07/27 01:45:21 colin Exp $
 
 (in-package :clim-demo)
 
@@ -8,52 +8,86 @@
 
 (defvar *demos* nil)
 
-(defmacro define-demo (name start-form)
-  (if (symbolp start-form)
-      `(clim-utils:push-unique (cons ,name ',start-form) *demos*
-			       :test #'string-equal :key #'car)
-      `(clim-utils:push-unique (cons ,name #'(lambda () ,start-form)) *demos*
-			       :test #'string-equal :key #'car)))
+(defclass demo ()
+  ((name :reader demo-name :initarg :name)
+   (class :reader demo-class :initarg :class)
+   (initargs :reader demo-initargs :initarg :initargs)
+   (frames :accessor demo-frames :initform nil)))
 
-(define-demo "Exit" (exit-demo))
+(defmacro define-demo (name class &rest initargs)
+  (let ((do-name (clim-utils:fintern "~A-~A" 'do class)))
+    `(let ((demo (make-instance 'demo :name ,name 
+				:class ',class :initargs ',initargs)))
+       (clim-utils:push-unique demo
+			       *demos* :test #'string-equal :key #'demo-name)
+       (defun ,do-name (&rest args)
+	 (apply #'run-demo demo args)))))
 
-(defun exit-demo () (throw 'exit-demo nil))
+(when (find-class 'clim-user::clim-tests nil)
+  (define-demo "Test Suite" clim-user::clim-tests :width 600 :height 420))
 
-(define-demo "Test Suite" run-the-test-suite)
+(define-application-frame demo-driver ()
+    ()
+  (:panes 
+   (display :application :display-function 'display-all-demos
+	    :display-time nil :scroll-bars nil
+	    :text-cursor nil
+	    :width :compute :height :compute
+	    :end-of-line-action :allow
+	    :end-of-page-action :allow))
+  (:pointer-documentation t)
+  (:layouts
+   (default display)))
 
-(defun run-the-test-suite (&key (port (find-port)) (force nil))
-  (when (fboundp 'clim-user::do-test-suite)
-    (clim-user::do-test-suite :port port :force force)))
+(defmethod display-all-demos ((frame demo-driver) stream &rest args)
+  (declare (ignore args))
+  (with-text-style (stream '(:serif :roman :large))
+    (dolist (demo (sort (copy-list *demos*) #'string< :key #'demo-name))
+      (let ((name (demo-name demo)))
+	(with-output-as-presentation (stream demo 'demo)
+	  (format stream "~A~%" name))))))
 
-(defun start-demo (&key (port (find-port)) force)
-  (let* ((framem (typecase port
-		   (frame-manager port)
-		   (t (find-frame-manager :port port))))
-	 (graft (typecase port
-		  (frame-manager (graft port))
-		  (t (find-graft :port port))))
-	 (*application-frame* 
-	   (make-application-frame 'standard-application-frame
-	     :frame-manager framem))
-	 (demos (sort (copy-list (map 'list #'car *demos*)) #'string<)))
-    (catch 'exit-demo
-      (loop
-	(let* ((demo-name 
-		 (menu-choose demos
-			      :text-style '(:serif :roman :large)
-			      :label '("Clim Demonstrations"
-				       :text-style (:serif :bold :normal))
-			      :associated-window graft
-			      :cache nil
-			      :unique-id 'demo-menu :id-test #'eql
-			      :cache-value *demos* :cache-test #'equal))
-	       (demo-fcn
-		 (cdr (assoc demo-name *demos* :test #'string-equal))))
-	  (cond ((null demo-fcn))
-		((functionp demo-fcn)
-		 (funcall demo-fcn))
-		(t
-		 (funcall demo-fcn :port port :force force))))))))
+(define-demo-driver-command (com-exit-demo-driver :menu t :name "Exit") ()
+  (frame-exit *application-frame*))
+
+(define-demo-driver-command (com-run-demo)
+    ((demo 'demo :gesture :select))
+  (mp:process-run-function (demo-name demo) 
+			   #'run-demo demo
+			   :port (port *application-frame*)))
+
+(define-gesture-name :shift-select :pointer-button (:left :shift))
+
+(define-demo-driver-command (com-force-demo)
+    ((demo 'demo :gesture :shift-select))
+  (mp:process-run-function (demo-name demo) 
+			   #'run-demo demo
+			   :port (port *application-frame*) :force t))
+
+(defun run-demo (demo &key (port (find-port)) force)
+  (let* ((entry (assoc port (demo-frames demo)))
+	 (frame (cdr entry)))
+    (when (or force (null frame))
+      (setq frame (apply #'make-application-frame
+			 (demo-class demo)
+			 :frame-manager (find-frame-manager :port port)
+			 (demo-initargs demo))))
+    (if entry
+	(setf (cdr entry) frame)
+      (push (cons port frame) (demo-frames demo)))
+    (case (frame-state frame)
+      ((:enabled :shrunk)
+       (note-frame-deiconified (frame-manager frame) frame)
+       (raise-frame frame))
+      (t
+       (run-frame-top-level frame)))))
+
+(let ((demo (make-instance 'demo :name "Demo Driver"
+			   :class 'demo-driver
+			   :initargs '(:left 0 :top 0))))
+  (defun start-demo (&rest args)
+    (apply #'run-demo demo args)))
+
 
 #+Genera
 (cp:define-command (si:com-demonstrate-clim

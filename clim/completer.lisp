@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.13 92/10/28 11:31:28 cer Exp $
+;; $fiHeader: completer.lisp,v 1.14 1993/07/27 01:38:33 colin Exp $
 
 (in-package :clim-internals)
 
@@ -73,15 +73,19 @@
 	 (declare (dynamic-extent #'ends-in-char-p))
 	 (loop
 	   (setq unread nil return nil extend nil)
-	   (with-input-context (`(completer :stream ,stream
-					    :function ,function
-					    :possibility-printer ,possibility-printer
-					    :prefix ,stuff-so-far
-					    :location ,location)) ()
-		(progn 
-		  (setq token (read-token stream))
-		  (setq ch (read-gesture :stream stream)))
-	      (t (beep stream)))
+	   (block get-input
+	     (loop
+	       (with-input-context (`(completer :stream ,stream
+						:function ,function
+						:possibility-printer
+						,possibility-printer 
+						:prefix ,stuff-so-far
+						:location ,location)) ()
+		   (return-from get-input
+		     (progn 
+		       (setq token (read-token stream))
+		       (setq ch (read-gesture :stream stream))))
+		   (t nil))))
 	   (extend-vector stuff-so-far token)
 	   (cond ((null ch)
 		  (error "Null character?"))

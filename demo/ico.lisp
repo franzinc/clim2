@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.17 92/12/16 16:47:36 cer Exp $
+;; $fiHeader: ico.lisp,v 1.18 1993/07/27 01:45:32 colin Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -576,21 +576,5 @@
 (setq xform (create-xform))
 
 
-(defvar *ico-frames* nil)
 
-(defun do-ico (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *ico-frames*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'ico-frame
-						   :frame-manager framem
-						   :left 200 :top 50)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *ico-frames*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Ico Demo" do-ico)
+(define-demo "Ico Demo" ico-frame :left 200 :top 50)

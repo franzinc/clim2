@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.69 1993/07/27 22:29:27 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.70 1993/07/30 23:58:14 colin Exp $
 
 (in-package :clim-user)
 
@@ -3410,19 +3410,6 @@ Luke Luck licks the lakes Luke's duck likes."))
     ()
   (frame-exit *application-frame*))
 
-(defvar *test-suites* nil)
 
-(defun do-test-suite (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *test-suites*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'clim-tests
-						   :frame-manager framem
-						   :width 600 :height 420)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *test-suites*))
-	     frame)))
-    (run-frame-top-level frame)))
+
+

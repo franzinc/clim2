@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.10 92/11/06 19:02:48 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.11 1993/07/27 01:45:18 colin Exp $
 
 (in-package :clim-demo)
 
@@ -175,22 +175,5 @@
 	(redisplay-frame-pane (pane-frame slider) 'display)))))
 
 
-(defvar *color-choosers* nil)
 
-(defun do-color-chooser (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *color-choosers*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'color-chooser
-						   :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *color-choosers*))
-	     frame)))
-    (run-frame-top-level frame)
-    ;; Return the actual RGB color...
-    (color frame)))
-
-(define-demo "Color Chooser" do-color-chooser)
+(define-demo "Color Chooser" color-chooser)

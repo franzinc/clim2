@@ -1,3 +1,26 @@
+from colin: Thu Sep 16 17:17:55 PDT 1993
+
+clim/completer.lisp		fix to clim2bug600
+
+demo/demo-driver.lisp		use an application-frame rather than menu
+
+demo/address-book.lisp, demo/bitmap-editor.lisp, demo/browser.lisp,
+demo/cad-demo.lisp, demo/color-editor.lisp, demo/custom-records.lisp,
+demo/demo-activity.lisp, demo/graphics-demos.lisp
+demo/graphics-editor.lisp, demo/ico.lisp, demo/listener.lisp,
+demo/navfun.lisp, demo/palette.lisp, demo/peek-frame.lisp, demo/plot.lisp
+demo/process-browser.lisp, demo/puzzle.lisp, demo/thinkadot.lisp,
+test/test-suite.lisp
+	replaced (defvar *xxx's*) and (defun do-xxx) with 
+	(define-demo ...) which does it all	
+
+test/test-demos.lisp		run-all-demos knows about new demo-driver
+
+tk-silica/xt-frames.lisp	fix-coordinates in update-frame-settings
+tk-silica/xt-graphics.lisp	use lookup-color instead of parse-color
+
+-------------------------------------------------------------------------------
+
 from colin: Tue Sep  7 14:42:57 PDT 1993
 
 Makefile.defs			now using devel.17

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.29 93/01/21 14:58:34 cer Exp $
+;; $fiHeader: listener.lisp,v 1.30 1993/07/22 15:38:29 cer Exp $
 
 (in-package :clim-demo)
 
@@ -648,24 +648,8 @@
 	  (present '(com-quit) ptype))))))
 
 
-(defvar *listeners* nil)
 
-(defun do-lisp-listener (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *listeners*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'lisp-listener
-						   :frame-manager framem
-						   :width 600 :height 500)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *listeners*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Lisp Listener" do-lisp-listener)
+(define-demo "Lisp Listener" lisp-listener :width 600 :height 500)
 
 #+Genera
 (define-genera-application lisp-listener

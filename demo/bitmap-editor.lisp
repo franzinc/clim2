@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[Thu Jul 22 17:12:46 1993 by colin]-
+;;				-[Mon Sep 13 17:49:24 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.15 1993/07/22 15:38:18 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.16 1993/07/27 01:45:10 colin Exp $
 
 (in-package :clim-demo)
 
@@ -216,22 +216,6 @@
   (list presentation object))
 
 
-(defvar *bitmap-editors* nil)
 
-(defun do-bitmap-editor (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *bitmap-editors*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'bitmap-editor
-						   :frame-manager framem
-						   :left 100 :top 100
-						   :width 700 :height 500)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *bitmap-editors*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Bitmap Editor" do-bitmap-editor)
+(define-demo "Bitmap Editor" bitmap-editor
+  :left 100 :top 100 :width 700 :height 500)
