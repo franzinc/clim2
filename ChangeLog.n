@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+<no version change>
+
+2003-08-29  Kevin Layer  <layer@crikey>
+
+	* buildclim.cl: make more like buildcomposer.cl
+
+*******************************************************************************
 join from acl62 to trunk on 7/3/03
 command:
    join.sh acl62 acl62_to_trunk_merge3 acl62_to_trunk_merge_070303 clim2
