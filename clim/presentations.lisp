@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: presentations.lisp,v 1.26 2000/05/01 21:43:26 layer Exp $
+;; $Id: presentations.lisp,v 1.26.50.1 2001/08/08 21:22:19 layer Exp $
 
 (in-package :clim-internals)
 
@@ -289,11 +289,20 @@
               (call-presentation-translator 
                 preferred-translator preferred-presentation preferred-context-type
                 frame button-press-event window x y))
-          (throw preferred-tag
-            (values translated-object
-                    (or translated-type preferred-context-type)
-                    button-press-event
-                    options)))))
+	  ;; NLC/P&C- If there is no tag, just complain and exit.
+	  ;; This can occur in certain unusual circumstances,
+	  ;; for example, when clicking on a command-button or 
+	  ;; menu-item while inside a drag which is itself the
+	  ;; result of executing another command.
+	  (cond (preferred-tag
+		 (throw (or preferred-tag 'no-translation)
+		   (values translated-object
+			   (or translated-type preferred-context-type)
+			   button-press-event
+			   options)))
+		(t 
+		 (beep)
+		 (throw 'no-translation nil))))))
     (unless (eq presentation *null-presentation*)
       (beep))))
 

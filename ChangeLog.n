@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+post release patches:
+
+2001-08-08  Kevin Layer  <layer@crikey>
+
+	* clim/presentations.lisp: fix for bug10917/spr24231
+
+*******************************************************************************
 2.2.2.21.14.4
 
 2001-05-31  Kevin Layer  <layer@crikey>
