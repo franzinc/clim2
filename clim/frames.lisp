@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.15 92/04/21 16:13:03 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.16 92/04/28 09:25:40 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -337,34 +337,57 @@
 
 (defun canonicalize-pane-spec (name code rest)
   (cond ((symbolp code)
-	 (multiple-value-bind
-	     (class options)
-	     (find-pane-class-and-options code)
-	   `(make-pane ',class ,@rest :name ',name ,@options)))
+	 (unless (getf rest :name)
+	   (setf (getf rest :name) `',name))
+	 (apply #'find-pane-class-constructor code rest))
 	((null rest)
 	 code)
 	(t
 	 (error "Invalid pane specification: ~S"
 		(list* name code rest)))))
 
-(defmacro define-pane-type (type class . options)
-  `(defmethod find-pane-class-and-options ((type (eql ',type)))
-     (values ',class ',options)))
+(defmacro define-pane-type (type lambda-list &body body)
+  `(defmethod find-pane-class-constructor ((type (eql ',type)) ,@lambda-list)
+     ,@body))
 
+(define-pane-type :interactor (&rest options)
+  `(make-clim-interactor-pane ,@options))
 
-(define-pane-type :interactor interactor-pane)
-(define-pane-type :application application-pane)
-(define-pane-type :pointer-documentation pointer-documentation-pane)
-(define-pane-type :command-menu command-menu-pane)
-(define-pane-type :scroll-bar scroll-bar)
-(define-pane-type :slider slider)
-(define-pane-type :push-button push-button)
-(define-pane-type :label-pane label-pane)
-(define-pane-type :text-field text-field)
-(define-pane-type :text-editor silica::text-editor)
-(define-pane-type :toggle-button toggle-button)
-(define-pane-type :radio-box radio-box)
-(define-pane-type :menu-bar menu-bar)
+(define-pane-type :application (&rest options)
+  `(make-clim-application-pane ,@options))
+
+(define-pane-type :pointer-documentation (&rest options)
+  `(make-pane 'pointer-documentation-pane ,@options))
+
+(define-pane-type :command-menu (&rest options)
+  `(make-pane 'command-menu-pane ,@options))
+
+(define-pane-type :scroll-bar (&rest options)
+  `(make-pane 'scroll-bar ,@options))
+
+(define-pane-type :slider (&rest options)
+  `(make-pane 'slider ,@options))
+
+(define-pane-type :push-button (&rest options)
+  `(make-pane 'push-button ,@options))
+
+(define-pane-type :label-pane (&rest options)
+  `(make-pane 'label-pane ,@options))
+
+(define-pane-type :text-field (&rest options)
+  `(make-pane 'text-field ,@options))
+
+(define-pane-type :text-editor (&rest options)
+  `(make-pane 'silica::text-editor ,@options))
+
+(define-pane-type :toggle-button (&rest options)
+  `(make-pane 'toggle-button ,@options))
+
+(define-pane-type :radio-box (&rest options)
+  `(make-pane 'radio-box ,@options))
+
+(define-pane-type :menu-bar (&rest options)
+  `(make-pane 'menu-bar ,@options))
 
 ;;; 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.5 92/03/10 10:12:52 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.6 92/04/15 11:47:17 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -544,7 +544,7 @@
 	(map nil #'suggest-item sequence)))))
 
 (define-presentation-method accept-present-default ((type completion) stream
-						    (view textual-dialog-view)
+						    (view dialog-view-mixin)
 						    default default-supplied-p
 						    present-p query-identifier &key)
   (declare (ignore default-supplied-p present-p))
@@ -753,7 +753,7 @@
        (values :accepted object type))))
 
 (define-presentation-method accept-present-default ((type subset-completion)
-						    stream (view textual-dialog-view)
+						    stream (view dialog-view-mixin)
 						    default default-supplied-p
 						    present-p query-identifier &key)
   (declare (ignore default-supplied-p present-p))
@@ -1327,7 +1327,7 @@
 
 ;; Supplying this gives us a nice "pushbutton" effect for booleans, too
 (define-presentation-method accept-present-default ((type boolean) stream
-						    (view textual-dialog-view)
+						    (view dialog-view-mixin)
 						    default default-supplied-p
 						    present-p query-identifier &key)
   (declare (ignore default-supplied-p present-p))

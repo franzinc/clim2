@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.11 92/04/15 11:45:33 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.12 92/04/28 09:25:23 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1478,6 +1478,12 @@
     area
     areap
     coordinate
+
+    check-box
+    check-box-current-selection
+    check-box-pane
+    check-box-selections
+
     ellipse
     ellipse-center-point
     ellipse-center-point*
@@ -2256,6 +2262,7 @@
     form
     frame-document-highlighted-presentation
     funcall-presentation-generic-function
+    gadget-active-p
     gadget-dialog-view
     gadget-menu-view
     gadget-view
@@ -3335,6 +3342,8 @@
     port-glyph-for-character
     port-modifier-state
     port-note-cursor-change
+    port-note-gadget-activated
+    port-note-gadget-deactivated
     port-pointer
     port-undefined-text-style
     port-write-char-1

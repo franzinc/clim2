@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.23 92/04/21 20:28:19 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.24 92/04/28 09:26:11 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -269,6 +269,7 @@ compile-xm:	$(CLIMOBJS) FORCE
 		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
 		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
+		echo CLIM-XM compiled!!!!
 
 compile-ol:	$(CLIMOBJS) FORCE
 	$(ECHO) " \
@@ -280,6 +281,7 @@ compile-ol:	$(CLIMOBJS) FORCE
 		(set-case-mode :case-insensitive-lower) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
 		(load \"misc/compile-ol.lisp\")" | $(CL) $(CLOPTS) -batch
+		echo CLIM-OL compiled!!!!
 
 # Concatenation
 
@@ -326,6 +328,7 @@ clim-xm:	FORCE
 	ls -lt $(CLIM) >> Clim-sizes.n
 	size $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
+	echo CLIM-XM built!!!!	
 
 clim-ol:	FORCE
 	-$(RM) $(CLIM)
@@ -338,7 +341,7 @@ clim-ol:	FORCE
 	ls -lt $(CLIM) >> Clim-sizes.n
 	size $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
-
+	echo CLIM-OL built!!!!		
 
 clim-small:	FORCE
 	$(ECHO) " \
@@ -356,8 +359,9 @@ train	:	FORCE
 		(load \"/net/vapor/usr/tech/cer/stuff/misc/test-clim.lisp\") \
 		(clim-user::train-clim-2) \
 		(exit 0) " | $(CLIM) $(CLOPTS) -batch
-
+	echo CLIM trained!!!!	
 # Misc
+
 
 clean:
 	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f $(CLIMFASLS) \

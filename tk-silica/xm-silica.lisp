@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.15 92/04/21 16:13:30 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.16 92/04/21 20:28:33 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -100,6 +100,7 @@ about their children"))
 (defmethod make-cursor-widget-for-port ((port motif-port) parent)
   (make-instance 'tk::xm-drawing-area
 		 :parent parent
+		 :background (tk::get-values parent :foreground)
 		 :width 2
 		 :height 11
 		 :managed t))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.5 92/04/21 20:28:34 cer Exp Locker: cer $
+;; $fiHeader: xt-cursor.lisp,v 1.6 92/04/28 09:26:31 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -58,7 +58,10 @@
   ;;----- For example if the window is ungrafted and then regrafted
   ;;----- the cursor needs to follow
   (with-slots (clim-internals::plist) cursor
-    (or (getf clim-internals::plist 'gadget)
+    (or (let ((x (getf clim-internals::plist 'gadget)))
+	  (and x
+	       ;;-- Not dead
+	       ))
 	(setf (getf clim-internals::plist 'gadget)
 	  (let ((gadget 
 		 (make-cursor-widget-for-port

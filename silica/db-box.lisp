@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.11 92/04/15 11:44:59 cer Exp Locker: cer $
+;; $fiHeader: db-box.lisp,v 1.12 92/04/21 16:12:34 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -71,15 +71,16 @@
 		   (incf major- (funcall fn-major- space-req))
 		   (setq minor (max minor (funcall fn-minor space-req))) 
 		   (setq minor-min
-		     (max minor-min (- (funcall fn-minor space-req)
-				       (funcall fn-minor- space-req))))
+		     (max minor-min (funcall fn-minor- space-req)))
 		   (setq minor-max
-		     (min minor-max (+ (funcall fn-minor space-req)
-				       (funcall fn-minor+ space-req))))))))
+		     (min minor-max (funcall fn-minor+ space-req)))))))
 	(decf major space)
 	;; ?? These calcs lead to weirdness when fills are involved.
-	(setq minor- (max 0 (- minor minor-min)))
-	(setq minor+ (max 0 (- minor-max minor)))
+	;;--- This looks like a leftover from the time when +/- were relative
+	;;(setq minor- (max 0 (- minor minor-min)))
+	;;(setq minor+ (max 0 (- minor-max minor)))
+	(setq minor- minor-min)
+	(setq minor+ minor-max)
 	(apply #'make-space-requirement
 	       (mapcan #'list
 		       keys 

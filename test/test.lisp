@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.21 92/04/21 16:13:21 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.22 92/04/28 09:26:05 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -491,7 +491,51 @@
 					:value-changed-callback 'text-field-changed
 					:ncolumns 30
 					:nlines 10))))))
+(defun test-accepting-values (&optional (own-window t)
+					(gadget-dialog-view t))
+  (let* ((stream *query-io*)
+	 (ptypes-and-prompts `(
+			       (boolean "Finished it yet")
+			       ((member a b c) "3 Member test")
+			       ((member a b c d e f g h) "8 Member test")
+			       ((member a b c d e f g h i
+					j k l m o p q r s t u v w
+					x y z)  "26 Member test")
+			       ((subset a b c) "3 Subset test")
+			       ((subset a b c d e f g h) "8 Subset test")
+			       ((subset a b c d e f g h i
+					j k l m o p q r s t u v w
+					x y z)  "26 Subset test")
+			       ;; Some types of real
+			       ;; A big blob of text
+			       ;; token-or-type??.tim
+			       ;; Funny ones
+			       ((or integer (member :small :large))
+				"Size:")
+			       ))
+	 (n (length ptypes-and-prompts))
+	 (values (make-array n :initial-element :none)))
+	   
+    (accepting-values (stream :own-window own-window :label "foo")
+		      ;; Test of the member stuff
+		      (clim-internals::letf-globally 
+		       (((stream-default-view stream)
+			 (if gadget-dialog-view 
+			     (stream-default-view stream)
+			   +textual-dialog-view+)))
 
-
-
-
+		       (dotimes (i n)
+			 (if (eq (svref values i) :none)
+			     (setf (svref values i)
+			       (accept (first (nth i
+						   ptypes-and-prompts)) 
+				       :stream stream
+				       :prompt (second (nth i
+							    ptypes-and-prompts))))
+			   (setf (svref values i)
+			     (accept (first (nth i ptypes-and-prompts))
+				     :default (svref values i) 
+				     :stream stream
+				     :prompt (second (nth i ptypes-and-prompts)))))
+			 (terpri stream))))
+    values))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.24 92/04/21 20:28:32 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.25 92/04/28 09:26:27 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -38,6 +38,7 @@
 			 (menu-bar motif-menu-bar)
 			 (viewport xm-viewport)
 			 (radio-box motif-radio-box)
+			 (clim-internals::check-box motif-check-box)
 			 (frame-pane motif-frame-pane)
 			 (top-level-sheet motif-top-level-sheet)
 			 ;; One day
@@ -618,11 +619,44 @@
 					  (id t)
 					  (value t))
   (when (eq value t)
-    (setf (radio-box-current-selection client) id)
+    (setf (radio-box-current-selection client) v)
     (value-changed-callback client 
 			    (gadget-client client)
 			    (gadget-id client) 
-			    id)))
+			    v)))
+
+(defclass motif-check-box (motif-geometry-manager
+			   mirrored-sheet-mixin
+			   sheet-multiple-child-mixin
+			   sheet-permanently-enabled-mixin
+			   silica::check-box
+			   pane
+			   ask-widget-for-size-mixin)
+    ())
+
+(defmethod sheet-adopt-child :after ((gadget motif-check-box) child)
+  (setf (gadget-client child) gadget))
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-check-box))
+  
+  (with-accessors ((orientation gadget-orientation)) sheet
+    (values 'tk::xm-row-column
+	    (list :orientation orientation))))
+
+(defmethod value-changed-callback :after ((v gadget)
+					  (client motif-check-box)
+					  (id t)
+					  (value t))
+  (if (eq value t)
+      (push v (silica::check-box-current-selection client))
+    (setf (silica::check-box-current-selection client)
+      (delete v (silica::check-box-current-selection client))))
+  (value-changed-callback client 
+			  (gadget-client client)
+			  (gadget-id client) 
+			  (silica::check-box-current-selection client)))
 
 ;; Frame-viewport that we need because a sheet can have
 
@@ -661,7 +695,7 @@
 			    sheet-permanently-enabled-mixin
 			    pane
 			    silica::layout-mixin)
-	  ())
+	  ((thickness :initform nil :initarg :thickness)))
 
 (defmethod initialize-instance :after ((pane motif-frame-pane) &key
 							       frame-manager frame
@@ -981,7 +1015,9 @@
 		      (make-file-search-proc-function dialog
 						      file-search-proc))
       (tk::xm_file_selection_do_search 
-       dialog (xt::xm_string_create_l_to_r (tk::get-values dialog :dir-mask))))
+       dialog (xt::xm_string_create_l_to_r 
+	       (tk::get-values dialog :dir-mask)
+	       "")))
       
     (flet ((set-it (widget r)
 	     (declare (ignore widget))

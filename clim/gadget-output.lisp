@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.11 92/04/21 16:13:06 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.12 92/04/28 09:25:44 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -228,11 +228,6 @@
   (call-presentation-generic-function
    gadget-includes-prompt-p type stream view))
 
-;(define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view textual-view) &key)
-;  nil)
-;  
-;(define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view gadget-view) &key)
-;  nil)
 
 (define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view view) &key)
   nil)
@@ -262,9 +257,10 @@
 				:value-changed-callback
 				(make-accept-values-value-changed-callback
 				 stream query-identifier)))))
-      (dolist (element sequence)
+      (dolist (element (reverse sequence))
 	(make-pane 'toggle-button 
 		   :label (funcall name-key element)
+		   :indicator-type :one-of
 		   :value (and default-supplied-p
 			       (funcall test 
 					(funcall value-key element)
@@ -273,6 +269,39 @@
 		   :parent gadget))
       frame-pane)))
 
+;;; Subset
+
+(define-presentation-method accept-present-default ((type subset-completion) 
+						    stream
+						    (view gadget-dialog-view)
+						    default default-supplied-p
+						    present-p query-identifier
+						    &key (prompt t))
+  (declare (ignore present-p))
+  ;; value-key, test, sequence
+  (with-output-as-gadget (stream)
+    (let* (gadget frame-pane)
+      (setq frame-pane
+	(outlining ()
+		   (setq gadget
+		     (make-pane 'check-box 
+				:label (and (stringp prompt) prompt)
+				:client stream :id query-identifier
+				:value-changed-callback
+				(make-accept-values-value-changed-callback
+				 stream query-identifier)))))
+      (dolist (element (reverse sequence))
+	(make-pane 'toggle-button 
+		   :label (funcall name-key element)
+		   :value (and default-supplied-p
+			       (member (funcall value-key default)
+				       sequence
+				       :test test
+				       :key value-key))
+		   :idicator-type :some-of
+		   :id element
+		   :parent gadget))
+      frame-pane)))
 
 ;;; Boolean gadget
 

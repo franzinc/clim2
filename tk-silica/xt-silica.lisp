@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.21 92/04/21 20:28:37 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.22 92/04/28 09:26:38 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -985,21 +985,41 @@
 ;; If we wanted to get a font then we are in trouble because
 
 (defun default-from-mirror-resources (port pane)
-  (let ((w (sheet-mirror pane)))
-    ;;-- What about the case when there is a pixmap
-    (when (typep w 'xt::xt-root-class)
-      (multiple-value-bind
-	  (foreground background)
-	  (tk::get-values w :foreground :background)
-	;; Now we have to convert into CLIM colors.
-	(flet ((ccm (x)
-		 (multiple-value-bind
-		     (r g b)
-		     (tk::query-color (tk::default-colormap (port-display port)) x)
-		   (let ((x #.(1- (ash 1 16))))
-		     (make-rgb-color 
-		      (/ r x)
-		      (/ g x)
-		      (/ b x))))))
-	  (setf (medium-foreground pane) (ccm foreground)
-		(medium-background pane) (ccm background)))))))
+  (unless (and (medium-foreground pane)
+	       (medium-background pane))
+    (let ((w (sheet-mirror pane)))
+      ;;-- What about the case when there is a pixmap
+      (when (typep w 'xt::xt-root-class)
+	(multiple-value-bind
+	    (foreground background)
+	    (tk::get-values w :foreground :background)
+	  ;; Now we have to convert into CLIM colors.
+	  (flet ((ccm (x)
+		   (multiple-value-bind
+		       (r g b)
+		       (tk::query-color (tk::default-colormap (port-display port)) x)
+		     (let ((x #.(1- (ash 1 16))))
+		       (make-rgb-color 
+			(/ r x)
+			(/ g x)
+			(/ b x))))))
+	    (unless (medium-foreground pane)
+	      (setf (medium-foreground pane) (ccm foreground)))
+	    (unless (medium-background pane)
+	      (setf (medium-background pane) (ccm background)))))))))
+
+;;;--- Gadget activation deactivate
+
+(defmethod realize-mirror :around ((port xt-port) (sheet gadget))
+  (let ((widget (call-next-method)))
+    (unless (gadget-active-p sheet)
+      (xt::set-sensitive widget nil))
+    widget))
+
+(defmethod port-note-gadget-activated ((port xt-port) gadget)
+  (when (sheet-mirror gadget)
+    (xt::set-sensitive (sheet-mirror gadget) t)))
+
+(defmethod port-note-gadget-deactivated ((port xt-port) gadget)
+  (when (sheet-mirror gadget)
+    (xt::set-sensitive (sheet-mirror gadget) nil)))

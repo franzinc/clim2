@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.17 92/04/15 11:45:10 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.18 92/04/21 16:12:40 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -26,12 +26,14 @@
 
 
 (defclass gadget (foreground-background-and-text-style-mixin)
-    ((id :initarg :id :reader gadget-id :initform nil)
-     (client :initarg :client :initform nil :accessor gadget-client)
-     (armed-callback :initarg :armed-callback :initform nil
-		     :reader gadget-armed-callback)
-     (disarmed-callback :initarg :disarmed-callback :initform nil
-			:reader gadget-disarmed-callback)))
+	  ((id :initarg :id :reader gadget-id :initform nil)
+	   (client :initarg :client :initform nil :accessor gadget-client)
+	   (armed-callback :initarg :armed-callback :initform nil
+			   :reader gadget-armed-callback)
+	   (disarmed-callback :initarg :disarmed-callback :initform nil
+			      :reader gadget-disarmed-callback)
+	   (active :initarg :active :accessor gadget-active-p))
+  (:default-initargs :active t))
 
 (defmethod armed-callback ((gadget gadget) (client t) (id t))
   (invoke-callback-function (gadget-armed-callback gadget) gadget))
@@ -167,10 +169,10 @@
 
 
 ;; Toggle button
-(defclass toggle-button 
-	  (value-gadget labelled-gadget) 
-    ((indicator-type :initarg :indicator-type :initform :some-of
-		     :reader gadget-indicator-type)))
+(defclass toggle-button (value-gadget labelled-gadget) 
+	  ((indicator-type :initarg :indicator-type :initform :some-of
+			   :type (member :some-of :one-of)
+			   :reader gadget-indicator-type)))
 
 
 ;; Menu button
@@ -208,6 +210,32 @@
 		   :label (if (stringp choice)
 			      (string choice)
 			      (gadget-label choice))
+		   :indicator-type :one-of
+		   :id choice
+		   :parent rb)))))
+
+
+;; Check-box
+
+(defclass check-box 
+	  (value-gadget oriented-gadget) 
+    ((selections :initform nil 
+		 :reader check-box-selections)
+     ;;--- think about this...
+     (value :initform nil
+ 	    :initarg :current-selection
+ 	    :accessor check-box-current-selection)))
+
+(defmethod initialize-instance :after ((rb check-box) &key choices)
+  (let ((frame (pane-frame rb)))
+    (with-look-and-feel-realization ((frame-manager frame) frame)
+      (dolist (choice choices)
+	(make-pane 'toggle-button 
+		   :value (equal (check-box-current-selection rb) choice)
+		   :label (if (stringp choice)
+			      (string choice)
+			    (gadget-label choice))
+		   :indicator-type :some-of
 		   :id choice
 		   :parent rb)))))
 
@@ -289,6 +317,24 @@
       (setf (sheet-enabled-p hscroll-bar) hscroll-bar-enabled-p))
     (when vscroll-bar
       (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
+    
+    (when (or (and hscroll-bar (not hscroll-bar-enabled-p))
+	      (and vscroll-bar (not vscroll-bar-enabled-p)))
+      (let* ((contents (slot-value sp 'contents))
+	     (c-extent (viewport-contents-extent
+			(pane-viewport contents))))
+	(multiple-value-bind
+	    (vx vy) (window-viewport-position contents)
+	  
+	  (window-set-viewport-position
+	   contents
+	   (if (and hscroll-bar (not hscroll-bar-enabled-p))
+	       (bounding-rectangle-min-x c-extent)
+	     vx)
+	   (if (and vscroll-bar (not vscroll-bar-enabled-p))
+	       (bounding-rectangle-min-y c-extent)
+	     vy)))))
+
     (clear-space-requirement-caches-in-tree sp)
     (when relayout
       (multiple-value-bind
@@ -358,3 +404,21 @@ l
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
 ;;; Do these have readers and writers?
+
+;;; Activation/Deactivation protocol
+
+(defmethod activate-gadget ((gadget gadget))
+  (unless (gadget-active-p gadget)
+    (setf (gadget-active-p gadget) t)
+    (note-gadget-activated (gadget-client gadget) gadget)))
+
+(defmethod note-gadget-activated ((client t) (gadget gadget))
+  (port-note-gadget-activated (port gadget) gadget))
+
+(defmethod deactivate-gadget ((gadget gadget))
+  (when (gadget-active-p gadget)
+    (setf (gadget-active-p gadget) nil)
+    (note-gadget-deactivated (gadget-client gadget) gadget)))
+
+(defmethod note-gadget-deactivated ((client t) (gadget gadget))
+  (port-note-gadget-deactivated (port gadget) gadget))

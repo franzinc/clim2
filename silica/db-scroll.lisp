@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.16 92/04/21 20:27:55 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.17 92/04/28 09:25:17 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -143,10 +143,12 @@
       (with-accessors ((horizontal-scroll-bar scroller-pane-horizontal-scroll-bar)
 		       (vertical-scroll-bar scroller-pane-vertical-scroll-bar))
 	  (sheet-parent (sheet-parent vp))
-	(update-scroll-bar vertical-scroll-bar
-			   miny maxy vminy vmaxy)
-	(update-scroll-bar horizontal-scroll-bar
-			   minx maxx vminx vmaxx)))))
+	(when vertical-scroll-bar
+	  (update-scroll-bar vertical-scroll-bar
+			     miny maxy vminy vmaxy))
+	(when horizontal-scroll-bar
+	  (update-scroll-bar horizontal-scroll-bar
+			     minx maxx vminx vmaxx))))))
 
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong. Check out the thinkadot demo.  It's

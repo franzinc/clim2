@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.16 92/04/15 11:47:40 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.17 92/04/21 16:13:17 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -1589,7 +1589,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(line-thickness-units :normal))
     (accepting-values (stream :own-window own-window)
 		      (setq square-dimension
-			(accept 'number :stream stream
+			(accept '(real 0) :stream stream
 				:prompt "Size of square" :default square-dimension))
 		      (terpri stream)
 		      (setq draw-circle

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.10 92/04/15 11:46:56 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.11 92/04/28 09:25:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -26,10 +26,10 @@
      ((cursor-x :initform (coordinate 0))
       (cursor-y :initform (coordinate 0))
       (baseline :initform (coordinate 0) :accessor stream-baseline)
-      (foreground :initform +black+
+      (foreground :initform nil
 		  :accessor medium-foreground
 		  :initarg :stream-foreground)
-      (background :initform +white+
+      (background :initform nil
 		  :accessor medium-background
 		  :initarg :stream-background)
       (current-line-height :initform (coordinate 0)
@@ -125,15 +125,15 @@
     (setq merged-text-style-valid nil)))
 
 (defmethod engraft-medium :after ((medium medium) port
-				  (stream output-protocol-mixin))
+						  (stream output-protocol-mixin))
   (declare (ignore port))
   ;;--- What about text style stuff, too?
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
   (with-slots (silica::foreground silica::background) medium
-    (setf silica::foreground (medium-foreground stream)
-	  silica::background (medium-background stream))))
+    (setf silica::foreground (or (medium-foreground stream) +black+)
+	  silica::background (or (medium-background stream) +white+))))
 
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)

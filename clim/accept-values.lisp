@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.16 92/04/21 16:12:56 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.17 92/04/28 09:25:37 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -137,7 +137,7 @@
 				 :history ptype
 				 :present-p `(accept-values-choice ,query)
 				 :query-identifier query))
-		      ((presentation-typep (accept-values-query-value query) ptype)
+		      ((and found-p (presentation-typep (accept-values-query-value query) ptype))
 		       ;; The programmer supplied no default, but a previous edit
 		       ;; has put something in the query that we now must use as
 		       ;; the default.
@@ -1070,11 +1070,17 @@
     (setf value new-value
 	  changed-p t)))
 
-(defun accept-values-value-changed-callback (gadget new-value stream query-id)
+(defmethod accept-values-value-changed-callback (gadget new-value stream query-id)
   (declare (ignore gadget))
   (when (accept-values-query-valid-p (accept-values-query-presentation query-id))
     ;; Only call the callback if the query is still valid
     (do-avv-command new-value stream query-id)))
+
+(defmethod accept-values-value-changed-callback ((gadget radio-box) new-value stream query-id)
+  (call-next-method gadget (gadget-id new-value) stream query-id))
+
+(defmethod accept-values-value-changed-callback ((gadget silica::check-box) new-value stream query-id)
+  (call-next-method gadget (mapcar #'gadget-id new-value) stream query-id))
 
 (defun make-accept-values-value-changed-callback (stream query-id)
   ;; We attach a callback function directly now
