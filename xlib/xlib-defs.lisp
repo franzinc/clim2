@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.4 92/07/27 19:29:32 cer Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.5 92/09/30 18:03:28 cer Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
@@ -851,6 +851,11 @@
   (y :type short)
   (width :type unsigned-short)
   (height :type unsigned-short))
+
+(ff::def-c-type (xrectangle-array :no-defuns) 1 xrectangle)
+(eval-when (compile load eval)
+  (export '(xrectangle-array-x xrectangle-array-y xrectangle-array-width
+	    xrectangle-array-height xrectangle-array make-xrectangle-array)))
 
 (def-exported-foreign-struct xarc
   (x :type short)

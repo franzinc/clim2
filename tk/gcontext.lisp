@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.18 92/06/16 19:10:48 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.19 92/07/01 15:44:30 cer Exp $
 
 (in-package :tk)
 
@@ -343,6 +343,26 @@
      0					; clip-y-origin
      r
      1
+     x11:unsorted)))
+
+;; this will come in useful when we can handle region sets for clip regions
+#+ignore
+(defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
+  (let ((n (length nv))
+	(rs (x11:make-xrectangle-array :number n)))
+    (dotimes (i n)
+      (let ((r (pop nv)))
+	(setf (x11:xrectangle-array-x rs i) (first r)
+	      (x11:xrectangle-array-y rs i) (second r)
+	      (x11:xrectangle-array-width rs i) (third r)
+	      (x11:xrectangle-array-height rs i) (fourth r))))
+    (x11:xsetcliprectangles
+     (object-display gc)
+     gc
+     0					; clip-x-origin
+     0					; clip-y-origin
+     rs
+     n
      x11:unsorted)))
 
 (defmethod (setf gcontext-clip-mask) ((nv (eql :nowhere)) (gc gcontext))

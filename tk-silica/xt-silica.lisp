@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.60 92/11/20 08:47:01 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.61 92/12/01 09:47:21 cer Exp $
 
 (in-package :xm-silica)
 
@@ -29,6 +29,7 @@
      (display :reader port-display)
      (context :reader port-context)     
      (copy-gc :initform nil)
+     (copy-gc-depth-1 :initform nil)
      (opacities :initform nil)
      ;; This next is true for servers like Suns, which (pretty much) always
      ;; can safely copy-area without generating graphics-exposures.
@@ -59,6 +60,20 @@
 	    :foreign-address (x11:screen-default-gc
  			      (x11:xdefaultscreenofdisplay display)))))))
 
+;;--- I don't know of a better way of getting a depth 1 drawable
+;;other than by making a dummy depth 1 pixmap
+(defmethod port-copy-gc-depth-1 ((port xt-port))
+  ;;-- Assume 1-1 port-graft mapping?
+  (with-slots (copy-gc-depth-1 display) port
+    (or copy-gc-depth-1
+	(let ((pixmap (make-instance 'tk::pixmap
+				     :drawable
+				     (tk::display-root-window display)
+				     :depth 1 :width 1 :height 1)))
+	  (prog1
+	      (setf copy-gc-depth-1
+		(make-instance 'tk::gcontext :drawable pixmap))
+	    (tk::destroy-pixmap pixmap))))))
 
 
 (defmethod restart-port ((port xt-port))
@@ -230,7 +245,7 @@
 		    (cons (first entry)
 			  (apply #'make-stipple-image (second entry))))
 		'((+nowhere+ (1 1 (#b0)))
-		  (0.05 (8 06 (#b1000000000000000
+		  (0.05 (8 16 (#b1000000000000000
 			      #b0000001000000000
 			      #b0000000000001000
 			      #b0010000000000000
@@ -270,7 +285,7 @@
 			     #b11111110
 			     #b11011111
 			     #b11111011)))
-		  (0.9 (8 06 (#b0111111111111111
+		  (0.9 (8 16 (#b0111111111111111
 			       #b1111110111111111
 			       #b1111111111110111
 			       #b1101111111111111

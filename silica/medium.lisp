@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.28 92/10/29 16:54:58 cer Exp $
+;; $fiHeader: medium.lisp,v 1.29 92/11/06 19:03:53 cer Exp $
 
 (in-package :silica)
 
@@ -255,55 +255,56 @@
 		 line-joint-shape line-cap-shape
 		 (text-style nil text-style-p) (text-family nil text-family-p)
 		 (text-face nil text-face-p) (text-size nil text-size-p))
-  (with-slots ((medium-ink ink)
-	       (medium-transformation transformation)
-	       (transformed-clipping-region region)
-	       (medium-line-style line-style)) medium
-    (let* ((saved-ink medium-ink)
-	   (saved-transformation medium-transformation)
-	   (saved-clipping-region transformed-clipping-region)
-	   (saved-line-style medium-line-style))
-      (unwind-protect
-	  (progn
-	    (when ink
-	      (setf medium-ink ink))
-	    (when transformation
-	      (setf medium-transformation
-		    (compose-transformations saved-transformation transformation)))
-	    (when clipping-region
-	      (setf transformed-clipping-region
-		    (region-intersection saved-clipping-region
-					 (transform-region medium-transformation
-							   clipping-region))))
-	    (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
-		   (when (null line-style)
-		     (setf line-style saved-line-style))
-		   (setf medium-line-style
-			 (make-line-style-1
-			   (or line-unit (line-style-unit line-style))
-			   (or line-thickness (line-style-thickness line-style))
-			   (if dashes-p line-dashes (line-style-dashes line-style))
-			   (or line-joint-shape (line-style-joint-shape line-style))
-			   (or line-cap-shape (line-style-cap-shape line-style)))))
-		  (line-style
-		   (setf medium-line-style line-style)))
-	    (when (or text-family-p text-face-p text-size-p)
-	      (if text-style-p
-		  (setq text-style (with-stack-list (style text-family text-face text-size)
-				     (merge-text-styles style text-style)))
+  (with-accessors ((transformed-clipping-region medium-clipping-region))
+      medium
+    (with-slots ((medium-ink ink)
+		 (medium-transformation transformation)
+		 (medium-line-style line-style)) medium
+      (let* ((saved-ink medium-ink)
+	     (saved-transformation medium-transformation)
+	     (saved-clipping-region transformed-clipping-region)
+	     (saved-line-style medium-line-style))
+	(unwind-protect
+	    (progn
+	      (when ink
+		(setf medium-ink ink))
+	      (when transformation
+		(setf medium-transformation
+		  (compose-transformations saved-transformation transformation)))
+	      (when clipping-region
+		(setf transformed-clipping-region
+		  (region-intersection saved-clipping-region
+				       (transform-region medium-transformation
+							 clipping-region))))
+	      (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
+		     (when (null line-style)
+		       (setf line-style saved-line-style))
+		     (setf medium-line-style
+		       (make-line-style-1
+			(or line-unit (line-style-unit line-style))
+			(or line-thickness (line-style-thickness line-style))
+			(if dashes-p line-dashes (line-style-dashes line-style))
+			(or line-joint-shape (line-style-joint-shape line-style))
+			(or line-cap-shape (line-style-cap-shape line-style)))))
+		    (line-style
+		     (setf medium-line-style line-style)))
+	      (when (or text-family-p text-face-p text-size-p)
+		(if text-style-p
+		    (setq text-style (with-stack-list (style text-family text-face text-size)
+				       (merge-text-styles style text-style)))
 		  (setq text-style (make-text-style text-family text-face text-size)
 			text-style-p t)))
-	    (if text-style-p
-		(flet ((call-continuation (stream)
-			 (declare (ignore stream))
-			 (funcall continuation)))
-		  (declare (dynamic-extent #'call-continuation))
-		  (invoke-with-text-style medium #'call-continuation text-style medium))
+	      (if text-style-p
+		  (flet ((call-continuation (stream)
+			   (declare (ignore stream))
+			   (funcall continuation)))
+		    (declare (dynamic-extent #'call-continuation))
+		    (invoke-with-text-style medium #'call-continuation text-style medium))
 	        (funcall continuation)))
-	(setf medium-line-style saved-line-style)
-	(setf transformed-clipping-region saved-clipping-region)
-	(setf medium-transformation saved-transformation)
-	(setf medium-ink saved-ink)))))
+	  (setf medium-line-style saved-line-style)
+	  (setf transformed-clipping-region saved-clipping-region)
+	  (setf medium-transformation saved-transformation)
+	  (setf medium-ink saved-ink))))))
 
 
 (defmethod allocate-medium (port sheet)

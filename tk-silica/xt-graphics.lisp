@@ -20,34 +20,55 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.54 92/11/20 08:46:56 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.55 92/12/01 09:47:15 cer Exp $
 
 (in-package :tk-silica)
 
-(defclass fast-gcontext (tk::gcontext)
-  ((last-medium-clip-mask :initform nil :fixed-index 1)
-   (last-line-style :initform nil :fixed-index 2)))
+(defclass ink-gcontext (tk::gcontext)
+  ((last-clip-mask :initform nil :fixed-index 1)
+   (last-line-style :initform nil :fixed-index 2)
+   (shift-tile-origin :initform nil :fixed-index 3)
+   (ink-clip-mask :initform nil :fixed-index 4)))
 
-(defmacro fast-gcontext-last-line-style (gcontext)
+(defmacro ink-gcontext-last-line-style (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
-     (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
+     (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
 					'last-line-style)))
-(defsetf fast-gcontext-last-line-style (gcontext) (value)
+(defsetf ink-gcontext-last-line-style (gcontext) (value)
   `(locally (declare (optimize (speed 3) (safety 0)))
-     (setf (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
+     (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
 					      'last-line-style)
        ,value)))
 
-(defmacro fast-gcontext-last-medium-clip-mask (gcontext)
+(defmacro ink-gcontext-last-clip-mask (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
-     (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
-					'last-medium-clip-mask)))
-(defsetf fast-gcontext-last-medium-clip-mask (gcontext) (value)
+     (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					'last-clip-mask)))
+(defsetf ink-gcontext-last-clip-mask (gcontext) (value)
   `(locally (declare (optimize (speed 3) (safety 0)))
-     (setf (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
-					      'last-medium-clip-mask)
+     (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					      'last-clip-mask)
        ,value)))
 
+(defmacro ink-gcontext-shift-tile-origin (gcontext)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					'shift-tile-origin)))
+(defsetf ink-gcontext-shift-tile-origin (gcontext) (value)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					      'shift-tile-origin)
+       ,value)))
+
+(defmacro ink-gcontext-ink-clip-mask (gcontext)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					'ink-clip-mask)))
+(defsetf ink-gcontext-ink-clip-mask (gcontext) (value)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
+					      'ink-clip-mask)
+       ,value)))
 
 (defclass xt-medium (basic-medium)
   ((foreground-gcontext :reader medium-foreground-gcontext :initform nil)
@@ -168,7 +189,7 @@
 ;;; things we can install in a palete
 ;;; 1 - color (rgb etc)
 ;;; 2 - dynamic-color
-;;; 3 - layered-color
+;;; 3 - layered-color or it's layered-color-set
 
 (defmethod allocate-color ((color color) (palette xt-palette))
   (unless (gethash color (palette-color-cache palette))
@@ -202,6 +223,7 @@
 (defmethod deallocate-color ((color layered-color) (palette xt-palette))
   (deallocate-color (layered-color-set color) palette))
 
+;;--- maybe some more of this could be made more port independent
 (defmethod deallocate-color ((set layered-color-set) (palette xt-palette))
   (let* ((layered-color-cache (palette-layered-color-cache palette))
 	 (pixel-planes (gethash set layered-color-cache)))
@@ -236,12 +258,13 @@
 ;;   1. medium's sheet's device region changes
 ;;   2. medium's clipping region changes
 ;;   3. medium's sheet's device transformation changes
+
 (defmethod medium-clip-mask ((medium xt-medium))
   (with-slots (sheet clip-mask) medium
     (or clip-mask
 	(setf clip-mask
-	  (let* ((dr (sheet-device-region sheet))
-		 (mcr (medium-clipping-region medium)))
+	  (let ((dr (sheet-device-region sheet))
+		(mcr (medium-clipping-region medium)))
 	    (unless (eq mcr +everywhere+)
 	      (setq mcr (transform-region (sheet-device-transformation sheet) mcr))
 	      (setq dr (region-intersection dr (bounding-rectangle mcr))))
@@ -261,10 +284,12 @@
     (setf clip-mask nil)))
 
 (defmethod invalidate-cached-regions :after ((medium xt-medium))
-  (with-slots (clip-mask) medium (setf clip-mask nil)))
+  (with-slots (clip-mask) medium
+    (setf clip-mask nil)))
 
 (defmethod invalidate-cached-transformations :after ((medium xt-medium))
-  (with-slots (clip-mask) medium (setf clip-mask nil)))
+  (with-slots (clip-mask) medium
+    (setf clip-mask nil)))
 
 
 
@@ -280,14 +305,13 @@
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (with-slots (foreground-gcontext background-gcontext
 				   flipping-gcontext
-				   indirect-inks
+				   indirect-inks 
 				   drawable tile-gcontext clip-mask)
       medium
     (let ((palette (medium-palette medium)))
       (with-slots (white-pixel black-pixel)
 	  palette
-	(setf indirect-inks nil)
-	(setf clip-mask nil)
+	(setf indirect-inks nil clip-mask nil)
 	(setf (medium-sheet medium) sheet)
 	(when (and drawable
 		   (not (eq (port-display port)
@@ -297,18 +321,18 @@
 	       (drawable (or drawable
 			     (tk::display-root-window display))))
 	  (unless foreground-gcontext
-	    (setf foreground-gcontext (tk::make-instance 'fast-gcontext
+	    (setf foreground-gcontext (tk::make-instance 'ink-gcontext
 							 :drawable drawable)))
 	  (unless background-gcontext
-	    (setf background-gcontext (tk::make-instance 'fast-gcontext
+	    (setf background-gcontext (tk::make-instance 'ink-gcontext
 							 :drawable drawable)))
 	  (unless flipping-gcontext
 	    (setf flipping-gcontext
-	      (tk::make-instance 'fast-gcontext 
+	      (tk::make-instance 'ink-gcontext 
 				 :drawable drawable
 				 :function boole-xor)))
 	  (unless tile-gcontext
-	    (setf tile-gcontext (make-instance 'fast-gcontext
+	    (setf tile-gcontext (make-instance 'ink-gcontext
 					       :drawable drawable
 					       :foreground black-pixel
 					       :background white-pixel)))
@@ -451,7 +475,7 @@
 ;;; (indirect-ink-p ink) returns t if ink is an indirect ink or
 ;;; derived from an indirect ink
 
-;;; not sure if these should be here 
+;;;--- not sure if these should be here - they should probably be in designs
 
 (defgeneric indirect-ink-p (ink))
 
@@ -484,7 +508,7 @@
     (or (gethash ink ink-table)
 	(let* ((drawable (or drawable
 			     (tk::display-root-window (port-display (port sheet)))))
-	       (new-gc (make-instance 'fast-gcontext :drawable drawable)))
+	       (new-gc (make-instance 'ink-gcontext :drawable drawable)))
 	  (multiple-value-bind (pixel mask)
 	      (decode-color-in-palette ink (medium-palette medium))
 	    (setf (tk::gcontext-foreground new-gc) pixel)
@@ -506,12 +530,12 @@
 
 (defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
   (let ((palette (medium-palette medium)))
-    (with-slots (ink-table sheet tile-gcontext drawable indirect-inks)
+    (with-slots (ink-table sheet drawable indirect-inks)
 	medium
       (or (gethash ink ink-table)
 	  (let* ((drawable (or drawable
 			       (tk::display-root-window (port-display (port sheet)))))
-		 (new-gc (make-instance 'fast-gcontext 
+		 (new-gc (make-instance 'ink-gcontext 
 					:drawable drawable
 					:function boole-xor)))
 	    (multiple-value-bind (color1 color2)
@@ -538,7 +562,7 @@
 	    (let* ((drawable 
 		    (or drawable 
 			(tk::display-root-window (port-display (port sheet)))))
-		   (new-gc (make-instance 'fast-gcontext :drawable drawable)))
+		   (new-gc (make-instance 'ink-gcontext :drawable drawable)))
 	      (cond ((palette-color-p palette)
 		     (setf (tk::gcontext-foreground new-gc)
 		       (decode-color-in-palette ink palette)))
@@ -574,8 +598,7 @@
   (decode-ink-opacity ink medium))
 
 (defmethod decode-ink-opacity (opacity medium)
-  (with-slots (ink-table sheet tile-gcontext drawable
-			 foreground-gcontext ink-table)
+  (with-slots (ink-table sheet drawable foreground-gcontext ink-table)
       medium
     (let ((key (cons opacity foreground-gcontext)))
       (or (gethash key ink-table)
@@ -586,9 +609,8 @@ and on color servers, unless using white or black")
 	  (let* ((port (port sheet))
 		 (display (port-display port))
 		 (drawable (or drawable (tk::display-root-window display)))
-		 (new-gc (make-instance 'fast-gcontext :drawable drawable)))
-  
-	    (x11:xcopygc display foreground-gcontext -1 new-gc)
+		 (new-gc (make-instance 'ink-gcontext :drawable drawable)))
+  	    (x11:xcopygc display foreground-gcontext -1 new-gc)
 	    (setf (tk::gcontext-stipple new-gc) (decode-opacity opacity port)
 		  (tk::gcontext-fill-style new-gc) :stippled)
 	    (setf (gethash key ink-table) new-gc))))))
@@ -601,14 +623,11 @@ and on color servers, unless using white or black")
 		    (make-gray-color-for-contrasting-ink ink))
 		medium)))
 
-(defmethod decode-ink ((ink rectangular-tile) medium)
-  (multiple-value-bind (pattern width height)
-      (decode-rectangular-tile ink)
-    (xt-decode-pattern pattern medium width height t)))
-
 (defmethod decode-ink ((ink pattern) medium)
-  (xt-decode-pattern ink medium))
-    
+  (with-slots (ink-table) medium
+    (or (gethash ink ink-table)
+	(setf (gethash ink ink-table)
+	  (decode-pattern-ink ink medium)))))
 
 (defmethod decode-color ((design design) (medium xt-medium))
   (decode-color-in-palette design (medium-palette medium)))
@@ -626,7 +645,7 @@ and on color servers, unless using white or black")
       (decode-color +foreground-ink+ medium)
       (decode-color +background-ink+ medium)))
 
-(defmethod decode-color-in-palette ((design design) (medium xt-medium))
+(defmethod decode-color-in-palette ((design design) (palette xt-palette))
   (error "Drawing with design: ~A not yet implemented" design))
 
 (defmethod decode-color-in-palette ((color color) (palette xt-palette))
@@ -736,7 +755,7 @@ and on color servers, unless using white or black")
 (defvar *default-dashes* '(4 4))
 
 (defun adjust-ink (gc medium line-style x-origin y-origin)
-  (unless (eq (fast-gcontext-last-line-style gc) line-style)
+  (unless (eq (ink-gcontext-last-line-style gc) line-style)
     (let* ((dashes (line-style-dashes line-style))
 	   (gc-line-style (if dashes :dash :solid)))
 	
@@ -768,66 +787,272 @@ and on color servers, unless using white or black")
 	  (if (excl::sequencep dashes) dashes *default-dashes*))
 	;; The following isn't really right, but it's better than nothing.
 	(setf (tk::gcontext-dash-offset gc) (1- y-origin))))
-    (setf (fast-gcontext-last-line-style gc) line-style))
+    (setf (ink-gcontext-last-line-style gc) line-style))
 
-  (let ((mcm (medium-clip-mask medium)))
-    (unless (eq (fast-gcontext-last-medium-clip-mask gc) mcm)
-      (setf (tk::gcontext-clip-mask gc) (medium-clip-mask medium))
-      (setf (fast-gcontext-last-medium-clip-mask gc) mcm)))
-    
-  (when (member (tk::gcontext-fill-style gc) '(:tiled :stippled) :test #'eq)
+  (let ((ink-clip-mask (ink-gcontext-ink-clip-mask gc))
+	(medium-clip-mask (medium-clip-mask medium))
+	(last-clip-mask (ink-gcontext-last-clip-mask gc)))
+    (multiple-value-bind (clip-mask x-origin y-origin)
+	(adjust-clip-mask medium ink-clip-mask medium-clip-mask x-origin y-origin)
+      (unless (eq last-clip-mask clip-mask)
+	(when (and (not (eq last-clip-mask ink-clip-mask))
+		   (typep last-clip-mask 'tk::pixmap))
+	  (tk::destroy-pixmap last-clip-mask))
+	(setf (tk::gcontext-clip-mask gc) clip-mask
+	      (ink-gcontext-last-clip-mask gc) clip-mask))
+      (when x-origin
+	(setf (tk::gcontext-clip-x-origin gc) x-origin
+	      (tk::gcontext-clip-y-origin gc) y-origin))))
+      
+  (when (ink-gcontext-shift-tile-origin gc)
     (setf (tk::gcontext-ts-x-origin gc) x-origin
 	  (tk::gcontext-ts-y-origin gc) y-origin))
   gc)
+
+(defun adjust-clip-mask (medium ink-clip-mask medium-clip-mask x-origin y-origin)
+  (if ink-clip-mask
+      (cond 
+       ((eq medium-clip-mask :nowhere) :nowhere)
+       ((eq medium-clip-mask :none) 
+	  (values ink-clip-mask x-origin y-origin))
+       (t
+	;; all subsequent co-ordinates are relative to x,y-origin
+	(let ((ink-pixmap-p (typep ink-clip-mask 'tk::pixmap))
+	      (medium-x (- (first medium-clip-mask) x-origin))
+	      (medium-y (- (second medium-clip-mask) y-origin))
+	      (medium-width (third medium-clip-mask))
+	      (medium-height (fourth medium-clip-mask))
+	      ink-x ink-y ink-width ink-height)
+	  (if ink-pixmap-p
+	      (setq ink-x 0 ink-y 0
+		    ink-width (tk::pixmap-width ink-clip-mask)
+		    ink-height (tk::pixmap-height ink-clip-mask))
+	    (setq ink-x (first ink-clip-mask)
+		  ink-y (second ink-clip-mask)
+		  ink-width (third ink-clip-mask)
+		  ink-height (fourth ink-clip-mask)))
+	  #+ignore (format excl:*initial-terminal-io* "~&ink:~d,~d,~d,~d"
+			   ink-x ink-y ink-width ink-height)
+	  #+ignore (format excl:*initial-terminal-io* "~&medium:~d,~d,~d,~d"
+			   medium-x medium-y medium-width medium-height)
+	  (let* ((x (max ink-x medium-x))
+		 (width (- (min (+ ink-x ink-width)
+				(+ medium-x medium-width))
+			   x))
+		 (y (max ink-y medium-y))
+		 (height (- (min (+ ink-y ink-height)
+				 (+ medium-y medium-height))
+			    y)))
+	    (if (or (<= width 0) (<= height 0))
+		:nowhere
+	      (if (and (= width ink-width) (= height ink-height))
+		  (values ink-clip-mask x-origin y-origin)
+		(if ink-pixmap-p
+		    (let* ((clip-pixmap (make-instance 'tk::pixmap
+						       :drawable ink-clip-mask
+						       :width width
+						       :height height
+						       :depth 1))
+			   (port (port (medium-sheet medium))))
+		      (stream-bitblt-support (port-copy-gc-depth-1 port)
+					     ink-clip-mask x y
+					     clip-pixmap 0 0
+					     width height)
+		      (values clip-pixmap (+ x-origin x) (+ y-origin y)))
+		  (values (list x y width height) x-origin y-origin))))))))
+    medium-clip-mask))
 
 #+ignore
 (defmethod decode-ink :around ((ink t) (medium xt-medium))
   (let ((gc (call-next-method)))
     gc))
 
-(defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
-  (let ((ink-table (slot-value medium 'ink-table)))
-    (or (gethash pattern ink-table)
-	(let* ((drawable (or (slot-value medium 'drawable)
-			     (tk::display-root-window
-			      (port-display (port (medium-sheet medium))))))
-	       (depth (tk::drawable-depth drawable)))
-	  (setf (gethash pattern ink-table)
+(defmethod decode-pattern-design ((ink (eql +nowhere+)) (medium xt-medium))
+  nil)
+
+(defmethod decode-pattern-design ((ink design) (medium xt-medium))
+  (decode-color ink medium))
+
+(defmethod decode-pattern-ink ((pattern pattern) medium) 
+  (multiple-value-bind (array designs)
+      (decode-pattern pattern)
+    (let* ((height (array-dimension array 0))
+	   (width (array-dimension array 1))
+	   (image-data (make-array (list height width)))
+	   (clip-image-data (make-array (list height width)
+					:initial-element 1))
+	   (design-pixels (make-array (length designs)))
+	   (transparent-p nil))
+	(declare (simple-vector design-pixels))
+
+	;; Cache the decoded designs from the pattern
+	(dotimes (n (length designs))
+	  (let ((pixel (decode-pattern-design (elt designs n) medium))) 
+	    (setf (svref design-pixels n) pixel)
+	    (unless pixel
+	      (setf transparent-p t))))
+	
+	(dotimes (w width)
+	  (dotimes (h height)
+	    (let ((pixel (svref design-pixels (aref array h w))))
+	      (setf (aref image-data h w)
+		(or pixel
+		    (setf (aref clip-image-data h w) 0))))))
+	(let* ((port (port (medium-sheet medium)))
+	       (drawable (or (slot-value medium 'drawable)
+			     (tk::display-root-window (port-display port))))
+	       (depth (tk::drawable-depth drawable))
+	       (image (make-instance 'tk::image
+				    :width width
+				    :height height
+				    :data image-data
+				    :depth depth))
+	       (clip-image (and transparent-p
+				(make-instance 'tk::image
+					       :width width
+					       :height height
+					       :data clip-image-data
+					       :depth 1)))
+	       (gc (make-instance 'ink-gcontext :drawable drawable))
+	       (pixmap (make-instance 'tk::pixmap
+				      :drawable drawable
+				      :width width
+				      :height height
+				      :depth depth))
+	       (clip-mask (if transparent-p
+			      (make-instance 'tk::pixmap
+					     :drawable drawable
+					     :width width
+					     :height height
+					     :depth 1)
+			    (list 0 0 width height))))
+	  (tk::put-image pixmap gc image)
+	  (when transparent-p
+	    (tk::put-image clip-mask 
+			   (port-copy-gc-depth-1 port)
+			   clip-image))
+	  (setf (tk::gcontext-tile gc) pixmap
+		(tk::gcontext-fill-style gc) :tiled
+		(ink-gcontext-ink-clip-mask gc) clip-mask
+		(ink-gcontext-shift-tile-origin gc) t)
+	  gc))))
+
+;;---the following extends a pattern for tiling by making it
+;;transparent. This causes problems in the test-suite.
+#+ignore 
+(defun decode-extended-pattern (pattern width height)
+  (multiple-value-bind (array designs)
+      (decode-pattern pattern)
+    (if (and (= (array-dimension array 0) height)
+	     (= (array-dimension array 1) width))
+	(values array designs)
+      (let* ((transparent (position +nowhere+ designs))
+	     (extended-designs 
+	      (if transparent
+		  designs
+		(progn
+		  (setq transparent (length designs))
+		  (concatenate 'vector designs (vector +nowhere+)))))
+	     (extended-array (make-array (list height width))))
+	(dotimes (w width)
+	  (dotimes (h height)
+	    (setf (aref extended-array h w)
+	      (if (array-in-bounds-p array h w)
+		  (aref array h w)
+		transparent))))
+	(values extended-array extended-designs)))))
+
+;; for the moment we use this one which replicates the pattern
+(defun decode-extended-pattern (pattern width height)
+  (multiple-value-bind (array designs)
+      (decode-pattern pattern)
+    (let ((pattern-height (array-dimension array 0))
+	  (pattern-width (array-dimension array 1)))
+      (if (or (< pattern-height height)
+	      (< pattern-width width))
+	  (let* ((extended-array (make-array (list height width))))
+	    (dotimes (w width)
+	      (dotimes (h height)
+		(setf (aref extended-array h w)
+		  (aref array (mod h pattern-height) (mod w pattern-width)))))
+	    (values extended-array designs))
+	(values array designs)))))
+	    
+(defmethod decode-ink ((ink rectangular-tile) medium)
+  (with-slots (ink-table) medium
+    (or (gethash ink ink-table)
+	(setf (gethash ink ink-table)
+	  (multiple-value-bind (pattern width height)
+	      (decode-rectangular-tile ink)
 	    (multiple-value-bind (array designs)
-		(decode-pattern pattern)
-	      (let ((image-data (make-array (array-dimensions array)))
-		    (design-pixels (make-array (length designs))))
+		(decode-extended-pattern pattern width height)
+	      (let* ((image-data (make-array (list height width)))
+		     (design-pixels (make-array (length designs)))
+		     (two-color-p (= (length designs) 2)) 
+		     two-color-fg two-color-bg)
 		(declare (simple-vector design-pixels))
+
 		;; Cache the decoded designs from the pattern
-		(do* ((num-designs (length designs))
-		      (n 0 (1+ n))
-		      design)
-		    ((eq n num-designs))
-		  (setq design (elt designs n))
-		  (setf (svref design-pixels n) (decode-color design medium)))
-		(dotimes (w (array-dimension array 1))
-		  (dotimes (h (array-dimension array 0))
-		    (setf (aref image-data h w)
-		      (svref design-pixels (aref array h w)))))
-		(let* ((pattern-height (array-dimension array 0))
-		       (pattern-width (array-dimension array 1))
+		(dotimes (n (length designs))
+		  (let ((pixel (decode-pattern-design (elt designs n) medium)))
+		    (setf (svref design-pixels n) pixel)
+		    (unless (or two-color-p pixel)
+		      (error "Transparent tiled pattern ~S has more than two designs"
+			     pattern))))
+		
+		(when two-color-p
+		  (setq two-color-bg (svref design-pixels 0)
+			two-color-fg (svref design-pixels 1))
+		  ;; make sure that any transparent design is the bg
+		  (when (null (svref design-pixels 1))
+		    (rotatef two-color-bg two-color-fg)))
+	    
+		(dotimes (w width)
+		  (dotimes (h height)
+		    (let ((pixel (svref design-pixels (aref array h w))))
+		      (setf (aref image-data h w)
+			(if two-color-p
+			    (if (eq pixel two-color-bg)
+				0
+			      1)
+			  pixel)))))
+
+		(let* ((port (port (medium-sheet medium)))
+		       (drawable (or (slot-value medium 'drawable)
+				     (tk::display-root-window
+				      (port-display port)))) 
+		       (depth (if two-color-p
+				  1
+				(tk::drawable-depth drawable)))
 		       (image (make-instance 'tk::image
-				:width pattern-width
-				:height pattern-height
-				:data image-data
-				:depth depth))
-		       (gc 
-			(make-instance 'fast-gcontext :drawable drawable))
+					     :width width
+					     :height height
+					     :data image-data
+					     :depth depth))
+		       (gc (make-instance 'ink-gcontext :drawable drawable))
 		       (pixmap 
 			(make-instance 'tk::pixmap
-			  :drawable drawable
-			  :width pattern-width
-			  :height pattern-height
-			  :depth depth)))
-		  (tk::put-image pixmap gc image)
-		  (setf (tk::gcontext-tile gc) pixmap
-			(tk::gcontext-fill-style gc) :tiled)
+				       :drawable drawable
+				       :width width
+				       :height height
+				       :depth depth)))
+		  (tk::put-image pixmap 
+				 (if two-color-p
+				     (port-copy-gc-depth-1 port)
+				   gc) 
+				 image)
+		  (if two-color-p
+		      (setf (tk::gcontext-stipple gc) pixmap
+			    (tk::gcontext-fill-style gc) (if two-color-bg
+							     :opaque-stippled
+							   :stippled)
+			    (tk::gcontext-foreground gc) (or two-color-fg 0)
+			    (tk::gcontext-background gc) (or two-color-bg 0))
+		    (setf (tk::gcontext-tile gc) pixmap
+			  (tk::gcontext-fill-style gc) :tiled))
 		  gc))))))))
+
+
 
 
 
@@ -1006,7 +1231,7 @@ and on color servers, unless using white or black")
 		thickness 0 2pi
 		t)))))))
 
-(defmethod medium-draw-points* ((medium xt-medium) position-seq)
+ (defmethod medium-draw-points* ((medium xt-medium) position-seq)
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
@@ -1515,7 +1740,7 @@ and on color servers, unless using white or black")
 	  (declare (ignore oy)
 		   (ignore ox))
 	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  (setf (fast-gcontext-last-medium-clip-mask gcontext) nil)
+	  (setf (ink-gcontext-last-clip-mask gcontext) nil)
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
 	  (dotimes (i (- end start))
@@ -1588,7 +1813,7 @@ and on color servers, unless using white or black")
 					  :depth 1
 					  :width n
 					  :height n))
-		   (gc (make-instance 'fast-gcontext
+		   (gc (make-instance 'ink-gcontext
 				      :drawable pixmap
 				      :font font
 				      :foreground 1
@@ -1638,7 +1863,7 @@ and on color servers, unless using white or black")
 		       :width array-size
 		       :height array-size
 		       :depth 1))
-	 (gc (make-instance 'fast-gcontext :drawable source-pixmap)))
+	 (gc (make-instance 'ink-gcontext :drawable source-pixmap)))
     (dotimes (i n)
       (macrolet ((copy-all-to (from xoffset yoffset to alu)
 		   `(stream-bitblt-support gc

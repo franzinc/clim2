@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.33 92/11/06 19:04:21 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.34 92/11/18 15:54:57 colin Exp $
 
 (in-package :tk)
 
@@ -607,7 +607,7 @@
 	     (setf (sys::memref-int v (+ (* h width) w) 0 :unsigned-byte)
 	       (aref data h w)))))
 	(1
-	 (setq format x11:xybitmap)
+	 (setq format x11:zpixmap)
 	 (setq bytes-per-line (ceiling (/ width bitmap-pad)))
 	 (setq v (excl::malloc (* bytes-per-line height)))))
       (let* ((visual (x11:screen-root-visual
