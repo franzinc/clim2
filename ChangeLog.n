@@ -16,6 +16,7 @@ If there are user-visible changes in this commit, then list the
 1999-04-13    <layer@HOBART>
 
 	* clim/frames.lisp: fix for bug7897 from Jeff
+	* Makefile.defs: SHELL = sh for Interix
 
 *******************************************************************************
 2.2.1.53

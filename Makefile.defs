@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.8 1999/03/19 18:49:21 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.9 1999/04/14 23:08:19 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -23,7 +23,7 @@ CAT	= cat
 ECHO	= echo
 TAGS	= etags
 
-SHELL	= /bin/sh
+SHELL	= sh
 
 # Lisp optimization for compiling
 SPEED	= 3
