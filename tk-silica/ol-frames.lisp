@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Thu Jul 22 17:18:32 1993 by colin]-
+;;				-[Tue Jul 27 13:40:13 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.26 1993/07/22 15:39:30 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.27 1993/07/27 01:54:59 colin Exp $
 
 
 (in-package :xm-silica)
@@ -192,7 +192,7 @@
 				      submenu 
 				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
-					(applt #'make-menu-button item
+					(apply #'make-menu-button item
 					       'xt::oblong-button
 					       menu
 					       initargs))

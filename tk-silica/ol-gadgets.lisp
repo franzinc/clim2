@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Thu Jul 22 16:58:22 1993 by colin]-
+;;				-[Tue Jul 27 14:03:48 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.55 1993/07/22 15:39:32 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.56 1993/07/27 01:55:04 colin Exp $
 
 
 (in-package :xm-silica)
@@ -358,6 +358,8 @@
 			menu-pane
 			nil)))
 
+		 (tk::set-values menu-pane :background (getf initargs :background)) 
+		 
 		 (when commands-and-buttons
 		   ;; We might have add-callbacks for a different set
 		   ;; of children which are now destroyed

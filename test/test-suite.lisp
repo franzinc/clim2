@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.67 1993/06/23 00:13:40 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.68 1993/07/22 15:39:13 cer Exp $
 
 (in-package :clim-user)
 
@@ -3116,6 +3116,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defun ignore-clim-gesture (&rest ignore)
   (declare (ignore ignore))
+  (mp:process-sleep 4)
   (throw 'ignore-gesture nil))
 
 (define-benchmark (simple-menu-choose :iterations 10) (stream)

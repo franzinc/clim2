@@ -1,3 +1,17 @@
+from colin: Tue Jul 27 15:26:56 PDT 1993
+
+test/test-suite.lisp
+- made ignore-clim-gesture wait 4 seconds - fixes problem where window
+  degrafted before initial repaint events are handled
+
+tk-silica/ol-frames.lisp
+- fixed typo
+
+tk-silica/ol-gadgets.lisp
+- set menu-pane background for pulldown menus from menu-bar initargs
+
+
+-------------------------------------------------------------------------------
 
 from colin: Mon Jul 26 17:28:19 PDT 1993
 
