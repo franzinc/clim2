@@ -1,4 +1,13 @@
 *******************************************************************************
+4.3.2.pre-beta.6
+
+Tue Nov 19 16:58:41 1996  Duane Rettig  <duane@beta>
+
+	* sys/defsystem.lisp: comp -> excl
+
+	* utils/lisp-utilities.lisp: pointer-to-fixnum -> pointer-to-address
+
+*******************************************************************************
 4.3.2.pre-alpha.114
 
 Thu Oct 17 06:43:30 1996  Duane Rettig  <duane@beta>

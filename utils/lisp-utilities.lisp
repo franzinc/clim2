@@ -12,7 +12,7 @@
 (defvar *keyword-package* (find-package :keyword))
 
 ;;; FUNCTIONP doesn't do what we want and there isn't any other CL function
-;;; that does. 
+;;; that does.
 (defun funcallable-p (thing)
   (etypecase thing
     (symbol (fboundp thing))
@@ -54,7 +54,7 @@
 	(env nil)
 	(vl variables))
     (loop
-      (when (null vl) 
+      (when (null vl)
 	(return-from decode-once-only-arguments
 	  (values (nreverse vars) env)))
       (let ((var (pop vl)))
@@ -111,7 +111,7 @@
 
 ;;; Stuff for dealing with CLIM coordinates
 
-(deftype coordinate () 
+(deftype coordinate ()
   #+use-float-coordinates  'single-float
   #+use-fixnum-coordinates 'fixnum
   #-(or use-float-coordinates use-fixnum-coordinates) 't)
@@ -161,7 +161,7 @@
     (fixnum
      coord)
     (single-float
-     ;; note we use [x+0.5] rather than ROUND because 
+     ;; note we use [x+0.5] rather than ROUND because
      ;; (1+ (round 1.5)) != (round 2.5) (cim 8/6/94)
      (values (the fixnum (floor (+ (the single-float coord) .5f0)))))
     (double-float
@@ -204,7 +204,7 @@
     `(progn
        ,@(let ((forms nil))
 	   (dorest (pts coordinate-pairs cddr)
-	     (push `(setf ,(first pts)  
+	     (push `(setf ,(first pts)
 			  (the coordinate (+ ,(first pts)  ,x-delta))) forms)
 	     (push `(setf ,(second pts)
 			  (the coordinate (+ ,(second pts) ,y-delta))) forms))
@@ -223,7 +223,7 @@
       (let* ((x (pop positions))
 	     (y (pop positions)))
 	(push `(progn
-		 (multiple-value-setq (,x ,y) 
+		 (multiple-value-setq (,x ,y)
 		   (transform-position ,transform ,x ,y))
 		 (fix-coordinates ,x ,y))
 	      forms)))))
@@ -241,7 +241,7 @@
       (let* ((x (pop distances))
 	     (y (pop distances)))
 	(push `(progn
-		 (multiple-value-setq (,x ,y) 
+		 (multiple-value-setq (,x ,y)
 		   (transform-distance ,transform ,x ,y))
 		 (fix-coordinates ,x ,y))
 	      forms)))))
@@ -324,7 +324,7 @@
 ;;; because the user might declare the stream variable to be of type STREAM, which
 ;;; would not be true during the brief interval after the binding and before the
 ;;; setting of that variable.  I believe this implementation of WITH-OPEN-STREAM to
-;;; have as small a timing window, and to be as semantically correct as possible. 
+;;; have as small a timing window, and to be as semantically correct as possible.
 
 #+(or (not CLIM-uses-Lisp-stream-functions)	;Do this if we provide CLOSE function
       Genera					; Sigh.  CLOSE also shadowed for Genera.
@@ -355,7 +355,7 @@
 				 (t stream))
   #-(or Genera ANSI-90) stream)
 
-#-(or Genera ANSI-90) 
+#-(or Genera ANSI-90)
 (eval-when (compile)
   (warn "You haven't defined ~S for this implementation.  A stub has been provided."
 	'follow-synonym-stream))
@@ -651,7 +651,7 @@
   (si::rem-keywords list keywords-to-remove))
 
 #-(or Genera Cloe-Runtime)
-(progn 
+(progn
 (defmacro with-keywords-removed ((new-list list keywords-to-remove) &body body)
   `(let ((,new-list (remove-keywords ,list ,keywords-to-remove)))
      ,@body))
@@ -764,7 +764,7 @@
 ;; 		          &key frotz (trouble) ((:izzy the-cat))))
 ;; (FOO BAR BAZ QUUX MUMBLE :FROTZ FROTZ :TROUBLE TROUBLE ':IZZY THE-CAT)
 ;; --- It looks like &REST and &KEY don't get along well here.  A big
-;; question in such a circumstane is who should be doing the defaulting?  
+;; question in such a circumstane is who should be doing the defaulting?
 ;; I.e., should this do the defaulting, by making the above arglist be
 ;; 	:FROTZ FROTZ :TROUBLE TROUBLE ':IZZY THE-CAT MUMBLE
 ;; for apply, or should it let the eventual caller do the defaulting by
@@ -827,7 +827,7 @@
 		(nreverse args))
 	    nil)))
 
-(defun canonicalize-and-match-lambda-lists (canonical-order user-specified 
+(defun canonicalize-and-match-lambda-lists (canonical-order user-specified
 					    &optional allow-user-keys)
   (declare (values lambda-list ignores))
   (check-type canonical-order list)
@@ -840,7 +840,7 @@
     (when allow-user-keys
       (setq user-specified (subseq user-specified 0 (min rest-pos key-pos))))
     (flet ((user-var-symbol (entry)
-	     ;; FOO | (FOO NIL) | ((:FOO BAR) NIL) | (FOO NIL FOO-P) | ((:FOO BAR) FOO-P) 
+	     ;; FOO | (FOO NIL) | ((:FOO BAR) NIL) | (FOO NIL FOO-P) | ((:FOO BAR) FOO-P)
 	     ;;--- We don't support the FOO-P syntax yet.
 	     (cond ((atom entry)
 		    entry)
@@ -848,7 +848,7 @@
 		    entry)
 		   (t (second entry))))
 	   (user-var-name (entry)
-	     ;; FOO | (FOO NIL) | ((:FOO BAR) NIL) | (FOO NIL FOO-P) | ((:FOO BAR) FOO-P) 
+	     ;; FOO | (FOO NIL) | ((:FOO BAR) NIL) | (FOO NIL FOO-P) | ((:FOO BAR) FOO-P)
 	     ;;--- We don't support the FOO-P syntax yet.
 	     (cond ((atom entry)
 		    entry)
@@ -872,7 +872,7 @@
       (when (set-difference user-specified '(&key &allow-other-keys))
 	(error "The arguments ~S aren't valid for this lambda list."
 	       user-specified))
-      (values (if allow-user-keys 
+      (values (if allow-user-keys
 		  (append (nreverse new-lambda-list) rest-and-key)
 		  (nreverse new-lambda-list))
 	      (nreverse ignores)))))
@@ -884,7 +884,7 @@
 
 #-Genera
 (defmacro defun-property ((symbol indicator) lambda-list &body body)
-  (let ((function-name 
+  (let ((function-name
 	  (make-symbol (lisp:format nil "~A-~A-~A" symbol indicator 'property))))
     `(progn (defun ,function-name ,lambda-list ,@body)
 	    (eval-when (load eval) (setf (get ',symbol ',indicator) #',function-name)))))
@@ -1081,7 +1081,7 @@
 #-(or PCL Genera ANSI-90)
 (defun print-unreadable-object-identity (object stream)
   #+Genera (format stream "~O" (sys:%pointer object))
-  #+Allegro (format stream "@~X" (excl::pointer-to-fixnum object))
+  #+Allegro (format stream "@~X" (excl::pointer-to-address object))
   ;; Lucid prints its addresses out in Hex.
   #+Lucid (format stream "~X" (sys:%pointer object))
   ;; Probably aren't any #+(and (not Genera) (not Allegro) (not PCL) (not ANSI-90))
@@ -1107,7 +1107,7 @@
   (typep x 'real))
 
 (defconstant *end-of-file-marker* :eof)
-(deftype end-of-file-marker () 
+(deftype end-of-file-marker ()
   '(member :eof))
 
 #+Cloe-Runtime
@@ -1340,7 +1340,7 @@
 	   ;; Grow the vector, leaving a hole for the new element
 	   (let ((new-vector (make-array (+ length (max (ash length -1) (or extension 20)))
 					 :element-type (array-element-type vector))))
-	     (copy-vector-portion vector 0 new-vector 0 index) 
+	     (copy-vector-portion vector 0 new-vector 0 index)
 	     (copy-vector-portion vector index new-vector (1+ index) (- length index))
 	     (setq vector new-vector)))
 	  (t
@@ -1369,7 +1369,7 @@
 ;;; The idea here is to provide a macro that will arrange for the abort choice
 ;;; to be on the "Abort" debugger choice, if possible.
 ;;; I would just use WITH-SIMPLE-RESTART but in Genera that doesn't end up
-;;; on the <Abort> key.  Note that in Allegro, this choice ends up as an ordinary 
+;;; on the <Abort> key.  Note that in Allegro, this choice ends up as an ordinary
 ;;; proceed option, but in Lucid it ends up on ":A".
 (defmacro with-simple-abort-restart ((format-string &rest format-args) &body body)
   #{
@@ -1418,7 +1418,7 @@
 ;;; objects which have the right properties flavors mixed in.
 (defmacro define-class-mixture-and-resource (name (&key initializer initial-copies)
 					     &body specs)
-  (let ((matcher-function-name 
+  (let ((matcher-function-name
 	  (make-symbol (lisp:format nil "~A-~A" name 'matcher)))
 	(constructor-function-name
 	  (make-symbol (lisp:format nil "~A-~A" name 'constructor))))
@@ -1478,7 +1478,7 @@
 		 (when (and (> (length class-name) 6)
 			    (string-equal class-name "BASIC-" :end1 6))
 		   (setf class-name (substring class-name 6)))
-		 (when (and (> (length class-name) 6) 
+		 (when (and (> (length class-name) 6)
 			    (string-equal class-name "-MIXIN"
 					  :start1 (- (length class-name) 6)))
 		   (setf class-name (substring class-name 0 (- (length class-name) 6))))
@@ -1516,7 +1516,7 @@
 		   (assert (null (cdr rest)) ()
 			   "A component-class mixture spec must stand alone. ~S is incorrect."
 			   first-spec)
-		   (return-from process-specs 
+		   (return-from process-specs
 		     `(if ,variable-name
 			  ,(process-specs (cdr specs) (cons (first rest) classes-so-far))
 			  ,(process-specs (cdr specs) classes-so-far))))

@@ -4,7 +4,7 @@
 ;;; DEFSYSTEM Utility
 ;;;
 ;;; Copyright (c) 1986 Regents of the University of California
-;;; 
+;;;
 ;;; Permission to use, copy, modify, and distribute this software and its
 ;;; documentation for any purpose and without fee is hereby granted,
 ;;; provided that the above copyright notice appear in all copies and
@@ -15,7 +15,7 @@
 ;;; permission.  The University of California makes no representations
 ;;; about the suitability of this software for any purpose.  It is
 ;;; provided "as is" without express or implied warranty.
-;;; 
+;;;
 
 ;;;-----------------------------------------------------------
 ;;; NOTE
@@ -59,14 +59,14 @@ Something is wrong if this warning appears!"))
     *language-descriptions*
     *load-all-before-compile*
     *sysdcl-pathname-defaults*
-    compile-system 
+    compile-system
     defsystem
     #+(or Genera Minima-Developer) import-into-sct
     load-system
     load-system-def
     set-system-source-file
     show-system
-    system-source-file 
+    system-source-file
     undefsystem
     with-compiler-options
     with-delayed-compiler-warnings
@@ -81,7 +81,7 @@ Something is wrong if this warning appears!"))
 		 :nicknames '("CLIM-DEFSYS"))
 
 #-(or ANSI-90 Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package #-(or lispworks ANSI-90) :clim-defsystem 
+(lisp:in-package #-(or lispworks ANSI-90) :clim-defsystem
 		 #+lispworks :pdefsys
 		 #+ANSI-90 :clim-defsystem
 		 #-ANSI-90 :use #-ANSI-90 '(:lisp)
@@ -93,14 +93,14 @@ Something is wrong if this warning appears!"))
 	  *language-descriptions*
 	  *load-all-before-compile*
 	  *sysdcl-pathname-defaults*
-	  compile-system 
+	  compile-system
 	  defsystem
 	  #+(or Genera Minima-Developer) import-into-sct
 	  load-system
 	  load-system-def
 	  set-system-source-file
 	  show-system
-	  system-source-file 
+	  system-source-file
 	  undefsystem
 	  with-compiler-options
 	  with-delayed-compiler-warnings)
@@ -117,7 +117,7 @@ Something is wrong if this warning appears!"))
 		     "Attempting to add the name ~S to package ~S, which doesn't exist")
 	     (when (null (find-package add-name))
 	       (let (#+Allegro (excl::*enable-package-locked-errors* nil))
-		 (rename-package 
+		 (rename-package
 		   pack (package-name pack)
 		   (list* add-name (package-nicknames pack))))))))
     (fix-package :common-lisp :lisp)
@@ -187,7 +187,7 @@ Something is wrong if this warning appears!"))
 ;; Uses :RELATIVE instead of :UP
 ;; Uses "*" instead of :WILD
 ;; Merge-pathnames still loses, since it doesn't do the right thing wrt relative
-;;  pathnames. 
+;;  pathnames.
 ;;
 #+ibcl
 (progn
@@ -321,7 +321,7 @@ Something is wrong if this warning appears!"))
 				       "/")))
 	dirstring)
       directory))
-  
+
 )
 
 
@@ -376,17 +376,17 @@ Something is wrong if this warning appears!"))
 				       "/")))
 	dirstring)
       directory))
-  
+
 )
 
 ;; Macintosh Allegro CL
 ;;
 #+(and ccl (not ANSI-90))
 (progn ; slh
-  
+
   (defun externalize-directory (directory)
     `(:absolute ,directory))
-  
+
   (defun internalize-directory (directory)
     (flet ((string-append (str1 str2)
              (concatenate 'string str1 str2 ":")))
@@ -395,10 +395,10 @@ Something is wrong if this warning appears!"))
 
 #+(and cmu (not ANSI-90))
 (progn
-  
+
   (defun externalize-directory (directory)
     (cons :absolute (coerce directory 'list)))
-  
+
   (defun internalize-directory (directory)
     (assert (eq (car directory) :absolute))
     (coerce (cdr directory) 'vector))
@@ -406,10 +406,10 @@ Something is wrong if this warning appears!"))
 
 #+(and ANSI-90 (not Genera) (not Cloe) (not Minima) (not Allegro))
 (progn ; rwk
-  
+
   (defun externalize-directory (directory)
     directory)
-  
+
   (defun internalize-directory (directory)
     directory)
 )
@@ -526,7 +526,7 @@ Something is wrong if this warning appears!"))
   #+(or Genera Cloe-Runtime lispworks CCL-2)
   (format t "~&; Compiling ~A~%" pathname)
   #+CCL-2
-  (ccl:set-mini-buffer ccl:*top-listener* "~A: Compiling ~A." 
+  (ccl:set-mini-buffer ccl:*top-listener* "~A: Compiling ~A."
                        *current-system*
                        (namestring pathname))
   (let (#+Minima (*compile-verbose* t))
@@ -534,7 +534,7 @@ Something is wrong if this warning appears!"))
 	(eval `(locally (declare (optimize ,@optimizations))
 			(compile-file ',pathname :output-file binary-pathname)))
 	(compile-file pathname :output-file binary-pathname))))
-     
+
 
 (defun load-lisp-file (pathname &optional libraries)
   (declare (ignore libraries))
@@ -751,7 +751,7 @@ Something is wrong if this warning appears!"))
 			   for remove-n = (max (- (length p) length-this-try) 0)
 			   for next-char = nil
 			     then (and (> (length shortened-string) 0)
-				       (char shortened-string 
+				       (char shortened-string
 					     (1- (length shortened-string))))
 			   for shortened-string = (shorten-string p remove-n next-char)
 			   do (setf (car l) shortened-string)
@@ -1176,7 +1176,7 @@ pathname fields are evaluated."
 ;; The following are used to prevent multiple compilations/loads from occuring
 ;; during a single call to LOAD-SYSTEM or COMPILE-SYSTEM.
 (eval-when (eval compile)
-  (proclaim '(special *loaded-systems* *loaded-modules* 
+  (proclaim '(special *loaded-systems* *loaded-modules*
 		      *compiled-systems* *compiled-modules*
 		      *tracep*)))
 
@@ -1184,7 +1184,7 @@ pathname fields are evaluated."
 (#+Allegro excl::without-package-locks #-Allegro progn
 
 (defun translate-logical-pathname (path) path)
-	   
+
 )
 
 ;; Compute the package to use in a module environment
@@ -1525,7 +1525,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 (defun import-into-sct (system &key (subsystem nil)
 				    (sct-name system) pretty-name
 				    default-pathname default-destination-pathname
-				    journal-directory 
+				    journal-directory
 				    (maintain-journals (not subsystem))
 				    (patchable maintain-journals)
 				    bug-reports patches-reviewed
@@ -1581,7 +1581,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	      (system-module-list system)))))
 
 (defun get-compiler-speed-and-safety ()
-  #+Allegro (values comp::.speed. comp::.safety.)
+  #+Allegro (values excl::.speed. excl::.safety.)
   #+Genera (values (lt:optimize-state 'speed) (lt:optimize-state 'safety))
   #+Lucid (values (cdr (assoc 'speed lucid::*compiler-optimizations*))
 		  (cdr (assoc 'safety lucid::*compiler-optimizations*)))
