@@ -1,3 +1,34 @@
+(for 4.2.devel.28 merge):
+
+Sat Dec 17 22:30:41 1994  Duane Rettig  (duane at clay)
+
+Added files:
+
+	* Makefile.unknown: Allow "make clean" without host type
+
+Changed files:
+
+	* Makefile.cobjs-svr4: Parameterize for rs/6000
+
+	* Makefile.generic: Add back the xm-dcl rule for rs/6000; allow
+	for saving/restoring of ucl.exp file.
+
+	* Makefile.hpprism: 
+	* Makefile.sgi4d-svr4: 
+	* Makefile.sun4: 
+	* Makefile.sun4-svr4: Add paralleling defines for new rs/6000
+	parameterizations
+
+	* Makefile.rs6000: Rework to make rs/6000 look svr4-like, adding
+	dynamic foreign loading
+
+	* sys/sysdcl.lisp: 
+	* tk/load-xm.lisp: 
+	* tk/make-classes.lisp: svr4 -> dlfcn
+
+	* tk/xm-font-list.lisp: Fix reference to load-time-nonexistant
+	direct-call foreign function
+
 ------------------------------------------------------------------------
 Tue Dec  6 17:57:45 1994  Steve Haflich  (smh@vapor)
 

@@ -5,10 +5,12 @@ include Makefile.defs
 Makefile=Makefile.sgi4d-svr4
 
 MOTIFHOME=
+XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
 XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB)_s.a 
 
 MAINOBJXLIB=
+CLIMXMLIB=
 
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
@@ -37,8 +39,13 @@ INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o $(INSTALLED_CLIMXMOBJS)
 
 PICFLAGS = -KPIC
 SHAREFLAGS = -shared -all
+MAKE_SHARED = ld
+IMPORTS =
 
 PWD = .
 ###############################################################################
+
+SAVEEXP = 
+RESTEXP = 
 
 include Makefile.generic

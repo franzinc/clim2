@@ -13,24 +13,43 @@ CFLAGS	= -O -D_BSD -D_NO_PROTO -D_NONSTD_TYPES -D_MBI=void
 
 # 
 
+XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 MOTIFLIB=-lXm
 MOTIFLIB_d=-lXm
 XTLIB=-lXt
 XLIB=-lX11
+MAINOBJXLIB=
+CLIMXMLIB=
 XINCLUDES= -I/usr/include -I/usr/include/Xm
 XMINCLUDES=$(XINCLUDES)
+MOTIFXTRAOS=
 
-# Make motif only. This is like the dec.
-# Perhaps this should be included.
+C_OBJECT_MAKEFILE = Makefile.cobjs-svr4
 
+XLIB-CLIM-OBJS = xlib/pkg.fasl
+
+OL_PUBLIC_OBJS =
+PUBLIC_OBJS = $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS)
+OL_LICENSED_OBJS =
+XM_LICENSED_OBJS =
+MOTIF_OBJS = climxm.so $(PUBLIC_OBJS)
+OPENLOOK_OBJS = 
+CLIMOBJS= climxm.so $(PUBLIC_OBJS)
 CLIM_FASLS_TO_MAKE = makeclimxmfasls
-CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
 CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
-INSTALLED_CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
+INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o $(INSTALLED_CLIMXMOBJS)
 
 # To keep make from complaining about syntax:
 MAIN_OBJ = mainxm.o
 
+PICFLAGS =
+SHAREFLAGS =
+MAKE_SHARED = make_shared
+IMPORTS = ../src/ucl.exp
+
 stubs = c2stubs
+
+SAVEEXP = /bin/mv ucl.exp ucl.exp.climsave
+RESTEXP = /bin/mv ucl.exp.climsave ucl.exp
 
 include Makefile.generic

@@ -305,10 +305,10 @@
 					      "xlib/last.lisp")))
    "ffi"
    ("xlib-defs" #|(:load-before-compile "ffi") |#) ; Takes forever to compile...
-   #-svr4 ("load-xlib")
+   #-dlfcn ("load-xlib")
    ("xlib-funs" (:load-before-compile "ffi"))
    ("x11-keysyms" (:load-before-compile "ffi"))
-   #-svr4
+   #-dlfcn
    ("last" (:load-before-compile "load-xlib" "xlib-funs"))
    ))
 
@@ -319,8 +319,8 @@
 		  (:serial
 		   xlib
 		   (,file)
-		   #+svr4
-		   ("last" :pathname "clim2:;xlib;")
+		   #+dlfcn
+		   ("last" (:pathname "clim2:;xlib;"))
 		   ("pkg")
 		   ("macros")
 		   ("xt-defs")		; Used to be 'xtk'.

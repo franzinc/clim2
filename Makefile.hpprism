@@ -30,4 +30,7 @@ INSTALLED_CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
 # To keep make from complaining about syntax:
 MAIN_OBJ = mainxm.o
 
+SAVEEXP = 
+RESTEXP = 
+
 include Makefile.generic

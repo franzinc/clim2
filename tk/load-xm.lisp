@@ -24,7 +24,7 @@
 
 (require :climg)
 
-#+svr4
+#+dlfcn
 (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
 			    :note-shared-library-references nil)
   (load "climxm.so")
@@ -34,7 +34,7 @@
     (fixup-class-entry-points))
   (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
 
-#-svr4
+#-dlfcn
 (progn
   (defvar sys::*libxt-pathname* "Xt")
   (defvar sys::*clim-motif-pathname* "clim-motif.o")

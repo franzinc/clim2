@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Fri Dec 16 17:15:52 1994 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -31,6 +31,9 @@
   (declare (ignore parent))
   (export-font-list value))
 
+(defun free-font-list (font-list)
+  (xm_font_list_free font-list))
+
 (defun export-font-list (value)
   (when (atom value)
     (setq value (list value)))
@@ -49,7 +52,7 @@
 							  xm-font-is-font
 							  font)))))
     (note-malloced-object font-list 
-			  #'xm_font_list_free)))
+			  #'free-font-list)))
 
 #+:dec3100
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-font-list)) value)

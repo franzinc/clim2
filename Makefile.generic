@@ -314,10 +314,18 @@ makeclimobjs: $(CLIMOBJS)
 
 ################## Lower level Makefile stuff
 
+# This is still needed for rs/6000:
+
+xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ;\
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl ;\
+	/bin/mv ucl.climsave ucl; $(RESTEXP)
+
+
 ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ;\
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ; $(SAVEEXP) ;\
 	make stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(MOTIFLIB) $(MOTIFXTRAOS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
-	/bin/mv ucl ucl.clim ; /bin/mv ucl.climsave ucl ; /bin/mv dcl.climsave dcl
+	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl ; /bin/mv dcl.climsave dcl
 
 # these were moved here from Makefile.cobjs because SVR4 needs them, too
 # (and I didn't want to duplicate them in Makefile.cobjs-svr4).

@@ -7,7 +7,8 @@ Makefile=Makefile.sun4-svr4
 MOTIFHOME=/net/vapor/3rd/motif-1.2.4-sol2
 MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
 XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
-MAINOBJXLIB=$(XLIB)
+MAINOBJXLIB=$(XLIB) -lgen
+CLIMXMLIB=-lgen
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include
@@ -44,8 +45,13 @@ INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o \
 
 PICFLAGS = -K pic
 SHAREFLAGS = -G
+MAKE_SHARED = ld
+IMPORTS =
 
 PWD = .
 ###############################################################################
+
+SAVEEXP = 
+RESTEXP = 
 
 include Makefile.generic

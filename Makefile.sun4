@@ -26,4 +26,7 @@ OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
 
 OLINCLUDES=-I$(OPENLOOKHOME)/OWV3/src/include/
 
+SAVEEXP = 
+RESTEXP = 
+
 include Makefile.generic

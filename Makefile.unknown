@@ -1,0 +1,10 @@
+# $fiHeader: Makefile.sun4,v 1.8 1993/09/17 06:34:14 duane Exp $
+#
+#  Makefile.unknown for CLIM 2.0
+#
+
+# Provide enough structure to do a "make clean"
+
+include Makefile.defs
+
+include Makefile.generic

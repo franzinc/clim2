@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Tue Dec  6 16:27:07 1994 by smh]-
+;;				-[Wed Dec 14 02:35:23 1994 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -25,10 +25,10 @@
 (in-package :tk)
 
 (defun get-foreign-variable-value (x)
-  (let ((ep #-svr4 (ff:get-extern-data-address x)
-	    #+svr4 (ff:get-entry-point
-		    x
-		    :note-shared-library-references nil)))
+  (let ((ep #-dlfcn (ff:get-extern-data-address x)
+	    #+dlfcn (ff:get-entry-point
+		     x
+		     :note-shared-library-references nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
 
@@ -355,7 +355,7 @@
 	 (clrhash cached-constraint-resources)))
    class))
 
-#+:svr4
+#+dlfcn
 (defun fixup-class-entry-points ()
   (let ((root (find-class 'xt-root-class)))
     (clos::map-over-subclasses #'tk::unregister-address root)
