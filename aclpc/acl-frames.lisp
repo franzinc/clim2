@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.25 2000/04/19 20:24:13 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.26 2000/04/21 16:25:29 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -851,7 +851,7 @@ to be run from another."
 		      hwnd
 		      (coerce message-string 'simple-string) 
 		      (coerce name 'simple-string)
-		      (logior win:MB_TASKMODAL icon buttons)))
+		      (logior win:MB_SYSTEMMODAL icon buttons)))
 	       (symbol (select-messagebox-result code buttons exit-boxes)))
 	  ;; Notify-user is supposed to return T or NIL:
 	  (case symbol

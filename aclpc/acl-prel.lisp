@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.17 2000/04/19 20:24:17 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.18 2000/04/21 16:25:32 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -409,15 +409,16 @@
 	       (malloc-texture-array
 		(ff:allocate-fobject `(:array :char ,image-size) :c)))
 	  (unless (zerop malloc-texture-array)
-	    (memcpy malloc-texture-array pixel-map image-size))
-	  (setq texture-handle
-	    (win:CreateDIBitmap
-	     device-context
-	     bitmapinfo 
-	     win:CBM_INIT		; initialize bitmap bits
-	     pixel-map
-	     bitmapinfo 
-	     win:DIB_RGB_COLORS)))))
+	    (memcpy malloc-texture-array pixel-map image-size)
+	    (setq texture-handle
+	      (win:CreateDIBitmap
+	       device-context
+	       bitmapinfo 
+	       win:CBM_INIT		; initialize bitmap bits
+	       malloc-texture-array
+	       bitmapinfo 
+	       win:DIB_RGB_COLORS))
+	    (ff:free-fobject malloc-texture-array)))))
     (when (zerop texture-handle)
       (check-last-error "CreateDIBitmap"))
     texture-handle))

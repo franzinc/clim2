@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-protocol.lisp,v 1.37.22.3 2000/04/19 20:24:20 layer Exp $
+;; $Id: interactive-protocol.lisp,v 1.37.22.4 2000/04/21 16:25:32 layer Exp $
 
 (in-package :clim-internals)
 
@@ -277,14 +277,21 @@
                                    x-pos y-pos)
   (with-slots (input-buffer stream insertion-pointer) istream
     (let ((cursor (stream-text-cursor stream)))
+      ;; I am not sure this is right.  The insertion pointer may be
+      ;; looking at something which is not a character (a noise string
+      ;; for instance).  In that case we need to grab a width from
+      ;; *somewhere*, so we chose #\Space because it's there.
+      ;; -- tfb@cley.com (Tim Bradshaw) Mon Mar  6 17:30:05 2000
       (when cursor
         (setf (slot-value cursor 'width)
           (stream-character-width stream
-                                  (if (< insertion-pointer
-                                         (fill-pointer input-buffer))
-                                      (aref input-buffer
+                                  (if (and (< insertion-pointer
+					      (fill-pointer input-buffer))
+					   (characterp (aref input-buffer
+                                            insertion-pointer)))
+				      (aref input-buffer
                                             insertion-pointer)
-                                    #\space)))
+				      #\space)))
         (stream-set-cursor-position stream x-pos y-pos)))))
 
 (defmethod redraw-input-buffer ((istream input-editing-stream-mixin)

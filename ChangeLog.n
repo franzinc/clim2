@@ -9,6 +9,26 @@ If there are user-visible changes in this commit, then list the
 
 <standard changelog date stamp>
 	* <changes go here...>
+*******************************************************************************
+2.2.1.76
+
+2000-04-21 tfb@cley.com
+
+Changes from SPRs late 1999 to April 2000
+
+* aclpc/acl-frames.lisp: change frame-manager-notify-user so that the
+  dialog box is always at the top of the window stack (spr21587)
+* aclpc/acl-medium.lisp: changes to medium-draw-lines* to get correct
+  behaviour for Windows (spr21663)
+* aclpc/acl-medium.lisp: deal with single-colour patterns correctly
+  (related to spr21068)
+* aclpc/acl-prel.lisp: fix a previous fix to work around sporadic
+  CreateDIBitmap failure on Windows (spr21068 for acl 5.0.1, spr19641
+  for acl 5.0).
+* clim/interactive-protocol.lisp: fix problem when backspacing over
+  noise strings which was causing an error (spr21691)
+* utils/timers.lisp: stop the annoying message about whether it's OK
+  to exit lisp if the timer process is running on (bug8764)
 
 *******************************************************************************
 2.2.1.75

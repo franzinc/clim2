@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.26 2000/04/19 20:24:13 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.27 2000/04/21 16:25:29 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -275,8 +275,13 @@
 	   (values (dc-image-list created-bitmap)))
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
-	 (tink (aref designs 1))
-	 (bink (aref designs 0))
+	 ;; We need to deal with the case where the pattern has only a
+	 ;; single colour.  I think this is not a good way of doing
+	 ;; it, instead it would be better to special case it in the
+	 ;; caller, and not do this whole rigmarole
+	 (single-color-p (= (length designs) 1))
+	 (tink (aref designs (if single-color-p 0 1)))
+	 (bink (if single-color-p +black+ (aref designs 0)))
 	 (tcolor (color->wincolor tink medium))
 	 (bcolor (color->wincolor bink medium))
 	 (width (array-dimension array 1))
@@ -640,12 +645,13 @@ draw icons and mouse cursors on the screen.
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
   #+slow-but-sure
-  (let (oldx oldy)
+  (let (oldx oldy drawp)
     (silica:map-position-sequence
      #'(lambda (x y)
-	 (when oldx
+	 (when (and oldx drawp)
 	   (clim:medium-draw-line* medium oldx oldy x y))
-	 (setq oldx x oldy y))
+	 (setq oldx x oldy y
+	       drawp (not drawp)))
      position-seq))
   (without-scheduling
     (let ((window (medium-drawable medium)))
@@ -658,22 +664,22 @@ draw icons and mouse cursors on the screen.
 		   (ink (medium-ink medium))
 		   (line-style (medium-line-style medium)))
 	      (with-set-dc-for-ink (dc medium ink line-style)
-		(let ((init t))
-  		  (declare (optimize (speed 3) (safety 0)))
-  		  (labels ((visit1 (x y)
-  			     (fix-coordinates x y)
- 			     (cond (init
- 				    (win:MoveToEx dc x y null)
- 				    (setq init nil))
- 				   (t
- 				    (win:LineTo dc x y))))
-  			   (visit2 (x y)
-  			     (convert-to-device-coordinates transform x y)
- 			     (cond (init
- 				    (win:MoveToEx dc x y null)
- 				    (setq init nil))
- 				   (t
- 				    (win:LineTo dc x y)))))
+		;; Do we really need all this gratuitous LABELS stuff?
+		;; -- perhaps the compiler generates better code?
+		(let (drawp)
+		  (declare (optimize (speed 3) (safety 0)))
+		  (labels ((visit1 (x y)
+			     (fix-coordinates x y)
+			     (if drawp
+				 (win:LineTo dc x y)
+				 (win:MoveToEx dc x y null))
+			     (setf drawp (not drawp)))
+			   (visit2 (x y)
+			     (convert-to-device-coordinates transform x y)
+			     (if drawp
+				 (win:LineTo dc x y)
+				 (win:MoveToEx dc x y null))
+			     (setf drawp (not drawp))))
 		    (declare (dynamic-extent #'visit1 #'visit2))
 		    (if (identity-transformation-p transform)
 			(silica:map-position-sequence #'visit1 position-seq)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: timers.lisp,v 1.4.22.2 1998/07/06 23:10:31 layer Exp $
+;; $Id: timers.lisp,v 1.4.22.3 2000/04/21 16:25:35 layer Exp $
 
 (in-package :clim-utils)
 
@@ -55,6 +55,8 @@
   (unwind-protect
       (progn
         (setq *timer-process* (current-process))
+	;; stop it asking us if it is safe to exit.
+	#+allegro (setf (mp::process-interruptible-p (current-process)) nil)
         (flet ((add-timer-to-queue (timer)
                  (without-scheduling
                    (setq *timers* (merge 'list (list timer) *timers* #'<
