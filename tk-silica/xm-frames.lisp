@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.53 93/04/08 13:19:00 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.54 93/04/16 09:45:56 cer Exp $
 
 (in-package :xm-silica)
 
@@ -48,6 +48,12 @@
   ;;-- This is because the :resize-width/height are true 
   ;;-- ManagedSetChanged allows the widget to be resized.
   ;;-- Conversely querygeoetry will return bogus results otherwise.
+  (frobulate-menubars frame))
+
+(defmethod clim-internals::note-frame-current-layout-changed ((frame-manager motif-frame-manager) (frame t))
+  (frobulate-menubars frame))
+
+(defun frobulate-menubars (frame)
   (flet ((fix-sheet (sheet)
 	   (when (typep sheet 'motif-menu-bar)
 	     (update-mirror-region (port sheet) sheet))))

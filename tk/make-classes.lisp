@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.28 93/01/11 15:45:42 colin Exp $
+;; $fiHeader: make-classes.lisp,v 1.30 93/04/16 09:26:36 layer Exp $
 
 (in-package :tk)
 
@@ -217,7 +217,6 @@
 
 
 (defun define-toolkit-classes (&rest classes)
-  (break "define-toolkit-classes")
   (make-classes 
    (mapcar #'ff:convert-to-lang
 	   (remove-duplicates 
@@ -232,7 +231,6 @@
     (case name
       ;; Openlook
       (list 'ol-list)
-      (list-pane 'ol-list)
       (event-obj 'event)
       (t name))))
   

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.43 93/04/02 13:37:17 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.44 93/04/16 09:45:53 cer Exp $
 
 
 (in-package :xm-silica)
@@ -79,18 +79,34 @@
 	 :proportion-length  real-size
 	 :slider-value real-value)))))
 
+;;-- This method is ((gadget motif-range-pane))
+
+(defmethod gadget-value ((gadget openlook-scroll-bar))
+  ;;--- We should use the scale functions to get the value
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (if mirror 
+        (multiple-value-bind
+            (smin smax) (gadget-range* gadget)
+          (multiple-value-bind
+              (value mmin mmax proportion-length)
+              (tk::get-values mirror :slider-value :slider-min
+			      :slider-max :proportion-length)
+            (compute-symmetric-value
+             mmin (- mmax proportion-length) value smin smax)))
+      (call-next-method))))
+
 (defmethod add-sheet-callbacks :after  ((port openlook-port) (sheet openlook-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :slider-moved
 		    'scroll-bar-changed-callback-1
 		    sheet))
 
-(defmethod scroll-bar-changed-callback-1 ((widget t) (sheet openlook-scroll-bar))
+(defmethod scroll-bar-changed-callback-1 ((widget t) value (sheet openlook-scroll-bar))
   (multiple-value-bind
       (smin smax) (gadget-range* sheet)
     (multiple-value-bind
-	(value size mmin mmax)
-	(tk::get-values widget :slider-value :proportion-length :slider-min :slider-max)
+	(size mmin mmax)
+	(tk::get-values widget :proportion-length :slider-min :slider-max)
       (scroll-bar-value-changed-callback
        sheet
        (gadget-client sheet)
@@ -261,40 +277,41 @@
     (map-over-menubar mb width #'configure-child)))
 
 (defun map-over-menubar (mb width &optional fn)
-  (let ((h-pad 4)
-	(v-pad 4) 
-	(h-space 4) 
-	(v-space 4))
-    (let ((children (tk::widget-children (sheet-direct-mirror mb)))
-	  (y v-pad)
-	  (max-width 0))
-      (loop
-	(when (null children) (return nil))
-	(let ((x h-space)
-	      (max-height 0)
-	      (first t))
-	  ;; Iterate over one row until we run out of space
-	  (loop
-	    (when (null children) (return nil))
-	    (let ((child (car children)))
-	      (multiple-value-bind
-		  (ignore-x igore-y w h)
-		  (xt::widget-best-geometry child)
-		(declare (ignore ignore-x igore-y))
-		  (unless first (incf x v-space))
-		  (when width
-		    (unless (or first (<= (+ w x) (- width h-space)))
-		      (return nil)))
-		  (when fn (funcall fn child x y w h))
-		(incf x w)
-		(maxf max-height h))
-	      (pop children))
-	    (setq first nil))
-	  (maxf max-width (+ x h-pad))
-	  (incf y max-height)
-	  (when children (incf y v-space))))
-      (incf y v-space)
-      (values max-width y))))
+  (let ((mirror (sheet-direct-mirror mb)))
+    (let ((h-pad 4) (v-pad 4) (h-space 4) (v-space 4))
+      ;; For some reason the mirror is a drawing area
+      ;; so we cannot get the resources
+      (let ((children (tk::widget-children mirror))
+	    (y v-pad)
+	    (max-width 0))
+	(loop
+	  (when (null children) (return nil))
+	  (let ((x h-space)
+		(max-height 0)
+		(first t))
+	    ;; Iterate over one row until we run out of space
+	    (loop
+	      (when (null children) (return nil))
+	      (let ((child (car children)))
+		(when (xt::is-managed-p child)
+		  (multiple-value-bind
+		      (ignore-x igore-y w h)
+		      (xt::widget-best-geometry child)
+		    (declare (ignore ignore-x igore-y))
+		    (unless first (incf x v-space))
+		    (when width
+		      (unless (or first (<= (+ w x) (- width h-space)))
+			(return nil)))
+		    (when fn (funcall fn child x y w h))
+		    (incf x w)
+		    (maxf max-height h))
+		  (setq first nil))
+		(pop children)))
+	    (maxf max-width (+ x h-pad))
+	    (incf y max-height)
+	    (when children (incf y v-space))))
+	(incf y v-space)
+	(values max-width y)))))
 
 
     
@@ -439,6 +456,7 @@
 		     ((:left nil) :left)
 		     (:center :center)
 		     (:right :right)))
+	     ;;-- icon label
 	     (and label (list :string label))))))
   
 ;;; Push button
@@ -489,7 +507,7 @@
     (if (gadget-editable-p tf)
 	(multiple-value-bind (font chars-visible)
 	    (tk::get-values m :font :chars-visible)
-	  (make-space-requirement :width (* (max 1 chars-visible) (tk::font-width font))
+	  (make-space-requirement :width (* chars-visible (tk::font-width font))
 				  :height (+ 7 (tk::font-height font))))
       (multiple-value-bind (string font)
 	  (tk::get-values m :string :font)
@@ -504,7 +522,7 @@
     (if editable
 	(values 'tk::text-field
 		(append
-		 `(:chars-visible ,(if (zerop (length value)) 30 (length value)))
+		 `(:chars-visible ,(max (length value) 10))
 		 (and value `(:string ,value))))
       (values 'tk::static-text
 	      `(:string ,value)))))
@@ -614,7 +632,7 @@
     (tk::set-values (sheet-direct-mirror sheet) 
 		    :label-justify (ecase nv
 				     (:center nv)
-				     ((:left :right) nv)))))
+				     ((:left :right) nv))) ))
 
 ;; Toggle button
 
@@ -731,31 +749,66 @@
   (compose-space-for-radio/check-box rb))
 
 (defun compose-space-for-radio/check-box (rb &optional (spacing 0))
-  (let* ((sum-w 0)
-	 (max-w 0)
-	 (max-h 0)
-	 (sum-h 0)
-	 (mirror (sheet-direct-mirror rb))
-	 (children (tk::widget-children mirror)))
+  (let ((mirror (sheet-direct-mirror rb)))
     (multiple-value-bind (orientation measure)
 	(tk::get-values mirror :layout-type :measure)
-      (assert (= 1 measure) () "Multiple rows/columns NYI")
-      (dolist (child children)
-	(multiple-value-bind
-	    (ignore-x igore-y width height)
-	    (xt::widget-best-geometry child)
-	  (declare (ignore ignore-x igore-y))
-	  (maxf max-h height)
-	  (incf sum-w width)
-	  (incf sum-h height)
-	  (maxf max-w width)))
-      (ecase orientation
-	(:fixedrows (make-space-requirement 
-		     :width (+ sum-w (* spacing (1- (length children))))
-		     :height max-h))
-	(:fixedcols (make-space-requirement 
-			:width max-w 
-			:height (+ sum-h (* spacing (1- (length children))))))))))
+      (let* ((sum-w 0)
+	     (max-w 0)
+	     (max-h 0)
+	     (sum-h 0)
+	     (all-children (tk::widget-children mirror))
+	     (n (ceiling (length all-children) measure)))
+
+	(let ((children all-children)
+	      child)
+	  (loop
+	    (unless children (return nil))
+
+	    ;; Walk over one row/column
+	  
+	    (let ((one-sum-w 0)
+		  (one-max-w 0)
+		  (one-max-h 0)
+		  (one-sum-h 0)
+		  (done 0))
+
+	      (dotimes (i n)
+		(unless children (return nil))
+		(incf done)
+		(setq child (pop children))
+		(multiple-value-bind
+		    (ignore-x igore-y width height)
+		    (xt::widget-best-geometry child)
+		  (declare (ignore ignore-x igore-y))
+		  (maxf one-max-h height)
+		  (incf one-sum-w width)
+		  (incf one-sum-h height)
+		  (maxf one-max-w width)))
+	  
+	      ;; If there is more then we need to add some spacing in
+	  
+	      (ecase orientation
+		(:fixedrows 
+		 ;; We have just done a row
+		 (incf one-sum-w (* spacing (1- done)))
+		 (when children (incf one-max-h spacing))
+		 (maxf sum-w one-sum-w)
+		 (incf max-h one-max-h)
+		 )
+		(:fixedcols 
+		 ;; We have just done a colum
+		 (incf one-sum-h (* spacing done))
+		 (when children (incf one-max-w spacing))
+		 (maxf sum-h one-sum-h)
+		 (incf max-w one-max-w))))))
+      
+	(ecase orientation
+	  (:fixedrows (make-space-requirement 
+		       :width sum-w
+		       :height max-h))
+	  (:fixedcols (make-space-requirement 
+		       :width max-w 
+		       :height sum-h)))))))
 
 ;;;
 
@@ -800,18 +853,34 @@
 
 (defmethod compose-space ((cb openlook-check-box) &key width height)
   (declare (ignore width height))
+  ;; Where did this 15 come from. Its the space between the items
   (compose-space-for-radio/check-box cb 15))
 
 ;;
 
-;; Openlook-orriented-gadget
+;; Open look-orriented-gadget
 
 
 (defclass openlook-slider (#+ignore openlook-range-pane
 			   xt-oriented-gadget
 			   xt-leaf-pane
 			   slider)
-	  ())
+  ((slider-mirror :initform nil :accessor openlook-slider-mirror)
+   (slider-label-mirror :initform nil :accessor openlook-slider-label-mirror)
+   (slider-value-mirror :initform nil :accessor openlook-slider-value-mirror)
+   (slider-initargs :accessor openlook-slider-initargs)))
+
+;; This is kind of hacky but its the best way of gathering the
+;; components
+
+(defmethod find-widget-class-and-initargs-for-sheet :around ((port openlook-port)
+							     (parent t)
+							     (sheet
+							      openlook-slider))
+  (multiple-value-bind (class initargs) 
+      (call-next-method)
+    (setf (openlook-slider-initargs sheet) initargs)
+    (values class nil)))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -824,19 +893,55 @@
 	(smin smax) (gadget-range* sheet)
       (let ((mmin 0) 
 	    (mmax 100))
-	(values (if editablep 'tk::slider 'tk::gauge)
-		(append
-		 (list :drag-c-b-type :release)
-		 #+dunno
-		 (and label (list :title-string label))
-		 (list :slider-min mmin
-		       :slider-max mmax)
-		 (and value 
-		      (list :slider-value 
-			    (fix-coordinate 
-				    (compute-symmetric-value
-				     smin smax value mmin
-				     mmax))))))))))
+	(values 
+	 'tk::control
+	 (append
+	  (list :slider-class (if editablep 'tk::slider 'tk::gauge))
+	  (list :show-value-p show-value-p)
+	  (list :drag-c-b-type :release)
+	  ;;-- icon label
+	  (and label (list :label label))
+	  (list :slider-min mmin
+		:slider-max mmax)
+	  (and value 
+	       (list :slider-value 
+		     (fix-coordinate 
+		      (compute-symmetric-value
+		       smin smax value mmin
+		       mmax))))))))))
+
+(defmethod realize-mirror :around ((port openlook-port) (sheet openlook-slider))
+  (let ((control-area (call-next-method))
+	(initargs (openlook-slider-initargs sheet)))
+    (with-accessors ((slider-mirror openlook-slider-mirror)
+		     (label-mirror openlook-slider-label-mirror )
+		     (value-mirror openlook-slider-value-mirror)) sheet
+      (destructuring-bind (&key label slider-class show-value-p &allow-other-keys) initargs
+	(setf label-mirror
+	  (make-instance 'tk::static-text 
+			 :string (or label "")
+			 :managed (and label t)
+			 :parent control-area))
+	(setf slider-mirror
+	  (with-keywords-removed (bashed-initargs initargs '(:label 
+							     :show-value-p
+							     :slider-class))
+	    (apply #'make-instance slider-class :parent control-area
+		   bashed-initargs)))
+	
+	(when (gadget-editable-p sheet)
+	  ;;--- Do we need to do this?
+	  #+ignore
+	  (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
+	  (tk::add-callback slider-mirror :slider-moved
+			    'slider-changed-callback-1 sheet))
+	
+	(setf value-mirror
+	  (make-instance 'tk::static-text 
+			 :string "XXXXX"
+			 :managed (and show-value-p t)
+			 :parent control-area)))
+      control-area)))
 
 (defmethod gadget-value ((slider openlook-slider))
   (if (sheet-direct-mirror slider)
@@ -849,19 +954,19 @@
     (with-no-value-changed-callbacks
 	(set-slider-value slider nv))))
 
-(defun compute-slider-value (sheet)
-  (let ((widget (sheet-direct-mirror sheet)))
+(defun compute-slider-value (sheet &optional value)
+  (let ((widget (openlook-slider-mirror sheet)))
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (multiple-value-bind
-	  (value mmin mmax)
+	  (current-value mmin mmax)
 	  (tk::get-values widget :slider-value :slider-min :slider-max)
 	(compute-symmetric-value
-			 mmin mmax value smin smax)))))
+			 mmin mmax (or current-value value) smin smax)))))
 
 
 (defun set-slider-value (sheet nv)
-  (let ((widget (sheet-direct-mirror sheet)))
+  (let ((widget (openlook-slider-mirror sheet)))
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (multiple-value-bind
@@ -873,32 +978,36 @@
 			 (compute-symmetric-value
 			   smin smax  nv mmin mmax)))))))
 
-(defmethod add-sheet-callbacks :after ((port openlook-port) 
-				       (sheet openlook-slider)
-				       (widget t))
-  (when (gadget-editable-p sheet)
-    ;;--- Do we need to do this?
-    #+ignore
-    (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
-    (tk::add-callback widget :slider-moved 'slider-changed-callback-1 sheet)))
 
-(defmethod slider-changed-callback-1 ((widget t) (sheet openlook-slider))
-  (queue-value-changed-event widget sheet))
+
+(defmethod slider-changed-callback-1 ((widget t) value (sheet openlook-slider))
+  (queue-value-changed-event widget sheet
+			     (compute-slider-value sheet value)))
 
 (defmethod compose-space ((m openlook-slider) &key width height)
   (declare (ignore width height))
-  (let ((sr (call-next-method)))
+  (let ((sr (multiple-value-bind (max-width height)
+		(map-over-menubar m nil)
+	      (make-space-requirement :width max-width :height height))))
     (multiple-value-bind (width min-width max-width
 			  height min-height max-height)
 	(space-requirement-components sr)
       (ecase (gadget-orientation m)
 	(:vertical
-	  (setq max-height +fill+))
+	 (maxf height 120)
+	 (maxf min-height 120)
+	 (maxf max-height 120)
+	 (setq max-height +fill+))
 	(:horizontal
-	  (setq max-width +fill+)))
+	 (let ((fudge (max 0 (- 100 (tk::get-values 
+				     (openlook-slider-mirror m)
+				     :width)))))      
+	   (incf width fudge)
+	   (incf min-width fudge)
+	   (setq max-width +fill+))))
       (make-space-requirement
-	:width width :min-width min-width :max-width max-width
-	:height height :min-height min-height :max-height max-height))))
+       :width width :min-width min-width :max-width max-width
+       :height height :min-height min-height :max-height max-height))))
 
 #+dunno
 (defmethod (setf gadget-show-value-p) :after (nv (sheet openlook-slider)) 
@@ -1024,7 +1133,7 @@
       (let ((font-width (font-list-max-width-and-height font)))
 	(+ left-margin right-margin (* font-width chars))))))
 
-(defmethod (setf gadget-word-wrap) :after (nv (gadget openlook-text-editor))
+(defmethod (setf gadget-word-wrap) :after (word-wrap (gadget openlook-text-editor))
   (tk::set-values (sheet-direct-mirror gadget) 
 		  :wrap-mode (if word-wrap :wrap-white-space :wrap-off)))
 
@@ -1116,14 +1225,18 @@
 	(gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
-      (when t #+bad-hack (member scroll-bars '(:both :dynamic :vertical))
-	(let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
-	  (setf (scroller-pane-vertical-scroll-bar sp) sb)
-	  (sheet-adopt-child sp sb)))
-      (when t #+bad-hack (member scroll-bars '(:both :dynamic :horizontal))
-	(let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
-	  (setf (scroller-pane-horizontal-scroll-bar sp) sb)
-	  (sheet-adopt-child sp sb)))
+      (let ((sb (make-pane 'scroll-bar 
+			   :enabled (and (member scroll-bars '(:both :dynamic :vertical))
+					 t)
+			   :orientation :vertical :id :vertical :client sp)))
+	(setf (scroller-pane-vertical-scroll-bar sp) sb)
+	(sheet-adopt-child sp sb))
+      (let ((sb (make-pane 'scroll-bar 
+			   :enabled (and (member scroll-bars '(:both :dynamic :horizontal))
+					 t)
+			   :orientation :horizontal :id :horizontal :client sp)))
+	(setf (scroller-pane-horizontal-scroll-bar sp) sb)
+	(sheet-adopt-child sp sb))
       (sheet-adopt-child sp (setf (slot-value sp 'viewport) (make-pane 'viewport :scroller-pane sp)))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
 
@@ -1150,10 +1263,6 @@
 (defmethod gadget-includes-scrollbars-p ((pane t))
   nil)
 
-#+ignore
-(defmethod initialize-instance :after ((pane openlook-scrolling-window) &key contents)
-  (sheet-adopt-child pane contents))
-
 (defmethod compose-space ((fr openlook-scrolling-window) &key width height)
   (declare (ignore width height))
   ;;--- This is not quite right because I think scrollbars are a bit
@@ -1175,8 +1284,7 @@
       ;;-- might need to do this is a grubby way.
       ;; Perhaps we just call compose-space on the child and then add in
       ;; the size of the scroll-bars.
-      (if (scroller-pane-gadget-supplies-scrolling-p fr)
-	  (multiple-value-bind
+      (multiple-value-bind
 	      (hb vb)
 	      (tk::get-values (sheet-direct-mirror fr) :h-scrollbar :v-scrollbar)
 	    (let ((ha (and hb (xt::is-managed-p hb) (tk::get-values hb :height)))
@@ -1192,45 +1300,9 @@
 	      (when ha (maxf min-width (+ spacing (* 2 ha))))
 	      (when va (incf min-width (+ spacing va)))
 	      (maxf max-width width)))
-	(let* ((vsb (scroller-pane-vertical-scroll-bar fr))
-	       (vsb-sr (and vsb (compose-space vsb)))
-	       (hsb (scroller-pane-horizontal-scroll-bar fr))
-	       (hsb-sr (and hsb (compose-space hsb))))
-	  (when vsb-sr (maxf height (+ spacing (space-requirement-height vsb-sr))))
-	  (when hsb-sr (incf height (+ spacing (space-requirement-height hsb-sr))))
-	  (when vsb-sr (maxf min-height (+ spacing (space-requirement-min-height vsb-sr))))
-	  (when hsb-sr (incf min-height (+ spacing (space-requirement-height hsb-sr))))
-	  (maxf max-height height)
-      
-	  (when hsb-sr (maxf width (+ spacing (space-requirement-width hsb-sr))))
-	  (when vsb-sr (incf width (+ spacing (space-requirement-width vsb-sr))))
-	  (when hsb-sr (maxf min-width (+ spacing (space-requirement-min-width hsb-sr))))
-	  (when vsb-sr (incf min-width (+ spacing (space-requirement-width vsb-sr))))
-	  (maxf max-width width)))
       (make-space-requirement 
 	:width width :min-width min-width :max-width max-width
 	:height height :min-height min-height :max-height max-height))))
-
-#+ignore
-(defmethod compose-space ((fr openlook-scrolling-window) &key width height)
-  (declare (ignore width height))
-  ;;--- This is not quite right because I think scrollbars are a bit
-  ;;--- bigger than this. But atleast its a start
-  (let ((fudge-factor (+ #-ignore 21
-			 #+ignore (tk::get-values (sheet-mirror fr) :spacing)))
-	(sr (compose-space (pane-contents fr))))
-    (multiple-value-bind (width min-width max-width
-			  height min-height max-height)
-	(space-requirement-components sr)
-      (incf width fudge-factor)
-      (incf height fudge-factor)
-      ;;--- Is this the correct thing to do???
-      (setf min-width fudge-factor
-	    min-height fudge-factor)
-      (make-space-requirement
-	:width width :min-width min-width :max-width max-width
-	:height height :min-height min-height :max-height max-height))))
-
 
 (ff:defun-c-callable scrolling-window-geometry-function ((content :unsigned-long)
 							 (geometries :unsigned-long))
@@ -1239,7 +1311,7 @@
     (multiple-value-bind
 	(swidth sheight) (tk::get-values (sheet-direct-mirror
 					  scrolling-window) :width :height)
-      (let* ((fudge 0)
+      (let* ((fudge 7)
 	     (vsbp 
 	      (let ((sb (scroller-pane-vertical-scroll-bar scrolling-window)))
 		(and sb (sheet-enabled-p sb))))
@@ -1253,12 +1325,12 @@
 	(setf (tk::ol-sw-geometries-force-vsb geometries) (if vsbp 1 0))
 	(when (plusp w) (setf (tk::ol-sw-geometries-bbc-width geometries) w))
 	(when (plusp h) (setf (tk::ol-sw-geometries-bbc-height geometries) h))
-	  #+ignore
 	(multiple-value-bind (extent-width extent-height)
-	    (bounding-rectangle-size (viewport-contents-extent viewport))
-	  (setf (tk::ol-sw-geometries-bbc-real-width geometries) (fix-coordinate extent-width)
-		(tk::ol-sw-geometries-bbc-real-height geometries)
-		(fix-coordinate extent-height)))))))
+	    (bounding-rectangle-size (viewport-contents-extent
+				      viewport))
+	  (fix-coordinates extent-width extent-height)
+	  (setf (tk::ol-sw-geometries-bbc-real-width geometries) extent-width
+		(tk::ol-sw-geometries-bbc-real-height geometries) extent-height))))))
 
 (defvar *scrolling-window-geometry-function-address* 
     (ff::register-function 'scrolling-window-geometry-function))
@@ -1267,11 +1339,20 @@
 						     (parent t)
 						     (sheet openlook-scrolling-window))
   (values 'xt::scrolled-window 
-	  (and (not (gadget-supplies-scrolling-p (pane-contents sheet)))
-	       `(:h-auto-scroll nil 
-				:v-auto-scroll nil
-				:compute-geometries ,*scrolling-window-geometry-function-address*
-				))))
+	  (and (not (gadget-supplies-scrolling-p (pane-contents
+						  sheet)))
+	       (append 
+		(let ((scroll-bars (silica::scroller-pane-scroll-bar-policy sheet)))
+		  `(:force-vertical-s-b 
+		    ,(and (member scroll-bars '(:both :dynamic :vertical))
+			  t)
+		    :force-horizontal-s-b
+		    ,(and (member scroll-bars '(:both :dynamic :horizontal))
+			  t)))
+		`(:h-auto-scroll nil 
+				 :v-auto-scroll nil
+				 :compute-geometries ,*scrolling-window-geometry-function-address*
+				 )))))
 
 
 
@@ -1289,12 +1370,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-list-pane))
-  (with-accessors ((items set-gadget-items)
-		   (value gadget-value)
-		   (value-key set-gadget-value-key)
-		   (test set-gadget-test)
-		   (mode list-pane-mode)
-		   (name-key set-gadget-name-key)) sheet
+  (with-accessors () sheet
     (values 'xt::ol-list nil)))
 
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-list-pane))
@@ -1340,13 +1416,34 @@
 	    (list-pane-token-list sheet) token-list
 	    (list-pane-current-tokens sheet) selected-tokens))))
 
+(defmethod (setf gadget-value) :after (new-value (gadget openlook-list-pane) &key invoke-callback)
+  (declare (ignore new-value invoke-callback))
+  (let ((widget (sheet-direct-mirror gadget))
+	(items (set-gadget-items gadget))
+	(selected-tokens nil))
+    (when widget
+      (dolist (token-and-position (list-pane-token-list gadget))
+	(destructuring-bind (token position) token-and-position
+	  (let* ((item (nth position items))
+		 (selectedp (list-pane-selected-item-p gadget item))
+		 (toolkit-item (find-list-pane-item-from-token token)))
+	    (setf (tk::ol-list-item-attr toolkit-item)
+	      (dpb (if selectedp 1 0)
+		   '#.tk::ol_b_list_attr_current
+		   (dpb position '#.tk::ol_b_list_attr_appl 0)))
+	    (touch-list-pane-item widget token)
+	    (when selectedp (push token-and-position selected-tokens))
+	    (setf (list-pane-current-tokens gadget)
+	      selected-tokens)))))))
+
 (defmethod (setf set-gadget-items) :after (items (gadget openlook-list-pane))
-  (let ((m (sheet-direct-mirror gadget)))
-    (when m
+  (declare (ignore items))
+  (let ((widget (sheet-direct-mirror gadget)))
+    (when widget
       (let ((delete-item-fn (tk::get-values widget :appl-delete-item)))
-	(dolist (token (list-pane-token-list sheet))
-	  (tk::ol_appl_delete_item delete-item-fn widget token))
-	(add-items-to-list-pane-widget gadget m)))))
+	(dolist (token (list-pane-token-list gadget))
+	  (tk::ol_appl_delete_item delete-item-fn widget (car token)))
+	(add-items-to-list-pane-widget gadget widget)))))
 
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-list-pane) 
@@ -1371,12 +1468,16 @@
 	  (:exclusive
 	   (unless (member token (list-pane-current-tokens sheet))
 	     (let* ((old-token (car (list-pane-current-tokens sheet)))
-		    (old-item (find-list-pane-item-from-token old-token)))
-	       (setf (tk::ol-list-item-attr old-item)
-		 (dpb 0 '#.tk::ol_b_list_attr_current (tk::ol-list-item-attr old-item))
-		 (tk::ol-list-item-attr item)
+		    (old-item (and old-token (find-list-pane-item-from-token old-token))))
+	       
+	       (when old-item
+		 (setf (tk::ol-list-item-attr old-item)
+		   (dpb 0 '#.tk::ol_b_list_attr_current (tk::ol-list-item-attr old-item))))
+
+	       (setf (tk::ol-list-item-attr item)
 		 (dpb 1 '#.tk::ol_b_list_attr_current (tk::ol-list-item-attr item)))
-	       (touch-list-pane-item widget old-token)
+	       
+	       (when old-token (touch-list-pane-item widget old-token))
 	       (touch-list-pane-item widget token))
 	     (setf (list-pane-current-tokens sheet) (list token)))
 	   (queue-value-changed-event
@@ -1409,10 +1510,41 @@
 (defun find-list-pane-item-from-token (token)
   (tk::ol_list_item_pointer token))
 
+(defmethod compose-space ((sheet openlook-list-pane) &key width height)
+  (declare (ignore width height))
+  ;;-- Fudge alert!
+  (with-accessors ((items set-gadget-items)
+		   (name-key set-gadget-name-key)
+		   (visible-items gadget-visible-items)) sheet
+    (let ((mirror (sheet-direct-mirror sheet)))
+      (multiple-value-bind (font)
+	  (tk::get-values (tk::get-values mirror :list-pane) :font)
+	(let* ((scroll-bar-width 31)
+	       ;; These constants were got from looking at the source
+	       (vertical-margins (ceiling (* 2 4 (/ 90 72))))
+	       (horizontal-margins (ceiling (* (+ 6 8) (/ 90 72))))
+	       (vertical-spacing (ceiling (* 6 (/ 90 72))))
+	       (fudge 5)	; This seems to be necessary to make
+				; the right number of items visible
+	       (item-max-length
+		(let ((max 0))
+		  (dolist (item items max)
+		    (maxf max (length (funcall name-key item))))))
+	       (height (+ (* (or visible-items (length items))
+			     (+ vertical-spacing (tk::font-height font)))
+			  vertical-margins
+		       fudge))
+	       (width (+ horizontal-margins
+			(* (tk::font-width font)
+			   item-max-length)
+			scroll-bar-width)))
+	  (make-space-requirement :width width :height height))))))
+
 ;;;
 
 (defclass openlook-option-pane (option-pane xt-leaf-pane)
-	  ((buttons :accessor option-menu-buttons)))
+  ((buttons :accessor option-menu-buttons)
+   (abbrev-menu-button :accessor openlook-option-pane-abbrev-menu-button)))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -1420,8 +1552,11 @@
   (values 'xt::control nil))
 
 (defmethod realize-mirror ((port openlook-port) (sheet openlook-option-pane))
-  (with-accessors ((label gadget-label)) sheet
+  (with-accessors ((label gadget-label)
+		   (items set-gadget-items)
+		   (name-key set-gadget-name-key)) sheet
     (let* ((control (call-next-method))
+	   ;;-- icon label
 	   (label (apply #'make-instance 'tk::static-text
 			 :parent control
 			 (append 
@@ -1430,13 +1565,24 @@
 			  'xt::abbrev-menu-button
 			  :parent control nil))
 	   (preview (make-instance 'tk::static-text
-				   :string "xxxxxxxxxxxxxxxxxxxxxxxx"
-				   :parent control))
-	   (menu-pane (tk::get-values widget :menu-pane)))
+				   :string (let ((big ""))
+					     (dolist (item items big)
+					       (let ((label (funcall name-key item)))
+						 (when (> (length label) (length big))
+						   (setq big label)))))
+				   :recompute-size nil
+				   :parent control)))
       (declare (ignore label))
+      (setf (openlook-option-pane-abbrev-menu-button sheet) widget)
       (tk::set-values widget :preview-widget preview)
       (create-option-menu-buttons sheet widget)
       control)))
+
+(defmethod compose-space ((sheet openlook-option-pane) &key width height)
+  (declare (ignore width height))
+  (multiple-value-bind (max-width height)
+        (map-over-menubar sheet nil)
+    (make-space-requirement :width max-width :height height)))
 
 (defun create-option-menu-buttons (sheet widget)
   (let ((menu-pane (tk::get-values widget :menu-pane))
@@ -1471,21 +1617,29 @@
 
 (defmethod (setf set-gadget-items) :after (items (gadget openlook-option-pane))
   (declare (ignore items))
+  ;;-- What to do about the preview widget
   (let ((m (sheet-direct-mirror gadget)))
     (when m
-      (tk::unmanage-children (option-menu-buttons gadget))
-      (create-option-menu-buttons gadget m))))
+      (tk::unmanage-children (mapcar #'car (option-menu-buttons gadget)))
+      (create-option-menu-buttons gadget
+				  (openlook-option-pane-abbrev-menu-button gadget)))))
 
 (defmethod (setf gadget-value) :after (nv (sheet openlook-option-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (with-accessors ((items set-gadget-items)
-		   (value-key set-gadget-value-key)
-		   (test set-gadget-test)) sheet
-    (let ((item (find nv items :test test :key value-key)))
-      (assert item)
-      (let ((button (car (find item (option-menu-buttons sheet) :key #'second))))
-	(with-no-value-changed-callbacks
-	    (tk::set-values button :default t))))))
+  (let ((widget (sheet-direct-mirror sheet)))
+    (when widget
+      (with-accessors ((items set-gadget-items)
+		       (value-key set-gadget-value-key)
+		       (test set-gadget-test)) sheet
+	(let ((item (find nv items :test test :key value-key)))
+	  (assert item)
+	  (let ((button (car (find item (option-menu-buttons sheet) :key #'second))))
+	    (with-no-value-changed-callbacks
+		(tk::set-values (tk::get-values
+				 (openlook-option-pane-abbrev-menu-button sheet)
+				 :preview-widget)
+				:string (tk::get-values button :label))
+	      (tk::set-values button :default t))))))))
 
 (defmethod set-button-accelerator-from-keystroke ((menubar openlook-menu-bar) button keystroke)
   (when keystroke 
@@ -1554,8 +1708,8 @@
 	  (car done))))))
 
 ;;--- We could export this to handle the default case.
-;;--- It definitely needs work though.
-
+;;--- It definitely needs work though. 
+ 
 (defmethod frame-manager-select-file 
     ((framem openlook-frame-manager) &rest options 
 				     &key (frame nil frame-p)
@@ -1579,4 +1733,9 @@
 		      :stream stream)
 	    (accept 'pathname :prompt "Pathname"
 		    :stream stream))))))
+
+
+
+
+
 

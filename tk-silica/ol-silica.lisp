@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.15 92/10/02 15:20:56 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.16 92/11/13 14:47:13 cer Exp $
 
 (in-package :xm-silica)
 
@@ -33,8 +33,7 @@
 (defmethod port-type ((port openlook-port))
   ':openlook)
 
-(warn "Changing the default server path to ~S"
-      (setq *default-server-path* '(:openlook)))
+(setq *default-server-path* '(:openlook))
 
 (defmethod make-cursor-widget-for-port ((port openlook-port) parent)
   (make-instance 'tk::draw-area
