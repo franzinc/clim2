@@ -11,6 +11,11 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+join from acl62 to trunk on 7/3/03
+command:
+   join.sh acl62 acl62_to_trunk_merge3 acl62_to_trunk_merge_070303 clim2
+
+*******************************************************************************
 2.3.20
 
 Wed May 28 17:17:04 PDT 2003  Duane Rettig  <duane@beta>
@@ -54,6 +59,17 @@ join from acl62 to trunk on 7/9/02
 
 *******************************************************************************
 <no version change>
+
+2003-05-29  Kevin Layer  <layer@crikey>
+
+	* Makefile.wnn: so it compiles on RH 9
+
+2003-04-30  Kevin Layer  <layer@crikey>
+
+    for bug12007:
+	* Makefile.cobjs,
+	* Makefile.linux,
+	* Makefile.wnn: add -lpthread on linux
 
 2003-01-13  Kevin Layer  <layer@crikey>
 

@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.8 2002/07/09 20:57:14 layer Exp $
+# $Id: Makefile.wnn,v 1.9 2003/07/03 21:04:26 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -79,6 +79,18 @@ ifeq ($(REDHAT),6)
 REDHATLIBS = -lcrypt
 endif
 
+ifeq ($(REDHAT),7)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),8)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),9)
+REDHATLIBS = -lcrypt
+endif
+
 ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),ppc)
 REDHATLIBS = -lcrypt
@@ -91,4 +103,4 @@ endif
 
 wnn.$(SHARED_EXT): $(WNN_OBJS)
 	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.$(SHARED_EXT) $(WNN_OBJS) \
-		$(REDHATLIBS)
+		$(REDHATLIBS) $(THREADLIB)
