@@ -11,6 +11,11 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.8
+merge from cley6 branch (tag cley6_to_acl60beta_merge3)
+next merge tag: cley6_to_acl60beta_merge4
+
+*******************************************************************************
 2.2.2.21.7
 merge from cley6 branch (tag cley6_to_acl60beta_merge2)
 next merge tag: cley6_to_acl60beta_merge3
@@ -26,9 +31,22 @@ merge from cley6 branch
 next merge tag: cley6_merge1
 
 *******************************************************************************
+2.2.2.21.5.3
+
+2000-08-17 tfb@cley.com (Tim Bradshaw)
+
+	* tk/callbacks.lisp, tk/event.lisp, tk/make-classes.lisp, 
+	  tk/ol-init.lisp, tk/xlib.lisp, tk-silica/ol-gadgets.lisp, 
+	  tk-silica/xm-gadgets.lisp, tk-silica/xm-silica.lisp,
+  	  tk-silica/xt-gadgets.lisp: Change :unsigned-long to 
+	  :unsigned-natural in defun-c-callable to make it work on 64-bit Lisp.
+	  Also change definition of scrollbar quantization to ensure it is
+  	  stil a 32-bit quantity on 64-bit Lisp.
+
+*******************************************************************************
 2.2.2.21.5.2
 
-2000-08-18 tfb@cley.com (Tim Bradshaw)
+2000-08-17 tfb@cley.com (Tim Bradshaw)
 
 	* tk-silica/xt-silica.lisp: added a roman8-encoded font-family
 	  to *xt-font-families*, which should make CLIM on HP work
@@ -41,7 +59,7 @@ next merge tag: cley6_merge1
 *******************************************************************************
 2.2.2.21.5.1
 
-2000-08-17 tfb@cley.com (Tim Bradshaw)
+2000-08-16 tfb@cley.com (Tim Bradshaw)
 
 	* tk/xm-widgets.lisp: made the change to XM-FONT-LIST-DEFAULT-TAG
 	  work: defining a constant as a native string doesn't work, so

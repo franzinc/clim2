@@ -16,16 +16,16 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: callbacks.lisp,v 1.30 1998/08/06 23:17:14 layer Exp $
+;; $Id: callbacks.lisp,v 1.30.40.1 2000/08/18 06:37:17 layer Exp $
 
 (in-package :tk)
 
 (defun has-callbacks-p (w name)
   (> (xt_has_callbacks w name) 1))
 
-(defun-c-callable callback-handler ((widget :unsigned-long)
-				    (client-data :unsigned-long)
-				    (call-data :unsigned-long))
+(defun-c-callable callback-handler ((widget :unsigned-natural)
+				    (client-data :unsigned-natural)
+				    (call-data :unsigned-natural))
   (callback-handler-1 widget client-data call-data))
 
 (defun callback-handler-1 (address client-data call-data)
@@ -64,7 +64,8 @@
 	    (widget-callback-data widget))))))
 
 
-(defun-c-callable create-popup-child-proc-function  ((widget :unsigned-long))
+(defun-c-callable create-popup-child-proc-function  
+    ((widget :unsigned-natural))
   (create-popup-child-proc-function-1 widget))
 
 (defun create-popup-child-proc-function-1 (widget)
