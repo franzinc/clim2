@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.12 92/08/18 17:25:00 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.13 92/08/19 10:24:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -10,9 +10,9 @@
 
 (defmacro define-graphics-recording (name medium-components 
 				     &key bounding-rectangle
-					  recording-hook
 					  refined-position-test
 					  highlighting-function
+					  recording-hook
 				     &environment env)
   (destructuring-bind (function-args
 		       &key positions-to-transform position-sequences-to-transform
@@ -202,7 +202,7 @@
        ,@body)))
 
 
-(define-graphics-recording draw-point (ink line-style)
+(define-graphics-recording draw-point (ink line-style clipping-region)
   :bounding-rectangle 
     (with-half-thickness (lthickness rthickness) line-style
       (values (- x lthickness)
@@ -210,7 +210,7 @@
 	      (+ x rthickness)
 	      (+ y rthickness))))
 
-(define-graphics-recording draw-points (ink line-style)
+(define-graphics-recording draw-points (ink line-style clipping-region)
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
       position-seq line-style)
@@ -245,7 +245,7 @@
 	     position-seq))))))
 
 
-(define-graphics-recording draw-line (ink line-style)
+(define-graphics-recording draw-line (ink line-style clipping-region)
   :bounding-rectangle 
     (with-half-thickness (lthickness rthickness) line-style
       (values (- (min x1 x2) lthickness)
@@ -266,7 +266,7 @@
 	 (outline-line-with-hexagon stream xoff yoff
 				    x1 y1 x2 y2 (line-style-thickness line-style))))))
 
-(define-graphics-recording draw-lines (ink line-style)
+(define-graphics-recording draw-lines (ink line-style clipping-region)
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
       position-seq line-style)
@@ -330,7 +330,7 @@
 	  (line x6 y6 x1 y1))))))
 
 
-(define-graphics-recording draw-rectangle (ink line-style)
+(define-graphics-recording draw-rectangle (ink line-style clipping-region)
   :bounding-rectangle
     (with-half-thickness (lthickness rthickness) line-style
       (values (- (min x1 x2) lthickness)
@@ -339,7 +339,7 @@
 	      (+ (max y1 y2) rthickness)))
   :recording-hook
     (unless (rectilinear-transformation-p (medium-transformation stream))
-      ;; Not so bad, since we're about to create an output record
+      ;; Not too inefficient, since we're about to create an output record anyway
       (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
 	(return-from medium-draw-rectangle*
 	  (medium-draw-polygon* stream list t filled))))
@@ -367,7 +367,7 @@
 	       (+ x2 rthickness 1) (+ y2 rthickness 1)
 	       +flipping-ink+ +highlighting-line-style+)))))))
 
-(define-graphics-recording draw-rectangles (ink line-style)
+(define-graphics-recording draw-rectangles (ink line-style clipping-region)
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
       position-seq line-style)
@@ -407,7 +407,7 @@
 
 ;;--- This needs both :REFINED-POSITION-TEST and :HIGHLIGHTING-FUNCTION
 ;;--- Note that POSITION-SEQ will be a vector in those methods
-(define-graphics-recording draw-polygon (ink line-style)
+(define-graphics-recording draw-polygon (ink line-style clipping-region)
   :bounding-rectangle
     (position-sequence-bounding-rectangle 
       position-seq line-style))
@@ -445,7 +445,7 @@
 	result)))
 
 
-(define-graphics-recording draw-ellipse (ink line-style)
+(define-graphics-recording draw-ellipse (ink line-style clipping-region)
   :bounding-rectangle
     (multiple-value-bind (left top right bottom)
 	(elliptical-arc-box
@@ -498,7 +498,7 @@
 		 +flipping-ink+ +highlighting-line-style+))))))))
 
 
-(define-graphics-recording draw-text (ink text-style)
+(define-graphics-recording draw-text (ink text-style clipping-region)
   :bounding-rectangle
     (medium-text-bounding-box medium string-or-char x y
 			      start end align-x align-y text-style

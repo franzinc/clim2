@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.38 92/08/19 10:23:59 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.39 92/09/08 10:34:45 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -68,7 +68,7 @@
 
 ;;--- These should really be somewhere else
 (defmethod frame-manager ((stream standard-encapsulating-stream))
-  (frame-manager (slot-value stream 'stream)))
+  (frame-manager (encapsulating-stream-stream stream)))
 
 (defmethod frame-manager ((stream t))
   (cond (*application-frame* (frame-manager *application-frame*))
@@ -373,62 +373,66 @@
   `(defmethod find-pane-class-constructor ((type (eql ',type)) ,@lambda-list)
      ,@body))
 
-;;--- :text-style '(:sans-serif :bold :very-large)
-;;--- :display-function 'display-title
 (define-pane-type :title (&rest options)
   (declare (non-dynamic-extent options))
-  `(make-pane 'title-pane 
-     :end-of-page-action :allow 
-     :end-of-line-action :allow 
+  `(make-clim-stream-pane
+     :type 'title-pane
      ,@options
-     :text-style '(:sans-serif :bold :very-large)
+     :display-function 'display-title
      :display-after-commands nil
+     :text-style (parse-text-style '(:sans-serif :bold :large))
+     :scroll-bars nil
      :width :compute :height :compute
-     :scroll-bars nil))
+     :end-of-page-action :allow 
+     :end-of-line-action :allow))
 
 (define-pane-type :command-menu (&rest options)
   (declare (non-dynamic-extent options))
-  `(make-pane 'command-menu-pane
-     :end-of-page-action :allow 
-     :end-of-line-action :allow 
+  `(make-clim-stream-pane
+     :type 'command-menu-pane
      ,@options
      :display-function `(display-command-menu :command-table ,(frame-command-table frame))
      :incremental-redisplay t
      :display-after-commands t
-     :default-text-style *command-table-menu-text-style*
      :text-style *command-table-menu-text-style*
+     :scroll-bars nil
      :width :compute :height :compute
-     :scroll-bars nil))
+     :end-of-page-action :allow 
+     :end-of-line-action :allow))
 
-;;--- :scroll-bars :vertical
-(define-pane-type :interactor (&rest options)
+(define-pane-type :interactor (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))
-  `(make-clim-interactor-pane ,@options))
+  `(make-clim-interactor-pane
+     ,@options
+     :scroll-bars ,scroll-bars))
 
-;;--- :scroll-bars :both
-(define-pane-type :application (&rest options)
+(define-pane-type :application (&rest options &key (scroll-bars :both))
   (declare (non-dynamic-extent options))
-  `(make-clim-application-pane ,@options))
+  `(make-clim-application-pane 
+     ,@options
+     :scroll-bars ,scroll-bars))
 
 ;;--- :display-after-commands :no-clear
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane :type 'accept-values-pane
-			  :scroll-bars ,scroll-bars
-			  :end-of-page-action :allow
-			  :end-of-line-action :allow
-			  ,@options))
+  `(make-clim-stream-pane 
+     :type 'accept-values-pane
+     ,@options
+     :scroll-bars ,scroll-bars
+     :end-of-page-action :allow
+     :end-of-line-action :allow))
 
-;;--- :default-text-style '(:sans-serif :bold :normal)
-;;--- :display-after-commands nil
 ;;--- :default-size :compute
-;;--- :scroll-bars nil
 (define-pane-type :pointer-documentation (&rest options)
   (declare (non-dynamic-extent options))
-  `(make-pane 'pointer-documentation-pane
+  `(make-clim-stream-pane
+     :type 'pointer-documentation-pane
+     ,@options
+     :display-after-commands nil
+     :text-style (parse-text-style '(:sans-serif :bold :normal))
+     :scroll-bars nil
      :end-of-page-action :allow
-     :end-of-line-action :allow
-     ,@options))
+     :end-of-line-action :allow))
 
 (define-pane-type scroll-bar (&rest options)
   (declare (non-dynamic-extent options))
@@ -567,18 +571,18 @@
 	     :geometry :left :top :right :bottom :width :height))
     (macrolet ((check-conflict (edge1 edge2 size)
 		 `(cond 
-		   ((and ,edge1 ,size)
-		    (if ,edge2
-			(error "Cannot specify ~S, ~S, and ~S together" ,edge1 ,size ,edge2)
-		      (setq ,edge2 (+ ,edge1 ,size))))
-		   ((and ,edge2 ,size)
-		    (if ,edge1
-			(error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,size ,edge1)
-		      (setq ,edge1 (+ ,edge2 ,size))))
-		   ((and ,edge2 ,edge1)
-		    (if ,size
-			(error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,edge1 ,size)
-		      (setq ,size (- ,edge2 ,edge1)))))))
+		    ((and ,edge1 ,size)
+		     (if ,edge2
+			 (error "Cannot specify ~S, ~S, and ~S together" ,edge1 ,size ,edge2)
+			 (setq ,edge2 (+ ,edge1 ,size))))
+		    ((and ,edge2 ,size)
+		     (if ,edge1
+			 (error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,size ,edge1)
+			 (setq ,edge1 (+ ,edge2 ,size))))
+		    ((and ,edge2 ,edge1)
+		     (if ,size
+			 (error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,edge1 ,size)
+			 (setq ,size (- ,edge2 ,edge1)))))))
       (check-conflict left right width)
       (check-conflict top bottom height))
     (setf (getf options :geometry)
@@ -586,19 +590,17 @@
 		  (and top `(:top ,top))
 		  (and width `(:width ,width))
 		  (and height `(:height ,height)))))
-
   (let ((geometry (getf options :geometry)))
-    (when (eq user-specified-position-p :unspecified)
-      (if (or (and (getf geometry :left)
-		   (getf geometry :top))
-	      (and left top))
-	  (setf user-specified-position-p t)))
-    (when (eq user-specified-size-p :unspecified)
-      (if (or (and (getf geometry :width)
-		   (getf geometry :height))
-	      (and width height))
-	  (setf user-specified-size-p t))))
-
+    (when (and (eq user-specified-position-p :unspecified)
+	       (or (and (getf geometry :left)
+			(getf geometry :top))
+		   (and left top)))
+      (setf user-specified-position-p t))
+    (when (and (eq user-specified-size-p :unspecified)
+	       (or (and (getf geometry :width)
+			(getf geometry :height))
+		   (and width height)))
+      (setf user-specified-size-p t)))
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name :enable :save-under
 			    :left :top :right :bottom :width :height
@@ -855,23 +857,19 @@
   (position-sheet-carefully sheet x y))
 
 
-#-Silica
-(defun display-title (frame stream)
-  (multiple-value-bind (pane desc) (get-frame-pane frame stream)
-    (when (and pane (eq pane stream))
-      (let ((title (getf (pane-descriptor-options desc) :display-string)))
-	(when (and (stringp title)
-		   (not (string-equal title (frame-pretty-name frame))))
-	  ;; On some hosts this will update the title bar 
-	  (setf (frame-pretty-name frame) title))
-	(when (and (eq stream pane) (not (dummy-pane-p pane)))
-	  (multiple-value-bind (width height)
-	      (window-inside-size stream)
-	    (draw-string* stream (or title (frame-pretty-name frame))
-			  (/ width 2) (/ height 2)
-			  :align-x :center :align-y :center))
-	  (force-output stream))
-	(values)))))
+(defun display-title (frame stream &key max-width max-height)
+  (declare (ignore max-width max-height))
+  (with-slots (display-string) stream
+    (let ((title display-string))
+      (when (and (stringp title)
+		 (not (string-equal title (frame-pretty-name frame))))
+	;; On some hosts this will update the title bar 
+	(setf (frame-pretty-name frame) title))
+      (multiple-value-bind (width height)
+	  (window-inside-size stream)
+	(draw-text* stream (or title (frame-pretty-name frame))
+		    (/ width 2) (/ height 2)
+		    :align-x :center :align-y :center)))))
 
 (defun title-capitalize (string)
   (let ((new-string (substitute #\Space #\- string)))
@@ -881,8 +879,9 @@
 
 ;;--- Handle incremental redisplay...
 (defun display-command-menu (frame stream &rest keys
-			     &key command-table &allow-other-keys)
-  (declare (dynamic-extent keys))
+			     &key command-table max-width max-height &allow-other-keys)
+  (declare (dynamic-extent keys)
+	   (ignore max-width max-height))
   (when (or (null command-table)
 	    (eq command-table t))
     (setq command-table (frame-command-table frame)))

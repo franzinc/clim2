@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-streams.lisp,v 1.3 92/02/24 13:05:38 cer Exp $
+;; $fiHeader: genera-streams.lisp,v 1.4 92/07/27 11:01:49 cer Exp $
 
 (in-package :clim-utils)
 
@@ -41,12 +41,12 @@
 (defgeneric stream-read-byte (stream))
 (defmethod stream-read-byte ((stream t))
   (or (scl:send stream :tyi nil)
-      :eof))
+      *end-of-file-marker*))
 
 (defgeneric stream-read-char (stream))
 (defmethod stream-read-char ((stream t))
   (or (scl:send stream :tyi nil)
-      :eof))
+      *end-of-file-marker*))
 
 (defgeneric stream-unread-char (stream character)
   (:selector :untyi))
@@ -56,12 +56,12 @@
 (defgeneric stream-read-char-no-hang (stream))
 (defmethod stream-read-char-no-hang ((stream t))
   (or (scl:send stream :tyi-no-hang nil)
-      :eof))
+      *end-of-file-marker*))
 
 (defgeneric stream-peek-char (stream))
 (defmethod stream-peek-char ((stream t))
   (or (scl:send stream :tyipeek nil)
-      :eof))
+      *end-of-file-marker*))
 
 (defgeneric stream-listen (stream)
   (:selector :listen))
@@ -71,7 +71,7 @@
 (defgeneric stream-read-line (stream)
   (:selector :line-in))
 (defmethod stream-read-line ((stream t))
-  (read-line stream nil :eof)) ;; Doesn't map well into :LINE-IN.
+  (read-line stream nil *end-of-file-marker*))	;doesn't map well into :LINE-IN.
 
 (defgeneric stream-clear-input (stream)
   (:selector :clear-input))

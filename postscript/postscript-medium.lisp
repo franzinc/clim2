@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.4 92/08/18 17:26:47 cer Exp Locker: cer $
+;; $fiHeader: postscript-medium.lisp,v 1.5 92/08/21 16:34:34 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -262,7 +262,7 @@
 					  :ink ink :filled filled :line-style line-style)
 	  (ps-pos-op medium "ellipse" center-x center-y
 		     x-radius y-radius
-		     ;; don't allow the common full-circle case to be
+		     ;; Don't allow the common full-circle case to be
 		     ;; screwed up by floating point error:
 		     (if (zerop start-angle)
 			 0
@@ -394,18 +394,22 @@
 ;;; provide a way for the "user" to start a new page.
 ;;; Should this have a different name?
 ;;; Should this functionality be invoked by writing the #\page character?
-;;--- Big stream/medium confusion here!
-(defmethod new-page ((stream postscript-medium))
-  (with-slots (printer-stream orientation) stream
-    (format printer-stream "new-page~%"))
-  ;; Simulate WINDOW-CLEAR
-  (when (stream-output-history stream)
-    (clear-output-record (stream-output-history stream)))
-  (setf (stream-text-output-record stream) nil)
-  (when (extended-output-stream-p stream)	;can we assume this?
-    (stream-set-cursor-position stream 0 0)
-    (setf (stream-baseline stream) 0
-	  (clim-internals::stream-current-line-height stream) 0)))
+(defmethod new-page ((stream postscript-stream))
+  (let* ((medium (sheet-medium stream))
+	 (printer-stream (slot-value medium 'printer-stream)))
+    (format printer-stream "new-page~%")
+    ;; Simulate WINDOW-CLEAR
+    (when (stream-output-history stream)
+      (clear-output-record (stream-output-history stream)))
+    (setf (stream-text-output-record stream) nil)
+    (when (extended-output-stream-p stream)	;can we assume this?
+      (stream-set-cursor-position stream 0 0)
+      (setf (stream-baseline stream) 0
+	    (clim-internals::stream-current-line-height stream) 0))))
+
+(defmethod new-page ((medium postscript-medium))
+  (let ((printer-stream (slot-value medium 'printer-stream)))
+    (format printer-stream "new-page~%")))
 
 (defmacro with-postscript-glyph-for-character (&body body)
   `(macrolet ((port-glyph-for-character (port character style &optional our-font)

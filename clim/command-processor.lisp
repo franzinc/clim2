@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.12 92/07/27 11:02:13 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.13 92/08/18 17:24:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -55,7 +55,9 @@
 		       command-name command-table 
 		       ;; Really want to use stream here but not all the protocols
 		       ;; are properly encapsulated, I guess
-		       (if (encapsulating-stream-p stream) (slot-value stream 'stream) stream)
+		       (if (encapsulating-stream-p stream) 
+			   (encapsulating-stream-stream stream)
+			   stream)
 		       command))
 	           command))))
        (t (error "You can't get here from there")))))
@@ -185,6 +187,7 @@
 
 (defun command-line-command-parser (command-table stream)
   (flet ((delimiter-parser (stream args-to-go)
+	   ;; All the checks for EOF are in support of ACCEPT-FROM-STRING...
 	   (cond ((eq args-to-go :args)
 		  ;; Reached after a command name or keyword argument name, before
 		  ;; the argument(s) that must follow
@@ -194,7 +197,8 @@
 		  ;; trailing whitespace and eat the Return
 		  (loop
 		    (let ((char (process-delimiter stream)))
-		      (when (activation-gesture-p char)
+		      (when (or (activation-gesture-p char)
+				(eq char *end-of-file-marker*))
 			(return char))
 		      (unless (whitespace-char-p char)
 			(simple-parse-error "Extraneous character seen at end of line")))))
@@ -206,7 +210,8 @@
 		  (let ((char (read-gesture :stream stream :timeout 0)))
 		    (when char
 		      (unread-gesture char :stream stream)
-		      (when (activation-gesture-p char)
+		      (when (or (activation-gesture-p char)
+				(eq char *end-of-file-marker*))
 			(throw 'stop-reading-command-arguments nil))))
 		  (prompt-for-accept stream 'keyword +textual-view+
 				     :prompt "keywords" :query-identifier '#:keywords))
@@ -217,7 +222,8 @@
 		  ;; Otherwise args-to-go is a list of the remaining argument specifiers
 		  ;; after reading the value of a positional argument
 		  (let ((char (process-delimiter stream :activation-p t)))
-		    (when (activation-gesture-p char)
+		    (when (or (activation-gesture-p char)
+			      (eq char *end-of-file-marker*))
 		      (throw 'stop-reading-command-arguments nil))
 		    char))
 		 (t
@@ -292,7 +298,9 @@
 		   (with-input-editor-typeout (stream)
 		     (accept-values-command-parser
 		       (first partial-command) command-table
-		       (if (encapsulating-stream-p stream) (slot-value stream 'stream) stream)
+		       (if (encapsulating-stream-p stream) 
+			   (encapsulating-stream-stream stream)
+			   stream)
 		       partial-command))))
 	     command))
 	  (t

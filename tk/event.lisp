@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.10 92/05/22 19:26:17 cer Exp $
+;; $fiHeader: event.lisp,v 1.11 92/08/19 10:23:32 cer Exp $
 
 (in-package :tk)
 
@@ -34,7 +34,6 @@
 (defconstant *xt-im-timer*		2)
 (defconstant *xt-im-alternate-input*	4)
 (defconstant *xt-im-all* (logior *xt-im-xevent*  *xt-im-timer*  *xt-im-alternate-input*))
-
 
 
 ;;; In wait-for-event, pending input is checked for before the process

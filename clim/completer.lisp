@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.8 92/07/08 16:29:57 cer Exp $
+;; $fiHeader: completer.lisp,v 1.9 92/07/27 11:02:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -67,7 +67,6 @@
 			(char-equal (aref string (1- sl)) char)))))
 	 (declare (dynamic-extent #'ends-in-char-p))
 	 (loop
-	   ;; Maybe these, as well as TOKEN and CH should be LET inside the loop...
 	   (setq unread nil return nil extend nil)
 	   (with-input-context (`(completer :stream ,stream
 					    :function ,function
@@ -90,7 +89,12 @@
 			 (setq completion-mode ':possibilities))
 			((member ch *completion-gestures*
 				 :test #'keyboard-event-matches-gesture-name-p)
-			 (setq completion-mode ':complete-maximal))
+			 (setq completion-mode ':complete-maximal
+			       ;; If the completion fails, unread this char
+			       ;; so that a higher level gets the chance to
+			       ;; try the completion again.  For example, when
+			       ;; several completion types are OR'ed together.
+			       unread 'unless-completed))
 			((member ch partial-completers 
 				 :test #'keyboard-event-matches-gesture-name-p)
 			 (setq completion-mode ':complete-limited
@@ -102,7 +106,7 @@
 			((activation-gesture-p ch)
 			 (setq completion-mode (if allow-any-input nil ':complete) 
 			       unread t return t))))
-		 ((eq ch ':eof)
+		 ((eq ch *end-of-file-marker*)
 		  (setq completion-mode (if allow-any-input nil ':complete) 
 			return t))
 		 (t				;mouse click?
@@ -117,7 +121,7 @@
 	   ;; terminator that also does completion.  Putting this check before the
 	   ;; completion code means that the default always wins.
 	   (when (and return (zerop (fill-pointer stuff-so-far)))
-	     (when unread
+	     (when (eq unread t)
 	       (unread-gesture ch :stream stream))
 	     (when (input-editing-stream-p stream)
 	       (rescan-if-necessary stream))
@@ -134,22 +138,22 @@
 		      (funcall function stuff-so-far completion-mode)
 		    (setq answer-object object)
 		    (cond ((= nmatches 0)
-			   ;; no valid completion, so no replace input
+			   ;; No valid completion, so no replace input
 			   (setq completion-type 'invalid)
 			   (when extend
 			     (vector-push-extend ch stuff-so-far)))
 			  ((= nmatches 1)
 			   (setq completion-type (if success 'unique 'ambiguous))
-			   ;; replace contents of stuff-so-far with completion
+			   ;; Replace contents of stuff-so-far with completion
 			   (setf (fill-pointer stuff-so-far) 0)
 			   (extend-vector stuff-so-far string)
 			   )
 			  ((> nmatches 1)
 			   (setq completion-type 'ambiguous)
-			   ;; replace contents of stuff-so-far with completion
+			   ;; Replace contents of stuff-so-far with completion
 			   (setf (fill-pointer stuff-so-far) 0)
 			   (extend-vector stuff-so-far string)
-			   ;; need-to-add-delimiter test??
+			   ;; Need-to-add-delimiter test??
 			   (when (and extend
 				      (not (ends-in-char-p string ch)))
 			     (vector-push-extend ch stuff-so-far)))))))
@@ -157,14 +161,15 @@
 	   ;; Check for errors unconditionally, remembering that we may not have
 	   ;; called the completer at all (completion-type = NIL)
 	   (ecase completion-type
-	     ((nil unique left-substring))	; no possible errors to report
+	     ((nil unique left-substring))	;no possible errors to report
 	     (invalid
 	       (unless allow-any-input
 		 (when unread
 		   (unread-gesture ch :stream stream))
-		 (simple-parse-error "Invalid completion: ~A" stuff-so-far)))
+		 (simple-parse-error "Invalid completion: ~A"
+				     (evacuate-temporary-string stuff-so-far))))
 	     (ambiguous
-	       ;; only beep on ambiguous full completions, in either ALLOW-ANY-INPUT mode
+	       ;; Only beep on ambiguous full completions, in either ALLOW-ANY-INPUT mode
 	       (when (eq completion-mode :complete)
 		 (beep stream))))
 
@@ -177,8 +182,8 @@
 	   (when return
 	     (when (or (member completion-type '(nil unique left-substring))
 		       allow-any-input)
-	       ;; leave the last delimiter for our caller
-	       (when unread
+	       ;; Leave the last delimiter for our caller
+	       (when (eq unread t)
 		 (unread-gesture ch :stream stream))
 	       ;; Must replace-input after unread-gesture so the delimiter is unread
 	       ;; into the input editor's buffer, not the underlying stream's buffer

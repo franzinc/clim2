@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.23 92/08/21 16:34:02 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.24 92/09/08 10:34:59 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -298,6 +298,8 @@
    :load-before-compile ("frames"))
   ("db-menu"
    :load-before-compile ("frames"))
+  ("db-text"
+   :load-before-compile ("frames"))
   ("noting-progress"
    :load-before-compile ("frames"))
   ("menus"
@@ -371,11 +373,11 @@
 #+Allegro
 (clim-defsys:defsystem xm-tk
     (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-      #-Genera (frob-pathname "tk")
-      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-      #-Genera (frob-pathname "tk")
-      :needed-systems (xt-tk)
-      :load-before-compile (xt-tk))
+		       #-Genera (frob-pathname "tk")
+     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+			      #-Genera (frob-pathname "tk")
+     :needed-systems (xt-tk)
+     :load-before-compile (xt-tk))
   ;; Motif specific stuff
   ("xm-defs")
   ("xm-funs")
@@ -556,14 +558,56 @@
 
 
 #||
+()
+
 ;; You get the general idea...
 (defun clone-CLIM ()
   (sct:copy-system 'clim
     :copy-sources t :copy-binaries nil
     :destination '((#p"S:>sys>clim>sys>*.*.*" #p"S:>rel-8-0>sys>clim>sys>*.*.*")
 		   (#p"S:>sys>clim>utils>*.*.*" #p"S:>rel-8-0>sys>clim>utils>*.*.*")
+		   (#p"S:>sys>clim>silica>*.*.*" #p"S:>rel-8-0>sys>clim>silica>*.*.*")
 		   (#p"S:>sys>clim>clim>*.*.*" #p"S:>rel-8-0>sys>clim>clim>*.*.*")))
+  (sct:copy-system 'genera-clim
+    :copy-sources t :copy-binaries nil
+    :destination '((#p"S:>sys>clim>genera>*.*.*" #p"S:>rel-8-0>sys>clim>genera>*.*.*")))
+  (sct:copy-system 'clx-clim
+    :copy-sources t :copy-binaries nil
+    :destination '((#p"S:>sys>clim>clx>*.*.*" #p"S:>rel-8-0>sys>clim>clx>*.*.*")))
+  (sct:copy-system 'postscript-clim
+    :copy-sources t :copy-binaries nil
+    :destination '((#p"S:>sys>clim>postscript>*.*.*" #p"S:>rel-8-0>sys>clim>postscript>*.*.*")))
   (sct:copy-system 'clim-demo
     :copy-sources t :copy-binaries nil
     :destination '((#p"S:>sys>clim>demo>*.*.*" #p"S:>rel-8-0>sys>clim>demo>*.*.*"))))
+
+||#
+
+#||
+()
+
+(defun compare-system-files (system dir1 dir2)
+  (setq dir1 (pathname-directory (cl:translate-logical-pathname (pathname dir1))))
+  (setq dir2 (pathname-directory (cl:translate-logical-pathname (pathname dir2))))
+  (let ((files (sct:get-all-system-input-files (sct:find-system-named system)
+					       :version :newest :include-components nil)))
+    (dolist (file files)
+      (let* ((file (cl:translate-logical-pathname file))
+	     (directory (nthcdr (mismatch dir1 (pathname-directory file) :from-end t)
+				(pathname-directory file)))
+	     (file1 (make-pathname :directory (append dir1 directory) 
+				   :version :newest
+				   :defaults file))
+	     (file2 (make-pathname :directory (append dir2 directory)
+				   :version :newest
+				   :defaults file)))
+	(when (y-or-n-p "Do comparison for ~A.~A ? " 
+	        (pathname-name file) (pathname-type file))
+	  (srccom:source-compare file1 file2))
+	(when (y-or-n-p "Copy ~A.~A ? " 
+	        (pathname-name file) (pathname-type file))
+	  (scl:copy-file file1 (make-pathname :version :wild :defaults file2)))))))
+
+(compare-system-files 'clim "sys:clim;rel-2;" "sys:clim;rel-2;shared;")
+
 ||#

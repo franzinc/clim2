@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.17 92/07/27 11:01:42 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.18 92/08/18 17:23:44 cer Exp $
 
 (in-package :silica)
 
@@ -61,18 +61,6 @@
 		 (append drawing-options *always-meaningful-drawing-options*)))))
 
 )	;eval-when
-
-;; One would imagine that WITH-DRAWING-OPTIONS affects this rather
-;; than the medium
-;;--- I don't think so --SWM
-(defclass sheet-with-graphics-state-mixin ()
-    ((foreground :initform +black+ :accessor sheet-foreground)
-     (background :initform +white+ :accessor sheet-background)
-     (ink :initform +white+ :accessor sheet-ink)))
-
-(defmethod (setf sheet-foreground) :after (ink (sheet sheet-with-graphics-state-mixin))
-  (when (sheet-medium sheet)
-    (setf (medium-foreground (sheet-medium sheet)) ink)))
 
 
 (eval-when (compile load eval)
@@ -462,20 +450,21 @@
 			     ((null pts) 
 			      `(let ((,tf (medium-transformation medium)))
 				 ,@(nreverse r)))
-			   (let ((b `(transform-positions ,tf
-							  ,(first pts) ,(second pts))))
+			   (let ((b `(transform-positions
+				       ,tf ,(first pts) ,(second pts))))
 			     (if (member (car pts) optional-positions-to-transform)
 				 (push `(when ,(car pts) ,b) r)
-			       (push b r)))))
+				 (push b r)))))
 		   ,@(and distances-to-transform
 			  `((transform-distances 
-			     (medium-transformation medium)
-			     ,@distances-to-transform)))
+			      (medium-transformation medium)
+			      ,@distances-to-transform)))
 		   ,@(mapcar #'(lambda (seq)
 				 `(setq ,seq (transform-position-sequence
-					      (medium-transformation medium) ,seq)))
+					       (medium-transformation medium) ,seq)))
 			     position-sequences-to-transform)
-		   (call-next-method medium ,@spread-argument-names ,@keyword-argument-names))))
+		   (call-next-method medium
+				     ,@spread-argument-names ,@keyword-argument-names))))
 	 ,@(write-graphics-function-transformer
 	     name 
 	     medium-graphics-function-name
@@ -492,10 +481,6 @@
 (defun get-drawing-function-description (name)
   (or (get name 'args)
       (error "Cannot find description for: ~S" name)))
-
-;; FUNCTION is not evaluated, but MEDIUM is...
-(defmacro make-fast-drawing-function (function medium)
-  `(medium-make-fast-drawing-function ,medium ',function))
 
 
 (define-graphics-generic draw-point ((point point x y))

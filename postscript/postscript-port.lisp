@@ -1,6 +1,6 @@
-;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.4 92/08/18 17:26:48 cer Exp Locker: cer $
+;; $fiHeader: postscript-port.lisp,v 1.5 92/08/21 16:34:35 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -268,7 +268,7 @@
 (defmethod medium-finish-output ((medium postscript-medium))
   (finish-output (slot-value medium 'printer-stream)))
 
-(defmethod mediumtream-clear-output ((medium postscript-medium))
+(defmethod medium-clear-output ((medium postscript-medium))
   (clear-output (slot-value medium 'printer-stream)))
 
 ;;; Methods that might be needed:
@@ -737,35 +737,36 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	(letf-globally (((stream-recording-p stream) nil))
 	  (if (or region (not multi-page))
 	      (replay output-record stream region)
-	    (with-bounding-rectangle* (left top right bottom) output-record
-	      (let* ((page-width
-		      (floor (* (slot-value port 'page-width)
-				(slot-value port 'device-units-per-inch))
-			     *1-pixel=points*))
-		     (page-height
-		      (floor (* (slot-value port 'page-height)
-				(slot-value port 'device-units-per-inch))
-			     *1-pixel=points*))
-		     (first-page t))
-		(setq viewport-x 0 viewport-y 0)
-		;; Draw each chunk of output on its own page
-		(unwind-protect
-		    (do ((y top (+ y page-height)))
-			((> y bottom))
-		      (do ((x left (+ x page-width)))
-			  ((> x right))
-			(if first-page
-			    (setq first-page nil)
-			  (format printer-stream "gsave new-page grestore~%"))
-			(let ((region (make-bounding-rectangle
-				       x y (+ x page-width) (+ y page-height))))
-			  (setf (sheet-device-transformation stream)
-			        (make-translation-transformation (- viewport-x) (- viewport-y)))
-			  (replay output-record stream region))
-			(incf viewport-x page-width))
-		      (setf viewport-x 0)
-		      (incf viewport-y page-height))
-		  (setq viewport-x 0 viewport-y 0))))))))))
+	      (with-bounding-rectangle* (left top right bottom) output-record
+		(let* ((page-width
+			 (floor (* (slot-value port 'page-width)
+				   (slot-value port 'device-units-per-inch))
+				*1-pixel=points*))
+		       (page-height
+			 (floor (* (slot-value port 'page-height)
+				   (slot-value port 'device-units-per-inch))
+				*1-pixel=points*))
+		       (first-page t))
+		  (setq viewport-x 0 viewport-y 0)
+		  ;; Draw each chunk of output on its own page
+		  (unwind-protect
+		      (do ((y top (+ y page-height)))
+			  ((> y bottom))
+			(do ((x left (+ x page-width)))
+			    ((> x right))
+			  (if first-page
+			      (setq first-page nil)
+			      (format printer-stream "gsave new-page grestore~%"))
+			  (let ((region (make-bounding-rectangle
+					  x y (+ x page-width) (+ y page-height))))
+			    (setf (sheet-device-transformation stream)
+				  (make-translation-transformation
+				    (- viewport-x) (- viewport-y)))
+			    (replay output-record stream region))
+			  (incf viewport-x page-width))
+			(setf viewport-x 0)
+			(incf viewport-y page-height))
+		    (setq viewport-x 0 viewport-y 0))))))))))
 		
 
 (defmacro with-output-to-postscript-stream ((stream-var file-stream &rest args) &body body)
@@ -784,7 +785,6 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 						&key (device-type 'apple-laser-writer)
 						     header-comments multi-page
 						     (orientation :portrait))
-  ;;--- How do we get the port and medium created?
   (let* ((port (make-instance device-type))
 	 (stream (make-instance 'postscript-stream
 		   :stream file-stream
@@ -798,7 +798,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
       (with-output-recording-options (stream :record t :draw nil)
 	(unwind-protect
 	    (multiple-value-prog1
-		(funcall continuation stream)
+	      (funcall continuation stream)
 	      (postscript-prologue medium)
 	      ;; Now do the output to the printer, breaking up the output into
 	      ;; multiple pages if that was requested

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.10 92/08/21 16:34:21 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.11 92/09/08 10:35:25 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -61,7 +61,12 @@
 
   ;;-- What would be good is to mark the files in the system as having
   ;;-- been loaded
+
+  (tenuring
+   (load "postscript/sysdcl")
+   (clim-defsys::load-system 'postscript-clim))
   
+
   (tenuring
    (load "climps.fasl"))
 
@@ -69,7 +74,7 @@
 
   (let ((*load-source-file-info* t)
 	(*load-xref-info* nil))
-    
+
     (tenuring
      (load "test/test-suite"))
 

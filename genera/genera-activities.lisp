@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.5 92/07/08 16:31:29 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.6 92/07/27 11:03:18 cer Exp $
 
 (in-package :genera-clim)
 
@@ -71,7 +71,7 @@
 (scl:compile-flavor-methods clim-activity)
 
 
-(defmacro define-genera-application (frame-name &rest keys
+(defmacro define-genera-application (frame-name &body keys
 				     &key pretty-name select-key
 					  ;; Default edges and size for the frame
 					  left top right bottom width height)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.27 92/08/21 16:34:29 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.28 92/09/08 10:35:27 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -304,7 +304,7 @@
 				 :managed nil
 				 :label-string (string (menu-item-display item))
 				 options) 
-			(let* ((pixmap (clim-internals::pixmap-from-menu-item
+			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item
 					printer

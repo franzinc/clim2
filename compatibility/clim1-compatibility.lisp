@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes; Patch-File: Yes -*-
 
-;;; $fiHeader$
+;; $fiHeader: clim1-compatibility.lisp,v 1.1 92/08/19 10:28:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -52,7 +52,7 @@
 (define-compatibility-function (bounding-rectangle-set-position* 
 				bounding-rectangle-set-position)
 			       (region x y)
-  (bounding-rectangle-set-position region))
+  (bounding-rectangle-set-position region x y))
 
 
 (define-compiler-macro make-3-point-transformation (&whole form)
@@ -322,8 +322,8 @@
   (output-record-children record))
 
 (define-compatibility-function (replay-1 replay-output-record)
-			       (record)
-  (replay-output-record record))
+			       (record stream &optional region (x-offset 0) (y-offset 0))
+  (replay-output-record record stream region x-offset y-offset))
 
 
 (define-compatibility-function (output-record-refined-sensitivity-test
@@ -538,8 +538,10 @@
 
 
 (define-compatibility-function (redisplay-1 redisplay-output-record)
-			       (record)
-  (redisplay-output-record record))
+			       (record stream 
+				&optional check-overlapping x y parent-x parent-y)
+  (redisplay-output-record record stream
+			   check-overlapping x y parent-x parent-y))
 
 
 (define-compatibility-function (event-window event-sheet)
@@ -726,11 +728,13 @@
 		       (&whole form
 			type
 			&rest keys
-			&key activation-characters additional-activation-characters
-			     blip-characters additional-blip-characters
+			&key (activation-characters nil activation-chars-p)
+			     additional-activation-characters
+			     (blip-characters nil blip-chars-p)
+			     additional-blip-characters
 			&allow-other-keys)
-  (cond ((or activation-characters additional-activation-characters
-	     blip-characters additional-blip-characters)
+  (cond ((or activation-chars-p additional-activation-characters
+	     blip-chars-p additional-blip-characters)
 	 (warn "Converting old style call to ~S to the new style.~%~
 	        Please update your code." 'accept)
 	 (with-keywords-removed (keys keys
@@ -740,11 +744,11 @@
 				   :delimiter-gestures :additional-delimiter-gestures))
 	   `(accept 
 	      ,type
-	      ,@(and activation-characters
+	      ,@(and activation-chars-p
 		     `(:activation-gestures ,activation-characters))
 	      ,@(and additional-activation-characters 
 		     `(:additional-activation-gestures ,additional-activation-characters))
-	      ,@(and blip-characters
+	      ,@(and blip-chars-p
 		     `(:delimiter-gestures ,blip-characters))
 	      ,@(and additional-blip-characters 
 		     `(:additional-delimiter-gestures ,additional-blip-characters))
@@ -760,22 +764,24 @@
 		      (prompt t)
 		      (present-p nil)
 		      (query-identifier nil)
-		      (activation-gestures nil)
+		      (activation-gestures nil activation-gestures-p)
 		      (additional-activation-gestures nil)
-		      (delimiter-gestures nil)
+		      (delimiter-gestures nil delimiter-gestures-p)
 		      (additional-delimiter-gestures nil)
-		      #+CLIM-1-compatibility (activation-characters nil)
+		      #+CLIM-1-compatibility (activation-characters nil activation-chars-p)
 		      #+CLIM-1-compatibility (additional-activation-characters nil)
-		      #+CLIM-1-compatibility (blip-characters nil)
+		      #+CLIM-1-compatibility (blip-characters nil blip-chars-p)
 		      #+CLIM-1-compatibility (additional-blip-characters nil)
 		 &allow-other-keys)
 
   #+CLIM-1-compatibility
-  (when (or activation-characters additional-activation-characters
-	    blip-characters additional-blip-characters)
+  (when (or activation-chars-p additional-activation-characters
+	    blip-chars-p additional-blip-characters)
     (setq activation-gestures activation-characters
+	  activation-gestures-p activation-chars-p
 	  additional-activation-gestures additional-activation-characters
 	  delimiter-gestures blip-characters
+	  delimiter-gestures-p blip-chars-p
 	  additional-delimiter-gestures additional-blip-characters))
 
   ;; Set up the input editing environment
@@ -814,10 +820,10 @@
 	      (with-activation-gestures ((or activation-gestures
 					     additional-activation-gestures
 					     *standard-activation-gestures*)
-					 :override (not (null activation-gestures)))
+					 :override activation-gestures-p)
 		(with-delimiter-gestures ((or delimiter-gestures
 					      additional-delimiter-gestures)
-					  :override (not (null delimiter-gestures)))
+					  :override delimiter-gestures-p)
 		  (handler-bind ((parse-error
 				   #'(lambda (error)
 				       (declare (ignore error))
@@ -915,6 +921,7 @@
 (defvar +iconic-view+ (make-instance 'iconic-view))
 
 
+#+++ignore	;this is needed internally by CLIM, so no can do...
 (defmacro call-presentation-generic-function (&rest name-and-args)
   (let* ((apply-p (and (eql (first name-and-args) 'apply)
 		       (pop name-and-args)))
@@ -1705,7 +1712,8 @@
   command-name)
 
 (define-compiler-macro add-command-to-command-table
-		       (command-name command-table
+		       (&whole form
+			command-name command-table
 			&rest keys &key test &allow-other-keys)
   (cond (test
 	 (warn "Converting old style call to ~S to the new style.~%~
@@ -1739,7 +1747,8 @@
 				  :keystroke keystroke :errorp nil))
 
 (define-compiler-macro add-keystroke-to-command-table
-		       (command-table keystroke type value
+		       (&whole form
+			command-table keystroke type value
 			&rest keys &key test &allow-other-keys)
   (cond (test
 	 (warn "Converting old style call to ~S to the new style.~%~
@@ -1775,7 +1784,8 @@
 		      :format-args (list keystroke command-table))))))))
 
 (define-compiler-macro remove-keystroke-from-command-table
-		       (command-table keystroke
+		       (&whole form
+			command-table keystroke
 			&rest keys &key test &allow-other-keys)
   (cond (test
 	 (warn "Converting old style call to ~S to the new style.~%~
@@ -1808,9 +1818,10 @@
 			:stream stream :prompt nil)))))
 
 (define-compiler-macro read-command
-		       (command-table
+		       (&whole form
+			command-table
 			&rest keys &key keystroke-test &allow-other-keys)
-  (cond (test
+  (cond (keystroke-test
 	 (warn "Converting old style call to ~S to the new style.~%~
 	        Please update your code." 'read-command)
 	 (with-keywords-removed (keys keys '(:keystroke-test))
@@ -1850,13 +1861,14 @@
 	  command))))
 
 (define-compiler-macro read-command-using-keystrokes
-		       (command-table keystrokes
+		       (&whole form
+			command-table keystrokes
 			&rest keys &key keystroke-test &allow-other-keys)
-  (cond (test
+  (cond (keystroke-test
 	 (warn "Converting old style call to ~S to the new style.~%~
 	        Please update your code." 'read-command-using-keystrokes)
 	 (with-keywords-removed (keys keys '(:keystroke-test))
-	   `(read-command-using-keystrokes ,command-table ,@keys)))
+	   `(read-command-using-keystrokes ,command-table ,keystrokes ,@keys)))
 	(t form)))
 
 
@@ -1877,6 +1889,7 @@
   (setf (command-enabled command-name frame) t))
 
 (define-compatibility-function (disable-command (setf command-enabled))
+			       (command-name frame)
   (setf (command-enabled command-name frame) nil))
 
 
@@ -1889,6 +1902,17 @@
     `(with-slots ,slot-names ,frame ,@body)))
 
 
+(define-compatibility-function (window-viewport-position*
+				window-viewport-position)
+			       (window)
+  (window-viewport-position window))
+
+(define-compatibility-function (window-set-viewport-position* 
+				window-set-viewport-position)
+			       (window x y)
+  (window-set-viewport-position window x y))
+
+
 (define-compatibility-function (position-window-near-carefully position-sheet-carefully)
 			       (window x y)
   (position-sheet-carefully window x y))

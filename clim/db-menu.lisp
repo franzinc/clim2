@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
+;; $fiHeader: db-menu.lisp,v 1.1 92/08/19 10:26:04 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -175,8 +175,10 @@
     (setf (pull-down-menu-entered pane) t)))
 
 (defmethod handle-event ((pane pull-down-menu) (event pointer-exit-event))
-  ;; Don't punt if we've never entered the menu
-  (when (pull-down-menu-entered pane)
+  ;; Don't punt if we've never entered the menu, or if we are entering
+  ;; one of the buttons within the menu
+  (when (and (pull-down-menu-entered pane)
+	     (not (eq (pointer-boundary-event-kind event) :inferior)))
     (throw 'exit-pull-down-menu (values))))
 
 (defmethod handle-event :after ((pane pull-down-menu) (event pointer-event))

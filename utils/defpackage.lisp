@@ -1,12 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defpackage.lisp,v 1.5 92/03/10 10:11:49 cer Exp $
+;; $fiHeader: defpackage.lisp,v 1.6 92/05/22 19:27:08 cer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 
-#+Allegro (defpackage :clim-lisp)
+#+(or Allegro Lucid) (defpackage :clim-lisp)
 
-#-Allegro
+#-(or Allegro Lucid)
 (eval-when (compile load eval)
   (unless (find-package :clim-lisp)
     (make-package "CLIM-LISP" :use '("COMMON-LISP"))))
@@ -16,10 +16,13 @@
 #+Allegro
 (import 'common-lisp::defpackage (find-package :clim-lisp))
 
+#+Lucid
+(import 'lucid-common-lisp::defpackage (find-package :clim-lisp))
+
 #+Genera
 (shadowing-import 'future-common-lisp:defpackage (find-package :clim-lisp))
 
-#-(or Allegro Genera)
+#-(or Allegro Lucid Genera)
 (progn
 
 (defmacro defpackage (name &body options)
@@ -150,5 +153,5 @@
       (error "Package ~A does not exist; cannot export symbols from it." from-package))
     (perform-package-operation #'export symbol-names true-from-package true-from-package)))
 
-)	;#-(or Allegro Genera)
+)	;#-(or Allegro Lucid Genera)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
+;; $fiHeader: sysdcl.lisp,v 1.1 92/08/19 10:29:27 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 

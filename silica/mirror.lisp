@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: mirror.lisp,v 1.23 92/07/20 15:59:25 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.24 92/08/18 17:23:51 cer Exp $
 
 (in-package :silica)
 
@@ -29,7 +29,6 @@
 (defgeneric disable-mirror (port sheet))
 
 (defmethod sheet-direct-mirror ((sheet sheet)) nil)
-
 
 
 (defclass mirrored-sheet-mixin ()

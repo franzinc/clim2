@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.19 92/08/19 18:04:58 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.20 92/09/08 10:34:52 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -97,12 +97,6 @@
   (declare (ignore style))
   (with-slots (default-text-style) stream
     (setq default-text-style (parse-text-style default-text-style))))
-
-;(defmethod (setf medium-text-style) :after (style (stream output-protocol-mixin))
-;  (declare (ignore style))
-;  (with-slots (current-text-style merged-text-style-valid) stream
-;    (setq current-text-style (parse-text-style current-text-style))
-;    (setq merged-text-style-valid nil)))
 
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (stream output-protocol-mixin))
@@ -260,15 +254,15 @@
 (defmethod (setf stream-drawing-p) (new-value (stream t))
   (when (not new-value) (error "Attempt to set DRAW-P for stream ~S" stream)))
 
-(defmethod with-output-recording-options-internal ((stream t) draw-p record-p continuation)
+(defmethod invoke-with-output-recording-options ((stream t) continuation record draw)
   ;; Enforce the assumptions
-  (unless draw-p
-    (error "Attempt to DRAW-P to NIL for stream ~S" stream))
-  (unless (null record-p)
+  (unless draw
+    (error "Attempt to disable drawing on the stream ~S" stream))
+  (when record
     ;; Unfortunately WITH-OUTPUT-AS-PRESENTATION always tries to turn on
     ;; RECORD-P, so forgive this pecadillo.
     #+++ignore
-    (error "Attempt to set RECORD-P for stream ~S" stream))
+    (error "Attempt to do output recording on the stream ~S" stream))
   (funcall continuation))
 
 
@@ -279,12 +273,12 @@
   (medium-finish-output (sheet-medium stream)))
 
 (defmethod stream-terpri ((output-stream output-protocol-mixin))
-  (stream-write-char output-stream #\newline)
+  (stream-write-char output-stream #\Newline)
   nil)
 
 (defmethod stream-fresh-line ((output-stream output-protocol-mixin))
   (unless (zerop (slot-value output-stream 'cursor-x))
-    (stream-write-char output-stream #\newline)
+    (stream-write-char output-stream #\Newline)
     t))
 
 ;;; Required methods
@@ -297,17 +291,15 @@
 
 (defmethod stream-line-column ((output-stream output-protocol-mixin))
   (multiple-value-bind (origin-x origin-y space-width)
-      (port-glyph-for-character (port output-stream) #\space
+      (port-glyph-for-character (port output-stream) #\Space
 				(medium-merged-text-style output-stream))
     (declare (ignore origin-x origin-y))
-    (multiple-value-bind (column remainder)
-	(floor (slot-value output-stream 'cursor-x) space-width)
-      (and (= remainder 0)
-	   column))))
+    ;; Better to return a rational number than NIL
+    (/ (slot-value output-stream 'cursor-x) space-width)))
 
 (defmethod stream-advance-to-column ((output-stream output-protocol-mixin) column)
   (multiple-value-bind (origin-x origin-y space-width)
-      (port-glyph-for-character (port output-stream) #\space
+      (port-glyph-for-character (port output-stream) #\Space
 				(medium-merged-text-style output-stream))
     (declare (ignore origin-x origin-y))
     (let ((new-x (floor (* column space-width))))
@@ -347,7 +339,7 @@
 	     (pane-scroller stream))
     (unless cy
       (multiple-value-setq (cx cy) (stream-cursor-position stream)))
-    (let ((viewport (pane-viewport-region stream))
+    (let ((viewport (or (pane-viewport-region stream) (sheet-region stream)))
 	  (new-x nil)
 	  (new-y nil)
 	  (old-cy cy))
@@ -385,7 +377,7 @@
 (defparameter *character-wrap-indicator-width* 3)
 
 (defmethod stream-write-char ((stream output-protocol-mixin) character)
-  (with-cursor-state (nil stream)
+  (with-cursor-state (stream nil)
     (multiple-value-bind (cursor-x cursor-y baseline height style 
 			  max-x record-p draw-p)
 	(decode-stream-for-writing stream)
@@ -545,7 +537,7 @@
       (return-from stream-write-string string))	;No deeds to do
     (let* ((medium (sheet-medium stream))
 	   (ink (medium-ink stream)))
-      (with-cursor-state (nil stream)
+      (with-cursor-state (stream nil)
 	(loop
 	  (multiple-value-bind (write-char next-char-index
 				new-cursor-x new-baseline new-height font)

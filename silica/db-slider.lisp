@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.12 92/07/27 11:01:34 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.13 92/08/18 17:23:33 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -355,7 +355,9 @@
 			:align-x ':left :align-y ':center)))))))
 
 
-(defmethod handle-event :after ((pane slider-pane) (event pointer-event))
+(defmethod handle-event :around ((pane slider-pane) (event pointer-event))
+  (when (gadget-active-p pane)
+    (call-next-method))
   (deallocate-event event))
 
 (defmethod handle-event ((pane slider-pane) (event pointer-enter-event))

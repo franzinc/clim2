@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.32 92/08/19 18:04:24 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.33 92/09/08 10:34:23 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -8,13 +8,15 @@
 (in-package :silica)
 
 
-;;; Does this make sense
-;;; We want to be able to specify visual attributes of gadgets
-
+;;--- Some method for ENGRAFT-MEDIUM needs to set these into the medium,
+;;--- especially for temporary-medium sheets.
 (defclass foreground-background-and-text-style-mixin ()
-    ((foreground :initform nil :initarg :foreground)
-     (background :initform nil :initarg :background)
-     (text-style :initform *default-text-style* :initarg :text-style)))
+    ((foreground :initform nil :initarg :foreground
+		 :accessor pane-foreground)
+     (background :initform nil :initarg :background
+		 :accessor pane-background)
+     (text-style :initform *default-text-style* :initarg :text-style
+		 :accessor pane-text-style)))
 
 (defmethod initialize-instance :after ((pane foreground-background-and-text-style-mixin)
 				       &key &allow-other-keys)
@@ -322,9 +324,13 @@
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :reader gadget-indicator-type)))
 
+
+
+;;; Menu bar
 (defclass menu-bar ()
     ((command-table :initarg :command-table :initform nil
 		    :accessor menu-bar-command-table)))
+
 
 ;;; Cascade button
 ;;; Caption
@@ -440,15 +446,14 @@
     ((viewport-region :accessor viewport-viewport-region)
      (scroller-pane :initarg :scroller-pane :reader viewport-scroller-pane)))
 
-
-(defmethod viewportp ((x t)) nil)
-(defmethod viewportp ((x viewport)) t)
-
 (defmethod initialize-instance :after ((viewport viewport) &key)
   (multiple-value-bind (width height)
       (bounding-rectangle-size viewport)
     (setf (viewport-viewport-region viewport)
 	  (make-bounding-rectangle 0 0 width height))))
+
+(defmethod viewportp ((x t)) nil)
+(defmethod viewportp ((x viewport)) t)
 
 (defmethod allocate-space ((viewport viewport) width height)
   ;; Make sure the child is at least as big as the viewport
@@ -640,23 +645,13 @@
 (defclass gadget-event (event) 
     ((gadget :initarg :gadget :reader event-sheet)))
 
+
 (defclass value-changed-gadget-event (gadget-event) 
     ((value :initarg :value :reader event-value)))
 
 (defmethod handle-event ((gadget value-gadget) (event value-changed-gadget-event))
   (value-changed-callback
-   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event
-								'value)))
-
-
-
-(defclass drag-gadget-event (gadget-event) 
-    ((value :initarg :value :reader event-value)))
-
-(defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
-  (drag-callback
-   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event
-								'value)))
+    gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
 
 
 (defclass activate-gadget-event (gadget-event) ())
@@ -665,4 +660,10 @@
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
 
+(defclass drag-gadget-event (gadget-event) 
+    ((value :initarg :value :reader event-value)))
+
+(defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
+  (drag-callback
+   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
 

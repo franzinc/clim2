@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.23 92/07/24 10:53:58 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.24 92/08/18 17:23:55 cer Exp $
 
 (in-package :silica)
 
@@ -125,6 +125,37 @@
     (setf (port child) nil))
   (setf (sheet-parent child) nil
 	(sheet-children parent) nil))
+
+
+;;; Raising and lowering
+
+(defmethod raise-sheet ((sheet sheet))
+  (let ((parent (sheet-parent sheet)))
+    (when parent
+      (setf (sheet-children parent)
+	    (cons sheet (delete sheet (sheet-children parent))))))
+  (when (sheet-direct-mirror sheet)
+    (raise-mirror (port sheet) sheet)))
+
+(defmethod bury-sheet ((sheet sheet))
+  (let ((parent (sheet-parent sheet)))
+    (when parent
+      (setf (sheet-children parent)
+	    (nconc (delete sheet (sheet-children parent)) (list sheet)))))
+  (when (sheet-direct-mirror sheet)
+    (bury-mirror (port sheet) sheet)))
+
+(defmethod reorder-sheets ((parent sheet) new-ordering)
+  ;; Error check new ordering
+  (assert (null (set-exclusive-or new-ordering (sheet-children parent)))
+  	  (new-ordering)
+	  "Specified ordering ~S does not contain children of sheet ~S"
+	  new-ordering parent)
+  (setf (sheet-children parent) new-ordering)
+  (let ((port (port parent)))
+    (dolist (child (reverse new-ordering))
+      (when (sheet-direct-mirror child)
+	(raise-mirror port child)))))
 
 
 ;;; Geometry
@@ -398,8 +429,20 @@
 
 (defclass temporary-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
-;; This is badly named since it merely specifies the default
+;; One medium is shared among several closely related sheets (such as
+;; the CLIM scroll bars).  The foreground/background/text-style must
+;; be the same for all the sheets.  Ditto the transformation.  The sheets
+;; must even share the same drawable.
+(defclass shared-medium-sheet-output-mixin (sheet-with-medium-mixin)
+    ((shared-medium-sheet :initform nil :initarg :shared-medium-sheet)))
 
+(defmethod note-sheet-grafted :around ((sheet shared-medium-sheet-output-mixin))
+  (call-next-method)
+  (with-slots (shared-medium-sheet) sheet
+    (when shared-medium-sheet
+      (setf (sheet-medium sheet) (sheet-medium shared-medium-sheet)))))
+
+;; This is badly named since it merely specifies the default
 (defclass sheet-permanently-enabled-mixin () ()
   (:default-initargs :enabled t))
 

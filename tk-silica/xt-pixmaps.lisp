@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.8 92/07/20 16:02:00 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.9 92/07/27 11:03:48 cer Exp $
 
 
 (in-package :xm-silica)
@@ -51,7 +51,8 @@
 (defclass xt-pixmap-medium (xt-medium basic-pixmap-medium) ())
 
 (defmethod make-pixmap-medium ((port xt-port) sheet &key width height)
-  (let* ((pixmap (port-allocate-pixmap port sheet width height))
+  (let* ((pixmap (with-sheet-medium (medium sheet)
+		   (port-allocate-pixmap port medium width height)))
 	 (medium (make-instance 'xt-pixmap-medium
 		   :port port
 		   :sheet sheet

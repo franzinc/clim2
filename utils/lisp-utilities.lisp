@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.14 92/07/27 11:01:50 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.15 92/08/18 17:24:06 cer Exp $
 
 (in-package :clim-utils)
 
@@ -1189,7 +1189,7 @@
 #-(or Genera ANSI-90 Lucid)
 (defvar *print-readably* nil)
 
-#-(or Genera ANSI-90)
+#-(or Genera Lucid ANSI-90)
 (deftype real (&optional (min '*) (max '*))
   (labels ((convert (limit floatp)
 	     (typecase limit
@@ -1198,6 +1198,9 @@
 	       (otherwise limit))))
     `(or (float ,(convert min t) ,(convert max t))
 	 (rational ,(convert min nil) ,(convert max nil)))))
+
+(defconstant *end-of-file-marker* :eof)
+(deftype end-of-file-marker () '(eql :eof))
 
 
 ;;; Use a lambda-list to extract arguments from a list and bind variables.

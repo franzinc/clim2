@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.22 92/07/27 11:03:44 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.23 92/08/18 17:26:32 cer Exp $
 
 
 (in-package :xm-silica)
@@ -669,7 +669,6 @@
 		    :drag-callback
 		    'queue-drag-event
 		    sheet))
-
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)

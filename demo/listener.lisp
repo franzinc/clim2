@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.17 92/08/18 17:26:22 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.18 92/08/19 10:24:15 cer Exp $
 
 (in-package :clim-demo)
 
@@ -13,7 +13,8 @@
   (:menu-bar nil)
   (:top-level (lisp-listener-top-level))
   (:panes
-    (interactor :interactor))
+    (interactor :interactor 
+		:scroll-bars :both))
   (:layouts (default interactor)))
 
 (defmethod frame-maintain-presentation-histories ((frame lisp-listener)) t)
@@ -433,7 +434,7 @@
 	    (case ch
 	      (eof
 		(return-from show-file))
-	      ((#\Return #\Newline)
+	      ((#\Newline #-Genera #\Return)
 	       (write-string line-buffer stream)
 	       (write-char #\Newline stream)
 	       (setf (fill-pointer line-buffer) 0))

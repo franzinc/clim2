@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-functions.lisp,v 1.3 92/02/24 13:05:14 cer Exp $
+;; $fiHeader: cl-stream-functions.lisp,v 1.4 92/03/04 16:20:00 cer Exp $
 
 (in-package :clim-utils)
 
@@ -103,7 +103,7 @@
 	      `(defun ,name (,@lambda-list ,@args)
 		 ,cleanup
 		 (let ((result ,call-method))
-		   (cond ((not (eq result :eof))
+		   (cond ((not (eq result *end-of-file-marker*))
 			  result)
 			 (eof-error-p
 			  (signal-stream-eof stream ,@(and (not (eq eof :no-recursive))
@@ -118,7 +118,7 @@
        ;; system stream implementation.  Call back via a message if there is one,
        ;; otherwise via the Common Lisp function.
        (defmethod ,method-name ((stream t) ,@method-lambda-list)
-	 (,cl-name ,@additional-arguments ,@args ,@(and eof `(nil :eof)))))))
+	 (,cl-name ,@additional-arguments ,@args ,@(and eof `(nil *end-of-file-marker*)))))))
 
 (write-forwarding-cl-input-stream-function read-byte (&optional stream) :eof :no-recursive)
 
@@ -144,7 +144,7 @@
     "Illegal peek type ~S" peek-type)
   (loop
     (let ((ch (stream-peek-char input-stream)))
-      (cond ((eq ch :eof)
+      (cond ((eq ch *end-of-file-marker*)
 	     (if eof-error-p
 		 (signal-stream-eof input-stream recursive-p)
 		 (return-from peek-char eof-value)))

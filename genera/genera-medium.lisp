@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.9 92/07/27 11:03:20 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.10 92/08/18 17:26:00 cer Exp $
 
 (in-package :genera-clim)
 
@@ -207,14 +207,14 @@
 	(color-p (slot-value (port medium) 'color-p)))
     (let ((luminosity (gray-color-luminosity ink))
 	  (invert-p (not (scl:send (tv:sheet-screen window) :bow-mode))))
-      (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
-	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
-	    ((not color-p)
-	     (genera-decode-luminosity
-	       (if invert-p (- 1.0 luminosity) luminosity) stipple-p))
-	    (t
+      (cond (color-p
 	     (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
-		       luminosity luminosity luminosity (not invert-p)))))))
+		       luminosity luminosity luminosity (not invert-p)))
+	    ((= luminosity 0.0) (if invert-p boole-clr boole-set))
+	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
+	    (t
+	     (genera-decode-luminosity
+	       (if invert-p (- 1.0 luminosity) luminosity) stipple-p))))))
 
 (defmethod genera-decode-color ((ink color) medium &optional (stipple-p t))
   (let ((window (medium-drawable medium))
@@ -226,8 +226,8 @@
 	    (let ((luminosity (color-luminosity r g b)))
 	      (genera-decode-luminosity
 		(if invert-p (- 1.0 luminosity) luminosity) stipple-p))
-	  (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
-		    r g b (not invert-p)))))))
+	    (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
+		      r g b (not invert-p)))))))
 
 (defmethod genera-decode-color ((ink flipping-ink) medium &optional (stipple-p t))
   (declare (ignore stipple-p))
@@ -401,9 +401,9 @@
 	    (and (<= height 8)
 		 (or (= width 32) (<= width 8))))
 	  (setq graphics::stipple pattern)
-	(setf graphics::scan-conversion-flags
-	      (dpb 0 graphics::%%scan-conversion-host-allowed
-		   (dpb 1 graphics::%%scan-conversion-round-coordinates 0))))))
+	  (setf graphics::scan-conversion-flags
+		(dpb 0 graphics::%%scan-conversion-host-allowed
+		     (dpb 1 graphics::%%scan-conversion-round-coordinates 0))))))
   (setf (ldb graphics::%%drawing-state-new-parameters graphics::flags) 0)
   (unless (tv:sheet-output-held-p window)
     (apply continuation window arguments)))
@@ -458,9 +458,9 @@
     (multiple-value-bind (thickness dashes)
 	(if (null line-style)
 	    (values 0 nil)
-	  (values (or (line-style-thickness line-style) 0)
-		  (let ((dashes (line-style-dashes line-style)))
-		    (if (eq dashes t) #(10 10) dashes))))
+	    (values (or (line-style-thickness line-style) 0)
+		    (let ((dashes (line-style-dashes line-style)))
+		      (if (eq dashes t) #(10 10) dashes))))
       ;; There's no way to get the ALU canonicalization done in a whopper or wrapper
       ;; without incurring extraordinary performance penalties, so...
       (macrolet ((with-drawing-state-kludge (drawing-state ones-alu zeros-alu
@@ -469,14 +469,14 @@
 		   `(multiple-value-bind (ones-alu zeros-alu)
 			(if (not (and (integerp ,ones-alu) (integerp ,zeros-alu)))
 			    (values ,ones-alu ,zeros-alu)
-			  ;; This is boolean magic to construct a new alu code which
-			  ;; combines the effects of doing a DRAW-xx with ONES-ALU
-			  ;; everywhere there is a 1 in the source and that of doing a
-			  ;; DRAW-xx with ZEROS-ALU everywhere there is a 0 in the
-			  ;; source.
-			  (values (logior (logand ,ones-alu #b0101)
-					  (scl:rot (logand ,zeros-alu #b0101) 1))
-				  ,zeros-alu))
+			    ;; This is boolean magic to construct a new alu code which
+			    ;; combines the effects of doing a DRAW-xx with ONES-ALU
+			    ;; everywhere there is a 1 in the source and that of doing a
+			    ;; DRAW-xx with ZEROS-ALU everywhere there is a 0 in the
+			    ;; source.
+			    (values (logior (logand ,ones-alu #b0101)
+					    (scl:rot (logand ,zeros-alu #b0101) 1))
+				    ,zeros-alu))
 		      (invoke-with-clim-drawing-state 
 			,drawing-state ones-alu zeros-alu
 			,thickness ,dashes ,line-style ,raster
@@ -1014,165 +1014,6 @@
 	      (funcall (flavor:generic graphics:draw-rectangle) 
 		       window left top right bottom
 		       :filled t)))))))
-
-
-;;; Fast drawing function constructors
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-point*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext )
-	 (thickness (round (line-style-thickness line-style))))
-    #'(lambda (x y)
-	(convert-to-device-coordinates (sheet-device-transformation sheet) x1 y1 x2 y2)
-	)))
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-line*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext ))
-    #'(lambda (x1 y1 x2 y2)
-	(convert-to-device-coordinates (sheet-device-transformation sheet) x1 y1 x2 y2)
-	)))
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-rectangle*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext ))
-    #'(lambda (left top right bottom filled)
-	(convert-to-device-coordinates (sheet-device-transformation sheet)
-	  left top right bottom)
-	(when (< right left) (rotatef right left))
-	(when (< bottom top) (rotatef bottom top))
-	)))
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-polygon*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext ))
-    #'(lambda (position-seq closed filled)
-	(let ((transform (sheet-device-transformation sheet)))
-	  (with-stack-array (points (if (and closed line-style) (+ length 2) length))
-	    (declare (type simple-vector points))
-	    (replace points position-seq)
-	    (do ((i 0 (+ i 2)))
-		((>= i length))
-	      (let ((x (svref points i))
-		    (y (svref points (1+ i))))
-		(convert-to-device-coordinates transform x y)
-		(setf (svref points i) x)
-		(setf (svref points (1+ i)) y)))
-	    (when (and closed line-style)
-	      (setf (svref points length) (svref points 0))
-	      (setf (svref points (+ length 1)) (svref points 1)))
-	    )))))
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-ellipse*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext ))
-    #'(lambda (center-x center-y
-	       radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle filled)
-	(let ((transform (sheet-device-transformation sheet)))
-	  (convert-to-device-coordinates transform center-x center-y)
-	  (convert-to-device-distances transform 
-	    radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-	  (when (null start-angle)
-	    (setq start-angle 0.0
-		  end-angle 2pi))
-	  (setq start-angle (- 2pi start-angle)
-		end-angle (- 2pi end-angle))
-	  (rotatef start-angle end-angle)
-	  (when (< end-angle start-angle)
-	    (setq end-angle (+ end-angle 2pi)))
-	  (multiple-value-bind (x-radius y-radius)
-	      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-		     (values (abs radius-2-dx) (abs radius-1-dy)))
-		    ((and (= radius-2-dx 0) (= radius-1-dy 0))
-		     (values (abs radius-1-dx) (abs radius-2-dy)))
-		    (t
-		     (let ((s-1 (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy)))
-			   (s-2 (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy))))
-		       (if (= s-1 s-2)
-			   (let ((r (truncate (sqrt s-1))))
-			     (values r r))
-			 (values (truncate (sqrt s-1)) 
-				 (truncate (sqrt s-2)))))))
-	    )))))
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-string*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (text-style (medium-merged-text-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext )
-	 (font (text-style-mapping (port medium) text-style))
-	 (ascent )
-	 (descent )
-	 (height ))
-    #'(lambda (string x y start end align-x align-y
-	       towards-x towards-y transform-glyphs)
-	(let ((transform (sheet-device-transformation sheet)))
-	  (convert-to-device-coordinates transform x y)
-	  (when towards-x
-	    (convert-to-device-coordinates transform towards-x towards-y))
-	  (unless end
-	    (setq end (length string)))
-	  (let ((x-adjust 
-		 (compute-text-x-adjustment align-x medium string text-style start end))
-		(y-adjust
-		 (compute-text-y-adjustment align-y descent ascent height)))
-	    (incf x x-adjust)
-	    (incf y y-adjust)
-	    (when towards-x
-	      (incf towards-x x-adjust)
-	      (incf towards-y y-adjust)))
-	  ))))
-
-(defmethod medium-make-fast-drawing-function 
-	   ((medium genera-medium) (eql function 'medium-draw-character*))
-  (let* ((sheet (medium-sheet medium))
-	 (ink (medium-ink medium))
-	 (text-style (medium-merged-text-style medium))
-	 (drawable (medium-drawable medium))
-	 (gcontext )
-	 (font (text-style-mapping (port medium) text-style))
-	 (ascent )
-	 (descent )
-	 (height ))
-    #'(lambda (character x y align-x align-y
-	       towards-x towards-y transform-glyphs)
-	(let ((transform (sheet-device-transformation sheet)))
-	  (convert-to-device-coordinates transform x y)
-	  (when towards-x
-	    (convert-to-device-coordinates transform towards-x towards-y))
-	  (let ((x-adjust
-		 (compute-text-x-adjustment align-x medium character text-style))
-		(y-adjust 
-		 (compute-text-y-adjustment align-y descent ascent height)))
-	    (incf x x-adjust)
-	    (incf y y-adjust)
-	    (when towards-x
-	      (incf towards-x x-adjust)
-	      (incf towards-y y-adjust)))
-	  ))))
 
 
 (defmethod text-style-width ((text-style standard-text-style) (medium genera-medium))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-pixmaps.lisp,v 1.4 92/07/27 11:02:01 cer Exp $
+;; $fiHeader: clx-pixmaps.lisp,v 1.5 92/08/18 17:24:26 cer Exp $
 
 (in-package :clx-clim)
 
@@ -36,7 +36,8 @@
 (defclass clx-pixmap-medium (clx-medium basic-pixmap-medium) ())
 
 (defmethod make-pixmap-medium ((port clx-port) sheet &key width height)
-  (let* ((pixmap (port-allocate-pixmap port sheet width height))
+  (let* ((pixmap (with-sheet-medium (medium sheet)
+		   (port-allocate-pixmap port medium width height)))
 	 (medium (make-instance 'clx-pixmap-medium
 		   :port port
 		   :sheet sheet

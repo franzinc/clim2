@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-funs.lisp,v 1.5 92/06/29 14:04:21 cer Exp $
+;; $fiHeader: ol-funs.lisp,v 1.6 92/08/18 17:53:41 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -48,7 +48,7 @@
     :arguments '(integer)
     :arg-checking nil
     :return-type :unsigned-integer)
-    
+
 (defforeign 'ol_set_va_display_error_msg_handler
     :entry-point "_OlSetVaDisplayErrorMsgHandler"
     :call-direct t

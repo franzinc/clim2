@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: tk -*-
+;; -*- mode: common-lisp; package: user -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,9 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xt.lisp,v 1.3 92/07/27 19:28:59 cer Exp $
+;; $fiHeader: load-xt.lisp,v 1.5 92/08/19 10:23:36 cer Exp $
 
-(in-package :tk)
+(in-package :user)
 
 
 

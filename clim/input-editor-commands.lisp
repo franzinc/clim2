@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.15 92/08/18 17:25:07 cer Exp Locker: cer $
+;; $fiHeader: input-editor-commands.lisp,v 1.16 92/08/21 16:33:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -220,7 +220,7 @@
       (decode-stream-for-writing istream)
     ;; Cache some slot variables since we will not be writing them.
     (let* ((input-buffer (slot-value istream 'input-buffer))
-	   (stream (slot-value istream 'stream))
+	   (stream (encapsulating-stream-stream istream))
 	   (medium (sheet-medium stream))
 	   (noisy-style (merge-text-styles *noise-string-style* style))
 	   (start 0)
@@ -359,7 +359,7 @@
 		       (* distance (stream-line-height window)))
 		   y-direction))
 	(with-bounding-rectangle* (hleft htop hright hbottom) history
-	  (setq x (min (max hleft x) hright))
+ 	  (setq x (min (max hleft x) hright))
 	  (setq y (min (max htop y) hbottom)))
 	(window-set-viewport-position window x y)))))
 
@@ -665,21 +665,9 @@
 (defun function-arglist (function)
   (declare (values arglist found-p))
   #+Genera (values (sys:arglist function) T)
-  #+Cloe-Runtime (values (sys::arglist function) t)
+  #+Cloe-Runtime (sys::arglist function)
   #+Allegro (values (excl::arglist function) t)
   #+Lucid (values (lucid-common-lisp:arglist function) t))
-
-#+Cloe-Runtime
-(defun sys::arglist (symbol)
-  (let ((fsanda (si::sys%get symbol 'arglist))
-	(argl nil)
-	(fun nil))
-    (unless fsanda (setq fsanda (get symbol 'arglist)))
-    (if fsanda
-	(progn
-	  (setq fun (car fsanda) argl (cadr fsanda))
-	  (return-from sys::arglist (values argl fun)))
-	(return-from  sys::arglist (values nil nil)))))
 
 (defun word-start-and-end (string start-chars &optional (start 0))
   (declare (values word-start word-end colon))
@@ -728,8 +716,9 @@
 	    (incf colon))
 	  (with-temporary-substring
 	      (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
-	    (let* ((symbol (find-symbol (string-upcase symbol-name)
-					(if colon (find-package package-name) *package*)))
+	    (let* ((package (if colon (find-package package-name) *package*))
+		   (symbol (and package
+				(find-symbol (string-upcase symbol-name) package)))
 		   (function (and symbol (fboundp symbol) (symbol-function symbol))))
 	      (when function
 		(multiple-value-bind (arglist found-p)
@@ -760,8 +749,9 @@
 	    (incf colon))
 	  (with-temporary-substring
 	      (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
-	    (let* ((symbol (find-symbol (string-upcase symbol-name)
-					(if colon (find-package package-name) *package*)))
+	    (let* ((package (if colon (find-package package-name) *package*))
+		   (symbol (and package
+				(find-symbol (string-upcase symbol-name) package)))
 		   (value (and symbol (boundp symbol) (symbol-value symbol))))
 	      (when value
 		(return-from doit
@@ -862,10 +852,10 @@
   (:ie-refresh		    :refresh)
   (:ie-scroll-forward	    :v   :control)
   (:ie-scroll-backward	    :v   :meta)
-  (:ie-scroll-forward	    :scroll)
-  (:ie-scroll-backward	    :scroll :meta)
   (:ie-scroll-left	    :v   :super)
   (:ie-scroll-right	    :v   :super :meta)
+  (:ie-scroll-forward	    :scroll)
+  (:ie-scroll-backward	    :scroll :meta)
   (:ie-scroll-left	    :scroll :super)
   (:ie-scroll-right	    :scroll :super :meta))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.20 92/08/18 17:23:49 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.21 92/08/19 10:23:41 cer Exp $
 
 (in-package :silica)
 
@@ -13,10 +13,8 @@
   (declare (ignore port sheet))
   nil)
 
-;;;--- Doing it this way means that when any :before methods run the
-;;;--- medium and the sheet are correctly associated
-
-
+;; Doing this in an :AROUND method ensures that when any :BEFORE methods 
+;; run, the medium and the sheet are correctly associated
 (defmethod engraft-medium :around ((medium basic-medium) port sheet)
   (declare (ignore port))
   (setf (medium-sheet medium) sheet)
@@ -46,10 +44,22 @@
 	;; Go get one now so that foreground/background can be decoded, etc.
 	(call-next-method))))
 
-;;--- Use DEFOPERATION
-(defmethod invoke-with-sheet-medium ((x standard-encapsulating-stream) continuation)
+(defmethod invoke-with-sheet-medium ((sheet shared-medium-sheet-output-mixin) continuation)
   (declare (dynamic-extent continuation))
-  (invoke-with-sheet-medium (slot-value x 'stream) continuation))
+  (let ((medium (sheet-medium sheet)))
+    (if medium
+	;; Note that we do not go through ENGRAFT-MEDIUM or anything
+	;; like that, since the sheets are assumed to be closely enough
+	;; related that ENGRAFT-MEDIUM shouldn't do anything useful.
+	(letf-globally (((sheet-medium sheet) medium)
+			((medium-sheet medium) sheet))
+	  (funcall continuation medium))
+	(call-next-method))))
+
+;;--- Use DEFOPERATION
+(defmethod invoke-with-sheet-medium ((stream standard-encapsulating-stream) continuation)
+  (declare (dynamic-extent continuation))
+  (invoke-with-sheet-medium (encapsulating-stream-stream stream) continuation))
 
 (defun invoke-with-sheet-medium-bound (sheet medium continuation)
   (declare (dynamic-extent continuation))
@@ -257,7 +267,6 @@
   (setf (medium-sheet medium) nil)
   (push medium (port-medium-cache port)))
 
-
 
 ;; Make sheets do the medium protocol
 
@@ -326,7 +335,7 @@
 
 (defmethod invoke-with-text-style ((stream standard-encapsulating-stream)
 				   continuation style original-stream)
-  (invoke-with-text-style (slot-value stream 'stream)
+  (invoke-with-text-style (encapsulating-stream-stream stream)
 			  continuation style original-stream))
 
 ;; Default method for string streams
@@ -337,10 +346,6 @@
 
 (defmethod graft ((medium basic-medium))
   (graft (medium-sheet medium)))
-
-;(defmethod port ((medium basic-medium))
-;  (port (medium-sheet medium)))
-
 
 (defoperation text-style-height medium-protocol
   (text-style (medium medium))

@@ -5,7 +5,7 @@
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; $fiHeader: lucid-stream-functions.lisp,v 1.6 92/07/01 15:45:37 cer Exp $
+;;; $fiHeader: lucid-stream-functions.lisp,v 1.7 92/08/18 17:24:09 cer Exp $
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it
@@ -126,7 +126,7 @@
 		     (if (and (system:standard-object-p stream)
 			      (typep stream 'fundamental-stream))
 			 (let ((result ,call-method))
-			   (cond ((not (eq result :eof))
+			   (cond ((not (eq result *end-of-file-marker*))
 				  result)
 				 (eof-error-p
 				  (signal-stream-eof stream ,@(and (not (eq eof :no-recursive))
@@ -145,7 +145,7 @@
 	   ;; otherwise via the Common Lisp function.
 	   (defmethod ,method-name ((stream t) ,@method-lambda-list)
 	     (,cl-name ,@additional-arguments ,@(remove 'peek-type args)
-		       ,@(when eof `(nil :eof))))
+		       ,@(when eof `(nil *end-of-file-marker*))))
 	   ;;(import ',name :clim-lisp)
 	   ;;(export ',name :clim-lisp)
 	   )))

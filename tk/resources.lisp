@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.29 92/08/18 17:53:44 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.30 92/09/08 10:34:05 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -585,7 +585,6 @@
 				(value (eql 0)))
   (declare (ignore parent))
   nil)
-
 
 
 (defmethod convert-resource-out ((parent t) (type (eql 'proc)) value)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.15 92/08/18 17:53:58 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.16 92/08/19 18:04:12 cer Exp $
 
 (in-package :silica)
 
@@ -21,7 +21,7 @@
      (lock :initform (make-lock "a port lock") :reader port-lock)
      (grafts :initform nil :accessor port-grafts)
      (process :initform nil :accessor port-process)
-     (framem :initform nil :accessor port-frame-manager)
+     (frame-managers :initform nil :accessor port-frame-managers)
      (modifier-state :initform (make-modifier-state)
 		     :accessor port-modifier-state)
      (mirror->sheet-table :initform (make-hash-table) 
@@ -34,7 +34,7 @@
      (pointer :initform nil)
      (cursor :initform nil :accessor port-cursor)
      (mapping-table :initform (make-hash-table :test #'equal))
-     (mapping-cache :initform (cons nil nil))
+     (mapping-cache :initform (cons nil nil))	;one entry cache
      (undefined-text-style :initform *undefined-text-style*
 			   :accessor port-undefined-text-style)
      ;; When this is true, the text style to device font mapping is done
@@ -142,11 +142,6 @@
    (pointer :reader pointer-event-pointer 
 	    :initarg :pointer :initform nil)))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (pointer-event-shift-mask event-modifier-state)
-			       (pointer-event)
-  (event-modifier-state pointer-event))
-
 (define-event-class pointer-button-event (pointer-event)
   ((button :reader pointer-event-button
 	   :initarg :button :initform nil)))
@@ -162,8 +157,7 @@
 
 (define-event-class pointer-boundary-event (pointer-event)
   ((kind :reader pointer-boundary-event-kind :initarg :kind
-	 :type (member :ancestor :virtual :inferior :nonlinear :nonlinear-virtual
-		       nil))))
+	 :type (member :ancestor :virtual :inferior :nonlinear :nonlinear-virtual nil))))
 (define-event-class pointer-exit-event (pointer-boundary-event) ())
 (define-event-class pointer-enter-event (pointer-boundary-event) ())
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.7 92/08/21 16:33:34 cer Exp Locker: cer $
+;; $fiHeader: pixmaps.lisp,v 1.8 92/09/08 10:34:25 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -105,24 +105,25 @@
   (invoke-with-output-to-pixmap (medium-sheet medium) continuation
 				:width width :height height))
 
-(defmethod invoke-with-output-to-pixmap ((stream standard-encapsulating-stream) continuation 
-					 &key width height)
-  (invoke-with-output-to-pixmap (encapsulating-stream-stream stream) continuation
-				:width width :height height))
-
 (defmethod invoke-with-output-to-pixmap ((sheet sheet) continuation 
-						       &key width height)
+					 &key width height)
   (let* ((pixmap-medium (make-pixmap-medium (port sheet) sheet
 					    :width width :height height))
 	 (pixmap-sheet (make-instance 'pixmap-sheet 
 			 :port (port sheet)
 			 :medium pixmap-medium
 			 :width width :height height)))
+    ;;-- Is this a waste of time if this does not have a medium?
     (with-sheet-medium (medium sheet)
       (setf (medium-foreground pixmap-medium) (medium-foreground medium)
 	    (medium-background pixmap-medium) (medium-background medium)))
     (funcall continuation pixmap-sheet)
     (slot-value pixmap-medium 'pixmap)))
+
+(defmethod invoke-with-output-to-pixmap ((stream standard-encapsulating-stream) continuation 
+					 &key width height)
+  (invoke-with-output-to-pixmap (encapsulating-stream-stream stream) continuation
+				:width width :height height))
 
 (defun allocate-pixmap (medium width height)
   (port-allocate-pixmap (port medium) medium width height))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-prefill.lisp,v 1.3 92/07/20 15:59:54 cer Exp $
+;; $fiHeader: clx-prefill.lisp,v 1.4 92/08/18 17:24:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -226,6 +226,8 @@
 	     (clx-clim::clx-port t))
   ((setf port)
     (clx-clim::clx-port t))
+  (port-draw-cursor
+    (clx-clim::clx-port standard-text-cursor t t t t))
   (port-event-loop
     (clx-clim::clx-port))
   (port-glyph-for-character

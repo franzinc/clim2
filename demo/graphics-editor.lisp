@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.5 92/08/21 16:34:09 cer Exp Locker: cer $
+;; $fiHeader: graphics-editor.lisp,v 1.6 92/09/08 10:35:15 cer Exp Locker: cer $
 
 (in-package :clim-graphics-editor)
 
@@ -131,10 +131,9 @@
     ((label :initarg :label :reader box-label)
      (arrow-in :initform nil :accessor box-arrow-in)
      (arrow-out :initform nil :accessor box-arrow-out)
-     (shape :initarg :shape :accessor box-shape)
-     ))
+     (shape :initarg :shape :accessor box-shape)))
 
-(defun make-box (left top right bottom label style shape)
+(defun make-box (left top right bottom label style &optional (shape :rectangle))
   (make-instance 'box :left left :top top :right right :bottom bottom
 		      :label label :style style :shape shape))
 
@@ -150,16 +149,16 @@
     ;; Present the object as a BOX so that commands in the application
     ;; can be written using that presentation type.
     (with-output-as-presentation (stream object 'box :single-box t) 
-      (if (eq (box-shape object) :oval)
+      (ecase (box-shape object)
+	(:oval
 	  (draw-oval* stream 
-		      (/ (+ left right) 2)
-		      (/ (+ top bottom) 2)
-		      (/ (abs (- right left)) 2)
-		      (/ (abs (- bottom top)) 2)
-		      :filled nil :line-style (object-style object))
-	(draw-rectangle* stream left top right bottom
-			 :filled nil :line-style (object-style object)))
-      (draw-text* stream 
+		      (/ (+ left right) 2) (/ (+ top bottom) 2)
+		      (/ (abs (- right left)) 2) (/ (abs (- bottom top)) 2)
+		      :filled nil :line-style (object-style object)))
+	(:rectangle
+	  (draw-rectangle* stream left top right bottom
+			   :filled nil :line-style (object-style object))))
+      (draw-text* stream
 		  (box-label object) (+ left (floor (- right left) 2))
 		  (+ top 2) :align-x :center :align-y :top))))
 
@@ -272,6 +271,7 @@
 	(1/5 vertical-options)
       (:fill display)))))
 
+
 (defmethod read-frame-command ((frame graphics-editor) 
 			       &key (stream *query-io*)		;frame-query-io?
 			       ;; should the rest of the *command-parser*
@@ -349,20 +349,18 @@
 ;;; 
 (defmethod accept-graphics-editor-options ((frame graphics-editor) stream &key (direction :horizontal))
   (with-slots (style shape) frame
-    (flet ((accept (type default prompt query-id 
-		    &optional (view (stream-default-view stream)))
-	     (let (object ignore changed)
+    (flet ((accept (type default prompt query-id)
+	     (let (object ptype changed)
 	       (formatting-cell (stream :align-x (ecase direction
 						   (:horizontal :center)
 						   (:vertical :left)))
-		   (multiple-value-setq (object ignore changed)
-		     (accept type
-			     :stream stream :default default
-			     :query-identifier query-id :prompt prompt
-			     :view view)))
+		 (multiple-value-setq (object ptype changed)
+		   (accept type
+			   :stream stream :default default
+			   :query-identifier query-id :prompt prompt)))
+	       ptype
 	       (values object changed))))
       (declare (dynamic-extent #'accept))
-      (terpri stream)
       (terpri stream)
       (formatting-table (stream :x-spacing '(3 :character))
 	  (flet ((do-body (stream)
@@ -392,6 +390,7 @@
 	      (:horizontal (formatting-row (stream) (do-body stream)))
 	      (:vertical (formatting-column (stream) (do-body stream)))))))))
 
+
 (defmethod display-objects ((frame graphics-editor) stream)
   (dolist (object (slot-value frame 'objects))
     (draw-object object stream)))
@@ -420,22 +419,19 @@
 	  (:pointer-motion (window x y)
 	   (when rectangle-drawn
 	     (draw-rectangle* stream left top right bottom
-			      :filled nil 
-			      :ink flipping-ink)
+			      :filled nil :ink flipping-ink)
 	     (setq rectangle-drawn nil))
 	   (when (eql window stream)
 	     (setq right x 
 		   bottom y)
 	     (draw-rectangle* stream left top right bottom
-			      :filled nil 
-			      :ink flipping-ink)
+			      :filled nil :ink flipping-ink)
 	     (setq rectangle-drawn t)))
 	  (:pointer-button-release (event)
 	   (when (eql (event-sheet event) stream)
 	     (when rectangle-drawn
 	       (draw-rectangle* stream left top right bottom
-				:filled nil 
-				:ink flipping-ink)
+				:filled nil :ink flipping-ink)
 	       (setq rectangle-drawn nil))
 	     ;; If the mouse didn't move very far, don't bother
 	     ;; creating a box.  Just deselect the current object.
@@ -465,7 +461,7 @@
 (define-presentation-to-command-translator create-box
     (blank-area com-create-box graphics-editor
      :gesture :select :menu nil)
-  (x y)
+    (x y)
   (list x y))
 
 ;; Select an object by clicking "select" (Mouse-Left) on it.
@@ -581,7 +577,7 @@
 	     (when (or force (null frame))
 	       (setq frame (make-application-frame 'graphics-editor
 						   :frame-manager framem
-						   :left 100 :top 100 
+						   :left 100 :top 100
 						   :width 700 :height 500)))
 	     (if entry 
 		 (setf (cdr entry) frame)
@@ -590,4 +586,3 @@
     (run-frame-top-level frame)))
 
 (define-demo "Graphics Editor" do-graphics-editor)
-

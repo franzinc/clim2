@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.9 92/04/15 11:46:29 cer Exp Locker: cer $
+;; $fiHeader: excl-presentations.lisp,v 1.10 92/08/21 16:33:46 cer Exp $
 
 
 (in-package :clim-internals)
@@ -33,14 +33,13 @@
   nil)
 
 (defclass standard-excl-presentation (standard-presentation) 
-	  ()
+    ()
   (:default-initargs :single-box nil
-    :type 'expression))
+		     :type 'expression))
 
 (defmethod initialize-instance :after ((rec standard-excl-presentation)
 				       &rest args
-				       &key (type nil type-p)
-				       object)
+				       &key (type nil type-p) object)
   (setf (slot-value rec 'type) 'expression)
   #+ignore
   (when (and 
@@ -50,8 +49,8 @@
 	 ;;--- should be a problem
 	 t)
     (setf (getf args :type) 
-      #-ignore 'expression
-      #+ignore (presentation-type-of object)))
+	  #-ignore 'expression
+	  #+ignore (presentation-type-of object)))
   #+ignore
   (apply #'call-next-method rec args))
 

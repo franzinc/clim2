@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
+;; $fiHeader: packages.lisp,v 1.1 92/08/19 10:28:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,7 +29,7 @@
 	  call-presentation-generic-function
 	  command-enabled-p
 	  compose-rotation-transformation
-	  compose-scaling-tansformation
+	  compose-scaling-transformation
 	  compose-translation-transformation
 	  cursor-position*
 	  cursor-set-position*
@@ -99,7 +99,7 @@
 
 #+Genera
 (defmacro with-package-unlocked ((package) &body body)
-  `(si:with-package-lock package nil
+  `(si:with-package-lock ,package nil
      ,@body))
 
 #-Genera 

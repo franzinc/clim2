@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-pixmaps.lisp,v 1.4 92/07/27 11:03:24 cer Exp $
+;; $fiHeader: genera-pixmaps.lisp,v 1.5 92/08/18 17:26:03 cer Exp $
 
 (in-package :genera-clim)
 
@@ -38,7 +38,8 @@
 (defmethod medium-drawing-possible ((medium genera-pixmap-medium)) t)
 
 (defmethod make-pixmap-medium ((port genera-port) sheet &key width height)
-  (let* ((pixmap (port-allocate-pixmap port sheet width height))
+  (let* ((pixmap (with-sheet-medium (medium sheet)
+		   (port-allocate-pixmap port medium width height)))
 	 (medium (make-instance 'genera-pixmap-medium
 		   :port port
 		   :sheet sheet

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.14 92/08/19 10:23:54 cer Exp Locker: cer $
+;; $fiHeader: command.lisp,v 1.15 92/09/08 10:34:39 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -127,7 +127,7 @@
 
 (defun process-command-table-menu (command-table menu inherit-menu)
   (check-type menu list)
-  (check-type inherit-menu boolean)
+  (check-type inherit-menu (member nil t :menu :keystrokes))
   (when inherit-menu
     (dolist (comtab (command-table-inherit-from command-table))
       (let* ((comtab (find-command-table comtab :errorp nil))
@@ -135,6 +135,9 @@
 	(when menu
 	  (dovector (element menu)
 	    (destructuring-bind (string keystroke (type value &rest options)) element
+	      (case inherit-menu
+		(:menu (set keystroke nil))
+		(:keystrokes (setq string nil)))
 	      (apply #'add-menu-item-to-command-table 
 		     command-table string type value
 		     :keystroke keystroke :errorp nil

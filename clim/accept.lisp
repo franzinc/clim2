@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.10 92/07/27 11:02:10 cer Exp $
+;; $fiHeader: accept.lisp,v 1.11 92/08/18 17:24:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -131,9 +131,9 @@
 		      (prompt t)
 		      (present-p nil)
 		      (query-identifier nil)
-		      (activation-gestures nil)
+		      (activation-gestures nil activation-gestures-p)
 		      (additional-activation-gestures nil)
-		      (delimiter-gestures nil)
+		      (delimiter-gestures nil delimiter-gestures-p)
 		      (additional-delimiter-gestures nil)
 		 &allow-other-keys)
 
@@ -173,22 +173,23 @@
 	      (with-activation-gestures ((or activation-gestures
 					     additional-activation-gestures
 					     *standard-activation-gestures*)
-					 :override (not (null activation-gestures)))
+					 :override activation-gestures-p)
 		(with-delimiter-gestures ((or delimiter-gestures
 					      additional-delimiter-gestures)
-					  :override (not (null delimiter-gestures)))
-		  (handler-bind ((parse-error
-				   #'(lambda (error)
-				       (declare (ignore error))
-				       (when (and default-supplied-p
-						  (check-for-default stream start-position
-								     default default-type
-								     view))
-					 (setq the-object default
-					       the-type default-type)
-					 (return-from input-editing))
-				       ;; Decline to handle the parse error
-				       nil)))
+					  :override delimiter-gestures-p)
+		  (handler-bind
+		      ((parse-error
+			 #'(lambda (error)
+			     (declare (ignore error))
+			     (when (and default-supplied-p
+					(check-for-default stream start-position
+							   default default-type
+							   view))
+			       (setq the-object default
+				     the-type default-type)
+			       (return-from input-editing))
+			     ;; Decline to handle the parse error
+			     nil)))
 		    (flet ((accept-help (stream action string-so-far)
 			     (declare (ignore action string-so-far))
 			     (write-string "You are being asked to enter " stream)
@@ -315,29 +316,31 @@
   (let ((index start))
     (multiple-value-bind (the-object the-type)
 	(with-input-from-string (stream string :start start :end end :index index)
-	  (handler-bind ((parse-error
-			   #'(lambda (error)
-			       ;; This private version of CHECK-FOR-DEFAULT is
-			       ;; enough for string and string streams to do a
-			       ;; reasonable job, but it's not perfect.  Some
-			       ;; hairy presentation types may still not work.
-			       (flet ((check-for-default (stream)
-				        (loop
-					  (let ((char (read-char stream nil :eof)))
-					    (when (or (not (characterp char))
-						      (delimiter-gesture-p char)
-						      (not (whitespace-char-p char)))
-					      (unless (eql char :eof)
-						(unread-char char stream))
-					      (when (or (eq char :eof)
-							(activation-gesture-p char)
-							(delimiter-gesture-p char))
-						(return-from check-for-default t))
-					      (return-from check-for-default nil))))))
-				 (declare (dynamic-extent #'check-for-default))
-				 (when (check-for-default stream)
-				   (return-from accept-from-string
-				     (values default default-type index)))))))
+	  (handler-bind 
+	      ((parse-error
+		 #'(lambda (error)
+		     ;; This private version of CHECK-FOR-DEFAULT is
+		     ;; enough for string and string streams to do a
+		     ;; reasonable job, but it's not perfect.  Some
+		     ;; hairy presentation types may still not work.
+		     (flet ((check-for-default (stream)
+			      (loop
+				(let ((char (read-char stream nil *end-of-file-marker*)))
+				  (when (or (not (characterp char))
+					    (delimiter-gesture-p char)
+					    (not (whitespace-char-p char)))
+				    (unless (eq char *end-of-file-marker*)
+				      (unread-char char stream))
+				    (when (and default-supplied-p
+					       (or (eq char *end-of-file-marker*)
+						   (activation-gesture-p char)
+						   (delimiter-gesture-p char)))
+				      (return-from check-for-default t))
+				    (return-from check-for-default nil))))))
+		       (declare (dynamic-extent #'check-for-default))
+		       (when (check-for-default stream)
+			 (return-from accept-from-string
+			   (values default default-type index)))))))
 	    (if default-supplied-p
 		(funcall-presentation-generic-function accept
 		  type stream view
@@ -362,7 +365,7 @@
     char))
 
 (defmethod stream-unread-gesture ((stream t) gesture)
-  (unless (eq gesture ':eof)
+  (unless (eq gesture *end-of-file-marker*)
     (check-type gesture character)
     (stream-unread-char stream gesture)))
 

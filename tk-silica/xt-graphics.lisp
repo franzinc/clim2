@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.35 92/08/19 10:24:25 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.36 92/09/08 10:35:35 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -56,8 +56,8 @@
    (drawable :initform nil)
    (color-p)
    (ink-table :initform (make-hash-table :test #'equal))
-   (indirect-inks :initform nil)
    (clip-mask :initform nil)		; A cache.
+   (indirect-inks :initform nil)
    (tile-gcontext :initform nil)	; The following don't belong here.
    (white-pixel :initform 0)
    (black-pixel :initform 1)))
@@ -200,7 +200,6 @@
 
 
 
-      
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
@@ -323,7 +322,6 @@
 (defmethod decode-ink ((ink (eql +flipping-ink+)) stream)
   (slot-value stream 'flipping-gcontext))
 
-
 (defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
   (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
 			 color-p indirect-inks)
@@ -348,6 +346,7 @@
 	      (push ink indirect-inks))
 	    (setf (gethash ink ink-table) new-gc))))))
 		 
+
 (defmethod decode-ink ((ink color) (medium xt-medium))
   (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
 			 color-p)
@@ -1300,4 +1299,3 @@ and on color servers, unless using white or black")
 (defmethod medium-finish-output ((medium xt-medium))
   (x11:xsync (port-display (port medium)) 0))
 
-   

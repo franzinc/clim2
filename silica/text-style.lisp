@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.10 92/08/18 17:23:58 cer Exp Locker: cer $
+;; $fiHeader: text-style.lisp,v 1.11 92/08/19 18:04:26 cer Exp $
 
 (in-package :silica)
 
@@ -330,7 +330,6 @@
 	(if mapping-pair
 	    (setf (cdr mapping-pair) underlying)
 	    (push (cons logical underlying) (cdr pair)))))))
-
 
 (defconstant %%face-code-no-merge (byte 1 28))
 (defconstant %%face-code-class (byte 4 24))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.29 92/08/19 18:04:15 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.30 92/09/08 10:34:20 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -28,19 +28,22 @@
 (defclass generic-scroller-pane (scroller-pane 
 				 client-space-requirement-mixin
 				 wrapping-space-mixin
+				 permanent-medium-sheet-output-mixin
 				 layout-pane)
     ())
 
 (defmethod handle-event :after ((pane generic-scroller-pane) (event pointer-motion-event))
   (deallocate-event event))
 
+;; Returns the viewport of the pane, if there is one
 (defmethod pane-viewport ((sheet sheet))
   (let ((parent (sheet-parent sheet)))
     (and (viewportp parent) parent)))
 
 (defmethod pane-viewport-region ((sheet sheet))
-  (let ((vp (pane-viewport sheet)))
-    (and vp (viewport-viewport-region vp))))
+  (let ((viewport (pane-viewport sheet)))
+    (and viewport
+	 (viewport-viewport-region viewport))))
 
 (defmethod pane-scroller ((sheet sheet))
   (let ((viewport (pane-viewport sheet)))
@@ -106,13 +109,15 @@
 			   (make-pane 'scroll-bar 
 			     :orientation :vertical
 			     :id :vertical
-			     :client pane))
+			     :client pane
+			     :shared-medium-sheet pane))
 		      horizontal-scroll-bar 	    
 		      (and horizontalp
 			   (make-pane 'scroll-bar 
 			     :orientation :horizontal
 			     :id :horizontal
-			     :client pane))
+			     :client pane
+			     :shared-medium-sheet pane))
 		      c contents
 		      viewport (make-pane 'viewport :scroller-pane pane))
 		(sheet-adopt-child
@@ -339,6 +344,7 @@
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
+	   shared-medium-sheet-output-mixin
 	   pane)
     ((shaft-thickness :initarg :shaft-thickness)
      (min-target-pane :initform nil)
@@ -350,7 +356,7 @@
 (defmethod initialize-instance :after ((pane scroll-bar-pane)
 				       &key orientation shaft-thickness
 					    frame-manager frame)
-  (with-slots (min-target-pane max-target-pane shaft-pane) pane
+  (with-slots (min-target-pane max-target-pane shaft-pane shared-medium-sheet) pane
     (with-look-and-feel-realization (frame-manager frame)
       (let ((inferiors
 	      (ecase orientation
@@ -362,19 +368,22 @@
 			      :scroll-bar pane
 			      :end :less-than
 			      :width shaft-thickness
-			      :height shaft-thickness))
+			      :height shaft-thickness
+			      :shared-medium-sheet shared-medium-sheet))
 		      (setq shaft-pane 
 			    (make-pane 'scroll-bar-shaft-pane 
 			      :scroll-bar pane
 			      :width shaft-thickness
 			      :height 0
-			      :max-height +fill+))
+			      :max-height +fill+
+			      :shared-medium-sheet shared-medium-sheet))
 		      (setq max-target-pane
 			    (make-pane 'scroll-bar-target-pane
 			      :scroll-bar pane
 			      :end :greater-than
 			      :width shaft-thickness
-			      :height shaft-thickness)))))
+			      :height shaft-thickness
+			      :shared-medium-sheet shared-medium-sheet)))))
 		(:horizontal
 		  (spacing (:thickness 1)
 		    (horizontally ()
@@ -383,19 +392,22 @@
 			      :scroll-bar pane
 			      :end :less-than
 			      :width shaft-thickness
-			      :height shaft-thickness))
+			      :height shaft-thickness
+			      :shared-medium-sheet shared-medium-sheet))
 		      (setq shaft-pane 
 			    (make-pane 'scroll-bar-shaft-pane
 			      :scroll-bar pane
 			      :width 0
 			      :max-width +fill+
-			      :height shaft-thickness))
+			      :height shaft-thickness
+			      :shared-medium-sheet shared-medium-sheet))
 		      (setq max-target-pane
 			    (make-pane 'scroll-bar-target-pane
 			      :scroll-bar pane
 			      :end :greater-than
 			      :width shaft-thickness
-			      :height shaft-thickness))))))))
+			      :height shaft-thickness
+			      :shared-medium-sheet shared-medium-sheet))))))))
 	(sheet-adopt-child pane inferiors)))))
 
 (defmethod handle-event :after ((pane scroll-bar-pane) (event pointer-event))
@@ -590,6 +602,7 @@
 (defclass scroll-bar-target-pane 
 	  (space-requirement-mixin
 	   sheet-single-child-mixin
+	   shared-medium-sheet-output-mixin
 	   leaf-pane)
     ((end :initarg :end)
      (scroll-bar :initarg :scroll-bar)
@@ -675,6 +688,7 @@
 (defclass scroll-bar-shaft-pane
 	  (space-requirement-mixin
 	   sheet-single-child-mixin
+	   shared-medium-sheet-output-mixin
 	   leaf-pane)
     ((scroll-bar :initarg :scroll-bar)
      (needs-erase :initform nil)))

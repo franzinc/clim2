@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.13 92/08/18 17:25:11 cer Exp Locker: cer $
+;; $fiHeader: interactive-defs.lisp,v 1.14 92/09/08 10:34:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -19,7 +19,6 @@
 
 
 ;; Noise strings and ACCEPT results
-
 (eval-when (compile load eval)
 (defstruct noise-string
   display-string
@@ -28,7 +27,7 @@
 (defstruct (accept-result (:include noise-string))
   presentation-type
   presentation-object)
-) ; eval-when
+)	;eval-when
 
 (defvar *noise-string-style* (make-text-style nil nil nil))
 
@@ -53,11 +52,8 @@
 			       `(unless ,override *activation-gestures*))))
      ,@body))
 
-
 (defun activation-gesture-p (gesture)
-  ;;--- Checking for :EOF is a bit of a kludge, since it depends on knowing
-  ;;--- that that's what CLIM uses internally for end-of-file
-  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))
+  (and (not (typep gesture '(or pointer-event noise-string end-of-file-marker)))
        (dolist (set *activation-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 
@@ -82,9 +78,7 @@
      ,@body))
 
 (defun delimiter-gesture-p (gesture)
-  ;;--- Checking for :EOF is a bit of a kludge, since it depends on knowing
-  ;;--- that that's what CLIM uses internally for end-of-file
-  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))
+  (and (not (typep gesture '(or pointer-event noise-string end-of-file-marker)))
        (dolist (set *delimiter-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.11 92/08/18 17:25:34 cer Exp Locker: cer $
+;; $fiHeader: standard-types.lisp,v 1.12 92/08/21 16:33:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -530,8 +530,8 @@
 (define-presentation-method present (object (type completion) stream (view textual-view)
 				     &key acceptably)
   (funcall printer
-	   (funcall name-key (find object sequence :key value-key :test test))
-	   stream :acceptably acceptably))
+ 	   (funcall name-key (find object sequence :key value-key :test test))
+ 	   stream :acceptably acceptably))
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (values

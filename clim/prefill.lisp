@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.7 92/07/27 11:02:46 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.8 92/08/18 17:25:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1248,8 +1248,6 @@
   (delete-output-record)
   (describe-object)
   (displayed-output-record-p)
-  (draw-cursor
-    (standard-text-cursor t t t t))
   (find-cached-output-record)
   (find-child-output-record)
   (generate-graph-nodes)
@@ -1314,6 +1312,7 @@
   ((setf point-x))
   (point-y)
   ((setf point-y))
+  (port-draw-cursor)
   (prepare-text-record-for-appending)
   (presentation-object)
   ((setf presentation-object))
@@ -3772,8 +3771,8 @@
   (cursor-visibility)
   ((setf cursor-visibility))
   (cursor-width-and-height-pending-protocol)
-  (draw-cursor)
-  (note-cursor-change))
+  (note-cursor-change)
+  (port-draw-cursor))
 
 
 ;;; (generate-prefill-dispatch-caches 'event)

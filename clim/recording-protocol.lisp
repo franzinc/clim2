@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.19 92/08/18 17:25:32 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.20 92/09/08 10:34:55 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -421,7 +421,10 @@
 ;; relative to OUTPUT-RECORD.
 (defun convert-from-absolute-to-relative-coordinates (stream output-record)
   (declare (values x-offset y-offset))
-  (cond ((eq output-record (stream-current-output-record stream))
+  (cond ((null output-record)
+	 ;;--- Why on earth do we need this now?
+	 (values (coordinate 0) (coordinate 0)))
+	((eq output-record (stream-current-output-record stream))
 	 (let ((position (stream-output-history-position stream)))
 	   (values (- (point-x position)) (- (point-y position)))))
 	((null (output-record-parent output-record))
@@ -1168,10 +1171,10 @@
   ;;--- Who should establish the clipping region?
   ;;--- Is it here or in the handle-repaint method
   ;; Who should clear the region?
-  (let ((clear (region-intersection
-		 region 
+  (let ((clear (region-intersection 
+		 region
 		 (or (pane-viewport-region stream)
-		     (bounding-rectangle stream)))))
+		     (sheet-region stream)))))
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
 	(with-bounding-rectangle* (left top right bottom) clear

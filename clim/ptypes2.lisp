@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.9 92/07/27 11:02:52 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.10 92/08/18 17:25:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -401,8 +401,8 @@
 
 
 (define-default-presentation-method decode-indirect-view
-				    (presentation-type view (framem standard-frame-manager))
-  (declare (ignore presentation-type))
+				    (presentation-type view framem)
+  (declare (ignore presentation-type framem))
   view)
 
 (defun decode-indirect-view (type view frame-manager)

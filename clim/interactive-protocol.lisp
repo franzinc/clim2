@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.15 92/08/21 16:33:56 cer Exp Locker: cer $
+;; $fiHeader: interactive-protocol.lisp,v 1.16 92/09/08 10:34:50 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -20,12 +20,28 @@
 
 ;;; Fake methods to keep things like COMPLETE-INPUT from blowing up on
 ;;; non-input-editing streams like string streams.
+(defmethod input-position ((stream t))
+  (file-position stream))
+
+(defmethod (setf input-position) (position (stream t))
+  (file-position stream position))
+
 (defmethod stream-scan-pointer ((stream t)) 0)
+
+(defmethod (setf stream-scan-pointer) (position (stream t))
+  (file-position stream position))
 
 (defmethod stream-rescanning-p ((object t)) nil)
 
-(defmethod replace-input ((stream t) new-input &key (start 0) end rescan buffer-start)
+(defmethod replace-input
+	   ((stream t) new-input &key (start 0) end rescan buffer-start)
   (declare (ignore new-input start end buffer-start rescan))
+  nil)
+
+(defmethod presentation-replace-input 
+	   ((stream t) object type view 
+	    &key rescan buffer-start query-identifier for-context-type)
+  (declare (ignore object type view rescan buffer-start query-identifier for-context-type))
   nil)
 
 ;;; Specific implementation of input editing protocol mixin
@@ -134,7 +150,7 @@
 	  (start-y cursor-y)
 	  (input-buffer (slot-value istream 'input-buffer))
 	  (insertion-pointer (slot-value istream 'insertion-pointer))
-	  (stream (slot-value istream 'stream))
+	  (stream (encapsulating-stream-stream istream))
 	  (noisy-style (merge-text-styles *noise-string-style* style)))
       (unless start-position (setf start-position insertion-pointer))
       (unless end-position (setf end-position (fill-pointer input-buffer)))
@@ -763,30 +779,40 @@
 (defmethod erase-input-buffer ((istream standard-input-editing-stream)
 			       &optional (start-position 0))
 
-  (with-slots (stream) istream
-    (let (oleft otop oright obottom)
-      ;; Assumptions: 1. Erasure happens left-to-right, top-to-bottom (just
-      ;; like text output).  2. Nothing interesting appears on the screen below
-      ;; and to the right of text from the input editor.  We merge erasures so
-      ;; as to erase as few rectangles as possible.
-      (labels ((erase-merged-stuff ()
-		 (draw-rectangle-internal stream (coordinate 0) (coordinate 0)
-					  oleft otop oright obottom
-					  +background-ink+ nil))
-	       (erase-screen-piece (left top right bottom extra)
-		 (declare (ignore extra))
-		 (cond ((null oleft)		;First rectangle
-			(setf oleft left otop top oright right obottom bottom))
-		       ((= otop top)		;Same line
-			(maxf oright right) (maxf obottom bottom) (minf oleft left))
-		       ((<= oleft left)		;Further down, same or larger indent
-			(maxf oright right) (maxf obottom bottom))
-		       (t			;next line is further left than previous
-			(erase-merged-stuff)
-			(setf oleft left otop top oright right obottom bottom)))))
-	(declare (dynamic-extent #'erase-merged-stuff #'erase-screen-piece))
-	(do-input-buffer-screen-real-estate istream #'erase-screen-piece start-position)
-	(when oleft (erase-merged-stuff))))))
+  (let ((stream (encapsulating-stream-stream istream))
+	(oleft nil)
+	otop oright obottom)
+    ;; Assumptions: 1. Erasure happens left-to-right, top-to-bottom (just
+    ;; like text output).  2. Nothing interesting appears on the screen below
+    ;; and to the right of text from the input editor.  We merge erasures so
+    ;; as to erase as few rectangles as possible.
+    (labels ((erase-merged-stuff ()
+	       (draw-rectangle-internal stream (coordinate 0) (coordinate 0)
+					oleft otop oright obottom
+					+background-ink+ nil))
+	     (erase-screen-piece (left top right bottom extra)
+	       (declare (ignore extra))
+	       (cond ((null oleft)		;First rectangle
+		      (setf oleft left
+			    otop  top
+			    oright  right
+			    obottom bottom))
+		     ((= otop top)		;Same line
+		      (maxf oright right)
+		      (maxf obottom bottom)
+		      (minf oleft left))
+		     ((<= oleft left)		;Further down, same or larger indent
+		      (maxf oright right)
+		      (maxf obottom bottom))
+		     (t				;next line is further left than previous
+		      (erase-merged-stuff)
+		      (setf oleft left
+			    otop  top
+			    oright  right
+			    obottom bottom)))))
+      (declare (dynamic-extent #'erase-merged-stuff #'erase-screen-piece))
+      (do-input-buffer-screen-real-estate istream #'erase-screen-piece start-position)
+      (when oleft (erase-merged-stuff)))))
 
 ;;--- This mechanism is only partially implemented.  In order to work better,
 ;;--- it requires that the IE maintain its own concept of the prompt.

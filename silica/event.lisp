@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.19 92/07/27 11:01:36 cer Exp $
+;; $fiHeader: event.lisp,v 1.20 92/08/18 17:23:36 cer Exp $
 
 (in-package :silica)
 
@@ -156,54 +156,18 @@
 
 ;;; Crossing events
 
-;; The following variable controls whether an exit event gets generated
-;; when the pointer leaves a sheet to enter one of its children.  Consider
-;; the following diagram:
-;;
-;;   +--------------------------------+
-;;   |                                |<--- outer sheet 1
-;;   |                                |
-;;   |  +--------------------------+  |
-;;   |  |                          |<------ middle sheet 2
-;;   |  |                          |  |
-;;   |  |  +--------------------+  |  |
-;;   |  |  |                    |<--------- inner sheet 3
-;;   |  |  |                    |  |  |
-;;   |  |  |                    |  |  |
-;;   |  |  +--------------------+  |  |
-;;   |  |                          |  |
-;;   |  |                          |  |
-;;   |  +--------------------------+  |
-;;   |                                |
-;;   |                                |
-;;   +--------------------------------+
-;; 
-;; Suppose you move the pointer from the left-hand side of the screen into
-;; sheet 1, then into sheet 2, and finally into sheet 3.  When the following
-;; variable is set to T, this event stream is generated:
-;;
-;;   pointer enters sheet 1
-;;   pointer exits sheet 1
-;;   pointer enters sheet 2
-;;   pointer exits sheet 2
-;;   pointer enters sheet 3
-;; 
-;; When it is set to NIL, this is generated:
-;; 
-;;   pointer enters sheet 1
-;;   pointer enters sheet 2
-;;   pointer enters sheet 3
-;; 
-;; Both schemes have their uses, so we support both.
-(defparameter *generate-exit-event-when-entering-child* nil)
-
-
-;; I think we have fun here to generate enter/exit events for unmirrored sheets
+;; We have fun here to generate enter/exit events for unmirrored sheets
 ;; Three cases:
 ;; 1. Mouse motion event:
 ;;    [Last mirrored sheet, position] --> [new mirrored sheet, position]
 ;; 2. Enter: [last-mirrored sheet, position] -> [new sheet]
 ;; 3. Exit: [last-mirrored sheet, position] -> [new sheet]
+;;
+;; Note that exit events on the parent are generated when the pointer goes
+;; from a parent to a child, and that enter events on the parent are generated
+;; when the pointer goes back from the child to the parent again.  If these
+;; events are not interesting, the user should ignore all pointer enter and
+;; exit events that have a kind of :INFERIOR.
 ;;
 ;; We boil this down to mouse moved to [new mirrored sheet, position]
 ;;  We have a current stack of sheets 0...n
@@ -211,8 +175,7 @@
 ;;  m...n require exit events
 ;; We can then go deep down inside m sheet generating enter events
 ;;
-;; Who do we generate motion events for?
-;; The 0th element of the trace is the mirrored sheet.
+;; The 0th element of the trace is the top level mirrored sheet.
 ;;
 ;; Cases:
 ;; 1. It is the mirrored sheet.
@@ -224,110 +187,124 @@
 ;;    We should probably exit from intermediate descendents.
 ;;    Sheet- x,y,z --> Child
 ;; 4. Share a common ancestor: exit from all of the sheets.
-;;--- This code does not deal with cases (2) and (3) correctly.
-;;--- It will fail to generate enter/exit events for those cases
-(defun generate-crossing-events (port sheet x y modifiers button pointer)
-  (declare (ignore button))
-  (macrolet ((generate-enter-event (sheet)
-	       `(let ((sheet ,sheet))
-		  (dispatch-event
-		    sheet
-		    (allocate-event 'pointer-enter-event
-		      :sheet sheet
-		      :x x :y y
-		      :modifier-state modifiers
-		      :pointer pointer))))
-	     (generate-exit-event (sheet)
-	       `(let ((sheet ,sheet))
-		  (dispatch-event
-		    sheet
-		    (allocate-event 'pointer-exit-event
-		      :sheet sheet
-		      :x x :y y
-		      :modifier-state modifiers
-		      :pointer pointer)))))
-    (let ((v (port-trace-thing port)))
-      #+Genera (declare (sys:array-register v))
-      ;; Pop up the stack of sheets
-      (unless (zerop (fill-pointer v))
-	(let ((m (if (eq (aref v 0) sheet)
-		     (let ((new-x x)
-			   (new-y y))
-		       (dotimes (i (fill-pointer v) (fill-pointer v))
-			 (unless (zerop i)
-			   (multiple-value-setq (new-x new-y)
-			     (map-sheet-position-to-child (aref v i) new-x new-y)))
-			 (unless (region-contains-position-p 
-				   (sheet-region (aref v i)) new-x new-y)
-			   (return i))))
-		     0)))
-	  (do ((i (1- (fill-pointer v)) (1- i)))
-	      ((< i m))
-	    (generate-exit-event (aref v i))
-	    (unless (zerop i)
-	      (generate-enter-event (aref v (1- i)))))
-	  (setf (fill-pointer v) m)))
-      ;; If its empty initialize it
-      (when (region-contains-position-p (sheet-region sheet) x y)
-	(when (zerop (fill-pointer v))
-	  (vector-push-extend sheet v)
-	  (generate-enter-event sheet))
-	;; We have to get the sheets into the correct coordinate space
-	(loop for i from (1+ (position sheet v)) below (fill-pointer v)
-	    do (multiple-value-setq (x y)
-		 (map-sheet-position-to-child (aref v i) x y)))
-	;; Add children
-	(let ((new-x x)
-	      (new-y y)
-	      (sheet (aref v (1- (fill-pointer v))))
-	      child)
-	  (loop
-	    (unless (typep sheet 'sheet-parent-mixin) 
-	      (return nil))
-	    (setq child (child-containing-position sheet new-x new-y))
-	    (unless child
-	      (return nil))
-	    (when *generate-exit-event-when-entering-child*
-	      (generate-exit-event sheet))
-	    (generate-enter-event child)
-	    (multiple-value-setq (new-x new-y)
-	      (map-sheet-position-to-child child new-x new-y))
-	    (setq sheet child)
-	    (vector-push-extend child v)))))))
-
-(defun distribute-pointer-event (port mirrored-sheet event-type x y modifiers button pointer)
-  ;; Generate all the correct enter/exit events
-  (generate-crossing-events port mirrored-sheet x y modifiers button pointer)
-  ;; Dispatch event to the innermost sheet
-  (let ((sheet (let ((v (port-trace-thing port)))
-		 (and (not (zerop (fill-pointer v)))
-		      (aref v (1- (fill-pointer v)))))))
-    (when (and sheet (port sheet))
-      (multiple-value-bind (tx ty)
-	  (untransform-position
-	    (sheet-device-transformation sheet) x y)
-	;; Update the pointer object
-	(setf (pointer-sheet pointer) sheet
-	      (pointer-x-position pointer) tx
-	      (pointer-y-position pointer) ty
-	      (pointer-native-x-position pointer) x
-	      (pointer-native-y-position pointer) y)
-	(dispatch-event
-	  sheet
-	  (if button
-	      (allocate-event event-type
-		:sheet sheet
-		:native-x x :native-y y
-		:x tx :y ty
-		:modifier-state modifiers
-		:button button
-		:pointer pointer)
-	      (allocate-event event-type
-		:sheet sheet
-		:native-x x :native-y y
-		:x tx :y ty
-		:modifier-state modifiers
-		:pointer pointer)))))))
+(defun generate-crossing-events (port event)
+  (declare (optimize (speed 3)))
+  (let* ((mirrored-sheet (event-sheet event))
+	 (toplevel-sheet mirrored-sheet)
+	 (x (pointer-event-native-x event))
+	 (y (pointer-event-native-y event))
+	 (modifiers (event-modifier-state event))
+	 (pointer (pointer-event-pointer event)))
+    (macrolet ((generate-enter-event (sheet kind)
+		 `(let ((sheet ,sheet))
+		    (dispatch-event
+		      sheet
+		      (allocate-event 'pointer-enter-event
+			:sheet sheet
+			:x x :y y
+			:kind ,kind
+			:modifier-state modifiers
+			:pointer pointer))))
+	       (generate-exit-event (sheet kind)
+		 `(let ((sheet ,sheet))
+		    (dispatch-event
+		      sheet
+		      (allocate-event 'pointer-exit-event
+			:sheet sheet
+			:x x :y y
+			:kind ,kind
+			:modifier-state modifiers
+			:pointer pointer)))))
+      ;; If we got an event for some mirrored child, go back to the 
+      ;; top level sheet.
+      (unless (graftp (sheet-parent mirrored-sheet))
+	(do* ((sheet mirrored-sheet)
+	      (parent (sheet-parent sheet) (sheet-parent sheet))
+	      (new-x x)
+	      (new-y y))
+	     ((graftp parent)
+	      (setq x new-x
+		    y new-y
+		    toplevel-sheet sheet))
+	  (multiple-value-setq (new-x new-y)
+	    (map-sheet-position-to-parent sheet new-x new-y))
+	  (setq sheet parent)))
+      (let* ((v (port-trace-thing port))
+	     (exitted-a-window 
+	       (and (typep event 'pointer-exit-event)
+		    (not (eq (pointer-boundary-event-kind event) :inferior))))
+	     (entered-from-child
+	       (and (typep event 'pointer-enter-event)
+		    (eq (pointer-boundary-event-kind event) :inferior)))
+	     (exitted-top-level-window
+	       (and exitted-a-window
+		    (eq toplevel-sheet mirrored-sheet))))
+	#+Genera (declare (sys:array-register v))
+	(when (or (not exitted-a-window)
+		  exitted-top-level-window)
+	  ;; Pop up the stack of sheets
+	  (unless (zerop (fill-pointer v))
+	    (let ((m (if (and (not exitted-top-level-window)
+			      (eq (aref v 0) toplevel-sheet))
+			 (let ((new-x x)
+			       (new-y y)
+			       (pos (position mirrored-sheet v)))
+			   (dotimes (i (fill-pointer v) (fill-pointer v))
+			     (unless (zerop i)
+			       (multiple-value-setq (new-x new-y)
+				 (map-sheet-position-to-child (aref v i) new-x new-y)))
+			     (unless (or (and pos (<= i pos))
+					 (and (sheet-enabled-p (aref v i))
+					      (region-contains-position-p 
+						(sheet-region (aref v i)) new-x new-y)))
+			       (return i))))
+			 0)))
+	      (do ((i (1- (fill-pointer v)) (1- i)))
+		  ((< i m))
+		(generate-exit-event (aref v i) :ancestor)
+		(unless (zerop i)
+		  (generate-enter-event (aref v (1- i)) :inferior)))
+	      (setf (fill-pointer v) m))))
+	(when (and (not exitted-a-window)
+		   (not entered-from-child)
+		   (region-contains-position-p (sheet-region toplevel-sheet) x y))
+	  ;; If its empty initialize it with the toplevel sheet.
+	  (when (zerop (fill-pointer v))
+	    (vector-push-extend toplevel-sheet v)
+	    (generate-enter-event toplevel-sheet :ancestor))
+	  ;; Now add all sheets between the last sheet on the trace
+	  ;; and the mirrored sheet.
+	  (unless (find mirrored-sheet v)
+	    (let ((last-sheet (aref v (1- (fill-pointer v))))
+		  (sheets nil))
+	      (do ((sheet mirrored-sheet (sheet-parent sheet)))
+		  ((or (graftp sheet) (eq sheet last-sheet)))
+		(push sheet sheets))
+	      (dolist (sheet sheets)
+		(generate-exit-event (aref v (1- (fill-pointer v))) :inferior)
+		(generate-enter-event sheet :ancestor)
+		(vector-push-extend sheet v))))
+	  ;; We have to get the sheets into the correct coordinate space
+	  (loop for i from 1 below (fill-pointer v)
+		do (multiple-value-setq (x y)
+		     (map-sheet-position-to-child (aref v i) x y)))
+	  ;; Finally add progeny of mirrored-sheet.
+	  (let ((new-x x)
+		(new-y y)
+		(sheet (aref v (1- (fill-pointer v))))
+		child)
+	    (loop
+	      (unless (typep sheet 'sheet-parent-mixin) 
+		(return nil))
+	      (setq child (child-containing-position sheet new-x new-y))
+	      (unless child
+		(return nil))
+	      (generate-exit-event sheet :inferior)
+	      (generate-enter-event child :ancestor)
+	      (multiple-value-setq (new-x new-y)
+		(map-sheet-position-to-child child new-x new-y))
+	      (setq sheet child)
+	      (vector-push-extend child v))))))))
 
 
 ;;; Event distribution
@@ -355,18 +332,53 @@
     (window-event-mirrored-sheet event)
     event))
 
+(defmethod distribute-event-1 :before ((port basic-port) (event pointer-event))
+  ;; Generate all the correct enter/exit events.
+  (generate-crossing-events port event))
+
 (defmethod distribute-event-1 ((port basic-port) (event pointer-event))
-  (multiple-value-bind (class button)
-      (typecase event
-	(pointer-button-event
-	  (values (class-name (class-of event)) (pointer-event-button event)))
-	(t
-	  (values 'pointer-motion-event nil)))
-    (distribute-pointer-event
-      port (event-sheet event) class
-      (pointer-event-native-x event) (pointer-event-native-y event)
-      (event-modifier-state event) button
-      (pointer-event-pointer event)))
+  (declare (optimize (speed 3)))
+  (let ((event-type (class-name (class-of event)))
+	(x (pointer-event-native-x event))
+	(y (pointer-event-native-y event))
+	(modifiers (event-modifier-state event))
+	(pointer (pointer-event-pointer event)))
+    ;; Dispatch event to the innermost sheet
+    (let ((sheet (let ((v (port-trace-thing port)))
+		   (and (not (zerop (fill-pointer v)))
+			(aref v (1- (fill-pointer v)))))))
+      (when (and sheet (port sheet))
+	(multiple-value-bind (tx ty)
+	    (untransform-position (sheet-device-transformation sheet) x y)
+	  ;; Update the pointer object
+	  (setf (pointer-sheet pointer) sheet
+		(pointer-x-position pointer) tx
+		(pointer-y-position pointer) ty
+		(pointer-native-x-position pointer) x
+		(pointer-native-y-position pointer) y)
+	  (typecase event
+	    (pointer-button-event
+	      (dispatch-event
+		sheet
+		(allocate-event event-type
+		  :sheet sheet
+		  :native-x x :native-y y
+		  :x tx :y ty
+		  :modifier-state modifiers
+		  :button (pointer-event-button event)
+		  :pointer pointer)))
+	    (pointer-motion-event
+	      (dispatch-event
+		sheet
+		(allocate-event event-type
+		  :sheet sheet
+		  :native-x x :native-y y
+		  :x tx :y ty
+		  :modifier-state modifiers
+		  :pointer pointer)))
+	    ;; Pointer exit and enter events are handled
+	    ;; by GENERATE-CROSSING-EVENTS.
+	    )))))
   (deallocate-event event))
 	    
 
@@ -520,3 +532,19 @@
 		   (slot-boundp event name))
 	  (setf (slot-value copy name) (slot-value event name)))))
     copy))
+
+#||
+;; Debugging help
+(defmethod print-object ((event pointer-boundary-event) stream)
+  (print-unreadable-object (event stream :type t :identity *print-escape*)
+    (let ((comma nil))
+      (when (slot-boundp event 'sheet)
+	(let ((sheet (event-sheet event)))
+	  (format stream "~:[~;mirrored ~]sheet ~s"
+		  (sheet-direct-mirror sheet) sheet))
+	(setq comma t))
+      (when (slot-boundp event 'kind)
+	(if comma
+	    (write-string ", " stream))
+	(format stream "kind ~s" (pointer-boundary-event-kind event))))))
+||#

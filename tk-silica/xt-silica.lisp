@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.41 92/08/18 17:54:34 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.42 92/09/08 10:35:37 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -1223,7 +1223,6 @@ the geometry of the children. Instead the parent has control. "))
 		     :gadget sheet
 		     :value value))))
 
-
 (defmethod queue-drag-event (widget sheet &optional (value (gadget-value sheet)))
   (declare (ignore widget))
   (distribute-event
@@ -1231,6 +1230,7 @@ the geometry of the children. Instead the parent has control. "))
    (allocate-event 'silica::drag-gadget-event
      :gadget sheet
      :value value)))
+
 
 (defun find-sheet-from-widget-address (address)
   (let* ((widget (tk::find-object-from-address address))
@@ -1251,18 +1251,6 @@ the geometry of the children. Instead the parent has control. "))
 	   silica::*ports*))
 
 
-;(defmethod port-canonicalize-gesture-spec ((port xt-port) keysym &optional shifts)
-;  (declare (optimize (speed 3) (safety 0)))
-;  ;; Here, we must take the gesture spec, turn it back into
-;  ;; a keycode, then see what the keysyms are for that keycode
-;  (let ((x-keysym (if (and (characterp keysym) (standard-char-p keysym))
-;		      (keysym->xt-keysym (xt-keysym->keysym (char-code keysym)))
-;		    (keysym->xt-keysym keysym)))
-;	(x-keycode nil))
-;    (unless x-keysym 
-;      (return-from port-canonicalize-gesture-spec nil))
-;    (cons keysym shifts)))
-
 (defmethod port-canonicalize-gesture-spec 
 	   ((port xt-port) gesture-spec &optional modifier-state)
   (declare (optimize (speed 3) (safety 0)))
@@ -1279,6 +1267,8 @@ the geometry of the children. Instead the parent has control. "))
       (unless x-keysym 
 	(return-from port-canonicalize-gesture-spec nil))
       (cons keysym shifts))))
+
+
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
   (let* ((sheet (pointer-sheet pointer))
@@ -1329,4 +1319,3 @@ the geometry of the children. Instead the parent has control. "))
 (defmethod enable-xt-widget ((parent top-level-shell) (mirror t))
   (manage-child mirror)
   (popup (widget-parent mirror)))
-

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.12 92/07/27 19:29:24 cer Exp $
+;; $fiHeader: framem.lisp,v 1.13 92/08/18 17:23:38 cer Exp $
 
 (in-package :silica)
 
@@ -35,20 +35,20 @@
     (cond 
       ;; (find-frame-manager) -> default one
       ((and (null options) *default-frame-manager*))
-      ;; We specified a port we have to make sure the default on
-      ;; matches it
+      ;; We specified a port, so make sure the default framem matches it
       ((and *default-frame-manager*
 	    (apply #'frame-manager-matches-options-p
 		   *default-frame-manager* port options))
        *default-frame-manager*)
-      ;; Failing that we make one
+      ;; No default, look for one in the port, or create a new one
       (t
-       (let ((framem (port-frame-manager port)))
-	 (if (and framem
-		  (apply #'frame-manager-matches-options-p framem port options))
-	     framem
-	     (setf (port-frame-manager port)
-		   (apply #'make-frame-manager port options))))))))
+       (dolist (framem (port-frame-managers port))
+	 (when (apply #'frame-manager-matches-options-p framem port options)
+	   (return-from find-frame-manager framem)))
+       (let ((framem (apply #'make-frame-manager port options)))
+	 (setf (port-frame-managers port)
+	       (nconc (port-frame-managers port) (list framem)))
+	 framem)))))
 
 #+Genera
 (scl:add-initialization "Reset frame managers"

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.22 92/08/18 17:25:09 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.23 92/08/19 18:04:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -228,7 +228,7 @@
 				     (input-wait-handler *input-wait-handler*)
 				     pointer-button-press-handler)
   (declare (ignore pointer-button-press-handler))
-  (with-cursor-state (t stream)
+  (with-cursor-state (stream t)
     (loop
       (multiple-value-bind (input-happened flag)
 	  (stream-input-wait
@@ -454,11 +454,11 @@
       ;;--- Reconcile various error cases.  When CH is NIL then that probably means
       ;; that the caller supplied error-p nil, and we may have to return the eof-val.
       ;; Of course, we aren't dealing with EOF on our window streams at all.
-      (unless (eq ch :eof)
+      (unless (eq ch *end-of-file-marker*)
 	(loop
 	  ;; Process the character
 	  (cond ((or (eql ch #\Newline)
-		     (eq ch :eof))
+		     (eq ch *end-of-file-marker*))
 		 (return-from stream-read-line
 		   (evacuate-temporary-string result)))
 		(t
@@ -475,7 +475,7 @@
 ;; The eof argument is as for the :tyi message
 (defmethod stream-compatible-read-char ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-read-char stream)))
-    (cond ((not (eq char ':eof)) char)
+    (cond ((not (eq char *end-of-file-marker*)) char)
 	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
 	  (t nil))))
 
@@ -483,7 +483,7 @@
 ;; The eof argument is as for the :tyi-no-hang message
 (defmethod stream-compatible-read-char-no-hang ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-read-char-no-hang stream)))
-    (cond ((not (eq char ':eof)) char)
+    (cond ((not (eq char *end-of-file-marker*)) char)
 	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
 	  (t nil))))
 
@@ -491,7 +491,7 @@
 ;; The eof argument is as for the :tyipeek message
 (defmethod stream-compatible-peek-char ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-peek-char stream)))
-    (cond ((not (eq char ':eof)) char)
+    (cond ((not (eq char *end-of-file-marker*)) char)
 	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
 	  (t nil))))
 
@@ -534,21 +534,20 @@
 
 #+Genera
 (defmethod stream-compatible-any-tyi
-	   ((stream input-protocol-mixin)
-	    &optional eof)
+	   ((stream input-protocol-mixin) &optional eof)
   (stream-compatible-any-tyi-1 stream nil eof))
 
 #+Genera
 (defmethod stream-compatible-any-tyi-no-hang
-	   ((stream input-protocol-mixin)
-	    &optional eof)
+	   ((stream input-protocol-mixin) &optional eof)
   (stream-compatible-any-tyi-1 stream 0 eof))
 
 #+Genera
 (defun stream-compatible-any-tyi-1 (stream timeout eof)
   (let ((character (stream-read-gesture (or *original-stream* stream) :timeout timeout)))
     (cond ((null character) nil)
-	  ((eq character ':eof) (and eof (error "~a" eof)))
+	  ((eq character *end-of-file-marker*) 
+	   (and eof (error "~a" eof)))
 	  ((and (characterp character)
 		(let ((activation (si:input-editor-option :activation)))
 		  (and activation

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.25 92/08/21 16:33:48 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.26 92/09/08 10:34:47 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -335,6 +335,7 @@
 		  radio-box))))))
 
 
+
 ;;; Subset completion gadget
 
 (define-presentation-method decode-indirect-view
@@ -371,7 +372,13 @@
 			(let* ((value (funcall value-key element))
 			       (button
 				 (make-pane 'toggle-button 
-				   :label (funcall name-key element)
+
+				   :label
+				   
+				   (let ((name (funcall name-key element)))
+				     (if (eq printer #'write-token)
+					 name
+					 (pixmap-from-menu-item stream name printer nil)))
 				   :indicator-type (getf toggle-options :indicator-type :some-of)
 				   :value (and default-supplied-p
 					       (member value default
@@ -642,21 +649,21 @@
 
 ;;--- These should be defined in the standard DEFOPERATION way...
 
-(defmethod sheet-medium ((x standard-encapsulating-stream))
-  (sheet-medium (slot-value x 'stream)))
+(defmethod sheet-medium ((stream standard-encapsulating-stream))
+  (sheet-medium (encapsulating-stream-stream stream)))
 
-(defmethod sheet-parent ((x standard-encapsulating-stream))
-  (sheet-parent (slot-value x 'stream)))
+(defmethod sheet-parent ((stream standard-encapsulating-stream))
+  (sheet-parent (encapsulating-stream-stream stream)))
 
-(defmethod port ((x standard-encapsulating-stream))
-  (port (slot-value x 'stream)))
+(defmethod port ((stream standard-encapsulating-stream))
+  (port (encapsulating-stream-stream stream)))
 
 (defmethod graft ((stream standard-encapsulating-stream))
-  (graft (slot-value stream 'stream)))
+  (graft (encapsulating-stream-stream stream)))
 
 (defmethod sheet-adopt-child ((stream standard-encapsulating-stream) child)
-  (sheet-adopt-child (slot-value stream 'stream) child))
+  (sheet-adopt-child (encapsulating-stream-stream stream) child))
 
 (defmethod sheet-disown-child ((stream standard-encapsulating-stream) child)
-  (sheet-disown-child (slot-value stream 'stream) child))
+  (sheet-disown-child (encapsulating-stream-stream stream) child))
 

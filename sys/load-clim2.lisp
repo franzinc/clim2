@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
-
+;; $fiHeader: load-clim2.lisp,v 1.1 92/08/19 10:25:18 cer Exp $
+ 
 (defun flush-clim ()
   (when (find-package 'clim-defsys)
     (set (intern "*SYSTEMS*" 'clim-defsys) nil))

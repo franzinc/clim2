@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.17 92/07/27 11:01:45 cer Exp $
+;; $fiHeader: port.lisp,v 1.18 92/08/18 17:23:54 cer Exp $
 
 (in-package :silica)
 
@@ -103,10 +103,11 @@
 (defgeneric destroy-port (port))
 
 (defmethod destroy-port (port)
-  (let ((framem (port-frame-manager port)))
-    (when framem
-      (dolist (frame (frame-manager-frames framem))
-	(disown-frame framem frame))))
+  (when (port-process port)
+    (destroy-process (port-process port)))
+  (dolist (framem (port-frame-managers port))
+    (dolist (frame (frame-manager-frames framem))
+      (disown-frame framem frame)))
   (setq *ports* (delete port *ports*)))
 
 

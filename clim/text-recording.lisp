@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.9 92/07/27 11:03:01 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.10 92/08/18 17:25:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -31,7 +31,8 @@
 	  (output-record-element-mixin text-displayed-output-record)
     ((string :initarg :string)
      (wrapped-p :initform nil :initarg :wrapped-p)
-     (ink :initarg :ink)))
+     (ink :initarg :ink)
+     (clipping-region :initarg :clipping-region)))
 
 (defclass styled-text-output-record
 	  (standard-text-output-record text-displayed-output-record)
@@ -41,16 +42,17 @@
      (baseline :initform (coordinate 0) :initarg :baseline)))
 
 (define-constructor make-standard-text-output-record
-		    standard-text-output-record (ink string)
-		    :ink ink :string string)
+		    standard-text-output-record (string ink clipping-region)
+		    :ink ink :string string :clipping-region clipping-region)
 
 (define-constructor make-styled-text-output-record
-		    styled-text-output-record (ink string)
-		    :ink ink :string string)
+		    styled-text-output-record (string ink clipping-region)
+		    :ink ink :string string :clipping-region clipping-region)
 
 (define-constructor make-styled-text-output-record-1
-		    styled-text-output-record (ink string wrapped-p style baseline)
-  :ink ink :string string :wrapped-p wrapped-p
+		    styled-text-output-record 
+		    (string ink clipping-region wrapped-p style baseline)
+  :ink ink :string string :clipping-region clipping-region :wrapped-p wrapped-p
   :initial-style style :current-style style :baseline baseline)
 
 (defmethod print-object ((object standard-text-output-record) stream)
@@ -94,7 +96,8 @@
 	 (baseline (- (text-style-height text-style medium)
 		      (text-style-descent text-style medium)))
 	 (glyph-buffer (stream-output-glyph-buffer stream))
-	 (color (slot-value record 'ink)))
+	 (ink (slot-value record 'ink))
+	 (clipping-region (slot-value record 'clipping-region)))
     (declare (type fixnum start end))
     (macrolet
       ((do-it (end-position)
@@ -105,12 +108,11 @@
 		(stream-scan-string-for-writing 
 		  stream medium string start ,end-position text-style
 		  cursor-x +largest-coordinate+ glyph-buffer)
-	      (with-identity-transformation (medium)
-		(draw-text* medium string
-			    cursor-x (+ cursor-y (- baseline new-baseline))
-			    :start start :end next-char-index 
-			    :align-y :top
-			    :text-style text-style :ink color))
+	      (declare (ignore font))
+	      (draw-text* medium string
+			  cursor-x (+ cursor-y (- baseline new-baseline))
+			  :start start :end next-char-index 
+			  :align-y :top)
 	      (setf cursor-x new-cursor-x start next-char-index)
 	      (when write-char
 		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
@@ -127,7 +129,10 @@
 	  (output-record-start-cursor-position record)
 	(declare (type coordinate cursor-x cursor-y))
 	(translate-coordinates x-offset y-offset cursor-x cursor-y)
-	(do-it end)
+	(with-drawing-options (medium :ink ink :text-style text-style
+				      :clipping-region clipping-region)
+	  (with-identity-transformation (medium)
+	    (do-it end)))
 	(when (slot-value record 'wrapped-p)
 	  (draw-character-wrap-indicator
 	    stream cursor-y (bounding-rectangle-height record)
@@ -145,7 +150,8 @@
 	 (text-style (slot-value record 'initial-text-style))
 	 (baseline (slot-value record 'baseline))
 	 (glyph-buffer (stream-output-glyph-buffer stream))
-	 (color (slot-value record 'ink)))
+	 (ink (slot-value record 'ink))
+	 (clipping-region (slot-value record 'clipping-region)))
     (declare (type fixnum start end))
     (macrolet
       ((do-it (end-position)
@@ -156,12 +162,12 @@
 		(stream-scan-string-for-writing 
 		  stream medium string start ,end-position text-style
 		  cursor-x +largest-coordinate+ glyph-buffer)
-	      (with-identity-transformation (medium)
-		(draw-text* medium string
-			    cursor-x (+ cursor-y (- baseline new-baseline))
-			    :start start :end next-char-index 
-			    :align-y :top
-			    :text-style text-style :ink color))
+	      (declare (ignore font))
+	      (draw-text* medium string
+			  cursor-x (+ cursor-y (- baseline new-baseline))
+			  :start start :end next-char-index 
+			  :align-y :top
+			  :text-style text-style)
 	      (setf cursor-x new-cursor-x start next-char-index)
 	      (when write-char
 		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
@@ -178,13 +184,15 @@
 	  (output-record-start-cursor-position record)
 	(declare (type coordinate cursor-x cursor-y))
 	(translate-coordinates x-offset y-offset cursor-x cursor-y)
-	(dolist (text-style-change (slot-value record 'text-style-changes))
-	  (let ((new-text-style (car text-style-change))
-		(change-position (cdr text-style-change)))
-	    (do-it change-position)
-	    (setf text-style new-text-style
-		  start change-position)))
-	(do-it end)
+	(with-drawing-options (medium :ink ink :clipping-region clipping-region)
+	  (with-identity-transformation (medium)
+	    (dolist (text-style-change (slot-value record 'text-style-changes))
+	      (let ((new-text-style (car text-style-change))
+		    (change-position (cdr text-style-change)))
+		(do-it change-position)
+		(setf text-style new-text-style
+		      start change-position)))
+	    (do-it end)))
 	(when (slot-value record 'wrapped-p)
 	  (draw-character-wrap-indicator
 	    stream cursor-y (bounding-rectangle-height record) 
@@ -390,8 +398,10 @@
     (let* ((string (make-array 16 :element-type 'character
 				  :fill-pointer 0 :adjustable t))
 	   (record (if (not (eq style default-style))
-		       (make-styled-text-output-record (medium-ink stream) string)
-		       (make-standard-text-output-record (medium-ink stream) string))))
+		       (make-styled-text-output-record 
+			 string (medium-ink stream) (medium-clipping-region stream))
+		       (make-standard-text-output-record
+			 string (medium-ink stream) (medium-clipping-region stream)))))
       (setf (stream-text-output-record stream) record)
       (multiple-value-bind (abs-x abs-y)
 	  (point-position
@@ -411,10 +421,10 @@
 ;; don't do it very often, because of the optimization in GET-TEXT-OUTPUT-RECORD
 ;; that creates a stylized record as early as possible.
 (defmethod stylize-text-output-record ((record standard-text-output-record) style stream)
-  (with-slots (ink string wrapped-p left top right bottom
+  (with-slots (string ink clipping-region wrapped-p left top right bottom
 	       start-x start-y end-x end-y) record
     (let ((new-record (make-styled-text-output-record-1
-			ink string wrapped-p
+			string ink clipping-region wrapped-p
 			style (- (text-style-height style stream)
 				 (text-style-descent style stream)))))
       (with-slots ((new-left left) (new-top top) (new-right right) (new-bottom bottom)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.13 92/07/27 11:01:30 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.14 92/08/18 17:23:27 cer Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -37,6 +37,11 @@ toggle button base. This way they can share the draw code.
     ;; Do this for the benefit of X displays
     (medium-force-output medium)))
 
+(defmethod handle-event :around ((pane button-pane-mixin) (event pointer-event))
+  (when (gadget-active-p pane)
+    (call-next-method))
+  (deallocate-event event))
+
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
@@ -71,9 +76,6 @@ toggle button base. This way they can share the draw code.
       (with-sheet-medium (medium pane)
 	(highlight-button pane medium))
       (activate-callback pane (gadget-client pane) (gadget-id pane)))))
-
-(defmethod handle-event :after ((pane button-pane-mixin) (event pointer-event))
-  (deallocate-event event))
 
 
 ;;; Patterns for push buttons

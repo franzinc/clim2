@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.25 92/08/18 17:24:11 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.26 92/09/08 10:34:27 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1805,6 +1805,8 @@
     note-sheet-region-changed
     note-sheet-transformation-changed
     permanent-medium-sheet-output-mixin
+    pointer-boundary-event
+    pointer-boundary-event-kind
     pointer-button-event
     pointer-button-hold-event
     pointer-button-press-event
@@ -1985,7 +1987,6 @@
     draw-rectangles*
     draw-text
     draw-text*
-    make-fast-drawing-function
     medium-copy-area
     medium-draw-character*
     medium-draw-ellipse*
@@ -2975,6 +2976,7 @@
 
   ;; Need to export these since not everybody hacks SETF* yet
   (:export
+    bounding-rectangle-set-position
     cursor-set-position
     output-record-set-position
     output-record-set-start-cursor-position
@@ -3128,6 +3130,7 @@
     with-gensyms
 
     ;; From LISP-UTILITIES
+    *end-of-file-marker*
     +largest-coordinate+
     bind-to-list
     canonicalize-and-match-lambda-lists	 
@@ -3146,6 +3149,7 @@
     dorest
     doseq
     dovector
+    end-of-file-marker
     evacuate-list
     fast-abs
     find-class-that-works
@@ -3278,7 +3282,6 @@
     bounding-rectangle-position-difference
     bounding-rectangle-position-equal
     bounding-rectangle-set-edges
-    bounding-rectangle-set-position
     bounding-rectangle-set-size
     bounding-rectangle-shift-position
     bounding-rectangle-size-equal
@@ -3452,7 +3455,6 @@
     medium-clear-area
     medium-finish-output
     medium-force-output
-    medium-make-fast-drawing-function
     medium-merged-text-style-valid
     medium-text-bounding-box
     menu-bar-button
@@ -3474,8 +3476,8 @@
     one-of-pane
     option-pane
     parse-gesture-spec
-    permanent-medium-sheet-output-mixin
     pixmap
+    pixmap-from-menu-item
     pixmap-sheet
     pixmap-stream
     pointer-x-position
@@ -3490,6 +3492,7 @@
     port-cursor
     port-deallocate-pixmap
     port-display
+    port-draw-cursor
     port-event-loop
     port-event-wait
     port-glyph-for-character
@@ -3529,7 +3532,6 @@
     sheet-permanently-enabled-mixin
     sheet-shell
     sheet-top-level-mirror
-    sheet-with-graphics-state-mixin
     slider-decimal-places
     space-requirement+
     space-requirement+*

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.5 92/07/01 15:45:27 cer Exp $
+;; $fiHeader: clos-patches.lisp,v 1.6 92/08/18 17:24:04 cer Exp $
 
 (in-package :clim-utils)
 
@@ -71,23 +71,6 @@
     (if (consp answer)
 	(first args)	;return the class
 	answer)))
-
-#+Lucid
-(lcl:defadvice (clos::ensure-generic-function-internal allow-genera-decls)
-    (fn-spec initial-methods-action caller &rest keys)
-  (loop with declare = (getf keys :declare)
-	for decl in declare
-	for decl-head = (car decl)
-	do (when (or (eq decl-head 'values)
-		     (eq decl-head 'arglist)
-		     (eq decl-head 'dynamic-extent))
-	     (warn "Ignoring ~S declaration in ~S" decl 'defgeneric)
-	     (setf declare (remove decl declare :test #'equal)))
-	finally
-	  (if declare
-	      (setf (getf keys :declare) declare)
-	      (remf keys :declare)))
-  (lcl:apply-advice-continue fn-spec initial-methods-action caller keys))
 
 #+(and Allegro (not (version>= 4 0)))
 ;;; This is needed to prevent a MAKE-LOAD-FORM form from being evaluated before

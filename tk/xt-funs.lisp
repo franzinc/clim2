@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.9 92/08/18 17:53:53 cer Exp Locker: cer $
+;; $fiHeader: xt-funs.lisp,v 1.10 92/08/19 10:23:37 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -51,9 +51,9 @@
 
 (defforeign 'xt_free
     :entry-point "_XtFree"
+    :arguments '(foreign-address)
     :call-direct t
     :callback nil
-    :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
 
@@ -70,6 +70,7 @@
     :arguments nil
     :arg-checking nil
     :return-type :unsigned-integer)
+
 
 (defforeign 'xt_app_set_error_handler
     :entry-point "_XtAppSetErrorHandler"
@@ -223,6 +224,7 @@
     :arg-checking nil
     :return-type :void
     :entry-point "_XtGetValues")
+
 
 (defforeign 'xt_app_pending
     :arguments '(foreign-address)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.10 92/07/27 11:03:25 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.11 92/08/18 17:26:05 cer Exp $
 
 (in-package :genera-clim)
 
@@ -553,6 +553,12 @@
 (defmethod port-note-cursor-change :after ((port genera-port) cursor stream type old new)
   (declare (ignore type old))
   (ensure-blinker-matches-cursor cursor stream))
+
+;; Genera's window system does the work for us, so don't do anything
+(defmethod port-draw-cursor
+	   ((port genera-port) (cursor standard-text-cursor) stream x y on-p
+	    &optional focus)
+  (declare (ignore stream x y on-p focus)))
 
 ;; X and Y are in native coordinates
 (defmethod port-set-pointer-position ((port genera-port) pointer x y)

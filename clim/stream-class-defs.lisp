@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.8 92/07/01 15:47:02 cer Exp $
+;; $fiHeader: stream-class-defs.lisp,v 1.9 92/08/18 17:25:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -11,27 +11,28 @@
 ;; rectangle protocol, we need them.  It's not practical to define these
 ;; with DEFINE-STREAM-PROTOCOL and DEFOPERATION.
 (defmethod bounding-rectangle* ((stream standard-encapsulating-stream))
-  (bounding-rectangle* (slot-value stream 'stream)))
+  (bounding-rectangle* (encapsulating-stream-stream stream)))
 
 (defmethod bounding-rectangle-set-edges ((stream standard-encapsulating-stream)
 					 left top right bottom)
-  (bounding-rectangle-set-edges (slot-value stream 'stream) left top right bottom))
+  (bounding-rectangle-set-edges (encapsulating-stream-stream stream)
+				left top right bottom))
 
 (defmethod bounding-rectangle-set-position ((stream standard-encapsulating-stream) x y)
-  (bounding-rectangle-set-position (slot-value stream 'stream) x y))
+  (bounding-rectangle-set-position (encapsulating-stream-stream stream) x y))
 
 (defmethod bounding-rectangle-set-size ((stream standard-encapsulating-stream) width height)
-  (bounding-rectangle-set-size (slot-value stream 'stream) width height))
+  (bounding-rectangle-set-size (encapsulating-stream-stream stream) width height))
 
 
 (defmethod input-stream-p ((stream standard-encapsulating-stream))
-  (input-stream-p (slot-value stream 'stream)))
+  (input-stream-p (encapsulating-stream-stream stream)))
 
 (defmethod output-stream-p ((stream standard-encapsulating-stream))
-  (output-stream-p (slot-value stream 'stream)))
+  (output-stream-p (encapsulating-stream-stream stream)))
 
 (defmethod stream-element-type ((stream standard-encapsulating-stream))
-  (stream-element-type (slot-value stream 'stream)))
+  (stream-element-type (encapsulating-stream-stream stream)))
 
 
 

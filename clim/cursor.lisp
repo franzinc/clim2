@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.16 92/08/19 18:04:51 cer Exp Locker: cer $
+;; $fiHeader: cursor.lisp,v 1.17 92/08/21 16:33:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,7 @@
 ;;; that the stream has focus).  CLIM sets the focus while the mouse is in the window.
 ;;; CURSOR-VISIBILITY is CLIM 1.1 shorthand for hacking both the active and state flags
 ;;; at the same time.
-
+ 
 ;;; Turning a cursor on requires drawing it on the stream, somehow.  That needs
 ;;; to go through to the port level, where an appropriate host-window-system thing
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
@@ -73,17 +73,16 @@
       (if (or fastp (not (cursor-state cursor)))
 	  (setf x (coordinate nx)
 		y (coordinate ny))
-	(let ((active (cursor-active cursor))) 
-	  ;; Turn it off and
-	  ;; then turn it on to make it move
-	  (unwind-protect
-	      (progn
-		(when active
-		  (setf (cursor-active cursor) nil))
-		(setf x (coordinate nx)
-		      y (coordinate ny)))
-	    (when active
-	      (setf (cursor-active cursor) active))))))))
+	  (let ((active (cursor-active cursor))) 
+	    ;; Turn it off and then turn it on to make it move
+	    (unwind-protect
+		(progn
+		  (when active
+		    (setf (cursor-active cursor) nil))
+		  (setf x (coordinate nx)
+			y (coordinate ny)))
+	      (when active
+		(setf (cursor-active cursor) active))))))))
 
 (defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
   (with-slots (flags) cursor
@@ -126,7 +125,7 @@
  
 (defmethod (setf cursor-visibility) (visibility (cursor standard-text-cursor))
   (setf (cursor-state cursor) 
-        (case visibility
+	(case visibility
 	  (:off nil)
 	  ((nil) nil)
 	  ((t :on) t)))
@@ -136,7 +135,7 @@
 	  ((nil) nil)
 	  ((t :on) t))))
 
-(defmacro with-cursor-state ((state &optional stream) &body body)
+(defmacro with-cursor-state ((stream state) &body body)
   (default-input-stream stream)
   `(let* ((cursor (and (extended-input-stream-p ,stream)
 		       (stream-text-cursor ,stream)))
@@ -185,8 +184,8 @@
     (when active
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	(if new
-	    (draw-cursor cursor stream x y t)
-	    (draw-cursor cursor stream x y nil))))))
+	    (port-draw-cursor port cursor stream x y t)
+	    (port-draw-cursor port cursor stream x y nil))))))
 
 (defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-active)) old new)
@@ -195,8 +194,8 @@
     (when state
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	(if new
-	    (draw-cursor cursor stream x y t)
-	    (draw-cursor cursor stream x y nil))))))
+	    (port-draw-cursor port cursor stream x y t)
+	    (port-draw-cursor port cursor stream x y nil))))))
 
 (defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-focus)) old new)
@@ -206,13 +205,14 @@
     (when (and active state)
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	;; erase it with old-focus
-	(draw-cursor cursor stream x y nil old)
+	(port-draw-cursor port cursor stream x y nil old)
 	;; draw it with new-focus
-	(draw-cursor cursor stream x y t new)))))
+	(port-draw-cursor port cursor stream x y t new)))))
 
-;; DRAW-CURSOR is invoked to draw or erase the cursor.
-(defmethod draw-cursor ((cursor standard-text-cursor) stream x y on-p
-			&optional (focus nil focus-p))
+;; PORT-DRAW-CURSOR is invoked to draw or erase the cursor.
+(defmethod port-draw-cursor
+	   ((port basic-port) (cursor standard-text-cursor) stream x y on-p
+	    &optional (focus nil focus-p))
   ;;--- protocol violations:  output recording protocol (with-output-recording-options)
   ;;---                       graphics protocol (draw-rectangle*)
   ;;---                       output protocol (stream-line-height)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.31 92/08/21 16:34:04 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.32 92/09/08 10:35:03 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -44,14 +44,14 @@ What about environment issue?
   #+Genera (declare (zwei:indentation 2 1))
   (check-type caption (or null string))
   (let ((command-name (clim-utils:fintern "~A-~A" 'com name)))
-  `(progn
-    (pushnew ',name *all-the-tests*)
-    (define-command (,command-name :command-table ,command-table :menu t) ()
-       (write-test-caption ,caption)
-       (with-display-pane (,stream)
-         (,name ,stream)))
-    (defun ,name (,stream)
-      ,@body))))
+    `(progn
+       (pushnew ',name *all-the-tests*)
+       (define-command (,command-name :command-table ,command-table :menu t) ()
+	 (write-test-caption ,caption)
+	 (with-display-pane (,stream)
+	   (,name ,stream)))
+       (defun ,name (,stream)
+	 ,@body))))
 
 (defun write-test-caption (caption)
   (let ((stream (get-frame-pane *application-frame* 'caption-pane)))
@@ -645,8 +645,7 @@ people, shall not perish from the earth.
     (format-graphics-sample stream "Many Small Points"
       '(draw-points* (0 0 10 110 50 50 90 110 100 10 50 40)))
     (format-graphics-sample stream "Many Large Points"
-			    '(draw-points* (0 0 10 100 50 50 90 100
-					    100 10 60 80) :line-thickness 5))))
+      '(draw-points* (0 0 10 100 50 50 90 100 100 10 60 80) :line-thickness 5))))
 
 (define-test (rotated-text graphics) (stream)
   "Test rotated text"
@@ -654,14 +653,17 @@ people, shall not perish from the earth.
   ;;--- of overlapping output records.
   (with-new-output-record (stream 'standard-sequence-output-record)
     (with-output-as-presentation (stream 1 'form)
-      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 400 :towards-y 200))
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 400 :towards-y 200))
     (with-output-as-presentation (stream 2 'form) 
-      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 200 :towards-y 400))
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 200 :towards-y 400))
     (with-output-as-presentation (stream 3 'form) 
-      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 0 :towards-y 200))
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 0 :towards-y 200))
     (with-output-as-presentation (stream 4 'form) 
-      (draw-text* stream "Some fox jumped over something" 200 200 :towards-x 200 :towards-y 0))))
-
+      (draw-text* stream "Some fox jumped over something" 200 200
+		  :towards-x 200 :towards-y 0))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -2128,6 +2130,16 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (write-string "seven" stream)))
       (with-text-face (stream :italic)
 	(write-string " years ago, our fathers..." stream))
+      (terpri stream))))
+
+(define-benchmark (clipped-text-output :iterations 3) (stream)
+  "Draw lines through a clipping region"
+  (with-drawing-options (stream :clipping-region (make-bounding-rectangle 50 50 250 250))
+    (repeat 5
+      (write-string "Four" stream)
+      (write-string " score and " stream)
+      (write-string "seven" stream)
+      (write-string " years ago, our fathers..." stream)
       (terpri stream))))
 
 ;;; Scrolling and refreshing benchmarks

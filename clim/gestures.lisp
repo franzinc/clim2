@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.10 92/07/27 11:02:25 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.11 92/08/18 17:24:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -167,7 +167,9 @@
 	  (unless port
 	    (setq port (port (event-sheet event))))
 	  (values (keyboard-event-key-name event)
-		  (event-modifier-state event))))
+		  (event-modifier-state event)))
+	(end-of-file-marker
+	  (return-from keyboard-event-matches-gesture-name-p nil)))
     (declare (type fixnum modifier-state))
     (cond ((consp gesture-name)
 	   ;; If GESTURE-NAME is a cons, then it's really a gesture spec
@@ -286,7 +288,8 @@
 				 (#\Rubout . :rubout)
 				 (#\Backspace . :backspace)
 				 (#\Page . :page)
-				 (#\Linefeed . :linefeed)
+				 #+Genera (#\Line . :linefeed)
+				 #-Genera (#\Linefeed . :linefeed)
 				 (#\Escape . :escape)))))
       (cond (entry
 	     (setq keysym (cdr entry)))

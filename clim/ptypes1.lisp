@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.14 92/07/24 10:54:35 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.15 92/08/18 17:25:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,7 +68,15 @@
       (clos-internals:class-name-for-type-of class)))
   (let ((name (class-name class)))
     (if (and name (symbolp name) 
-	     (eq (find-class-that-works name nil environment) class))
+	     (or (eq (find-class-that-works name nil environment) class)
+		 ;; If there is a forward-referenced compile-time class
+		 ;; that corresponds to a class in the current load-time
+		 ;; environment, just use the name of the load-time class.
+		 ;; This often happens with STANDARD-OBJECT.
+		 ;;--- The forces the assumption that the compile-time
+		 ;;--- classes are not radically different from the load-time
+		 ;;--- classes, in effect papering over that problem.
+		 (eq (find-class-that-works name nil) class)))
 	name
 	#-Minima class
 	;; Just let the name stand in for the class when cross-compiling
@@ -101,13 +109,17 @@
 (defun simple-parse-error (format-string &rest format-arguments)
   (declare (dynamic-extent format-arguments))
   (signal 'simple-parse-error
-	  :format-string format-string
+	  :format-string (evacuate-temporary-string format-string)
 	  :format-arguments (copy-list format-arguments))
-  (error "SIMPLE-PARSE-ERROR signalled outside of ACCEPT."))
+  (error "~S signalled outside of ~S."
+	 'simple-parse-error 'accept))
 
 (defun input-not-of-required-type (object type)
-  (signal 'input-not-of-required-type :string object :type type)
-  (error "INPUT-NOT-OF-REQUIRED-TYPE signalled outside of ACCEPT."))
+  (signal 'input-not-of-required-type
+	  :string object
+	  :type type)
+  (error "~S signalled outside of ~S."
+	 'input-not-of-required-type 'accept))
 
 
 ;;;; Operations on presentation type specifiers
@@ -801,20 +813,14 @@
 				     #-(or PCL CCL-2 Allegro) :slots
 				     #+(or PCL CCL-2 Allegro) :direct-slots
 				       nil)
-			   ;; The above does not work in Lucid 4.0, so do it this way
-			   ;; instead, on JonL's advice.  We can't set the name here
-		           ;; because only symbols are accepted as names.
-			   #+Lucid (clos::common-add-named-class 
-				     (class-prototype (find-class 'presentation-type-class))
-				     nil			;name
-				     direct-superclasses	;superclasses
-				     ()				;slots
-				     ()))			;options
+		           #+Lucid (make-instance 'presentation-type-class
+				     :direct-superclasses direct-superclasses
+				     :name class-name))
                ;; Workaround for apparent MCL bug that otherwise causes
 	       ;; very bad things to happen
                #+CCL-2 (setf (slot-value class 'ccl::slots) (cons nil (vector)))
 	       ;; If the class name couldn't be set while making the class, set it now
-	       #-(or Genera Cloe-Runtime CCL-2) (setf (class-name class) class-name)))
+	       #-(or Genera Cloe-Runtime Lucid CCL-2) (setf (class-name class) class-name)))
 	    ((not (or (equal (class-direct-superclasses class) direct-superclasses)
 		      ;; The above equal would suffice if it were not for the fact that when
 		      ;; a CLOS class in the compile-file environment has a superclass in the
@@ -916,8 +922,7 @@
 	  (unless #+CLIM-extends-CLOS nil	;always recompute method combination
 		  #-CLIM-extends-CLOS		;if not massaging the parameters/options during method inheritance
 		  (equal direct-superclasses old-direct-superclasses)
-	    #-Lucid (reinitialize-instance class :direct-superclasses direct-superclasses)
-	    #+Lucid (clos-sys:update-class class :direct-superclasses direct-superclasses))))
+	    (reinitialize-instance class :direct-superclasses direct-superclasses))))
   
       class)))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.27 92/08/18 17:24:49 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.28 92/09/08 10:34:41 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -13,8 +13,6 @@
 
 ;;--- How to keep PANE-BACKGROUND/FOREGROUND in sync with the medium?
 ;;--- I'm not convinced that including WINDOW-STREAM here is right...
-;;--- Note the this allows you to specify default text style, but it
-;;--- doesn't pass it along to the medium, so it has no effect.
 (defclass clim-stream-sheet 
 	  (window-stream			;includes output recording
 	   sheet-permanently-enabled-mixin
@@ -34,11 +32,8 @@
   pane)
 
 (defmethod note-sheet-region-changed :after ((pane clim-stream-sheet) &key &allow-other-keys)
-  (let ((viewport (pane-viewport pane)))
-    (setf (stream-default-text-margin pane)
-	  (if viewport
-	      (bounding-rectangle-width (sheet-region viewport))
-	      (bounding-rectangle-width pane)))))
+  (setf (stream-default-text-margin pane)
+	(bounding-rectangle-width (window-viewport pane))))
 
 (defmethod viewport-region-changed ((pane t) viewport)
   (declare (ignore viewport)))
@@ -281,21 +276,30 @@
 
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())
-(defclass command-menu-pane (clim-stream-pane) ())
+
 (defclass accept-values-pane (clim-stream-pane) ())
+
 (defclass pointer-documentation-pane (clim-stream-pane) ())
+
+(defclass title-pane (clim-stream-pane) 
+    ((display-string :initform nil :initarg :display-string)))
+
+(defclass command-menu-pane (clim-stream-pane) ())
 
 (defmethod compose-space :before ((pane command-menu-pane) &key width height)
   (declare (ignore width height))
   (window-clear pane))
+
 
 ;; This is a macro because it counts on being expanded inside of a call
 ;; to WITH-LOOK-AND-FEEL-REALIZATION
 (defmacro make-clim-stream-pane (&rest options
 				 &key (type ''clim-stream-pane) 
 				      label (scroll-bars ':vertical)
+				      (display-after-commands nil dac-p)
 				 &allow-other-keys)
-  (with-keywords-removed (options options '(:type :label :scroll-bars))
+  (with-keywords-removed (options options 
+				  '(:type :label :scroll-bars :display-after-commands))
     (macrolet ((setf-unless (slot-keyword value)
 		 `(when (eq (getf options ',slot-keyword #1='#:default) #1#)
 		    (setf (getf options ',slot-keyword) ,value))))
@@ -305,8 +309,13 @@
       (setf-unless :height 100)
       (setf-unless :min-height 0)
       (setf-unless :max-height +fill+))
+
     (let* ((stream (gensym))
-	   (pane `(setq ,stream (make-pane ,type ,@options))))
+	   (display-time
+	    (and dac-p
+		 `(:display-time ,(if display-after-commands :command-loop nil))))
+	   (pane
+	    `(setq ,stream (make-pane ,type ,@display-time ,@options))))
       (when scroll-bars
 	(setq pane `(scrolling (:scroll-bars ,scroll-bars)
 			       ,pane)))
@@ -368,10 +377,10 @@
   (let ((text-record (stream-text-output-record stream)))
     (when text-record (replay text-record stream))))
 
-(defmethod window-erase-viewport ((stream window-stream))
+(defmethod window-erase-viewport ((stream clim-stream-sheet))
   (let ((medium (sheet-medium stream)))
     (multiple-value-call #'medium-clear-area
-      medium (bounding-rectangle* (or (pane-viewport stream) stream)))))
+      medium (bounding-rectangle* (window-viewport stream)))))
 
 (defmethod window-expose ((stream clim-stream-sheet))
   (setf (window-visibility stream) t))
@@ -395,26 +404,27 @@
       (sheet-region stream)))
 
 (defmethod window-viewport-position ((stream clim-stream-sheet))
-  (bounding-rectangle-position (pane-viewport-region stream)))
+  (bounding-rectangle-position (window-viewport stream)))
 
 (defmethod window-set-viewport-position ((stream clim-stream-sheet) x y)
-  (scroll-extent stream :x x :y y))
+  (when (pane-viewport stream)
+    (scroll-extent stream :x x :y y)))
 
 (defgeneric* (setf window-viewport-position) (x y stream))
 (defmethod* (setf window-viewport-position) (x y (stream clim-stream-sheet))
   (window-set-viewport-position stream x y))
 
 (defmethod window-inside-size ((stream clim-stream-sheet))
-  (bounding-rectangle-size (pane-viewport-region stream)))
+  (bounding-rectangle-size (window-viewport stream)))
 
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
   (change-space-requirements stream :width width :height height :resize-frame t))
 
 (defmethod window-inside-width ((stream clim-stream-sheet))
-  (bounding-rectangle-width (pane-viewport-region stream)))
+  (bounding-rectangle-width (window-viewport stream)))
 
 (defmethod window-inside-height ((stream clim-stream-sheet))
-  (bounding-rectangle-width (pane-viewport-region stream)))
+  (bounding-rectangle-width (window-viewport stream)))
 
 (defun-inline window-parent (window)
   (sheet-parent window))
@@ -506,7 +516,7 @@
 
 #+Genera
 (defmethod stream-compatible-inside-size ((window clim-stream-sheet))
-  (bounding-rectangle-size (pane-viewport-region window)))
+  (bounding-rectangle-size (window-viewport window)))
 
 #+Genera
 (defgeneric stream-compatible-visible-cursorpos-limits (window &optional unit)
@@ -515,7 +525,7 @@
 #+Genera
 (defmethod stream-compatible-visible-cursorpos-limits 
 	   ((window clim-stream-sheet) &optional (unit ':pixel))
-  (with-bounding-rectangle* (left top right bottom) (pane-viewport-region window)
+  (with-bounding-rectangle* (left top right bottom) (window-viewport window)
     (ecase unit
       (:pixel (values left top right bottom))
       (:character (let ((char-width (stream-character-width window #\M))
@@ -529,7 +539,7 @@
 
 #+Genera
 (defmethod stream-compatible-size-in-characters ((window clim-stream-sheet))
-  (with-bounding-rectangle* (left top right bottom) (pane-viewport-region window)
+  (with-bounding-rectangle* (left top right bottom) (window-viewport window)
     (let ((char-width (stream-character-width window #\M))
 	  (line-height (stream-line-height window)))
       (values (floor (- right left) char-width)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-prefill.lisp,v 1.3 92/07/20 16:01:09 cer Exp $
+;; $fiHeader: genera-prefill.lisp,v 1.4 92/08/18 17:26:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -235,6 +235,8 @@
     (genera-clim::genera-port t))
   ((setf port)
     (genera-clim::genera-port t))
+  (port-draw-cursor
+    (genera-clim::genera-port standard-text-cursor t t t t))
   (port-event-loop
     (genera-clim::genera-port))
   (port-glyph-for-character

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.31 92/08/21 16:33:42 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.32 92/09/08 10:34:36 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -349,14 +349,14 @@
 		     (redisplay avv stream :check-overlapping check-overlapping))
 		   (loop
 		     (let ((command
-			      (let ((command-stream (slot-value stream 'stream)))
-				;; While we're reading commands, restore the view
-				;; to what it was before we started.
-				(letf-globally (((stream-default-view command-stream)
-						 original-view))
-				  (read-frame-command frame :stream command-stream)))))
-			 (if (and command (not (keyboard-event-p command)))
-			     (execute-frame-command frame command)
+			     (let ((command-stream (encapsulating-stream-stream stream)))
+			       ;; While we're reading commands, restore the view
+			       ;; to what it was before we started.
+			       (letf-globally (((stream-default-view command-stream)
+						original-view))
+				 (read-frame-command frame :stream command-stream)))))
+		       (if (and command (not (keyboard-event-p command)))
+			   (execute-frame-command frame command)
 			   (beep stream)))
 		     (with-deferred-gadget-updates
 		       (when (or resynchronize-every-pass
@@ -366,43 +366,41 @@
 			 ;; that all visible stuff is up to date.  That's all!
 			 (with-output-recording-options (stream :draw nil)
 			   (redisplay avv stream :check-overlapping check-overlapping)))
-		     (setf (slot-value avv-record 'resynchronize) nil)
-		     (when exit-button-record
- 		       (redisplay exit-button-record exit-button-stream))
-		     (redisplay avv stream :check-overlapping check-overlapping)
-		     (when (ecase (frame-resizable frame)
- 			     ((nil) nil)
- 			     ((t) t)
- 			     (:grow
-			       (and own-window
-				    (multiple-value-bind (width height)
-					(bounding-rectangle-size
-					  (stream-output-history own-window))
-				      (multiple-value-bind (vwidth vheight)
-					  (bounding-rectangle-size 
-					    (or (pane-viewport own-window) own-window))
-					(or (> width vwidth) (> height vheight)))))))
-		       (size-panes-appropriately)))))
-	       (size-panes-appropriately ()
-		 (changing-space-requirements ()
-		     ;; We really want to specify the min/max sizes of
-		     ;; the exit-button pane
-		     ;; also
-		     (when exit-button-stream
 
-		       (size-frame-from-contents exit-button-stream
-						 :size-setter
-						 #'(lambda (pane w h)
-						     (change-space-requirements 
-						      pane 
-						      :width w :min-width w :max-width w
-						      :height h :min-height h :max-height h))))
-		   (when own-window
-		     (size-frame-from-contents own-window
-					       :width own-window-width
-					       :height own-window-height
-					       :right-margin own-window-right-margin
-					       :bottom-margin own-window-bottom-margin)))))
+		       (setf (slot-value avv-record 'resynchronize) nil)
+		       (when exit-button-record
+			 (redisplay exit-button-record exit-button-stream))
+		       (redisplay avv stream :check-overlapping check-overlapping)
+		       (when (ecase (frame-resizable frame)
+			       ((nil) nil)
+			       ((t :grow)
+				(and own-window
+				     (multiple-value-bind (width height)
+					 (bounding-rectangle-size
+					   (stream-output-history own-window))
+				       (multiple-value-bind (vwidth vheight)
+					   (bounding-rectangle-size 
+					     (window-viewport own-window))
+					 (if (eq (frame-resizable frame) :grow)
+					     (or (> width vwidth) (> height vheight))
+					     (or (/= width vwidth) (/= height vheight))))))))
+			 (size-panes-appropriately)))))
+		 (size-panes-appropriately ()
+		   (changing-space-requirements ()
+		     ;; We really want to specify the min/max sizes of
+		     ;; the exit-button pane also
+		     (size-frame-from-contents exit-button-stream
+		       :size-setter
+		         #'(lambda (pane w h)
+			     (change-space-requirements pane 
+			       :width w :min-width w :max-width w
+			       :height h :min-height h :max-height h)))
+		     (when own-window
+		       (size-frame-from-contents own-window
+			 :width own-window-width
+			 :height own-window-height
+			 :right-margin own-window-right-margin
+			 :bottom-margin own-window-bottom-margin)))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv
 				   #'size-panes-appropriately))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
@@ -442,13 +440,15 @@
 		      (t
 		       ;; Ensure that bottom of the AVV is visible.  I think that
 		       ;; this is OK even if the AVV is bigger than the viewport.
-		       (move-cursor-beyond-output-record (slot-value stream 'stream) avv)
+		       (move-cursor-beyond-output-record
+			 (encapsulating-stream-stream stream) avv)
 		       (stream-ensure-cursor-visible stream)
 		       (replay avv stream)
 		       (run-avv)))
 	      (deactivate-all-gadgets avv-record)
 	      (unless own-window
-		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
+		(move-cursor-beyond-output-record 
+		  (encapsulating-stream-stream stream) avv))))
 	  (values-list return-values))))))
 
 (defmethod frame-manager-display-help 
@@ -568,14 +568,29 @@
 (defmethod frame-pointer-documentation-output ((frame accept-values-own-window))
   nil)
 
-
-(define-presentation-type accept-values-choice ())
 
+(defmethod deactivate-all-gadgets (record)
+  (declare (ignore record))
+  nil)
+
+(defmethod deactivate-all-gadgets ((record output-record-mixin))
+  (map-over-output-records #'deactivate-all-gadgets record))
+
+(defmethod deactivate-all-gadgets :after ((record gadget-output-record))
+  (map-over-sheets
+    #'(lambda (sheet)
+	(when (typep sheet 'gadget)
+	  (deactivate-gadget sheet)))
+    (output-record-gadget record)))
+
+
 ;;--- It would have been nice to have defined these in terms of the
 ;;--- other gestures
-(define-gesture-name :edit-field :pointer-button (:left))
+(define-gesture-name :edit-field   :pointer-button (:left))
 (define-gesture-name :modify-field :pointer-button (:middle))
 (define-gesture-name :delete-field :pointer-button (:middle :shift))
+
+(define-presentation-type accept-values-choice ())
 
 (defun-inline accept-values-query-valid-p (query query-record)
   (and (or (null query) (accept-values-query-active-p query))
@@ -617,7 +632,7 @@
 
 (defmethod accept-values-query-edit-value ((query accept-values-query) stream &key modify)
   (with-slots (presentation-type value changed-p prompt presentation) query
-    (let ((stream (slot-value stream 'stream)))
+    (let ((stream (encapsulating-stream-stream stream)))
       (with-stream-cursor-position-saved (stream)
 	(multiple-value-bind (xoff yoff)
 	    (convert-from-relative-to-absolute-coordinates
@@ -633,7 +648,7 @@
 		    (setq new-value
 			  ;; The text cursor should be visible while this ACCEPT is
 			  ;; waiting for input to be typed into this field
-			  (with-cursor-state (t stream)
+			  (with-cursor-state (stream t)
 			    (accept presentation-type
 				    :stream stream :prompt nil :default value
 				    :insert-default modify)))))
@@ -645,11 +660,6 @@
 	      (process-delimiter stream))
 	    (setf value new-value
 		  changed-p t)))))))
-
-;;--- This should be somewhere else.
-
-(defmethod stream-text-cursor ((stream standard-encapsulating-stream))
-  (stream-text-cursor (slot-value stream 'stream)))
 
 (defun map-over-accept-values-queries (avv-record continuation)
   (declare (dynamic-extent continuation))
@@ -727,21 +737,6 @@
     (when (presentation-typep nil presentation-type)
       (setf value nil
 	    changed-p t))))
-
-(defmethod deactivate-all-gadgets (record)
-  (declare (ignore record))
-  nil)
-
-(defmethod deactivate-all-gadgets ((record output-record-mixin))
-  (map-over-output-records #'deactivate-all-gadgets record))
-
-(defmethod deactivate-all-gadgets :after ((record gadget-output-record))
-  (map-over-sheets
-   #'(lambda (sheet)
-       (when (typep sheet 'gadget)
-	 (deactivate-gadget sheet)))
-   (output-record-gadget record)))
-			       
 
 (define-accept-values-command (com-exit-avv :keystroke :end)
     ()
@@ -1197,7 +1192,7 @@
   (updating-output (stream :unique-id query-identifier :id-test #'equal
 			   :cache-value cache-value :cache-test cache-test)
    (with-output-as-gadget (stream)
-     (let ((record (stream-current-output-record (slot-value stream 'stream)))
+     (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
 	   (client (make-instance 'accept-values-command-button
 		     :continuation continuation
 		     :documentation documentation
