@@ -11,6 +11,16 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.20.1 
+
+2000-07-11 tfb@cley.com (Tim Bradshaw)
+
+fixes for bug9204, bug9194.
+
+	* test/test-suite.lisp: made without-clim-input work in the presence of 	  multiple processes.
+
+
+*******************************************************************************
 2.2.2.20
 
 Fri Jul  7 21:18:31 PDT 2000  Duane Rettig  <duane@beta>
