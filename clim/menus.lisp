@@ -1,112 +1,164 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10 -*-
 
-;; $fiHeader: menus.cl,v 1.1 91/11/21 17:06:39 cer Exp Locker: cer $
+(in-package "CLIM-INTERNALS")
 
-(in-package :clim-internals)
+"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
- Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
+(defparameter *default-menu-margin-components* '((margin-borders :thickness 2)
+						 (margin-white-borders :thickness 2)))
 
-(defvar *abort-menus-when-buried* t)
-
-;;--- This associated-window/root stuff is pretty irksome.
-;;--- Menus should really be application frames.
-
-(clim-utils::defresource menu (associated-window root)
+#-Silica
+(defresource menu (associated-window root)
   :constructor (open-window-stream :parent root	;"random" size
-				   :left 100 :top 100 :width 300 :height 200
+				   :left 100 :top 100 :width 1000 :height 500
+				   ;; :margin-components *default-menu-margin-components*
 				   :scroll-bars ':vertical
-				   :save-under t)
-  ;; We used to have an initializer that set RECORD-P, cleared the window,
-  ;; and set the size.  RECORD-P is unnecessary because we explicitly bind it
-  ;; below when drawing the menu contents.  (Also, it should always be T
-  ;; anyway.)  Clearing the window is unnecessary because it's done in the
-  ;; deinitializer.  Setting the size is also unnecessary.  Any application
-  ;; that's formatting into a menu is required to use WITH-END-OF-LINE-ACTION
-  ;; and WITH-END-OF-PAGE-ACTION or set the size first itself.
+				   :save-under T
+				   )
+  :deinitializer (window-clear menu)
+  ;; We used to have an initializer that set record-p, cleared the window, and set
+  ;; the size.  Record-p is unnecessary because we explicitly bind it below
+  ;; when drawing the menu contents.  (Also, it should always be T anyway.)
+  ;; Clearing the window is unnecessary because it's done in the deinitializer.
+  ;; Setting the size is also unnecessary.  Any application that's formatting
+  ;; into a menu is required to use with-end-of-line-action and with-end-of-page-action
+  ;; or set the size first itself.
   :initializer (initialize-menu menu associated-window)
-  ;; Deexpose the menu, and clear it so that the GC can reclaim any
-  ;; garbage output records.
-  :deinitializer (progn (setf (window-visibility menu) nil)
-			(window-clear menu)
-			#-Silica (setf (window-label menu) nil))
-  :matcher (eql (window-parent menu) root))
+  :matcher (eql (window-parent menu) root)
+  )
 
-(defmacro with-menu ((menu associated-window) &body body)
-  `(with-menu-1  ,associated-window #'(lambda (,menu) ,@body)))
-
-(defun with-menu-1 (window continuation)
-  (funcall continuation (get-menu)))
-
-
-(define-application-frame menu-frame ()
-  (menu)
-  (:pane 
-   (with-slots (menu) *application-frame*
-     (setq menu (silica::realize-pane 'interactor-pane)))))
-
+#+Silica
 (defun get-menu (&key server-path)
-  (let* ((framem (find-frame-manager))
-	 (frame (make-application-frame 'menu-frame)))
+  (let ((framem (find-frame-manager :server-path server-path))
+	(frame (make-frame 'frame :plain t :no-message t :save-under T))
+	(menu nil))
+    (ws:with-look-and-feel-realization (framem frame)
+      (setf (frame-pane frame)
+	    (bordering ()
+	     (spacing (:space  2)
+		 (vscrolling (:hs+
+			      +fill+ :vs+ +fill+ :hs 400 :vs 300
+			      :subtransformationp t )
+		   (setq menu (make-pane 'extended-stream-pane
+					 :initial-cursor-visibility nil
+					 )))))))
     (adopt-frame framem frame)
-    frame
-    (slot-value frame 'menu)))
-    
+    ;; (enable-frame frame)
+    menu))
+
+;;; Still requires some thought, but at least this works in an environment
+;;; with multiple ports.
+#+Silica
+(defresource menu (associated-window root)
+	     :constructor (let* ((port (if (null root) (find-port) ; Horrible kluge #2.
+					 (port root)))
+		      (server-path (port-server-path port)))
+		 (get-menu :server-path server-path))
+  :deinitializer (window-clear menu)
+  ;; We used to have an initializer that set record-p, cleared the window, and set
+  ;; the size.  Record-p is unnecessary because we explicitly bind it below
+  ;; when drawing the menu contents.  (Also, it should always be T anyway.)
+  ;; Clearing the window is unnecessary because it's done in the deinitializer.
+  ;; Setting the size is also unnecessary.  Any application that's formatting
+  ;; into a menu is required to use with-end-of-line-action and with-end-of-page-action
+  ;; or set the size first itself.
+  :initializer (initialize-menu (port menu) menu associated-window)
+  :matcher (or (null root)
+	       ;; horrible kludge in the case where no associated window is passed in.
+	       (eql (port menu) (port root)))
+  )
+
+;;; This needs to be graft-specific.  In X, the transient-for property
+;;; needs to be set to an X window, either one associated with the associated window
+;;; or to one associated with window.  In other implementations, this can do nothing.
+;;; --- What class for this default method?
+#+Silica
+(defmethod initialize-menu ((port w::basic-port) window associated-window)
+  (declare (ignore window associated-window))
+  )
+
+#-Silica 
 ;; no window-mixin
-#+ignore
 (defmethod initialize-menu ((menu window-mixin) associated-window)
   (declare (ignore associated-window))
   )
 
-#+ignore
-(defmethod setup-popup-menu ((menu window-mixin) associated-window)
-  (declare (ignore associated-window))
-  )
+;;; For now, MENU-CHOOSE requires that you pass in a parent.
+(defmacro with-menu ((menu associated-window) &body body)
+  (let ((ass-win (gensymbol 'associated-window)))
+    `(let ((,ass-win ,associated-window))			;once-only
+       (using-resource (,menu menu (window-top-level-window ,ass-win) (window-root ,ass-win))
+	 ,@body))))
 
-(defun size-menu-appropriately (menu &key (right-margin 10) (bottom-margin 10))
+#-Silica
+(defun size-menu-appropriately (menu
+				 &key (right-margin 10) (bottom-margin 10))
   (with-slots (output-record parent) menu
-    (with-bounding-rectangle* (left top right bottom) output-record
+    (multiple-value-bind (left top right bottom)
+	(entity-edges output-record)
       (multiple-value-bind (label-width label-height)
 	  (window-label-size menu)
 	(multiple-value-bind (parent-width parent-height)
 	    (window-inside-size parent)
 	  (multiple-value-bind (lm tm rm bm)
 	      (host-window-margins menu)
-	    (multiple-value-bind (wlm wtm wrm wbm)
-		(window-margins menu)
-	      (bounding-rectangle-set-size 
-		menu
-		(min (+ (max label-width (- right left)) right-margin wlm wrm lm rm)
-		     parent-width)
-		(min (+ (max label-height (- bottom top)) bottom-margin wtm wbm tm bm)
-		     parent-height))))))
-      (window-set-viewport-position* menu left top)
+	    (entity-set-size 
+	      menu
+	      (min (+ (max label-width (- right left)) right-margin lm rm) parent-width)
+	      (min (+ (max label-height (- bottom top)) bottom-margin tm bm) parent-height)))))
+      (window-set-viewport-position menu left top)
       ;; blech
-      (clear-input menu))))
+      (stream-clear-input menu))))
 
+#+Silica
+(defun size-menu-appropriately (menu &key (right-margin 10) (bottom-margin 10))
+  (with-slots (output-record) menu
+    (with-bounding-rectangle* (minx miny maxx maxy) output-record
+      (let* ((graft (graft menu))
+	     (gw (bounding-rectangle-width (sheet-region graft)))
+	     (gh (bounding-rectangle-height (sheet-region graft)))
+	     ;; (vw (ws::pane-viewport menu))
+	     (width (min gw (+ (- maxx minx) right-margin)))
+	     (height (min gh (+ (- maxy miny) bottom-margin))))
+
+	(ws::change-space-req menu :hs width :vs height)
+	;; --- Damn.  How do we get this to propagate the size change up
+	;; the tree so that the whole frame gets re-size to the pane?
+	;; For now, kludge it by setting the frame size directly.
+	;; Allow for scroll bar width
+	(ws::relayout-frame (pane-frame menu) (+ width 20) height)
+	;;(when vw (ws::change-space-req vw :hs width :vs height))
+	;;(resize-sheet* menu width height)
+
+	;; --- RR needs to fix this at some point.
+	;; --- It has to do with the viewport having a bad scrolling transform
+	;; after a resize.
+	(setf (sheet-transformation (sheet-parent menu))
+	      (make-translation-transformation 
+	       0 0 :reuse (sheet-transformation (sheet-parent menu))))))))
+
+#+Silica
+(defun position-window-near-carefully (menu x y)
+  (let* ((frame (pane-frame menu))
+	 (frame-manager (frame-manager frame))
+	 (graft (graft frame-manager)))
+    ;; Make sure the menu will fit inside the graft.
+    (with-bounding-rectangle* (min-x min-y max-x max-y) (sheet-region graft)
+      (multiple-value-bind (width height) (bounding-rectangle-size (sheet-region menu))
+	(setf x (max min-x (min x (- max-x width))))
+	(setf y (max min-y (min y (- max-y height))))))
+    (move-frame frame x y)))
+
+#+Ignore ;; Old version
+(defun position-window-near-carefully (menu x y)
+  ;; --- no "carefully" for now
+  (let ((frame (pane-frame menu)))
+    (ws::move-frame frame x y)))
+
+#-Silica
 (defun position-window-near-carefully (window x y)
   ;; unfortunately, the mouse-position is in window-parent coordinates
-  (multiple-value-bind (width height) (bounding-rectangle-size window)
+  (multiple-value-bind (width height) (entity-size window)
     (multiple-value-bind (parent-width parent-height)
 	(window-inside-size (window-parent window))
       (let* ((left x)
@@ -117,473 +169,352 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	  (setq left (- parent-width width)))
 	(when (> bottom parent-height)
 	  (setq top (- parent-height height)))
-	(bounding-rectangle-set-position* window
-					  (max 0 left) (max 0 top))))))
+	(entity-set-position 
+	  window
+	  (max 0 left) (max 0 top))))))
 
-;; item-list := (item*)
-;; item := object | (name :value object) | (object . value)
-;; object := any lisp object.  It is written (using WRITE) into the menu using :ESCAPE NIL.
+;;; item-list := (item*)
+;;; item := object | (name :value object) | (object . value)
+;;; object := any lisp object.  It is written (using WRITE) into the menu using :ESCAPE NIL.
+
+(defun menu-item-value (menu-item &aux rest)
+  (cond ((atom menu-item) menu-item)
+	((atom (setq rest (cdr menu-item))) rest)
+	(t (getf rest :value))))
 
 (defun menu-item-display (menu-item)
   (cond ((atom menu-item) menu-item)
 	(t (first menu-item))))
 
-(defun menu-item-value (menu-item)
-  (let (rest)
-    (cond ((atom menu-item) menu-item)
-	  ((atom (setq rest (cdr menu-item))) rest)
-	  (t (getf rest :value (first menu-item))))))
-
-;; There is a semantic reason this is a macro: we don't want DEFAULT to get
-;; evaluated before it is needed
-(defmacro menu-item-getf (menu-item indicator &optional default)
-  `(let (rest)
-     (cond ((atom ,menu-item) nil)
-	   ((atom (setq rest (cdr ,menu-item))) nil)
-	   (t (getf rest ,indicator ,default)))))
-
 (defun menu-item-style (menu-item)
-  (menu-item-getf menu-item :style))
-
-(defun menu-item-documentation (menu-item)
-  (menu-item-getf menu-item :documentation))
+  (let (rest)
+    (cond ((atom menu-item) nil)
+	  ((atom (setq rest (cdr menu-item))) nil)
+	  (t (getf rest :style)))))
 
 (defun menu-item-item-list (menu-item)
-  (menu-item-getf menu-item :item-list))
-
-;; Perhaps misguided attempt at allowing performance win if you use
-;; simple unique-ids.
-(defvar *menu-choose-output-history-caches* 
-	(cons (make-hash-table :test #'eql)
-	      (make-hash-table :test #'equal)))
-
-(defun get-from-output-history-cache (unique-id id-test)
-  (let ((table (cond ((or (eql id-test 'eql)
-			  (eql id-test '#,#'eql))
-		      (car *menu-choose-output-history-caches*))
-		     ((or (eql id-test 'equal)
-			  (eql id-test '#,#'equal))
-		      (cdr *menu-choose-output-history-caches*)))))
-  (gethash unique-id table)))
-
-(defun set-output-history-cache (unique-id id-test new-value)
-  (let ((table (cond ((or (eql id-test 'eql)
-			  (eql id-test '#,#'eql))
-		      (car *menu-choose-output-history-caches*))
-		     ((or (eql id-test 'equal)
-			  (eql id-test '#,#'equal))
-		      (cdr *menu-choose-output-history-caches*)))))
-    (setf (gethash unique-id table) new-value)))
-
-(defsetf get-from-output-history-cache set-output-history-cache)
-
-(define-presentation-type menu-item ())
-
-(defun draw-standard-menu (menu presentation-type item-list default-item
-			   &key (item-printer #'print-menu-item)
-				max-width max-height n-rows n-columns
-				inter-column-spacing inter-row-spacing 
-				(cell-align-x ':left) (cell-align-y ':top)
-			   &aux default-presentation)
-  (formatting-item-list (menu :max-width max-width :max-height max-height
-			      :n-rows n-rows :n-columns n-columns
-			      :inter-column-spacing inter-column-spacing
-			      :inter-row-spacing inter-row-spacing
-			      :move-cursor nil)
-    (dolist (item item-list)
-      (let ((presentation
-	      (with-output-as-presentation (:stream menu
-					    :object item
-					    :type presentation-type
-					    :single-box t)
-		(formatting-cell (menu :align-x cell-align-x :align-y cell-align-y)
-		  (funcall item-printer item menu)))))
-	(when (and default-item (eql item default-item))
-	  (setf default-presentation presentation)))))
-  default-presentation)
+  (let (rest)
+    (cond ((atom menu-item) nil)
+	  ((atom (setq rest (cdr menu-item))) nil)
+	  (t (getf rest :item-list)))))
 
 (defun print-menu-item (menu-item &optional (stream *standard-output*))
   (let ((display (menu-item-display menu-item))
 	(string nil)
 	(style (menu-item-style menu-item)))
-    (cond ((stringp display)
-	   (setq string display))
-	  ;; This is a [horrible] kludge to get around the fact
+    (cond ((stringp display) (setq string display))
+	  ;; this is a [horrible] kludge to get around the fact
 	  ;; that we haven't made WRITE properly generic yet.
-	  (t
-	   (setq string (with-output-to-string (stream)
-			  (write display :stream stream :escape nil)))))
+	  (t (setq string (with-output-to-string (stream)
+			    (write display :stream stream :escape nil)))))
+    ;;(write-string string stream) ;; Old way to do output.
     (if style
 	(with-text-style (style stream)
 	  (write-string string stream))
 	(write-string string stream))))
 
-(defgeneric menu-choose (item-list &rest keys
-			 &key associated-window default-item default-style
-			      label printer presentation-type
-			      cache unique-id id-test cache-value cache-test
-			      max-width max-height n-rows n-columns
-			      inter-column-spacing inter-row-spacing
-			      cell-align-x cell-align-y
-			      pointer-documentation))
+;;; Perhaps misguided attempt at allowing performance win if you use
+;;; simple unique-ids.
+(defvar *menu-choose-output-history-caches* 
+	(cons (make-hash-table :test #'eql)
+	      (make-hash-table :test #'equal)))
 
-;; Are these reasonable defaults for UNIQUE-ID, CACHE-VALUE, ID-TEST, and CACHE-TEST?
-(defmethod menu-choose ((item-list t)
-			&rest keys
-			&key (associated-window (frame-top-level-window *application-frame*))
-			     default-item default-style
-			     label printer presentation-type
-			     (cache nil) (unique-id item-list) (id-test #'equal)
-			     (cache-value item-list) (cache-test #'equal)
-			     max-width max-height n-rows n-columns
-			     inter-column-spacing inter-row-spacing 
-			     (cell-align-x ':left) (cell-align-y ':top)
-			     pointer-documentation)
-  (declare (values value chosen-item gesture))
-  (declare (ignore keys))
-  (flet ((present-item (item stream)
-	   (present item presentation-type :stream stream)))
-    (declare (dynamic-extent #'present-item))
-    (let ((item-printer (cond (presentation-type #'present-item)
-			      (printer printer)
-			      (t #'print-menu-item)))
-	  ;; Lucid production compiler tries to use an undefined internal
-	  ;; variable if this LET isn't done.
-	  #+Lucid (item-list item-list))
-      (with-menu (menu associated-window)
-	#-Silica (setf (window-label menu) label)
-	(with-text-style (default-style menu)
-	  (with-end-of-line-action (:allow menu)
-	    (loop
-	      (multiple-value-bind (item gesture)
-		  (flet ((menu-choose-body (stream presentation-type)
-			   (draw-standard-menu stream presentation-type item-list default-item
-					       :item-printer item-printer
-					       :max-width max-width :max-height max-height
-					       :n-rows n-rows :n-columns n-columns
-					       :inter-column-spacing inter-column-spacing
-					       :inter-row-spacing inter-row-spacing 
-					       :cell-align-x cell-align-x
-					       :cell-align-y cell-align-y)))
-		    (declare (dynamic-extent #'menu-choose-body))
-		    (menu-choose-from-drawer 
-		      menu 'menu-item #'menu-choose-body
-		      :cache cache
-		      :unique-id unique-id :id-test id-test
-		      :cache-value cache-value :cache-test cache-test
-		      :pointer-documentation pointer-documentation))
-		(cond ((menu-item-item-list item)
-		       ;; Set the new item list, then go back through the loop
-		       (setq item-list (menu-item-item-list item)
-			     default-item nil)
-		       (clear-output-history menu))
-		      (t (return-from menu-choose
-			   (values (menu-item-value item) item gesture))))))))))))
+(defun get-from-output-history-cache (unique-id unique-id-test)
+  (let ((table (cond ((or (eql unique-id-test 'eql)
+			  (eql unique-id-test '#,#'eql))
+		      (car *menu-choose-output-history-caches*))
+		     ((or (eql unique-id-test 'equal)
+			  (eql unique-id-test '#,#'equal))
+		      (cdr *menu-choose-output-history-caches*)))))
+  (gethash unique-id table)))
 
-(defclass static-menu ()
-    ((name :initarg :name)
-     (menu-contents :initarg :menu-contents)
-     (default-presentation :initarg :default-presentation)
-     (root-window :initarg :root-window)
-     ;; In case we need to "compile" the menu on the fly
-     (item-list :initarg :item-list)
-     (default-item :initarg :default-item)
-     (default-style :initarg :default-style)
-     (printer :initarg :printer)
-     (presentation-type :initarg :presentation-type)
-     (drawer-args :initarg :drawer-args)))
+(defun set-output-history-cache (unique-id unique-id-test new-value)
+  (let ((table (cond ((or (eql unique-id-test 'eql)
+			  (eql unique-id-test '#,#'eql))
+		      (car *menu-choose-output-history-caches*))
+		     ((or (eql unique-id-test 'equal)
+			  (eql unique-id-test '#,#'equal))
+		      (cdr *menu-choose-output-history-caches*)))))
 
-(defmethod print-object ((static-menu static-menu) stream)
-  (print-unreadable-object (static-menu stream :type t :identity t)
-    (write (slot-value static-menu 'name) :stream stream :escape nil)))
+    (setf (gethash unique-id table) new-value)))
 
-(defmacro define-static-menu (name root-window item-list
-			      &rest keys
-			      &key default-item default-style
-				   printer presentation-type
-				   max-width max-height n-rows n-columns
-				   inter-column-spacing inter-row-spacing 
-				   (cell-align-x ':left) (cell-align-y ':top))
-  (declare (ignore max-width max-height n-rows n-columns
-		   inter-column-spacing inter-row-spacing cell-align-x cell-align-y))
-  (with-rem-keywords (drawer-keys keys
-		      '(:default-item :default-style :printer :presentation-type))
-    `(defvar ,name (define-static-menu-1 ',name ,root-window ',item-list
-					 :default-item ',default-item
-					 :default-style ',default-style
-					 :presentation-type ',presentation-type
-					 :printer ',printer
-					 :drawer-args ,(copy-list drawer-keys)))))
+(defsetf get-from-output-history-cache set-output-history-cache)
 
-(defun define-static-menu-1 (name root-window item-list
-			     &key default-item default-style
-				  printer presentation-type
-				  drawer-args)
-  (let ((menu-contents nil)
-	(default-presentation nil))
-    (when (typep root-window 'window-mixin)
-      ;; Build the static menu if we can
-      (flet ((present-item (item stream)
-	       (present item presentation-type :stream stream)))
-	(declare (dynamic-extent #'present-item))
-	(let ((item-printer (cond (presentation-type #'present-item)
-				  (printer printer)
-				  (t #'print-menu-item))))
-	  (with-menu (menu root-window)
-	    (with-text-style (default-style menu)
-	      (with-end-of-line-action (:allow menu)
-		(with-output-recording-options (menu :draw-p nil :record-p t)
-		  (setq menu-contents
-			(with-new-output-record (menu)
-			  (setq default-presentation
-				(apply #'draw-standard-menu
-				       menu 'menu-item item-list default-item
-				       :item-printer item-printer
-				       drawer-args)))))))))))
-    (make-instance 'static-menu :name name
-				:menu-contents menu-contents
-				:default-presentation default-presentation
-				:root-window root-window
-				;; Save this in case we have to rebuild the menu
-				:item-list item-list
-				:default-item default-item
-				:default-style default-style
-				:printer printer
-				:presentation-type presentation-type
-				:drawer-args drawer-args)))
-
-(defmethod menu-choose ((static-menu static-menu)
-			&rest keys
-			&key (associated-window (frame-top-level-window *application-frame*))
-			     label default-style pointer-documentation
-			&allow-other-keys)
-  (declare (values value chosen-item gesture))
-  (declare (dynamic-extent keys))
-  (with-slots (name menu-contents item-list default-presentation root-window)
-	      static-menu
-    (let ((this-root (window-root associated-window)))
-      (when (or (not (eql this-root root-window))
-		(null menu-contents))
-	;; If the root for the static menu is not the current root or the static
-	;; menu has never been filled in, then we have to recompute its contents.
-	(with-slots (default-item default-style printer presentation-type drawer-args)
-		    static-menu
-	  (let ((new-menu (define-static-menu-1 name this-root item-list
-						:default-item default-item
-						:default-style default-style
-						:printer printer 
-						:presentation-type presentation-type
-						:drawer-args drawer-args)))
-	    (setq menu-contents (slot-value new-menu 'menu-contents)
-		  default-presentation (slot-value new-menu 'default-presentation)
-		  root-window this-root)))))
+;;; What are reasonable defaults for CACHE, UNIQUE-ID, CACHE-VALUE, UNIQUE-ID-TEST, and
+;;; CACHE-VALUE-TEST?
+(defun menu-choose (item-list
+		     &key associated-window default-item default-style
+		     (cache nil) (unique-id item-list) (cache-value item-list)
+		     (unique-id-test #'equal) (cache-value-test #'equal)
+		     label
+		     printer
+		     presentation-type)
+  #+Genera (declare (values value chosen-item gesture))
+  (labels ((menu-choose (stream presentation-type)
+	     (draw-standard-menu stream presentation-type
+				 item-list (or default-item
+					       (first item-list))
+				 #'item-printer))
+	   (item-printer (item stream)
+	     (cond (presentation-type
+		    (present item presentation-type :stream stream))
+		   (printer
+		    (funcall printer item stream))
+		   (t (print-menu-item item stream)))))
+    (declare (dynamic-extent #'item-printer #'menu-choose))
     (with-menu (menu associated-window)
       #-Silica (setf (window-label menu) label)
+      #+Silica (reset-frame (pane-frame menu) :title label)
       (with-text-style (default-style menu)
-	(multiple-value-bind (item gesture)
-	    (menu-choose-from-drawer 
-	      menu 'menu-item #'ignore		;the drawer never gets called
-	      :cache static-menu
-	      :unique-id name
-	      :cache-value menu-contents
-	      :default-presentation default-presentation
-	      :pointer-documentation pointer-documentation)
+	(loop
+	  (multiple-value-bind (item gesture)
+	      (menu-choose-from-drawer 
+		menu 'menu-item
+		#'menu-choose
+		:unique-id unique-id
+		:unique-id-test unique-id-test
+		:cache-value cache-value
+		:cache-value-test cache-value-test
+		:cache cache))
 	  (cond ((menu-item-item-list item)
-		 (with-rem-keywords (keys keys '(:default-item))
-		   (apply #'menu-choose (menu-item-item-list item) keys)))
-		(t
-		 (return-from menu-choose
-		   (values (menu-item-value item) item gesture)))))))))
+		 ;; set the new item list then go back through the loop
+		 (setq item-list (menu-item-item-list item) default-item nil)
+		 (clear-output-history menu))
+		(t (return-from menu-choose (values (menu-item-value item)
+						    item
+						    gesture)))))))))
 
-;; The drawer gets called with (stream presentation-type &rest drawer-args).
-;; It can use presentation-type for its own purposes.  The most common uses are:
-;;  1) Using that type as the presentation-type of the presentations it makes for each item
-;;  2) Using that type to find a printer for PRESENT purposes
-;;  3) Presenting a different set of choices based on the type, or graying over things
-;;     that are of different types.  See example below
+;(defun draw-standard-menu (menu presentation-type item-list)
+;  (dolist (item item-list)
+;    ;; this will eventually call PRESENT itself.
+;    (with-output-as-presentation (:stream menu
+;				  :object item
+;				  :type presentation-type)
+;      (print-menu-item item menu))
+;    (terpri menu)))
 
-(defmacro with-mouse-grabbed-in-window ((window &rest options) &body body)
-  `(with-mouse-grabbed-in-window-internal ,window #'(lambda () ,@body)
-					  ,@options))
+(defun draw-standard-menu (menu presentation-type item-list default-item
+			   &optional (item-printer #'print-menu-item)
+			   &aux default-pres)
+  (formatting-item-list (menu :move-cursor nil)
+    (dolist (item item-list)
+      ;; this will eventually call PRESENT itself.
+      (let ((pres (with-output-as-presentation (:stream menu
+					    :object item
+					    :type presentation-type
+					    :single-box T)
+		(formatting-cell (menu)
+		  (funcall item-printer item menu)))))
+	(when (eql item default-item) (setf default-pres pres)))))
+  default-pres)
 
-(defmethod with-mouse-grabbed-in-window-internal (window continuation &key)
-  (declare (ignore window))
-  (funcall continuation))
+(defun position-window-at-pointer (window &optional x y)
+  (unless (and x y)
+    (multiple-value-setq (x y)
+      #-Silica 
+      (stream-pointer-position-in-window-coordinates (window-parent window))
+      #+Silica
+      (poll-pointer (graft window))))
+  (position-window-near-carefully window x y))
+  
 
-(defmacro with-menu-as-a-popup ((menu) &body body)
-  `(with-menu-as-a-popup-internal ,menu #'(lambda () ,@body)))
-
-(defmethod with-menu-as-a-popup-internal (window continuation)
-  (declare (ignore window))
-  (funcall continuation))
-
-
-#+excl
-(defvar *click-outside-menu-handler* nil)
-
-(defun menu-choose-from-drawer (menu type drawer
-				     &key x-position y-position
-				     cache unique-id (id-test #'equal) 
-				     (cache-value t) (cache-test #'eql)
-					  ;; for use by HIERARCHICHAL-MENU-CHOOSE
+;;; The drawer gets called with (stream presentation-type &rest drawer-args).
+;;; It can use presentation-type for its own purposes.  The most common uses
+;;; are
+;;;  1) Using that type as the presentation-type of the presentations it makes for each item
+;;;  2) Using that type to find a printer for PRESENT purposes
+;;;  3) Presenting a different set of choices based on the type, or graying over things
+;;;     that are of different types.  See example below
+(defun menu-choose-from-drawer (menu type drawer &key
+				     x-position y-position
+				     ;; for use by hierarchichal-menu-choose
 				     leave-menu-visible
-				     (default-presentation nil)
-				     pointer-documentation)
-  ;;--- This should be done in a more modular way
-  ;;--- If you change this, change RUN-FRAME-TOP-LEVEL :AROUND
-  (flet (#+excl
-	 (abort-menu-handler () 
-	   (return-from menu-choose-from-drawer nil)))
-    (let (#+excl
-	  (*click-outside-menu-handler* #'abort-menu-handler)
-	(*original-stream* nil)
-	(*input-wait-test* nil)
-	(*input-wait-handler* nil)
-	(*pointer-button-press-handler* nil)
-	(*generate-button-release-events* nil)
-	(*numeric-argument* nil)
-	(*blip-characters* nil)
-	(*activation-characters* nil)
-	(*accelerator-characters* nil)
-	(*input-context* nil)
-	(*accept-help* nil)
-	(*assume-all-commands-enabled* nil)
-	(*sizing-application-frame* nil)
-	(*command-parser* 'command-line-command-parser)
-	(*command-unparser* 'command-line-command-unparser)
-	(*partial-command-parser*
-	 'command-line-read-remaining-arguments-for-partial-command))
-    ;; We could make the drawer a lexical closure, but that would then
-    ;; partially defeat the purpose of the uid and cache-value because we'd cons the closure
-    ;; whether or not we ran it.
-    (let* ((cached-output-history-info
-	    (when cache
-	      (if (typep cache 'static-menu)
-		  cache-value
-		(get-from-output-history-cache unique-id id-test))))
-	   (cached-menu-contents
-	    (when cached-output-history-info
-	      (if (typep cache 'static-menu)
-		  cached-output-history-info
-		(let* ((contents (pop cached-output-history-info))
-		       (value cached-output-history-info))
-		  (when (funcall cache-test value cache-value)
-		    contents))))))
-      (cond (cached-menu-contents
-	     (add-output-record menu cached-menu-contents))
-	    (t
-	     ;; "Draw" into deexposed menu for sizing only
-	     (with-output-recording-options (menu :draw-p nil :record-p t)
-					    (let ((menu-contents
-						   (with-new-output-record (menu)
-									   (setq default-presentation (funcall drawer menu type)))))
-					      (when cache
-						(setf (get-from-output-history-cache unique-id id-test)
-						      (cons menu-contents cache-value))))))))
-    (size-menu-appropriately menu)
-    (unless (and x-position y-position)
-      (multiple-value-setq (x-position y-position)
-	  (stream-pointer-position-in-window-coordinates (window-parent menu))))
-    
-    (unwind-protect
-	(with-menu-as-a-popup (menu)
-	  (position-window-near-carefully menu x-position y-position)
-	  (window-expose menu)
-	  #+Cloe-Runtime (stream-set-input-focus menu)
-	  (when default-presentation
-	    (with-bounding-rectangle* (left top right bottom) default-presentation
-				      (stream-set-pointer-position*
-				       menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
-	  ;; Pointer documentation usually adds no information, and slows things
-	  ;; down in a big way, which is why we defaultly disable it.
-	  (let ((*pointer-documentation-output* pointer-documentation))
-	    (with-input-context (type :override t)
-				(object presentation-type gesture)
-	      (labels ((input-wait-test (menu)
-			 ;; Wake up if the menu becomes buried, or if highlighting is needed
-			 (or (and *abort-menus-when-buried*
-				  #+Cloe-Runtime
-				  (not (stream-has-input-focus menu))
-				  #-Cloe-Runtime
-				  (not (window-visibility menu)))
-			     (pointer-motion-pending menu)))
-		       (input-wait-handler (menu)
-			 ;; Abort if the menu becomes buried
-			 (when (and *abort-menus-when-buried*
-				    #+Cloe-Runtime
-				    (not (stream-has-input-focus menu))
-				    #-Cloe-Runtime
-				    (not (window-visibility menu)))
-			   (return-from menu-choose-from-drawer nil))
-			 ;; Take care of highlighting
-			 (highlight-presentation-of-context-type menu)))
-		(declare (dynamic-extent #'input-wait-test #'input-wait-handler))
-		;; Await exposure before going any further, since X can get
-		;; to the call to READ-GESTURE before the menu is visible.
-		(when *abort-menus-when-buried*
-		  (wait-for-window-exposed menu))
-		(with-mouse-grabbed-in-window (menu)
-					      (loop (read-gesture :stream menu
-								  :input-wait-test #'input-wait-test
-								  :input-wait-handler #'input-wait-handler)
-						    (beep))))
-				(t (values object gesture)))))
-      (unless leave-menu-visible
-	(setf (window-visibility menu) nil))
-      (force-output menu)))))
+				     unique-id (cache-value T) cache
+				     (unique-id-test #'equal) (cache-value-test #'eql)
+				     &aux default-presentation)
+  ;; We could make the drawer a lexical closure, but that would then
+  ;; partially defeat the purpose of the uid and cache-value because we'd cons the closure
+  ;; whether or not we ran it.
+  ;; yecch
+  (stream-set-cursor-position* menu 5 5)
+  (let ((old-output-history-info
+	  (and cache (get-from-output-history-cache unique-id unique-id-test)))
+	(old-menu-contents nil))
+    (cond ((and old-output-history-info
+		(setq old-menu-contents (pop old-output-history-info))
+		(funcall cache-value-test old-output-history-info cache-value))
+	   (add-output-record menu old-menu-contents))
+	  (t
+	   ;; "Draw" into deexposed menu for sizing only
+	   (with-output-recording-options (menu :draw-p nil :record-p t)
+	     (let ((old-contents
+		     (with-new-output-record (menu)
+		       (setf default-presentation (funcall drawer menu type)))))
+	       (when cache
+		 (setf (get-from-output-history-cache unique-id unique-id-test)
+		       (cons old-contents cache-value))))))))
+  (size-menu-appropriately menu)
+  (position-window-at-pointer menu x-position y-position)
+  (unwind-protect
+      (with-simple-abort-restart ("Exit the menu")
+	;;; --- Figure out later why this is necessary...
+	;;; it isn't now, 'cause we set the viewport in size-menu-appropriately
+	;;(window-set-viewport-position menu 0 0)
+	(window-expose menu)
+	(when default-presentation
+	  (multiple-value-bind (left top right bottom)
+	      (entity-edges default-presentation)
+	    (stream-set-pointer-position*
+	      menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
+	;; Menus DON'T want a blinking cursor...
+	(with-cursor-visibility (nil menu)
+	  (with-input-context (type :override T)
+			      (object presentation-type gesture)
+	       (loop (read-gesture :stream menu)
+		     (beep))
+	     (t (values object gesture)))))
+    (unless leave-menu-visible
+      (window-set-visibility menu nil))
+    (stream-force-output menu)))
 
+#||
+(defun choose-graphical-icon (icon-list &key parent cache)
+  (labels ((draw-icon (icon stream)
+	     (ecase icon
+	       ((:rectangle :square) (draw-rectangle* 0 0 20 20 :stream stream))
+	       (:triangle (draw-triangle* 0 0 20 0 10 20 :stream stream))
+	       (:circle (draw-circle* 10 10 10 :stream stream))))
+	   (draw-icon-menu (menu presentation-type)
+	     #+Genera (declare (sys:downward-function))
+	     (formatting-table (menu :inter-row-spacing 5)
+	       (dolist (icon icon-list)
+		 (with-output-as-presentation (:stream menu
+					       :object icon
+					       :type presentation-type)
+		   (formatting-row (menu)
+		     (formatting-cell (menu)
+		       (with-user-coordinates (menu)
+			 (draw-icon icon menu)))))))
+	     nil))
+    (with-menu (menu parent)
+      (menu-choose-from-drawer menu 'menu-item #'draw-icon-menu :unique-id icon-list 
+			       :cache cache
+			       :cache-value T))))
+
+;;; Why is this so much damn faster to pop up than CLIM?
+(defun choose-graphical-icon-dw (icon-list &key parent)
+  (labels ((draw-icon (icon stream)
+	     (ecase icon
+	       ((:rectangle :square) (graphics:draw-rectangle 0 0 20 20 :stream stream))
+	       (:triangle (graphics:draw-triangle 0 0 20 0 10 20 :stream stream))
+	       (:circle (graphics:draw-circle 10 10 10 :stream stream))))
+	   (draw-icon-menu (menu &rest ignored)
+	     #+Genera (declare (sys:downward-function))
+	     (scl:formatting-table (menu :inter-row-spacing 5)
+	       (dolist (icon icon-list)
+		 (dw:with-output-as-presentation (:stream menu
+					       :object icon
+					       :type 'symbol)
+		   (scl:formatting-row (menu)
+		     (scl:formatting-cell (menu)
+		       (multiple-value-bind (x y)
+			   (scl:send menu :read-cursorpos)
+			 (graphics:with-graphics-translation (menu x y)
+			   (draw-icon icon menu))))))))
+	     nil))
+    (dw:menu-choose-from-drawer #'draw-icon-menu 'symbol)))
+
+(defun draw-number-menu (menu presentation-type)
+  (formatting-table (menu)
+    (do ((i 1 (1+ i)))
+	((= i 11))
+      (formatting-row (menu)
+	(formatting-cell (menu)
+	  (with-user-coordinates (menu)
+	    (let* ((type (if (oddp i) 'odd 'even))
+		   (presentation (with-output-as-presentation
+				   (:stream menu
+				    :type type
+				    :object i)
+				   (draw-string* (format nil "~2,' D" i) 0 0 :stream menu)
+				   ;; Write-string will try to write
+				   ;; at, say, 300, 300.  Some thought is required
+				   #+Ignore
+				   (write-string (format nil "~D" i) menu))))
+	      (unless (eql presentation-type type)
+		(let ((extent presentation))
+		  (multiple-value-bind (left top right bottom) (entity-edges extent)
+		    (multiple-value-bind (x y) (entity-position presentation)
+		      (draw-rectangle* (+ left x) (+ top y)
+				       (+ right x) (+ bottom y)
+				       :scale-x 1 :scale-y -1
+				       :gray-level .1 :stream menu))))))))))))
+
+(defun style-and-multiple-item-test (root)
+  (let ((apple-item (list "Apples" :value :apples :style '(nil :bold nil)))
+	(orange-item (list "Oranges" :value :oranges :style '(nil (:bold :italic) nil)))
+	(grapes (list "Grapes, normal" :value :grapes :style '(nil :italic nil)))
+	(grapefruit (list "Grapes, sour" :value :grapefruit :style '(nil nil :large))))
+    (menu-choose (list apple-item orange-item grapes grapefruit) :default-item orange-item
+		 :default-style '(nil nil :very-large) :parent root)))
+
+(defun gray-number-test (&optional (presentation-type 'odd))
+  (with-menu (menu root)			;aaugh!
+    (menu-choose-from-drawer menu presentation-type #'draw-number-menu)))
+
+||#
 
 (defun hierarchical-menu-choose (item-list
-				 &key (associated-window
-					(frame-top-level-window *application-frame*))
-				      default-item default-style
-				      label printer presentation-type
+				 &key associated-window default-item default-style
 				      x-position y-position
-				      (cache nil)
-				      (unique-id item-list) (id-test #'equal)
-				      (cache-value item-list) (cache-test #'equal)
-				      max-width max-height n-rows n-columns
-				      inter-column-spacing inter-row-spacing 
-				      (cell-align-x ':left) (cell-align-y ':top))
-  (declare (values value chosen-item gesture))
-  (flet ((present-item (item stream)
-	   (present item presentation-type :stream stream)))
-    (declare (dynamic-extent #'present-item))
-    (let ((item-printer (cond (presentation-type #'present-item)
-			      (printer printer)
-			      (t #'print-menu-item))))
-      (with-menu (menu associated-window)
-	#-Silica (setf (window-label menu) label)
-	(with-text-style (default-style menu)
-	  (multiple-value-bind (item gesture)
-	      (flet ((menu-choose-body (stream presentation-type)
-		       (draw-standard-menu stream presentation-type item-list default-item
-					   :item-printer item-printer
-					   :max-width max-width :max-height max-height
-					   :n-rows n-rows :n-columns n-columns
-					   :inter-column-spacing inter-column-spacing
-					   :inter-row-spacing inter-row-spacing 
-					   :cell-align-x cell-align-x :cell-align-y cell-align-y)))
-		(declare (dynamic-extent #'menu-choose-body))
+				      (cache nil) (unique-id item-list)
+				      (cache-value item-list)
+				      (unique-id-test #'equal) (cache-value-test #'equal)
+				      label printer presentation-type)
+  #+Genera (declare (values value chosen-item gesture))
+  (labels ((menu-choose (stream presentation-type)
+	     (draw-standard-menu stream presentation-type
+				 item-list (or default-item
+					       (first item-list))
+				 #'item-printer))
+	   (item-printer (item stream)
+	     #+Genera (declare (sys:downward-function))
+	     (cond (presentation-type
+		    (present item presentation-type :stream stream))
+		   (printer
+		    (funcall printer item stream))
+		   (t (print-menu-item item stream)))))
+    (declare (dynamic-extent #'menu-choose #'item-printer))
+    (with-menu (menu associated-window)
+      #-Silica (setf (window-label menu) label)
+      #+Silica (reset-frame (pane-frame menu) :title label)
+      (with-text-style (default-style menu)
+	(unwind-protect
+	    (multiple-value-bind (item gesture)
 		(menu-choose-from-drawer
-		  menu 'menu-item #'menu-choose-body
+		  menu 'menu-item #'menu-choose
 		  :x-position x-position :y-position y-position
 		  :leave-menu-visible t
-		  :cache cache
-		  :unique-id unique-id :id-test id-test
-		  :cache-value cache-value :cache-test cache-test))
-	    (cond ((menu-item-item-list item)
-		   (with-bounding-rectangle* (ml mt mr mb) menu
-		     (declare (ignore ml mb))
-		     ;;--- How to pass on LABEL, PRINTER, and PRESENTATION-TYPE?
-		     (hierarchical-menu-choose
-		       (menu-item-item-list item)
-		       :associated-window associated-window
-		       :default-style default-style
-		       :x-position mr :y-position mt
-		       :cache cache
-		       :unique-id unique-id :id-test id-test
-		       :cache-value cache-value :cache-test cache-test)))
-		  (t (return-from hierarchical-menu-choose
-		       (values (menu-item-value item) item gesture))))))))))
-
+		  :unique-id unique-id
+		  :unique-id-test unique-id-test
+		  :cache-value cache-value
+		  :cache-value-test cache-value-test
+		  :cache cache)
+	      (cond ((menu-item-item-list item)
+		     (multiple-value-bind (ml mt mr mb) (entity-edges menu)
+		       (declare (ignore ml mb))
+		       ;;--- How to pass on LABEL, PRINTER, and PRESENTATION-TYPE?
+		       (hierarchical-menu-choose (menu-item-item-list item)
+						 :associated-window associated-window
+						 :default-style default-style
+						 :x-position mr :y-position mt
+						 :unique-id unique-id
+						 :unique-id-test unique-id-test
+						 :cache-value cache-value
+						 :cache-value-test cache-value-test
+						 :cache cache)))
+		    (t (return-from hierarchical-menu-choose
+			 (values (menu-item-value item)
+				 item
+				 gesture)))))
+	  (window-set-visibility menu nil))))))
