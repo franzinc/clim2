@@ -30,6 +30,7 @@ XtPopup
 XtQueryGeometry
 XtRealizeWidget
 XtRemoveAllCallbacks
+XtSetKeyboardFocus
 XtSetSensitive
 XtSetValues
 XtToolkitInitialize

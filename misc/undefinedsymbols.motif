@@ -1,5 +1,6 @@
 XmStringCreateLtoR
 XmStringGetLtoR
+XmGetFocusWidget
 XmGetPixmap
 XmFontListInitFontContext
 XmFontListFreeFontContext
@@ -7,6 +8,7 @@ XmFontListGetNextFont
 XmFontListCreate
 XmAddProtocolCallback
 XmInternAtom
+XmIsTraverable
 XmMainWindowSetAreas
 XmProcessTraversal
 XmMessageBoxGetChild
