@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.14 92/09/30 11:44:33 cer Exp $
+;; $fiHeader: event.lisp,v 1.15 92/11/20 08:46:06 cer Exp $
 
 (in-package :tk)
 
@@ -46,19 +46,23 @@
 
 
 (defun wait-for-event (context &key timeout wait-function)
-  (let ((mask 0)
-	(fds (mapcar #'(lambda (display)
-			 (x11::display-fd display))
-		     (application-context-displays context)))
-	(reason nil))
+  (let* ((mask 0)
+	 (fds (mapcar #'(lambda (display)
+			  (x11::display-fd display))
+		      (application-context-displays context)))
+	 result
+	 (reason nil))
     (declare (fixnum mask))
     
     (flet ((wait-function (fd)
 	     (declare (ignore fd))
-	     (or (plusp (setq mask (xt_app_pending context)))
-		 (and wait-function
-		      (funcall wait-function)
-		      (setq reason :wait)))))
+	     (let ((*inside-event-wait-function* fds))
+	       (setq result
+		 (catch *inside-event-wait-function*
+		   (or (plusp (setq mask (xt_app_pending context)))
+		       (and wait-function
+			    (funcall wait-function)
+			    (setq reason :wait))))))))
       (let* ((interval (xt_app_interval_next_timer context))
 	     (new-timeout (if (plusp interval)
 			      (if (and timeout

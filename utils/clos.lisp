@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.8 92/11/06 19:04:58 cer Exp $
+;; $fiHeader: clos.lisp,v 1.9 92/12/01 09:47:28 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -268,7 +268,7 @@
 	 (accessor-arg (first (last lambda-list)))
 	 (setf-function-name (make-setf*-function-name accessor-name)))
     `(define-group ,function-spec defgeneric*
-       (defgeneric ,function-spec ,lambda-list ,@options)
+       (defgeneric ,(make-setf*-function-name accessor-name) ,lambda-list ,@options)
        ,(expand-defsetf-for-defmethod* accessor-name accessor-arg
 				       lambda-list setf-function-name))))
 

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: chess.lisp,v 1.8 92/09/08 10:35:02 cer Exp $
+;; $fiHeader: chess.lisp,v 1.9 92/09/24 09:39:40 cer Exp $
 
 
 (in-package :clim-user)
@@ -169,7 +169,7 @@
 		    (push (list key
 				(xm-silica::make-pattern-from-file
 				  (format nil
-				      "~~/stuff/gnuchess/Xchess/~a.bitmap" 
+				      "~/3rd/gnuchess/Xchess/~a.bitmap" 
 				    which)
 				  (list (if square +black+ +white+)
 					(ecase color
@@ -204,7 +204,7 @@
 (defun create-chess-subprocess ()
   (multiple-value-bind (stream something pid)
       (excl::run-shell-command 
-	"~/stuff/gnuchess/gnuchessr" 
+	"~/3rd/gnuchess/gnuchessr" 
 	:wait nil 
 	:error-output :output
 	:input :stream :output :stream)

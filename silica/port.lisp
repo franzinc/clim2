@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.28 92/12/14 15:03:36 cer Exp $
+;; $fiHeader: port.lisp,v 1.29 92/12/16 16:49:39 cer Exp $
 
 (in-package :silica)
 
@@ -146,15 +146,12 @@
 			   :condition condition
 			   :sheet sheet)))))
 
-
-(defgeneric add-watcher (port watcher))
-(defgeneric remove-watcher (port watcher))
-(defgeneric reset-watcher (watcher how))
-
-
 ;;;;;;;;;;;;;;;;
 
 (define-protocol-class graft (sheet))
+
+(defgeneric graft-orientation (graft))
+(defgeneric graft-units (graft))
 
 (defclass standard-graft 
 	  (mirrored-sheet-mixin
@@ -171,6 +168,18 @@
      (mm-width :reader graft-mm-width)
      (mm-height :reader graft-mm-height)
      (pixels-per-point :reader graft-pixels-per-point)))
+
+(defgeneric graft-pixels-per-millimeter (graft))
+
+(defmethod graft-pixels-per-millimeter ((graft standard-graft))
+  (with-slots (mm-width pixel-width) graft
+    (/ pixel-width mm-width)))
+
+(defgeneric graft-pixels-per-inch (graft))
+
+(defmethod graft-pixels-per-inch ((graft standard-graft))
+  (with-slots (mm-width pixel-width) graft
+    (* 25.4 (/ pixel-width mm-width))))
 
 (defun find-graft (&key (server-path *default-server-path*)
 			(port (find-port :server-path server-path))
@@ -256,12 +265,4 @@
 (defmethod graft ((graft standard-graft)) graft)
 
 (defmethod graft ((object t)) nil)
-
-
-(defgeneric graft-orientation (graft))
-(defgeneric graft-units (graft))
-(defgeneric graft-width (graft))
-(defgeneric graft-height (graft))
-(defgeneric graft-pixels-per-millimeter (graft))
-(defgeneric graft-pixels-per-inch (graft))
 
