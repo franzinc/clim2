@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.34 93/02/08 15:56:57 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.35 93/03/18 14:36:56 colin Exp $
 
 (in-package :clim-internals)
 
@@ -400,7 +400,7 @@
 					   cursor-x cursor-y baseline height style
 					   max-x record-p draw-p)
   (let ((text-style (merge-text-styles '(nil nil :very-small) 
-				       (port-default-text-style (port stream))))
+				       *default-text-style*))
 	(ink (medium-ink stream))
 	(name (char-name character)))
     (setq name (if name

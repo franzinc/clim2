@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.32 93/01/11 15:45:18 colin Exp $
+;; $fiHeader: medium.lisp,v 1.33 93/03/18 14:38:09 colin Exp $
 
 (in-package :silica)
 
@@ -98,8 +98,17 @@
     ((foreground :initform nil :accessor pane-foreground)
      (background :initform nil :accessor pane-background)
      (text-style :initform nil :accessor pane-text-style)
-     (initargs :initform nil :reader sheet-with-resources-initargs)))
-
+     (default-foreground :initarg :default-foreground
+                         :reader default-pane-foreground)
+     (default-background :initarg :default-background
+                         :reader default-pane-background)
+     (default-text-style :initarg :default-text-style
+                         :reader default-pane-text-style)
+     (initargs :initform nil :reader sheet-with-resources-initargs))
+  (:default-initargs :default-foreground *default-pane-foreground*
+                     :default-background *default-pane-background*
+		     :default-text-style *default-text-style*))
+  
 (defmethod initialize-instance :after 
 	   ((sheet sheet-with-resources-mixin) &rest args)
   (with-slots (initargs) sheet
@@ -114,17 +123,25 @@
 ;;-- properties from the parent.
 
 (defmethod note-sheet-grafted :before ((sheet sheet-with-resources-mixin)) 
-  (let ((initargs (sheet-with-resources-initargs sheet))
-	(resources (get-sheet-resources (port sheet) sheet)))
-    (setf (pane-foreground sheet) (or (getf initargs :foreground) 
-				      (getf resources :foreground)
-				      *default-pane-foreground*)
-	  (pane-background sheet) (or (getf initargs :background) 
-				      (getf resources :background)
-				      *default-pane-background*)
-	  (pane-text-style sheet) (or (getf initargs :text-style) 
-				      (getf resources :text-style)
-				      *default-text-style*))))
+  (let* ((port (port sheet))
+	 (palette (port-default-palette port))
+	 (initargs (sheet-with-resources-initargs sheet))
+	 (resources (get-sheet-resources port sheet)))
+    (flet ((ensure-color (color)
+	     (etypecase color
+	       (color color)
+	       (string (find-named-color color palette)))))
+      (setf (pane-foreground sheet) (ensure-color
+				     (or (getf initargs :foreground) 
+					 (getf resources :foreground)
+					 (default-pane-foreground sheet)))
+	    (pane-background sheet) (ensure-color
+				     (or (getf initargs :background) 
+					 (getf resources :background)
+					 (default-pane-background sheet)))
+	    (pane-text-style sheet) (or (getf initargs :text-style) 
+					(getf resources :text-style)
+					(default-pane-text-style sheet))))))
 
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (sheet sheet-with-resources-mixin))
