@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: temp-strings.lisp,v 1.5 92/03/10 10:12:54 cer Exp $
+;; $fiHeader: temp-strings.lisp,v 1.6 92/08/18 17:25:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,7 +15,7 @@
 (defresource temporary-string
 	     (&key (length 100) (adjustable t))
   :constructor (make-array length
-			   :element-type 'character
+			   :element-type #+ANSI-90 'character #-ANSI-90 'string-char
 			   :fill-pointer 0
 			   :adjustable adjustable)
   :matcher (and (eq adjustable (adjustable-array-p temporary-string))
@@ -37,7 +37,7 @@
 (defmacro evacuate-temporary-string (string-var)
   `(if (temporary-string-p ,string-var)
        (make-array (length ,string-var)
-		   :element-type 'character
+		   :element-type #+ANSI-90 'character #-ANSI-90 'string-char
 		   :fill-pointer (length ,string-var)
 		   :initial-contents ,string-var)
        ,string-var))
