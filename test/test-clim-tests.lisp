@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.11 1993/07/27 01:52:12 colin Exp $
+;; $fiHeader: test-clim-tests.lisp,v 1.1 1993/08/12 16:04:23 cer Exp $
 
 
 (in-package :clim-user)
@@ -228,14 +228,15 @@
 
 
 (defun profile-clim-tests ()
-  (exercise-frame 'test-it
-		  'clim-tests
-		  '(:width 600 :height 400)
-		  (mapcan #'(lambda (benchmark-group)
-			      (mapcar #'list (cdr benchmark-group)))
-			  *summary-contributions*)
-		  `(exit-clim-tests)
-		  :error errorp))
+  (let ((errorp *catch-errors-in-tests*))
+    (exercise-frame 'test-it
+		    'clim-tests
+		    '(:width 600 :height 400)
+		    (mapcan #'(lambda (benchmark-group)
+				(mapcar #'list (cdr benchmark-group)))
+			    *summary-contributions*)
+		    `(exit-clim-tests)
+		    :error errorp)))
 
 (defun run-profile-clim-tests (&optional (prefix "notes/profiles"))
   (let ((prof::*hidden-packages* nil)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.23 93/04/08 13:18:39 colin Exp $
+;; $fiHeader: gcontext.lisp,v 1.24 1993/07/27 01:52:55 colin Exp $
 
 (in-package :tk)
 
@@ -100,6 +100,15 @@
 			(error "Cannot find ~S in gcontext components" name)))
 	    gc-values)
 	   nv))))
+  
+  (defmacro define-gc-writer-function (name function encoder &rest args)
+    `(progn
+       (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
+	   (nv (gc gcontext))
+	 (,function
+	  (object-display gc)
+	  gc
+	  (,encoder gc nv ,@args)))))
 
   (defmacro define-gc-reader (name decoder &rest args)
     `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
@@ -180,11 +189,12 @@
 
 ;;; Accessors for the gc
 
-(define-gc-accessor function (encode-function decode-function))
-(define-gc-accessor plane-mask (encode-card32 decode-card32))
+(define-gc-reader function decode-function)
 
-;(define-gc-accessor foreground (encode-pixel decode-pixel))
-;(define-gc-accessor background  (encode-pixel decode-pixel))
+(define-gc-writer-function function x11:xsetfunction encode-function)
+
+(define-gc-reader plane-mask decode-card32)
+(define-gc-writer-function plane-mask x11:xsetplanemask encode-card32)
 
 (defmethod gcontext-foreground ((gc gcontext))
   (decode-pixel gc (x11::_xgc-values-foreground gc)))
@@ -236,9 +246,14 @@
    (encode-fill-style gc nv)))
   
 
-(define-gc-accessor fill-rule (encode-enum decode-enum) '(:even-odd :winding))
-(define-gc-accessor tile  (encode-pixmap decode-pixmap))
-(define-gc-accessor stipple  (encode-pixmap decode-pixmap))
+(define-gc-reader fill-rule decode-enum '(:even-odd :winding))
+(define-gc-writer-function fill-rule x11:xsetfillrule encode-enum '(:even-odd :winding))
+
+(define-gc-reader tile decode-pixmap)
+(define-gc-writer-function tile x11:xsettile encode-pixmap)
+
+(define-gc-reader stipple decode-pixmap)
+(define-gc-writer-function stipple x11:xsetstipple encode-pixmap)
 
 (defun encode-pixmap (gc x)
   (declare (ignore gc))
@@ -248,7 +263,9 @@
 (define-gc-accessor ts-y-origin (encode-int16  decode-int16))
 
    
-(define-gc-accessor font (encode-font decode-font))
+(define-gc-reader font decode-font)
+(define-gc-writer-function font x11:xsetfont encode-font)
+
 (define-gc-accessor cap-style (encode-cap-style decode-cap-style))
 
 (defun encode-cap-style (gc x)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.58 1993/07/30 23:58:36 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.59 1993/08/12 16:05:03 cer Exp $
 
 
 (in-package :xm-silica)
@@ -821,12 +821,11 @@
   (let ((mirror (sheet-direct-mirror rb)))
     (multiple-value-bind (orientation measure)
 	(tk::get-values mirror :layout-type :measure)
-      (let* ((sum-w 0)
-	     (max-w 0)
+      (let* ((max-w 0)
 	     (max-h 0)
-	     (sum-h 0)
 	     (all-children (tk::widget-children mirror))
-	     (n (ceiling (length all-children) measure)))
+	     (n (ceiling (length all-children) measure))
+	     (max-column-widths (make-list n :initial-element 0)))
 
 	(let ((children all-children)
 	      child)
@@ -835,49 +834,44 @@
 
 	    ;; Walk over one row/column
 	  
-	    (let ((one-sum-w 0)
-		  (one-max-w 0)
-		  (one-max-h 0)
-		  (one-sum-h 0)
-		  (done 0))
+	    (let ((one-max-w 0)
+		  (one-max-h 0))
 
 	      (dotimes (i n)
 		(unless children (return nil))
-		(incf done)
 		(setq child (pop children))
 		(multiple-value-bind
 		    (ignore-x igore-y width height)
 		    (xt::widget-best-geometry child)
 		  (declare (ignore ignore-x igore-y))
 		  (maxf one-max-h height)
-		  (incf one-sum-w width)
-		  (incf one-sum-h height)
-		  (maxf one-max-w width)))
+		  (maxf one-max-w width)
+		  (maxf (elt max-column-widths i)
+			(case orientation
+			  (:fixedrows width)
+			  (:fixedcols height)))))
 	  
 	      ;; If there is more then we need to add some spacing in
 	  
 	      (ecase orientation
 		(:fixedrows 
 		 ;; We have just done a row
-		 (incf one-sum-w (* spacing (1- done)))
 		 (when children (incf one-max-h spacing))
-		 (maxf sum-w one-sum-w)
-		 (incf max-h one-max-h)
-		 )
+		 (incf max-h one-max-h))
 		(:fixedcols 
 		 ;; We have just done a colum
-		 (incf one-sum-h (* spacing done))
 		 (when children (incf one-max-w spacing))
-		 (maxf sum-h one-sum-h)
 		 (incf max-w one-max-w))))))
       
 	(ecase orientation
 	  (:fixedrows (make-space-requirement 
-		       :width sum-w
+		       :width (+ (reduce #'+ max-column-widths)
+				 (* spacing (1- n)))
 		       :height max-h))
 	  (:fixedcols (make-space-requirement 
 		       :width max-w 
-		       :height sum-h)))))))
+		       :height (+ (reduce #'+ max-column-widths)
+				  (* spacing (1- n))))))))))
 
 ;;;
 
@@ -1913,14 +1907,17 @@
 				     pattern
 				     text-style)
   (declare (ignore directory pattern text-style))
-  (let ((pathname nil)
-	(stream (frame-top-level-sheet frame)))
+  (let ((pathname (and directory (pathname directory)))
+	(stream (frame-top-level-sheet frame))
+	(view '(text-field-view :width (60 :character))))
     (accepting-values (stream :own-window t :label title :exit-boxes exit-boxes)
 	(setf pathname 
 	  (if pathname
 	      (accept 'pathname :prompt "File" :default pathname
+		      :view view
 		      :stream stream)
 	    (accept 'pathname :prompt "File"
+		    :view view
 		    :stream stream))))))
 
 (defmethod silica::port-set-pane-text-style ((port openlook-port) pane m text-style)

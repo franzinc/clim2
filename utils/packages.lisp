@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.57 1993/08/12 16:05:20 cer Exp $
+;; $fiHeader: packages.lisp,v 1.58 1993/09/07 21:47:44 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -10,7 +10,7 @@
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-lisp
-
+   #+Allegro (:implementation-packages :clim-lisp :clim-utils)
  (:use #-ANSI-90 lisp #+ANSI-90 common-lisp
        #+Allegro clos
        #+(and CLIM-uses-lisp-stream-classes Allegro) stream)
@@ -1506,6 +1506,13 @@
 ;; Define the CLIM package
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
   (:use)				;use nothing
+  #+Allegro (:implementation-packages 
+	     :silica 
+	     :clim-utils 
+	     :clim-silica 
+	     :clim-internals
+	     :postscript-clim
+	     :xm-silica)
   (:import-from clim-lisp
     and
     character
@@ -3025,6 +3032,8 @@
 
 ;; Now define all of the implementation packages
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-utils
+   #+Allegro (:implementation-packages :clim-utils :clim-silica
+				       :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim)
 
   #+Genera
@@ -3342,7 +3351,8 @@
 
 
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-silica
-  (:nicknames silica pyrex)
+   (:nicknames silica pyrex)
+   #+Allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim clim-utils)
 
   #+CCL-2
@@ -3592,8 +3602,8 @@
 
 
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-internals
-  (:use	clim-lisp clim-sys clim clim-utils clim-silica)
-
+  (:use	:clim-lisp :clim-sys :clim :clim-utils :clim-silica)
+  #+Allegro (:implementation-packages :clim-internals :xt-silica)
   #+CCL-2
   (:shadowing-import-from clim-utils
     char=
@@ -3628,3 +3638,17 @@
 ;  (when (boundp symbol)
 ;    (dolist (sym '(clim:beep))
 ;      (push sym (symbol-value symbol)))))
+
+
+#+Allegro
+(flet ((lock-package (package)
+	 (setq package (find-package package))
+	 (setf (package-definition-lock package) t)))
+  (mapcar #'lock-package '(
+			   ;;-- We gotta fix the make-pane problem
+			   ;;-- first
+			   ;; clim
+			   clim-utils 
+			   clim-silica
+			   clim-internals 
+			   clim-lisp)))

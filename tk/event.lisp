@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.18 1993/05/25 20:42:16 cer Exp $
+;; $fiHeader: event.lisp,v 1.20 1993/08/31 04:54:47 layer Exp $
 
 (in-package :tk)
 
@@ -46,9 +46,14 @@
 
 
 (defun wait-for-event (context &key timeout wait-function)
+  (let ((mask 0))
+    (if (plusp (setq mask (xt_app_pending context)))
+	(values mask nil)
+      (wait-for-event-1 context timeout wait-function))))
+
+(defun wait-for-event-1 (context timeout wait-function)
   (let* ((mask 0)
-	 (fds (mapcar #'(lambda (display)
-			  (x11::display-fd display))
+	 (fds (mapcar #'(lambda (display) (x11::display-fd display))
 		      (application-context-displays context)))
 	 result
 	 (reason nil))
@@ -63,6 +68,7 @@
 		       (and wait-function
 			    (funcall wait-function)
 			    (setq reason :wait))))))))
+      
       (let* ((interval (xt_app_interval_next_timer context))
 	     (new-timeout (if (plusp interval)
 			      (if (and timeout
@@ -72,16 +78,11 @@
 				    (truncate interval 1000)
 				  (cons sec msec)))
 			    timeout)))
-	(unless (plusp (setq mask (xt_app_pending context)))
-	  (unless
-	      (mp:wait-for-input-available fds :wait-function #'wait-function
-					   :timeout new-timeout)
-	    (setq mask (xt_app_pending context))))))
-
-    
+	(unless (mp:wait-for-input-available fds 
+					     :wait-function #'wait-function
+					     :timeout new-timeout)
+	  (setq mask (xt_app_pending context)))))
     (values mask reason)))
-
-
 
 (defun process-one-event (context mask reason)
   (cond ((plusp mask)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: r-tree.lisp,v 1.2 92/10/02 15:19:57 cer Exp $
+;; $fiHeader: r-tree.lisp,v 1.3 1993/07/27 01:40:52 colin Exp $
 
 (in-package :clim-internals)
 
@@ -656,8 +656,13 @@
 (defmethod delete-output-record (child (record r-tree-output-record)
 				 &optional (errorp t))
   (with-slots (root) record
-    (let ((new-root (r-tree-delete root child)))
-      (setf root new-root))))
+    (multiple-value-bind (new-root foundp) 
+	(r-tree-delete root child)
+      (cond (foundp 
+	     (setf root new-root))
+	    (errorp
+	     (error "The output record ~S was not found in ~S"
+		    child record))))))
 
 (defmethod map-over-output-records-overlapping-region
 	   (function (record r-tree-output-record) region

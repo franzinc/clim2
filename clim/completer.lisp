@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.14 1993/07/27 01:38:33 colin Exp $
+;; $fiHeader: completer.lisp,v 1.15 1993/09/17 00:20:00 colin Exp $
 
 (in-package :clim-internals)
 
@@ -138,7 +138,10 @@
 	     (when (input-editing-stream-p stream)
 	       (rescan-if-necessary stream))
 	     (signal 'empty-completion-error
-		     :format-string "Attempting to complete the null string"))
+		     :format-string "Attempting to complete the null string")
+	     (when (eq ch *end-of-file-marker*)
+	       (error 'empty-completion-error
+		       :format-string "Attempting to complete the null string")))
 
 	   (cond ((member completion-mode '(:help :possibilities :apropos-possibilities))
 		  ;; Since we've asked the input editor not to do this,
@@ -193,7 +196,7 @@
 	   ;; Decide whether or not to return, remembering that
 	   ;; we might have called the completer.
 	   (when return
-	     (when (or (member completion-type '(nil unique left-substring))
+ 	     (when (or (member completion-type '(nil unique left-substring))
 		       allow-any-input)
 	       ;; Leave the last delimiter for our caller
 	       (when (eq unread t)
@@ -203,7 +206,9 @@
 	       (unless (stream-rescanning-p stream)
 		 (replace-input stream stuff-so-far :buffer-start location))
 	       (return-from complete-input
-		 (values answer-object t (evacuate-temporary-string stuff-so-far)))))
+		 (values answer-object t (evacuate-temporary-string stuff-so-far))))
+	     (when (eq ch *end-of-file-marker*)
+	       (error "Eof when encountered when trying to complete")))
 
 	   ;; Not returning yet, but update the input editor's buffer anyway
 	   (unless (stream-rescanning-p stream)

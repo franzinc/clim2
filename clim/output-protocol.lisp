@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.38 1993/06/04 16:06:23 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.39 1993/09/07 21:46:04 colin Exp $
 
 (in-package :clim-internals)
 
@@ -541,6 +541,7 @@
 (defmethod stream-move-for-line-height-change ((stream output-protocol-mixin)
 					       movement old-height cursor-x cursor-y)
   ;;--- This doesn't appear to work yet, and it's "not cheap"
+  #---ignore (declare (ignore movement old-height cursor-x cursor-y))
   #+++ignore (copy-area (sheet-medium stream)
 			0 cursor-y cursor-x old-height
 			0 (+ cursor-y movement))

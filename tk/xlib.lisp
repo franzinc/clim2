@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.47 1993/07/27 01:53:47 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.48 1993/08/12 16:04:48 cer Exp $
 
 (in-package :tk)
 
@@ -168,6 +168,8 @@
   
 (defmethod initialize-instance :after
 	   ((p pixmap) &key foreign-address width height depth drawable)
+  (assert (and (plusp width) (plusp height))
+      () "Width and height must be greater than zero")
   (with-slots (display) p
     (setf display (object-display drawable))
     (unless foreign-address

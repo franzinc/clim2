@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.14 92/12/14 15:05:07 cer Exp $
+;; $fiHeader: processes.lisp,v 1.16 1993/08/31 04:55:10 layer Exp $
 
 (in-package :clim-utils)
 
@@ -8,12 +8,13 @@
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates.
  Portions copyright (c) 1992, 1993 Franz, Inc."
 
+
+;;; Locks
+
 #+allegro
 (eval-when (compile load eval)
   (require :mdproc)
   (require :process))
-
-;;; Locks
 
 (defvar *multiprocessing-p* 
   #{

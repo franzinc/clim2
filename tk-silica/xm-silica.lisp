@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.37 1993/05/25 20:42:40 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.38 1993/07/22 15:39:42 cer Exp $
 
 (in-package :xm-silica)
 
@@ -186,3 +186,11 @@
     (when m (tk::xm_process_traversal m 0))))
 
 
+;;;--- dont do this for a while since it destroys other things.
+
+#+ignore
+(defmethod destroy-mirror :around ((port xt-port) (sheet top-level-sheet))
+  (let* ((m (sheet-direct-mirror sheet))
+	 (shell (and m (tk::widget-parent m))))
+    (call-next-method)
+    (when shell (tk::destroy-widget shell))))

@@ -1,3 +1,78 @@
+from cer: Fri Sep 17 12:03:17 PDT 1993
+
+Makefile.defs			Replaced /vapor by /net/vapor, Added PRODUCT_SRC_FILES
+Makefile.generic		Used PRODUCT_SRC_FILES in echo rule
+Makefile.sun4.motif-1.1.4	Replaced /vapor by /net/vapor
+clim/accept-values.lisp		Used destroy-frame instead of disown-frame
+				Bound (*editting-field-p* nil)
+clim/command-processor.lisp	Used discard-keystroke-gesture in menu-command-parser
+clim/completer.lisp		Fixed completer to handle :eof better
+clim/dragging-output.lisp 	Indentation
+clim/frames.lisp		Frame max size is now the size of the graft
+clim/graph-formatting.lisp	Implemented grapher-fake-object for use in grapher-made nodes.
+				Made off/on-page connectors use them
+clim/incremental-redisplay.lisp	Debugging statements and declare ignores.
+clim/output-protocol.lisp	declare ignores
+clim/pixmap-streams.lisp	width/height check for pixmaps
+clim/r-tree.lisp		delete-output-record failing test.
+clim/recording-protocol.lisp	Establish clipping region for stream-replay
+clim/standard-types.lisp	simple-lisp-object-parser and keyword parser changes.
+clim/view-defs.lisp		Added iconic view
+climtoys/booch.lisp		Cloud-line intersection code.
+climtoys/draw-sheets.lisp	print-widget-hierarchy, print-sheet-hierarchy code
+climtoys/ib.lisp		display-classes palette uses updating-output
+				moved wire code to ibparts.lisp
+climtoys/pi.lisp		Has set wt::*c* menu item
+climtoys/sysdcl.lisp		Added ibparts.lisp
+demo/bitmap-editor.lisp		Removed copyright, Renamed color -> color-frame
+demo/color-editor.lisp		Renamed color -> color-frame
+demo/ico.lisp			Added scroll-bars nil, max-height/min-width :compute
+demo/navfun.lisp		removed iconic view
+demo/palette.lisp		Removed copyright
+demo/plot.lisp			Removed copyright
+demo/process-browser.lisp	Removed copyright
+hpgl/pkg.lisp			Package locking
+misc/train.lisp			Various debugging output
+postscript/pkgdcl.lisp		Package locking
+silica/framem.lisp		Added declare ignore
+silica/medium.lisp		Added declare ignore
+silica/mirror.lisp		Update port miror->sheet table appropriately
+test/test-clim-tests.lisp	Fixed undefined variable
+test/test-clim.lisp		Added Accept-string test
+test/test-demos.lisp		Expanded tests for demos
+test/test-driver.lisp		Commented output debugging into
+				Look for presentations
+				Added cannot-find-presentation-error condition
+				Change gadget-value, activate-gadget code
+				menu manipulation code
+				with-waiting macro
+test/test-suite.lisp		More menu tests
+tk/event.lisp			Split wait-for-event for efficiency
+tk/gcontext.lisp		Eliminated allocation
+tk/graphics.lisp		noted allocation errors
+tk/make-widget.lisp		Eliminated writer methods
+tk/pkg.lisp			package locking
+tk/widget.lisp			Added counters
+tk/xlib.lisp			pixmap width/height test
+tk/xm-funs.lisp			specified :callback nil
+tk-silica/image.lisp		Support for reading pixmaps without palette
+tk-silica/last.lisp		
+tk-silica/ol-gadgets.lisp	Fixed radio/check box geometry calculation
+tk-silica/ol-silica.lisp	Warning about OPENWINHOME
+tk-silica/pkg.lisp		package locking
+tk-silica/xm-frames.lisp	Use appropriate :packing in menu
+tk-silica/xm-gadgets.lisp	Added missing :item-count in list-pane writer
+tk-silica/xm-silica.lisp	Added commented out shell destroyer
+tk-silica/xt-frames.lisp		
+tk-silica/xt-graphics.lisp	Added rounding error notes
+tk-silica/xt-silica.lisp	Updating port mirror->sheet mapping
+				backing store is now when-mapped
+utils/clim-streams.lisp		Declare *original-stream*
+utils/clos-patches.lisp		
+utils/packages.lisp		implementation-package stuff for package locking
+utils/processes.lisp		
+
+
 from colin: Fri Sep 17 11:34:06 PDT 1993
 
 demo/demo-driver.lisp

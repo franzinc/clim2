@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.60 1993/07/22 15:39:35 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.61 1993/07/27 01:55:21 colin Exp $
 
 (in-package :xm-silica)
 
@@ -377,7 +377,7 @@
 		      :orientation (if row-wise 
 				       :horizontal
 				     :vertical)
-		      :packing :column
+		      :packing (if (or n-columns n-rows) :column :tight)
 		      :num-columns 
 		      (or n-columns
 			  (and n-rows

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.11 1993/07/27 01:45:18 colin Exp $
+;; $fiHeader: color-editor.lisp,v 1.12 1993/09/17 00:20:23 colin Exp $
 
 (in-package :clim-demo)
 
@@ -85,13 +85,13 @@
 		    (make-dynamic-color +black+)
 		    +black+))))
 
-(defmethod color ((frame color-chooser))
+(defmethod frame-color ((frame color-chooser))
   (with-slots (color dynamic-p) frame
     (if dynamic-p
 	(dynamic-color-color color)
 	color)))
 
-(defmethod (setf color) (new-color (frame color-chooser))
+(defmethod (setf frame-color) (new-color (frame color-chooser))
   (with-slots (color dynamic-p) frame
     (if dynamic-p
 	(setf (dynamic-color-color color) new-color)
@@ -111,16 +111,16 @@
        (defmethod value-changed-callback
 		  ((slider slider) (client (eql 'color)) (id (eql ',color)) value)
 	 (let ((frame (pane-frame slider)))
-	   (multiple-value-bind (,@rgb) (color-rgb (color frame))
+	   (multiple-value-bind (,@rgb) (color-rgb (frame-color frame))
 	     (declare (ignore ,color))
-	     (setf (color frame) (make-rgb-color ,@new-rgb)))
+	     (setf (frame-color frame) (make-rgb-color ,@new-rgb)))
 	   (update-ihs frame)))
        (defmethod drag-callback
 		  ((slider slider) (client (eql 'color)) (id (eql ',color)) value)
 	 (let ((frame (pane-frame slider)))
-	   (multiple-value-bind (,@rgb) (color-rgb (color frame))
+	   (multiple-value-bind (,@rgb) (color-rgb (frame-color frame))
 	     (declare (ignore ,color))
-	     (setf (color frame) (make-rgb-color ,@new-rgb)))
+	     (setf (frame-color frame) (make-rgb-color ,@new-rgb)))
 	   (update-ihs frame))))))
 
 (define-rgb-callbacks red)
@@ -129,7 +129,7 @@
 
 (defmethod update-ihs ((frame color-chooser))
   (with-slots (intensity hue saturation) frame
-    (multiple-value-bind (ii hh ss) (color-ihs (color frame))
+    (multiple-value-bind (ii hh ss) (color-ihs (frame-color frame))
       (setf (gadget-value intensity :invoke-callback nil) ii)
       (setf (gadget-value hue :invoke-callback nil) hh)
       (setf (gadget-value saturation :invoke-callback nil) ss))))
@@ -142,16 +142,16 @@
        (defmethod value-changed-callback
 		  ((slider slider) (client (eql 'color)) (id (eql ',color)) value)
 	 (let ((frame (pane-frame slider)))
-	   (multiple-value-bind (,@ihs) (color-ihs (color frame))
+	   (multiple-value-bind (,@ihs) (color-ihs (frame-color frame))
 	     (declare (ignore ,color))
-	     (setf (color frame) (make-ihs-color ,@new-ihs)))
+	     (setf (frame-color frame) (make-ihs-color ,@new-ihs)))
 	   (update-rgb frame)))
        (defmethod drag-callback
 		  ((slider slider) (client (eql 'color)) (id (eql ',color)) value)
 	 (let ((frame (pane-frame slider)))
-	   (multiple-value-bind (,@ihs) (color-ihs (color frame))
+	   (multiple-value-bind (,@ihs) (color-ihs (frame-color frame))
 	     (declare (ignore ,color))
-	     (setf (color frame) (make-ihs-color ,@new-ihs)))
+	     (setf (frame-color frame) (make-ihs-color ,@new-ihs)))
 	   (update-rgb frame))))))
 
 (define-ihs-callbacks intensity)
@@ -160,7 +160,7 @@
 
 (defmethod update-rgb ((frame color-chooser))
   (with-slots (red green blue) frame
-    (multiple-value-bind (rr gg bb) (color-rgb (color frame))
+    (multiple-value-bind (rr gg bb) (color-rgb (frame-color frame))
       (setf (gadget-value red :invoke-callback nil) rr)
       (setf (gadget-value green :invoke-callback nil) gg)
       (setf (gadget-value blue :invoke-callback nil) bb))))
@@ -174,6 +174,10 @@
 	;; by changing the color in-place
 	(redisplay-frame-pane (pane-frame slider) 'display)))))
 
-
+(define-color-chooser-command com-quit-color-chooser
+    ()
+  (frame-exit *application-frame*))
 
+
 (define-demo "Color Chooser" color-chooser)
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.lisp,v 1.7 92/11/20 08:46:13 cer Exp $
+;; $fiHeader: make-widget.lisp,v 1.8 1993/07/27 01:53:14 colin Exp $
 
 (in-package :tk)
 
@@ -50,12 +50,18 @@
 
 ;; Where should this go??
 
-(defmacro define-widget-accessor (name class resource)
-  `(progn
-     (defmethod ,name ((widget ,class))
-       (get-values widget ,resource))
-     (defmethod (setf ,name) (nv (widget ,class))
-       (set-values widget ,resource nv))))
+;(defmacro define-widget-accessor (name class resource)
+;  `(progn
+;     (define-widget-reader ,name ,class ,resource)
+;     (define-widget-writer ,name ,class ,resource)))
+;
+;(defmacro define-widget-writer (name class resource)
+;  `(defmethod (setf ,name) (nv (widget ,class))
+;     (set-values widget ,resource nv)))
 
-(define-widget-accessor widget-children composite :children)
-(define-widget-accessor widget-num-children composite :num-children)
+(defmacro define-widget-reader (name class resource)
+  `(defmethod ,name ((widget ,class))
+     (get-values widget ,resource)))
+
+(define-widget-reader widget-children composite :children)
+(define-widget-reader widget-num-children composite :num-children)

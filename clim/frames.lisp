@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.71 1993/07/27 01:39:24 colin Exp $
+;; $fiHeader: frames.lisp,v 1.72 1993/09/07 21:45:43 colin Exp $
 
 (in-package :clim-internals)
 
@@ -526,7 +526,7 @@
   `(multiple-value-bind (graft-width graft-height)
        (bounding-rectangle-size ,graft)
      ;;--- This fudge factor stuff looks dubious  --SWM
-     (let ((fudge-factor #+Allegro 0.9 #-Allegro 1))
+     (let ((fudge-factor #+ignore 0.9 #-ignore 1))
        (minf-or ,width (* graft-width fudge-factor))
        (minf-or ,height (* graft-height fudge-factor)))))
 
@@ -538,8 +538,8 @@
       (unless (and width height)
 	(let ((sr (compose-space panes)))
 	  (setq width  (or width (space-requirement-width sr))
-		height (or height (space-requirement-height sr)))))
-      (limit-size-to-graft width height (graft frame))
+		height (or height (space-requirement-height sr))))
+	(limit-size-to-graft width height (graft frame)))
 
       ;;--- Don't bother with this if the size didn't change?
       (let ((top-sheet (or (frame-top-level-sheet frame) panes)))
@@ -548,6 +548,7 @@
 	    (multiple-value-call #'allocate-space 
 	      top-sheet (bounding-rectangle-size top-sheet)) 
 	  (resize-sheet top-sheet width height))))))
+
 
 (defvar *frame-layout-changing-p* nil)
 

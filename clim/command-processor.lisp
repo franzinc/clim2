@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.21 93/03/19 09:43:16 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.22 1993/07/27 01:38:27 colin Exp $
 
 (in-package :clim-internals)
 
@@ -472,15 +472,15 @@
 					 (values command
 						 command-type)))))
 				 (beep stream)
-				 ;;--- Nasty hack
-				 (when (typep stream 'input-editing-stream-mixin)
-				   (let ((input-buffer
-					  (input-editor-buffer stream)))
-				     (ie-rub-del stream input-buffer -1)))))
-			     (let ((token (read-token stream :click-only t :timeout timeout)))
-			       (if (eq token :timeout)
-				   (return-from menu-command-parser nil)
-				   token)))
+				 (discard-keystroke-gesture stream)))
+			   (loop 
+			     (multiple-value-bind (keystroke numeric-arg)
+				 (read-gesture :stream stream :timeout timeout)
+			       (declare (ignore keystroke))
+			       (when (eq numeric-arg :timeout)
+				 (return-from menu-command-parser nil))
+			       (beep stream)
+			       (discard-keystroke-gesture stream))))
 		       (t (values object type)))
 		    (setq first-arg nil)))
 		(menu-delimiter (stream args-to-go)
@@ -491,6 +491,14 @@
 	       (invoke-command-parser-and-collect 
 		 command-table #'menu-parser #'menu-delimiter stream)))
 	 (t (values command type))))))
+
+
+(defun discard-keystroke-gesture (stream)
+  ;;--- Nasty hack
+  (when (typep stream 'input-editing-stream-mixin)
+    (let ((input-buffer
+	   (input-editor-buffer stream)))
+      (ie-rub-del stream input-buffer -1))))
 
 (defun menu-read-remaining-arguments-for-partial-command
        (partial-command command-table stream start-location &key for-accelerator)

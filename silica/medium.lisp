@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.37 1993/08/19 20:10:13 smh Exp $
+;; $fiHeader: medium.lisp,v 1.38 1993/09/07 21:46:44 colin Exp $
 
 (in-package :silica)
 
@@ -158,8 +158,7 @@
       (port-set-pane-text-style (port pane) pane m text-style))))
 
 (defmethod engraft-medium :after
-	   ((medium basic-medium) port (sheet sheet-with-resources-mixin))
-  (declare (ignore port))
+	   ((medium basic-medium) (port t) (sheet sheet-with-resources-mixin))
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.14 1993/07/27 01:54:53 colin Exp $
+;; $fiHeader: image.lisp,v 1.15 1993/09/07 21:47:04 colin Exp $
 
 (in-package :xm-silica)
 
@@ -47,27 +47,28 @@
       (let ((p (merge-pathnames pathname dir))) 
 	(when (probe-file p)
 	  (return (setq pathname p))))))
-  (if (member format '(:bitmap :pixmap))
-      (with-open-file (fstream pathname :direction :input)
-	(case format
-	  (:bitmap
-	   (read-bitmap-file-1 fstream))
-	  (:pixmap
-	   (read-pixmap-file-1 fstream (port-default-palette port)))))
-    (multiple-value-bind
-	(format filter)
-	(compute-filter-for-bitmap-format format)
-      (with-open-stream (fstream (excl:run-shell-command
-				  (format nil "cat ~A | ~A"
-					  (truename pathname) filter)
-				  :wait nil
-				  :error-output :stream
-				  :output :stream))
-	(ecase format
-	  (:bitmap
-	   (read-bitmap-file-1 fstream))
-	  (:pixmap
-	   (read-pixmap-file-1 fstream (port-default-palette port))))))))
+  (let ((palette (and port (port-default-palette port))))
+    (if (member format '(:bitmap :pixmap))
+	(with-open-file (fstream pathname :direction :input)
+	  (case format
+	    (:bitmap
+	     (read-bitmap-file-1 fstream))
+	    (:pixmap
+	     (read-pixmap-file-1 fstream palette))))
+      (multiple-value-bind
+	  (format filter)
+	  (compute-filter-for-bitmap-format format)
+	(with-open-stream (fstream (excl:run-shell-command
+				    (format nil "cat ~A | ~A"
+					    (truename pathname) filter)
+				    :wait nil
+				    :error-output :stream
+				    :output :stream))
+	  (ecase format
+	    (:bitmap
+	     (read-bitmap-file-1 fstream))
+	    (:pixmap
+	     (read-pixmap-file-1 fstream palette))))))))
 
 (defmethod compute-filter-for-bitmap-format (format)
   (error "Dont know how to convert from the format ~A" format))
@@ -141,8 +142,10 @@
 		 (let ((next (peek-char t fstream)))
 		   (if (eq next #\,) (read-char fstream)
 		     (return (nreverse strings)))))))
-	   (convert-color (x)
-	     (find-named-color x palette)))
+	      (convert-color (x)
+		(if palette
+		    (find-named-color x palette)
+		  x)))
       (let ((colors (do ((colors (read-strings) (cddr colors))
 			 (r nil))
 			((null colors) r)

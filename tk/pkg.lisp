@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.14 92/10/02 15:17:59 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.16 1993/08/31 04:54:50 layer Exp $
 
 (defpackage :tk
   ;;-- No we really need
@@ -50,4 +50,4 @@
    #:window-property-list
    ))
 
-(in-package :tk)
+(setf (package-definition-lock (find-package :tk)) t)

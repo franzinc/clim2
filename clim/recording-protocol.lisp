@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.34 1993/05/25 20:41:01 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.35 1993/07/27 01:40:59 colin Exp $
 
 (in-package :clim-internals)
 
@@ -1143,11 +1143,12 @@
     (with-slots (output-record text-output-record record-p) stream
       (when (or output-record text-output-record)
 	(setq region (normalize-replay-region region stream))
-	(letf-globally ((record-p nil))
-	  (when output-record
-	    (replay output-record stream region))
-	  (when text-output-record
-	    (replay text-output-record stream region)))))))
+	(clim-utils::with-drawing-options (stream :clipping-region region)
+	  (letf-globally ((record-p nil))
+	    (when output-record
+	      (replay output-record stream region))
+	    (when text-output-record
+	      (replay text-output-record stream region))))))))
 
 (defmethod erase-output-record (record (stream output-recording-mixin) &optional (errorp t))
   (macrolet ((draw-it ()

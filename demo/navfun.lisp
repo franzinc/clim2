@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.26 1993/07/27 01:45:39 colin Exp $
+;; $fiHeader: navfun.lisp,v 1.27 1993/09/17 00:20:42 colin Exp $
 
 (in-package :clim-demo)
 
@@ -42,9 +42,6 @@
 
 (defvar *label-text-style* #+Genera '(:fix :roman :small)
 			   #-Genera '(:fix :roman :normal))
-
-(defclass iconic-view (gadget-view) ())
-(defvar +iconic-view+ (make-instance 'iconic-view))
 
 
 ;;; Basic data structures - points and positions
@@ -1651,5 +1648,5 @@
   t)
 
 
-
 (define-demo "Flight Planner" flight-planner :width 1000 :height 800)
+

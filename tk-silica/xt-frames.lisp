@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.39 1993/09/07 21:47:14 colin Exp $
+;; $fiHeader: xt-frames.lisp,v 1.40 1993/09/17 00:21:27 colin Exp $
 
 
 (in-package :xm-silica)
@@ -257,7 +257,6 @@
       (tk::set-values shell
 		      :min-width (fix-coordinate width)
 		      :min-height (fix-coordinate height)))
-
     (let ((geo (clim-internals::frame-geometry frame)))
       (destructuring-bind
 	  (&key left top width height &allow-other-keys) geo

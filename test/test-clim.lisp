@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.11 1993/07/27 01:52:12 colin Exp $
+;; $fiHeader: test-clim.lisp,v 1.12 1993/08/12 16:04:25 cer Exp $
 
 
 (in-package :clim-user)
@@ -430,3 +430,24 @@
   ((com-update-boxes)
    (com-update-boxes))
   (com-quit))
+
+
+(push 'accept-from-string-tests *frame-tests*)
+
+(defun accept-from-string-tests ()
+  (with-test-success-expected ('accept-from-string-tests)
+    
+    (assert (eq nil (accept-from-string '(subset :a :b) "")))
+    (assert (equal '(:a :b) (accept-from-string '(subset :a :b) "a,b")))
+    (assert (eq :abc (accept-from-string 'keyword "abc")))
+    (handler-case (accept-from-string '(member :a :b) "")
+      (error (c) c)
+      (:no-error (&rest ignore) ignore (error "member null string failed")))
+    
+    (handler-case (accept-from-string '(member :a :b) "z")
+      (error (c) c)
+      (:no-error (&rest ignore) ignore (error "member bogus failed")))
+    
+    (handler-case (accept-from-string '(subset :a :b) "a,c")
+      (error (c) c)
+      (:no-error (&rest ignore) ignore (error "subset bogus failed")))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.31 1993/07/27 01:53:43 colin Exp $
+;; $fiHeader: widget.lisp,v 1.32 1993/08/12 16:04:46 cer Exp $
 
 (in-package :tk)
 
@@ -47,9 +47,15 @@
 	    args))))
 
 ;; These are so we don't need the foreign functions at run time.
+
+(defvar *widget-count* 0)
+
 (defun xt-create-widget (name class parent args num-args)
+  (incf *widget-count*)
   (xt_create_widget name class parent args num-args))
+
 (defun xt-create-managed-widget (name class parent args num-args)
+  (incf *widget-count*)
   (xt_create_managed_widget name class parent args num-args))
 
 (defun create-widget (name widget-class parent &rest args)
@@ -111,6 +117,7 @@
   (let* ((class (find-class-maybe widget-class))
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class parent args)))
+    (incf *widget-count*)
     (xt_create_popup_shell
      ;;-- allocate-no-free
      (string-to-char* name)

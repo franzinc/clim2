@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.70 1993/07/30 23:58:14 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.71 1993/09/17 00:21:17 colin Exp $
 
 (in-package :clim-user)
 
@@ -1947,24 +1947,29 @@ Luke Luck licks the lakes Luke's duck likes."))
   (macrolet ((doit (&body body)
 	       `(mp::with-timeout (5) ,@body)))
     (doit
-      (menu-choose '("Whistle"
-		     ("Pat head" :items
-		      (("with right hand" . "Pat head with right hand")
-		       ("with left hand" . "Pat head with left hand")))
-		     ("Rub Tummy" :items
-		      (("clockwise" . "Rub tummy clockwise")
-		       ("counter-clockwise" . "Rub tummy counter-clockwise")))
-		     "Walk"
-		     "Chew Gum")
-		   :associated-window stream
-		   :label "Select an activity"))
+     (menu-choose '("Whistle"
+		    ("Pat head" :items
+		     (("with right hand" . "Pat head with right hand")
+		      ("with left hand" . "Pat head with left hand")))
+		    ("Rub Tummy" :items
+		     (("clockwise" . "Rub tummy clockwise")
+		      ("counter-clockwise" . "Rub tummy counter-clockwise")))
+		    "Walk"
+		    "Chew Gum")
+		  :associated-window stream
+		  :label "Select an activity"))
     (doit
      (menu-choose '(1872812 "kdjfkdjf" 908909)
-		   :label "foo" :text-style '(:fix :roman :huge)))
+		  :label "foo" :text-style '(:fix :roman :huge)))
     (doit
-      (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
-		   :label '("Foo" :text-style (:serif :bold :huge)) 
-		   :text-style '(:fix :roman :huge)))))
+     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
+		  :label '("Foo" :text-style (:serif :bold :huge)) 
+		  :text-style '(:fix :roman :huge)))
+    (dotimes (i 5)
+      (doit
+       (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
+		    :label '("Foo" :text-style (:serif :bold :huge)) 
+		    :printer #'princ)))))
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
   "A menu that contains graphics."

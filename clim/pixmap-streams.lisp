@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.20 1993/07/30 23:57:59 colin Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.21 1993/08/12 16:03:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -82,6 +82,8 @@
 			  (write-string "Error in printer" menu)))))))
       (multiple-value-bind (width height)
 	  (bounding-rectangle-size record)
+	(assert (and (plusp width) (plusp height))
+	    () "Width and height of output must be greater than zero")
 	(with-output-to-pixmap (stream associated-window :width width :height height)
 	  (when text-style
 	    (setf (medium-default-text-style stream) text-style))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: last.lisp,v 1.3 93/04/16 09:26:43 layer Exp $
+;; $fiHeader: last.lisp,v 1.4 1993/07/27 01:54:56 colin Exp $
 
 
 (in-package :system)
@@ -34,3 +34,4 @@
    (merge-pathnames "update-clim-2.0"
 		    excl::*library-pathname*)))
  :devel (locally (declare (special system::*devel*)) system::*devel*))
+

@@ -278,7 +278,28 @@
     (if error
 	(with-test-success-expected (test-name)
 	  (doit))
-      (doit))))
+      (doit))
+    
+    #+ignore
+    (progn
+      (format t "Port mapping ~S~%" (silica::port-mirror->sheet-table (clim:find-port)))
+    
+      #+verbose
+      (maphash #'(lambda  (x y) 
+		   (print y))
+	       (silica::port-mirror->sheet-table (clim:find-port)))
+    
+      (format t "Port framem ~S~%" (find-frame-manager :port (clim:find-port)))
+      (format t "Port framem frames ~S~%" (frame-manager-frames
+					   (find-frame-manager :port (clim:find-port))))
+    
+      (format t " Address mapping ~S~%" tk::*address->object-mapping*)
+    
+      #+verbose
+      (maphash #'(lambda  (x y) (print y))
+	       tk::*address->object-mapping*))
+    
+    ))
 
 
 
@@ -392,7 +413,7 @@
 	       (incf right x-offset)
 	       (incf top y-offset)
 	       (incf bottom y-offset)
-	       (when (typep record 'standard-presentation)
+	       (when (typep record 'presentation)
 		 (funcall function record left top right bottom))
 	       (multiple-value-bind (xoff yoff) (output-record-start-cursor-position record)
 		 (map-over-output-records
@@ -407,6 +428,8 @@
 (defun warp-the-pointer (sheet x y)
   (multiple-value-setq (x y) (transform-position (sheet-device-transformation sheet) x y))
   (tk-silica::port-set-pointer-position-1 (port sheet) sheet x y))
+
+(define-condition cannot-find-presentation-error (simple-error) ())
 
 (define-test-step click-on-presentation (pane-name
 					 presentation-type 
@@ -450,8 +473,9 @@
 	  (sleep 1)))
       #+ignore
       (format excl:*initial-terminal-io* "~d presentations~%" (length presentations))
-      (assert presentations ()
-	"Did not find presentations to click on!")
+      (unless presentations
+	(error 'cannot-find-presentation-error :format-control
+	       "Did not find presentations to click on!"))
       (when presentations
 	(let* ((len (length presentations))
 	       (i (random len)))
@@ -686,9 +710,9 @@
 				 *unsupplied-argument-marker*)))
 		 (with-presentation-type-decoded (type-name parameters) presentation-type
 		   (when (eq type-name 'command-name)
-		     (send-it (string-downcase(command-line-name-for-command
-			       command-name
-			       command-table)))
+		     (send-it (string-downcase (command-line-name-for-command
+						command-name
+						command-table)))
 		     (return-from arg-parser (values command-name presentation-type)))
 		   (cond ((not (clim-internals::unsupplied-argument-p default))
 			  (cond ((eq type-name 'keyword-argument-name) 
@@ -781,6 +805,15 @@
 			   :gadget sheet))
   (wait-for-clim-input-state *invocation*))
 
+(defun change-gadget-value (sheet value)
+  (distribute-event
+   (port sheet)
+   (silica::allocate-event 'silica::value-changed-gadget-event
+			   :value value
+			   :gadget sheet))
+  (wait-for-clim-input-state *invocation*))
+
+
 ;; How to invoke command-buttons
 ;; It would be nice if we could change gadget values directly.
 ;; Lets say we want to run the bitmap-editor-add-color frame, change
@@ -840,7 +873,23 @@
 	   (frame-manager-frames framem)))
 
 (defun find-notify-user (frame)
-  (getf (mp:process-property-list (clim-internals::frame-top-level-process frame)) 'notify-user))
+  (getf (mp:process-property-list
+	 (clim-internals::frame-top-level-process frame))
+	'notify-user))
+
+(defun find-menu (frame)
+  (getf (mp:process-property-list (clim-internals::frame-top-level-process frame)) 'menu-choose))
+
+
+(defun abort-menu (frame)
+  (mp::process-interrupt (clim-internals::frame-top-level-process frame)
+			 #'(lambda () (throw 'menu-choose nil)))
+  (mp::process-allow-schedule))
+
+(defun select-menu-item (frame value)
+  (mp::process-interrupt (clim-internals::frame-top-level-process frame)
+			 #'(lambda () (throw 'menu-choose value)))
+  (mp::process-allow-schedule))
 
 (defun notify-user-ok (frame)
   (mp::process-interrupt (clim-internals::frame-top-level-process frame)
@@ -892,7 +941,7 @@
 (define-test-step press-push-button (button)
   (xm-silica::queue-active-event nil nil button))
 
-(defmacro with-waiting ((&body timeout) &body clauses)
+(defmacro with-waiting ((&key timeout) &body clauses)
   (let ((i 0)
 	(result (gensym))
 	(which (gensym))

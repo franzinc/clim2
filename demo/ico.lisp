@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.18 1993/07/27 01:45:32 colin Exp $
+;; $fiHeader: ico.lisp,v 1.19 1993/09/17 00:20:37 colin Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -42,7 +42,10 @@
   (:panes
     (target :application :width 400 :height 400)
     (options :accept-values
+	     :scroll-bars nil
+	     :min-width :compute 
 	     :width :compute :height :compute
+	     :max-height :compute
 	     :display-function `(accept-values-pane-displayer
 				  :displayer display-options-pane)))
   (:layouts (:default (vertically () target options))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pkgdcl.lisp,v 1.5 1993/07/27 01:48:30 colin Exp $
+;; $fiHeader: pkgdcl.lisp,v 1.6 1993/08/12 16:03:59 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -19,4 +19,6 @@
   #+(and Allegro (or :rs6000 (not (version>= 4 1))))
   (:shadowing-import-from clim-utils
     with-slots))
- 
+
+#+Allegro
+(setf (package-lock (find-package :postscript-clim)) t)

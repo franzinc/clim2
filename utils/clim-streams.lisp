@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.8 92/11/06 19:04:55 cer Exp $
+;; $fiHeader: clim-streams.lisp,v 1.9 1993/07/27 01:56:48 colin Exp $
 
 (in-package :clim-utils)
 
@@ -35,6 +35,7 @@
   nil)
 
 (defun encapsulating-stream (stream)
+  (declare (special *original-stream*)) ;;-- fwd reference
   (if (and *original-stream*
 	   (stream-encapsulates-stream-p *original-stream* stream))
       *original-stream*

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: mirror.lisp,v 1.31 1993/07/22 15:38:57 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.32 1993/07/27 01:50:57 colin Exp $
 
 (in-package :silica)
 
@@ -199,7 +199,11 @@
 
 #-(or Genera Minima)			;inlining the function is enough...
 (defun (setf mirror->sheet) (sheet port mirror)
-  (setf (gethash mirror (port-mirror->sheet-table port)) sheet))
+  (let ((table (port-mirror->sheet-table port)))
+    (if sheet
+	(setf (gethash mirror table) sheet)
+      (remhash mirror table))
+    sheet))
 
 (defmethod realize-mirror :around ((port basic-port) (sheet mirrored-sheet-mixin))
   (let ((mirror
@@ -217,6 +221,7 @@
 
 (defmethod destroy-mirror :around ((port basic-port) (sheet mirrored-sheet-mixin))
   (call-next-method)
+  (setf (mirror->sheet port (sheet-direct-mirror sheet)) nil)
   (setf (sheet-direct-mirror sheet) nil))
 
 (defmethod note-sheet-grafted :after ((sheet mirrored-sheet-mixin))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.12 92/10/28 08:19:42 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.13 1993/05/25 20:41:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -33,6 +33,9 @@
 (defvar +gadget-dialog-view+ (make-instance 'gadget-dialog-view))
 (defvar +gadget-menu-view+ (make-instance 'gadget-menu-view))
 (defvar +pointer-documentation-view+ (make-instance 'pointer-documentation-view))
+
+(defclass iconic-view (gadget-view) ())
+(defvar +iconic-view+ (make-instance 'iconic-view))
 
 
 ;;; Indirect views for toolkit integration

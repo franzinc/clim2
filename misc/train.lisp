@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: user -*-
+; -*- mode: common-lisp; package: user -*-
 ;;
 ;;				-[Fri Aug 20 07:36:40 1993 by layer]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.10 1993/07/29 20:51:36 layer Exp $
+;; $fiHeader: train.lisp,v 1.12 1993/08/31 04:54:16 layer Exp $
 
 (defun train-clim (&key (train-times 2) 
 			(psview nil)
@@ -33,6 +33,11 @@
   
   ;;(setq *global-gc-behavior* nil)
   (load "test/test.lisp")
+  
+  #-svr4 (excl:shell "ps vaxg")
+  
+  (room t)
+  
   (clim-user::with-test-reporting (:file (if (excl::featurep :clim-motif) 
 					     "test-suite-reportxm.lisp"
 					   "test-suite-reportol.lisp"))
@@ -51,6 +56,37 @@
       (require :climhpgl)
       (load "test/hpgl-tests.lisp")
       (clim-user::run-hpgl-tests :output hpglview)))
+  
+  (room t)
+  (gc t)
+  (room t)
+
+  #+ignore
+  (format t "Counters are ~S~%"  
+	  tk::(list *string-counter* *font-counter* *color-counter* *widget-count*))
+
+
+  #+ignore
+  (progn
+    (format t "Port mapping ~S~%" (silica::port-mirror->sheet-table (clim:find-port)))
+    
+    #+verbose
+    (maphash #'(lambda  (x y) 
+		 (print y))
+	     (silica::port-mirror->sheet-table (clim:find-port)))
+    
+    (format t "Port framem ~S~%" (find-frame-manager :port (clim:find-port)))
+    (format t "Port framem frames ~S~%" (frame-manager-frames
+					 (find-frame-manager :port (clim:find-port))))
+    
+    (format t " Address mapping ~S~%" tk::*address->object-mapping*)
+    
+    #+verbose
+    (maphash #'(lambda  (x y) (print y))
+	     tk::*address->object-mapping*))
+  
+  
+  #-svr4 (excl:shell "ps vaxg")
   
   (when (fboundp 'generate-coverage-report)
     (with-open-file (*standard-output* (if (excl::featurep :clim-motif) 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.30 93/04/23 09:17:29 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.31 1993/07/22 15:37:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -550,6 +550,10 @@ circular graphs without accounting for this case.
     ()
   (:default-initargs :object nil))
 
+(defclass grapher-fake-object ()
+  ((data :initarg :data :reader grapher-fake-object-data)))
+
+
 
 (defmethod generate-graph-nodes ((graph directed-graph-output-record) stream
 				 root-objects object-printer inferior-producer
@@ -649,6 +653,9 @@ circular graphs without accounting for this case.
 				      (let* ((id (1+ (length connectors-in)))
 					     (rec (with-new-output-record
 						      (stream 'graph-node-connector-in-output-record nil
+							      :object
+							      (make-instance 'grapher-fake-object
+									     :data `(:in-connector ,node ,child))
 						       :connector-id id)
 						    (funcall offpage-connector-in-printer
 							     stream id))))
@@ -661,6 +668,8 @@ circular graphs without accounting for this case.
 		       (setf (car c)
 			     (with-new-output-record
 				 (stream 'graph-node-connector-out-output-record nil
+					 :object (make-instance 'grapher-fake-object
+						  :data `(:out-connector ,node ,child))
 				  :connector-id id)
 			       (funcall offpage-connector-out-printer stream id))))
 		     (break-cycles child (cons node path)))))))
@@ -703,7 +712,9 @@ circular graphs without accounting for this case.
 					 nil)))
 			   (setf (graph-node-children filler) (list child)
 				 (graph-node-parents filler)  (list node)
-				 (graph-node-object filler) `(:filler ,filler ,(graph-node-object node))
+				 (graph-node-object filler) 
+				 (make-instance 'grapher-fake-object
+						:data `(:filler ,filler ,(graph-node-object node)))
 				 (car c) filler
 				 (graph-node-generation filler) gen1)
 			   (traverse filler))
@@ -713,38 +724,6 @@ circular graphs without accounting for this case.
 	(traverse root)))))
 
 ;;
-
-;(defun filler-node-p (object)
-;  (and (consp object) (eq (car object) :filler)))
-
-;(defun filler-edge-p (from to)
-;  (or (filler-node-p from)
-;      (filler-node-p to)))
-;
-;(defun decode-filler-node (object)
-;  (labels ((decode-from (object)
-;	     (if (filler-object-p object)
-;		 (decode-from (second object))
-;	       object))
-;	   (decode-to (object)
-;	     (if (filler-object-p object)
-;		 (decode-to (third object))
-;	       object)))
-;    (values (decode-from object) (decode-to object))))
-;
-;(defun decode-filler-edge (from to)
-;  (labels ((decode-from (object)
-;	     (if (filler-object-p object)
-;		 (decode-from (second object))
-;	       object))
-;	   (decode-to (object)
-;	     (if (filler-object-p object)
-;		 (decode-to (third object))
-;	       object)))
-;    (values (filler-node-p from)
-;	    (decode-from from) 
-;	    (filler-node-p to)
-;	    (decode-to to))))
 
 ;;
 
@@ -853,7 +832,10 @@ circular graphs without accounting for this case.
 				       (graph-node-children new) (graph-node-children node)
 				       (graph-node-parents new) (graph-node-parents node)
 				       (graph-node-parents child) (list new)
-				       (graph-node-object new) `(:filler ,new ,(graph-node-object node))
+				       (graph-node-object new) 
+				       (make-instance
+					'grapher-fake-object
+					:data `(:filler ,new ,(graph-node-object node)))
 				       (car c) new)))))
 			 (map nil #'replace-filler-nodes children))))
 		    (declare (dynamic-extent #'replace-filler-nodes))

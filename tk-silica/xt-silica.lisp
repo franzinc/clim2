@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.87 1993/08/12 16:05:13 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.88 1993/09/07 21:47:28 colin Exp $
 
 (in-package :xm-silica)
 
@@ -255,11 +255,14 @@
 
 (defmethod destroy-mirror :after ((port xt-port) (sheet sheet-parent-mixin))
   (labels ((loose-em (sheet)
-	   (dolist (child (sheet-children sheet))
-	     (when (sheet-direct-mirror child)
-	       (setf (sheet-direct-mirror child) nil))
-	     (when (typep child 'sheet-parent-mixin)
-	       (loose-em child)))))
+	     (dolist (child (sheet-children sheet))
+	       (let ((m (sheet-direct-mirror child)))
+		 (when m
+		   (setf (silica::mirror->sheet port m) nil
+			 (sheet-direct-mirror child) nil)))
+	       (when (typep child 'sheet-parent-mixin)
+		 (loose-em child)))))
+    (declare (dynamic-extent #'loose-em))
     (loose-em sheet)))
 
 (defmethod realize-widget-mirror ((port xt-port) (parent-sheet t) parent-widget sheet)
@@ -475,6 +478,22 @@
 	:region (untransform-region (sheet-native-transformation sheet) r)
 	:sheet sheet))))
 
+;;-- Perhaps this method should be for any mirrored composite
+;;-- sheet?
+
+
+(defun sheet-mirrored-ancestor-of-clim-stream-sheet-p (sheet)
+  (labels ((walk-children (sheet)
+	     (dolist (child (sheet-children sheet))
+	       (typecase child
+		 (clim-stream-sheet
+		  (return-from sheet-mirrored-ancestor-of-clim-stream-sheet-p t))
+		 (mirrored-sheet-mixin nil)
+		 (sheet-parent-mixin
+		  (walk-children child))))))
+    (declare (dynamic-extent #'walk-children))
+    (walk-children sheet)))
+
 (defmethod sheet-mirror-exposed-callback (widget window event sheet)
   ;; This isn't really the right place to do this, but it's better than
   ;; in ensure-blinker-for-cursor.
@@ -483,8 +502,10 @@
 	  (and port (port-safe-backing-store port)))
     (let ((window (tk::widget-window widget)))
       (unless (getf (window-property-list window) 'backing-store-on)
-	(setf (getf (window-property-list window) 'backing-store-on) t
-	      (xt::window-backing-store window)                      t))))
+	(let ((x (sheet-mirrored-ancestor-of-clim-stream-sheet-p sheet)))
+	  (setf (getf (window-property-list window) 'backing-store-on)
+	    (if x :yes :no))
+	  (when x (setf (xt::window-backing-store window) :when-mapped))))))
   (let* ((minx (x11::xexposeevent-x event))
 	 (miny (x11::xexposeevent-y event))
 	 (width (x11::xexposeevent-width event))

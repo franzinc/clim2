@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.67 1993/07/27 01:38:07 colin Exp $
+;; $fiHeader: accept-values.lisp,v 1.68 1993/08/12 16:02:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -390,7 +390,7 @@
 	       (let ((*avv-calling-frame* *application-frame*))
 		 (run-frame-top-level frame))
 	     ;; Flush it so the GC can get rid of it
-	     (disown-frame (frame-manager frame) frame)))
+	     (destroy-frame frame)))
 	 (using-resource (avv-stream accept-values-stream (or the-own-window stream)
 				     :align-prompts align-prompts)
 	   (let ((frame (make-application-frame (or frame-class 'accept-values)
@@ -442,7 +442,8 @@
 	   (own-window-bottom-margin (pop properties))
 	   (view 
 	    (or view
-		(frame-manager-dialog-view (frame-manager frame)))))
+		(frame-manager-dialog-view (frame-manager frame))))
+	   (*editting-field-p* nil))
       (letf-globally (((stream-default-view stream) view)
 		      ((stream-read-gesture-cursor-state stream) nil))
 	(labels ((run-continuation (stream avv-record)

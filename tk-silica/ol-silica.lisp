@@ -20,12 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.20 93/05/13 16:31:42 colin Exp $
+;; $fiHeader: ol-silica.lisp,v 1.21 1993/07/27 01:55:11 colin Exp $
 
 (in-package :xm-silica)
 
 (defclass openlook-port (xt-port) ()
   (:default-initargs :deep-mirroring t))
+
+(defmethod initialize-instance :before ((port openlook-port) &key)
+  (unless (sys:getenv "OPENWINHOME")
+    (warn "OPENWINHOME environment variable is not set")))
 
 (defmethod find-port-type ((type (eql :openlook)))
   'openlook-port)

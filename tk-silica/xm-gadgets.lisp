@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.80 1993/08/12 16:05:07 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.81 1993/09/07 21:47:09 colin Exp $
 
 (in-package :xm-silica)
 
@@ -1107,7 +1107,7 @@
   (let ((m (sheet-direct-mirror gadget)))
     (when m
       (with-accessors ((name-key set-gadget-name-key)) gadget
-	(tk::set-values m :items (mapcar name-key items))))))
+	(tk::set-values m :items (mapcar name-key items) :item-count (length items))))))
 
 (defun list-pane-single-selection-callback (widget item-position sheet)
   (declare (ignore item-count))
@@ -1416,7 +1416,7 @@
         (get-selection-box-child dialog :ok :cancel :help)
       (when directory
 	(tk::set-values dialog :directory directory))
-    
+
       (when pattern
 	(tk::set-values dialog :pattern pattern))
     
@@ -1816,3 +1816,5 @@
 			*default-text-style*)))
     `(:font-list ,(text-style-mapping port text-style) ,@initargs)))
 			      
+
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.28 1993/05/13 16:23:22 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.29 1993/05/25 20:41:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -56,13 +56,14 @@
 (define-presentation-method accept ((type symbol) stream (view textual-view) &key)
   (simple-lisp-object-parser type stream))
 
-(defun simple-lisp-object-parser (type stream &optional coerce-test coerce-function)
+(defun simple-lisp-object-parser (type stream &optional coerce-test coerce-function (package *package*))
   (loop
     (let ((token (read-token stream)))
       (when (input-editing-stream-p stream)
 	(rescan-if-necessary stream))
       (multiple-value-bind (object index)
-	  (let ((*read-eval* nil))		;disable "#."
+	  (let ((*read-eval* nil)
+		(*package* package))	;disable "#."
 	    (read-from-string token nil token))
 	(when (eq object token)
 	  (simple-parse-error "Unexpected EOF"))
@@ -88,7 +89,8 @@
   :history symbol)
 
 (define-presentation-method accept ((type keyword) stream (view textual-view) &key)
-  (values (intern (read-token stream) *keyword-package*)))
+  (simple-lisp-object-parser type stream nil nil *keyword-package*))
+
 
 ;;; This is needed because KEYWORD is not a built-in-class
 (define-presentation-method presentation-typep (object (type keyword))
@@ -429,6 +431,7 @@
       (declare (ignore success))
       (handler-bind ((error
 		       #'(lambda (error)
+			   (declare (ignore error))
 			   (simple-parse-error "Error parsing pathname string ~A" string))))
         (unless pathname
 	  (setq pathname (parse-namestring string nil default)))
@@ -752,6 +755,8 @@
 			stream))))
       (declare (dynamic-extent #'possibility-printer))
       (loop
+	(when (eq (read-gesture :stream stream :peek-p t :timeout 0) *end-of-file-marker*)
+	  (return-from accept (nreverse list)))
 	(let ((element
 		(with-delimiter-gestures (separators)
 		  (completing-from-suggestions

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.78 1993/09/07 21:47:23 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.79 1993/09/17 00:21:30 colin Exp $
 
 (in-package :tk-silica)
 
@@ -964,6 +964,7 @@
 	     (thickness (line-style-thickness line-style))
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
+	;;--rounding
 	(convert-to-device-coordinates transform x y)
 	(discard-illegal-coordinates medium-draw-point* x y)
 	(cond ((< thickness 1.5)
@@ -1056,6 +1057,9 @@
 		      drawable
 		      (adjust-ink (decode-ink ink medium)
 				  medium
+				  ;;--rounding
+				  ;;-- This seems like the wrong values
+				  ;;-- need to subtract thickness
 				  minx
 				  miny)
 		      points
@@ -1074,6 +1078,7 @@
 	   drawable
 	   (adjust-ink (decode-ink ink medium)
 		       medium
+		       ;;-- This is not right in the case of thin lines
 		       (the fixnum (min (the fixnum x1) (the fixnum x2)))
 		       (the fixnum (min (the fixnum y1) (the fixnum y2))))
 	   x1 y1 x2 y2))))))
@@ -1139,8 +1144,8 @@
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
 	(assert (rectilinear-transformation-p transform))
-	(convert-to-device-coordinates transform
-				       x1 y1 x2 y2)
+	;;--rounding
+	(convert-to-device-coordinates transform x1 y1 x2 y2)
 	;; Clipping a rectangle is ridiculously easy.
 	(unless (valid-point-p x1 y1)
 	  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
@@ -1176,6 +1181,7 @@
 	(assert (rectilinear-transformation-p transform))
 	(macrolet ((guts (x1 y1 x2 y2)
 		     `(let ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
+			;;--rounding
 			(convert-to-device-coordinates transform x1 y1 x2 y2)
 			;; Clipping a rectangle is ridiculously easy.
 			(unless (valid-point-p x1 y1)
@@ -1297,6 +1303,7 @@
 	(rotatef start-angle end-angle)
 	(when (< end-angle start-angle)
 	  (setq end-angle (+ end-angle 2pi)))
+	;;--rounding in draw-ellipse
 	(tk::draw-ellipse
 	  drawable
 	  (adjust-ink (decode-ink (medium-ink medium) medium)
@@ -1322,6 +1329,9 @@
 	     (text-style (medium-merged-text-style medium))
 	     (font (text-style-mapping port text-style))
 	     (ascent (tk::font-ascent font)))
+	;;--rounding errors?
+	;;--Well we do some arithmetic in some cases
+	;;--so in theory it could go wrong.
 	(convert-to-device-coordinates transform x y)
 	(discard-illegal-coordinates medium-draw-text* x y)
 	(when towards-x

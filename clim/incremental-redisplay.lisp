@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.20 93/04/27 14:35:34 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.21 1993/07/27 01:39:50 colin Exp $
 
 (in-package :clim-internals)
 
@@ -446,6 +446,7 @@
 		      (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset old-x-offset old-y-offset))
   (declare (values erases moves draws erase-overlapping move-overlapping))
+  (declare (ignore check-overlapping))
   #+ignore (when (eq record wt::*c*) (break "found it"))
   (let ((erases nil)
 	(moves nil)
@@ -503,6 +504,7 @@
 	      (t
 	       (when (displayed-output-record-p record)
 		 ;; It's a displayed output record element, erase and redraw it.
+		 #+ignore (format excl:*initial-terminal-io* "erase1 ~S~%" record)
 		 (erase record old-bounding-rectangle)
 		 (draw record (bounding-rectangle record)))
 	       (when (output-record-p record)
@@ -514,6 +516,7 @@
 		       (output-record-old-start-cursor-position record)
 		     (declare (type coordinate o-start-x o-start-y))
 		     (dolist (child (output-record-old-children record))
+		       #+ignore (break  "erase2 ~S~%" child)
 		       (erase child (bounding-rectangle-shift-position
 				      child o-start-x o-start-y)))
 		     (let ((x-offset (+ x-offset start-x))
@@ -658,7 +661,7 @@
 	       (with-bounding-rectangle* (left top right bottom) rectangle
 		 (translate-coordinates xoff yoff left top right bottom)
 		 (draw-rectangle* stream left top right bottom
-				  :ink #+ignore +red+ +background-ink+  :filled t)
+				  :ink  #+ignore +red+  +background-ink+  :filled t)
 		 #+ignore
 		 (break "erase ~S" (list left top right bottom))))
 	     (replay-record (record stream region)
@@ -670,11 +673,15 @@
 	;; (format excl:*initial-terminal-io* "Doing erases~%")
 	(dolist (erase erases)
 	  (let ((region (second erase)))
-	    (erase-rectangle stream region)))
+	    (erase-rectangle stream region)
+	    #+ignore
+	    (break "erase erase~S" erase)))
 	;; (format excl:*initial-terminal-io* "Doing erases for moves~%")
 	(dolist (move moves)
 	  (let ((erase (second move)))
-	    (erase-rectangle stream erase)))
+	    (erase-rectangle stream erase)
+	    #+ignore
+	    (break "erase move ~S" move)))
 	;; (format excl:*initial-terminal-io* "Doing moves~%")
 	(dolist (move moves)
 	  (let ((record (first move))
@@ -752,6 +759,7 @@
 			  (make-point x y)))
 		      (old-child-extent
 			(output-record-old-bounding-rectangle child)))
+  #---ignore (declare (ignore old-child-extent old-child-position mode))
   #---ignore
   nil
   #+++ignore ;; until PROPAGATE-OUTPUT-RECORD-CHANGES is implemented.
@@ -809,6 +817,8 @@
 		      erases moves draws erase-overlapping move-overlapping)
   (declare (values new-mode new-erases new-moves new-draws
 		   new-erase-overlapping new-move-overlapping))
+  (declare (ignore move-overlapping erase-overlapping draws 
+		   moves erases old-child-extent old-child-position)) ;--- Why
   ;; If :DELETE, and deleted all children, delete self,
   ;; if :DELETE and there's anyone past the extent, move them.
   ;; if :ADD or :CHANGE, and extent grew, and there's anyone past the extent, move them.

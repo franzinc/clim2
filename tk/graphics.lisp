@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.13 92/12/16 16:50:26 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.14 1993/07/27 01:52:59 colin Exp $
 
 (in-package :tk)
 
@@ -72,6 +72,7 @@
 			 (round (sqrt s-2)))))))
     (setq start-angle (round (* start-angle (/ (* 360 64) (* 2 pi)))))
     (setq end-angle (round (* end-angle (/ (* 360 64) (* 2 pi)))))
+    ;;--rounding
     (if (> end-angle start-angle)
 	(setq end-angle (- end-angle start-angle))
       (setq end-angle (- start-angle end-angle)))
@@ -80,6 +81,7 @@
 	 (object-display drawable)
 	 drawable
 	 gcontext
+	 ;;--rounding
 	 (- center-x x-radius)
 	 (- center-y y-radius)
 	 (* 2 x-radius)
@@ -89,6 +91,7 @@
        (object-display drawable)
        drawable
        gcontext
+       ;;--rounding
        (- center-x x-radius)
        (- center-y y-radius)
        (* 2 x-radius)
