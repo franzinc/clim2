@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: excl-streams.cl,v 1.1 92/02/04 10:26:12 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -39,8 +39,8 @@
 					&rest args
 					&key (type nil type-p)
 					     object)
-  (declare (ignore type))
-  (unless type-p
+  (unless (and type-p
+	       (find-presentation-type-class type nil))
     (setf (getf args :type) (presentation-type-of object)))
   (apply #'call-next-method rec args))
 

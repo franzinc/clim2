@@ -1,5 +1,12 @@
 ;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: (CLIM-BROWSER :use (CLIM-LISP CLIM)); Base: 10; Lowercase: Yes -*-
 
+(eval-when (compile load eval)
+  (defpackage :clim-browser
+    (:use :clim-lisp clim)
+    (:shadow package)))
+
+(in-package :clim-browser)
+
 ;;; Simple extensible browser
 ;;; Scott McKay
 
@@ -172,11 +179,11 @@
 
 ;; This is the most basic instantiable sort of call node.
 ;; Commands and translators are written on this, not on BASIC-CALL-NODE.
-(defclass call-node (basic-call-node) ())
+(eval-when (compile load eval) (defclass call-node (basic-call-node) ()))
 
 ;; CALL-SUBNODEs are a stripped-down version of CALL-NODEs, which mostly
 ;; means that most commands and translators don't operate on subnodes.
-(defclass call-subnode (basic-call-node) ())
+(eval-when (compile load eval) (defclass call-subnode (basic-call-node) ()))
 
 (defmethod node-any-inferior-objects-p ((node call-subnode) type)
   (declare (ignore type))
@@ -187,9 +194,10 @@
 
 
 ;; Ellipsis nodes
-(defclass ellipsis-call-node
+(eval-when (load compile eval)
+  (defclass ellipsis-call-node
 	  (basic-call-node)
-    ((replaced-node :reader ellipsis-node-replaced-node :initarg :replaced-node)))
+    ((replaced-node :reader ellipsis-node-replaced-node :initarg :replaced-node))))
 
 (proclaim '(inline make-ellipsis-call-node))
 (defun make-ellipsis-call-node (object replaced-node)
@@ -609,7 +617,7 @@
 
 (defun directory-and-properties (pathname)
   #+Genera (cdr (fs:directory-list pathname))
-  #-Genera (mapc #'list (directory pathname)))
+  #-Genera (mapcar #'list (directory pathname)))
 
 
 ;;; Lisp object browsing
@@ -676,7 +684,8 @@
 			       ',object)
 		   collect (eval form))))
 	  ;;--- What do we do for INSTANCEP?
-	  ((si:instancep object)
+	  (#+Genera (si:instancep object)
+	   #+excl (typep object 'standard-object)
 	   #+Genera (setq object (si:follow-structure-forwarding object))
 	   ;;--- How to arrange for the slot names to be printed?
 	   ;; This works for Genera Flavors because they are embedded in CLOS
@@ -696,13 +705,15 @@
   (let ((object (node-object node)))
     (or (consp object)
         ;;--- What do we do for INSTANCEP?
-	(si:instancep object)
+	#+Genera(si:instancep object)
+	#+excl (typep object 'standard-object)
 	(and (arrayp object)
 	     (not (stringp object))))))
 
 
 ;;; The browser itself
 
+#-Silica
 (define-application-frame browser ()
     ((graph-type :initform :graphical)
      (browser-type :initform nil)
@@ -747,6 +758,52 @@
 	  (interactor :rest))
 	 (control-panel 2/5)))))))
 
+#+Silica
+(define-application-frame browser ()
+  ((graph-type :initform :graphical)
+   (browser-type :initform nil)
+   (browser-subtype :initform nil)
+   (browser-ptype :initform nil)
+   (browser-options :initform nil)
+   (node-maker :initform #'false)
+   (root-node-maker :initform #'false)
+   (grapher-args :initform nil)
+   (tree-depth :initform 1)
+   (merge-duplicate-nodes :initform t)
+   (root-nodes :initform nil)
+   (all-nodes :initform nil)
+   (auto-snapshot :initform t)
+   (snapshots :initform nil))
+  (:command-definer t)
+  (:command-table (browser :inherit-from (clim-internals::accept-values-pane)))
+  (:panes
+   (title (scrolling ()
+		     (realize-pane 'application-pane
+			:display-after-commands t
+			:display-function 'display-title-pane
+			:default-text-style '(:sans-serif :bold :large))))
+   (graph (scrolling ()
+		     (realize-pane 'application-pane
+			:display-function 'display-graph-pane
+			:display-after-commands t
+			:incremental-redisplay t
+			:scroll-bars :both)))
+   (commands (realize-pane 'menu-bar
+			   :display-function '(display-command-menu :n-rows 2)))
+   (interactor (scrolling ()
+			  (realize-pane 'interactor-pane
+					:height 50)))
+   (control-panel (scrolling ()
+			     (realize-pane 'application-pane
+					   :height 200
+				:display-function '(clim-internals::accept-values-pane-displayer
+						    :displayer accept-call-graph-options)))))
+  (:layout
+   (default
+       (vertically () graph interactor control-panel))))
+
+
+  
 #+Genera (define-genera-application browser :select-key #\Triangle)
 #+Genera (zwei:defindentation (define-browser-command 0 3 1 3 2 1))
 
@@ -808,9 +865,9 @@
 				(arc-drawer #'draw-line*)
 				(arc-drawing-options nil)
 				(generation-separation 
-				  *default-generation-separation*)
+				  clim-internals::*default-generation-separation*)
 				(within-generation-separation
-				  *default-within-generation-separation*)
+				  clim-internals::*default-within-generation-separation*)
 				node-filter)
   (flet ((inferior-producer (node)
 	   (let ((inferiors (funcall inferior-producer node)))
@@ -999,9 +1056,10 @@
 		     :stream stream :default default
 		     :query-identifier query-id :prompt prompt)))
       (declare (dynamic-extent #'accept))
-      (multiple-value-bind (new-type nil type-changed)
+      (multiple-value-bind (new-type ignore type-changed)
 	  (accept `(member ,@*browser-types*) (or browser-type (first *browser-types*))
 		  "Browser type" 'type)
+	(declare (ignore ignore))
 	(let* ((sub-ptype
 		 (browser-type-subtypes new-type))
 	       (new-subtype
@@ -1044,7 +1102,7 @@
 
 (define-browser-command (com-show-graph :name t :menu t)
     ((objects (with-slots (browser-ptype) *application-frame*
-		`(or (sequence ,browser-ptype) call-node))
+		`(or ,browser-ptype (sequence ,browser-ptype) call-node))
 	      :prompt "the name of an object"
 	      :default nil))
   (with-slots (auto-snapshot root-node-maker root-nodes all-nodes) *application-frame*
@@ -1052,7 +1110,7 @@
       (snapshot-current-graph *application-frame*))
     (if (typep objects 'call-node)
 	(setq root-nodes (list (funcall root-node-maker (node-object objects))))
-        (loop for object in objects
+        (loop for object in (if (atom objects) (list objects) objects)
 	      as new-node = (funcall root-node-maker object)
 	      when new-node
 		collect new-node into new-root-nodes
@@ -1063,7 +1121,7 @@
     (generate-call-graph *application-frame* root-nodes)
     (redisplay-frame-pane *application-frame* 'graph :force-p t)))
 
-(define-gesture-name :show-graph :button :left :shifts (:shift))
+(define-gesture-name :show-graph :button :left :modifiers (:shift))
 
 (define-presentation-to-command-translator show-graph
     (call-node com-show-graph browser
@@ -1208,19 +1266,23 @@
 
 ;;; Snapshotting
 
-(defstruct snapshot
-  graph-type
-  browser-type
-  browser-subtype
-  browser-ptype
-  browser-options
-  node-maker
-  root-node-maker
-  grapher-args
-  tree-depth
-  merge-duplicate-nodes
-  root-nodes
-  all-nodes)
+(defclass snapshot ()
+	  ((graph-type :initarg :graph-type :accessor snapshot-graph-type :initform nil)
+	   (browser-type :initarg :browser-type :accessor snapshot-browser-type :initform nil)
+	   (browser-subtype :initarg :browser-subtype :accessor snapshot-browser-subtype :initform nil)
+	   (browser-ptype :initarg :browser-ptype :accessor snapshot-browser-ptype :initform nil)
+	   (browser-options :initarg :browser-options :accessor snapshot-browser-options :initform nil)
+	   (node-maker :initarg :node-maker :accessor snapshot-node-maker :initform nil)
+	   (root-node-maker :initarg :root-node-maker :accessor snapshot-root-node-maker :initform nil)
+	   (grapher-args :initarg :grapher-args :accessor snapshot-grapher-args :initform nil)
+	   (tree-depth :initarg :tree-depth :accessor snapshot-tree-depth :initform nil)
+	   (merge-duplicate-nodes :initarg :merge-duplicate-nodes :accessor snapshot-merge-duplicate-nodes
+				  :initform nil)
+	   (root-nodes :initarg :root-nodes :accessor snapshot-root-nodes :initform nil)
+	   (all-nodes :initarg :all-nodes :accessor snapshot-all-nodes :initform nil)))
+
+(defun make-snapshot (&rest x)
+  (apply #'make-instance 'snapshot x))
 
 (define-presentation-type snapshot (&optional snapshots))
 
@@ -1332,8 +1394,8 @@
       (return-from subnode-object-present-in-node t)))
   nil)
 
-(define-gesture-name :subnode-1 :button :left   :shifts (:control :meta))
-(define-gesture-name :subnode-2 :button :middle :shifts (:control :meta))
+(define-gesture-name :subnode-1 :button :left   :modifiers (:control :meta))
+(define-gesture-name :subnode-2 :button :middle :modifiers (:control :meta))
 
 (define-browser-command com-show-clos-slots
     ((class-node 'class-call-node
