@@ -11,6 +11,19 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.5.2
+
+2000-08-18 tfb@cley.com (Tim Bradshaw)
+
+	* tk-silica/xt-silica.lisp: added a roman8-encoded font-family
+	  to *xt-font-families*, which should make CLIM on HP work
+          better when displaying on HP X servers.  I am not sure if 
+	  this is the right way to do this.
+
+	* RELNOTES: documented how to get around lack of HP-ROMAN8 encoded 
+          fonts when running on HP and displaying on non-HP X servers.
+
+*******************************************************************************
 2.2.2.21.5.1
 
 2000-08-17 tfb@cley.com (Tim Bradshaw)

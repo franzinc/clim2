@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.1.14.2 2000/08/14 17:17:34 cley Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.1.14.3 2000/08/16 23:58:57 cley Exp $
 
 (in-package :xm-silica)
 
@@ -179,7 +179,14 @@
 	    (2 "rk14"
 	       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
 	       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
-	       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")))))))
+	       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")))))
+      #+hpux
+      ;; hp-roman8 encoding as used by HP (only!).
+      (3 "fixed"
+	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-hp-roman8")
+	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-hp-roman8")
+	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-hp-roman8"
+		 "-*-times-*-*-*-*-*-*-*-*-*-*-hp-roman8"))))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
