@@ -1,3 +1,7 @@
+2005-04-08  Kevin Layer  <layer@gemini>
+
+	* Makefile.wnn: add -lcrypt for SUSE
+
 2004-09-28    <mm@KETCHTOO>
 
 	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
@@ -5951,4 +5955,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.4 $
+$Revision: 2.10.4.4.2.1 $

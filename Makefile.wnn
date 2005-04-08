@@ -1,4 +1,4 @@
-# $Id: Makefile.wnn,v 2.5 2004/03/11 02:13:07 layer Exp $
+# $Id: Makefile.wnn,v 2.5.68.1 2005/04/08 16:46:38 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -93,6 +93,9 @@ endif
 
 ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),ppc)
+REDHATLIBS = -lcrypt
+endif
+ifdef SUSE
 REDHATLIBS = -lcrypt
 endif
 endif
