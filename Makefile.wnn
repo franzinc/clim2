@@ -1,4 +1,4 @@
-# $Id: Makefile.wnn,v 2.5.68.1 2005/04/08 16:46:38 layer Exp $
+# $Id: Makefile.wnn,v 2.5.68.2 2005/06/13 17:40:51 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -105,7 +105,9 @@ REDHATLIBS = -lcrypt
 endif
 
 ifeq ($(MACHINE),x86_64)
+ifeq ($(OS_NAME),linux)
 REDHATLIBS = -lcrypt
+endif
 endif
 
 wnn.$(SHARED_EXT): $(WNN_OBJS)
