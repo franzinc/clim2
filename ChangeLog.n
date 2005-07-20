@@ -1,3 +1,19 @@
+2005-06-03    <duane@gemini>
+
+Added files:
+
+	* Makefile.solamd64: Add Solaris/AMD64
+
+Modified files:
+
+	* Makefile: add Solaris/AMD64
+	* Makefile.macosx: Add 64-bit parameterization
+	* Makefile.wnn: Leave libcrypt out of Solarios AMD64
+
+2005-04-08  Kevin Layer  <layer@gemini>
+
+	* Makefile.wnn: add -lcrypt for SUSE
+
 2004-09-28    <mm@KETCHTOO>
 
 	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
@@ -5951,4 +5967,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.4 $
+$Revision: 2.10.4.5 $

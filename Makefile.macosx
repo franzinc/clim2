@@ -1,4 +1,4 @@
-# $Id: Makefile.macosx,v 2.4 2003/12/15 18:35:11 layer Exp $
+# $Id: Makefile.macosx,v 2.4.36.1 2005/07/20 19:31:31 layer Exp $
 #
 #  Makefile.macosx for CLIM 2.0
 #
@@ -26,10 +26,16 @@ XLIB=-L/usr/X11R6/lib -lX11
 
 XINCLUDES=-I/usr/X11R6/include -I/usr/local/motif/include
 
+ifeq ($(SIXTYFOURBIT),yes)
+CFLAGS= -arch ppc64 -DAcl64Bit
+MAKE_SHARED = sh ../src/bin/make_shared.mac64
+else
 CFLAGS= 
+MAKE_SHARED = sh ../src/bin/make_shared.mac
+endif
+
 PICFLAGS = 
 SHAREFLAGS = 
-MAKE_SHARED = sh ../src/bin/make_shared.mac
 AR = ar cq
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
