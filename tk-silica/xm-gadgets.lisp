@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.5 2004/01/16 19:15:44 layer Exp $
+;; $Id: xm-gadgets.lisp,v 2.5.90.1 2005/07/22 12:24:05 alemmens Exp $
 
 (in-package :xm-silica)
 
@@ -570,17 +570,24 @@
 
 
 (defmethod find-widget-initargs-for-sheet ((port motif-port)
-					   (parent t)
-					   (sheet motif-scroll-bar))
+                                           (parent t)
+                                           (sheet motif-scroll-bar))
   (let ((size (scroll-bar-size sheet))
-	(increment (silica::scroll-bar-line-increment sheet)))
+        (increment (silica::scroll-bar-line-increment sheet)))
     (append `(:minimum 0 :maximum ,*scroll-bar-quantization*)
-	    (when increment
-	      `(:increment
-		,(convert-scroll-bar-value-out sheet increment)))
-	    (when size
-	      `(:slider-size
-		,(convert-scroll-bar-value-out sheet size))))))
+      (when increment
+        `(:increment
+          ,(silica::convert-scroll-bar-size-out sheet increment)))
+      (when size
+        (let ((internal-size (silica::convert-scroll-bar-size-out sheet size)))
+          `(:slider-size ,internal-size
+             ;; Set page increment too (alemmens, 2004-12-10).
+             :page-increment ,internal-size)))
+      ;; Set initial value (alemmens, 2004-12-10).
+      (let ((value (gadget-value sheet)))
+        (when value
+          `(:value
+            ,(silica::convert-scroll-bar-value-out sheet value)))))))
 
 ;;;--- We should use the motif functions for getting and changing the
 ;;;--- values
@@ -648,14 +655,14 @@
 	   sheet
 	   (gadget-client sheet)
 	   (gadget-id sheet)
-	   (convert-scroll-bar-value-in sheet
-					(tk::get-values widget :value))))
+	   (silica::convert-scroll-bar-value-in sheet
+                                                (tk::get-values widget :value))))
 
 (defmethod gadget-value ((gadget motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror gadget)))
     (if mirror
-	(convert-scroll-bar-value-in gadget
-				     (tk::get-values mirror :value))
+	(silica::convert-scroll-bar-value-in gadget
+                                             (tk::get-values mirror :value))
       (call-next-method))))
 
 (defmethod (setf gadget-value) :after
@@ -664,13 +671,13 @@
   (let ((mirror (sheet-direct-mirror gadget)))
     (when mirror
       (tk::set-values mirror
-		      :value (convert-scroll-bar-value-out gadget nv)))))
+		      :value (silica::convert-scroll-bar-value-out gadget nv)))))
 
 (defmethod scroll-bar-size ((sheet motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror sheet)))
     (if mirror
-	(convert-scroll-bar-value-in sheet
-				     (tk::get-values mirror :slider-size))
+	(silica::convert-scroll-bar-size-in sheet
+                                            (tk::get-values mirror :slider-size))
       (call-next-method))))
 
 (defmethod (setf scroll-bar-size) :after (value (object motif-scroll-bar))
@@ -679,7 +686,7 @@
       ;; Set the XmNsliderSize and XmNpageIncrement resources so the correct
       ;; thing happens when the user presses the up-page/down-page buttons.
       ;; Apparently it is not sufficient just to set slider-size.  JPM.
-      (let ((v (convert-scroll-bar-value-out object value)))
+      (let ((v (silica::convert-scroll-bar-size-out object value)))
 	(tk::set-values mirror :slider-size v :page-increment v)))))
 
 (defmethod compose-space ((m motif-scroll-bar) &key width height)
@@ -706,7 +713,7 @@
       ;; the user presses the up-line/down-line buttons.
       (tk::set-values mirror
 		      :increment
-		      (convert-scroll-bar-value-out object value)))))
+		      (silica::convert-scroll-bar-size-out object value)))))
 
 ;; Should we stick in our preferred scroll-bar geometry here?
 

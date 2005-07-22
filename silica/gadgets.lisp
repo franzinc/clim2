@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadgets.lisp,v 2.5 2004/01/16 19:15:43 layer Exp $
+;; $Id: gadgets.lisp,v 2.5.90.1 2005/07/22 12:24:05 alemmens Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -313,34 +313,64 @@
       (invoke-callback-function callback gadget value))
     (call-next-method)))
 
-
+;;;
 ;;; Scroll bar
+;;;
+
 (defclass scroll-bar (value-gadget range-gadget-mixin oriented-gadget-mixin)
-  ((size :initform 1 :initarg :size :accessor scroll-bar-size)
+  ;; Removed initforms for SIZE and LINE-INCREMENT; these are now initialized
+  ;; in an after method on INITIALIZE-INSTANCE (alemmens, 2004-12-10).
+  ((size :initarg :size :accessor scroll-bar-size)
+   (line-increment :initarg :line-increment :accessor scroll-bar-line-increment)
    (drag-callback :initarg :drag-callback :initform nil 
-		  :reader scroll-bar-drag-callback)
-   (line-increment :initform 1
-		   :initarg :line-increment
-		   :accessor scroll-bar-line-increment)
+                  :reader scroll-bar-drag-callback)
    (scroll-to-bottom-callback :initform nil
-			      :initarg :scroll-to-bottom-callback
-			      :reader scroll-bar-scroll-to-bottom-callback)
+                              :initarg :scroll-to-bottom-callback
+                              :reader scroll-bar-scroll-to-bottom-callback)
    (scroll-to-top-callback :initform nil
-			   :initarg :scroll-to-top-callback
-			   :reader scroll-bar-scroll-to-top-callback)
+                           :initarg :scroll-to-top-callback
+                           :reader scroll-bar-scroll-to-top-callback)
    (scroll-down-line-callback :initform nil
-			      :initarg :scroll-down-line-callback
-			      :reader scroll-bar-scroll-down-line-callback)
+                              :initarg :scroll-down-line-callback
+                              :reader scroll-bar-scroll-down-line-callback)
    (scroll-up-line-callback :initform nil
-			    :initarg :scroll-up-line-callback
-			    :reader scroll-bar-scroll-up-line-callback)
+                            :initarg :scroll-up-line-callback
+                            :reader scroll-bar-scroll-up-line-callback)
    (scroll-down-page-callback :initform nil
-			      :initarg :scroll-down-page-callback
-			      :reader scroll-bar-scroll-down-page-callback)
+                              :initarg :scroll-down-page-callback
+                              :reader scroll-bar-scroll-down-page-callback)
    (scroll-up-page-callback :initform nil
-			    :initarg :scroll-up-page-callback
-			    :reader scroll-bar-scroll-up-page-callback)
+                            :initarg :scroll-up-page-callback
+                            :reader scroll-bar-scroll-up-page-callback)
    ))
+
+
+(defmethod initialize-instance :after ((scroll-bar scroll-bar) &key value size line-increment &allow-other-keys)
+  ;; The default value for SIZE should be (GADGET-RANGE scroll-bar), not 1.
+  ;; The default value for VALUE should be (GADGET-MIN-VALUE scroll-bar), not NIL.
+  ;; The default value for LINE-INCREMENT should be a fraction of SIZE, not 1.
+  ;; (alemmens, 2004-12-10)
+  (unless value
+    (setf (slot-value scroll-bar 'value) (gadget-min-value scroll-bar)))
+  (unless size
+    (setf (slot-value scroll-bar 'size) (gadget-range scroll-bar)))
+  (unless line-increment
+    (setf (slot-value scroll-bar 'line-increment) (* 0.1 (slot-value scroll-bar 'size)))))
+
+(defmethod print-object ((gadget scroll-bar) stream)
+  ;; Added this method for easier debugging (alemmens, 2004-12-24).
+  (print-unreadable-object (gadget stream :type t :identity t)
+    (format stream "from ~A to ~A (size ~A, line ~A, value ~A)"
+            (gadget-min-value gadget)
+            (gadget-max-value gadget)
+            (if (slot-boundp gadget 'size)
+                (scroll-bar-size gadget)
+                'unbound)
+            (if (slot-boundp gadget 'line-increment)
+                (scroll-bar-line-increment gadget)
+                'unbound)
+            (gadget-value gadget))))
+
 
 (defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
   (let ((callback (scroll-bar-drag-callback gadget)))
@@ -364,24 +394,27 @@
 	   (value (gadget scroll-bar) &key invoke-callback)
   (declare (ignore invoke-callback))
   (assert (and (<= (+ value (scroll-bar-size gadget))
-		   (gadget-max-value gadget))
-	       (>= value (gadget-min-value gadget)))
-      (value)
+                 (gadget-max-value gadget))
+            (>= value (gadget-min-value gadget)))
+    (value)
     "Scroll bar value ~A out of range" value)
   (call-next-method value gadget))
 
 (defmethod (setf line-increment) :around (value (object scroll-bar))
   (assert (and (> value (gadget-min-value object))
-	       (<= value (gadget-max-value object)))
-      (value)
+            (<= value (gadget-max-value object)))
+    (value)
     "Scroll bar line-increment ~a out of range" value)
   (call-next-method value object))
 
-(defmethod change-scroll-bar-values :before
-	   ((pane scroll-bar) 
-	    &key line-increment &allow-other-keys)
+(defmethod change-scroll-bar-values :before ((pane scroll-bar) 
+                                             &key line-increment &allow-other-keys)
   ;; Record line-increment since clim doesn't.
-  (setf (scroll-bar-line-increment pane) line-increment))
+  ;; (Only record it when it's actually given as an argument to
+  ;;  change-scroll-bar-values; the win32 backend doesn't always do that.
+  ;;  alemmens, 2004-12-24)
+  (when line-increment
+    (setf (scroll-bar-line-increment pane) line-increment)))
 
 ;;; Here are the callbacks that were once called out in the CLIM spec:
 
@@ -415,8 +448,52 @@
   (let ((callback (scroll-bar-scroll-down-page-callback pane)))
     (when callback (funcall callback pane))))
 
+;;;
+;;; Some scroll bar utilities
+;;;
 
+;; (These came from xt-gadgets.lisp. alemmens, 2004-12-24)
+
+(defun convert-scroll-bar-value-out (scroll-bar value)
+  "Convert a scroll bar value from CLIM to native."
+  (multiple-value-bind
+        (smin smax) (gadget-range* scroll-bar)
+    (multiple-value-bind (native-min native-max)
+        (native-gadget-range* scroll-bar)
+      (max native-min
+           (min native-max
+                (floor
+                 (compute-symmetric-value smin smax value native-min native-max)))))))
+
+(defun convert-scroll-bar-value-in (scroll-bar value)
+  "Convert a scroll bar value from native to CLIM."
+  (multiple-value-bind
+        (smin smax) (gadget-range* scroll-bar)
+    (multiple-value-bind (native-min native-max)
+        (native-gadget-range* scroll-bar)
+      (max smin
+           (min smax
+                (compute-symmetric-value native-min native-max value smin smax))))))
+
+;; Converting scroll-bar sizes (e.g. slug size or line increment) went
+;; wrong when the scroll-bar's min-value was non-zero.  So I added the
+;; following two little helper functions (alemmens, 2004-12-10).
+
+(defun convert-scroll-bar-size-out (scroll-bar size)
+  "Convert a scroll bar size from CLIM to native."
+  (convert-scroll-bar-value-out scroll-bar
+                                (+ (gadget-min-value scroll-bar) size)))
+
+(defun convert-scroll-bar-size-in (scroll-bar native-size)
+  "Convert a scroll bar size from native to CLIM."
+  (- (convert-scroll-bar-value-in scroll-bar native-size)
+     (gadget-min-value scroll-bar)))
+    
+
+;;;
 ;;; Push-button
+;;;
+
 (defclass push-button 
 	  (action-gadget labelled-gadget-mixin) 
     ((show-as-default :initform nil :initarg :show-as-default

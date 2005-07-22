@@ -1,3 +1,14 @@
+2005-07-22  alemmens  <alemmens@franz.com>
+
+	* aclpc/acl-class.lisp, aclpc/acl-pref.lisp, aclpc/acl-scroll.lisp, aclc/acl-widget.lisp:
+	scrollbar improvements on Windows
+	* clim/command.lisp: fix bug in DEFCOMMAND
+	* clim/gadget-output.lisp: (spr30294) don't filter quotes from text-field
+	* silica/gadgets.lisp: scrollbar improvements
+	* tk-silica/xt-frames.lisp:  (spr30282) window close event = cancel gesture
+	* tk-silica/xt-gadgets.lisp, tk-silica/xm-gadgets.lisp: scrollbar improvements on Motif
+
+
 2004-09-28    <mm@KETCHTOO>
 
 	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
@@ -5951,4 +5962,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.4.8.2 $
+$Revision: 2.10.4.4.8.3 $
