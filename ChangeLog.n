@@ -1,3 +1,17 @@
+2005-07-22  alemmens  <alemmens@franz.com>
+
+	* aclpc/acl-class.lisp, aclpc/acl-pref.lisp,
+          aclpc/acl-scroll.lisp, aclc/acl-widget.lisp: scrollbar
+          improvements on Windows
+	* clim/command.lisp: fix bug in DEFCOMMAND
+	* clim/gadget-output.lisp: (spr30294) don't filter quotes from
+          text-field
+	* silica/gadgets.lisp: scrollbar improvements
+	* tk-silica/xt-frames.lisp:  (spr30282) window close event =
+          cancel gesture
+	* tk-silica/xt-gadgets.lisp, tk-silica/xm-gadgets.lisp:
+          scrollbar improvements on Motif
+
 2005-06-03    <duane@gemini>
 
 Added files:
@@ -5967,4 +5981,8 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.4.2.2 $
+<<<<<<< ChangeLog.n
+$Revision: 2.10.4.4.2.3 $
+=======
+$Revision: 2.10.4.4.2.3 $
+>>>>>>> 2.10.4.4.8.3

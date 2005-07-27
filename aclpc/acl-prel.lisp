@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 2.5.26.1 2004/07/23 06:15:59 duane Exp $
+;; $Id: acl-prel.lisp,v 2.5.26.1.38.1 2005/07/27 22:47:30 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -195,9 +195,12 @@
 	       (logior (if (eql orientation :horizontal) 
 			   win::SBS_HORZ win::SBS_VERT)
 		       win::WS_CHILD
-		       win::WS_BORDER
+                       ;; Removed the WS_BORDER flag.
+                       ;; It's non-standard and, what's worse, it resulted
+                       ;; in some garbage pixels (alemmens, 2005-01-19)
 		       win::WS_CLIPCHILDREN 
-		       win::WS_CLIPSIBLINGS) ; style
+		       win::WS_CLIPSIBLINGS
+                       ) ; style
 	       0 0 0 0			; x, y, width, height
 	       parent
 	       0

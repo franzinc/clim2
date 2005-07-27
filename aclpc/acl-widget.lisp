@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.6 2004/03/21 15:59:48 layer Exp $
+;; $Id: acl-widget.lisp,v 2.6.66.1 2005/07/27 22:47:30 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1531,42 +1531,41 @@
 
 (defclass mswin-scroll-bar (acl-gadget-id-mixin 
                             mirrored-sheet-mixin 
-			    scroll-bar
+                            scroll-bar
                             space-requirement-mixin
                             leaf-pane 
-			    ;;sheet-permanently-enabled-mixin basic-pane
-			    )
+                            ;;sheet-permanently-enabled-mixin basic-pane
+                            )
   ())
 
-(defmethod initialize-instance :after ((object mswin-scroll-bar) 
-				       &key &allow-other-keys)
-   ;; It is a mystery to me how size is 1.0 at this point.
-   ;; This is in my opinion a poor default value.
-  ;; The slot has NIL as its initform, 
-  ;; and (SETF SCROLL-BAR-SIZE) is not called.
-  (assert (not (null (gadget-min-value object))))
-  (assert (not (null (gadget-max-value object))))
-  (unless (gadget-value object) 
-    (setf (slot-value object 'silica::value) (gadget-min-value object)))
-  (assert (not (null (gadget-value object))))
-  (setf (scroll-bar-size object) (float (/ (gadget-range object) 10))))
+
+(defmethod initialize-instance :after ((scroll-bar mswin-scroll-bar) &key &allow-other-keys)
+  ;; Initialization is now taken care of by an initialize-instance after method
+  ;; on scroll-bar in silica/gadgets.lisp.  This dummy is only necessary as long
+  ;; as CLIM hasn't been recompiled from scratch. (alemmens, 2004-12-2004)
+  'ignore)
+
+
+(defmethod native-gadget-range* ((scroll-bar mswin-scroll-bar))
+  (values 0 acl-clim::*win-scroll-grain*))
+
 
 (defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-scroll-bar))
   (multiple-value-bind (left top right bottom)
       (sheet-native-region* sheet)
     (fix-coordinates left top right bottom)
     (let* ((parent (sheet-mirror sheet))
-	   (parent2 (sheet-mirror (sheet-parent sheet)))
+           (parent2 (sheet-mirror (sheet-parent sheet)))
            (window nil)
            (orientation (gadget-orientation sheet))
-	   (width (- right left))
-	   (height (- bottom top))
+           (width (- right left))
+           (height (- bottom top))
            (gadget-id (allocate-gadget-id sheet)))
       (assert (eq parent parent2) () "parents don't match!")
       (setq window
-	(acl-clim::scrollbar-open parent left top width height orientation))
+            (acl-clim::scrollbar-open parent left top width height orientation))
       (setf (sheet-native-transformation sheet)
-	(sheet-native-transformation (sheet-parent sheet)))
+            (sheet-native-transformation (sheet-parent sheet)))
       (setf (gadget-id->window sheet gadget-id) window)
       (win:ShowWindow window win:SW_SHOW)
       (setf (sheet-direct-mirror sheet) window) ; needed only to initialize
@@ -1574,10 +1573,10 @@
       ;; Make sure defaults are sensible at the time the WIN32 scroll bar is 
       ;; created.
       (setf (gadget-min-value sheet) 
-	(or (gadget-min-value sheet) 0))
+            (or (gadget-min-value sheet) 0))
       (setf (gadget-max-value sheet)
-	(or (gadget-max-value sheet) 1))
-      (change-scroll-bar-values		;initialize
+            (or (gadget-max-value sheet) 1))
+      (change-scroll-bar-values	       
        sheet
        ;; remaining from rfe4072
        :slider-size (or (scroll-bar-size sheet) 1)
@@ -1603,40 +1602,32 @@
                                :max-width +fill+)))))
 
 (defmethod change-scroll-bar-values ((sb mswin-scroll-bar) 
-				     &key
-				     slider-size
-				     value
-				     line-increment
-				     (page-increment slider-size))
+                                     &key
+                                     slider-size
+                                     value
+                                     line-increment
+                                     (page-increment slider-size))
+  ;; I simplified this (and improved dealing with unusual gadget ranges)
+  ;; by using convert-scroll-bar-xxx-out (alemmens, 2004-12-24).
   (declare (ignore page-increment line-increment))
   (let ((mirror (sheet-direct-mirror sb))
-	(range (gadget-range sb)))
+        (range (gadget-range sb)))
     (when mirror
       (unless slider-size (setq slider-size (scroll-bar-size sb)))
-      (setq slider-size (min slider-size range)); sanity check
+      (setq slider-size (min slider-size range)) ; sanity check
       (unless value (setq value (gadget-value sb)))
-      (multiple-value-bind (min max) (gadget-range* sb)
-	(setf value (max min (min max value))); sanity check
-	(decf value min)
-	(let* ((struct (ct:ccallocate win:scrollinfo))
-	       (page
-		(floor 
-		 (* acl-clim::*win-scroll-grain* 
-		    (if (zerop slider-size) 
-			slider-size (/ slider-size range)))))
-	       (position
-		(floor
-		 (* acl-clim::*win-scroll-grain* 
-		    (if (zerop value) value (/ value range))))))
-	  (ct:csets
-	   win:scrollinfo struct
-	   cbSize (ct:sizeof win:scrollinfo)
-	   fMask win:SIF_ALL
-	   nMin 0
-	   nMax acl-clim::*win-scroll-grain*
-	   nPage page
-	   nPos position)
-	  (win:SetScrollInfo mirror win:SB_CTL struct 1))))))
+      (let* ((struct (ct:ccallocate win:scrollinfo))
+             (page (convert-scroll-bar-size-out sb slider-size))
+             (position (convert-scroll-bar-value-out sb value)))
+        (ct:csets
+         win:scrollinfo struct
+         cbSize (ct:sizeof win:scrollinfo)
+         fMask win:SIF_ALL
+         nMin 0
+         nMax acl-clim::*win-scroll-grain*
+         nPage page
+         nPos position)
+        (win:SetScrollInfo mirror win:SB_CTL struct 1)))))
 
 (defmethod (setf gadget-value) :before
 	   (nv (gadget mswin-scroll-bar) &key invoke-callback)
