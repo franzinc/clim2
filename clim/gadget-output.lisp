@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadget-output.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: gadget-output.lisp,v 2.5.26.1 2005/08/01 22:07:31 layer Exp $
 
 (in-package :clim-internals)
 
@@ -770,28 +770,36 @@
   ;; windows CLIM port when apparently it sometimes is nil (cim 1/30/97)
   (if query (setf (accept-values-query-changed-p query) t)))
 
+
+
 (defmethod accept-values-string-field-changed-callback
            ((gadget text-field) stream query)
   (let ((new-value (gadget-value gadget)))
     ;; Only do the accept when the field has changed
     ;; Only call the callback if the query is still valid
-    ;; NB query should never be nil but this test was put in for the
-    ;; windows CLIM port when apparently it sometimes is nil (cim 1/30/97)
     (when (and query
                (accept-values-query-changed-p query)
                (accept-values-query-valid-p
                  query (accept-values-query-presentation query)))
       (handler-case
-          (multiple-value-bind (object type index)
-              ;; we specify :activation-gestures nil so that we can
-              ;; accept multi-line strings in text-editors (cim)
-            (accept-from-string (accept-values-query-type query)
-                                new-value
-                                :activation-gestures nil
-                                :delimiter-gestures nil)
-          (declare (ignore type))
-          (assert (= index (length new-value)))
-          object)
+          (let ((ptype (accept-values-query-type query)))
+            (clim:with-presentation-type-decoded (name)
+              ptype
+              (if (eql name 'string)
+                  ;; [spr30294]  Accept the raw text-field contents
+                  ;; when we're expecting a string (alemmens, 2005-06-21)
+                  (accept-raw-string ptype new-value)
+                  ;; Normal case: use accept-from-string.
+                  (multiple-value-bind (object type index)
+                      ;; we specify :activation-gestures nil so that we can
+                      ;; accept multi-line strings in text-editors (cim)
+                       (accept-from-string (accept-values-query-type query)
+                                          new-value
+                                          :activation-gestures nil
+                                          :delimiter-gestures nil)
+                    (declare (ignore type))
+                    (assert (= index (length new-value)))
+                    object))))
         (error (c)
           (setf (accept-values-query-error-p query) c)
           (let ((frame (pane-frame stream)))
@@ -801,6 +809,18 @@
         (:no-error (object)
          (setf (accept-values-query-error-p query) nil)
          (do-avv-command object stream query))))))
+ 
+
+(defun accept-raw-string (ptype gadget-value)
+  ;; [spr30294] Don't call ACCEPT-FROM-STRING when we just want to
+  ;; accept a string, because it will filter initial double quote
+  ;; characters from the string and we don't want that for text-field
+  ;; gadgets. (alemmens, 2005-06-21)
+  (with-presentation-type-parameters (string ptype)
+    (if (or (eq length '*) (= (length gadget-value) length))
+        gadget-value
+        (input-not-of-required-type gadget-value ptype))))
+
 
 
 ;;; Text Editor gadget
