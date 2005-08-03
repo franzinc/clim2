@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-frames.lisp,v 2.5 2004/01/16 19:15:44 layer Exp $
+;; $Id: xt-frames.lisp,v 2.6 2005/08/03 05:07:14 layer Exp $
 
 (in-package :xm-silica)
 
@@ -88,7 +88,12 @@
 (defmethod handle-event (sheet (event window-manager-delete-event))
   (let ((frame (pane-frame sheet)))
     (and frame
-	 (frame-exit frame))))
+         (if (typep frame 'clim-internals::accept-values-own-window)
+             ;; [spr30282] A window-manager-delete-event (i.e. a window close
+             ;; event) is supposed to equate to a "cancel" gesture.
+             ;; (alemmens, 2005-07-04)
+             (abort)
+             (frame-exit frame)))))
 
 ;;; Menu code
 

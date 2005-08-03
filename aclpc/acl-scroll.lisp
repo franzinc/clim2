@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: acl-scroll.lisp,v 2.6 2005/08/03 05:07:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -34,39 +34,52 @@
 (in-package :silica)
 
 (eval-when (compile load eval)
+  (define-event-class scrollbar-event (event) 
+    ((sheet :reader event-sheet :initarg :sheet)
+     (orientation :initarg :orientation :reader scrollbar-event-orientation)
+     (action :initarg :action :reader scrollbar-event-action)
+     (amount :initarg :amount :reader scrollbar-event-amount)
+     ;; Added the following slot to distinguish between dragging the slug
+     ;; and releasing the slug after dragging (alemmens, 2004-12-24).
+     (dragging-p :initarg :dragging-p :initform nil :reader scroll-bar-event-dragging-p
+                 :documentation "If true, the VALUE-CHANGED-CALLBACK won't be called."))))
 
-(define-event-class scrollbar-event (event) 
-  ((sheet :reader event-sheet :initarg :sheet)
-   (orientation :initarg :orientation :reader scrollbar-event-orientation)
-   (action :initarg :action :reader scrollbar-event-action)
-   (amount :initarg :amount :reader scrollbar-event-amount)))
-) ;; eval-when
-
-(defmethod handle-event ((pane mswin-scroll-bar) 
-			 (event silica::scrollbar-event))
-  (with-slots (silica::orientation silica::action silica::amount) event
-    (assert (eql silica::orientation (gadget-orientation pane)))
-    (multiple-value-bind (min) (gadget-range* pane)
+(defmethod handle-event ((pane mswin-scroll-bar) (event scrollbar-event))
+  ;; Added callback invocation (alemmens, 2004-12-24).
+  (with-slots (orientation action amount dragging-p) event
+    (assert (eql orientation (gadget-orientation pane)))
+    (multiple-value-bind (min max) (gadget-range* pane)
       ;; SCROLL-BAR-SIZE is less than or equal to the range.
-      (let* ((new (case silica::action
-		    (:relative-jump	; press arrows
-		     ;; AMOUNT is plus or minus one
-		     (+ (gadget-value pane) 
-			(* (scroll-bar-size pane) silica::amount)))
-		    (:screenful		; click near thumb
-		     ;; AMOUNT is plus or minus one
-		     (+ (gadget-value pane) 
-			(* (scroll-bar-size pane) silica::amount)))
-		    (:percentage	; drag thumb
-		     ;; AMOUNT is absolute position in the scroll range
-		     ;; (from 0 to *win-scroll-grain*).
-		     (+ min
-			(* (gadget-range pane)
-			   (/ silica::amount 
-			      (float acl-clim::*win-scroll-grain*))))))))
-	(value-changed-callback pane (gadget-client pane) 
-				(gadget-id pane) new)
-	))))
+      (multiple-value-bind (tentative-new-value callback)
+          (case action
+            ;; Press arrows
+            (:relative-jump
+             ;; AMOUNT is plus or minus one
+             (values (+ (gadget-value pane) 
+                        ;; Replaced size by line-increment (alemmens, 2004-12-17)
+                        (* (scroll-bar-line-increment pane) amount))
+                     (if (plusp amount) 'scroll-down-line-callback 'scroll-up-line-callback)))
+            ;; Click near thumb
+            (:screenful
+             ;; AMOUNT is plus or minus one
+             (values (+ (gadget-value pane) (* (scroll-bar-size pane) amount))
+                     (if (plusp amount) 'scroll-down-page-callback 'scroll-up-page-callback)))
+            ;; Drag thumb
+            (:percentage
+             ;; AMOUNT is absolute position in the scroll range
+             ;; (from 0 to *win-scroll-grain*).
+             (values (convert-scroll-bar-value-in pane amount)
+                     'drag-callback)))
+        (let ((new-value (max min 
+                              (min (- max (scroll-bar-size pane)) tentative-new-value)))
+              (client (gadget-client pane))
+              (id (gadget-id pane)))
+          (unless (= new-value (gadget-value pane))
+            (funcall callback pane client id new-value))
+          (when (and (eql action :percentage) (not dragging-p))
+            ;; The thumb was released: we can call the value-changed callback.
+            (value-changed-callback pane client id new-value)))))))
+
 
 (define-event-resource scrollbar-event 10)
 

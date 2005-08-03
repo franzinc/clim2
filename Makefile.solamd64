@@ -1,0 +1,44 @@
+# $Id: Makefile.solamd64,v 2.1 2005/08/03 05:07:13 layer Exp $
+#
+#  Makefile.sun4-svr4 for CLIM 2.0
+#
+
+include Makefile.defs
+
+Makefile=Makefile.sun4-svr4
+
+# for other Motif versions use
+# /net/sole/opt/ICS/Motif1.2.4/usr/include
+# /net/vapor/3rd/motif-1.2.2-sol2/ICS/Motif/usr/include
+
+XINCLUDES=-I/usr/openwin/include -I/usr/dt/include
+
+# on sol7 and later -lXm is motif 2, and we need 1.x.
+## Let's try it again, anyway, since sparc64 has no 1.x:
+TKLIB=-lXm
+#TKLIB=/usr/dt/lib/libXm.so.3
+XTLIB=-lXt
+XLIB=-lX11
+
+CFLAGS = -xarch=amd64 -DAcl64Bit
+SET_LIBRARY_PATH= \
+  LD_LIBRARY_PATH=/usr/lib/amd64; export LD_LIBRARY_PATH
+
+# for other Motif versions use
+# /net/sole/opt/ICS/Motif1.2.4/usr/lib:/usr/lib
+# /net/vapor/3rd/motif-1.2.2-sol2/ICS/Motif/usr/lib:/usr/lib
+
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+# from here on this file should be the same as Makefile.sun4-svr4-ol
+
+MOTIFXTRAS=-lgen
+
+PICFLAGS = -KPIC
+SHAREFLAGS = 
+MAKE_SHARED = ld -G -64
+STD_DEFINES =
+AR = ar cq
+
+include Makefile.generic

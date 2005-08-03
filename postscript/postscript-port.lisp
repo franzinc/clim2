@@ -1,12 +1,6 @@
-(sys:defpatch "climps" 1
-  "Emit integers in PostScript BoundinBox entry"
-  :type :clim2
-  :feature :clim
-  :post-loadable t)
-
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 2.4 2003/12/15 18:35:14 layer Exp $
+;; $Id: postscript-port.lisp,v 2.5 2005/08/03 05:07:14 layer Exp $
 
 (provide :climps)
 

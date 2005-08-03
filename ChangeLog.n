@@ -1,3 +1,46 @@
+2005-07-22  alemmens  <alemmens@franz.com>
+
+	* aclpc/acl-class.lisp, aclpc/acl-pref.lisp,
+          aclpc/acl-scroll.lisp, aclc/acl-widget.lisp: scrollbar
+          improvements on Windows
+	* clim/command.lisp: fix bug in DEFCOMMAND
+	* clim/gadget-output.lisp: (spr30294) don't filter quotes from
+          text-field
+	* silica/gadgets.lisp: scrollbar improvements
+	* tk-silica/xt-frames.lisp:  (spr30282) window close event =
+          cancel gesture
+	* tk-silica/xt-gadgets.lisp, tk-silica/xm-gadgets.lisp:
+          scrollbar improvements on Motif
+
+2005-06-03    <duane@gemini>
+
+Added files:
+
+	* Makefile.solamd64: Add Solaris/AMD64
+
+Modified files:
+
+	* Makefile: add Solaris/AMD64
+	* Makefile.macosx: Add 64-bit parameterization
+	* Makefile.wnn: Leave libcrypt out of Solarios AMD64
+
+2005-04-08  Kevin Layer  <layer@gemini>
+
+	* Makefile.wnn: add -lcrypt for SUSE
+
+2004-09-28    <mm@KETCHTOO>
+
+	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
+	                 Make sure values exist before using them [bug14769]
+
+2004-08-16    <layer@HOBART>
+
+	* aclpc/acl-port.lisp: win:size -> win:win-size
+
+Thu Jul 22 23:17:23 PDT 2004  Duane Rettig  <duane@gemini>
+
+	* aclpc/acl-prel.lisp: win:handle -> win:win-handle
+
 2004-03-24    <layer@HOBART>
 
 	* Makefile.generic: remove cat'ing of runlisp.sh -o output, since
@@ -57,6 +100,11 @@ next join tag: use join2.sh
 join from acl62 to trunk on 12/11/03
 next join tag: acl62_to_trunk_via_layer48_merge_121003
 *******************************************************************************
+
+2004-05-27  Charles A. Cox  <cox@gemini>
+
+	* ChangeLog.n: Add cvs Revision marker to help track cvs versions
+	sent to Kido.
 
 2003-12-23  Kevin Layer  <layer@crikey>
 
@@ -5933,4 +5981,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10 $
+$Revision: 2.11 $

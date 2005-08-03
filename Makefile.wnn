@@ -1,4 +1,4 @@
-# $Id: Makefile.wnn,v 2.5 2004/03/11 02:13:07 layer Exp $
+# $Id: Makefile.wnn,v 2.6 2005/08/03 05:07:13 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -95,6 +95,9 @@ ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),ppc)
 REDHATLIBS = -lcrypt
 endif
+ifdef SUSE
+REDHATLIBS = -lcrypt
+endif
 endif
 
 ifeq ($(OS_NAME),freebsd)
@@ -102,7 +105,9 @@ REDHATLIBS = -lcrypt
 endif
 
 ifeq ($(MACHINE),x86_64)
+ifeq ($(OS_NAME),linux)
 REDHATLIBS = -lcrypt
+endif
 endif
 
 wnn.$(SHARED_EXT): $(WNN_OBJS)

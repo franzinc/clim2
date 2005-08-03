@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.7 2004/03/21 15:59:48 layer Exp $
+;; $Id: acl-class.lisp,v 2.8 2005/08/03 05:07:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -224,7 +224,14 @@
 (defvar *level* 0)
 
 (defvar *realtime-scrollbar-tracking* t)
-(defvar *win-scroll-grain* 1000)
+
+(defvar *win-scroll-grain* 
+    ;; Must be a 16-bit quantity.
+    ;; According to Microsoft, WM_HSCROLL and WM_VSCROLL messages
+    ;; are "limited to 16 bits of position data".
+    ;; (alemmens, 2004-12-17)
+    (1- (expt 2 16)))
+
 
 (defmacro clear-winproc-result (res)
   (declare (ignore res))
@@ -440,75 +447,92 @@
     )
   (message-default window msg wparam lparam))
 
+
+;;
 ;; Process WM_VSCROLL
+;;
+
 (defun onvscroll (window msg wparam lparam)
   (let* ((scrollcode (loword wparam))
-	 (position (hiword wparam))
-	 (hwnd (if (zerop lparam) window lparam)) ; JPM for rfe353
-	 (message (cond ((eql msg win:WM_HSCROLL) :horizontal)
-			((eql msg win:WM_VSCROLL) :vertical)))
-	 (sheet (mirror->sheet *acl-port* hwnd))
-	 (bar (cond ((gadgetp sheet) win:SB_CTL)
-		    ((eql msg win:WM_HSCROLL) win:SB_HORZ)
-		    ((eql msg win:WM_VSCROLL) win:SB_VERT)))
-	 (redraw 1))
+         (position (hiword wparam))
+         (hwnd (if (zerop lparam) window lparam)) ; JPM for rfe353
+         (message (cond ((eql msg win:WM_HSCROLL) :horizontal)
+                        ((eql msg win:WM_VSCROLL) :vertical)))
+         (sheet (mirror->sheet *acl-port* hwnd))
+         (bar (cond ((gadgetp sheet) win:SB_CTL)
+                    ((eql msg win:WM_HSCROLL) win:SB_HORZ)
+                    ((eql msg win:WM_VSCROLL) win:SB_VERT)))
+         (redraw 1))
     (declare (fixnum action position))
+    (assert bar)
     ;; By convention, scroll bar values should always have a range of 
     ;; 0 to *win-scroll-grain*.
     (multiple-value-bind (action amount)
-	(case scrollcode
-	  (#.win:SB_BOTTOM
-	   ;; Scroll to lower right
-	   (win:SetScrollPos window bar *win-scroll-grain* redraw)
-	   (values :percentage *win-scroll-grain*))
-	  ((#.win:SB_LINEDOWN #.win:SB_LINERIGHT)
-	   ;; Scroll down/right one unit
-	   (win:SetScrollPos window bar
-			     (+ (win:GetScrollPos window bar) 1) 
-			     redraw)
-	   (values :relative-jump +1))
-	  ((#.win:SB_LINEUP #.win:SB_LINELEFT)
-	   ;; Scroll up/left one unit
-	   (win:SetScrollPos window bar
-			     (- (win:GetScrollPos window bar) 1) 
-			     redraw)
-	   (values :relative-jump -1))
-	  ((#.win:SB_PAGEDOWN #.win:SB_PAGERIGHT)
-	   ;; Scroll down/right by width of window.
-	   (win:SetScrollPos window bar
-			     (+ (win:GetScrollPos window bar) 1) 
-			     redraw)
-	   (values :screenful +1))
-	  ((#.win:SB_PAGEUP #.win:SB_PAGELEFT)
-	   ;; Scroll up/left by width of window.
-	   (win:SetScrollPos window bar
-			     (- (win:GetScrollPos window bar) 1) 
-			     redraw)
-	   (values :screenful -1))
-	  (#.win:SB_THUMBPOSITION
-	   ;; Scroll to absolute position.
-	   (win:SetScrollPos window bar position redraw)
-	   (values :percentage position))
-	  (#.win:SB_THUMBTRACK
-	   ;; Scroll to absolute position.
-	   (win:SetScrollPos window bar position redraw)
-	   (values :percentage position))
-	  (#.win:SB_TOP
-	   ;; Scroll to upper left
-	   (win:SetScrollPos window bar 0 redraw)
-	   (values :percentage 0))
-	  )
+        (case scrollcode
+          (#.win:SB_BOTTOM
+           ;; Scroll to lower right
+           (win:SetScrollPos hwnd bar *win-scroll-grain* redraw)
+           (values :percentage *win-scroll-grain*))
+          ((#.win:SB_LINEDOWN #.win:SB_LINERIGHT)
+           ;; Scroll down/right one line
+           (move-slug sheet hwnd bar +1 #'silica::scroll-bar-line-increment)
+           (values :relative-jump +1))
+          ((#.win:SB_LINEUP #.win:SB_LINELEFT)
+           ;; Scroll up/left one line
+           (move-slug sheet hwnd bar -1 #'silica::scroll-bar-line-increment)
+           (values :relative-jump -1))
+          ((#.win:SB_PAGEDOWN #.win:SB_PAGERIGHT)
+           ;; Scroll down/right by slug size
+           (move-slug sheet hwnd bar +1 #'silica::scroll-bar-size)
+           (values :screenful +1))
+          ((#.win:SB_PAGEUP #.win:SB_PAGELEFT)
+           ;; Scroll up/left by slug size
+           (move-slug sheet hwnd bar -1 #'silica::scroll-bar-size)
+           (values :screenful -1))
+          (#.win:SB_THUMBPOSITION
+           ;; Scroll to absolute position.
+           (when (gadgetp sheet)
+             (win:SetScrollPos hwnd bar position redraw))
+           (values :percentage position))
+          (#.win:SB_THUMBTRACK
+           ;; Scroll to absolute position.
+           (when (gadgetp sheet)
+             (win:SetScrollPos hwnd bar position redraw))
+           (values :percentage position))
+          (#.win:SB_TOP
+           ;; Scroll to upper left
+           (when (gadgetp sheet)
+             (win:SetScrollPos hwnd bar 0 redraw))
+           (values :percentage 0))
+          )
       (when (and action sheet)
-	(with-slots (event-queue) *acl-port*
-	  (handle-event
-	   sheet
-	   (allocate-event 'silica::scrollbar-event
-			   :orientation message
-			   :action action
-			   :amount amount
-			   :sheet sheet)))))
+        (with-slots (event-queue) *acl-port*
+          (handle-event sheet
+                        (allocate-event 'silica::scrollbar-event
+                                        :orientation message
+                                        :action action
+                                        :dragging-p (= scrollcode #.win:SB_THUMBTRACK)
+                                        :amount amount
+                                        :sheet sheet)))))
     (clear-winproc-result *win-result*)
     *win-result*))
+
+(defun move-slug (scroll-bar hwnd win-code direction delta-function)
+  ;; Only move slug for independent scroll bar gadgets.
+  ;; Scroller panes already take care of moving the slug.
+  ;; (alemmens, 2004-12-24)
+  (when (gadgetp scroll-bar)
+    (let* ((delta (funcall delta-function scroll-bar))
+           (old-position (win:GetScrollPos hwnd win-code))
+           (tentative-new-position 
+            (+ old-position
+              (* direction (silica::convert-scroll-bar-size-out scroll-bar delta))))
+           (new-position (max 0 (min *win-scroll-grain* tentative-new-position)))
+           (redraw 1))
+      (unless (= old-position new-position)
+        (win:SetScrollPos hwnd win-code new-position redraw)))))
+
+;;
 
 (defun frame-initialization-time (frame)
   ;; We need to know when the frame is not fully initialized.

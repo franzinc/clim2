@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: acl-prel.lisp,v 2.6 2005/08/03 05:07:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -195,9 +195,12 @@
 	       (logior (if (eql orientation :horizontal) 
 			   win::SBS_HORZ win::SBS_VERT)
 		       win::WS_CHILD
-		       win::WS_BORDER
+                       ;; Removed the WS_BORDER flag.
+                       ;; It's non-standard and, what's worse, it resulted
+                       ;; in some garbage pixels (alemmens, 2005-01-19)
 		       win::WS_CLIPCHILDREN 
-		       win::WS_CLIPSIBLINGS) ; style
+		       win::WS_CLIPSIBLINGS
+                       ) ; style
 	       0 0 0 0			; x, y, width, height
 	       parent
 	       0
@@ -515,7 +518,7 @@
 	    ;; stable after closing the clipboard.
 	    (when (zerop hmem)
 	      (check-last-error "GetClipboardData"))
-	    (setq string (ct:handle-value win:handle hmem))
+	    (setq string (ct:handle-value win:win-handle hmem))
 	    (cond ((zerop string) (values nil nil))
 		  (t
 		   (when (integerp string)

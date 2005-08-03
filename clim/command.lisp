@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: command.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: command.lisp,v 2.6 2005/08/03 05:07:14 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1005,8 +1005,12 @@
                       (setq default (second l))
                       (return t))))
              (push `(,(first argument) ,default) keyword-bindings))
-            (t
-             (push `(,(first argument) ',*unsupplied-argument-marker*) required-bindings))))
+            ;; Added extra check that the argument is a cons, because valid-cp-lambda-list-keyword-p
+            ;; only warns (but does not signal an error) for invalid argument descriptions.
+            ;; (alemmens, 2004-11-26)
+            ((consp argument)
+             (push `(,(first argument) ',*unsupplied-argument-marker*) required-bindings))
+            (t (error "~S is not a valid argument description for define-command." argument))))
     (values (nreverse required-bindings) (nreverse keyword-bindings))))
 
 (defun deduce-body-arglist (arguments)

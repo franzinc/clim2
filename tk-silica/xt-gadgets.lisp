@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-gadgets.lisp,v 2.5 2004/01/16 19:15:44 layer Exp $
+;; $Id: xt-gadgets.lisp,v 2.6 2005/08/03 05:07:14 layer Exp $
 
 (in-package :xm-silica)
 
@@ -210,56 +210,50 @@
 			 'sheet-mirror-event-handler
 			 sheet))
 
+;;;
+;;; Scroll bar utilities
+;;;
 
-;;; scroll bar utilities
+;; I moved most of these to silica/gadgets.lisp because they're relevant for
+;; all backends. (alemmens, 2004-12-24)
 
 (defvar *scroll-bar-quantization* 
     ;; must be a 32-bit quantity.
-    (min most-positive-fixnum 
-	 (1- (expt 2 31))))
+  (min most-positive-fixnum 
+       (1- (expt 2 31))))
 
-(defun convert-scroll-bar-value-out (scroll-bar value)
-  (multiple-value-bind
-      (smin smax) (gadget-range* scroll-bar)
-    (max 0
-	 (min *scroll-bar-quantization*
-	      (floor
-	       (compute-symmetric-value
-		smin smax value 0 *scroll-bar-quantization*))))))
-
-(defun convert-scroll-bar-value-in (scroll-bar value)
-  (multiple-value-bind
-      (smin smax) (gadget-range* scroll-bar)
-    (max smin
-	 (min smax
-	      (compute-symmetric-value
-	       0 *scroll-bar-quantization* value smin smax )))))
+(defmethod silica::native-gadget-range* ((scroll-bar scroll-bar))
+  ;; Default method for scroll-bars
+  (values 0 *scroll-bar-quantization*))
 
 (defun compute-new-scroll-bar-values (scroll-bar value slider-size 
-				      line-increment
-				      &optional (page-increment slider-size))
+                                       line-increment
+                                       &optional (page-increment slider-size))
   ;; It needs to be the case that (<= (+ val slider-size) <maximum-sv-value>).
   ;; This can fail to be true because of rounding errors when
   ;; converting from float to integer, which cause motif to whine I
   ;; assume the maximum sv value is *scroll-bar-quantization* (I'm not
   ;; sure if this is always true), and round the slider size down if
   ;; the contraint is violated.
-  (let ((val (and value (convert-scroll-bar-value-out scroll-bar value)))
-	(ss (and slider-size
-		 (max 1 
-		      (convert-scroll-bar-value-out scroll-bar slider-size)))))
+  (let ((val (and value (silica::convert-scroll-bar-value-out scroll-bar value)))
+        (ss (and slider-size
+              (max 1 
+                (silica::convert-scroll-bar-size-out scroll-bar slider-size)))))
     (values val (and ss			;what assumptions about nullness are
-		     (if val		;safe?
-			 (min ss (- *scroll-bar-quantization* val))
-			 ss))
-	    (and line-increment
-		 (max 1 (convert-scroll-bar-value-out scroll-bar 
-						      line-increment)))
-	    (and page-increment
-		 (max 1 (convert-scroll-bar-value-out scroll-bar 
-						      page-increment))))))
-    
+                  (if val		;safe?
+                      (min ss (- *scroll-bar-quantization* val))
+                    ss))
+      (and line-increment
+        (max 1 (silica::convert-scroll-bar-size-out scroll-bar 
+                 line-increment)))
+      (and page-increment
+        (max 1 (silica::convert-scroll-bar-size-out scroll-bar 
+                 page-increment))))))
 
+
+;;;
+;;;
+;;;
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
   (if (eq mp:*current-process* (port-process port))
