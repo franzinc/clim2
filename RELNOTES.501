@@ -1,9 +1,0 @@
-*******************************************************************************
-*** 5.0.1.beta2 items below this line
-
-1. <norfe>    CLIM works on FreeBSD only with MetroLink Motif
-	      Complete! version 1.2.4.
-
-2. <norfe>    CLIM doesn't work very well on MkLinux/LinuxPPC because
-	      all that we have there is LessTif.
-
