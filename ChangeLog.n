@@ -1,3 +1,17 @@
+2005-12-01  Arthur Lemmens  <alemmens@xs4all.nl>
+
+    Arthur will fill this in...
+	* RELNOTES: 
+	* aclpc/acl-frames.lisp: 
+	* aclpc/acl-medium.lisp: 
+	* aclpc/acl-prel.lisp: 
+	* aclpc/acl-widget.lisp: 
+	* clim/accept-values.lisp: 
+	* clim/gadget-output.lisp: 
+	* silica/gadgets.lisp: 
+	* tk/xm-defs.lisp: 
+	* tk-silica/xm-gadgets.lisp: 
+
 2005-07-22  alemmens  <alemmens@franz.com>
 
 	* aclpc/acl-class.lisp, aclpc/acl-pref.lisp,
@@ -5981,4 +5995,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.4.2.4 $
+$Revision: 2.10.4.4.2.5 $

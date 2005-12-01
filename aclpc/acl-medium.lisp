@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: acl-medium.lisp,v 2.5.84.1 2005/12/01 19:32:46 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -53,15 +53,23 @@
       (setf background-dc-image bink)
       (setf foreground-dc-image fink))))
 
+
 (defmethod (setf medium-background) :after (new-background (medium acl-medium))
   (with-slots (background-dc-image) medium
     (let ((bink (dc-image-for-ink medium new-background)))
-      (setf background-dc-image bink))))
+      (setf background-dc-image bink)))
+  ;; [spr 30867] (adapted from tk-silica/xt-graphics.lisp)
+  ;; (alemmens, 2005-11-30)
+  (repaint-sheet (medium-sheet medium) +everywhere+))
 
 (defmethod (setf medium-foreground) :after (new-foreground (medium acl-medium))
   (with-slots (foreground-dc-image) medium
     (let ((fink (dc-image-for-ink medium new-foreground)))
-      (setf foreground-dc-image fink))))
+      (setf foreground-dc-image fink)))
+  ;; [spr 30867] (adapted from tk-silica/xt-graphics.lisp)
+  ;; (alemmens, 2005-11-30)
+  (repaint-sheet (medium-sheet medium) +everywhere+))
+
 
 (defclass acl-window-medium (acl-medium)
     ((window :initform nil :reader medium-drawable)))
@@ -70,7 +78,8 @@
   (let ((m (make-instance 'acl-window-medium
 	     :port port
 	     :sheet sheet)))
-    (setf (medium-background m) silica:*default-pane-background*)
+    ;; [spr 30867]
+    (setf (slot-value m 'silica::background) silica:*default-pane-background*)
     m))
 
 (defmethod deallocate-medium ((port acl-port) medium)
