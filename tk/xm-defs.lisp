@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-defs.lisp,v 2.5 2004/01/16 19:15:44 layer Exp $
+;; $Id: xm-defs.lisp,v 2.6 2005/12/01 21:00:44 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -68,15 +68,16 @@
 	    (pattern-length xm-string))
 
 (def-c-type (xm-list-callback-struct :no-defuns :no-constructor) :struct
-	    (reason :int)
-	    (event * x11:xevent)
-	    (item xm-string)
-	    (item-length :int)
-	    (item-position :int)
-	    (selection-items * xm-string)
-	    (selected-item-count :int)
-	    (selected-item-positions * :int)
-	    (selection-type :int))
+            (reason :int)
+            (event * x11:xevent)
+            (item * :void)  ; xm-string (spr 30640; alemmens, 2005-11-30)
+            (item-length :int)
+            (item-position :int)
+            (selection-items * xm-string)
+            (selected-item-count :int)
+            (selected-item-positions * :int)
+            (selection-type :int))
+
 
 (def-c-type (xm-selected-position-array :no-defuns :no-constructor) 1 :int)
 
