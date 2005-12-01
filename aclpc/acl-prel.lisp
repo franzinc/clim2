@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 2.5.26.1.44.1 2005/07/22 12:24:05 alemmens Exp $
+;; $Id: acl-prel.lisp,v 2.5.26.1.44.2 2005/12/01 18:55:38 alemmens Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -282,52 +282,53 @@
 			(label "")
 			(scroll-mode nil))
   (declare (ignore id))
-  (let* ((hwnd
-	  (excl:with-native-string (classname "EDIT")
-	    (excl:with-native-string (windowname label)
-	      (win:CreateWindowEx 
-	       win:WS_EX_CLIENTEDGE
-	       classname		; classname
-	       windowname		; windowname
-	       (logior editstyle
-		       win:WS_CHILD
-		       win:WS_BORDER
-		       win:WS_TABSTOP
-		       (if (member scroll-mode '(:horizontal :both t :dynamic))
-			   win:WS_HSCROLL
-			 0)
-		       (if (member scroll-mode '(:vertical :both t :dynamic))
-			   win:WS_VSCROLL
-			 0)
+  (let ((hwnd
+         (excl:with-native-string (classname "EDIT")
+           (excl:with-native-string (windowname label)
+             (win:CreateWindowEx 
+              win:WS_EX_CLIENTEDGE
+              classname                 ; classname
+              windowname		; windowname
+              (logior editstyle
+                      win:WS_CHILD
+                      win:WS_BORDER
+                      win:WS_TABSTOP
+                      (if (member scroll-mode '(:horizontal :both t :dynamic))
+                          win:WS_HSCROLL
+                          0)
+                      (if (member scroll-mode '(:vertical :both t :dynamic))
+                          win:WS_VSCROLL
+                          0)
 					   
-		       win:WS_CLIPCHILDREN 
-		       win:WS_CLIPSIBLINGS) ; style
-	       0 0 0 0
-	       parent
-	       0
-	       *hinst*
-	       (symbol-name (gensym)))))))
-    (if (zerop hwnd)
-	;; failed
-	(cerror "proceed" "failed")
-      ;; else succeed if we can init the DC
-      (progn
-	(if (stringp value)
-	    (excl:with-native-string (s1 (silica::xlat-newline-return value))
-	      (win:SetWindowText 
-	       hwnd 
-	       s1)))
-	;; Override the default window proc.
-	(progn				;+++
-	  (setf std-ctrl-proc-address
-	    (win:GetWindowLong hwnd win:GWL_WNDPROC))
-	  (win:SetWindowLong hwnd
-			     win:GWL_WNDPROC
-			     clim-ctrl-proc-address))
-	(win:SetWindowPos hwnd 0 
-		      left top width height
-		      #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))))
-    hwnd))
+                      win:WS_CLIPCHILDREN 
+                      win:WS_CLIPSIBLINGS) ; style
+              0 0 0 0
+              parent
+              0
+              *hinst*
+              (symbol-name (gensym)))))))
+    (cond ((zerop hwnd)
+           (cerror "Continue anyway." "Can't create text-edit gadget.")
+           hwnd)
+          (t
+           ;; Initialize contents.
+           (when (stringp value)
+             (excl:with-native-string (s1 value)
+               ;; Don't call xlat-newline-return.
+               ;; spr 30683 (alemmens, 2005-11-30)
+               (win:SetWindowText hwnd s1)))
+           ;; Override the default window proc.
+           (setf std-ctrl-proc-address
+                 (win:GetWindowLong hwnd win:GWL_WNDPROC))
+           (win:SetWindowLong hwnd
+                              win:GWL_WNDPROC
+                              clim-ctrl-proc-address)
+           (win:SetWindowPos hwnd 0 
+                             left top width height
+                             #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
+           hwnd))))
+
+
 
 ;;; bitmap support
 

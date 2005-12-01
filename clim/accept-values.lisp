@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: accept-values.lisp,v 2.5.90.1 2005/12/01 18:55:38 alemmens Exp $
 
 (in-package :clim-internals)
 
@@ -56,6 +56,7 @@
   (declare (ignore initargs))
   t)
 
+
 (defclass accept-values-query ()
      ((query-identifier :initarg :query-identifier)
       (presentation-type :initarg :presentation-type
@@ -69,8 +70,12 @@
       (active-p :initform t
                 :accessor accept-values-query-active-p)
       (error-p :initform nil
-               :accessor accept-values-query-error-p))
+               :accessor accept-values-query-error-p)
+      (gadget-state :initform nil
+                    ;; spr30639 (alemmens, 2005-11-30)
+                    :accessor accept-values-query-gadget-state))
   (:default-initargs :presentation nil))
+
 
 (defresource accept-values-stream (stream &key align-prompts)
   :constructor (make-instance 'accept-values-stream :stream stream)
@@ -1598,9 +1603,21 @@
           changed-p t)))
 
 (defmethod accept-values-value-changed-callback ((gadget value-gadget) new-value stream query)
+  ;; Only call the callback if the query is still valid
   (when (accept-values-query-valid-p query (accept-values-query-presentation query))
-    ;; Only call the callback if the query is still valid
+    ;; Record gadget state, because we may need to recreate it.
+    ;; spr30639 (alemmens, 2005-11-30)
+    (setf (accept-values-query-gadget-state query)
+          (gadget-state gadget))
     (do-avv-command new-value stream query)))
+
+(defgeneric gadget-state (gadget))
+
+(defmethod gadget-state ((gadget t))
+  ;; Default: no state (but list-panes keep track of their top-item-position,
+  ;; so it can be recreated when necessary).  See tk-silica/xm-gadgets.lisp
+  ;; spr30639 (alemmens, 2005-11-30)
+  nil)
 
 (defun do-avv-command (new-value client query)
   (let ((sheet (slot-value client 'stream)))

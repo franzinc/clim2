@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadget-output.lisp,v 2.5.90.1 2005/07/22 12:24:05 alemmens Exp $
+;; $Id: gadget-output.lisp,v 2.5.90.2 2005/12/01 18:55:38 alemmens Exp $
 
 (in-package :clim-internals)
 
@@ -905,6 +905,22 @@
                                    default query-identifier type printer
                                    :nonexclusive active-p))
 
+
+(defun find-stream-query (avv-stream query-identifier)
+  ;; spr 30639 (alemmens, 2005-11-30)
+  (if (typep query-identifier 'accept-values-query)
+      query-identifier
+      (let ((avv-record (slot-value avv-stream 'avv-record)))
+        (with-slots (query-table)
+            avv-record
+          (gethash query-identifier query-table)))))
+
+(defmacro make-pane-from-view-2 (class view state ignore &body initargs)
+  ;; spr 30639 (alemmens, 2005-11-30)
+  `(apply #'make-pane ,class
+          (append (remove-keywords (append ,state (view-gadget-initargs ,view)) ,ignore)
+                  (list ,@initargs))))
+
 (defun make-list/option-pane-for-ptype (pane-type stream view sequence
                                         name-key value-key test
                                         default query-identifier type
@@ -917,41 +933,45 @@
              (deactivate-gadget list-pane))
            (setf (gadget-value list-pane) default)
            list-pane))
-    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let* ((pane (if (eq pane-type 'option-pane)
-                       (make-pane-from-view pane-type view ()
-                         :items sequence
-                         :name-key name-key
-                         :value-key value-key
-                         :test test
-                         :printer printer
-                         :value default
-                         :client stream :id query-identifier
-                         :mode mode
-                         :visible-items (min 10 (length sequence))
-                         :value-changed-callback
+    (let* ((query (find-stream-query stream query-identifier))
+           ;; spr 30639 (alemmens, 2005-11-30)
+           (gadget-state (and query (accept-values-query-gadget-state query))))
+      (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+        (let* ((pane (if (eq pane-type 'option-pane)
+                         (make-pane-from-view-2 pane-type view gadget-state ()
+                           :items sequence
+                           :name-key name-key
+                           :value-key value-key
+                           :test test
+                           :printer printer
+                           :value default
+                           :client stream :id query-identifier
+                           :mode mode
+                           :visible-items (min 10 (length sequence))
+                           :value-changed-callback
                            (make-accept-values-value-changed-callback
                             stream query-identifier)
-                         :active active-p
-                         :help-callback (make-gadget-help type))
-                       (make-pane-from-view pane-type view '(:scroll-bars)
-                         :items sequence
-                         :name-key name-key
-                         :value-key value-key
-                         :test test
-                         :value default
-                         :client stream :id query-identifier
-                         :mode mode
-                         :visible-items (min 10 (length sequence))
-                         :value-changed-callback
+                           :active active-p
+                           :help-callback (make-gadget-help type))
+                         (make-pane-from-view-2 pane-type view gadget-state '(:scroll-bars)
+                           :items sequence
+                           :name-key name-key
+                           :value-key value-key
+                           :test test
+                           :value default
+                           :client stream :id query-identifier
+                           :mode mode
+                           :visible-items (min 10 (length sequence))
+                           :value-changed-callback
                            (make-accept-values-value-changed-callback
-                             stream query-identifier)
-                         :active active-p
-                         :help-callback (make-gadget-help type)))))
-        (values (if (eq pane-type 'list-pane)
-                    (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :dynamic)) pane)
-                  pane)
-                pane)))))
+                            stream query-identifier)
+                           :active active-p
+                           :help-callback (make-gadget-help type)))))
+          (values (if (eq pane-type 'list-pane)
+                      (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :dynamic)) pane)
+                      pane)
+                  pane))))))
+
 
 (define-presentation-method accept-present-default 
                             ((type completion) stream (view option-pane-view)

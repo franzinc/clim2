@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.5.26.1 2004/09/28 23:34:53 mm Exp $
+;; $Id: acl-frames.lisp,v 2.5.26.1.8.1 2005/12/01 18:55:38 alemmens Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -29,6 +29,8 @@
 *                                                                            *
 ****************************************************************************|#
 
+;; DO: This file contains several IN-PACKAGE forms.  That's very confusing
+;; and we should get rid of them. (alemmens, 2005-11-30)
 
 (in-package :acl-clim)
 
@@ -1261,6 +1263,7 @@ to be run from another."
    (#x5000 . ccerr_choosecolorcodes)
    ))
 
+
 (defun get-pathname-flags (save-p multiple-p warn-if-exists-p)
   (logior
    (if multiple-p win:OFN_ALLOWMULTISELECT 0)
@@ -1322,6 +1325,13 @@ to be run from another."
 			      (or (cdr (assoc error-code
 					      common-dialog-errors))
 				  error-code)))))))))
+
+#|
+;; This is the old version of frame-manager-select-file.  It doesn't work well
+;; if you want to ask for a directory instead of a file.  So I replaced it
+;; by the code at the end of this file. See spr30571. (alemmens, 2005-11-29).
+;; Let's remove this once we're sure that the new version is better than the
+;; old one.
 
 (defun get-directory (sheet title)
   (let* ((info (ct:ccallocate browseinfo)))
@@ -1407,6 +1417,8 @@ to be run from another."
 		    save-p
 		    multiple-select
 		    warn-if-exists-p))))
+
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Progress notification code.
@@ -2030,4 +2042,365 @@ in a second Lisp process.  This frame cannot be reused."
        (frame-top-level-sheet frame) x y))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; frame-manager-select-file [spr30571]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(in-package :acl-clim)
+
+;;;
+;;; Windows foreign functions and constants
+;;;
+
+;; 260 is win:MAX_PATH, but for some reason that's not available yet
+;; when we build CLIM from scratch.
+(defparameter *max-path* 260)
+
+(defparameter *max-file-selection-buffer-size* (* 16 *max-path*))
+
+(ff:def-foreign-call IMallocFree ()
+  :returning :void
+  :convention :stdcall
+  :method-index 5
+  :release-heap :when-ok
+  :arg-checking nil
+  :strings-convert nil)
+
+(ff:def-foreign-call IMallocRelease ()
+  :method-index 2
+  :convention :stdcall
+  :release-heap :when-ok
+  :arg-checking nil
+  :returning :unsigned-long
+  :strings-convert nil)
+
+(ff:def-foreign-call IShellFolderParseDisplayName ()
+  :method-index 3
+  :convention :stdcall
+  :release-heap :when-ok
+  :arg-checking nil
+  :returning :unsigned-long
+  :strings-convert nil)
+
+
+(ff:def-foreign-call (MultiByteToWideChar "MultiByteToWideChar")
+    ((code-page :unsigned-int)
+     (flags win:dword)     ; character-type options
+     (string win:lpcstr)   ; address of string to map
+     (nr-bytes :int)       ; number of bytes in string
+     (buffer win:lpcstr)   ; LPWSTR, address of wide-character buffer
+     (buffer-size :int)    ; size of buffer (in wide characters)
+     )
+  :returning :int
+  :convention :stdcall
+  :arg-checking nil
+  :release-heap :when-ok
+  :strings-convert nil)
+
+
+
+
+;; WINSHELLAPI HRESULT WINAPI SHGetDesktopFolder(LPSHELLFOLDER *ppshf)
+(ff:def-foreign-call (SHGetDesktopFolder "SHGetDesktopFolder")
+    ((folder (* :void)))
+  :returning :long  ; hresult
+  :release-heap :when-ok)
+
+(ff:def-foreign-type browseinfo
+    (:struct (hwndOwner win:hwnd)
+	     (pidlRoot win:lpcitemidlist)
+	     (pszDisplayName win:lpstr)
+	     (lpszTitle win:lpcstr)
+	     (ulflags win:uint)
+	     (lpfn (* :void)) ; BFFCALLBACK
+	     (lparam win:lparam)
+	     (iImage :int)))
+
+(ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
+    ((info browseinfo))
+  :returning :foreign-address  ; LPITEMIDLIST
+  :release-heap :when-ok) 
+
+;; HRESULT SHGetMalloc(LPMALLOC *ppMalloc);
+(ff:def-foreign-call (SHGetMalloc "SHGetMalloc")
+    ((pointer (* :void)))
+  :returning :long  ; HRESULT
+  :release-heap :when-ok)
+
+
+;; WINSHELLAPI BOOL WINAPI SHGetPathFromIDList(
+;;    LPCITEMIDLIST pidl,
+;;    LPSTR pszPath)
+(ff:def-foreign-call (SHGetPathFromIDList "SHGetPathFromIDList")
+    ((pidl win:lpcitemidlist)
+     (path win:lpstr))
+  :returning win:bool
+  :convention :stdcall
+  :arg-checking nil
+  :release-heap :when-ok
+  :strings-convert nil)
+
+
+;;;
+;;; Little helpers
+;;;
+
+(defun allocate-pointer (&optional (type :int) (size 1))
+  (ff:allocate-fobject `(:array ,type ,size)))
+
+(defun pointer-value (object)
+  (ff:fslot-value-typed '(:array :int 1) 
+                        nil object 0))
+
+(defmacro fill-fslots (type object &rest slots)
+  (declare (ignore type))
+  (let ((object-var (gensym "OBJECT")))
+    `(let ((,object-var ,object))
+      ,@(loop for (slot-name slot-value) on slots by #'cddr
+              collect `(setf (ff:fslot-value ,object-var ',slot-name)
+                             ,slot-value)))))
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; spr17917b
+(defvar *directory-selection-buffer* nil)
+
+(defun directory-selection-buffer ()
+  (or *directory-selection-buffer*
+      (make-directory-selection-buffer)))
+
+(defun make-directory-selection-buffer ()
+  (setq *directory-selection-buffer*
+        (ff:allocate-fobject `(:array char ,*max-file-selection-buffer-size*)
+                             :c)))
+
+(defun lisp-string-to-directory-selection-buffer (lisp-string)
+  (win:string-to-lptstr lisp-string
+                        :address (directory-selection-buffer)))
+
+;;;
+;;; Callback function (necessary to set initial selection to
+;;  a user-specified initial directory)
+;;;
+
+;; Callback messages from file browser
+(defconstant BFFM_INITIALIZED        1)
+(defconstant BFFM_SELCHANGED         2)
+(defconstant BFFM_VALIDATEFAILEDA    3)
+(defconstant BFFM_VALIDATEFAILEDW    4)
+
+;; Messages to file browser
+(defconstant BFFM_SETSTATUSTEXTA     (+ win:WM_USER 100))
+(defconstant BFFM_ENABLEOK           (+ win:WM_USER 101))
+(defconstant BFFM_SETSELECTIONA      (+ win:WM_USER 102))
+(defconstant BFFM_SETSELECTIONW      (+ win:WM_USER 103))
+(defconstant BFFM_SETSTATUSTEXTW     (+ win:WM_USER 104))
+(defconstant BFFM_SETSTATUSTEXT      BFFM_SETSTATUSTEXTW)
+(defconstant BFFM_SETSELECTION       BFFM_SETSELECTIONW)
+
+
+(ff:defun-foreign-callable browse-callback-proc
+    ((hwnd win:hwnd)
+     (message :unsigned-int)
+     (lparam      :long)
+     (lparam-data :long))
+  (declare (:convention :stdcall) (:unwind 0)
+           (ignore lparam))
+  (when (and (= message BFFM_INITIALIZED)
+             (/= lparam-data 0))
+    ;; LPARAM-DATA is the raw item-id-list corresponding to the
+    ;; specified initial-directory (0 if no initial-directory was
+    ;; specified).
+    ;; This is executed when the browse dialog box has finished
+    ;; initializing. 
+    (win:SendMessage hwnd BFFM_SETSELECTION win:FALSE lparam-data))
+  0)
+
+(defparameter *clim-browse-callback-proc-address* nil)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun pathname-to-item-id-list (pathname)
+  ;; Convert the given directory pathname to an ITEMIDLIST using the
+  ;; IShellFolder::ParseDisplayName API. Returns the ITEMIDLIST
+  ;; corresponding to PATHNAME (signals an error on failure).  This
+  ;; ITEMIDLIST needs to be freed using the IMalloc allocator returned
+  ;; from SHGetMalloc().
+  (let ((desktop-folder (allocate-pointer))
+        (ole-path (allocate-pointer :int (+ 2 (* 2 *max-path*)))))
+    (unless (= (SHGetDesktopFolder desktop-folder) win:NOERROR)
+      (error "Error in ask-user-for-directory: SHGetDesktopFolder failed."))
+    ;; Convert pathname to C string, and then to a 'wide character
+    ;; string'.  (IShellFolder::ParseDisplayName requires the file
+    ;; name to be in Unicode.)
+    (MultiByteToWideChar win:CP_ACP
+                         win:MB_PRECOMPOSED 
+                         (lisp-string-to-directory-selection-buffer 
+                          (namestring pathname))
+                         -1 ole-path *max-path*)
+    ;; Let IShellFolder::ParseDisplayName turn the directory
+    ;; into an ITEMIDLIST.
+    (let ((pidl (allocate-pointer))
+          (cheaten (allocate-pointer))
+          (attributes (allocate-pointer)))
+      (unless (= (IShellFolderParseDisplayName (pointer-value desktop-folder)
+                                               0 0 ole-path cheaten pidl
+                                               attributes)
+                 win:NOERROR)
+        (error "Error in ask-user-for-directory: ParseDisplayName failed."))
+      ;; Return that ITEMIDLIST (actually, a foreign-object
+      ;; containing the ITEMIDLIST).
+      pidl)))
+
+
+(defun item-id-list-to-pathname (item-id-list)
+  ;; Converts an ITEMIDLIST to a Lisp pathname
+  (let (result)
+    ;; Convert item-id-list back to a Lisp string.
+    (when (SHGetPathFromIDList item-id-list (directory-selection-buffer))
+      (setq result (win:lptstr-to-string (directory-selection-buffer)))
+      ;; And convert the Lisp string back to a pathname.
+      (if (excl:probe-directory result)
+          (excl:pathname-as-directory result)
+          (pathname result)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun ask-user-for-directory (&key (prompt "Select a directory.")
+                               associated-window root initial-directory
+                               edit-box dont-go-below-domains
+                               include-files)
+  ;; Ensure that the callback procedure is registered.
+  (unless (and *clim-initialized* *clim-browse-callback-proc-address*)
+    (setf *clim-browse-callback-proc-address*
+          (ff:register-foreign-callable 'browse-callback-proc
+                                        :reuse :return-value)))
+  ;;
+  (let* ((malloc (allocate-pointer))
+         (root-item-id-list nil)
+         (initial-directory-item-id-list nil))
+    (unless (eql (SHGetMalloc malloc) windows:NOERROR)
+      (error "Error in ask-user-for-directory: SHGetMalloc failed."))
+    ;; Convert root and/or initial-directory to ITEMIDLISTs.
+    (when root
+      (setq root-item-id-list (pathname-to-item-id-list root)))
+    (when initial-directory
+      (setq initial-directory-item-id-list
+            (pathname-to-item-id-list initial-directory)))
+    ;;
+    (unwind-protect
+         (ff:with-stack-fobject (browse-info 'browseinfo)
+           ;; The real work: callSHBrowseForFolder.
+           (excl:with-native-string (win-prompt prompt)
+             (fill-fslots browseinfo browse-info
+                          hwndOwner (or (and associated-window
+                                             (sheet-mirror associated-window))
+                                        0)
+                          pidlRoot (if root
+                                       (pointer-value root-item-id-list)
+                                       0)
+                          pszDisplayName 0
+                          lpszTitle win-prompt
+                          ulFlags (logior win:BIF_RETURNONLYFSDIRS
+                                          (if include-files
+                                              win:BIF_BROWSEINCLUDEFILES
+                                              0)
+                                          (if edit-box win:BIF_EDITBOX 0)
+                                          (if dont-go-below-domains
+                                              win:BIF_DONTGOBELOWDOMAIN
+                                              0))
+                          lpfn *clim-browse-callback-proc-address*
+                          lParam (if initial-directory
+                                     (pointer-value initial-directory-item-id-list)
+                                     0)
+                          iImage 0))
+           (let ((item-id-list-out (SHBrowseForFolder browse-info)))
+             (when (> item-id-list-out 0)
+               (unwind-protect (item-id-list-to-pathname item-id-list-out)
+                 ;; Free item-id-list
+                 (IMallocFree (pointer-value malloc) item-id-list-out)))))
+      ;; Free the item-id-lists returned from pathname-to-item-id-list.
+      (when root
+        (IMallocFree (pointer-value malloc) root-item-id-list))
+      (when initial-directory
+        (IMallocFree (pointer-value malloc) initial-directory-item-id-list))
+      ;;
+      (IMallocRelease (pointer-value malloc)))))
+
+
+
+;;;
+;;; The main function
+;;;
+
+(defmethod frame-manager-select-file
+    ((framem acl-frame-manager)
+     &key (default nil)
+	  (frame nil frame-p)
+	  (associated-window
+	   (if frame-p
+	       (frame-top-level-sheet frame)
+	     nil))
+	  (title "Select a file")
+	  documentation
+	  file-search-proc
+	  directory-list-label
+	  file-list-label
+	  (exit-boxes '(:exit :abort :help))
+	  (name title)
+	  directory
+	  pattern
+	  ;; These are all peculiar to this frame manager
+	  (dialog-type :open)
+	  (file-types '(("All Files" . "*.*")))
+	  (multiple-select nil)
+	  (warn-if-exists-p t)
+     &allow-other-keys)
+  (declare (ignore name exit-boxes file-list-label directory-list-label
+		   file-search-proc documentation))
+  (unless pattern 
+    (setq pattern ""))
+  (when (pathnamep default)
+    (let ((name (pathname-name default))
+	  (type (pathname-type default))
+	  (dir (pathname-directory default))
+	  (device (pathname-device default)))
+      (cond ((and name type)
+	     (setq pattern (format nil "~A.~A" name type)))
+	    (name
+	     (setq pattern name))
+	    (type
+	     (setq pattern (format nil "*.~A" type))))
+      (when (or directory device)
+	(setq directory 
+	  (namestring (make-pathname :name nil
+				     :directory dir
+				     :device device))))))
+  ;; Massage the directory to make sure, in particular,
+  ;; that it has a device.  Expensive, but worth it to 
+  ;; avoid a segmentation violation.  JPM.
+  (setq directory
+        (namestring
+         (if directory
+             (merge-pathnames (pathname directory) (excl:current-directory))
+             (excl:current-directory))))
+  (ecase dialog-type 
+    ((:open :save)
+     (get-pathname title 
+                   directory 
+                   associated-window
+                   file-types
+                   pattern
+                   (eql dialog-type :save)
+                   multiple-select
+                   warn-if-exists-p))
+    (:directory
+     (ask-user-for-directory :associated-window associated-window
+                             :prompt title
+                             :initial-directory directory))))
 

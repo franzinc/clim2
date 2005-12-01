@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.6.72.1 2005/07/22 12:24:05 alemmens Exp $
+;; $Id: acl-widget.lisp,v 2.6.72.2 2005/12/01 18:55:38 alemmens Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -492,17 +492,16 @@
 (defmethod set-caret-pos ((pane mswin-text-edit) pos)
   (set-selection pane pos pos))
 
+
 (defmethod (setf gadget-value) :before (new (pane mswin-text-edit) 
 					&key invoke-callback)
   (declare (ignore invoke-callback))
   (let ((mirror (sheet-direct-mirror pane))
-	(topline 0)
-	(leftchar 0)
-	(old (slot-value pane 'value)))
-    (unless (equal old new)
+        (leftchar 0)
+	(topline 0))
+    (unless (equal (gadget-value pane) new)
       (setf (slot-value pane 'value) new)
       (when mirror
-	;; How do I get leftchar?
 	(setq topline (acl-clim::frame-send-message 
 		       (pane-frame pane)
 		       mirror win:EM_GETFIRSTVISIBLELINE 0 0))
@@ -510,31 +509,12 @@
 	(acl-clim::frame-send-message
 	 (pane-frame pane) mirror win:WM_SETREDRAW 0 0)
 
-	;; Try to preserve the caret's position, if
-	;; it is currently at the end of the text.
-	
-	;; First, record the info before setting the new value...
-	(multiple-value-bind (startpos endpos)
-	    (get-selection pane)
-	  (let ((oldval-length (if old (length old) 0))
-		(newval-length (if new (length new) 0)))
+        ;; Set the new-value.
+        (excl:with-native-string (s1 new)
+          (win:SetWindowText mirror s1))
 
-	    ;; ...set the new-value...
-	    (excl:with-native-string (s1 (xlat-newline-return new))
-	      (win:SetWindowText mirror s1))
-
-	    ;; ...then try to set the caret's position.
-	    (cond ((and (= startpos endpos)
-			(= startpos oldval-length))
-		   ;; If it is at the end, keep it there,
-		   ;; even if the length is different.
-		   (set-caret-pos pane newval-length))
-		  ((= startpos endpos)
-		   ;; Otherwise, maintain the old position.
-		   (cond ((< startpos newval-length) 
-			  (set-caret-pos pane startpos))
-			 (t
-			  (set-caret-pos pane newval-length)))))))
+        ;; Removed some code here.
+        ;; spr30683 (alemmens, 2005-11-30)
 
 	;; Try to preserve the scroll position:
 	(acl-clim::frame-send-message
@@ -545,28 +525,27 @@
 	;; Force redraw
 	(win:InvalidateRect mirror 0 win:TRUE)
 
-	(acl-clim::frame-update-window (pane-frame pane) mirror)
-	
-	))))
+	(acl-clim::frame-update-window (pane-frame pane) mirror)))))
+ 
 
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror value) pane
     (if mirror	
-	(let* ((wl (acl-clim::frame-send-message (pane-frame pane)
-				       mirror 
-				       win:WM_GETTEXTLENGTH 
-				       0 0))
-	       (teb
-		#+removed (make-string wl)
-		(make-array wl :element-type '(unsigned-byte 8)))
-	       (tlen (win:GetWindowText mirror teb (1+ wl))))
-	  (declare (ignorable tlen))
-	  (setf teb (unxlat-newline-return (excl:mb-to-string teb))) 
-	  (setf value teb)
-	  ;; By the way, does anyone know why 
-	  ;; the second value is returned? -smh
-	  (values teb (length teb)))
-      (values value (if (listp value) (length value) 0)))))
+	(let* ((length (acl-clim::frame-send-message (pane-frame pane)
+                                                     mirror 
+                                                     win:WM_GETTEXTLENGTH
+                                                     0 0))
+	       (buffer (make-array length :element-type '(unsigned-byte 8))))
+          (win:GetWindowText mirror buffer (1+ length))
+	  ;; Don't call unxlat-newline-return.
+          ;; spr30683 (alemmens, 2005-11-30)
+	  (let ((result (excl:mb-to-string buffer)))
+            ;; By the way, does anyone know why 
+            ;; the second value is returned? -smh
+            (values result (length result))))
+      (values value (if (stringp value) (length value) 0)))))
+
+
 
 (defmethod gadget-current-selection ((pane mswin-text-edit))
   (let ((mirror (sheet-direct-mirror pane)))
@@ -764,6 +743,34 @@
 	 :width  w :min-width min-w
 	 :height h :min-height min-h
 	 )))))
+
+;;
+;; text-field-cursor
+;; spr 30683 (alemmens, 2005-11-30)
+;;
+
+(defmethod text-field-cursor ((text-field silica::mswin-text-edit))
+  (let ((text (clim:gadget-value text-field))
+        (windows-cursor (silica::get-selection text-field)))
+    ;; The Windows representation of the text uses
+    ;; two characters (newline and return) for each
+    ;; newline, so we need to correct the cursor.
+    (let ((result 0))
+      (loop for c across text
+            with actual = 0
+            while (< actual windows-cursor)
+            do (progn
+                 (incf actual
+                       (if (char= c #\newline) 2 1))
+                 (incf result)))
+      result)))
+
+
+(defmethod (setf text-field-cursor) (cursor (text-field mswin-text-edit))
+  (let* ((text (clim:gadget-value text-field))
+         ;; Add 1 for each newline before the cursor.
+         (extra (count #\newline text :end cursor)))
+    (set-caret-pos text-field (+ cursor extra))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; push buttons

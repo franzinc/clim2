@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.5.90.1 2005/07/22 12:24:05 alemmens Exp $
+;; $Id: xm-gadgets.lisp,v 2.5.90.2 2005/12/01 18:55:38 alemmens Exp $
 
 (in-package :xm-silica)
 
@@ -88,6 +88,7 @@
 ;; Gadgets that have a :label initarg
 
 (defclass motif-labelled-gadget () ())
+
 
 (defmethod find-widget-initargs-for-sheet
     :around ((port motif-port)
@@ -1399,6 +1400,14 @@
 						 (sheet motif-list-pane))
   'xt::xm-list)
 
+
+(defmethod clim-internals::gadget-state ((gadget motif-list-pane))
+  ;; spr 30639 (alemmens, 2005-11-30)
+  (and (sheet-direct-mirror gadget)
+       (list :top-item-position
+             (tk::get-values (sheet-direct-mirror gadget) :top-item-position))))
+
+
 (defmethod find-widget-initargs-for-sheet ((port motif-port)
 					   (parent t)
 					   (sheet motif-list-pane))
@@ -1408,7 +1417,8 @@
                    (test set-gadget-test)
                    (mode list-pane-mode)
                    (visible-items gadget-visible-items)
-                   (name-key set-gadget-name-key)) sheet
+                   (name-key set-gadget-name-key)
+                   (top-item-position silica::list-pane-top-item-position)) sheet
     (multiple-value-bind (selected-items m n)
 	(compute-list-pane-selected-items sheet value)
       (let ((scroll-mode
@@ -1428,7 +1438,11 @@
 	  ,@(and selected-items
 		 `(:selected-item-count ,(length selected-items)
 		   :selected-items ,selected-items
-		   :top-item-position ,(1+ (min m n))))
+		   :top-item-position ,(or top-item-position (1+ (min m n)))))
+          ;; spr 30639: restore top-item-position (alemmens, 2005-11-30)
+          ,@(and (not selected-items) top-item-position
+                 `(:top-item-position ,top-item-position))
+          ;;
 	  :selection-policy
 	  ,(ecase mode
 	     (:exclusive :browse-select)
@@ -1436,6 +1450,8 @@
 	  ,@(and visible-items `(:visible-item-count ,visible-items))
 	  :items ,(mapcar name-key items)
 	  :item-count ,(length items))))))
+
+
 
 (defmethod gadget-visible-items ((gadget motif-list-pane))
   (let ((m (sheet-direct-mirror gadget)))

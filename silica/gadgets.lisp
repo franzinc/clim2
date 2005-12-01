@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadgets.lisp,v 2.5.90.1 2005/07/22 12:24:05 alemmens Exp $
+;; $Id: gadgets.lisp,v 2.5.90.2 2005/12/01 18:55:38 alemmens Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -733,9 +733,10 @@
 		 :current-selection ,current-selection
 		 ,@options))))))))
 
-
+
 ;;; Text edit
 ;;--- Do we want to specify a binding to commands?
+
 (defclass text-field
 	  (value-gadget focus-gadget action-gadget)
   ((editable-p :initarg :editable-p :accessor gadget-editable-p)
@@ -754,8 +755,19 @@
 
 (defmethod gadget-current-selection ((text-field text-field))
   nil)
-
+
+(defgeneric text-field-cursor (text-field)
+  ;; spr30683 (alemmens, 2005-11-30)
+  (:documentation "Returns the current position of the text-field cursor."))
+
+(defgeneric (setf text-field-cursor) (cursor text-field)
+  ;; spr30683 (alemmens, 2005-11-30)
+  (:documentation "Changes the position of the text-field cursor.
+The text-field must have the focus before you can call this function."))
+
+;;;
 ;;; Viewport
+;;;
 
 ;;--- CLIM 0.9 has this VIEWPORT-LAYOUT-MIXIN -- do we need it?
 (defclass viewport
@@ -972,11 +984,17 @@
 
 
 (defclass list-pane (set-gadget-mixin value-gadget)
-    ;;--- Should this be :ONE-OF/:SOME-OF, as radio boxes are?
     ((mode :initarg :mode :type (member :exclusive :nonexclusive)
 	   :accessor list-pane-mode)
-     (visible-items :initarg :visible-items :reader gadget-visible-items))
-  (:default-initargs :mode :exclusive :visible-items nil))
+     (visible-items :initarg :visible-items :reader gadget-visible-items)
+     ;; spr 30639: top item position is necessary for redisplaying list-panes.
+     ;; (alemmens, 2005-11-30)
+     (top-item-position :initarg :top-item-position
+                        :accessor list-pane-top-item-position))
+  (:default-initargs
+    :mode :exclusive
+    :visible-items nil
+    :top-item-position nil))
 
 #-(or aclpc acl86win32)
 (defun compute-list-pane-selected-items (sheet value)
