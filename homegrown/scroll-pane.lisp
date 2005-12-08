@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Id: scroll-pane.lisp,v 2.5 2004/01/16 19:15:43 layer Exp $
+;; $Id: scroll-pane.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
 
-;; copyright (c) 1991-1992 Franz Inc, Berkeley, CA - All rights reserved.
+;; copyright (c) 1991-2005 Franz Inc, Berkeley, CA - All rights reserved.
 ;; copyright (c) 1992-2004 Franz Inc, Oakland, CA - All rights reserved.
 ;; Portions copyright(c) 1991, 1992 International Lisp Associates.
 ;; Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."

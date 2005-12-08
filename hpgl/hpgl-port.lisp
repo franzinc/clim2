@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Id: hpgl-port.lisp,v 2.5 2004/01/16 19:15:43 layer Exp $
+;;; $Id: hpgl-port.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
 
 ;; Copyright (c) 1991 by International Lisp Associates.  All rights reserved.
 ;; copyright (c) 1992 Franz Inc, Berkeley, CA - All rights reserved.
-;; copyright (c) 1992-2004 Franz Inc, Oakland, CA - All rights reserved.
+;; copyright (c) 1992-2005 Franz Inc, Oakland, CA - All rights reserved.
 
 (in-package :hpgl-clim)
 

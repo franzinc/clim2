@@ -1,5 +1,5 @@
 /*
- * copyright (c) 1992-1998 Franz Inc, Berkeley, CA  All rights reserved.
+ * copyright (c) 1992-2005 Franz Inc, Berkeley, CA  All rights reserved.
  *
  * The software, data and information contained herein are proprietary
  * to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $Id: xlibsupport.c,v 2.4 2003/12/15 18:35:18 layer Exp $
+ * $Id: xlibsupport.c,v 2.5 2005/12/08 21:25:47 layer Exp $
  */
 
 /************************************************************************/

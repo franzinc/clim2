@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2005 Franz Inc, Berkeley, CA  - All rights reserved.
 ;; copyright (c) 2002-2004 Franz Inc, Oakland, CA - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: load-wnn.lisp,v 2.5 2004/01/16 19:15:45 layer Exp $
+;; $Id: load-wnn.lisp,v 2.6 2005/12/08 21:25:47 layer Exp $
 
 (in-package :user)
 
