@@ -13,33 +13,3 @@ developers or documentation.
 
 ************* add new entries below this line *********************************
 
-Fixed crash of DEFCOMMAND when given a wrong argument (all backends).
-
-Various scroll bar improvements, including higher resolution, more
-flexible way of accepting the range, calling callback functions,
-honouring :SIZE and :LINE-INCREMENT arguments. (Windows, Motif)
-[spr 29340, rfe 4072]
-
-Window close event should have the same effect as a Cancel gesture (Motif)
-[spr 30282]
-
-Double quote characters are no longer ignored in text-fields (all backends).
-[spr 30294]
-
-SELECT-FILE now handles the :DIALOG-TYPE :DIRECTORY option (Windows).
-[spr 30571]
-
-Fixed bug where selected list-pane item was sometimes invisible (Motif).
-[spr 30639]
-
-Fixed list-pane bug on 64-bit platforms. (Motif)
-[spr 30640]
-
-Fixed wrong cursor position in text-fields (Windows)
-[spr 30683, spr 28315]
-
-Fixed bug where (SETF MEDIUM-BACKGROUND-COLOR) didn't refresh the screen
-(Windows)
-[spr 30867]
-
-
