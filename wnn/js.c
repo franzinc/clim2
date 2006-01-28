@@ -1,5 +1,5 @@
 /*
- * $Id: js.c,v 2.4 2003/12/15 18:35:18 layer Exp $
+ * $Id: js.c,v 2.4.140.1 2006/01/28 14:12:50 moore Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -71,8 +71,7 @@ extern	Variables
 */
 
 
-extern	char	*malloc();
-
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #ifdef UX386
@@ -103,8 +102,6 @@ extern int errno;
 #define JS			/* For include ../etc/bdic.c */
 #include "bdic.c"
 #include "pwd.c"
-
-char *malloc();
 
 #ifdef SYSVR2
 #define	bzero(adr,n)	memset((adr),0,(n))

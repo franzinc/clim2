@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gc-cursor.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: gc-cursor.lisp,v 2.6.6.1 2006/01/28 14:12:50 moore Exp $
 
 (in-package :xm-silica)
 
@@ -24,20 +24,20 @@
 (defvar *gc-before* nil)
 (defvar *gc-after*  nil)
 
+(deftype c-pointer ()
+  '(unsigned-byte #+64bit 64 #-64bit 32))
+
 (defun init-gc-cursor (frame &optional force)
   (when *use-clim-gc-cursor*
     (when (or force (null *gc-before*))
-      (let ((vec (make-array 2 :element-type '(unsigned-byte 32))))
-	(tk::init_clim_gc_cursor_stuff vec)
-	(setq *gc-before* (aref vec 0)
-	      *gc-after*  (aref vec 1))
-	(pushnew (make-array 1 :element-type '(unsigned-byte 32)
-			     :initial-element *gc-before*)
-		 (excl:gc-before-c-hooks))
-	
-	(pushnew (make-array 1 :element-type '(unsigned-byte 32)
-			     :initial-element *gc-after*)
-		 (excl:gc-after-c-hooks))))
+      (setq *gc-before* (ff:get-entry-point "clim_starting_gc")
+	    *gc-after*  (ff:get-entry-point "clim_stopping_gc"))
+      (pushnew (make-array 1 :element-type 'c-pointer
+			   :initial-element *gc-before*)
+	       (excl:gc-before-c-hooks))
+      (pushnew (make-array 1 :element-type 'c-pointer
+			   :initial-element *gc-after*)
+	       (excl:gc-after-c-hooks)))
     (let* ((sheet (frame-top-level-sheet frame))
 	   (mirror (and sheet (sheet-direct-mirror sheet))))
       (if mirror

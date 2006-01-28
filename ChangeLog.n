@@ -1,3 +1,10 @@
+2006-01-28  Timothy Moore  <moore@franz.com>
+
+	* tk-silica/gc-cursor.lisp (*gc-after*): Fix for 64 bit cursor bug
+	  (bug 15579 and spr 31047) suggested by alemmens.
+	* wnn/js.c: Remove possibly wrong declarations of malloc();
+	  include stdlib.h instead.	
+
 2005-12-01  Arthur Lemmens  <alemmens@xs4all.nl>
 
     Arthur will fill this in...
@@ -5995,4 +6002,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.12 $
+$Revision: 2.12.6.1 $
