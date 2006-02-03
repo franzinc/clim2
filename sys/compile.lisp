@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: compile.lisp,v 2.7 2006/02/03 18:25:41 layer Exp $
 
 (in-package :user)
 
@@ -26,11 +26,11 @@
 
 (proclaim '(optimize (speed 3) (safety 1) (debug 1)))
 
-#+(and allegro microsoft-32)
+#+(and allegro microsoft)
 (eval-when (compile load eval) 
   (pushnew :acl86win32 *features*))
 
-#+microsoft-32
+#+microsoft
 (let ((excl::*enable-package-locked-errors* nil))
   (when (not (fboundp 'system::rcsnote))
     (defun system::rcsnote (&rest args)

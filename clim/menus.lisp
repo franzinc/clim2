@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: menus.lisp,v 2.6 2005/12/08 21:25:43 layer Exp $
+;; $Id: menus.lisp,v 2.7 2006/02/03 18:25:40 layer Exp $
 
 (in-package :clim-internals)
 
@@ -87,7 +87,7 @@
                            (eq (not label) (not (menu-frame-label (pane-frame menu))))
                            (eq (frame-manager menu) (frame-manager root))
 			   
-			   #+microsoft-32 ; frames don't work across threads
+			   #+microsoft	; frames don't work across threads
 			   (eq (current-process) (sheet-thread
 						  (frame-top-level-sheet
 						   (pane-frame menu))))			   

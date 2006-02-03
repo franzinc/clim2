@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: demo-driver.lisp,v 2.6 2005/12/08 21:25:44 layer Exp $
+;; $Id: demo-driver.lisp,v 2.7 2006/02/03 18:25:40 layer Exp $
 
 (in-package :clim-demo)
 
@@ -92,7 +92,7 @@
   (run-demo demo :port (port *application-frame*) :force t :background t))
 
 (defun run-demo (demo &key (port (find-port)) force background)
-  #+(and os-threads microsoft-32)
+  #+(and os-threads microsoft)
   (setq force t)
   (flet ((do-it ()
 	   (let* ((entry (assoc port (demo-frames demo)))
@@ -132,7 +132,7 @@
 	:name "Demo Driver" :class 'demo-driver
 	:initargs '(:left 0 :top 0))))
   (run-demo *demo-frame* :port port :background background :force force)
-  #+(and os-threads microsoft-32)
+  #+(and os-threads microsoft)
   (setq *demo-frame* nil)
   )
 

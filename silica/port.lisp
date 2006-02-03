@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: port.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: port.lisp,v 2.7 2006/02/03 18:25:41 layer Exp $
 
 (in-package :silica)
 
@@ -27,11 +27,11 @@
 
 ;; Ports and grafts
 
-(defvar *default-server-path* #+(and allegro (not microsoft-32)) '(:motif)
+(defvar *default-server-path* #+(and allegro (not microsoft)) '(:motif)
                               #+Lucid '(:clx)
                               #+Genera `(:genera)
                               #+Cloe-Runtime `(:cloe)
-                              #+(and allegro microsoft-32) '(:aclpc)
+                              #+(and allegro microsoft) '(:aclpc)
                               #-(or allegro Lucid Genera Cloe-Runtime) nil)
 
 

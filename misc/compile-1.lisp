@@ -18,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
+;; $Id: compile-1.lisp,v 2.7 2006/02/03 18:25:40 layer Exp $
 
 (in-package :user)
 
@@ -28,7 +28,7 @@
 ;; Forgive them, lord, for they know not what they do.
 (pushnew :ansi-90 *features*)
 
-#+(and allegro microsoft-32)
+#+(and allegro microsoft)
 (eval-when (compile load eval) 
   (pushnew :acl86win32 *features*))
 

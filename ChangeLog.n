@@ -1,3 +1,13 @@
+2006-02-03    <layer@HOBART64>
+
+    for 64-bit windows (changing all microsft-32's to microsoft's)
+	* clim2/clim/menus.lisp: 
+	* clim2/demo/demo-driver.lisp: 
+	* clim2/misc/compile-1.lisp: 
+	* clim2/silica/port.lisp: 
+	* clim2/sys/compile.lisp: 
+	* clim2/sys/load.lisp: 
+
 2005-12-01  Arthur Lemmens  <alemmens@xs4all.nl>
 
     Arthur will fill this in...
@@ -5995,4 +6005,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.12 $
+$Revision: 2.13 $
