@@ -1,3 +1,11 @@
+2006-03-29    <layer@HOBART>
+
+	* aclpc/acl-class.lisp: get rid of a LOT of unused code
+	  (functions, types, specials).  In some cases, I commented the
+	  code out, in case it is useful for debugging.
+	* aclpc/acl-frames.lisp: use winapi types for browse-callback-proc
+	  to insure it works on 64-bits
+
 2006-03-28    <layer@HOBART>
 
 	* aclpc/acl-class.lisp: update arglist for wproc-clim-wrapper,
@@ -6011,4 +6019,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.14 $
+$Revision: 2.15 $

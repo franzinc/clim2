@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.10 2006/03/29 00:32:30 layer Exp $
+;; $Id: acl-class.lisp,v 2.11 2006/03/29 16:21:49 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -98,21 +98,8 @@
 (defparameter application-icon 
     (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil))
 
-;; window procedure unwinding state
-(defvar *window-proc-return-reason* nil)
-(defvar *window-proc-return-tag* nil)
-(defvar *window-proc-return-value* nil)
-(defvar *window-proc-return-other-values* nil)
-;; window procedure args, rebound in each call to window proc
-(defvar *hwnd* 0)
-(defvar *msg* win:WM_NULL)
-(defvar *wparam* 0)
-(defvar *lparam* (ct:callocate :long))
-;; Window procedure result variable, returned to Windows.
-;; Set to 0 initially in each call to window proc and smashed by anyone.
-(defvar *window-proc-result* 0)
-;; to avoid garbage we reuse window procedure args from queue
-(defvar *window-proc-args-queue* nil)
+;;;;; window procedure args, rebound in each call to window proc
+;;;(defvar *hwnd* 0)
 
 (defun init-cursors ()
   ;; put back old cursor mechanism for the moment (cim 9/13/96)
@@ -126,68 +113,25 @@
     (check-last-error "LoadIcon" :action :warn))
   t)
 
-;;; Gather up the argument information and invoke the window procedure.
-;;; +++ at some point merge this in with the cg mechanism for lisp
-;;; windows.
-(defun clim-window-proc (x)
-  (declare (ignore x))
-  ;; always return *window-proc-result* to the kernel as a cpointer
-  (let ((result 0))
-    (setf result *window-proc-result*)
-    ;; return result
-    result))
-
-(defvar *clim-wproc-arg-struct* nil)
-(defvar *clim-ctrl-arg-struct* nil)
-(defvar *tooltip-relay-struct* nil)
-
-(defstruct (pccstructure 
-	    (:print-function print-pccstructure)
-	    (:predicate pccstructurep))
-  (type-tag 0)
-  (data-length 0)
-  (data-pointer 0)
-  )
-
-(defmacro long-ref (p i) 
-  `(sys::memref-int ,p 0 
-		    (the fixnum (* 4 (the fixnum ,i)))
-		    :unsigned-long))
-
-(defmacro signed-long-ref (p i) 
-  `(sys::memref-int ,p 0 
-		    (the fixnum (* 4 (the fixnum ,i)))
-		    :signed-long))
-
-;; [rfe4951]:
-(ff:defun-foreign-callable wproc-clim-wrapper ((hwnd win:hwnd)
-					       (message win:uint)
-					       (wparam win:wparam)
-					       (lparam win:lparam))
-  (let* ((s *clim-wproc-arg-struct*)
-	 (d (pccstructure-data-pointer s)))
-    (setf (long-ref d 0) hwnd
-	  (long-ref d 1) message
-	  (long-ref d 2) wparam
-	  (signed-long-ref d 3) lparam)
-    (clim-window-proc s)
-    ))
+;;;(defvar *clim-wproc-arg-struct* nil)
+;;;(defvar *clim-ctrl-arg-struct* nil)
+;;;(defvar *tooltip-relay-struct* nil)
 
 (defun init-clim-win-proc (wproc-address arg-struct)
-  (declare (ignore wproc-address))
-  (setf *clim-wproc-arg-struct* arg-struct)
+  (declare (ignore wproc-address arg-struct))
+;;;  (setf *clim-wproc-arg-struct* arg-struct)
   ;; [rfe4951]:
   (ff:register-foreign-callable 'clim-wind-proc :reuse :return-value))
 
 (defun init-tooltip-relay (wproc-address arg-struct)
-  (declare (ignore wproc-address))
-  (setf *tooltip-relay-struct* arg-struct)
+  (declare (ignore wproc-address arg-struct))
+;;;  (setf *tooltip-relay-struct* arg-struct)
   ;; [rfe4951]:
   (ff:register-foreign-callable 'tooltip-relay :reuse :return-value))
 
 (defun init-clim-ctrl-proc (wproc-address arg-struct)
-  (declare (ignore wproc-address))
-  (setf *clim-ctrl-arg-struct* arg-struct)
+  (declare (ignore wproc-address arg-struct))
+;;;  (setf *clim-ctrl-arg-struct* arg-struct)
   ;; [rfe4951]:
   (ff:register-foreign-callable 'clim-ctrl-proc :reuse :return-value))
 
@@ -945,7 +889,7 @@
 	   (optimize (safety 0) (speed 3)))
   (let ((result 0)
 	(*level* (1+ (the fixnum *level*))))
-    (setf *hwnd* window)
+;;;    (setf *hwnd* window)
     ;; FYI: Spy++ does a better job of tracing messages,
     ;; though it doesn't report everything.
     (mformat *windows-message-trace-output*
@@ -1046,7 +990,7 @@
 					   (lparam win:lparam))
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
-    (setf *hwnd* window)
+;;;    (setf *hwnd* window)
     (mformat excl:*initial-terminal-io*
 	     "In clim-ctrl-proc msg=~a sheet=~s~%"
 	     (msg-name msg) (mirror->sheet *acl-port* window))
@@ -1572,19 +1516,10 @@
   (setq *modstate* (make-modstate))
   (setq *ctlmodstate* (make-modstate))
   (setq *win-result* 0)
-  (setq *window-proc-return-reason* nil)
-  (setq *window-proc-return-tag* nil)
-  (setq *window-proc-return-value* nil)
-  (setq *window-proc-return-other-values* nil)
-  (setq *hwnd* 0)
-  (setq *msg* win:WM_NULL)
-  (setq *wparam* 0)
-  (setq *lparam* (ct:callocate :long))
-  (setq *window-proc-result* 0)
-  (setq *window-proc-args-queue* nil)
-  (setq *clim-wproc-arg-struct* nil)
-  (setq *clim-ctrl-arg-struct* nil)
-  (setq *tooltip-relay-struct* nil)
+;;;  (setq *hwnd* 0)
+;;;  (setq *clim-wproc-arg-struct* nil)
+;;;  (setq *clim-ctrl-arg-struct* nil)
+;;;  (setq *tooltip-relay-struct* nil)
   (setq *level* 0)
   (setq *realtime-scrollbar-tracking* t)
   (setq *win-scroll-grain* 1000)

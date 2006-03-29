@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.8 2005/12/08 21:25:41 layer Exp $
+;; $Id: acl-frames.lisp,v 2.9 2006/03/29 16:21:49 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -2200,12 +2200,12 @@ in a second Lisp process.  This frame cannot be reused."
 (defconstant BFFM_SETSTATUSTEXT      BFFM_SETSTATUSTEXTW)
 (defconstant BFFM_SETSELECTION       BFFM_SETSELECTIONW)
 
-
+;; The the docs for the `BrowseCallbackProc' function.
 (ff:defun-foreign-callable browse-callback-proc
-    ((hwnd win:hwnd)
-     (message :unsigned-int)
-     (lparam      :long)
-     (lparam-data :long))
+    ((hwnd        win:hwnd)
+     (message     win:uint)
+     (lparam      win:lparam)
+     (lparam-data win:lparam))
   (declare (:convention :stdcall) (:unwind 0)
            (ignore lparam))
   (when (and (= message BFFM_INITIALIZED)
