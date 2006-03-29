@@ -1,3 +1,9 @@
+2006-03-28    <layer@HOBART>
+
+	* aclpc/acl-class.lisp: update arglist for wproc-clim-wrapper,
+	  tooltip-relay, clim-wind-proc, and clim-ctrl-proc to use winapi
+	  types.
+
 2006-02-03    <layer@HOBART64>
 
     for 64-bit windows (changing all microsft-32's to microsoft's)
@@ -6005,4 +6011,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.13 $
+$Revision: 2.14 $

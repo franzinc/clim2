@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.9 2005/12/08 21:25:41 layer Exp $
+;; $Id: acl-class.lisp,v 2.10 2006/03/29 00:32:30 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -160,7 +160,10 @@
 		    :signed-long))
 
 ;; [rfe4951]:
-(ff:defun-foreign-callable wproc-clim-wrapper (hwnd message wparam lparam)
+(ff:defun-foreign-callable wproc-clim-wrapper ((hwnd win:hwnd)
+					       (message win:uint)
+					       (wparam win:wparam)
+					       (lparam win:lparam))
   (let* ((s *clim-wproc-arg-struct*)
 	 (d (pccstructure-data-pointer s)))
     (setf (long-ref d 0) hwnd
@@ -890,7 +893,10 @@
 ;; The message stream needs to be relayed to the tooltip 
 ;; control for it to know when and where to display tool tips.
 ;; [rfe4951]:
-(ff:defun-foreign-callable tooltip-relay (window msg wparam lparam)
+(ff:defun-foreign-callable tooltip-relay ((window win:hwnd)
+					  (msg win:uint)
+					  (wparam win:wparam)
+					  (lparam win:lparam))
   (declare (:convention :stdcall) (:unwind 0)
 	   (optimize (safety 0) (speed 3)))
   (case msg
@@ -931,7 +937,10 @@
 ;; a 32-bit "LRESULT" value to the caller.  The nature of the
 ;; return value depends on the message.
 ;; [rfe4951]:
-(ff:defun-foreign-callable clim-wind-proc (window msg wparam lparam)
+(ff:defun-foreign-callable clim-wind-proc ((window win:hwnd)
+					   (msg win:uint)
+					   (wparam win:wparam)
+					   (lparam win:lparam))
   (declare (:convention :stdcall) (:unwind 0)
 	   (optimize (safety 0) (speed 3)))
   (let ((result 0)
@@ -1031,7 +1040,10 @@
 ;;; only the edit control).
 
 ;; [rfe4951]
-(ff:defun-foreign-callable clim-ctrl-proc (window msg wparam lparam)
+(ff:defun-foreign-callable clim-ctrl-proc ((window win:hwnd)
+					   (msg win:uint)
+					   (wparam win:wparam)
+					   (lparam win:lparam))
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
     (setf *hwnd* window)
