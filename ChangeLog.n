@@ -1,3 +1,16 @@
+2006-04-06    <layer@HOBART64>
+
+	* aclpc/acl-class.lisp: fix argument to GetWinMainArgs
+	* aclpc/acl-frames.lisp: fix def-foreign-call's and callers of
+          said functions for win64
+	* aclpc/acl-prel.lisp: fix arguments to winapi functions to
+          have correct types
+	* aclpc/acl-widget.lisp: fix arguments to winapi functions to
+          have correct types
+	* aclpc/pkgdcl.lisp: *ffi-call-direct* and *ffi-arg-checking*
+          for win64
+	* aclpc/winwidgh.lisp: fix def-foreign-call's for win64
+
 2006-03-29    <layer@HOBART>
 
 	* aclpc/acl-class.lisp: get rid of a LOT of unused code
@@ -6019,4 +6032,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.15 $
+$Revision: 2.16 $

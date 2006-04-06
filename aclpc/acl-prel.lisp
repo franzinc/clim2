@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 2.8 2005/12/08 21:25:42 layer Exp $
+;; $Id: acl-prel.lisp,v 2.9 2006/04/06 23:23:05 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -436,7 +436,9 @@
 
 (defun errno-to-text (errno)
   (let* ((pointer (make-array 1 
-			      :element-type '(unsigned-byte 32)
+			      :element-type
+			      #+64bit '(unsigned-byte 64)
+			      #-64bit '(unsigned-byte 32)
 			      :initial-element 0))
 	 (flags (logior #x100		; format_message_allocate_buffer
 			#x1000		; format_message_from_system

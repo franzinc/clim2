@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.11 2006/03/29 16:21:49 layer Exp $
+;; $Id: acl-class.lisp,v 2.12 2006/04/06 23:23:05 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1140,7 +1140,10 @@
 			       (win:CreateDC d ct:hnull ct:hnull ct:hnull)))))
 
 (defun initialize-cg ()
-  (let* ((dataobj (make-array 3 :element-type '(signed-byte 32))))
+  (let* ((dataobj
+	  (make-array 3 :element-type
+		      #+64bit '(signed-byte 64)
+		      #-64bit '(signed-byte 32))))
     (win:GetWinMainArgs dataobj)
     (setq *hinst*      (aref dataobj 0)
 	  *hprevinst*  (aref dataobj 1)

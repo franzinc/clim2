@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.9 2006/03/29 16:21:49 layer Exp $
+;; $Id: acl-frames.lisp,v 2.10 2006/04/06 23:23:05 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -2060,7 +2060,7 @@ in a second Lisp process.  This frame cannot be reused."
 
 (defparameter *max-file-selection-buffer-size* (* 16 *max-path*))
 
-(ff:def-foreign-call IMallocFree ()
+(ff:def-foreign-call IMallocFree ((pv win:pvoid))
   :returning :void
   :convention :stdcall
   :method-index 5
@@ -2076,12 +2076,18 @@ in a second Lisp process.  This frame cannot be reused."
   :returning :unsigned-long
   :strings-convert nil)
 
-(ff:def-foreign-call IShellFolderParseDisplayName ()
+(ff:def-foreign-call IShellFolderParseDisplayName
+    ((hwnd win:hwnd)
+     (pbc win:lpstr)
+     (pwszDisplayName win:lpstr)
+     (pchEaten win:ulong_ptr)
+     (ppidl (* win:lpcitemidlist))
+     (pdwAttributes win:ulong_ptr))
   :method-index 3
   :convention :stdcall
   :release-heap :when-ok
   :arg-checking nil
-  :returning :unsigned-long
+  :returning win:hresult
   :strings-convert nil)
 
 
@@ -2090,7 +2096,7 @@ in a second Lisp process.  This frame cannot be reused."
      (flags win:dword)     ; character-type options
      (string win:lpcstr)   ; address of string to map
      (nr-bytes :int)       ; number of bytes in string
-     (buffer win:lpcstr)   ; LPWSTR, address of wide-character buffer
+     (buffer win:lpwstr)   ; LPWSTR, address of wide-character buffer
      (buffer-size :int)    ; size of buffer (in wide characters)
      )
   :returning :int
@@ -2104,29 +2110,18 @@ in a second Lisp process.  This frame cannot be reused."
 
 ;; WINSHELLAPI HRESULT WINAPI SHGetDesktopFolder(LPSHELLFOLDER *ppshf)
 (ff:def-foreign-call (SHGetDesktopFolder "SHGetDesktopFolder")
-    ((folder (* :void)))
-  :returning :long  ; hresult
+    ((folder (* :nat)))
+  :returning win:hresult
   :release-heap :when-ok)
 
-(ff:def-foreign-type browseinfo
-    (:struct (hwndOwner win:hwnd)
-	     (pidlRoot win:lpcitemidlist)
-	     (pszDisplayName win:lpstr)
-	     (lpszTitle win:lpcstr)
-	     (ulflags win:uint)
-	     (lpfn (* :void)) ; BFFCALLBACK
-	     (lparam win:lparam)
-	     (iImage :int)))
+;; browseinfo moved to winwidgh.lisp
 
-(ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
-    ((info browseinfo))
-  :returning :foreign-address  ; LPITEMIDLIST
-  :release-heap :when-ok) 
+;; SHBrowseForFolder moved to winwidgh.lisp
 
 ;; HRESULT SHGetMalloc(LPMALLOC *ppMalloc);
 (ff:def-foreign-call (SHGetMalloc "SHGetMalloc")
-    ((pointer (* :void)))
-  :returning :long  ; HRESULT
+    ((pointer (* :nat)))
+  :returning win:hresult
   :release-heap :when-ok)
 
 
@@ -2147,12 +2142,11 @@ in a second Lisp process.  This frame cannot be reused."
 ;;; Little helpers
 ;;;
 
-(defun allocate-pointer (&optional (type :int) (size 1))
+(defun allocate-pointer (type &optional (size 1))
   (ff:allocate-fobject `(:array ,type ,size)))
 
-(defun pointer-value (object)
-  (ff:fslot-value-typed '(:array :int 1) 
-                        nil object 0))
+(defun pointer-value (type object)
+  (ff:fslot-value-typed `(:array ,type 1) nil object 0))
 
 (defmacro fill-fslots (type object &rest slots)
   (declare (ignore type))
@@ -2230,8 +2224,8 @@ in a second Lisp process.  This frame cannot be reused."
   ;; corresponding to PATHNAME (signals an error on failure).  This
   ;; ITEMIDLIST needs to be freed using the IMalloc allocator returned
   ;; from SHGetMalloc().
-  (let ((desktop-folder (allocate-pointer))
-        (ole-path (allocate-pointer :int (+ 2 (* 2 *max-path*)))))
+  (let ((desktop-folder (allocate-pointer :nat))
+        (ole-path (allocate-pointer :unsigned-long (+ 2 (* 2 *max-path*)))))
     (unless (= (SHGetDesktopFolder desktop-folder) win:NOERROR)
       (error "Error in ask-user-for-directory: SHGetDesktopFolder failed."))
     ;; Convert pathname to C string, and then to a 'wide character
@@ -2244,12 +2238,13 @@ in a second Lisp process.  This frame cannot be reused."
                          -1 ole-path *max-path*)
     ;; Let IShellFolder::ParseDisplayName turn the directory
     ;; into an ITEMIDLIST.
-    (let ((pidl (allocate-pointer))
-          (cheaten (allocate-pointer))
-          (attributes (allocate-pointer)))
-      (unless (= (IShellFolderParseDisplayName (pointer-value desktop-folder)
-                                               0 0 ole-path cheaten pidl
-                                               attributes)
+    (let ((pidl (allocate-pointer :nat))
+          (cheaten (allocate-pointer :nat))
+          (attributes (allocate-pointer :unsigned-long)))
+      (unless (= (IShellFolderParseDisplayName
+		  (pointer-value :nat desktop-folder)
+		  0 ole-path cheaten pidl
+		  attributes)
                  win:NOERROR)
         (error "Error in ask-user-for-directory: ParseDisplayName failed."))
       ;; Return that ITEMIDLIST (actually, a foreign-object
@@ -2274,14 +2269,14 @@ in a second Lisp process.  This frame cannot be reused."
 (defun ask-user-for-directory (&key (prompt "Select a directory.")
                                associated-window root initial-directory
                                edit-box dont-go-below-domains
-                               include-files)
+				    include-files)
   ;; Ensure that the callback procedure is registered.
   (unless (and *clim-initialized* *clim-browse-callback-proc-address*)
     (setf *clim-browse-callback-proc-address*
           (ff:register-foreign-callable 'browse-callback-proc
                                         :reuse :return-value)))
   ;;
-  (let* ((malloc (allocate-pointer))
+  (let* ((malloc (allocate-pointer :nat))
          (root-item-id-list nil)
          (initial-directory-item-id-list nil))
     (unless (eql (SHGetMalloc malloc) windows:NOERROR)
@@ -2302,7 +2297,7 @@ in a second Lisp process.  This frame cannot be reused."
                                              (sheet-mirror associated-window))
                                         0)
                           pidlRoot (if root
-                                       (pointer-value root-item-id-list)
+                                       (pointer-value :nat root-item-id-list)
                                        0)
                           pszDisplayName 0
                           lpszTitle win-prompt
@@ -2316,21 +2311,22 @@ in a second Lisp process.  This frame cannot be reused."
                                               0))
                           lpfn *clim-browse-callback-proc-address*
                           lParam (if initial-directory
-                                     (pointer-value initial-directory-item-id-list)
+                                     (pointer-value
+				      :nat initial-directory-item-id-list)
                                      0)
                           iImage 0))
            (let ((item-id-list-out (SHBrowseForFolder browse-info)))
              (when (> item-id-list-out 0)
                (unwind-protect (item-id-list-to-pathname item-id-list-out)
                  ;; Free item-id-list
-                 (IMallocFree (pointer-value malloc) item-id-list-out)))))
+                 (IMallocFree (pointer-value :nat malloc) item-id-list-out)))))
       ;; Free the item-id-lists returned from pathname-to-item-id-list.
       (when root
-        (IMallocFree (pointer-value malloc) root-item-id-list))
+        (IMallocFree (pointer-value :nat malloc) root-item-id-list))
       (when initial-directory
-        (IMallocFree (pointer-value malloc) initial-directory-item-id-list))
+        (IMallocFree (pointer-value :nat malloc) initial-directory-item-id-list))
       ;;
-      (IMallocRelease (pointer-value malloc)))))
+      (IMallocRelease (pointer-value :nat malloc)))))
 
 
 

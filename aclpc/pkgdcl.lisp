@@ -17,11 +17,19 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkgdcl.lisp,v 2.6 2005/12/08 21:25:42 layer Exp $
+;; $Id: pkgdcl.lisp,v 2.7 2006/04/06 23:23:05 layer Exp $
 
 (in-package :common-lisp-user)
 
 (defvar *lock-preference* excl:*enable-package-locked-errors*)
+
+(defvar *ffi-arg-checking*
+    #+(and mswindows 64bit) t
+    #-(and mswindows 64bit) nil)
+
+(defvar *ffi-call-direct*
+    #+(and mswindows 64bit) nil
+    #-(and mswindows 64bit) t)
 
 ;; Invite everybody to the party.
 (eval-when (compile load eval)
