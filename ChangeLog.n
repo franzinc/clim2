@@ -1,3 +1,8 @@
+2006-04-12  Kevin Layer  <layer@gemini>
+
+	* aclpc/acl-class.lisp (initialize-cg): bug16026: make sure the
+	  array passed to GetWinMainArgs is big enough (thanks Ken!)
+
 2006-04-11    <duane@gemini>
 
 	* Makefile.maxosx: Add mactel
@@ -6036,4 +6041,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.17 $
+$Revision: 2.18 $
