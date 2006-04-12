@@ -1,3 +1,7 @@
+2006-04-11    <duane@gemini>
+
+	* Makefile.maxosx: Add mactel
+
 2006-04-06    <layer@HOBART64>
 
 	* aclpc/acl-class.lisp: fix argument to GetWinMainArgs
@@ -6032,4 +6036,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.16 $
+$Revision: 2.17 $

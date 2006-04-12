@@ -1,4 +1,4 @@
-# $Id: Makefile.macosx,v 2.5 2005/08/03 05:07:13 layer Exp $
+# $Id: Makefile.macosx,v 2.6 2006/04/12 03:53:55 layer Exp $
 #
 #  Makefile.macosx for CLIM 2.0
 #
@@ -30,8 +30,13 @@ ifeq ($(SIXTYFOURBIT),yes)
 CFLAGS= -arch ppc64 -DAcl64Bit
 MAKE_SHARED = sh ../src/bin/make_shared.mac64
 else
+ifeq ($(MACHINE),x86)
+CFLAGS= 
+MAKE_SHARED = sh ../src/bin/make_shared.mac86
+else
 CFLAGS= 
 MAKE_SHARED = sh ../src/bin/make_shared.mac
+endif
 endif
 
 PICFLAGS = 
