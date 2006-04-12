@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 2.7 2006/04/06 23:23:05 layer Exp $
+;; $Id: winwidgh.lisp,v 2.8 2006/04/12 17:54:31 layer Exp $
 
 (in-package :acl-clim)
 
@@ -35,6 +35,12 @@
 (defconstant EC_USEFONTINFO #xffff)
 
 (defvar SRCOR #xee0086)
+
+(deftype signed-nat ()
+  `(signed-byte #-64bit 32 #+64bit 64))
+
+(deftype unsigned-nat ()
+  `(unsigned-byte #-64bit 32 #+64bit 64))
 
 (ff:def-foreign-type browseinfo
     (:struct (hwndOwner win:hwnd)

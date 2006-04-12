@@ -1,5 +1,12 @@
 2006-04-12  Kevin Layer  <layer@gemini>
 
+	* aclpc/acl-class.lisp: new {un,}signed-nat types
+	* aclpc/acl-prel.lisp: new {un,}signed-nat types
+	* aclpc/acl-widget.lisp: new {un,}signed-nat types
+	* aclpc/winwidgh.lisp: new {un,}signed-nat types
+
+2006-04-12  Kevin Layer  <layer@gemini>
+
 	* aclpc/acl-class.lisp (initialize-cg): bug16026: make sure the
 	  array passed to GetWinMainArgs is big enough (thanks Ken!)
 
@@ -6041,4 +6048,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.18 $
+$Revision: 2.19 $

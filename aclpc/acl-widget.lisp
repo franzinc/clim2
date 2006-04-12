@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.10 2006/04/06 23:23:05 layer Exp $
+;; $Id: acl-widget.lisp,v 2.11 2006/04/12 17:54:31 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -469,15 +469,9 @@
   (let ((mirror (sheet-direct-mirror pane)))
     (cond (mirror
 	   (let ((startptr
-		  (make-array 1 
-			      :element-type
-			      #+64bit '(unsigned-byte 64)
-			      #-64bit '(unsigned-byte 32)
+		  (make-array 1  :element-type 'unsigned-nat
 			      :initial-element 0))
-		 (endptr (make-array 1 
-				     :element-type
-				     #+64bit '(unsigned-byte 64)
-				     #-64bit '(unsigned-byte 32)
+		 (endptr (make-array 1 :element-type 'unsigned-nat
 				     :initial-element 0))) 
 	     (acl-clim::frame-send-message (pane-frame pane)
 					   mirror
@@ -561,15 +555,9 @@
 					       0 0))
 	     (teb (make-array wl :element-type '(unsigned-byte 8)))
 	     (tlen (win:GetWindowText mirror teb (1+ wl)))
-	     (startptr (make-array 1 
-				   :element-type
-				   #+64bit '(unsigned-byte 64)
-				   #-64bit '(unsigned-byte 32)
+	     (startptr (make-array 1 :element-type 'unsigned-nat
 				   :initial-element 0))
-	     (endptr (make-array 1 
-				 :element-type
-				 #+64bit '(unsigned-byte 64)
-				 #-64bit '(unsigned-byte 32)
+	     (endptr (make-array 1 :element-type 'unsigned-nat
 				 :initial-element 0)))
 	(declare (ignorable tlen))
 	(acl-clim::frame-send-message (pane-frame pane)
