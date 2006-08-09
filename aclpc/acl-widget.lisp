@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.11 2006/04/12 17:54:31 layer Exp $
+;; $Id: acl-widget.lisp,v 2.11.2.1 2006/08/09 10:58:19 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -658,8 +658,9 @@
 	  (t
 	   (call-next-method gadget port sheet wparam lparam)))))
 
-(defclass mswin-text-field (mswin-text-edit)
-  ()
+(defclass silica::mswin-text-field (silica::mswin-text-edit)
+  (;;mm: spr27890 
+   (acl-clim::ignore-wm-char :initform nil))
   (:default-initargs 
       :text-style nil
       :external-label nil
@@ -740,6 +741,62 @@
 	 :width  w :min-width min-w
 	 :height h :min-height min-h
 	 )))))
+
+(defmethod handle-event ((pane mswin-text-field) (event key-press-event))
+  
+  ;;mm: spr27890: keep the simpler method for the more general
+  ;;              mswin-text-edit class
+  
+  ;; This event occurs when a text-field recevies a RETURN character.
+  ;;mm: spr27890 OR a TAB character.
+  
+  ;;afuchs: also, handle shift-TAB correctly, and support tabbing in text-fields 
+  ;;        that are outside accepting-values panes.
+  
+  ;;(format t "~&handle-event in~%") (sleep 2) (format t "~&handle-event start~%")
+  (let ((keysym (slot-value event 'key-name))
+        (shifted-p (not (zerop (logand +shift-key+ (event-modifier-state event))))))
+    (case keysym
+      (:newline
+       (acl-clim::win-catch-command
+        #'(lambda (pane)
+            (activate-callback pane (gadget-client pane) (gadget-id pane)))
+        pane)))
+    (labels ((siblings (pane)
+               (when (sheet-parent pane)
+                 (if (sheet-children (sheet-parent pane))
+                     (sheet-children (sheet-parent pane))
+                   (siblings (sheet-parent pane))))))
+    (or
+     (let* ((frame (pane-frame pane))
+            (children (siblings pane)))
+       (flet ((scan (all)
+               (do (p (tl all (cdr tl)))
+                   ((atom tl) nil)
+                 (setf p (first tl))
+                 (when (typecase p
+                         ;; use TAB or ENTER to skip from one text-field 
+                         ;; to the next
+                         (mswin-text-edit (slot-value p 'silica::editable-p))
+                         (otherwise nil))
+                   (port-move-focus-to-gadget acl-clim::*acl-port* p)
+                   (return t)))))
+         (or (scan (cdr (member pane (if (and (eql keysym :tab) shifted-p)
+                                         (reverse children)
+                                       children))))
+             (case keysym
+               (:tab 
+                ;; wrap around if TAB
+                (scan (if shifted-p (reverse children) children)))
+               (:newline
+                ;; press the OK button if pressed ENTER on the last field
+                (acl-clim::activate-default-gadget frame) nil)))))  
+     
+     ;; Give up the focus
+     (win:SetFocus (win:GetActiveWindow)))
+    ;;(format t "~&handle-event out~%")
+    )))
+
 
 ;;
 ;; text-field-cursor

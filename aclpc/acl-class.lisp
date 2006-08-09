@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.14 2006/04/12 17:54:31 layer Exp $
+;; $Id: acl-class.lisp,v 2.14.2.1 2006/08/09 10:58:19 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -979,22 +979,50 @@
 ;;;   with normal dialog accelarator keystrokes.
 (defvar *ignore-getdlgcode-in-acl-text-editor-pane* t)   
 
+;;; [spr31884]
+(defun win-catch-command (body sheet)
+  ;;mm: spr27890 - we need to catch some commands triggered by 
+  ;;               Windows events
+  ;;    AND prevent throw out of WindowProc
+  (unwind-protect
+
+      (handler-case
+       (funcall body sheet)
+
+       (clim-internals::synchronous-command-event
+	(c)
+	(let ((command
+	       (clim-internals::synchronous-command-event-command c)))
+	  ;; must do the command right now to do commands in
+	  ;; the right order
+	  (execute-command-in-frame (pane-frame sheet) command))))
+
+    ;; we should not throw out of a WindowProc!
+    (return-from win-catch-command nil)))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Implements the window proc for the subclassed controls (presently
 ;;; only the edit control).
 
 ;; [rfe4951]
-(ff:defun-foreign-callable clim-ctrl-proc ((window win:hwnd)
-					   (msg win:uint)
-					   (wparam win:wparam)
-					   (lparam win:lparam))
+(ff:defun-foreign-callable clim-ctrl-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
-;;;    (setf *hwnd* window)
-    (mformat excl:*initial-terminal-io*
-	     "In clim-ctrl-proc msg=~a sheet=~s~%"
-	     (msg-name msg) (mirror->sheet *acl-port* window))
-    (let ((result 0))
+    (setf *hwnd* window)
+    (let ((result 0)
+          (sheet (mirror->sheet *acl-port* window)))
+      (mformat excl:*initial-terminal-io*
+               "In clim-ctrl-proc msg=~a sheet=~s~%"
+               (msg-name msg) sheet)
+      (cond ((and (typecase sheet
+                    (silica::mswin-text-field (slot-value sheet 'ignore-wm-char)))
+		  (eql msg win:WM_CHAR))
+	     (mformat excl:*initial-terminal-io* "~&;;ignoring WM_CHAR~%")
+	     (setf (slot-value sheet 'ignore-wm-char) nil)
+	     (return-from clim-ctrl-proc 0)))
+
       (cond
        ;; character typed
        ((or (eql msg win:WM_KEYDOWN)
@@ -1043,47 +1071,58 @@
 			      (gethash (ldb (byte 8 0) code) vk->keysym)))
 		  (char nil)
 		  (modstate (modstate->modifier *ctlmodstate*))
-		  (sheet (mirror->sheet *acl-port* window)))
+		  ;;(sheet (mirror->sheet *acl-port* window))
+		  )
 	      (when (consp keysym)
 		(setf keysym (first keysym)))
 	      (when (characterp keysym)
 		(when (zerop (ldb (byte 2 9) code))
 		  (setf char keysym))
-		(setf keysym (char->keysym keysym)))
+         (setf keysym (char->keysym keysym)))
 	      #+ignore
 	      (format *standard-output* "keysym=~a char=~a modstate=~a~%"
 		      keysym char modstate)
-	      (if (and (or (eql keysym :end)
-			   (and (silica::isa-textfield sheet)
-				(eql keysym :newline)))
-		       (eql modstate 0))
-		  (setq pass nil)) ;;; pass along the end character.
-	      (if pass
-		  (progn
-		    (setq pass nil)
-		    (setq *win-result* 
-		      (win:CallWindowProc std-ctrl-proc-address
-					  window msg wparam lparam))
-		    *win-result*)
-		(progn
-		  ;; We have decided to handle this character ourselves!
-		  (handle-event
-		   sheet
-		   (allocate-event
-		    (cond ((or (eql msg win:WM_KEYDOWN)
-			       (eql msg win:WM_SYSKEYDOWN))
-			   'key-press-event)
-			  ((or (eql msg win:WM_KEYUP)
-			       (eql msg win:WM_SYSKEYUP))
-			   'key-release-event))
-		    :key-name keysym
-		    :character char
-		    :modifier-state (setf (port-modifier-state *acl-port*)
-				      modstate)
-		    :sheet sheet))
+       (if (and (silica::isa-textfield sheet)
+                ;;mm: spr27890 look at :newline or :tab ourselves
+                (case keysym 
+                  (:newline (eql modstate 0))
+                  (:tab (or (eql modstate 0) (modstate-shift *ctlmodstate*)))))
+           (setq pass nil)) ;;; Don't pass along the character.
+       (if pass
+           (progn
+             (setq pass nil)
+             (setq 
+              ;;mm *win-result* 
+              result
+               (win:CallWindowProc std-ctrl-proc-address
+                                   window msg wparam lparam))
+             *win-result*)
+         (let ((sheet (mirror->sheet *acl-port* window)))
+           ;; We have decided to handle this character ourselves!
+           
+           ;;mm: spr27890 
+           (when (eql msg win:WM_KEYDOWN)
+             (setf (slot-value sheet 'ignore-wm-char) t))
+           (win-catch-command
+            #'(lambda (sheet)
+                (handle-event 
+                 sheet
+                 (allocate-event
+                  (cond ((or (eql msg win:WM_KEYDOWN)
+                             (eql msg win:WM_SYSKEYDOWN))
+                         'key-press-event)
+                        ((or (eql msg win:WM_KEYUP)
+                             (eql msg win:WM_SYSKEYUP))
+                         'key-release-event))
+                  :key-name keysym
+                  :character char
+                  :modifier-state (setf (port-modifier-state *acl-port*)
+                                    modstate)
+                  :sheet sheet))) sheet)
+
 		  ;; set return value to 0
-		  (clear-winproc-result *win-result*)
-		  *win-result*))))))
+		  ;;(clear-winproc-result *win-result*)
+		  (setq result 0)))))))
 
        ;; 17-Mar-03  mm [bug13094]      
        ((and *ignore-getdlgcode-in-acl-text-editor-pane*
@@ -1101,11 +1140,13 @@
        (t
 	;; This is where we let the control do its own thing.  Most
 	;; messages come through here.
-	(clear-winproc-result *win-result*)
-	(setq *win-result* (win:CallWindowProc std-ctrl-proc-address
+	;;(clear-winproc-result *win-result*)
+	(setq ;;*win-result*
+	 result
+	 (win:CallWindowProc std-ctrl-proc-address
 					       window msg wparam lparam))
         *win-result*))
-      (setf result *win-result*)
+      ;;(setf result *win-result*)
       result)))
 
 (defvar *clim-class* "ClimClass")
