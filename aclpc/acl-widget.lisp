@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.11.2.1 2006/08/09 10:58:19 afuchs Exp $
+;; $Id: acl-widget.lisp,v 2.11.2.2 2006/08/09 11:08:44 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -762,14 +762,16 @@
         #'(lambda (pane)
             (activate-callback pane (gadget-client pane) (gadget-id pane)))
         pane)))
-    (labels ((siblings (pane)
-               (when (sheet-parent pane)
-                 (if (sheet-children (sheet-parent pane))
-                     (sheet-children (sheet-parent pane))
-                   (siblings (sheet-parent pane))))))
+    (labels ((text-panes (frame)
+               (let ((result nil))
+                 (map-over-sheets (lambda (sheet)
+                                    (typecase sheet
+                                      (mswin-text-edit (push sheet result))))
+                                  (frame-top-level-sheet frame))
+                 (nreverse result))))
     (or
      (let* ((frame (pane-frame pane))
-            (children (siblings pane)))
+            (children (text-panes frame)))
        (flet ((scan (all)
                (do (p (tl all (cdr tl)))
                    ((atom tl) nil)
