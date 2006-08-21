@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-funs.lisp,v 2.6 2005/12/08 21:25:47 layer Exp $
+;; $Id: xlib-funs.lisp,v 2.6.16.1 2006/08/21 14:59:03 afuchs Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -2017,7 +2017,6 @@
   (win window)
   (scr int))
 
-#+ignore
 (def-exported-foreign-function (xmatchvisualinfo (:return-type int)
 						 (:name "XMatchVisualInfo"))
     (dpy (:pointer display))

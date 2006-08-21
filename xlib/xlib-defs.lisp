@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-defs.lisp,v 2.6 2005/12/08 21:25:47 layer Exp $
+;; $Id: xlib-defs.lisp,v 2.6.16.1 2006/08/21 14:59:03 afuchs Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -706,6 +706,18 @@
   (blue-mask :type unsigned-long)
   (bits-per-rgb :type int)
   (map-entries :type int))
+
+(def-exported-foreign-struct visual-info
+  (visual :type (:pointer visual))
+  (visual-id :type visualid)
+  (screen :type int)
+  (depth :type unsigned-int)
+  (class :type int)
+  (red-mask :type unsigned-long)
+  (green-mask :type unsigned-long)
+  (blue-mask :type unsigned-long)
+  (colormap-size :type int)
+  (bits-per-rgb :type int))
 
 (def-exported-foreign-struct depth
   (depth :type int)
