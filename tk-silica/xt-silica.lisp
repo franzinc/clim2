@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.6.16.1 2006/08/21 14:59:03 afuchs Exp $
+;; $Id: xt-silica.lisp,v 2.6.16.2 2006/09/04 15:59:09 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -37,6 +37,7 @@
      (rotated-string-cache :initform nil :accessor port-rotated-string-cache)
      (depth :accessor port-depth)
      (visual-class :accessor port-visual-class)
+     (visual :accessor port-visual)
      (cursor-font :initform nil)
      (cursor-cache :initform nil)
      (font-cache :initform (make-hash-table :test #'equal))
@@ -61,16 +62,20 @@
 
 ;; access to port-copy-gc should be within a without-scheduling
 
+(defun make-pixmap (display depth)
+  (make-instance 'tk::pixmap
+     :drawable
+     (tk::display-root-window display)
+     :depth depth :width 1 :height 1))
+
 (defmethod port-copy-gc ((port xt-port))
   ;;-- Assume 1-1 port-graft mapping?
-  (with-slots (copy-gc display) port
+  (with-slots (copy-gc display depth) port
     (or copy-gc
 	(setf copy-gc
 	  (make-instance 'tk::gcontext
-	    :display display
-	    :graphics-exposures :on
-	    :foreign-address (x11:screen-default-gc
- 			      (x11:xdefaultscreenofdisplay display)))))))
+	    :drawable (make-pixmap display depth)
+	    :graphics-exposures :on)))))
 
 ;;--- I don't know of a better way of getting a depth 1 drawable
 ;;other than by making a dummy depth 1 pixmap
@@ -78,10 +83,7 @@
   ;;-- Assume 1-1 port-graft mapping?
   (with-slots (copy-gc-depth-1 display) port
     (or copy-gc-depth-1
-	(let ((pixmap (make-instance 'tk::pixmap
-				     :drawable
-				     (tk::display-root-window display)
-				     :depth 1 :width 1 :height 1)))
+	(let ((pixmap (make-pixmap display 1)))
 	  (prog1
 	      (setf copy-gc-depth-1
 		(make-instance 'tk::gcontext :drawable pixmap))
@@ -107,8 +109,7 @@
     '("Solbourne Computer, Inc" "Network Computing Devices"
       "Tektronix"))
 
-(defmethod initialize-instance :after ((port xt-port)
-                                       &key server-path)
+(defmethod initialize-instance :after ((port xt-port) &key server-path)
   (setq tk::*x-io-error-hook* #'xt-fatal-error-handler)
   (destructuring-bind
         (&key (display nil display-p)
@@ -121,50 +122,33 @@
       (when display-p (setf (getf args :host) display))
       (when application-name-p (setf (getf args :application-name) application-name))
       (when application-class-p (setf (getf args :application-class) application-class))
-      (multiple-value-bind (context display application-shell) (apply #'tk::initialize-toolkit args)
+      (multiple-value-bind (context display application-shell)
+          (apply #'tk::initialize-toolkit args)
         (setf (slot-value port 'application-shell) application-shell
               (slot-value port 'context) context
               (slot-value port 'display) display)
-
-        (initialize-port-visual-info port display color-depth visual-class)
-
+        (initialize-port-visual-info port display application-shell color-depth visual-class)
         (let* ((screen (x11:xdefaultscreenofdisplay display))
                (bs-p (not (zerop (x11::screen-backing-store screen))))
                (su-p (not (zerop (x11::screen-save-unders screen))))
                (vendor (excl:native-to-string (x11::display-vendor display))))
           (if (and bs-p su-p
-                   (notany #'(lambda (x)
-                               (search x vendor))
-                           *unreliable-server-vendors*))
-              (setf (slot-value port 'safe-backing-store)
-                    t)))
+                   (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
+              (setf (slot-value port 'safe-backing-store) t)))
         (initialize-xlib-port port display)))))
-
+ 
+ 
 (defparameter *visual-classes*
-              '((0 :static-gray)
-                (1 :gray-scale)
-                (2 :static-color)
-                (3 :pseudo-color)
-                (4 :true-color)
-                (5 :direct-color)))
-
-(defun put-xrm-visual-info (display visual color-depth colormap)
-  (let ((rdb (tk::display-database display)))
-    (xt::with-ref-par ((depth color-depth :int))
-      (xt::put-resource rdb "*depth" XmRInt '(* :int) &depth))
-    (xt::put-resource rdb "*visual" XmRVisual '(* x11:visual)
-                      (ff:make-foreign-pointer :address visual))
-    ;; spr29909/asf: colormaps are identified by XIDs. The code (IMHO)
-    ;; wrongly assumes that XIDs correspond to foreign addresses. That
-    ;; is not the case - they're internal X identifiers.  This is why
-    ;; we have to make an integer containing that XID and pass its
-    ;; address to put-resource.
-    (xt::with-ref-par ((cmap (ff:foreign-pointer-address colormap) :int))
-      (xt::put-resource rdb "*colormap" XmRColormap '(* x11:colormap) &cmap))))
-
-(defun initialize-port-visual-info (port display color-depth visual-class)
+  '((0 :static-gray)
+    (1 :gray-scale)
+    (2 :static-color)
+    (3 :pseudo-color)
+    (4 :true-color)
+    (5 :direct-color)))
+ 
+(defun initialize-port-visual-info (port display application-shell color-depth visual-class)
   "Initializes the port's color-depth, visual-class and palette."
-
+ 
   ;; Make sure that we have a visual-class that makes sense.
   (let ((default-visual-class (tk::screen-root-visual-class (tk::default-screen display))))
     (if visual-class
@@ -175,43 +159,43 @@
           (setq visual-class default-visual-class))
         ;; Use default if no visual-class was specified.
         (setq visual-class default-visual-class))
-
+ 
     ;; Use default color-depth if none was specified.
     (let ((default-depth (x11:xdefaultdepth display
                                             (tk::display-screen-number display))))
       (unless color-depth
         (setq color-depth default-depth))
-
+ 
       ;; Try to find a visual of the specified color-depth and visual class.
       ;; If we find one, use it. Otherwise, fall back to default settings.
       (let* ((visual (find-visual display color-depth visual-class))
              (colormap (if visual
                            (tk::create-colormap display :visual visual)
                            (tk::default-colormap display))))
-        (when (null visual)
-          (format *trace-output* "~&Using default visual~%"))
+        (if (null visual)
+            (warn "Can't find ~A visual of color depth ~D.  Using default visual instead."
+                  visual-class color-depth))
+        (when visual-class
+          (format *debug-io* "~&setting non-default visual ~A~%" visual)
+          (tk::set-values application-shell
+                          :visual visual
+                          :depth color-depth
+                          :colormap colormap))
         (setf (port-depth port) (if visual color-depth default-depth)
+              (port-visual port) (when visual visual)
               (port-visual-class port) (if visual visual-class default-visual-class))
         (setf (slot-value port 'silica::default-palette)
-              (make-palette port :colormap colormap))
-        (put-xrm-visual-info display visual color-depth colormap)))))
+              (make-palette port :colormap colormap))))))
 
 (defun find-visual (display depth class)
-  (let ((screen (tk::display-screen-number display)))
-    (format *trace-output* "~&Screen=~D~%" screen)
-    (force-output *trace-output*)
-    (let ((class-nr (first (find class *visual-classes* :key #'second)))
-          (visual-info (x11:make-visual-info :initialize t)))
-      (format *trace-output* "~&Class-nr=~D visual-info=~A~%"
-              class-nr visual-info)
-      (force-output *trace-output*)
-      (let ((return-code (x11:xmatchvisualinfo display screen depth class-nr visual-info)))
-        (format *trace-output* "~&Return code=~D~%" return-code)
-        (force-output *trace-output*)
-        (if (zerop return-code)
-            nil
-            (progn (format *trace-output* "~&Found visual with id ~D(0x~X)~%" (elt visual-info 2) (elt visual-info 2))
-                   (elt visual-info 1)))))))
+  (let ((screen (tk::display-screen-number display))
+        (class-nr (first (find class *visual-classes* :key #'second)))
+        (visual-info (tk::note-malloced-object
+                      (clim-utils::allocate-cstruct 'x11::visual-info :initialize t))))
+    (let ((return-code (x11:xmatchvisualinfo display screen depth class-nr visual-info)))
+      (if (zerop return-code)
+          nil
+          (x11::visual-info-visual visual-info)))))
 
 
 (defun xt-fatal-error-handler (d)
