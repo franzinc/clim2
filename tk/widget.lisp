@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: widget.lisp,v 2.6.16.1 2006/09/05 22:24:42 afuchs Exp $
 
 (in-package :tk)
 
@@ -372,11 +372,11 @@
 	 (with-*-array (v (1+ n))
 	   (dotimes (i n)
 	     (setf (*-array v i)
-	       (clim-utils:string-to-foreign (nth i *fallback-resources*))))
+                   (clim-utils:string-to-foreign (nth i *fallback-resources*))))
 	   (setf (*-array v n) 0)
 	   v))))
-    #+ignore (excl:ics-target-case
-	      (:+ics (xt_set_language_proc context 0 0)))
+    (excl:ics-target-case ; TODO: this was #+ignored. why?
+      (:+ics (xt_set_language_proc 0 0 0)))
     (let* ((display (apply #'make-instance 'display
 			   :context context
 			   args))
