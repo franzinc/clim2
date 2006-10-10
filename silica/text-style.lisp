@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-style.lisp,v 2.6.16.1 2006/10/10 13:28:03 afuchs Exp $
+;; $Id: text-style.lisp,v 2.6.16.2 2006/10/10 20:27:49 afuchs Exp $
 
 (in-package :silica)
 
@@ -685,8 +685,7 @@
                                                     (< (text-style-size (first e1))
                                                        (text-style-size (first e2))))))
                         (setf (gethash (copy-list key) mapping-table)
-                              fonts))
-                       (print fonts *debug-io*))
+                              fonts)))
                  mapping)))
            (setf (gethash style mapping-table) mapping)))))
 
