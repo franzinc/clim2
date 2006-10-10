@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.8.16.1 2006/10/10 13:28:04 afuchs Exp $
+;; $Id: xm-gadgets.lisp,v 2.8.16.2 2006/10/10 20:47:02 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -865,7 +865,6 @@
 		   (excl:native-to-string ptr)))
 	   (start-pos (tk::xm-text-field-callback-struct-start-pos callback-struct))
 	   (end-pos (tk::xm-text-field-callback-struct-end-pos callback-struct)))
-      (format *debug-io* "text is ~S" text)
       (with-slots (silica::value) sheet
 	(setf silica::value
 	  (concatenate
