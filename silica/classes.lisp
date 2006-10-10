@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: classes.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
+;; $Id: classes.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
 
 (in-package :silica)
 
@@ -84,9 +84,9 @@
 #-(or aclpc acl86win32) 
 (defun mapping-table-initform ()
   (excl:ics-target-case
-   (:+ics (let ((v (make-array 4)))
+   (:+ics (let ((v (make-array 4 :adjustable t)))
 	    (dotimes (i 4)
-	      (setf (svref v i)
+	      (setf (aref v i)
 		(make-hash-table :test #'equal)))
 	    v))
    (:-ics (make-hash-table :test #'equal))))
@@ -94,9 +94,9 @@
 #-(or aclpc acl86win32) 
 (defun mapping-cache-initform ()
   (excl:ics-target-case
-   (:+ics (let ((v (make-array 4)))
+   (:+ics (let ((v (make-array 4 :adjustable t)))
 	    (dotimes (i 4)
-	      (setf (svref v i)
+	      (setf (aref v i)
 		(cons nil nil)))
 	    v))
    (:-ics (cons nil nil))))

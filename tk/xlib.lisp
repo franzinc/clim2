@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: xlib.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
 
 (in-package :tk)
 
@@ -214,6 +214,18 @@
 	     (error "Unknown resource type: ~A" type)))
 	   type))))))
 
+(defun put-resource (db specifier xrm-type type value)
+  (let ((xrmvalue (make-xrmvalue)))
+     (setf (x11:xrmvalue-size xrmvalue) (ff:sizeof-fobject type)
+           (x11:xrmvalue-addr xrmvalue) value)
+     (format *trace-output* "putting resource in db ~S spec:~S xrmval:~S xrmtype:~S type:~S value:~S~%" db specifier xrmvalue xrm-type type value)
+     (x11:xrmputresource db
+                         (lisp-string-to-string8 specifier)
+                         (lisp-string-to-string8 xrm-type)
+                         xrmvalue)
+     (format *trace-output* "done.~%")))
+   
+
 (defun convert-string (widget string to-type)
   (let ((from (make-xrmvalue))
 	(to-in-out (make-xrmvalue)))
@@ -331,16 +343,18 @@
 
 (define-window-accessor colormap ())
 
-(defun create-colormap (display &optional (screen (display-screen-number display)))
+(defun create-colormap (display &key
+                        (screen (display-screen-number display))
+                        (visual (x11:xdefaultvisual display screen)))
   (intern-object-xid
-   (x11:xcreatecolormap
-    display
-    (x11:xrootwindow display screen)
-    (x11:xdefaultvisual display screen)
-    x11:allocnone)
+   (x11:xcreatecolormap  display
+                         (x11:xrootwindow display screen)
+                         visual
+                         x11:allocnone)
    'colormap
    display
    :display display))
+
 
 (defun default-colormap (display &optional (screen (display-screen-number display)))
   (intern-object-xid

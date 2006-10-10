@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: resources.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
 
 (in-package :tk)
 
@@ -825,3 +825,14 @@
   (make-instance 'font
 		 :display (widget-display parent)
 		 :foreign-address value))
+
+
+;;; Visual info
+
+(defmethod convert-resource-out (parent (type (eql 'visual)) value)
+  (declare (ignore parent))
+  value)
+
+(defmethod convert-resource-out (parent (type (eql 'depth)) value)
+  (declare (ignore parent))
+  value)
