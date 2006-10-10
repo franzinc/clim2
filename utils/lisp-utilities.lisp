@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 2.6 2005/12/08 21:25:47 layer Exp $
+;; $Id: lisp-utilities.lisp,v 2.6.16.1 2006/10/10 13:28:04 afuchs Exp $
 
 (in-package :clim-utils)
 
@@ -1699,23 +1699,35 @@
 	(setf (sys:memref-int pointer i 0 :unsigned-natural) 0)))
     pointer))
 
-;; Adapted from FF:STRING-TO-CHAR*.
-;;; We aren't using FF:STRING-TO-CHAR* because it uses excl:aclmalloc.
+;;; We aren't using excl:string-to-native by default because it uses
+;;; excl:aclmalloc.
+;; This now uses the slightly slower (locale-correct) way of
+;; converting to octets first, then copying to foreign space.
 (defun string-to-foreign (string &optional address)
   "Convert a Lisp string to a C string, by copying."
   (declare (optimize (speed 3))
-	   (type string string)
-	   (type integer address))
+                (type string string)
+                (type integer address))
   (unless (stringp string)
     (excl::.type-error string 'string))
-  (let* ((length (length string)))
-    (declare (optimize (safety 0))
-	     (type fixnum length))
-    (unless address
-      (setq address (_malloc (1+ length))))
-    (dotimes (i length)
-      (declare (fixnum i))
-      (setf (sys:memref-int address 0 i :unsigned-byte)
-	(char-code (char string i))))
-    (setf (sys:memref-int address 0 length :unsigned-byte) 0)
-    address))
+  (if address
+      (excl:string-to-native string :address address)
+      (let* ((octets (excl:string-to-octets string :null-terminate t))
+             (length (length octets)))
+        (declare (optimize (safety 0))
+                      (type fixnum length))
+        (setf address (_malloc length))
+        (dotimes (i length)
+          (declare (fixnum i))
+          (setf (sys:memref-int address 0 i :unsigned-byte)
+                (aref octets i)))
+        #+clim-utils::extra-careful(let ((re-char-ed (excl:octets-to-string octets)))
+          (assert (equal re-char-ed string)
+                  (re-char-ed string)
+                  "string isn't equal to re-chared octets~%~S~%~S!" string re-char-ed))))
+  
+  #+clim-utils::extra-careful(let ((re-lisped (excl:native-to-string address)))
+    (assert (equal re-lisped string)
+            (re-lisped string)
+            "string isn't equal to re-chared foreign mem ~%~S~%~S!" string re-lisped))
+  address)

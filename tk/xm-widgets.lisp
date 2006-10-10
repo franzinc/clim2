@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: xm-widgets.lisp,v 2.6.16.1 2006/10/10 13:28:04 afuchs Exp $
 
 (in-package :tk)
 
@@ -162,7 +162,7 @@
 				(ecase codeset
 				  ((0 2) (lisp-string-to-string8 substring))
 				  ((1 3) (lisp-string-to-string16 substring)))
-				(svref *font-list-tags* codeset))))
+				(aref *font-list-tags* codeset))))
 		 (tk::add-widget-cleanup-function parent
 						  #'destroy-generated-xm-string
 						  element)

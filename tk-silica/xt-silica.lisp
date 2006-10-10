@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.6.16.2 2006/09/04 15:59:09 afuchs Exp $
+;; $Id: xt-silica.lisp,v 2.6.16.3 2006/10/10 13:28:04 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -98,7 +98,9 @@
       (mp:process-run-function
        (list :name (format nil "CLIM Event Dispatcher for ~A"
 			   (port-server-path port))
-	     :priority 1000)
+	     :priority 1000
+             :initial-bindings `((excl:*locale* . ',excl:*locale*)
+                                 ,@excl:*cl-default-special-bindings*))
        #'port-event-loop port))
     (setf (getf (mp:process-property-list process) :no-interrupts) t)
     (setf (port-process port) process)))
@@ -219,6 +221,43 @@
 	       '(:static-color :true-color :pseudo-color :direct-color))
        t))
 
+;;; SPR30362:
+
+(defvar *default-fallback-font* "fixed")
+
+(defun list-fonts-by-registry (display)
+  (let* ((fonts (tk::list-font-names display "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"))
+         (encoding-hash (make-hash-table :test #'equal)))
+    (dolist (font fonts)
+      (let ((font* (disassemble-x-font-name font)))
+        (push font (gethash (last font* 2) encoding-hash))))
+    encoding-hash))
+
+(defun find-font-with-properties (fonts weight slant)
+  (or (find (list weight slant) fonts
+            :test #'equal
+            :key (lambda (font)
+                   (let ((font* (disassemble-x-font-name font)))
+                     (list (nth 3 font*) (nth 4 font*)))))
+      (first fonts)))
+
+(defun font-name-of-aliased-font (display fontname)
+  (excl:with-native-string (nfn fontname)
+    (let ((font (x11:xloadqueryfont display nfn)))      
+      (unless (zerop font)
+        (unwind-protect
+            (loop for i from 0 below (x11:xfontstruct-n-properties font)
+                  for fontprop = (+ ;; this is horrible:
+                                  (* i 2 #-64bit 4 #+64bit 8)
+                                  (x11:xfontstruct-properties font))
+                  when (eql x11:xa-font (x11:xfontprop-name fontprop))
+                    do (return (values (excl:native-to-string 
+                                        (x11:xgetatomname display
+                                                          (x11:xfontprop-card32 fontprop))))))
+          (x11:xfreefont display font))))))
+
+;;; END SPR30362
+
 (defparameter *xt-font-families*
     `(
       ;; ascii
@@ -274,29 +313,77 @@
 	 (screen-pixels-per-inch
 	  (* 25.4 (/ (x11::xdisplayheight display screen)
 		     (x11:xdisplayheightmm display screen)))))
-    (flet ((font->text-style (font family)
-	     (flet ((parse-token (token)
-		      (if token
-			  (parse-integer token)
-			(return-from font->text-style nil))))
-	       (let* ((tokens (disassemble-x-font-name font))
-		      (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
-		      (bold (equalp (nth 3 tokens) "bold"))
-		      (face (if italic
-				(if bold '(:bold :italic) :italic)
-			      (if bold :bold :roman)))
-		      (pixel-size (parse-token (nth 7 tokens)))
-		      (point-size (parse-token (nth 8 tokens)))
-		      (y-resolution (parse-token (nth 10 tokens)))
-		      (average-width (parse-token (nth 12 tokens)))
-		      (corrected-point-size (* (float point-size)
-					       (/ y-resolution
-						  screen-pixels-per-inch))))
-		 (unless (and (not *use-scalable-fonts*)
-			      (or (eql pixel-size 0)
-				  (eql point-size 0)
-				  (eql average-width 0)))
-		   (make-text-style family face (/ corrected-point-size 10)))))))
+    (labels ((font->text-style (font family)
+               (flet ((parse-token (token)
+                        (if token
+                            (parse-integer token)
+                            (return-from font->text-style nil))))
+                 (let* ((tokens (disassemble-x-font-name font))
+                        (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
+                        (bold (equalp (nth 3 tokens) "bold"))
+                        (face (if italic
+                                  (if bold '(:bold :italic) :italic)
+                                  (if bold :bold :roman)))
+                        (pixel-size (parse-token (nth 7 tokens)))
+                        (point-size (parse-token (nth 8 tokens)))
+                        (y-resolution (parse-token (nth 10 tokens)))
+                        (average-width (parse-token (nth 12 tokens)))
+                        (corrected-point-size (* (float point-size)
+                                                 (/ y-resolution
+                                                    screen-pixels-per-inch))))
+                   (unless (and (not *use-scalable-fonts*)
+                                (or (eql pixel-size 0)
+                                    (eql point-size 0)
+                                    (eql average-width 0)))
+                     (make-text-style family face (/ corrected-point-size 10))))))
+             (load-1-charset (character-set fallback families)
+               (let* ((matchesp nil) ;do any non-fallback fonts match?
+                      (fallback-matches-p ;any fallback matches?
+                       (not (null (tk::list-font-names display fallback))))
+                      (fallback-loadable-p ;fallback actually loadable?
+                       (and fallback-matches-p
+                            (excl:with-native-string (nfn fallback)
+                              (let ((x (x11:xloadqueryfont display nfn)))
+                                (if (not (zerop x))
+                                    (progn
+                                      (x11:xfreefont display x)
+                                      t)
+                                    nil))))))
+                 (dolist (per-family families)
+                   (destructuring-bind (family &rest patterns) per-family
+                     (dolist (font-pattern patterns)
+                       (dolist (xfont (tk::list-font-names display font-pattern))
+                         ;; this hack overcomes a bug with hp's scalable fonts
+                         (unless (find #\* xfont)
+                           (setf matchesp t) ;there was at least one match
+                           (let ((text-style (font->text-style xfont family)))
+                             ;; prefer first font satisfying this text style, so
+                             ;; don't override if we've already defined one.
+                             (when text-style
+                               (unless (text-style-mapping-exists-p
+                                        port text-style character-set t)
+                                 (setf (text-style-mapping port text-style
+                                                           character-set)
+                                       xfont)))))))))
+                 ;; Set up the fallback if it looks like there is one, and
+                 ;; complain if things look bad.  Things look bad if there were
+                 ;; matches but the fallback is not loadable.  If there were
+                 ;; no matches then don't complain even if there appears to be
+                 ;; something wrong with the fallback, just silently don't load it
+                 ;; (and thus define no mappings for the character set).
+                 (cond
+                   (fallback-loadable-p	;all is well
+                    (setf (text-style-mapping port *undefined-text-style*
+                                              character-set)
+                          fallback))
+                   ((and matchesp fallback-matches-p)
+                    (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
+but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
+setup."
+                          fallback character-set))
+                   (matchesp
+                    (warn "Fallback font ~A not loadable for character set ~A."
+                          fallback character-set))))))
       ;; Setup font mappings.  This is made hairy by trying to deal
       ;; elegantly with possibly missing mappings and messed-up X font
       ;; setups.  It seems to be the case that XListFonts can return
@@ -309,55 +396,39 @@
       ;; with it, but otherwise don't check.  This should mean that if
       ;; this doesn't warn then things will basically run, as the
       ;; fallback exists for each character set, at least.
-      (dolist (per-charset *xt-font-families*)
-	(destructuring-bind (character-set fallback &rest families) per-charset
-	  (let* ((matchesp nil)		;do any non-fallback fonts match?
-		 (fallback-matches-p	;any fallback matches?
-		  (not (null (tk::list-font-names display fallback))))
-		 (fallback-loadable-p	;fallback actually loadable?
-		  (and fallback-matches-p
-		       (excl:with-native-string (nfn fallback)
-			 (let ((x (x11:xloadqueryfont display nfn)))
-			   (if (not (zerop x))
-			       (progn
-				 (x11:xfreefont display x)
-				 t)
-			       nil))))))
-	    (dolist (per-family families)
-	      (destructuring-bind (family &rest patterns) per-family
-		(dolist (font-pattern patterns)
-		  (dolist (xfont (tk::list-font-names display font-pattern))
-		    ;; this hack overcomes a bug with hp's scalable fonts
-		    (unless (find #\* xfont)
-		      (setf matchesp t) ;there was at least one match
-		      (let ((text-style (font->text-style xfont family)))
-			;; prefer first font satisfying this text style, so
-			;; don't override if we've already defined one.
-			(when text-style
-			  (unless (text-style-mapping-exists-p
-				   port text-style character-set t)
-			    (setf (text-style-mapping port text-style
-						      character-set)
-			      xfont)))))))))
-	    ;; Set up the fallback if it looks like there is one, and
-	    ;; complain if things look bad.  Things look bad if there were
-	    ;; matches but the fallback is not loadable.  If there were
-	    ;; no matches then don't complain even if there appears to be
-	    ;; something wrong with the fallback, just silently don't load it
-	    ;; (and thus define no mappings for the character set).
-	    (cond
-	     (fallback-loadable-p	;all is well
-	      (setf (text-style-mapping port *undefined-text-style*
-					character-set)
-		fallback))
-	     ((and matchesp fallback-matches-p)
-	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
-but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
-setup."
-		    fallback character-set))
-	     (matchesp
-	      (warn "Fallback font ~A not loadable for character set ~A."
-		    fallback character-set))))))))
+      (let ((charset-number 0)
+            (done-registries ()))
+        (dolist (per-charset *xt-font-families*)
+          (destructuring-bind (character-set fallback &rest families) per-charset
+            (load-1-charset character-set fallback families)
+            (setf charset-number (max charset-number character-set))
+            (dolist (family families)
+              (pushnew (last (disassemble-x-font-name (second family)) 2) done-registries
+                       :test #'equal))))
+        (format *debug-io* "done registries: ~A, last charset: ~A~%" done-registries charset-number)
+        ;; Now setup font mappings of fonts that the user has
+        ;; installed, but we don't know anything about (especially no
+        ;; convenient font aliases).
+        ;; Since we don't have any font alias names to rely on, we use
+        ;; the "fixed" alias to find out at least a sensible default
+        ;; weight and slant.
+        (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
+               (weight (nth 3 default-fallback))
+               (slant (nth 4 default-fallback)))
+          (loop for character-set from (1+ charset-number) 
+                for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
+                for fallback-font = (find-font-with-properties fonts weight slant)
+                for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
+                do (format *debug-io* "~&registering installed font ~A for enc:~A~%" character-set encoding)
+                do (unless (member encoding done-registries :test #'equal)
+                     (vector-push-extend (excl:string-to-native
+                                          (format nil "~A-~A" (first encoding) (second encoding)))
+                                         tk::*font-list-tags*)
+                     (load-1-charset character-set fallback-font
+                                     `((:fix ,default-font-match-string)
+                                       (:sans-serif ,default-font-match-string)
+                                       (:serif ,default-font-match-string))))))
+        )))
   (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
@@ -1104,8 +1175,6 @@ setup."
 (excl:ics-target-case
 (:+ics
 
-(defconstant +codesets+ 4)
-
 (defmethod text-style-mapping :around
 	   ((port xt-port) text-style
 	    &optional (character-set *standard-character-set*) window)
@@ -1117,18 +1186,16 @@ setup."
 	      (find-named-font port mapping character-set))
 	  mapping))
     (let ((mappings nil))
-      (dotimes (c +codesets+)
-	(let ((mapping (text-style-mapping port text-style c)))
+      (dotimes (c (length (slot-value port 'silica::mapping-table)))  ; XXX: ugly. prettify.
+        (let ((mapping (text-style-mapping port text-style c)))
 	  (when mapping
-	    (push (cons c mapping) mappings))))
+            (push (cons c mapping) mappings))))
       (reverse mappings))))
 
 (defmethod font-set-from-font-list ((port xt-port) font-list)
-  (let ((name ""))
-    (dolist (item font-list)
-      (setq name
-	(concatenate 'string
-	  (tk::font-name (cdr item)) "," name)))
+  (let ((name (format nil "~{~A~^,~}"
+                      (mapcar (lambda (font) (tk::font-name (cdr font)))
+                              font-list))))
     (with-slots (font-cache) port
       (setq font-list
 	(or (gethash name font-cache)
