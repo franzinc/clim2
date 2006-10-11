@@ -1,3 +1,35 @@
+2006-10-10  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-class.lisp: Handle TAB and shift-TAB in text
+	  widgets
+	* aclpc/acl-widget.lisp: Handle TAB and shift-TAB in text
+	  widgets
+	* silica/classes.lisp: Make the port text-style mapping table and
+	  cache adjustable arrays
+	* silica/text-style.lisp: Update mapping table and cache accessors
+	* tk/font.lisp: Add charsets-missing-from-fontset condition
+	* tk/resources.lisp: Add visual and depth conversion methods
+	* tk/widget.lisp: Set a Xt language procedure that can handle
+	  ACL's excl:*locale*
+	* tk/xlib.lisp: handle visuals in colormap creation; new
+	  xrdb accessor put-resource
+	* tk/xm-defs.lisp: XRDB data types for visual info
+	* tk/xm-font-list.lisp: make *font-list-tags* an adjustable
+	  array
+	* tk/xm-widgets.lisp: update accessor for *font-list-tags*
+	* tk/xt-defs.lisp: constants for LC_CTYPE and LC_ALL
+	* tk/xt-funs.lisp: new ff definitions for XSupportsLocale and
+	  XSetLocaleModifiers
+	* tk-silica/xt-silica.lisp: non-default visual handling; pass
+	  current value of excl:*locale* to clim event dispatcher
+	  process; add a text style/font mapping for every installed
+	  registry-encoding
+	* utils/lisp-utilities.lisp: make string-to-foreign aware of
+	  the default external format
+	* xlib/xlib-defs.lisp: new foreign struct visual-info
+	* xlib/xlib-funs.lisp: remove #+ignore from xmatchvisualinfo
+	  defn.
+
 2006-04-12  Kevin Layer  <layer@gemini>
 
 	* aclpc/acl-class.lisp: new {un,}signed-nat types
@@ -6048,4 +6080,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.19 $
+$Revision: 2.20 $
