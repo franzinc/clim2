@@ -1,3 +1,9 @@
+2006-11-30  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-port.lisp: Remove the clim-sys:process-wait
+	  workaround for ACL 5.0beta. If mp things start breaking on
+	  win32 with this change, suspect this change first.
+
 2006-10-10  Andreas Fuchs  <afuchs@franz.com>
 
 	* aclpc/acl-class.lisp: Handle TAB and shift-TAB in text
@@ -6080,4 +6086,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.22 $
+$Revision: 2.23 $

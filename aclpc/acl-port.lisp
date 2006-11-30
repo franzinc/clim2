@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 2.9 2005/12/08 21:25:42 layer Exp $
+;; $Id: acl-port.lisp,v 2.10 2006/11/30 20:40:27 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -966,8 +966,14 @@ or (:style . (family face size))")
   (declare 
    (dynamic-extent function args)
    (optimize (speed 3) (safety 0)))
-  #+someday
+  ;; 11/30/2006 afuchs acl 8.0
+  ;; According to layer, the workaround below is for a /beta/ of the
+  ;; first ever version to experimentally support win32. If it things
+  ;; don't work without the workaround, it would be better to fix the
+  ;; cause than continue working around it (and cause problems like
+  ;; spr32259).
   (apply #'mp:process-wait state function args)
+  #+(or)
   (let ((result nil))
     (loop
       ;; 5/28/98 JPM ACL 5.0.beta
@@ -981,7 +987,7 @@ or (:style . (family face size))")
 				state *clim-pulse-rate* 
 				function args))
 	(return result)))))
-  
+
 #+ignore
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
