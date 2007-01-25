@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 2.6.16.1 2006/08/21 14:59:03 afuchs Exp $
+;; $Id: xlib.lisp,v 2.6.16.2 2007/01/25 17:43:13 afuchs Exp $
 
 (in-package :tk)
 
@@ -267,7 +267,7 @@
 	    serial current-serial request-code minor-code
 	    (when (< 1 request-code 128)
 	      (let ((request-cstring (princ-to-string request-code))
-		    (s (excl::malloc 1000)))
+		    (s (x11:system-malloc 1000))) ; bug16585
 		(x11:xgeterrordatabasetext display "XRequest" request-cstring
 					   0 s 1000)
 		(prog1
@@ -303,7 +303,7 @@
   (error 'x-connection-lost :display display))
 
 (defun get-error-text (code display-handle)
-  (let ((s (excl::malloc 1000)))
+  (let ((s (x11:system-malloc 1000)))	; bug16585
     (x11::xgeterrortext display-handle code s 1000)
     (prog1
 	(excl:native-to-string s)

@@ -1,3 +1,7 @@
+2007-01-24  Duane Rettig  <duane@franz.com>
+
+	* tk/xlib.lisp: bug16535: Fix aclmalloc/free mismatch
+
 2006-12-11  Andreas Fuchs  <afuchs@franz.com>
 	
 	* clim/text-formatting.lisp: Delay flushing the stream when
@@ -6091,4 +6095,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.19.2.3 $
+$Revision: 2.19.2.4 $
