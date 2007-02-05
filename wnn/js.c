@@ -1,5 +1,5 @@
 /*
- * $Id: js.c,v 2.4 2003/12/15 18:35:18 layer Exp $
+ * $Id: js.c,v 2.5 2007/02/05 22:53:57 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -71,7 +71,8 @@ extern	Variables
 */
 
 
-extern	char	*malloc();
+/* removed for building on FC4, x86_64 */
+/* extern	char	*malloc(); */
 
 #include <stdio.h>
 #include <ctype.h>
@@ -104,7 +105,8 @@ extern int errno;
 #include "bdic.c"
 #include "pwd.c"
 
-char *malloc();
+/* removed for building on FC4, x86_64 */
+/* char *malloc(); */
 
 #ifdef SYSVR2
 #define	bzero(adr,n)	memset((adr),0,(n))

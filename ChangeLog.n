@@ -1,3 +1,7 @@
+2007-02-05  Kevin Layer  <layer@gemini.franz.com>
+
+	* wnn/js.c: fix compile problem on Linux x86_64
+
 *******************************************************************************
 join from trunk_afuchs1 to trunk
     changes from:
@@ -6102,4 +6106,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.25 $
+$Revision: 2.26 $
