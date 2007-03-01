@@ -1,3 +1,8 @@
+2007-03-01    <layer@HOBART>
+
+	* Makefile.defs: don't let definitions of SPEED, et al overwrite
+	  what is included in ../makefile.defs
+
 2007-02-05  Kevin Layer  <layer@gemini.franz.com>
 
 	* wnn/js.c: fix compile problem on Linux x86_64
@@ -6106,4 +6111,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.26 $
+$Revision: 2.27 $

@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 2.5 2004/01/16 19:15:39 layer Exp $
+# $Id: Makefile.defs,v 2.6 2007/03/01 19:30:24 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -50,10 +50,10 @@ TAGS	= etags
 SHELL	= sh
 
 # Lisp optimization for compiling
-SPEED	= 3
-SAFETY	= 1
+SPEED	?= 3
+SAFETY	?= 1
 # This next should be set to 1 for distribution
-DEBUG   = 1
+DEBUG   ?= 1
 
 # Training
 
