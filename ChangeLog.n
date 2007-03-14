@@ -1,3 +1,8 @@
+2007-03-14  Duane Rettig  <duane@franz.com>
+
+	* silica/graphics.lisp: Remove bogus declaration
+	* tk-silica/image.lisp: Remove bogus declaration
+
 2007-03-01    <layer@HOBART>
 
 	* Makefile.defs: don't let definitions of SPEED, et al overwrite
@@ -6111,4 +6116,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.27 $
+$Revision: 2.28 $

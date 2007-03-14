@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
+;; $Id: graphics.lisp,v 2.7 2007/03/14 18:43:43 duane Exp $
 
 (in-package :silica)
 
@@ -376,7 +376,6 @@
   (let* ((length (length sequence))
          (result (make-array (* 2 length)))
          (i -1))
-    (declare (type simple-vector new))
     (doseq (point sequence)
       (setf (svref result (incf i)) (point-x point))
       (setf (svref result (incf i)) (point-y point)))
