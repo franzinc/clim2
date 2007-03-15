@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.15 2006/10/10 18:05:07 layer Exp $
+;; $Id: acl-class.lisp,v 2.16 2007/03/15 16:54:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -410,7 +410,7 @@
                     ((eql msg win:WM_HSCROLL) win:SB_HORZ)
                     ((eql msg win:WM_VSCROLL) win:SB_VERT)))
          (redraw 1))
-    (declare (fixnum action position))
+    (declare (fixnum position))
     (assert bar)
     ;; By convention, scroll bar values should always have a range of 
     ;; 0 to *win-scroll-grain*.

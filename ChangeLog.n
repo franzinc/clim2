@@ -1,3 +1,8 @@
+2007-03-15    <layer@HOBART>
+
+	* aclpc/acl-class.lisp: remove warning due to bogus decl
+	* aclpc/acl-medium.lisp: remove warning due to bogus decl
+
 2007-03-14  Duane Rettig  <duane@franz.com>
 
 	* silica/graphics.lisp: Remove bogus declaration
@@ -6116,4 +6121,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.28 $
+$Revision: 2.29 $

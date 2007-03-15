@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 2.7 2005/12/08 21:25:42 layer Exp $
+;; $Id: acl-medium.lisp,v 2.8 2007/03/15 16:54:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1617,8 +1617,7 @@ device-independent bitmap, an icon, nor a cursor."))
 	     (array (make-array (list height width)))
 	     (pixels (read-strings))
 	     (i 0))
-	(declare (type (simple-array t (* *)) array)
-		 (string row))
+	(declare (type (simple-array t (* *)) array))
 	(excl::fast
 	 (dolist (row pixels)
 	   (let ((index 0))
