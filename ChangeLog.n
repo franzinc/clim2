@@ -1,3 +1,8 @@
+2007-03-17  Andreas Fuchs  <afuchs@franz.com>
+
+	* clim/test-formatting.lisp: bug16662: Fix edge cases with filling
+	  output.
+	
 2007-01-24  Duane Rettig  <duane@franz.com>
 
 	* tk/xlib.lisp: bug16535: Fix aclmalloc/free mismatch
@@ -6095,4 +6100,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.19.2.4 $
+$Revision: 2.19.2.5 $
