@@ -1,3 +1,20 @@
+2007-03-28  Andreas Fuchs  <afuchs@franz.com>
+
+	* silica/classes.lisp: Back out experimental code.
+        * silica/text-style.lisp: Back out experimental code.
+        * tk/font.lisp: Back out experimental code.
+        * tk/resources.lisp: Back out experimental code.
+        * tk/widget.lisp: Back out experimental code.
+        * tk/xlib.lisp: Back out experimental code.
+        * tk/xm-defs.lisp: Back out experimental code.
+        * tk/xm-font-list.lisp: Back out experimental code.
+        * tk/xm-widgets.lisp: Back out experimental code.
+        * tk/xt-defs.lisp: Back out experimental code.
+        * tk/xt-funs.lisp: Back out experimental code.
+        * tk-silica/xt-silica.lisp: Back out experimental code.
+        * utils/lisp-utilities.lisp: Back out experimental code.
+        * xlib/xlib-defs.lisp: Back out experimental code.
+
 2007-03-15    <layer@HOBART>
 
 	* aclpc/acl-class.lisp: remove warning due to bogus decl
@@ -6121,4 +6138,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.29 $
+$Revision: 2.29.8.1 $

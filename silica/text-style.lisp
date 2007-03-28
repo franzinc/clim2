@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-style.lisp,v 2.8 2006/10/11 16:16:30 layer Exp $
+;; $Id: text-style.lisp,v 2.8.20.1 2007/03/28 14:47:09 afuchs Exp $
 
 (in-package :silica)
 
@@ -151,27 +151,27 @@
 ;;; if we want.
 (defun make-text-style (family face size &aux changed-p original-face)
   (unless (numberp face)
-    (setf original-face face
-          face (face->face-code face))) ;"Intern" the face code.
+	(setf original-face face
+		  face (face->face-code face)))                ;"Intern" the face code.
   (loop
-    (let* ((family-stuff (assoc family *text-style-intern-table*))
-           (face-stuff (and family-stuff (assoc face (cdr family-stuff))))
-           (size-stuff (and face-stuff (assoc size (cdr face-stuff)))))
-      (when size-stuff (return-from make-text-style (cdr size-stuff)))
-      (multiple-value-setq (family face size changed-p original-face)
-          (validate-text-style-components family face size original-face))
-      (unless changed-p
-        (macrolet ((ensure-stuff (stuff thing from-stuff)
-                     `(unless ,stuff
-                        (setf ,stuff (cons ,thing nil))
-                        (with-lock-held (*text-style-lock* "Text style lock")
-                          (setf ,from-stuff (nconc ,from-stuff (cons ,stuff nil)))))))
-          (ensure-stuff family-stuff family *text-style-intern-table*)
-          (ensure-stuff face-stuff face family-stuff)
-          (ensure-stuff size-stuff size face-stuff))
-        (let* ((new-style (make-text-style-1 family face size nil)))
-          (setf (cdr size-stuff) new-style)
-          (return-from make-text-style new-style))))))
+	(let* ((family-stuff (assoc family *text-style-intern-table*))
+		   (face-stuff (and family-stuff (assoc face (cdr family-stuff))))
+		   (size-stuff (and face-stuff (assoc size (cdr face-stuff)))))
+	  (when size-stuff (return-from make-text-style (cdr size-stuff)))
+	  (multiple-value-setq (family face size changed-p original-face)
+						   (validate-text-style-components family face size original-face))
+	  (unless changed-p
+		(macrolet ((ensure-stuff (stuff thing from-stuff)
+								 `(unless ,stuff
+									(setf ,stuff (cons ,thing nil))
+									(with-lock-held (*text-style-lock* "Text style lock")
+									  (setf ,from-stuff (nconc ,from-stuff (cons ,stuff nil)))))))
+		  (ensure-stuff family-stuff family *text-style-intern-table*)
+		  (ensure-stuff face-stuff face family-stuff)
+		  (ensure-stuff size-stuff size face-stuff))
+		(let* ((new-style (make-text-style-1 family face size nil)))
+		  (setf (cdr size-stuff) new-style)
+		  (return-from make-text-style new-style))))))
 
 (defmethod text-style-index ((text-style standard-text-style))
   (let ((index (slot-value text-style 'index)))
@@ -628,66 +628,56 @@
 
 (defmethod port-mapping-table ((port basic-port) character-set)
   (with-slots (mapping-table) port
-     #+allegro
-     (excl:ics-target-case
-       (:-ics character-set mapping-table)
-       (:+ics (let ((old-length (length mapping-table)))
-                (when (>= character-set (length mapping-table))
-                  (setf mapping-table (adjust-array mapping-table (1+ character-set)))
-                  (dotimes (i (- (length mapping-table) old-length))
-                    (setf (aref mapping-table (+ i old-length)) (make-hash-table :test #'equal)))))
-              (aref mapping-table character-set)))
-     #-allegro
-     mapping-table))
+    #+allegro
+    (excl:ics-target-case
+     (:-ics character-set mapping-table)
+     (:+ics (svref mapping-table character-set)))
+    #-allegro
+    mapping-table))
 
 (defmethod port-mapping-cache ((port basic-port) character-set)
   (with-slots (mapping-cache) port
-     #+allegro
-     (excl:ics-target-case
-       (:-ics character-set mapping-cache)
-       (:+ics (let ((old-length (length mapping-cache)))
-                (when (>= character-set (length mapping-cache))
-                  (setf mapping-cache (adjust-array mapping-cache (1+ character-set)))
-                  (dotimes (i (- (length mapping-cache) old-length))
-                    (setf (aref mapping-cache (+ i old-length)) (cons nil nil)))))
-              (aref mapping-cache character-set)))
-     #-allegro
-     mapping-cache))
+    #+allegro
+    (excl:ics-target-case
+     (:-ics character-set mapping-cache)
+     (:+ics (svref mapping-cache character-set)))
+    #-allegro
+    mapping-cache))
 
 (defmethod (setf text-style-mapping) (mapping (port basic-port) style
-                                              &optional (character-set *standard-character-set*)
-                                              window)
+                                      &optional (character-set *standard-character-set*)
+                                                window)
   (declare (ignore window))
   (setq style (standardize-text-style port (parse-text-style style) character-set))
   (when (listp mapping)
     (assert (eq (first mapping) :style) ()
-            "Text style mappings must be atomic font names ~
+      "Text style mappings must be atomic font names ~
              or (:STYLE . (family face size))")
     (setf mapping (parse-text-style (cdr mapping))))
   (with-slots (allow-loose-text-style-size-mapping) port
-     (let ((mapping-table (port-mapping-table port character-set))
-           (mapping-cache (port-mapping-cache port character-set)))
-       (without-scheduling
-         (setf (car mapping-cache) nil
-               (cdr mapping-cache) nil))
-       (if allow-loose-text-style-size-mapping ; ### <----!!!
-           (multiple-value-bind (family face size) (text-style-components style)
-             (declare (ignore size))
-             ;; NB: loose size mapping requires an EQUAL hash table!
-             (with-stack-list (key family face)
-               (let* ((fonts (gethash key mapping-table))
-                      (old (assoc style fonts)))
-                 (cond (old
-                        (setf (second old) mapping))
-                       (t
-                        (push (list style mapping) fonts)
-                        (setq fonts (sort fonts #'(lambda (e1 e2)
-                                                    (< (text-style-size (first e1))
-                                                       (text-style-size (first e2))))))
-                        (setf (gethash (copy-list key) mapping-table)
-                              fonts)))
-                 mapping)))
-           (setf (gethash style mapping-table) mapping)))))
+    (let ((mapping-table (port-mapping-table port character-set))
+          (mapping-cache (port-mapping-cache port character-set)))
+      (without-scheduling
+        (setf (car mapping-cache) nil
+              (cdr mapping-cache) nil))
+      (if allow-loose-text-style-size-mapping
+          (multiple-value-bind (family face size) (text-style-components style)
+            (declare (ignore size))
+            ;; NB: loose size mapping requires an EQUAL hash table!
+            (with-stack-list (key family face)
+              (let* ((fonts (gethash key mapping-table))
+                     (old (assoc style fonts)))
+                (cond (old
+                       (setf (second old) mapping))
+                      (t
+                       (push (list style mapping) fonts)
+                       (setq fonts (sort fonts #'(lambda (e1 e2)
+                                                   (< (text-style-size (first e1))
+                                                      (text-style-size (first e2))))))
+                       (setf (gethash (copy-list key) mapping-table)
+                         fonts)))
+                mapping)))
+        (setf (gethash style mapping-table) mapping)))))
 
 (defmethod (setf text-style-mapping) (mapping (port basic-port) (style device-font)
 				      &optional (character-set *standard-character-set*)
