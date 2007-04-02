@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
+;; $Id: xt-silica.lisp,v 2.8 2007/04/02 18:07:42 layer Exp $
 
 (in-package :xm-silica)
 
@@ -37,7 +37,6 @@
      (rotated-string-cache :initform nil :accessor port-rotated-string-cache)
      (depth :accessor port-depth)
      (visual-class :accessor port-visual-class)
-     (visual :accessor port-visual)
      (cursor-font :initform nil)
      (cursor-cache :initform nil)
      (font-cache :initform (make-hash-table :test #'equal))
@@ -62,20 +61,16 @@
 
 ;; access to port-copy-gc should be within a without-scheduling
 
-(defun make-pixmap (display depth)
-  (make-instance 'tk::pixmap
-     :drawable
-     (tk::display-root-window display)
-     :depth depth :width 1 :height 1))
-
 (defmethod port-copy-gc ((port xt-port))
   ;;-- Assume 1-1 port-graft mapping?
-  (with-slots (copy-gc display depth) port
+  (with-slots (copy-gc display) port
     (or copy-gc
 	(setf copy-gc
 	  (make-instance 'tk::gcontext
-	    :drawable (make-pixmap display depth)
-	    :graphics-exposures :on)))))
+	    :display display
+	    :graphics-exposures :on
+	    :foreign-address (x11:screen-default-gc
+ 			      (x11:xdefaultscreenofdisplay display)))))))
 
 ;;--- I don't know of a better way of getting a depth 1 drawable
 ;;other than by making a dummy depth 1 pixmap
@@ -83,7 +78,10 @@
   ;;-- Assume 1-1 port-graft mapping?
   (with-slots (copy-gc-depth-1 display) port
     (or copy-gc-depth-1
-	(let ((pixmap (make-pixmap display 1)))
+	(let ((pixmap (make-instance 'tk::pixmap
+				     :drawable
+				     (tk::display-root-window display)
+				     :depth 1 :width 1 :height 1)))
 	  (prog1
 	      (setf copy-gc-depth-1
 		(make-instance 'tk::gcontext :drawable pixmap))
@@ -98,9 +96,7 @@
       (mp:process-run-function
        (list :name (format nil "CLIM Event Dispatcher for ~A"
 			   (port-server-path port))
-	     :priority 1000
-             :initial-bindings `((excl:*locale* . ',excl:*locale*)
-                                 ,@excl:*cl-default-special-bindings*))
+	     :priority 1000)
        #'port-event-loop port))
     (setf (getf (mp:process-property-list process) :no-interrupts) t)
     (setf (port-process port) process)))
@@ -114,95 +110,36 @@
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
   (setq tk::*x-io-error-hook* #'xt-fatal-error-handler)
   (destructuring-bind
-        (&key (display nil display-p)
-              (application-name nil application-name-p)
-              (application-class nil application-class-p)
-              (color-depth nil)
-              (visual-class nil))
+      (&key (display nil display-p)
+	    (application-name nil application-name-p)
+	    (application-class nil application-class-p))
       (cdr server-path)
     (let ((args nil))
       (when display-p (setf (getf args :host) display))
       (when application-name-p (setf (getf args :application-name) application-name))
       (when application-class-p (setf (getf args :application-class) application-class))
       (multiple-value-bind (context display application-shell)
-          (apply #'tk::initialize-toolkit args)
-        (setf (slot-value port 'application-shell) application-shell
-              (slot-value port 'context) context
-              (slot-value port 'display) display)
-        (initialize-port-visual-info port display application-shell color-depth visual-class)
-        (let* ((screen (x11:xdefaultscreenofdisplay display))
-               (bs-p (not (zerop (x11::screen-backing-store screen))))
-               (su-p (not (zerop (x11::screen-save-unders screen))))
-               (vendor (excl:native-to-string (x11::display-vendor display))))
-          (if (and bs-p su-p
-                   (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
-              (setf (slot-value port 'safe-backing-store) t)))
-        (initialize-xlib-port port display)))))
- 
- 
-(defparameter *visual-classes*
-  '((0 :static-gray)
-    (1 :gray-scale)
-    (2 :static-color)
-    (3 :pseudo-color)
-    (4 :true-color)
-    (5 :direct-color)))
- 
-(defun initialize-port-visual-info (port display application-shell color-depth visual-class)
-  "Initializes the port's color-depth, visual-class and palette."
- 
-  ;; Make sure that we have a visual-class that makes sense.
-  (let ((default-visual-class (tk::screen-root-visual-class (tk::default-screen display))))
-    (if visual-class
-        (unless (member visual-class *visual-classes* :key #'second)
-          (cerror "Use the default visual-class instead."
-                  "The port's visual-class must be one of the following:~% ~{~S~^, ~}"
-                  (mapcar #'second *visual-classes*))
-          (setq visual-class default-visual-class))
-        ;; Use default if no visual-class was specified.
-        (setq visual-class default-visual-class))
- 
-    ;; Use default color-depth if none was specified.
-    (let ((default-depth (x11:xdefaultdepth display
-                                            (tk::display-screen-number display))))
-      (unless color-depth
-        (setq color-depth default-depth))
- 
-      ;; Try to find a visual of the specified color-depth and visual class.
-      ;; If we find one, use it. Otherwise, fall back to default settings.
-      (let* ((visual (find-visual display color-depth visual-class))
-             (colormap (if visual
-                           (tk::create-colormap display :visual visual)
-                           (tk::default-colormap display))))
-        (if (null visual)
-            (warn "Can't find ~A visual of color depth ~D.  Using default visual instead."
-                  visual-class color-depth))
-        (when visual-class
-          (format *debug-io* "~&setting non-default visual ~A~%" visual)
-          (tk::set-values application-shell
-                          :visual visual
-                          :depth color-depth
-                          :colormap colormap))
-        (setf (port-depth port) (if visual color-depth default-depth)
-              (port-visual port) (when visual visual)
-              (port-visual-class port) (if visual visual-class default-visual-class))
-        (setf (slot-value port 'silica::default-palette)
-              (make-palette port :colormap colormap))))))
-
-(defun find-visual (display depth class)
-  (let ((screen (tk::display-screen-number display))
-        (class-nr (first (find class *visual-classes* :key #'second)))
-        (visual-info (tk::note-malloced-object
-                      (clim-utils::allocate-cstruct 'x11::visual-info :initialize t))))
-    (let ((return-code (x11:xmatchvisualinfo display screen depth class-nr visual-info)))
-      (if (zerop return-code)
-          nil
-          (x11::visual-info-visual visual-info)))))
-
+	  (apply #'tk::initialize-toolkit args)
+	(setf (slot-value port 'application-shell) application-shell
+	      (slot-value port 'context) context
+	      (slot-value port 'display) display
+	      (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
+	      (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
+	      (slot-value port 'silica::default-palette)
+	      (make-palette port :colormap
+			    (tk::default-colormap (port-display port))))
+	(let* ((screen (x11:xdefaultscreenofdisplay display))
+	       (bs-p (not (zerop (x11::screen-backing-store screen))))
+	       (su-p (not (zerop (x11::screen-save-unders screen))))
+	       (vendor (excl:native-to-string (x11::display-vendor display))))
+	  (if (and bs-p su-p
+		   ;; An amazing crock.  XXX
+		   (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
+	      (setf (slot-value port 'safe-backing-store) t)))
+	(initialize-xlib-port port display)))))
 
 (defun xt-fatal-error-handler (d)
   (excl:without-interrupts
-    (break)
     (let* ((display (tk::find-object-from-address d))
 	   (context (tk::display-context display)))
       (block done
@@ -220,43 +157,6 @@
        (member (port-visual-class port)
 	       '(:static-color :true-color :pseudo-color :direct-color))
        t))
-
-;;; SPR30362:
-
-(defvar *default-fallback-font* "fixed")
-
-(defun list-fonts-by-registry (display)
-  (let* ((fonts (tk::list-font-names display "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"))
-         (encoding-hash (make-hash-table :test #'equal)))
-    (dolist (font fonts)
-      (let ((font* (disassemble-x-font-name font)))
-        (push font (gethash (last font* 2) encoding-hash))))
-    encoding-hash))
-
-(defun find-font-with-properties (fonts weight slant)
-  (or (find (list weight slant) fonts
-            :test #'equal
-            :key (lambda (font)
-                   (let ((font* (disassemble-x-font-name font)))
-                     (list (nth 3 font*) (nth 4 font*)))))
-      (first fonts)))
-
-(defun font-name-of-aliased-font (display fontname)
-  (excl:with-native-string (nfn fontname)
-    (let ((font (x11:xloadqueryfont display nfn)))      
-      (unless (zerop font)
-        (unwind-protect
-            (loop for i from 0 below (x11:xfontstruct-n-properties font)
-                  for fontprop = (+ ;; this is horrible:
-                                  (* i 2 #-64bit 4 #+64bit 8)
-                                  (x11:xfontstruct-properties font))
-                  when (eql x11:xa-font (x11:xfontprop-name fontprop))
-                    do (return (values (excl:native-to-string 
-                                        (x11:xgetatomname display
-                                                          (x11:xfontprop-card32 fontprop))))))
-          (x11:xfreefont display font))))))
-
-;;; END SPR30362
 
 (defparameter *xt-font-families*
     `(
@@ -313,77 +213,29 @@
 	 (screen-pixels-per-inch
 	  (* 25.4 (/ (x11::xdisplayheight display screen)
 		     (x11:xdisplayheightmm display screen)))))
-    (labels ((font->text-style (font family)
-               (flet ((parse-token (token)
-                        (if token
-                            (parse-integer token)
-                            (return-from font->text-style nil))))
-                 (let* ((tokens (disassemble-x-font-name font))
-                        (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
-                        (bold (equalp (nth 3 tokens) "bold"))
-                        (face (if italic
-                                  (if bold '(:bold :italic) :italic)
-                                  (if bold :bold :roman)))
-                        (pixel-size (parse-token (nth 7 tokens)))
-                        (point-size (parse-token (nth 8 tokens)))
-                        (y-resolution (parse-token (nth 10 tokens)))
-                        (average-width (parse-token (nth 12 tokens)))
-                        (corrected-point-size (* (float point-size)
-                                                 (/ y-resolution
-                                                    screen-pixels-per-inch))))
-                   (unless (and (not *use-scalable-fonts*)
-                                (or (eql pixel-size 0)
-                                    (eql point-size 0)
-                                    (eql average-width 0)))
-                     (make-text-style family face (/ corrected-point-size 10))))))
-             (load-1-charset (character-set fallback families)
-               (let* ((matchesp nil) ;do any non-fallback fonts match?
-                      (fallback-matches-p ;any fallback matches?
-                       (not (null (tk::list-font-names display fallback))))
-                      (fallback-loadable-p ;fallback actually loadable?
-                       (and fallback-matches-p
-                            (excl:with-native-string (nfn fallback)
-                              (let ((x (x11:xloadqueryfont display nfn)))
-                                (if (not (zerop x))
-                                    (progn
-                                      (x11:xfreefont display x)
-                                      t)
-                                    nil))))))
-                 (dolist (per-family families)
-                   (destructuring-bind (family &rest patterns) per-family
-                     (dolist (font-pattern patterns)
-                       (dolist (xfont (tk::list-font-names display font-pattern))
-                         ;; this hack overcomes a bug with hp's scalable fonts
-                         (unless (find #\* xfont)
-                           (setf matchesp t) ;there was at least one match
-                           (let ((text-style (font->text-style xfont family)))
-                             ;; prefer first font satisfying this text style, so
-                             ;; don't override if we've already defined one.
-                             (when text-style
-                               (unless (text-style-mapping-exists-p
-                                        port text-style character-set t)
-                                 (setf (text-style-mapping port text-style
-                                                           character-set)
-                                       xfont)))))))))
-                 ;; Set up the fallback if it looks like there is one, and
-                 ;; complain if things look bad.  Things look bad if there were
-                 ;; matches but the fallback is not loadable.  If there were
-                 ;; no matches then don't complain even if there appears to be
-                 ;; something wrong with the fallback, just silently don't load it
-                 ;; (and thus define no mappings for the character set).
-                 (cond
-                   (fallback-loadable-p	;all is well
-                    (setf (text-style-mapping port *undefined-text-style*
-                                              character-set)
-                          fallback))
-                   ((and matchesp fallback-matches-p)
-                    (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
-but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
-setup."
-                          fallback character-set))
-                   (matchesp
-                    (warn "Fallback font ~A not loadable for character set ~A."
-                          fallback character-set))))))
+    (flet ((font->text-style (font family)
+	     (flet ((parse-token (token)
+		      (if token
+			  (parse-integer token)
+			(return-from font->text-style nil))))
+	       (let* ((tokens (disassemble-x-font-name font))
+		      (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
+		      (bold (equalp (nth 3 tokens) "bold"))
+		      (face (if italic
+				(if bold '(:bold :italic) :italic)
+			      (if bold :bold :roman)))
+		      (pixel-size (parse-token (nth 7 tokens)))
+		      (point-size (parse-token (nth 8 tokens)))
+		      (y-resolution (parse-token (nth 10 tokens)))
+		      (average-width (parse-token (nth 12 tokens)))
+		      (corrected-point-size (* (float point-size)
+					       (/ y-resolution
+						  screen-pixels-per-inch))))
+		 (unless (and (not *use-scalable-fonts*)
+			      (or (eql pixel-size 0)
+				  (eql point-size 0)
+				  (eql average-width 0)))
+		   (make-text-style family face (/ corrected-point-size 10)))))))
       ;; Setup font mappings.  This is made hairy by trying to deal
       ;; elegantly with possibly missing mappings and messed-up X font
       ;; setups.  It seems to be the case that XListFonts can return
@@ -396,39 +248,55 @@ setup."
       ;; with it, but otherwise don't check.  This should mean that if
       ;; this doesn't warn then things will basically run, as the
       ;; fallback exists for each character set, at least.
-      (let ((charset-number 0)
-            (done-registries ()))
-        (dolist (per-charset *xt-font-families*)
-          (destructuring-bind (character-set fallback &rest families) per-charset
-            (load-1-charset character-set fallback families)
-            (setf charset-number (max charset-number character-set))
-            (dolist (family families)
-              (pushnew (last (disassemble-x-font-name (second family)) 2) done-registries
-                       :test #'equal))))
-        (format *debug-io* "done registries: ~A, last charset: ~A~%" done-registries charset-number)
-        ;; Now setup font mappings of fonts that the user has
-        ;; installed, but we don't know anything about (especially no
-        ;; convenient font aliases).
-        ;; Since we don't have any font alias names to rely on, we use
-        ;; the "fixed" alias to find out at least a sensible default
-        ;; weight and slant.
-        (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
-               (weight (nth 3 default-fallback))
-               (slant (nth 4 default-fallback)))
-          (loop for character-set from (1+ charset-number) 
-                for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
-                for fallback-font = (find-font-with-properties fonts weight slant)
-                for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
-                do (format *debug-io* "~&registering installed font ~A for enc:~A~%" character-set encoding)
-                do (unless (member encoding done-registries :test #'equal)
-                     (vector-push-extend (excl:string-to-native
-                                          (format nil "~A-~A" (first encoding) (second encoding)))
-                                         tk::*font-list-tags*)
-                     (load-1-charset character-set fallback-font
-                                     `((:fix ,default-font-match-string)
-                                       (:sans-serif ,default-font-match-string)
-                                       (:serif ,default-font-match-string))))))
-        )))
+      (dolist (per-charset *xt-font-families*)
+	(destructuring-bind (character-set fallback &rest families) per-charset
+	  (let* ((matchesp nil)		;do any non-fallback fonts match?
+		 (fallback-matches-p	;any fallback matches?
+		  (not (null (tk::list-font-names display fallback))))
+		 (fallback-loadable-p	;fallback actually loadable?
+		  (and fallback-matches-p
+		       (excl:with-native-string (nfn fallback)
+			 (let ((x (x11:xloadqueryfont display nfn)))
+			   (if (not (zerop x))
+			       (progn
+				 (x11:xfreefont display x)
+				 t)
+			       nil))))))
+	    (dolist (per-family families)
+	      (destructuring-bind (family &rest patterns) per-family
+		(dolist (font-pattern patterns)
+		  (dolist (xfont (tk::list-font-names display font-pattern))
+		    ;; this hack overcomes a bug with hp's scalable fonts
+		    (unless (find #\* xfont)
+		      (setf matchesp t) ;there was at least one match
+		      (let ((text-style (font->text-style xfont family)))
+			;; prefer first font satisfying this text style, so
+			;; don't override if we've already defined one.
+			(when text-style
+			  (unless (text-style-mapping-exists-p
+				   port text-style character-set t)
+			    (setf (text-style-mapping port text-style
+						      character-set)
+			      xfont)))))))))
+	    ;; Set up the fallback if it looks like there is one, and
+	    ;; complain if things look bad.  Things look bad if there were
+	    ;; matches but the fallback is not loadable.  If there were
+	    ;; no matches then don't complain even if there appears to be
+	    ;; something wrong with the fallback, just silently don't load it
+	    ;; (and thus define no mappings for the character set).
+	    (cond
+	     (fallback-loadable-p	;all is well
+	      (setf (text-style-mapping port *undefined-text-style*
+					character-set)
+		fallback))
+	     ((and matchesp fallback-matches-p)
+	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
+but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
+setup."
+		    fallback character-set))
+	     (matchesp
+	      (warn "Fallback font ~A not loadable for character set ~A."
+		    fallback character-set))))))))
   (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
@@ -1175,6 +1043,8 @@ setup."
 (excl:ics-target-case
 (:+ics
 
+(defconstant +codesets+ 4)
+
 (defmethod text-style-mapping :around
 	   ((port xt-port) text-style
 	    &optional (character-set *standard-character-set*) window)
@@ -1186,16 +1056,18 @@ setup."
 	      (find-named-font port mapping character-set))
 	  mapping))
     (let ((mappings nil))
-      (dotimes (c (length (slot-value port 'silica::mapping-table)))  ; XXX: ugly. prettify.
-        (let ((mapping (text-style-mapping port text-style c)))
+      (dotimes (c +codesets+)
+	(let ((mapping (text-style-mapping port text-style c)))
 	  (when mapping
-            (push (cons c mapping) mappings))))
+	    (push (cons c mapping) mappings))))
       (reverse mappings))))
 
 (defmethod font-set-from-font-list ((port xt-port) font-list)
-  (let ((name (format nil "~{~A~^,~}"
-                      (mapcar (lambda (font) (tk::font-name (cdr font)))
-                              font-list))))
+  (let ((name ""))
+    (dolist (item font-list)
+      (setq name
+	(concatenate 'string
+	  (tk::font-name (cdr item)) "," name)))
     (with-slots (font-cache) port
       (setq font-list
 	(or (gethash name font-cache)

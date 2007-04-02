@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-defs.lisp,v 2.8 2006/10/10 18:05:08 layer Exp $
+;; $Id: xm-defs.lisp,v 2.9 2007/04/02 18:07:42 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -82,8 +82,3 @@
 (def-c-type (xm-selected-position-array :no-defuns :no-constructor) 1 :int)
 
 (def-c-type (xm-string-table :no-defuns :no-constructor) 1 * :char)
-
-;;; string constants from Xm.h
-(x11::def-exported-constant XmRColormap		"Colormap")
-(x11::def-exported-constant XmRVisual		"Visual")
-(x11::def-exported-constant XmRInt		"Int")

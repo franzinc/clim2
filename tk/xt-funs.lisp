@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-funs.lisp,v 2.8 2006/10/11 16:16:30 layer Exp $
+;; $Id: xt-funs.lisp,v 2.9 2007/04/02 18:07:42 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -394,18 +394,6 @@
     (x y)
   :returning :foreign-address
   :call-direct t
-  :arg-checking nil)
-
-(def-foreign-call (x-supports-locale "XSupportsLocale")
-    ()
-  :returning (:int fixnum)
-  :strings-convert nil
-  :arg-checking nil)
-
-(def-foreign-call (x-set-locale-modifiers "XSetLocaleModifiers")
-    ((x :foreign-address))
-  :call-direct t
-  :returning :foreign-address
   :arg-checking nil)
 
 #+debug

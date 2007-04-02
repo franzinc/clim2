@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
+;; $Id: font.lisp,v 2.8 2007/04/02 18:07:42 layer Exp $
 
 (in-package :tk)
 
@@ -184,15 +184,6 @@
 	      (unless (zerop def-string)
 		(excl:native-to-string def-string))))))
 
-(define-condition charsets-missing-from-fontset (warning)
-  ((charsets :initarg :charsets :accessor charsets-missing-from-fontset-charsets)
-   (created-for :initarg :created-for :accessor charsets-missing-from-fontset-created))
-  (:report (lambda (stream c)
-             (format stream
-                     "Missing charsets:~{ ~A,~} creating fontset for ~A"
-                     (charsets-missing-from-fontset-charsets c)
-                     (charsets-missing-from-fontset-created c)))))
-
 (defmethod initialize-instance :after ((fs font-set) &key
 						     foreign-address display base-names)
   (unless foreign-address
@@ -200,9 +191,8 @@
 	(create-font-set display base-names)
       (when missing
 	(let ((*error-output* excl:*initial-terminal-io*))
-	  (warn 'charsets-missing-from-fontset
-                :charsets missing
-                :created-for base-names)))
+	  (warn "Missing charsets:~{ ~A,~} creating fontset for ~A"
+		missing base-names)))
       (when (zerop x) (error "Cannot create fontset for ~S" base-names))
       (setf (foreign-pointer-address fs) x)
       (register-address fs))))

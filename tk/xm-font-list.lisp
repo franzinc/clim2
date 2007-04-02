@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-font-list.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
+;; $Id: xm-font-list.lisp,v 2.8 2007/04/02 18:07:42 layer Exp $
 
 (in-package :tk)
 
@@ -60,50 +60,49 @@
 (excl:ics-target-case
  (:+ics
   (defvar *font-list-tags*
-      (make-array 4 :adjustable t :fill-pointer t
-                  :initial-contents
-                  (list
-                   ;; bug13059/spr27144 - we want these strings to
-                   ;; survive a dumplisp       
-                   (excl:string-to-native "ascii")
-                   (excl:string-to-native "kanji")
-                   (excl:string-to-native "katakana")
-                   (excl:string-to-native "gaiji"))
+      (vector 
        
-                  ))))
+       ;; bug13059/spr27144 - we want these strings to survive a dumplisp
+       
+       (excl:string-to-native "ascii")
+       (excl:string-to-native "kanji")
+       (excl:string-to-native "katakana")
+       (excl:string-to-native "gaiji")
+       
+       ))))
 
 
 (defun export-font-list (value)
   (when (atom value)
     (setq value (list value)))
-  (flet ((create-font-list-entry (font)
-           (note-malloced-object
-            (excl:ics-target-case
-              (:+ics
-               (let ((tag ""))
-                 (when (consp font)
-                   (setq tag (aref *font-list-tags* (car font))
-                         font (cdr font)))
-                 (xm_font_list_entry_create tag
-                                            (etypecase font
-                                              (font xm-font-is-font)
-                                              (font-set xm-font-is-fontset))
-                                            font)))
-              (:-ics
-               ;; perhaps this should be xm-font-list-default-tag
-               (xm_font_list_entry_create ""
-                                          xm-font-is-font
-                                          font))))))
-    (let ((font-list
-           (xm_font_list_append_entry
-            0				; old entry
-            (create-font-list-entry (car value)))))
-      (dolist (font (cdr value))
-        (setq font-list
-              (xm_font_list_append_entry font-list
-                                         (create-font-list-entry font))))
-      (note-malloced-object font-list
-                            #'free-font-list))))
+    (flet ((create-font-list-entry (font)
+	     (note-malloced-object
+	      (excl:ics-target-case
+	       (:+ics
+		(let ((tag ""))
+		  (when (consp font)
+		    (setq tag (svref *font-list-tags* (car font))
+			  font (cdr font)))
+		  (xm_font_list_entry_create tag
+					     (etypecase font
+					       (font xm-font-is-font)
+					       (font-set xm-font-is-fontset))
+					     font)))
+	       (:-ics
+		;; perhaps this should be xm-font-list-default-tag
+	        (xm_font_list_entry_create ""
+					   xm-font-is-font
+					   font))))))
+      (let ((font-list
+	     (xm_font_list_append_entry
+	      0				; old entry
+	      (create-font-list-entry (car value)))))
+	(dolist (font (cdr value))
+	  (setq font-list
+	    (xm_font_list_append_entry font-list
+				       (create-font-list-entry font))))
+	(note-malloced-object font-list
+			      #'free-font-list))))
 
 #+:dec3100
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-font-list)) value)
