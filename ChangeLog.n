@@ -1,3 +1,8 @@
+2007-04-11  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-class.lisp: reset the port when starting from
+	  a dxl.
+
 2007-03-28  Andreas Fuchs  <afuchs@franz.com>
 
 	* silica/classes.lisp: Back out experimental code.
@@ -6138,4 +6143,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.29.8.1 $
+$Revision: 2.29.8.2 $

@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.16 2007/03/15 16:54:19 layer Exp $
+;; $Id: acl-class.lisp,v 2.16.8.1 2007/04/11 12:29:46 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1612,3 +1612,4 @@
   (setq *background-brush* nil)
   )
 
+(push #'reset-aclpc-clim excl::*restart-actions*)
