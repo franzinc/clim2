@@ -1,6 +1,17 @@
 *******************************************************************************
 join from trunk_afuchs2 to trunk
     changes from:
+	2007-04-11  Andreas Fuchs  <afuchs@franz.com>
+
+*******************************************************************************
+2007-04-11  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-class.lisp: reset the port when starting from
+	  a dxl.
+
+*******************************************************************************
+join from trunk_afuchs2 to trunk
+    changes from:
 	2007-03-28  Andreas Fuchs  <afuchs@franz.com>
 
 *******************************************************************************
@@ -6144,4 +6155,8 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.30 $
+<<<<<<< ChangeLog.n
+$Revision: 2.31 $
+=======
+$Revision: 2.31 $
+>>>>>>> 2.29.8.2
