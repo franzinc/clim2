@@ -6155,8 +6155,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-<<<<<<< ChangeLog.n
-$Revision: 2.31 $
-=======
-$Revision: 2.31 $
->>>>>>> 2.29.8.2
+$Revision: 2.32 $
