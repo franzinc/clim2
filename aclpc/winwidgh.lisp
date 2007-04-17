@@ -1,7 +1,7 @@
 ;;; -*- Package: acl-clim; mode: Common-Lisp -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
 ;; copyright (c) 1986-2005 Franz Inc, Berkeley, CA  - All rights reserved.
-;; copyright (c) 2002-2004 Franz Inc, Oakland, CA - All rights reserved.
+;; copyright (c) 2002-2007 Franz Inc, Oakland, CA - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 2.8 2006/04/12 17:54:31 layer Exp $
+;; $Id: winwidgh.lisp,v 2.9 2007/04/17 21:45:49 layer Exp $
 
 (in-package :acl-clim)
 

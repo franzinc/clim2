@@ -1,6 +1,7 @@
-/*				-[Thu Dec  8 13:24:37 2005 by layer]-
+/*				-[Tue Apr 17 14:44:45 2007 by layer]-
  *
- * copyright (c) 1992-2005 Franz Inc, Berkeley, CA  All rights reserved.
+ * copyright (c) 1992-2002 Franz Inc, Berkeley, CA  All rights reserved.
+ * copyright (c) 2002-2007 Franz Inc, Oakland, CA - All rights reserved.
  *
  * The software, data and information contained herein are proprietary
  * to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +17,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $Header: /repo/cvs.copy/clim2/misc/xmsupport.c,v 2.5 2005/12/08 21:25:45 layer Exp $
+ * $Header: /repo/cvs.copy/clim2/misc/xmsupport.c,v 2.6 2007/04/17 21:45:52 layer Exp $
  */
 
 /************************************************************************/

@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: pkg.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
+;; $Id: pkg.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 ;; Copyright (c) 1991 by International Lisp Associates.  All rights reserved.
 ;; copyright (c) 1992 Franz Inc, Berkeley, CA - All rights reserved.
-;; copyright (c) 1992-2005 Franz Inc, Oakland, CA - All rights reserved.
+;; copyright (c) 1992-2007 Franz Inc, Oakland, CA - All rights reserved.
 
 (in-package :common-lisp-user)
 

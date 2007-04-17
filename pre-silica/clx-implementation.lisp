@@ -1,12 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Id: clx-implementation.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
+;; $Id: clx-implementation.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
 
 (in-package :clim-internals)
 
 ;; Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
 ;; copyright (c) 1991-2005 Franz Inc, Berkeley, CA - All rights reserved.
-;; copyright (c) 1992-2004 Franz Inc, Oakland, CA - All rights reserved.
+;; copyright (c) 1992-2007 Franz Inc, Oakland, CA - All rights reserved.
 
 (defclass clx-display-device (display-device)
     ((display :initarg :display)
