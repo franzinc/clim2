@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 2.10 2006/04/12 17:54:31 layer Exp $
+;; $Id: acl-prel.lisp,v 2.10.22.1 2007/04/24 12:59:39 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -29,10 +29,11 @@
 
 (in-package :acl-clim)
 
+
+(declaim (special *acl-port*))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Open a combo box control.
-
-(declaim (special *hinst*))
 
 (defun combobox-scroll-bars (items)
   ;; If there are many items, you won't be able 
@@ -65,7 +66,7 @@
 		win:CBS_DROPDOWNLIST)
 	       0 0 0 0
 	       parent 0
-	       *hinst* (symbol-name (gensym)))))))
+	       (hinst *acl-port*) (symbol-name (gensym)))))))
     (if (zerop hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -134,7 +135,7 @@
 				  0 0 0 0
 				  parent
 				  0
-				  *hinst*
+				  (hinst *acl-port*)
 				  (symbol-name (gensym)))))))
     (if (zerop hwnd)
 	;; failed
@@ -204,7 +205,7 @@
 	       0 0 0 0			; x, y, width, height
 	       parent
 	       0
-	       *hinst*
+	       (hinst *acl-port*)
 	       (symbol-name (gensym)))))))
     (if (zerop hwnd)
 	;; failed
@@ -258,7 +259,7 @@
 				    0 0 0 0
 				    parent
 				    0
-				    *hinst*
+				    (hinst *acl-port*)
 				    (symbol-name (gensym)))))))
       (if (zerop hwnd)
 	  ;; failed
@@ -273,8 +274,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Open an edit control
-
-(declaim (special std-ctrl-proc-address clim-ctrl-proc-address))
 
 (defun hedit-open (parent id left top width height 
 		   &key (editstyle 0)
@@ -305,7 +304,7 @@
               0 0 0 0
               parent
               0
-              *hinst*
+              (hinst *acl-port*)
               (symbol-name (gensym)))))))
     (cond ((zerop hwnd)
            (cerror "Continue anyway." "Can't create text-edit gadget.")
@@ -318,11 +317,11 @@
                ;; spr 30683 (alemmens, 2005-11-30)
                (win:SetWindowText hwnd s1)))
            ;; Override the default window proc.
-           (setf std-ctrl-proc-address
+           (setf (std-ctrl-proc-address *acl-port*)
                  (win:GetWindowLong hwnd win:GWL_WNDPROC))
            (win:SetWindowLong hwnd
                               win:GWL_WNDPROC
-                              clim-ctrl-proc-address)
+                              (clim-ctrl-proc-address *acl-port*))
            (win:SetWindowPos hwnd 0 
                              left top width height
                              #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))

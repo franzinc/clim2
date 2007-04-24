@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 2.10 2006/11/30 20:40:27 layer Exp $
+;; $Id: acl-port.lisp,v 2.10.20.1 2007/04/24 12:59:39 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -143,7 +143,15 @@
 
 (defclass acl-event-queue (queue)
     ())
-  
+
+(defun msg-names-initform ()
+  (let ((msg-names (make-array 4096)))
+    (dolist (x (remove-duplicates
+		(apropos-list "WM_" (find-package :win))))
+      (when (<= 0 (symbol-value x) 4095)
+	(push x (svref msg-names (symbol-value x)))))
+    msg-names))
+
 (define-constructor make-acl-event-queue queue () )
 
 (defclass acl-port (basic-port)
@@ -177,7 +185,102 @@
 			:accessor port-rotated-font-htable)   
    ;; Pixmaps
    (pixmaps :initform nil :accessor port-pixmaps)
-   ))
+
+   ;; automatically transformed from special vars.
+
+   ;; this will grow indefinitely as menu-ids are never removed (cim 9/10/96)
+   (menu-id->command-table :initform (make-array 256 
+						 :element-type t
+						 :adjustable t 
+						 :fill-pointer 0
+						 :initial-element nil)
+			   :accessor menu-id->command-table)
+
+   ;; this will grow indefinitely as items are never removed (cim 9/10/96)
+   (popup-menu->menu-item-ids :initform (make-hash-table)
+			      :accessor popup-menu->menu-item-ids)
+   (popup-menu->command-table :initform (make-hash-table)
+			      :accessor popup-menu->command-table)
+   (msg-names :initform (msg-names-initform)
+	      :accessor msg-names)
+   (modstate :initform (make-modstate)
+	     :accessor modstate)
+   (ctlmodstate :initform (make-modstate)
+		:accessor ctlmodstate)
+   (win-result :initform 0
+	       :accessor win-result)
+
+   ;; Must be a 16-bit quantity.
+   ;; According to Microsoft, WM_HSCROLL and WM_VSCROLL messages
+   ;; are "limited to 16 bits of position data".
+   ;; (alemmens, 2004-12-17)
+   (win-scroll-grain :initform (1- (expt 2 16))
+		     :accessor win-scroll-grain)
+
+   (wres :initform  (ct:callocate :long) 	
+	 :accessor wres)
+   (wmsg :initform  (ct:ccallocate win:msg)
+	 :accessor wmsg)
+   (clim-class :initform "ClimClass" 
+	       :accessor clim-class)
+   (win-name :initform "CLIM"
+	     :accessor win-name)
+   (win-x :initform "x"
+	  :accessor win-x)
+   (wndclass-registered :initform nil
+			:accessor wndclass-registered)
+   (clim-window-proc-address :initform nil
+			     :accessor clim-window-proc-address)
+   (clim-ctrl-proc-address :initform nil
+			   :accessor clim-ctrl-proc-address)
+   (std-ctrl-proc-address :initform nil
+			  :accessor std-ctrl-proc-address)
+   (tooltip-relay-address :initform nil
+			  :accessor tooltip-relay-address)
+   (next-windows-hook :initform nil
+		      :accessor next-windows-hook)
+   (clim-initialized-p :initform nil
+		       :accessor clim-initialized-p)
+   (lpcmdline :initform ""
+	      :accessor lpcmdline)
+   (hinst :initform 0
+	  :accessor hinst)
+   (screen-device :initform nil 
+		  :accessor screen-device)
+   (msg :initform (ct:ccallocate win:msg)
+	:accessor msg)
+   (arrow-cursor :initform
+		 (ff:allocate-fobject 'win:hcursor :foreign-static-gc nil)
+		 :accessor arrow-cursor)
+   (application-icon :initform 
+		     (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil)
+		     :accessor application-icon)
+   (current-window :initform nil
+		   :accessor current-window)
+   (dc-initialized :initform nil
+		   :accessor dc-initialized)
+   (null-pen :initform nil
+	     :accessor null-pen)
+   (black-pen :initform nil
+	      :accessor black-pen)
+   (ltgray-pen :initform nil
+	       :accessor ltgray-pen)
+   (null-brush :initform nil
+	       :accessor null-brush)
+   (black-brush :initform nil
+		:accessor black-brush)
+   (ltgray-brush :initform nil
+		 :accessor ltgray-brush)
+   (blank-image :initform nil
+		:accessor blank-image)
+   (ltgray-image :initform nil
+		 :accessor ltgray-image)
+   (background-brush :initform nil
+		     :accessor background-brush)))
+
+(defun acl-clim-initialized-p (port)
+  (and (slot-boundp port 'clim-initialized-p)
+       (clim-initialized-p port)))
 
 (defmethod restart-port ((port acl-port))
   ;; No need to devote a thread to receiving messages
@@ -254,7 +357,7 @@
     (setf (medium-text-style medium) style)))
 
 (defmethod initialize-instance :before ((port acl-port) &key)
-  (ensure-clim-initialized)
+  (ensure-clim-initialized port)
   (unless (null *acl-port*)
     (cerror "do it anyway" "There can only be one acl port."))
   (setf *acl-port* port))
@@ -268,15 +371,13 @@
     (setf silica::deep-mirroring t)
     (register-window-class (realize-cursor port :default))
     ;;(get-clim-icon) +++
-    (let ((res (ct:callocate :long)))
-      (loop for (vk . keysym) in *vk->keysym* do
+    (loop for (vk . keysym) in *vk->keysym* do
 	    (setf (gethash vk vk->keysym) keysym))
-      (loop for code from (char-code #\!) to (char-code #\~)
+    (loop for code from (char-code #\!) to (char-code #\~)
 	  for char = (code-char code)
 	  do
-	    (let ((scan (loword (win:VkKeyScan code))))
-	      (push char (gethash scan vk->keysym))))
-      )
+	 (let ((scan (loword (win:VkKeyScan code))))
+	       (push char (gethash scan vk->keysym))))
     ;; Panes that have a direct mirror will get initialized from
     ;; get-sheet-resources:
     (setf (port-default-resources port)
@@ -639,7 +740,7 @@ or (:style . (family face size))")
 		 (frame-top-level-sheet *application-frame*)
 		 (sheet-mirror (frame-top-level-sheet *application-frame*))))
 	(tmstruct (ct:ccallocate win:textmetric)))
-    (unless cw (setf cw *current-window*))
+    (unless cw (setf cw (current-window *acl-port*)))
     (unless (win:IsWindow cw) 
       ;; This clause is for the rare case that you are doing drawing
       ;; from a background process the first time you attempt to use
@@ -932,8 +1033,8 @@ or (:style . (family face size))")
 ;;; the variable *modstate*, set in onkeydown (in aclpc/acl-class.lisp)
 (defun windows-mask->modifier-state+ (mask &optional double)
   (let ((state (windows-mask->modifier-state mask double)))
-    (when (and *modstate*
-               (modstate-meta *modstate*))
+    (when (and (modstate *acl-port*)
+               (modstate-meta (modstate *acl-port*)))
       (setq state (logior state (make-modifier-state :meta))))
     state))
 

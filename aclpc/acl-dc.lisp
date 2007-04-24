@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 2.6 2005/12/08 21:25:41 layer Exp $
+;; $Id: acl-dc.lisp,v 2.6.42.1 2007/04/24 12:59:39 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -83,59 +83,59 @@
     dc))
 
 (defun initialize-dc ()
-  (unless *dc-initialized*
-    (unless (win:IsWindow *current-window*)
-      (error "No Window: ~S" *current-window*))
+  (unless (dc-initialized *acl-port*)
+    (unless (win:IsWindow (current-window *acl-port*))
+      (error "No Window: ~S" (current-window *acl-port*)))
     ;; Stock objects
-    (setf *null-pen* (win:GetStockObject win:NULL_PEN))
-    (setf *black-pen* (win:GetStockObject win:BLACK_PEN))
-    (setf *ltgray-pen* 
+    (setf (null-pen *acl-port*)(win:GetStockObject win:NULL_PEN))
+    (setf (black-pen *acl-port*)(win:GetStockObject win:BLACK_PEN))
+    (setf (ltgray-pen *acl-port*)
       (CreatePen win:PS_SOLID 1 (win:GetSysColor win:COLOR_BTNFACE)))
     ;;
-    (setf *null-brush* (win:GetStockObject win:NULL_BRUSH))
-    (setf *black-brush* (win:GetStockObject win:BLACK_BRUSH))
-    (setf *ltgray-brush* 
+    (setf (null-brush *acl-port*)(win:GetStockObject win:NULL_BRUSH))
+    (setf (black-brush *acl-port*)(win:GetStockObject win:BLACK_BRUSH))
+    (setf (ltgray-brush *acl-port*)
       (win:CreateSolidBrush (win:GetSysColor win:COLOR_BTNFACE)))
 
-    (setf *blank-image*
-      #+possibly
-      (make-dc-image :solid-1-pen *black-pen* 
-		     :brush *black-brush*
+    (setf (blank-image *acl-port*)
+	  #+possibly
+      (make-dc-image :solid-1-pen (black-pen *acl-port*) 
+		     :brush (black-brush *acl-port*)
 		     :text-color #xffffffff ; see CLR_NONE
 		     :background-color nil
 		     :rop2 win:R2_MERGEPEN )
-      (make-dc-image :solid-1-pen *black-pen*
-		     :brush *black-brush*
+      (make-dc-image :solid-1-pen (black-pen *acl-port*)
+		     :brush (black-brush *acl-port*)
 		     :text-color #x000000 
 		     :background-color nil
 		     :rop2 win:R2_NOP ))
     ;;
-    (setf *ltgray-image*
-      (make-dc-image :solid-1-pen *ltgray-pen* 
-		     :brush *ltgray-brush*
-		     :text-color (win:GetSysColor win:COLOR_BTNFACE)
-		     :background-color nil
-		     :rop2 win:R2_COPYPEN))
+    (setf (ltgray-image *acl-port*)
+	  (make-dc-image :solid-1-pen (ltgray-pen *acl-port*) 
+			 :brush (ltgray-brush *acl-port*)
+			 :text-color (win:GetSysColor win:COLOR_BTNFACE)
+			 :background-color nil
+			 :rop2 win:R2_COPYPEN))
     ;;
-    (setq *dc-initialized* t)
+    (setf (dc-initialized *acl-port*) t)
     ))
 
 (defun destroy-dc ()
-  (when *dc-initialized*
-    (setq *null-pen* nil)
-    (setq *null-brush* nil)
+  (when (dc-initialized *acl-port*)
+    (setf (null-pen *acl-port*) nil
+	  (null-brush *acl-port*) nil)
   
-    (destroy-dc-image *blank-image*)
-    (setq *black-pen* nil)
-    (setq *black-brush* nil)
-    (setq *blank-image* nil)
+    (destroy-dc-image (blank-image *acl-port*))
+    (setf (black-pen *acl-port*) nil
+	  (black-brush *acl-port*) nil
+	  (blank-image *acl-port*) nil)
   
-    (destroy-dc-image *ltgray-image*)
-    (setq *ltgray-pen* nil)
-    (setq *ltgray-image* nil)
-    (setq *ltgray-brush* nil)
+    (destroy-dc-image (ltgray-image *acl-port*))
+    (setf (ltgray-pen *acl-port*) nil
+	  (ltgray-image *acl-port*) nil
+	  (ltgray-brush *acl-port*) nil)
     
-    (setq *dc-initialized* nil)))
+    (setf (dc-initialized *acl-port*) nil)))
 
 ;;;
 
@@ -221,7 +221,7 @@
   (let* ((dashes (line-style-dashes line-style))
 	 (thickness (max 1 (round (line-style-thickness line-style))))
 	 (code (if dashes (- thickness) thickness))
-	 (brush *null-brush*)
+	 (brush (null-brush *acl-port*))
 	 (pen (when (= code 1) (dc-image-solid-1-pen image)))
 	 (rop2 (dc-image-rop2 image))
 	 (text-color (dc-image-text-color image))
@@ -253,7 +253,7 @@
   (let ((background-color (dc-image-background-color image))
         (text-color (dc-image-text-color image))
 	(brush (dc-image-brush image))
-	(pen *null-pen*)
+	(pen (null-pen *acl-port*))
 	(rop2 (dc-image-rop2 image)))
     (when (valid-handle pen) (SelectObject dc pen))
     (when background-color
@@ -293,7 +293,8 @@
 					      ,xorg ,yorg))
 	   ,@body)
        (when (valid-handle ..winpen..)
-	 (when (valid-handle *black-pen*) (SelectObject ,dc *black-pen*))
+	 (when (valid-handle (black-pen *acl-port*))
+	   (SelectObject ,dc (black-pen *acl-port*)))
 	 (or (win:DeleteObject ..winpen..) 
 	     (error "with-set-dc-for-ink: DeleteObject"))))))
 
