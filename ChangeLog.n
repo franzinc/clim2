@@ -1,3 +1,20 @@
+2007-04-24  Andreas Fuchs  <asf@boinkor.net>
+	   
+	* aclpc/acl-class.lisp, aclpc/acl-port.lisp:
+	  * Refactor most ACL port-specific special variables to be
+            slots of the acl-port instance.
+	  * Change reset-aclpc-clim to only destroy the port and reset
+            the few remaining special variables
+	  * Add reset-aclpc-clim to the restart actions.
+	* aclpc/acl-dc: Refer to the slots of *acl-port*.
+	* aclpc/acl-frames.lisp: Refer to the slots of *acl-port*.
+	* aclpc/acl-medium.lisp: Refer to the slots of *acl-port*.
+	* aclpc/acl-mirror.lisp: Refer to the slots of *acl-port*.
+	* aclpc/acl-prel.lisp: Refer to the slots of *acl-port*.
+	* aclpc/acl-scroll.lisp: Refer to the slots of *acl-port*.
+	* aclpc/acl-widget.lisp: Refer to the slots of *acl-port*.
+	* sys/odrawpat.lisp: Refer to the slots of *acl-port*.
+
 2007-03-15    <layer@HOBART>
 
 	* aclpc/acl-class.lisp: remove warning due to bogus decl
@@ -6121,4 +6138,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.29 $
+$Revision: 2.29.10.1 $
