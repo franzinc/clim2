@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: odrawpat.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: odrawpat.lisp,v 2.6.44.1 2007/04/24 12:47:29 afuchs Exp $
 
 (in-package :acl-clim)
 
@@ -31,18 +31,18 @@
 			  (if (or (eql scroll :both)(eql scroll :horizontal))
 			    win:ws_hscroll 0)
 			  win:ws_clipsiblings))
-        (*win-name* *win-name*)
+        (win-name (win-name *acl-port*))
         (cstr (ct:callocate (:char *) :size 256))
 	(subsize (when pretty (length pretty)))
 	(window nil))
     (when pretty
       (dotimes (i subsize)
         (ct:cset (:char 256) cstr ((fixnum i)) (char-int (char pretty i))))
-      (setq *win-name* cstr))
+      (setq win-name cstr))
     (setq window
 	  (win:createWindow
-		*clim-class* ; cl-user::clim-class ; "ClimClass"
-		*win-name*   ; "CLIM"
+		(clim-class *acl-port*)	   ; cl-user::clim-class ; "ClimClass"
+		win-name   ; "CLIM"
 		winstyle
 		left top width height
 		parent

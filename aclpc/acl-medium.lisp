@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 2.8 2007/03/15 16:54:19 layer Exp $
+;; $Id: acl-medium.lisp,v 2.8.10.1 2007/04/24 12:47:29 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -166,7 +166,7 @@
   ;; used by Windows for all the other gadgets, such as
   ;; buttons and scroll bars.  MFC calls this "light
   ;; gray in the current color scheme"
-  *ltgray-image*)
+  (ltgray-image *acl-port*))
 
 (defmethod color-rgb ((color (eql +ltgray+)))
   (color-rgb (wincolor->color (win:GetSysColor win:COLOR_BTNFACE))))
@@ -1816,7 +1816,7 @@ device-independent bitmap, an icon, nor a cursor."))
 (defun icon-height () (win:GetSystemMetrics win:SM_CYICON))
 
 (defun create-icon (pixmap texture-info mask-bitmap) ;; <7>
-  (win:CreateIcon *hinst*
+  (win:CreateIcon (hinst *acl-port*)
 		  (icon-width)
 		  (icon-height)
 		  1 ;; planes (texture-info-bits-per-pixel texture-info)

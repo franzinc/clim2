@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.16 2007/03/15 16:54:19 layer Exp $
+;; $Id: acl-class.lisp,v 2.16.10.1 2007/04/24 12:47:29 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -31,15 +31,6 @@
 (in-package :acl-clim)
 
 (defvar *acl-port* nil)
-
-;; this will grow indefinitely as menu-ids are never removed (cim 9/10/96)
-(defvar *menu-id->command-table*
-    (make-array 256 
-		:element-type t :adjustable t 
-		:fill-pointer 0 :initial-element nil))
-
-;; this will grow indefinitely as items are never removed (cim 9/10/96)
-(defvar *popup-menu->menu-item-ids* (make-hash-table))
 
 ;; this will grow indefinitely as items are never removed (cim 9/10/96)
 (defvar *popup-menu->command-table* (make-hash-table))
@@ -55,19 +46,10 @@
 (defun mformat (&rest args)
   (if *maybe-format* (apply #'format args)))
 
-(defvar *msg-names* nil)
-
-(defun init-msg-names ()
-  (setq *msg-names* (make-array 4096))
-  (dolist (x (remove-duplicates
-	      (apropos-list "WM_" (find-package :win))))
-    (when (<= 0 (symbol-value x) 4095)
-      (push x (svref *msg-names* (symbol-value x))))))
 
 (defun msg-name (msg)
-  (unless *msg-names* (init-msg-names))
   (let ((x (and (< msg 4096) ;; pr Aug97
-		(svref *msg-names* msg))))
+		(svref (msg-names *acl-port*) msg))))
     (unless (cdr x)
       (setq x (car x)))
     (or x msg)))
@@ -89,27 +71,18 @@
         (make-modifier-state :meta)
         (make-modifier-state)))))
 
-(defvar *modstate* (make-modstate))
-(defvar *ctlmodstate* (make-modstate))
-(defvar *win-result* 0)
-
-(defparameter arrow-cursor 
-    (ff:allocate-fobject 'win:hcursor :foreign-static-gc nil))
-(defparameter application-icon 
-    (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil))
-
 ;;;;; window procedure args, rebound in each call to window proc
 ;;;(defvar *hwnd* 0)
 
 (defun init-cursors ()
   ;; put back old cursor mechanism for the moment (cim 9/13/96)
-  (setf arrow-cursor (win:LoadCursor 0 win:IDC_ARROW))
-  (when (zerop arrow-cursor)
+  (setf (arrow-cursor *acl-port*) (win:LoadCursor 0 win:IDC_ARROW))
+  (when (zerop (arrow-cursor *acl-port*))
     (check-last-error "LoadCursor" :action :warn))
   ;; this just does the icon now - the cursor stuff is all handled in
   ;; realize-cursor methods in acl-port (cim 9/12/96)
-  (setf application-icon (win:LoadIcon 0 win:IDI_APPLICATION))
-  (when (zerop application-icon)
+  (setf (application-icon *acl-port*) (win:LoadIcon 0 win:IDI_APPLICATION))
+  (when (zerop (application-icon *acl-port*))
     (check-last-error "LoadIcon" :action :warn))
   t)
 
@@ -170,16 +143,6 @@
 
 (defvar *level* 0)
 
-(defvar *realtime-scrollbar-tracking* t)
-
-(defvar *win-scroll-grain* 
-    ;; Must be a 16-bit quantity.
-    ;; According to Microsoft, WM_HSCROLL and WM_VSCROLL messages
-    ;; are "limited to 16 bits of position data".
-    ;; (alemmens, 2004-12-17)
-    (1- (expt 2 16)))
-
-
 (defmacro clear-winproc-result (res)
   (declare (ignore res))
   nil)
@@ -199,7 +162,7 @@
 	(keys wparam)
 	(sheet (mirror->sheet *acl-port* window)))
     (declare (ignore keys))
-    (setq *win-result*
+    (setf (win-result *acl-port*)
       (if (or (not sheet) 
 	      (note-pointer-motion *acl-port* sheet mx my))
 	  (win:DefWindowProc window msg wparam lparam)
@@ -211,7 +174,7 @@
   ;; when the cursor is not moving.  JPM 5/98.
   (let* ((hit-code (loword lparam)))
     (cond ((eql hit-code win:HTCLIENT)
-	   (setq *win-result* 
+	   (setf (win-result *acl-port*) 
 	     (if (maybe-set-cursor (mirror->sheet *acl-port* window))
 		 win:TRUE win:FALSE)))
 	  (t 
@@ -294,7 +257,7 @@
 	     (win:GetClientRect hwnd rect)
 	     (silica::draw-picture-button sheet 0 hdc rect)))
 	 
-	 (setf *win-result* (adjust-gadget-colors sheet hdc))))))
+	 (setf (win-result *acl-port*) (adjust-gadget-colors sheet hdc))))))
 
 ;; Process WM_COMMAND.
 ;; This message is sent when the user selects a command item
@@ -311,7 +274,7 @@
 	   ;; User selected a command from the menu bar.
 	   (let* ((frame (pane-frame parent))
 		  (ID (loword wparam))
-		  (command (cdr (aref *menu-id->command-table* ID))))
+		  (command (cdr (aref (menu-id->command-table port) ID))))
 	     
 	     ;;mm bug12977
 	     (handler-case
@@ -334,7 +297,7 @@
 	   (let ((gadget (mirror->sheet port lparam)))
 	     (when gadget
 	       (command-event gadget port parent wparam lparam)))))
-    (clear-winproc-result *win-result*)
+    (clear-winproc-result (win-result *acl-port*))
         0))
 
 
@@ -418,8 +381,8 @@
         (case scrollcode
           (#.win:SB_BOTTOM
            ;; Scroll to lower right
-           (win:SetScrollPos hwnd bar *win-scroll-grain* redraw)
-           (values :percentage *win-scroll-grain*))
+           (win:SetScrollPos hwnd bar (win-scroll-grain *acl-port*) redraw)
+           (values :percentage (win-scroll-grain *acl-port*)))
           ((#.win:SB_LINEDOWN #.win:SB_LINERIGHT)
            ;; Scroll down/right one line
            (move-slug sheet hwnd bar +1 #'silica::scroll-bar-line-increment)
@@ -461,8 +424,8 @@
                                         :dragging-p (= scrollcode #.win:SB_THUMBTRACK)
                                         :amount amount
                                         :sheet sheet)))))
-    (clear-winproc-result *win-result*)
-    *win-result*))
+    (clear-winproc-result (win-result *acl-port*))
+    (win-result *acl-port*)))
 
 (defun move-slug (scroll-bar hwnd win-code direction delta-function)
   ;; Only move slug for independent scroll bar gadgets.
@@ -474,7 +437,7 @@
            (tentative-new-position 
             (+ old-position
               (* direction (silica::convert-scroll-bar-size-out scroll-bar delta))))
-           (new-position (max 0 (min *win-scroll-grain* tentative-new-position)))
+           (new-position (max 0 (min (win-scroll-grain *acl-port*) tentative-new-position)))
            (redraw 1))
       (unless (= old-position new-position)
         (win:SetScrollPos hwnd win-code new-position redraw)))))
@@ -496,9 +459,9 @@
 	   sheet
 	   (allocate-event 'window-configuration-event :sheet sheet))
 	  ;; set return value to 0
-	  (clear-winproc-result *win-result*))
-      (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
-    *win-result*))
+	  (clear-winproc-result (win-result *acl-port*)))
+      (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
+    (win-result *acl-port*)))
 
 ;; Process WM_SIZE
 (defun onsize (window msg wparam lparam)
@@ -511,9 +474,9 @@
 	   sheet
 	   (allocate-event 'window-configuration-event :sheet sheet))
 	  ;; set return value to 0
-	  (clear-winproc-result *win-result*))
-      (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
-    *win-result*))
+	  (clear-winproc-result (win-result *acl-port*)))
+      (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
+    (win-result *acl-port*)))
 
 ;; Process WM_GETMINMAXINFO
 (defun ongetminmaxinfo (window msg wparam lparam)
@@ -526,9 +489,9 @@
 	  (when (and min-width min-height)
 	    (setf (sys:memref-int lparam 0 24 :unsigned-long) min-width
 		  (sys:memref-int lparam 0 28 :unsigned-long) min-height)
-	    (clear-winproc-result *win-result*)))
-      (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
-    *win-result*))
+	    (clear-winproc-result (win-result *acl-port*))))
+      (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
+    (win-result *acl-port*)))
 
 ;; PROCESS EN_UPDATE
 (defun onupdatetext (window msg wparam lparam)
@@ -543,12 +506,12 @@
 	;; sheet
 	;;  (allocate-event 'window-change-event :sheet sheet)
 	))
-    (clear-winproc-result *win-result*)
-    *win-result*))
+    (clear-winproc-result (win-result *acl-port*))
+    (win-result *acl-port*)))
 
 ;; Process WM_KEYDOWN
 ;;; SPR25900 --pnc
-;;; The variable *modstate* is used to specify the alt/meta
+;;; The port slot modstate is used to specify the alt/meta
 ;;; key on mouse-gestures.  See the functions onbuttondown
 ;;; and windows-mask->modifier-state+ (in aclpc/acl-port.lisp).
 (defun onkeydown (window msg wparam lparam)
@@ -567,14 +530,14 @@
 	   (shiftstate (win:GetKeyState win:VK_SHIFT))
 	   (controlstate (win:GetKeyState win:VK_CONTROL))
 	   (metastate (win:GetKeyState win:VK_MENU)))
-      (setf (modstate-control *modstate*)
+      (setf (modstate-control (modstate *acl-port*))
 	(or (minusp controlstate) (not (zerop (ash controlstate -15)))))
-      (setf (modstate-meta *modstate*)
+      (setf (modstate-meta (modstate *acl-port*))
 	;; whoops! this was controlstate!?
 	(or (minusp metastate) (not (zerop (ash metastate -15)))))
-      (setf (modstate-numlock *modstate*)
+      (setf (modstate-numlock (modstate *acl-port*))
 	(and (plusp numstate) (zerop (ash numstate -15))))
-      (setf (modstate-shift *modstate*)
+      (setf (modstate-shift (modstate *acl-port*))
 	(or (and (or (minusp shiftstate) 
 		     (not (zerop (ash shiftstate -15))))
 		 (zerop capstate))
@@ -584,27 +547,27 @@
     (if pass
 	(progn
 	  (setq pass nil)
-	  (setq *win-result* (win:DefWindowProc window msg wparam lparam))
+	  (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam))
 	  ;;added this so that port modifier state is always updated, 
 	  ;; even on passed characters. -- KR
 	  (setf (port-modifier-state *acl-port*)
-	    (modstate->modifier *modstate*))
-	  *win-result*)
+	    (modstate->modifier (modstate *acl-port*)))
+	  (win-result *acl-port*))
       (progn
 	(when (and (or (<= #x30 vk #x5a)
 		       (<= #xba vk #xc0)
 		       (<= #xdb vk #xdf))
-		   (modstate-shift *modstate*))
+		   (modstate-shift (modstate *acl-port*)))
 	  (setf code (logior #x100 code)))
 	;; NUM LOCK
 	(when (and (<= #x60 vk #x69)
-		   (not (modstate-numlock *modstate*)))
+		   (not (modstate-numlock (modstate *acl-port*))))
 	  (setf code (logior #x100 code)))
 	(with-slots (event-queue vk->keysym) *acl-port*
 	  (let ((keysym (or (gethash (ldb (byte 9 0) code) vk->keysym)
 			    (gethash (ldb (byte 8 0) code) vk->keysym)))
 		(char nil)
-		(modstate (modstate->modifier *modstate*))
+		(modstate (modstate->modifier (modstate *acl-port*)))
 		(sheet (mirror->sheet *acl-port* window)))
 	    (when (consp keysym)
 	      (setf keysym (first keysym)))
@@ -641,11 +604,11 @@
 		     ;;added this so that port modifier state is always 
 		     ;; updated, even on passed characters. -- KR
 		     (setf (port-modifier-state *acl-port*)
-		       (modstate->modifier *modstate*))
+		       (modstate->modifier (modstate *acl-port*)))
 		     )))))
 	;; set return value to 0
-	(clear-winproc-result *win-result*)
-	*win-result*))))
+	(clear-winproc-result (win-result *acl-port*))
+	(win-result *acl-port*)))))
 
 (defun find-default-gadget (frame)
   ;; Look for a button that is "show-as-default"
@@ -728,8 +691,8 @@
 				     :modifier-state modifier-state
 				     :pointer pointer
 				     :sheet sheet))))))
-  (clear-winproc-result *win-result*)
-  *win-result*)
+  (clear-winproc-result (win-result *acl-port*))
+  (win-result *acl-port*))
 
 ;; Process WM_LBUTTONDBLCLK
 (defun onbuttondblclk (window msg wparam lparam)
@@ -764,8 +727,8 @@
 				     :modifier-state modifier-state
 				     :pointer pointer
 				     :sheet sheet))))))
-  (clear-winproc-result *win-result*)
-  *win-result*)
+  (clear-winproc-result (win-result *acl-port*))
+  (win-result *acl-port*))
 
 ;; Process WM_ACTIVATE
 (defun onactivate (window msg wparam lparam)
@@ -780,7 +743,7 @@
 	(active (loword wparam)))
     (when (and sheet (not (= active WA_INACTIVE)))
       (setf (acl-port-mirror-with-focus *acl-port*) window))
-    (setq *win-result* (win:DefWindowProc window msg wparam lparam))))  
+    (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam))))  
 
 ;; Process WM_KILLFOCUS
 (defun onkillfocus (window msg wparam lparam)
@@ -798,8 +761,8 @@
 			(allocate-event 'silica::window-close-event
 					:sheet sheet)))))
     ;; set return value to 0
-    (clear-winproc-result *win-result*)
-    *win-result*))
+    (clear-winproc-result (win-result *acl-port*))
+    (win-result *acl-port*)))
 
 ;; Process WM_INITMENUPOPUP
 (defun oninitmenupopup (window msg wparam lparam)
@@ -815,23 +778,20 @@
       (update-menu-contents sheet menu-handle index)
       (update-menu-item-sensitivities menu-handle)
       ;; set return value to 0
-      (clear-winproc-result *win-result*)
-      *win-result*)))
+      (clear-winproc-result (win-result *acl-port*))
+      (win-result *acl-port*))))
 
 ;; Process WM_NCHITTEST
 (defun onnchittest (window msg wparam lparam)
   ;; Called on the object that contains the cursor
   ;; every time the mouse moves.
-  (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
+  (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
 
 ;; Allow Windows to provide default message processing.
 (defun message-default (window msg wparam lparam)
-  (clear-winproc-result *win-result*)
-  (setq *win-result* (win:DefWindowProc window msg wparam lparam))
-  *win-result*)
-
-(defvar wres  (ct:callocate :long))
-(defvar wmsg  (ct:ccallocate win:msg))
+  (clear-winproc-result (win-result *acl-port*))
+  (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam))
+  (win-result *acl-port*))
 
 ;; Refer to the windows documentation on Tooltip controls.
 ;; The message stream needs to be relayed to the tooltip 
@@ -854,7 +814,7 @@
 	    (top (frame-top-level-sheet frame))
 	    (tt (tooltip-control top))
 	    (ttm_relayevent #.(+ win:WM_USER 7))
-	    (relay wmsg))
+	    (relay (wmsg *acl-port*)))
        (when tt
 	 (ct:csets win:msg relay
 		   lparam lparam
@@ -864,7 +824,7 @@
 	 (or (plusp (win:SendMessage tt ttm_relayevent 0 relay))
 	     (check-last-error "TTM_RELAYEVENT" :Action :warn))))))
   #+optional
-  (callnexthookex *next-windows-hook* msg wparam lparam))
+  (callnexthookex (next-windows-hook *acl-port*) msg wparam lparam))
 
 ;;; Windows messages get printed to the value of this, if
 ;;; *maybe-format* is non-NIL
@@ -965,7 +925,7 @@
        (message-default window msg wparam lparam))
       (otherwise
        (message-default window msg wparam lparam)))
-    (setf result *win-result*)
+    (setf result (win-result *acl-port*))
     (mformat *windows-message-trace-output*
 	     "~A Out clim-wind-proc msg=~a sheet=~s result=~s~%"
 	       *level*
@@ -1010,7 +970,6 @@
 (ff:defun-foreign-callable clim-ctrl-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
-    (setf *hwnd* window)
     (let ((result 0)
           (sheet (mirror->sheet *acl-port* window)))
       (mformat excl:*initial-terminal-io*
@@ -1045,13 +1004,13 @@
 		 (shiftstate (win:GetKeyState win:VK_SHIFT))
 		 (controlstate (win:GetKeyState win:VK_CONTROL))
 		 (metastate (win:GetKeyState win:VK_MENU)))
-	    (setf (modstate-control *ctlmodstate*)
+	    (setf (modstate-control (ctlmodstate *acl-port*))
 	      (or (minusp controlstate) (not (zerop (ash controlstate -15)))))
-	    (setf (modstate-meta *ctlmodstate*)
+	    (setf (modstate-meta (ctlmodstate *acl-port*))
 	      (or (minusp metastate) (not (zerop (ash metastate -15)))))
-	    (setf (modstate-numlock *ctlmodstate*)
+	    (setf (modstate-numlock (ctlmodstate *acl-port*))
 	      (and (plusp numstate) (zerop (ash numstate -15))))
-	    (setf (modstate-shift *ctlmodstate*)
+	    (setf (modstate-shift (ctlmodstate *acl-port*))
 	      (or (and (or (minusp shiftstate) 
 			   (not (zerop (ash shiftstate -15))))
 		       (zerop capstate))
@@ -1060,17 +1019,17 @@
 		       (and (plusp capstate) (zerop (ash capstate -15)))))))
 
 	  (when (and (or (<= #x30 vk #x5a)(<= #xba vk #xc0)(<= #xdb vk #xdf))
-		     (modstate-shift *ctlmodstate*))
+		     (modstate-shift (ctlmodstate *acl-port*)))
 	    (setf code (logior #x100 code)))
 	  ;; NUM LOCK
 	  (when (and (<= #x60 vk #x69)
-		     (not (modstate-numlock *ctlmodstate*)))
+		     (not (modstate-numlock (ctlmodstate *acl-port*))))
 	    (setf code (logior #x100 code)))
 	  (with-slots (event-queue vk->keysym) *acl-port*
 	    (let ((keysym (or (gethash (ldb (byte 9 0) code) vk->keysym)
 			      (gethash (ldb (byte 8 0) code) vk->keysym)))
 		  (char nil)
-		  (modstate (modstate->modifier *ctlmodstate*))
+		  (modstate (modstate->modifier (ctlmodstate *acl-port*)))
 		  ;;(sheet (mirror->sheet *acl-port* window))
 		  )
 	      (when (consp keysym)
@@ -1086,17 +1045,18 @@
                 ;;mm: spr27890 look at :newline or :tab ourselves
                 (case keysym 
                   (:newline (eql modstate 0))
-                  (:tab (or (eql modstate 0) (modstate-shift *ctlmodstate*)))))
+                  (:tab (or (eql modstate 0) (modstate-shift (ctlmodstate
+							      *acl-port*))))))
            (setq pass nil)) ;;; Don't pass along the character.
        (if pass
            (progn
              (setq pass nil)
              (setq 
-              ;;mm *win-result* 
+              ;;mm (win-result *acl-port*) 
               result
-               (win:CallWindowProc std-ctrl-proc-address
+               (win:CallWindowProc (std-ctrl-proc-address *acl-port*)
                                    window msg wparam lparam))
-             *win-result*)
+             (win-result *acl-port*))
          (let ((sheet (mirror->sheet *acl-port* window)))
            ;; We have decided to handle this character ourselves!
            
@@ -1121,7 +1081,7 @@
                   :sheet sheet))) sheet)
 
 		  ;; set return value to 0
-		  ;;(clear-winproc-result *win-result*)
+		  ;;(clear-winproc-result (win-result *acl-port*))
 		  (setq result 0)))))))
 
        ;; 17-Mar-03  mm [bug13094]      
@@ -1133,37 +1093,21 @@
 	;; it seems to be coming because of the IsDialogMessage call.
 	;; We return 0 to pervent special (dialog accelerator) handling
 	;; for any of the keys that should be translated to WM_CHAR messages.
-	(clear-winproc-result *win-result*) 
-	(setf *win-result* 0)
-	*win-result*)
+	(clear-winproc-result (win-result *acl-port*)) 
+	(setf (win-result *acl-port*) 0)
+	(win-result *acl-port*))
 
        (t
 	;; This is where we let the control do its own thing.  Most
 	;; messages come through here.
-	;;(clear-winproc-result *win-result*)
-	(setq ;;*win-result*
+	;;(clear-winproc-result (win-result *acl-port*))
+	(setq ;;(win-result *acl-port*)
 	 result
-	 (win:CallWindowProc std-ctrl-proc-address
+	 (win:CallWindowProc (std-ctrl-proc-address *acl-port*)
 					       window msg wparam lparam))
-        *win-result*))
-      ;;(setf result *win-result*)
+        (win-result *acl-port*)))
+      ;;(setf result (win-result *acl-port*))
       result)))
-
-(defvar *clim-class* "ClimClass")
-(defvar *win-name* "CLIM")
-(defvar *menu-name* "ClimMenu")
-(defvar *win-x* "x")
-(defvar *wndclass-registered* nil)
-(defvar clim-window-proc-address nil)
-(defvar clim-ctrl-proc-address nil)
-(defvar std-ctrl-proc-address nil)
-(defvar tooltip-relay-address nil)
-(defvar *next-windows-hook* nil)
-(defvar *clim-initialized* nil)
-(defvar lpcmdline "")
-(defvar *hinst* 0) 
-(defvar *hprevinst* 0) 
-(defvar *screen-device* nil)
 
 
 (defun initialize-clim (&optional (mp t))
@@ -1186,11 +1130,10 @@
 	   4 ;; make sure this stays in sync with cl/src/c/dllmain.c
 	   :element-type 'signed-nat)))
     (win:GetWinMainArgs dataobj)
-    (setq *hinst*      (aref dataobj 0)
-	  *hprevinst*  (aref dataobj 1)
-	  lpcmdline    (aref dataobj 2)))
-  (setq *screen-device*
-    (make-instance 'windows-screen-device)))
+    (setf (hinst *acl-port*)         (aref dataobj 0)
+	  ;;(hprevinst *acl-port*)   (aref dataobj 1)
+	  (lpcmdline *acl-port*)     (aref dataobj 2)
+	  (screen-device *acl-port*) (make-instance 'windows-screen-device))))
 
 (defun make-cstructure (type length)
   ;; create and return a region of memory of the
@@ -1198,23 +1141,37 @@
   (declare (ignore type))
   (ff:allocate-fobject `(:array :unsigned-char ,length) :foreign-static-gc))
 
-(defun ensure-clim-initialized ()
-  (unless *clim-initialized*
+(defun ensure-clim-initialized (*acl-port*)
+  (unless (acl-clim-initialized-p *acl-port*)
     (initialize-cg)
-    (setf clim-window-proc-address 
-      (init-clim-win-proc clim-window-proc-address (make-cstructure 0 16)))
-    (setf clim-ctrl-proc-address 
-      (init-clim-ctrl-proc clim-ctrl-proc-address (make-cstructure 0 16)))
+    (setf (clim-window-proc-address *acl-port*) 
+	  (init-clim-win-proc (if (slot-boundp *acl-port*
+					       'clim-window-proc-address)
+				  (clim-window-proc-address *acl-port*)
+				  nil)
+			      (make-cstructure 0 16)))
+    (setf (clim-ctrl-proc-address *acl-port*) 
+	  (init-clim-ctrl-proc (if (slot-boundp *acl-port*
+						'clim-ctrl-proc-address)
+				   (clim-ctrl-proc-address *acl-port*)
+				   nil)
+			       (make-cstructure 0 16)))
     #+not-yet
-    (setf tooltip-relay-address 
-      (init-tooltip-relay tooltip-relay-address (make-cstructure 0 16)))
-    (setq *clim-initialized* t)))
+    (setf (tooltip-relay-address *acl-port*) 
+	  (init-tooltip-relay
+	   (if (slot-boundp *acl-port*
+			    'tooltip-relay-address)
+	       (tooltip-relay-address *acl-port*)
+	       nil)
+	   (make-cstructure 0 16)))
+    (setf (clim-initialized-p *acl-port*) t)))
 
 (defun acl-clim::register-window-class (hcursor)
   ;; This is called by initialize-instance of acl-port.
   ;; It creates a (single) Windows window class for all clim windows.
-  (unless *wndclass-registered*
-    (init-clim-win-proc clim-window-proc-address (make-cstructure 0 16))
+  (unless (wndclass-registered *acl-port*)
+    (init-clim-win-proc (clim-window-proc-address *acl-port*)
+			(make-cstructure 0 16))
     (let ((class (ff:allocate-fobject 'win:wndclassex 
 				      :foreign-static-gc nil))
 	  (icon (win:LoadIcon 0 win:IDI_APPLICATION)) ; (get-clim-icon)
@@ -1229,7 +1186,7 @@
 		win:CS_BYTEALIGNWINDOW))
       (setf (ff:fslot-value-typed 'win:wndclassex 
 				  :foreign class :lpfnWndProc)
-	clim-window-proc-address)
+	    (clim-window-proc-address *acl-port*))
       (setf (ff:fslot-value-typed 'win:wndclassex 
 				  :foreign class :cbClsExtra) 
 	0)
@@ -1238,7 +1195,7 @@
 	0)
       (setf (ff:fslot-value-typed 'win:wndclassex 
 				  :foreign class :hInstance) 
-	*hinst*)
+	(hinst *acl-port*))
       (setf (ff:fslot-value-typed 'win:wndclassex 
 				  :foreign class :hIcon) 
 	icon)
@@ -1253,7 +1210,7 @@
 	0)
       (setf (ff:fslot-value-typed 'win:wndclassex 
 				  :foreign class :lpszClassName) 
-	(string-to-foreign *clim-class*))
+	(string-to-foreign (acl-clim::clim-class *acl-port*)))
 	  
       (setf (ff:fslot-value-typed 'win:wndclassex 
 				  :foreign class :hIconSm) 
@@ -1261,13 +1218,13 @@
       (setq reg (win:RegisterClassEx class))
       (when (zerop reg)
 	(check-last-error "RegisterClassEx"))
-      (setq *wndclass-registered* t)
-      (when tooltip-relay-address
-	(setq *next-windows-hook*
+      (setf (wndclass-registered *acl-port*) t)
+      (when (tooltip-relay-address *acl-port*)
+	(setf (next-windows-hook *acl-port*)
 	  (SetWindowsHookEx win:WH_GETMESSAGE 
-			    tooltip-relay-address
+			    (tooltip-relay-address *acl-port*)
 			    0 0))
-	(when (zerop *next-windows-hook*)
+	(when (zerop (next-windows-hook *acl-port*))
 	  (check-last-error "SetWindowsHookEx")))
       t)))
 
@@ -1300,12 +1257,12 @@
 	  win:WS_EX_WINDOWEDGE
 	  win:WS_EX_CONTROLPARENT	; TAB BTWN CONTROLS
 	  ))
-        (*win-name* *win-name*)
+        (win-name (acl-clim::win-name *acl-port*))
 	(menu
 	 (if menubar (win:CreateMenu) 0))
 	(window nil))
     (when pretty
-      (setq *win-name* pretty))
+      (setq win-name pretty))
     (cond (modal
 	   ;; Accepting-values comes in here.  We need
 	   ;; thickframe, even though that is not normally
@@ -1329,17 +1286,17 @@
 		     win:WS_MINIMIZEBOX
 		     win:WS_MAXIMIZEBOX))))
     (setq window
-      (excl:with-native-string (*clim-class* *clim-class*)
-	(excl:with-native-string (*win-name* *win-name*)
+      (excl:with-native-string (clim-class (acl-clim::clim-class *acl-port*))
+	(excl:with-native-string (win-name win-name)
 	  (win:CreateWindowEx exstyle
-			      *clim-class*
-			      *win-name*
+			      clim-class
+			      win-name
 			      winstyle
 			      left top width height
 			      (or parent 0)
 			      menu
-			      *hinst*
-			      *win-x* )))) 
+			      (hinst *acl-port*)
+			      (win-x *acl-port*) )))) 
     (when (zerop window)
       (or (check-last-error "CreateWindowEx")
 	  (error "CreateWindowEx: unknown error")))
@@ -1361,22 +1318,22 @@
 			       win:WS_HSCROLL 0)
 			   win:WS_CLIPCHILDREN
 			   ))
-         (*win-name* *win-name*))
+         (win-name (acl-clim::win-name *acl-port*)))
     (when pretty
-      (setq *win-name* pretty))
+      (setq win-name pretty))
     (let ((window
-	   (excl:with-native-string (*clim-class* *clim-class*)
-	     (excl:with-native-string (*win-name* *win-name*)
+	   (excl:with-native-string (clim-class (acl-clim::clim-class *acl-port*))
+	     (excl:with-native-string (win-name win-name)
 	       (win:CreateWindowEx
 		(if ovl 0 win:WS_EX_TOOLWINDOW)
-		*clim-class*
-		*win-name*
+		clim-class
+		win-name
 		winstyle
 		left top width height
 		parent
 		0
-		*hinst*
-		*win-x*)))))
+		(hinst *acl-port*)
+		(win-x *acl-port*))))))
       (when (zerop window)
 	(check-last-error "CreateWindowEx"))
       window)))
@@ -1403,41 +1360,39 @@
 	;; You can ask for a menu bar on a child window,
 	;; but Windows will not give you one.  
 	(menu 0)
-        (*win-name* *win-name*)
+        (win-name (acl-clim::win-name *acl-port*))
 	(window nil))
     (when pretty
-      (setq *win-name* pretty))
+      (setq win-name pretty))
     (setq window
-      (excl:with-native-string (*clim-class* *clim-class*)
-	(excl:with-native-string (*win-name* *win-name*)
+      (excl:with-native-string (clim-class (acl-clim::clim-class *acl-port*))
+	(excl:with-native-string (win-name win-name)
 	  (win:CreateWindowEx exstyle
-			      *clim-class*
-			      *win-name*
+			      clim-class
+			      win-name
 			      winstyle
 			      left top width height
 			      parent
 			      menu
-			      *hinst*
-			      *win-x*))))
+			      (hinst *acl-port*)
+			      (win-x *acl-port*)))))
     (when (zerop window)
       (check-last-error "CreateWindowEx"))
     (if (or (eql scroll :both)(eql scroll :vertical))
-      (win:SetScrollRange window win:SB_VERT 0 *win-scroll-grain* 1))
+      (win:SetScrollRange window win:SB_VERT 0 (win-scroll-grain *acl-port*) 1))
     (if (or (eql scroll :both)(eql scroll :horizontal))
-      (win:SetScrollRange window win:SB_HORZ 0 *win-scroll-grain* 1))
+      (win:SetScrollRange window win:SB_HORZ 0 (win-scroll-grain *acl-port*) 1))
     window))
 
 ;; wres and wmsg move up in file to remove compile-time warning
 
 (defun wait-for-event ()
   (when (prog1
-            (win:PeekMessage wmsg 0 0 0
+            (win:PeekMessage (wmsg *acl-port*) 0 0 0
 			     (logior win:PM_NOYIELD win:PM_NOREMOVE))
-	  (not (and (zerop (hiword wres)) (zerop (loword wres)))))
+	  (not (and (zerop (hiword (wres *acl-port*)))
+		    (zerop (loword (wres *acl-port*))))))
     t))
-
-(defvar msg (ct:ccallocate win:msg))
-(defvar res (ct:callocate :long))
 
 ;; This is the prototypical way to get and process 
 ;; a windows message from the windows message queue. 
@@ -1450,13 +1405,13 @@
   (loop
     (let ((gotmessage
 	   (if nonblocking
-	       (win:PeekMessage msg 0 0 0 win:PM_REMOVE) 
-	     (win:GetMessage msg 0 0 0))))
+	       (win:PeekMessage (msg *acl-port*) 0 0 0 win:PM_REMOVE) 
+	     (win:GetMessage (msg *acl-port*) 0 0 0))))
       (cond ((not gotmessage) (return t))
-	    ((and hwnd (win:IsDialogMessage hwnd msg)))
+	    ((and hwnd (win:IsDialogMessage hwnd (msg *acl-port*))))
 	    (t 
-	     (win:TranslateMessage msg)
-	     (win:DispatchMessage msg)))
+	     (win:TranslateMessage (msg *acl-port*))
+	     (win:DispatchMessage (msg *acl-port*))))
       (when nonblocking (return t))
       )))
 
@@ -1519,11 +1474,7 @@
 (setf sys::*default-message-interrupt-function*
   #'clim-message-interrupt-function)
 
-(defvar *current-window*)
-(defvar *dc-initialized* nil)
-
 ;;; Stock objects
-(defvar *null-pen*)
 (defvar *black-pen*)
 (defvar *ltgray-pen*)
 (defvar *null-brush*)
@@ -1548,67 +1499,16 @@
     (clim:destroy-port acl-clim::*acl-port*))
 
 
-  (setq *acl-port* nil)
-  (setq *menu-id->command-table*
-    (make-array 256 
-                :element-type t :adjustable t 
-                :fill-pointer 0 :initial-element nil))
-  (setq *popup-menu->menu-item-ids* (make-hash-table))
-  (setq *popup-menu->command-table* (make-hash-table))
-  (setq *maybe-format* nil)
-  (setq *msg-names* nil)
-  (setq *modstate* (make-modstate))
-  (setq *ctlmodstate* (make-modstate))
-  (setq *win-result* 0)
+  (setq *acl-port* nil
+	*maybe-format* nil
+	*level* 0
+	*windows-message-trace-output* excl:*initial-terminal-io*)
+  
 ;;;  (setq *hwnd* 0)
 ;;;  (setq *clim-wproc-arg-struct* nil)
 ;;;  (setq *clim-ctrl-arg-struct* nil)
 ;;;  (setq *tooltip-relay-struct* nil)
-  (setq *level* 0)
-  (setq *realtime-scrollbar-tracking* t)
-  (setq *win-scroll-grain* 1000)
-  (setq wres  (ct:callocate :long))
-  (setq wmsg  (ct:ccallocate win:msg))
-  (setq *windows-message-trace-output* excl:*initial-terminal-io*)
-  (setq *clim-class* "ClimClass")
-  (setq *win-name* "CLIM")
-  (setq *menu-name* "ClimMenu")
-  (setq *win-x* "x")
-  (setq *wndclass-registered* nil)
-  (setq clim-window-proc-address nil)
-  (setq clim-ctrl-proc-address nil)
-  (setq std-ctrl-proc-address nil)
-  (setq tooltip-relay-address nil)
-  (setq *next-windows-hook* nil)
-  (setq *clim-initialized* nil)
-  (setq lpcmdline "")
-  (setq *hinst* 0)
-  (setq *hprevinst* 0)
-  (setq *screen-device* nil)
-  (setq msg (ct:ccallocate win:msg))
-  (setq res (ct:callocate :long))
-
-
-  (setq arrow-cursor 
-    (ff:allocate-fobject 'win:hcursor :foreign-static-gc nil))
-  (setq application-icon 
-    (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil))
-
-
-  (setq *current-window* nil)
-  (setq *dc-initialized* nil)
-
-
-  (setq *null-pen* nil)
-  (setq *black-pen* nil)
-  (setq *ltgray-pen* nil)
-  (setq *null-brush* nil)
-  (setq *black-brush* nil)
-  (setq *ltgray-brush* nil)
-  (setq *blank-image* nil)
-  (setq *ltgray-image* nil)
-
-
-  (setq *background-brush* nil)
+  
   )
 
+(push #'reset-aclpc-clim excl::*restart-actions*)
