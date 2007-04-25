@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 2.8 2007/04/17 21:45:48 layer Exp $
+;; $Id: acl-scroll.lisp,v 2.9 2007/04/25 20:29:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -259,13 +259,13 @@
 		(struct (ct:ccallocate win:scrollinfo))
 		(bar (if (eq orientation :vertical) 
 			 win:SB_VERT win:SB_HORZ))
-		(page (floor (* size acl-clim::*win-scroll-grain*)))
-		(position (floor (* pos acl-clim::*win-scroll-grain*))))
+		(page (floor (* size (acl-clim::win-scroll-grain acl-clim::*acl-port*))))
+		(position (floor (* pos (acl-clim::win-scroll-grain acl-clim::*acl-port*)))))
 	    (ct:csets win:scrollinfo struct
 		      cbSize (ct:sizeof win:scrollinfo)
 		      fMask win:SIF_ALL
 		      nMin 0
-		      nMax acl-clim::*win-scroll-grain*
+		      nMax (acl-clim::win-scroll-grain acl-clim::*acl-port*)
 		      nPage page
 		      nPos position)
 	    (win:SetScrollInfo mirror bar struct 1))
@@ -311,7 +311,7 @@
 		   (:vertical win:SB_VERT)
 		   (:horizontal win:SB_HORZ)))
 	   (current-value (/ (win:GetScrollPos window flag)
-			     (float acl-clim::*win-scroll-grain*)))
+			     (float (acl-clim::win-scroll-grain acl-clim::*acl-port*))))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
@@ -338,7 +338,7 @@
 		   (:horizontal win:SB_HORZ)))
 	   (window (sheet-mirror scroller-pane))
 	   (current-value (/ (win:GetScrollPos window flag)
-			     (float acl-clim::*win-scroll-grain*)))
+			     (float (acl-clim::win-scroll-grain acl-clim::*acl-port*))))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
@@ -349,8 +349,8 @@
 			   (/ (line-scroll-amount
 			       scroller-pane orientation :down)
 			      (float contents-range  0.0s0)))))
-	   (new-value (min (- (/ (1+ acl-clim::*win-scroll-grain*) ;; max size
-				 acl-clim::*win-scroll-grain*) ;; max pos
+	   (new-value (min (- (/ (1+ (acl-clim::win-scroll-grain acl-clim::*acl-port*)) ;; max size
+				 (acl-clim::win-scroll-grain acl-clim::*acl-port*)) ;; max pos
 			      current-size)
 			   (+ current-value line-value))))
       (scroll-bar-value-changed-callback
@@ -366,7 +366,7 @@
 		   (:horizontal win:SB_HORZ)))
 	   (window (sheet-mirror scroller-pane))
 	   (current-value (/ (win:GetScrollPos window flag)
-			     (float acl-clim::*win-scroll-grain*)))
+			     (float (acl-clim::win-scroll-grain acl-clim::*acl-port*))))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
@@ -391,7 +391,7 @@
 		   (:horizontal win:SB_HORZ)))
 	   (window (sheet-mirror scroller-pane))
 	   (current-value (/ (win:GetScrollPos window flag)
-			     (float acl-clim::*win-scroll-grain*)))
+			     (float (acl-clim::win-scroll-grain acl-clim::*acl-port*))))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
@@ -402,8 +402,8 @@
 	  (setq new-value current-value)
 	(let ((page-value (the single-float 
 			    (/ viewport-range (float contents-range 0.0s0)))))
-	  (setq new-value (min (- (/ (1+ acl-clim::*win-scroll-grain*)
-				     acl-clim::*win-scroll-grain*)
+	  (setq new-value (min (- (/ (1+ (acl-clim::win-scroll-grain acl-clim::*acl-port*))
+				     (acl-clim::win-scroll-grain acl-clim::*acl-port*))
 				  current-size)
 			       (+ current-value page-value)))))
       (scroll-bar-value-changed-callback
@@ -417,7 +417,7 @@
     (let* ((current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
-	   (new-value (/ pos (float acl-clim::*win-scroll-grain*))))
+	   (new-value (/ pos (float (acl-clim::win-scroll-grain acl-clim::*acl-port*)))))
       (scroll-bar-value-changed-callback
        scroller-pane scroller-pane orientation new-value current-size))))
 

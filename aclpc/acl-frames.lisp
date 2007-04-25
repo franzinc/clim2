@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.11 2007/04/17 21:45:48 layer Exp $
+;; $Id: acl-frames.lisp,v 2.12 2007/04/25 20:29:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -149,7 +149,7 @@
 (defmethod frame-manager-default-exit-boxes ((framem acl-frame-manager))
   '((:exit) (:abort)))
 
-;; Note: items appear never to be removed from *menu-id->command-table*
+;; Note: items appear never to be removed from menu-id->command-table
 ;; so this will grow indefinitely (cim 9/9/96). There really should be
 ;; a global id counter and the association list should be kept on a
 ;; per application-frame basis. 
@@ -159,8 +159,8 @@
   ;; It is allowed for the UNIX port, apparently.
   (when (atom command) (setq command (list command)))
   (prog1
-    (fill-pointer *menu-id->command-table*)
-    (vector-push-extend (cons frame command) *menu-id->command-table*
+    (fill-pointer (menu-id->command-table *acl-port*))
+    (vector-push-extend (cons frame command) (menu-id->command-table *acl-port*)
 			256)))
 
 (defun find-command-menu-item-id (command frame)
@@ -171,11 +171,11 @@
 	       (c (second x)))
 	   (and (eq f frame)
 		(eq c command)))))
-   *menu-id->command-table*))
+   (menu-id->command-table *acl-port*)))
 
 (defun map-command-menu-ids (frame func &rest args)
-  (dotimes (id (fill-pointer *menu-id->command-table*))
-    (let ((x (aref *menu-id->command-table* id)))
+  (dotimes (id (fill-pointer (menu-id->command-table *acl-port*)))
+    (let ((x (aref (menu-id->command-table *acl-port*) id)))
       (when x
 	(let ((f (first x)))
 	  (if (eq f frame) (apply func id args)))))))
@@ -212,7 +212,8 @@
   (map-command-menu-ids
    frame
    #'(lambda (menuid)
-       (let ((command-name (second (aref *menu-id->command-table* menuid))))
+       (let ((command-name (second (aref (menu-id->command-table *acl-port*)
+					 menuid))))
 	 (with-slots (clim-internals::disabled-commands) frame
 	   (push command-name clim-internals::disabled-commands)))))
   )
@@ -420,7 +421,7 @@
     (setq top-level-sheet (frame-top-level-sheet frame)))
   ;; First, delete any pre-existing menu items.
   (delete-menu-bar frame menuhand t)
-  (setf (gethash menuhand *popup-menu->menu-item-ids*) nil) 
+  (setf (gethash menuhand (popup-menu->menu-item-ids *acl-port*)) nil) 
   (setf (gethash menuhand *popup-menu->command-table*) 
     (list command-table 
 	  (slot-value (find-command-table command-table)
@@ -461,7 +462,7 @@
 		 flags
 		 menu-item-id
 		 m))
-	      (push menu-item-id (gethash menuhand *popup-menu->menu-item-ids*))))
+	      (push menu-item-id (gethash menuhand (popup-menu->menu-item-ids *acl-port*)))))
 	   (:function
 	    (warn ":function not yet implemented in menu bars")
 	    )
@@ -516,8 +517,8 @@
   ;; Called just before making a menu active.  If the menu is associated
   ;; with a command table, make sure to enable or gray the menu
   ;; items appropriately.
-  (dolist (menu-item-id (gethash hmenu *popup-menu->menu-item-ids*))
-    (let* ((item (aref *menu-id->command-table* menu-item-id))
+  (dolist (menu-item-id (gethash hmenu (popup-menu->menu-item-ids *acl-port*)))
+    (let* ((item (aref (menu-id->command-table *acl-port*) menu-item-id))
 	   (frame (first item))
 	   (command (second item))
 	   (top (frame-top-level-sheet frame))
@@ -576,7 +577,7 @@
 			  win:CW_USEDEFAULT win:CW_USEDEFAULT
 			  win:CW_USEDEFAULT win:CW_USEDEFAULT 
 			  0 0
-			  *hinst* 0))
+			  (hinst *acl-port*) 0))
       (setf (tooltip-control sheet) tooltip-control)
       (when (zerop tooltip-control)
 	(check-last-error "CreateWindow" :action :warn)
@@ -594,7 +595,7 @@
 		hwnd (sheet-mirror sheet)
 		uid (sheet-mirror s)
 		;;rect 0
-		hinst *hinst*
+		hinst (hinst *acl-port*)
 		lpsztext -1 
 		#+ign
 		(lisp-string-to-scratch-c-string 
@@ -2271,7 +2272,8 @@ in a second Lisp process.  This frame cannot be reused."
                                edit-box dont-go-below-domains
 				    include-files)
   ;; Ensure that the callback procedure is registered.
-  (unless (and *clim-initialized* *clim-browse-callback-proc-address*)
+  (unless (and (clim-initialized-p *acl-port*)
+	       *clim-browse-callback-proc-address*)
     (setf *clim-browse-callback-proc-address*
           (ff:register-foreign-callable 'browse-callback-proc
                                         :reuse :return-value)))

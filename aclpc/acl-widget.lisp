@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.13 2007/04/17 21:45:48 layer Exp $
+;; $Id: acl-widget.lisp,v 2.14 2007/04/25 20:29:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1610,7 +1610,7 @@
 
 
 (defmethod native-gadget-range* ((scroll-bar mswin-scroll-bar))
-  (values 0 acl-clim::*win-scroll-grain*))
+  (values 0 (acl-clim::win-scroll-grain acl-clim::*acl-port*)))
 
 
 (defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-scroll-bar))
@@ -1687,7 +1687,7 @@
          cbSize (ct:sizeof win:scrollinfo)
          fMask win:SIF_ALL
          nMin 0
-         nMax acl-clim::*win-scroll-grain*
+         nMax (acl-clim::win-scroll-grain acl-clim::*acl-port*)
          nPage page
          nPos position)
         (win:SetScrollInfo mirror win:SB_CTL struct 1)))))
@@ -2026,16 +2026,16 @@
 	(exstyle win:WS_EX_CLIENTEDGE)
 	(window nil))
     (setq window
-      (excl:with-native-string (*clim-class* *clim-class*)
-	(excl:with-native-string (*win-name* *win-name*)
+      (excl:with-native-string (clim-class (clim-class *acl-port*))
+	(excl:with-native-string (win-name (win-name *acl-port*))
 	  (win:CreateWindowEx exstyle
-			      *clim-class*
-			      *win-name*
+			      clim-class
+			      win-name
 			      winstyle
 			      left top width height
 			      (or parent 0)
 			      0		; menu
-			      *hinst*
+			      (hinst *acl-port*)
 			      (symbol-name (gensym)) )))) 
     (when (zerop window)
       (or (check-last-error "CreateWindowEx")

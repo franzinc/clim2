@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 2.7 2007/04/17 21:45:48 layer Exp $
+;; $Id: acl-mirror.lisp,v 2.8 2007/04/25 20:29:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -37,7 +37,7 @@
 (defmethod sheet-shell (sheet) sheet)
 
 (defmethod realize-graft ((port acl-port) graft)
-  (let ((screen (slot-value *screen-device* 'device-handle1)))
+  (let ((screen (slot-value (screen-device *acl-port*) 'device-handle1)))
    (setf (port-screen port) screen)
    (init-cursors)
    (with-slots (silica::pixels-per-point
@@ -206,8 +206,8 @@
         (setf (sheet-event-queue sheet) (make-acl-event-queue)))
       (when control (setf (silica::gadget-id->window sheet gadget-id) window)) 
       (unless (or control msscrollwin)
-        (setq *current-window* window)
-	(unless *dc-initialized* (initialize-dc))
+        (setf (current-window port) window)
+	(unless (dc-initialized port) (initialize-dc))
 	(with-dc (window dc)
           (with-slots (logpixelsy) port
             (setf logpixelsy (win:GetDeviceCaps dc win:LOGPIXELSY)))))
