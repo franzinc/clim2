@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-funs.lisp,v 2.7 2006/10/10 18:05:09 layer Exp $
+;; $Id: xlib-funs.lisp,v 2.7.20.1 2007/05/16 20:23:08 afuchs Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -1381,6 +1381,12 @@
    (keysyms-per-keycode int)
    (keysyms (:pointer keysym))
    (nkeycodes int))
+
+(def-exported-foreign-function (xkeycodetokeysym (:return-type int)
+                                                 (:name "XKeycodeToKeysym"))
+   (dpy (:pointer display))
+   (keycode int)
+   (index int))
 
 (def-exported-foreign-function (xsetselectionowner (:name "XSetSelectionOwner"))
    (dpy (:pointer display))
