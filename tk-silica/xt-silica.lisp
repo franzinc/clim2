@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.7 2006/10/10 18:05:08 layer Exp $
+;; $Id: xt-silica.lisp,v 2.7.22.1 2007/05/16 20:24:14 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -89,7 +89,6 @@
 		(make-instance 'tk::gcontext :drawable pixmap))
 	    (tk::destroy-pixmap pixmap))))))
 
-
 (defmethod restart-port ((port xt-port))
   (let ((process (port-process port)))
     (when process
@@ -98,12 +97,12 @@
       (mp:process-run-function
        (list :name (format nil "CLIM Event Dispatcher for ~A"
 			   (port-server-path port))
-	     :priority 1000
-             :initial-bindings `((excl:*locale* . ',excl:*locale*)
-                                 ,@excl:*cl-default-special-bindings*))
+	     :priority 1000)
        #'port-event-loop port))
     (setf (getf (mp:process-property-list process) :no-interrupts) t)
-    (setf (port-process port) process)))
+    (setf (port-process port) process)
+    ;; Find out the modifier->modbit mapping on the display.
+    (setup-modifier-key-mapping port)))
 
 (defparameter *use-color* t)		; For debugging monochrome
 
@@ -1558,15 +1557,59 @@ setup."
       character
     (excl::old-code-char (char-code character) bits)))
 
+(defvar +super-modifier-mask+ 0)
+(defvar +hyper-modifier-mask+ 0)
+(defvar +meta-modifier-mask+ 0)
+
+(defun setup-modifier-key-mapping (port)
+  (let* ((display (slot-value port 'tk-silica::display))
+         (modifier-map (x11:xgetmodifiermapping display))
+         (mods (x11:xmodifierkeymap-modifiermap modifier-map))
+         (max-keypermod (x11:xmodifierkeymap-max-keypermod modifier-map))
+         (skip-modbits 3)     ; assuming that shift, lock, control are
+                              ; always bound to sane values.
+         )
+    (labels ((translate-key (key &aux keysym)
+               (loop for index from 0 below max-keypermod
+                     do (setf keysym (x11:xkeycodetokeysym display key index))
+                     while (zerop keysym)
+                     
+                     finally  (return keysym))))
+      (unwind-protect
+          ;; "The modifiermap member of the XModifierKeymap structure
+          ;; contains 8 sets of max_keypermod KeyCodes" -- XGetModifierMap(3X11)
+          (loop for i from skip-modbits to 8
+                for mod-keyword in `(,x11:mod1mask ,x11:mod2mask ,x11:mod3mask
+                                         ,x11:mod4mask ,x11:mod5mask)
+                do (loop for j from 0 below max-keypermod
+                         for key = (sys:memref-int mods
+                                                   (+ (* i max-keypermod) j)
+                                       0 :unsigned-byte)
+                         unless (zerop key)
+                           do (case (translate-key key)
+                                ((#.x11:XK-Meta-L #.x11:XK-Meta-R)
+                                 (setf +meta-modifier-mask+ mod-keyword))
+                                ((#.x11:XK-Super-L #.x11:XK-Super-R)
+                                 (setf +super-modifier-mask+ mod-keyword))
+                                ((#.x11:XK-Hyper-L #.x11:XK-Hyper-R)
+                                 (setf +hyper-modifier-mask+ mod-keyword)))))
+        (x11:xfreemodifiermap modifier-map)))
+    (values +meta-modifier-mask+ +super-modifier-mask+ +hyper-modifier-mask+)))
+
 (defun state->modifiers (x)
   (declare (optimize (speed 3) (safety 0))
 	   (fixnum x))
+  ;; 2007-05-09/asf This is not entirely optimal yet: In recent linux
+  ;; distributions (Ubuntu, specifically), Hyper and Super cause the
+  ;; same modifier bit to be set on x events. Maybe it would be better
+  ;; to observe the press/release events of modifier keys (this could
+  ;; also enable sticky ESC to be Meta, the way emacs has it).
   (logior
    (if (logtest x x11:shiftmask) +shift-key+ 0)
    (if (logtest x x11:controlmask) +control-key+ 0)
-   (if (logtest x x11:mod1mask) +meta-key+ 0)
-   (if (logtest x x11:mod2mask) +super-key+ 0)
-   (if (logtest x x11:mod3mask) +hyper-key+ 0)))
+   (if (logtest x +meta-modifier-mask+) +meta-key+ 0)
+   (if (logtest x +super-modifier-mask+) +super-key+ 0)
+   (if (logtest x +hyper-modifier-mask+) +hyper-key+ 0)))
 
 (defmethod get-application-resources ((port xt-port))
   (multiple-value-bind (names classes)

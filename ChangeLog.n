@@ -1,3 +1,10 @@
+2007-05-16  Andreas Fuchs  <afuchs@franz.com>
+
+	* xlib/xlib-funs.lisp: new function xkeycodetokeysym
+        * tk-silica/xt-silica.lisp: find out the meta/super/hyper mod
+          bits from the X server, then use the bit masks in
+          state->modifiers.
+
 2007-04-24  Andreas Fuchs  <asf@boinkor.net>
 	   
 	* aclpc/acl-class.lisp, aclpc/acl-port.lisp:
@@ -6138,4 +6145,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.29.10.1 $
+$Revision: 2.29.10.2 $
