@@ -1,3 +1,10 @@
+2007-05-17    <layer@HOBART>
+
+	* aclpc/acl-class.lisp: bug17020: clim process browser in win64
+	  causes acl to disappear: make sure the defun-foreign-callable
+	  arguments are declared with the correct types (as are done for
+	  clim-wind-proc)
+
 2007-04-24  Andreas Fuchs  <asf@boinkor.net>
 	   
 	* aclpc/acl-class.lisp, aclpc/acl-port.lisp:
@@ -6171,4 +6178,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.33 $
+$Revision: 2.34 $

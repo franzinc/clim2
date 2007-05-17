@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.19 2007/04/25 20:29:26 layer Exp $
+;; $Id: acl-class.lisp,v 2.20 2007/05/17 20:35:03 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -967,7 +967,10 @@
 ;;; only the edit control).
 
 ;; [rfe4951]
-(ff:defun-foreign-callable clim-ctrl-proc (window msg wparam lparam)
+(ff:defun-foreign-callable clim-ctrl-proc ((window win:hwnd)
+					   (msg win:uint)
+					   (wparam win:wparam)
+					   (lparam win:lparam))
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
     (let ((result 0)
