@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.10 2007/06/06 17:15:06 layer Exp $
+;; $Id: xt-silica.lisp,v 2.11 2007/07/18 18:00:13 layer Exp $
 
 (in-package :xm-silica)
 
@@ -98,9 +98,9 @@
 	     :priority 1000)
        #'port-event-loop port))
     (setf (getf (mp:process-property-list process) :no-interrupts) t)
-    (setf (port-process port) process))
+    (setf (port-process port) process)
     ;; Find out the modifier->modbit mapping on the display.
-    (setup-modifier-key-mapping port))
+    (setup-modifier-key-mapping port)))
 
 (defparameter *use-color* t)		; For debugging monochrome
 

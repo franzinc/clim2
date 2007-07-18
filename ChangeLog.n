@@ -1,3 +1,8 @@
+2007-07-18  Kevin Layer  <layer@gemini.franz.com>
+
+	* tk-silica/xt-silica.lisp (restart-port): bug16740: fix badly
+	  placed paren (from patch)
+
 2007-05-16  Andreas Fuchs  <afuchs@franz.com>
 
 	* xlib/xlib-funs.lisp: new function xkeycodetokeysym
@@ -6185,4 +6190,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.35 $
+$Revision: 2.36 $
