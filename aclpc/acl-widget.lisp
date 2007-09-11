@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.12.20.1 2007/04/24 12:59:39 afuchs Exp $
+;; $Id: acl-widget.lisp,v 2.12.20.2 2007/09/11 13:41:21 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -289,7 +289,13 @@
 ;; the min height in a +text-field-view+ is zero.  At some
 ;; point, lets try modifying +text-field-view+ and 
 ;; +text-editor-view+ to supply better default sizes than zero.
-(defvar *min-text-field-width* 75)
+;;
+;; 2007-09-03/afuchs: This used to be *min-text-field-width. The
+;; minimum width was computed twice. So far, this didn't work too well
+;; for text boxes in accepting-values panes that should be smaller
+;; than 75 pixels. min-w seems to work better, so let's use that
+;; instead, and use 75 as a default width.
+(defvar *default-text-field-width* 75)
 (defvar *min-text-field-height* '(1 :line))
 
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
@@ -313,14 +319,14 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
-			    *min-text-field-width*)))
+			    min-w)))
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (max (process-width-specification pane value)
-			    *min-text-field-width*)))
+			    min-w)))
 	      (t
-	       (setq w *min-text-field-width*)))
+	       (setq w *default-text-field-width*)))
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
 	  ;; Allow for the vertical scrollbar
 	  (let ((wsty (win-scroll-thick :y)))
@@ -709,14 +715,14 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
-			    *min-text-field-width*)))
+			    min-w)))
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (max (process-width-specification pane value)
-			    *min-text-field-width*)))
+			    min-w)))
 	      (t
-	       (setq w (process-width-specification pane `(20 :character)))))
+	       (setq w *default-text-field-width*)))
 	(setq w (max w min-w))
 
 	;; HEIGHT
