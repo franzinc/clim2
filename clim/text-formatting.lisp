@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-formatting.lisp,v 2.7 2006/12/20 20:47:42 layer Exp $
+;; $Id: text-formatting.lisp,v 2.7.20.1 2007/10/30 15:11:22 afuchs Exp $
 
 (in-package :clim-internals)
 
@@ -26,13 +26,14 @@
 ;;; Filling output
 
 (defclass filling-stream (standard-encapsulating-stream)
-    (fill-width
-     break-characters
-     prefix
-     prefix-width
-     current-width
-     old-buffers
-     (buffer :initarg :buffer)))
+     (fill-width
+      break-characters
+      prefix
+      prefix-width
+      current-width
+      old-buffers
+      on-fresh-line
+      (buffer :initarg :buffer)))
 
 (defun flush-buffer-to-stream/filling (stream buffer &optional start end)
   (setf start (or start 0)
@@ -55,16 +56,21 @@
       (write-string (first buffer-entry) s))
     (write-string (slot-value filling-stream 'buffer) s)))
 
+(defun break-character-predicate (stream)
+  (lambda (c)
+    (member c (slot-value stream 'break-characters))))
+
 (defun filling-stream-flush-continuations (filling-stream force-p)
   "Returns a list of continuations that, when invoked in order,
 will flush a filling-stream's buffer until the last break
 character to the appropriate stream with the correct medium
 options.
 
+If force-p is non-NIL, flushes the entire buffer.
+
 Also removes all buffers that would be flushed in this way from
 the filling-stream's old-buffers list."
-  (let ((break-characters (slot-value filling-stream 'break-characters))
-        (current-buffer-entry
+  (let ((current-buffer-entry
          `(,(slot-value filling-stream 'buffer)
             ,(slot-value filling-stream 'stream)
             ,(lambda (stream buffer start end)
@@ -77,78 +83,95 @@ the filling-stream's old-buffers list."
       ;; earlier buffers, then flush that buffer until occurrence.
       (loop for (buffer-entry . rest) on (cons current-buffer-entry
                                                (slot-value filling-stream 'old-buffers))
+            while buffer-entry
             for (buffer stream continuation) = buffer-entry
             for last-break-char-pos
-              = (position-if #'(lambda (c) (member c break-characters))
-                         buffer :from-end t)
+              = (position-if (break-character-predicate filling-stream)
+                         buffer :from-end t
+                         :end (position-if-not
+                               (break-character-predicate filling-stream)
+                                       buffer
+                                       :from-end t))
             when (or last-break-char-pos force-p)
               do (return
                    (values
                     (prog1
-                      (nreverse (cons   ; flush the found buffer last
+                      (nreverse         ; flush the found buffer last
+                       `(,(lambda ()
+                            (funcall continuation
+                                     stream buffer
+                                     0
+                                     (if force-p
+                                         (length buffer)
+                                         last-break-char-pos))
+                            (when (or force-p (zerop (length buffer)))
+                              (delete-buffer-entry buffer-entry)))
+                          ;; but first, flush the buffers before it.
+                          ,@(mapcar
+                             (lambda (buffer-entry)
+                               (destructuring-bind (buffer stream continuation)
+                                   buffer-entry
                                  (lambda ()
                                    (funcall continuation
-                                            stream buffer
-                                            0
-                                            (if force-p (length buffer) last-break-char-pos))
-                                   (when (or force-p (zerop (length buffer)))
-                                     (delete-buffer-entry buffer-entry)))
-                                 ;; but first, flush the buffers before it.
-                                 (mapcar
-                                  (lambda (buffer-entry)
-                                    (destructuring-bind (buffer stream continuation)
-                                        buffer-entry
-                                      (lambda ()
-                                        (funcall continuation
-                                                 stream buffer 0 (length buffer))
-                                        (delete-buffer-entry buffer-entry))))
-                                  rest))))
+                                            stream buffer 0 (length buffer))
+                                   (delete-buffer-entry buffer-entry))))
+                             rest))))
                     last-break-char-pos))))))
 
+
 (defmethod filling-stream-write-buffer ((filling-stream filling-stream) &optional force-p)
-  (with-slots (current-width) filling-stream
+  (with-slots (current-width on-fresh-line) filling-stream
      (let ((stream (slot-value filling-stream 'stream))
            (buffer (slot-value filling-stream 'buffer))
-           (old-buffers (slot-value filling-stream 'old-buffers))
            (fill-width (slot-value filling-stream 'fill-width))
-           (on-fresh-line nil))
-       
+           (should-be-finished-now nil))
        (labels ((break-line-now ()
                   (stream-terpri stream)
                   (filling-stream-handle-line-break filling-stream)
-                  (setq on-fresh-line t)))
+                  (setf on-fresh-line t)))
          (loop
-          (when (and (null old-buffers)
-                     (zerop (fill-pointer buffer))) ;Buffer empty and no delayed buffers.
-            (return-from filling-stream-write-buffer nil))
-          (unless (or (> current-width fill-width)
-                      force-p)        ;Haven't reached the fill column
-            (return-from filling-stream-write-buffer nil))
-          ;; We have a line that is larger than the fill column. it
-          ;; needs to be broken.
-          (multiple-value-bind (flush-continuations found-break-chars)
-              (filling-stream-flush-continuations filling-stream force-p)
-            ;; output the (possibly delayed) buffer contents until the break char.
-            (dolist (continuation flush-continuations)
-              (funcall continuation))
+           (let ((old-buffers (slot-value filling-stream 'old-buffers)))
+             (when (and (null old-buffers)
+                        (zerop (fill-pointer buffer))) ;Buffer empty and no delayed buffers.
+               (return-from filling-stream-write-buffer nil))
+             (unless (or (> current-width fill-width)
+                         force-p)     ;Haven't reached the fill column
+               (return-from filling-stream-write-buffer nil))
 
-            (cond ((and (not force-p) found-break-chars)
-                   ;; Found a break char that's just before the max width
-                   (break-line-now))
-                  (force-p
-                   ;; flush was forced. We should have written
-                   ;; everything now, so bail out.
-                   (return-from filling-stream-write-buffer nil))
-                  ((not force-p)
-                   ;; this line doesn't fit, and there are no break
-                   ;; chars.  write the line on a fresh line anyway,
-                   ;; and open a fresh line after that.
-                   (unless on-fresh-line
-                     (break-line-now))
-                   (let ((force-continuations (filling-stream-flush-continuations filling-stream t)))
-                     (dolist (continuation force-continuations)
-                       (funcall continuation)))
-                   (break-line-now)))))))))
+             (assert (not should-be-finished-now)
+                     (should-be-finished-now)
+                     "whoa, buffer is ~S, old-buffers ~S, fill-pointer at ~A"
+                     buffer old-buffers (fill-pointer buffer))
+                       
+             ;; We have a line that is larger than the fill column. it
+             ;; needs to be broken.
+             (multiple-value-bind (flush-continuations found-break-chars)
+                 (filling-stream-flush-continuations filling-stream
+                                                     force-p)
+               ;; output the (possibly delayed) buffer contents until the break char.
+               (dolist (continuation flush-continuations)
+                 (setf on-fresh-line nil)
+                 (funcall continuation))
+
+               (cond ((and (not force-p) found-break-chars)
+                      ;; Found a break char that's just before the max width
+                      (break-line-now))
+                     (force-p
+                      ;; flush was forced. We should have written
+                      ;; everything now, so bail out.
+                      (return-from filling-stream-write-buffer nil))
+                     ((not force-p)
+                      ;; this line doesn't fit, and there are no break
+                      ;; chars.  write the line on a fresh line anyway,
+                      ;; and open a fresh line after that.
+                      (unless on-fresh-line
+                        (break-line-now))
+                      (let ((force-continuations
+                             (filling-stream-flush-continuations filling-stream
+                                                                 t)))
+                        (dolist (continuation force-continuations)
+                          (setf on-fresh-line nil)
+                          (funcall continuation))))))))))))
 
 ;; Write the prefix string and then set the current width
 (defmethod filling-stream-handle-line-break ((filling-stream filling-stream))
@@ -178,61 +201,67 @@ the filling-stream's old-buffers list."
 
 (defmethod stream-write-char ((filling-stream filling-stream) char)
   (with-slots (current-width) filling-stream
-    (let ((stream (slot-value filling-stream 'stream))
-          (fill-width (slot-value filling-stream 'fill-width))
-          (buffer (slot-value filling-stream 'buffer)))
-      (cond ((or (eql char #\Newline)
-                 (eql char #\Return))
-             (stream-terpri filling-stream))
-            (t
-             (vector-push-extend char buffer)
-             (incf current-width (text-size stream char))
-             ;; FILLING-STREAM-WRITE-BUFFER will only do something if we
-             ;; are beyond the fill-width, so optimize calls to it
-             (when (> current-width fill-width)
-               (filling-stream-write-buffer filling-stream)))))))
+     (let* ((stream (slot-value filling-stream 'stream))
+            (fill-width (slot-value filling-stream 'fill-width))
+            (text-size (text-size stream char))
+            (break-chars (slot-value filling-stream 'break-characters))
+            (buffer (slot-value filling-stream 'buffer)))
+       (cond ((or (eql char #\Newline)
+                  (eql char #\Return))
+              (stream-terpri filling-stream))
+             ((and (> (+ current-width text-size) fill-width)
+                   (member char break-chars))
+              (stream-terpri filling-stream)
+              )
+             (t
+              (vector-push-extend char buffer)
+              (incf current-width text-size)
+              ;; FILLING-STREAM-WRITE-BUFFER will only do something if we
+              ;; are beyond the fill-width, so optimize calls to it
+              (when (> current-width fill-width)
+                (filling-stream-write-buffer filling-stream)))))))
 
 (defmethod stream-write-string ((filling-stream filling-stream) string
                                 &optional (start 0) end)
   (with-slots (current-width) filling-stream
-    (when (null end)
-      (setq end (length string)))
-    (let ((stream (slot-value filling-stream 'stream))
-          (fill-width (slot-value filling-stream 'fill-width))
-          (buffer (slot-value filling-stream 'buffer))
-          (break-characters (slot-value filling-stream 'break-characters)))
-      ;; The general scheme here is to find a break character,
-      ;; buffer the string up to the break character, then call
-      ;; STREAM-WRITE-CHAR on the break character to do the
-      ;; necessary bookkeeping
-      (loop
-        (let* ((break (position-if #'(lambda (char)
-                                       (or (eql char #\Newline)
-                                           (eql char #\Return)
-                                           (member char break-characters)))
-                                   string :start start :end end))
-               (width (text-size stream string
-                                 :start start :end (or break end))))
-          (when (or (null break) (> break 0))
-            (let* ((ofp (fill-pointer buffer))
-                   (nfp (+ ofp (- (or break end) start))))
-              (when (> nfp (array-dimension buffer 0))
-                (adjust-array buffer (+ nfp nfp)))
-              (setf (fill-pointer buffer) nfp)
-              (replace buffer string
-                       :start1 ofp
-                       :start2 start :end2 break)))
-          (incf current-width width)
-          ;; We might need to flush the buffer before we insert
-          ;; the next break character
-          (when (> current-width fill-width)
-            (filling-stream-write-buffer filling-stream))
-          (cond (break
-                 (stream-write-char filling-stream (aref string break))
-                 (setq start (1+ break))
-                 (when (>= start end)
-                   (return)))
-                (t (return))))))))
+     (when (null end)
+       (setq end (length string)))
+     (let ((stream (slot-value filling-stream 'stream))
+           (fill-width (slot-value filling-stream 'fill-width))
+           (buffer (slot-value filling-stream 'buffer))
+           (break-characters (slot-value filling-stream 'break-characters)))
+       ;; The general scheme here is to find a break character,
+       ;; buffer the string up to the break character, then call
+       ;; STREAM-WRITE-CHAR on the break character to do the
+       ;; necessary bookkeeping
+       (loop
+         (let* ((break (position-if #'(lambda (char)
+                                        (or (eql char #\Newline)
+                                            (eql char #\Return)
+                                            (member char break-characters)))
+                                    string :start start :end end))
+                (width (text-size stream string
+                        :start start :end (or break end))))
+           (when (or (null break) (> break 0))
+             (let* ((ofp (fill-pointer buffer))
+                    (nfp (+ ofp (- (or break end) start))))
+               (when (> nfp (array-dimension buffer 0))
+                 (adjust-array buffer (+ nfp nfp)))
+               (setf (fill-pointer buffer) nfp)
+               (replace buffer string
+                :start1 ofp
+                :start2 start :end2 break)))
+           (incf current-width width)
+           ;; We might need to flush the buffer before we insert
+           ;; the next break character
+           (when (> current-width fill-width)
+             (filling-stream-write-buffer filling-stream))
+           (cond (break
+                  (stream-write-char filling-stream (aref string break))
+                  (setq start (1+ break))
+                  (when (>= start end)
+                    (return)))
+                 (t (return))))))))
 
 (defmethod stream-force-output ((filling-stream filling-stream))
   (filling-stream-write-buffer filling-stream t))
@@ -274,15 +303,38 @@ the filling-stream's old-buffers list."
                             #'invoke-with-output-recording-options
                             continuation record draw))
 
-(defmethod stream-close-text-output-record ((filling-stream filling-stream)
-                                            &optional wrapped)
+(defmethod stream-close-text-output-record :around ((filling-stream filling-stream)
+                                                    &optional wrapped)
+  (filling-stream-write-buffer filling-stream t)
   (save-buffer-and-continue filling-stream filling-stream
                             #'stream-close-text-output-record wrapped))
+
+(defmethod invoke-with-new-output-record :around ((filling-stream filling-stream)
+                                                  function record-type
+                                                  constructor &rest initargs)
+  (declare (ignorable initargs constructor record-type function))
+  (filling-stream-write-buffer filling-stream t)
+  (call-next-method))
 
 (defun make-filling-stream-buffer ()
   (make-array 100 :element-type 'character
               :fill-pointer 0
               :adjustable t))
+
+;;; Explicit newline hints on the filling stream
+(defmethod filling-stream-conditional-newline (stream &key force &allow-other-keys)
+  (when force (terpri stream)))
+
+(defmethod filling-stream-conditional-newline ((stream filling-stream)
+                                               &key force (space-for "")
+                                               (text-face (text-style-face (medium-merged-text-style stream)))
+                                               (text-size (text-style-size (medium-merged-text-style stream)))
+                                               (text-family (text-style-family (medium-merged-text-style stream))))
+  (when (or force
+            (> (+ (text-size stream space-for :text-style (make-text-style text-family text-face text-size))
+                  (slot-value stream 'current-width))
+               (slot-value stream 'fill-width)))
+    (terpri stream)))
 
 (defresource filling-stream (stream fill-width break-characters prefix prefix-width)
   :constructor
@@ -301,7 +353,8 @@ the filling-stream's old-buffers list."
       (setf (fill-pointer (slot-value filling-stream 'buffer)) 0)
       (setf (slot-value filling-stream 'current-width)
         (stream-cursor-position stream))
-      (setf (slot-value filling-stream 'old-buffers) nil)))
+      (setf (slot-value filling-stream 'old-buffers) nil)
+      (setf (slot-value filling-stream 'on-fresh-line) t)))
 
 (defun invoke-filling-output (stream continuation
                               &key (fill-width '(80 :character))
