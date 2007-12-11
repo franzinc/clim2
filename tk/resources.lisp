@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 2.7.20.1 2007/03/28 14:47:09 afuchs Exp $
+;; $Id: resources.lisp,v 2.7.20.2 2007/12/11 14:26:54 afuchs Exp $
 
 (in-package :tk)
 
@@ -690,10 +690,7 @@
 
 (defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
   (unless (zerop value)
-    (excl:ics-target-case
-     (:+ics (let ((euc (excl:native-to-octets value)))
-	      (excl:euc-to-string euc)))
-     (:-ics (values (excl:native-to-string value))))))
+    (excl:native-to-string value)))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'boolean)) value)
   (not (zerop value)))
@@ -825,3 +822,14 @@
   (make-instance 'font
 		 :display (widget-display parent)
 		 :foreign-address value))
+
+
+;;; Visual info
+
+(defmethod convert-resource-out (parent (type (eql 'visual)) value)
+  (declare (ignore parent))
+  value)
+
+(defmethod convert-resource-out (parent (type (eql 'depth)) value)
+  (declare (ignore parent))
+  value)

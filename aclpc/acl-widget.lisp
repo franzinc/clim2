@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.12.20.2 2007/09/11 13:41:21 afuchs Exp $
+;; $Id: acl-widget.lisp,v 2.12.20.3 2007/12/11 14:26:53 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -449,24 +449,29 @@
   (let ((mirror (sheet-direct-mirror pane)))
     (when mirror
       (let* ((val (slot-value pane 'value))
-	     (val-len (if val (length val) 0)))
-	;; For endpos = -1, means the end.
-	(when (= endpos -1)
-	  (setq endpos val-len))
-	;; Ensure the correct order.
-	(when (< endpos startpos)
-	  (let ((temp endpos))
-	    (setf endpos startpos
-		  startpos temp)))
-	;; Otherwise, trim to fit.
-	(when (< val-len endpos)
-	  (setq endpos val-len))
-	(when (< startpos 0) 
-	  (setq startpos 0))
-	(acl-clim::frame-send-message (pane-frame pane)
-				      mirror
-				      win:EM_SETSEL
-				      startpos endpos)))))
+           (val-len (if val
+                          (+ (length val)
+                             (count #\newline val))
+                          0)))
+                          ;; For endpos = -1, means the end.
+                          (when (= endpos -1)
+                            (setq endpos val-len))
+                            ;; Ensure the correct order.
+                            (when (< endpos startpos)
+                              (let ((temp endpos))
+                                  (setf endpos startpos
+                                          startpos temp)))
+                                          ;; Otherwise, trim to fit.
+        (when (< val-len endpos)
+          (setq endpos val-len))
+        (when (< val-len startpos)
+          (setq startpos val-len))
+          (when (< startpos 0)
+            (setq startpos 0))
+            (acl-clim::frame-send-message (pane-frame pane)
+                                          mirror
+                                          win:EM_SETSEL
+                                          startpos endpos)))))
 
 ;;; Retreive the start and end position of the
 ;;; selection in a mswin-text-edit gadget.
@@ -818,15 +823,16 @@
     ;; two characters (newline and return) for each
     ;; newline, so we need to correct the cursor.
     (let ((result 0))
-      (loop for c across text
-            with actual = 0
+      (loop with actual = 0
+            for c = (if (< result (length text))
+                        (char text result)
+                        #\Space)
             while (< actual windows-cursor)
             do (progn
                  (incf actual
                        (if (char= c #\newline) 2 1))
                  (incf result)))
       result)))
-
 
 (defmethod (setf text-field-cursor) (cursor (text-field mswin-text-edit))
   (let* ((text (clim:gadget-value text-field))

@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-formatting.lisp,v 2.7.20.1 2007/10/30 15:11:22 afuchs Exp $
+;; $Id: text-formatting.lisp,v 2.7.20.2 2007/12/11 14:26:53 afuchs Exp $
 
 (in-package :clim-internals)
 
@@ -66,58 +66,48 @@ will flush a filling-stream's buffer until the last break
 character to the appropriate stream with the correct medium
 options.
 
-If force-p is non-NIL, flushes the entire buffer.
-
 Also removes all buffers that would be flushed in this way from
 the filling-stream's old-buffers list."
-  (let ((current-buffer-entry
+  (let ((break-characters (slot-value filling-stream 'break-characters))
+        (current-buffer-entry
          `(,(slot-value filling-stream 'buffer)
             ,(slot-value filling-stream 'stream)
             ,(lambda (stream buffer start end)
                (flush-buffer-to-stream/filling stream buffer start end))))) 
     (labels ((delete-buffer-entry (buffer-entry)
                (setf (slot-value filling-stream 'old-buffers)
-                     (delete buffer-entry (slot-value filling-stream 'old-buffers)))))
+                     (delete buffer-entry (slot-value filling-stream 'old-buffers))))
+             (buffer-flusher (buffer-entry &optional (length (length (first buffer-entry)))
+                                           (delete-p t))
+               (destructuring-bind (buffer stream continuation) buffer-entry
+                 (lambda ()
+                   (funcall continuation stream buffer 0 length)
+                   (when delete-p
+                     (delete-buffer-entry buffer-entry))))))
       ;; from youngest buffer entry to the oldest (i.e. right to left)
       ;; search for break-characters; if found, flush & remove all
       ;; earlier buffers, then flush that buffer until occurrence.
       (loop for (buffer-entry . rest) on (cons current-buffer-entry
                                                (slot-value filling-stream 'old-buffers))
-            while buffer-entry
-            for (buffer stream continuation) = buffer-entry
+            for (buffer) = buffer-entry
             for last-break-char-pos
-              = (position-if (break-character-predicate filling-stream)
-                         buffer :from-end t
-                         :end (position-if-not
-                               (break-character-predicate filling-stream)
-                                       buffer
-                                       :from-end t))
+              = (position-if #'(lambda (c) (member c break-characters))
+                         buffer :from-end t)
             when (or last-break-char-pos force-p)
               do (return
                    (values
-                    (prog1
-                      (nreverse         ; flush the found buffer last
-                       `(,(lambda ()
-                            (funcall continuation
-                                     stream buffer
-                                     0
-                                     (if force-p
-                                         (length buffer)
-                                         last-break-char-pos))
-                            (when (or force-p (zerop (length buffer)))
-                              (delete-buffer-entry buffer-entry)))
-                          ;; but first, flush the buffers before it.
-                          ,@(mapcar
-                             (lambda (buffer-entry)
-                               (destructuring-bind (buffer stream continuation)
-                                   buffer-entry
-                                 (lambda ()
-                                   (funcall continuation
-                                            stream buffer 0 (length buffer))
-                                   (delete-buffer-entry buffer-entry))))
-                             rest))))
+                    (nreverse (cons     ; flush the found buffer last
+                               (buffer-flusher buffer-entry
+                                               (if force-p
+                                                   (length buffer)
+                                                   (1+ last-break-char-pos))
+                                               (or force-p (zerop (length buffer))))
+                               ;; but first, flush the buffers before it.
+                               (mapcar
+                                (lambda (buffer-entry)
+                                  (buffer-flusher buffer-entry))
+                                rest)))
                     last-break-char-pos))))))
-
 
 (defmethod filling-stream-write-buffer ((filling-stream filling-stream) &optional force-p)
   (with-slots (current-width on-fresh-line) filling-stream

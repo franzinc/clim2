@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-medium.lisp,v 2.4 2003/12/15 18:35:14 layer Exp $
+;; $Id: postscript-medium.lisp,v 2.4.178.1 2007/12/11 14:26:53 afuchs Exp $
 
 (in-package :postscript-clim)
 
@@ -505,6 +505,7 @@
   (error "Obsolete"))
 
 (excl::without-package-locks
+;;; XXX: what the dis? Is this intentionally obfuscated?
 (defmacro with-postscript-glyph-for-character (&body body)
   `(macrolet ((port-glyph-for-character (port character style &optional our-font)
 		 `(multiple-value-bind (character-set index)

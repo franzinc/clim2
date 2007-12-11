@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: japanese-graphics-editor.lisp,v 2.6 2005/12/08 21:25:45 layer Exp $
+;; $Id: japanese-graphics-editor.lisp,v 2.6.42.1 2007/12/11 14:26:53 afuchs Exp $
 
 (in-package :japanese-graphics-editor)
 
@@ -29,7 +29,7 @@
 ;;; with the correct external-format.
 (eval-when (compile)
   (when (streamp comp::*compile-file-stream*)
-    (setf (stream-external-format comp::*compile-file-stream*) :euc)))
+    (setf (stream-external-format comp::*compile-file-stream*) :utf8)))
 
 #-ics
 (eval-when (compile)
@@ -278,11 +278,11 @@
 (define-command-table graphics-editor-file-commands)
 
 (define-command-table graphics-editor-edit-commands
-    :menu (("¼è¤ê¾Ã¤·" :command (com-deselect-object))
+    :menu (("å–ã‚Šæ¶ˆã—" :command (com-deselect-object))
 	   ("divide1" :divider nil)
-	   ("¥¯¥ê¥¢¡¼" :command (com-clear))
+	   ("ã‚¯ãƒªã‚¢ãƒ¼" :command (com-clear))
 	   ("divide2" :divider nil)
-	   ("ºÆÉ½¼¨" :command (com-redisplay))))
+	   ("å†è¡¨ç¤º" :command (com-redisplay))))
 
 (define-command-table graphics-editor-option-commands)
 
@@ -299,9 +299,9 @@
 				   graphics-editor-edit-commands
 				   graphics-editor-option-commands)
 		    :inherit-menu :keystrokes
-		    :menu (("¥Õ¥¡¥¤¥ë" :menu graphics-editor-file-commands :mnemonic #\F :documentation "¥Õ¥¡¥¤¥ë")
-			   ("ÊÔ½¸" :menu graphics-editor-edit-commands :mnemonic #\E )
-			   ("¥ª¥×¥·¥ç¥ó" :menu graphics-editor-option-commands :mnemonic #\O))))
+		    :menu (("ãƒ•ã‚¡ã‚¤ãƒ«" :menu graphics-editor-file-commands :mnemonic #\F :documentation "ãƒ•ã‚¡ã‚¤ãƒ«")
+			   ("ç·¨é›†" :menu graphics-editor-edit-commands :mnemonic #\E )
+			   ("ã‚ªãƒ—ã‚·ãƒ§ãƒ³" :menu graphics-editor-option-commands :mnemonic #\O))))
   (:pointer-documentation t)
   ;; Three panes: a display pane, and command menu, and a modeless
   ;; dialog containing the line style options
@@ -339,13 +339,13 @@
 	(:fill display)))))
 
 (defmethod frame-menu-translator-documentation ((frame graphics-editor))
-  "¥á¥Ë¥å¡¼")
+  "ãƒ¡ãƒ‹ãƒ¥ãƒ¼")
 
 (defmethod frame-pointer-button-documentation ((frame graphics-editor) button)
   (case button
-    (:left "º¸")
-    (:middle "Ãæ")
-    (:right "±¦")))
+    (:left "å·¦")
+    (:middle "ä¸­")
+    (:right "å³")))
 
 ;; Perhaps these need to be localized. At present this method is
 ;; identical to that on standard-application-frame.
@@ -371,7 +371,7 @@
 
 (define-presentation-method describe-presentation-type ((type line-thickness) stream plural-count)
   (declare (ignore plural-count))
-  (write-string  "ÂÀ¤µ" stream))
+  (write-string  "å¤ªã•" stream))
 
 (defun present-line-thickness (object stream &key acceptably)
   (declare (ignore acceptably))
@@ -394,7 +394,7 @@
 
 (define-presentation-method describe-presentation-type ((type line-style-type) stream plural-count)
   (declare (ignore plural-count))
-  (write-string  "¥é¥¤¥ó¥¿¥¤¥×" stream))
+  (write-string  "ãƒ©ã‚¤ãƒ³ã‚¿ã‚¤ãƒ—" stream))
 
 (defun present-line-style (object stream &key acceptably)
   (declare (ignore acceptably))
@@ -423,7 +423,7 @@
 
 (define-presentation-method describe-presentation-type ((type object-shape) stream plural-count)
   (declare (ignore plural-count))
-  (write-string "·Á" stream))
+  (write-string "å½¢" stream))
 
 (defun present-object-shape (object stream &key acceptably)
   (declare (ignore acceptably))
@@ -467,16 +467,16 @@
 		       (dashes (line-style-dashes style)))
 		   (multiple-value-bind (thickness thickness-changed)
 		       (accept stream 'line-thickness thickness
-			       "ÂÀ¤µ" 'thickness)
+			       "å¤ªã•" 'thickness)
 		     (declare (ignore ignore))
 		     (multiple-value-bind (dashes dashes-changed)
 			 (accept stream 'line-style-type (if dashes :dashed :solid)
-				 "¥é¥¤¥ó¥¿¥¤¥×" 'dashes)
+				 "ãƒ©ã‚¤ãƒ³ã‚¿ã‚¤ãƒ—" 'dashes)
 		       (declare (ignore ignore))
 		       (setq dashes (eq dashes :dashed))
 		       (multiple-value-bind (new-shape shape-changed)
 			   (accept stream 'object-shape shape
-				   "·Á" 'shape)
+				   "å½¢" 'shape)
 			 (when (or thickness-changed dashes-changed shape-changed)
 			   (setq style (make-line-style :thickness thickness
 							:dashes dashes))
@@ -498,7 +498,7 @@
   (dolist (object (slot-value frame 'objects))
     (draw-object object stream)))
 
-(define-graphics-editor-command (com-create-box :name "¥Ü¥Ã¥¯¥¹¤ÎÀ®ºî")
+(define-graphics-editor-command (com-create-box :name "ãƒœãƒƒã‚¯ã‚¹ã®æˆä½œ")
     ((left 'integer)
      (top 'integer))
   (com-deselect-object)
@@ -507,7 +507,7 @@
 	(bottom top)
 	(rectangle-drawn nil)
 	(box nil)
-	(label (format nil "¥Ü¥Ã¥¯¥¹ ~D" (slot-value *application-frame* 'counter)))
+	(label (format nil "ãƒœãƒƒã‚¯ã‚¹ ~D" (slot-value *application-frame* 'counter)))
 	(last-box (slot-value *application-frame* 'last-box))
 	(style (slot-value *application-frame* 'style))
 	(shape (slot-value *application-frame* 'shape))
@@ -574,7 +574,7 @@
   (list x y))
 
 ;; Select an object by clicking "select" (Mouse-Left) on it.
-(define-graphics-editor-command (com-select-box :name "¥Ü¥Ã¥¯¥¹¤ÎÁªÂò")
+(define-graphics-editor-command (com-select-box :name "ãƒœãƒƒã‚¯ã‚¹ã®é¸æŠ")
     ((object 'box :gesture :select))
   (select-object *application-frame* object)
   (setf (slot-value *application-frame* 'style) (object-style object)
@@ -583,14 +583,14 @@
 ;; Deselect an object by clicking the Deselect menu button, or by
 ;; clicking over blank area without moving the mouse.
 (define-command (com-deselect-object :command-table graphics-editor-edit-commands
-				     :menu ("¼è¤ê¾Ã¤·"
-					    :documentation "ÁªÂò¤·¤¿¥Ü¥Ã¥¯¥¹¤ò¥­¥ã¥ó¥»¥ë¤¹¤ë¡£"))
+				     :menu ("å–ã‚Šæ¶ˆã—"
+					    :documentation "é¸æŠã—ãŸãƒœãƒƒã‚¯ã‚¹ã‚’ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã™ã‚‹ã€‚"))
     ()
   (when (frame-selected-object *application-frame*)
     (deselect-object *application-frame* (frame-selected-object *application-frame*))))
 
 ;; Move an object by clicking Mouse-Middle on it and dragging the mouse.
-(define-graphics-editor-command (com-move-object :name "¥Ü¥Ã¥¯¥¹¤Î°ÜÆ°")
+(define-graphics-editor-command (com-move-object :name "ãƒœãƒƒã‚¯ã‚¹ã®ç§»å‹•")
     ((object 'box :gesture :describe))
   (let ((stream (get-frame-pane *application-frame* 'display)))
     (with-bounding-rectangle* (left top right bottom) object
@@ -624,7 +624,7 @@
     (setf (box-arrow-in box2) nil)))
 
 ;; Add a menu item that deletes the selected object
-(add-menu-item-to-command-table 'graphics-editor "ºï½ü"
+(add-menu-item-to-command-table 'graphics-editor "å‰Šé™¤"
   :function 'delete-selected-object
   :keystroke '(#\d :control))
 
@@ -648,8 +648,8 @@
 (define-command (com-clear :command-table
 			   graphics-editor-edit-commands
 			   :keystroke (#\\ :control)
-			   :menu ("¥¯¥ê¥¢¡¼"
-				  :documentation "¥¹¥¯¥ê¡¼¥ó¤ò¥¯¥ê¥ä¡¼¤Ë¤¹¤ë¡£"))
+			   :menu ("ã‚¯ãƒªã‚¢ãƒ¼"
+				  :documentation "ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã‚’ã‚¯ãƒªãƒ¤ãƒ¼ã«ã™ã‚‹ã€‚"))
     ()
   (with-slots (objects selected-object last-box) *application-frame*
     (setq objects nil
@@ -661,22 +661,22 @@
 ;; it's only here for debugging.
 (define-command (com-redisplay :command-table graphics-editor-edit-commands
 			       :keystroke (:r :meta)
-			       :menu  ("ºÆÉ½¼¨"
+			       :menu  ("å†è¡¨ç¤º"
 				       :documentation
-				       "¥Ü¥Ã¥¯¥¹¤ò¤â¤¦°ìÅÙÉ½¼¨¤¹¤ë"))
+				       "ãƒœãƒƒã‚¯ã‚¹ã‚’ã‚‚ã†ä¸€åº¦è¡¨ç¤ºã™ã‚‹"))
 
     ()
   (redisplay-frame-pane *application-frame* 'display :force-p t))
 
 (define-command (com-quit :command-table graphics-editor-file-commands
 			  :keystroke (:x :meta)
-			  :menu ("ÊÄ¤¸¤ë" :documentation "¥×¥í¥°¥é¥à¤ò½ªÎ»¤·¤Ş¤¹¡£")) ()
+			  :menu ("é–‰ã˜ã‚‹" :documentation "ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’çµ‚äº†ã—ã¾ã™ã€‚")) ()
   (frame-exit *application-frame*))
 
 (define-command (com-change-layout :command-table graphics-editor-option-commands
 				   :keystroke (:l :meta)
-				   :menu ("¥ì¥¤¥¢¥¦¥È¤ÎÁªÂò"
-					  :documentation "¥ì¥¤¥¢¥¦¥È¤ÎÁªÂò"))
+				   :menu ("ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã®é¸æŠ"
+					  :documentation "ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã®é¸æŠ"))
     ()
   (let ((layouts (frame-all-layouts *application-frame*)))
     (setf (frame-current-layout *application-frame*)
@@ -686,7 +686,7 @@
 
 
 
-(define-demo "¥°¥é¥ÕÊÔ½¸" graphics-editor
+(define-demo "ã‚°ãƒ©ãƒ•ç·¨é›†" graphics-editor
   :left 100 :top 100 :width 800 :height 500)
 
 )) ;; ics-target-case

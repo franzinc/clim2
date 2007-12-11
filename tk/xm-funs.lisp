@@ -16,13 +16,18 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-funs.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: xm-funs.lisp,v 2.6.42.1 2007/12/11 14:26:54 afuchs Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
 ;;
 
 (in-package :tk)
+
+(def-foreign-call (xm_string_create_localized "XmStringCreateLocalized")
+    ((text :foreign-address))
+  :returning :foreign-address
+  :call-direct t)
 
 (def-foreign-call (xm_string_create_l_to_r "XmStringCreateLtoR")
     ((x :foreign-address) (y :foreign-address))
@@ -91,6 +96,17 @@
 (def-foreign-call (xm_font_list_entry_free "XmFontListEntryFree")
     ((x :foreign-address))
   :returning :void
+  :call-direct t
+  :arg-checking nil)
+
+(def-foreign-call (xm_im_mb_lookup_string "XmImMbLookupString")
+    ((widget :foreign-address)
+     (event :foreign-address)
+     (buffer :foreign-address)
+     (bytes-in-buffer :int fixnum)
+     (keysym :foreign-address)
+     (status-return :foreign-address))
+  :returning :int
   :call-direct t
   :arg-checking nil)
 

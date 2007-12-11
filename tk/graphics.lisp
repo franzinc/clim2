@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 2.6 2005/12/08 21:25:46 layer Exp $
+;; $Id: graphics.lisp,v 2.6.42.1 2007/12/11 14:26:54 afuchs Exp $
 
 (in-package :tk)
 
@@ -163,6 +163,20 @@
 		  (+ start (clim-utils:string-to-foreign sequence))
 		  (- end start)))
 
+(defun draw-multibyte-string (drawable font-set gc x y string
+                              &optional start end)
+  (setf start (or start 0)
+        end (or end (length string)))
+  (multiple-value-bind (native-string nbytes)
+      (excl:string-to-native string :start start :end end)
+    (x11:xmbdrawstring
+     (object-display drawable)
+     drawable
+     font-set
+     gc
+     x y
+     native-string (1- nbytes))
+    (excl:aclfree native-string)))
 
 (defun draw-string (drawable gc x y string &optional (start 0) end)
   (unless start (setq start 0))

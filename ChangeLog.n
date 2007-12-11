@@ -1,3 +1,27 @@
+2007-12-11  Andreas Fuchs  <afuchs@franz.com>
+
+	* clim/text-formatting.lisp: Add filling-stream-conditional-newline,
+	  fix an off-by-1 bug for non-whitespace fill characters.
+	* misc/MyDrawingA.c: create clim drawing panes with an XIC.
+	* demo/japanese-graphics-editor.lisp: convert encoding to utf-8.
+	* aclpc/acl-widget.lisp: Fix the cursor-position code to report correct
+	  numbers for the end of the buffer and past newlines.
+	* silica/classes.lisp, silica/text-style.lisp, tk/font.lisp, tk/graphics.lisp,
+	  tk/resources.lisp, tk/widget.lisp, tk/xlib.lisp, tk/xm-defs.lisp,
+	  tk/xm-font-list.lisp, tk/xm-funs.lisp, tk/xm-widgets.lisp,
+	  tk/xt-defs.lisp, tk/xt-funs.lisp, tk-silica/xm-frames.lisp,
+	  tk-silica/xm-gadgets.lisp, tk-silica/xm-silica.lisp,
+	  tk-silica/xt-graphics.lisp, tk-silica/xt-silica.lisp, utils/lisp-utilities.lisp,
+	  xlib/xlib-defs.lisp, xlib/xlib-funs.lisp:
+	  Change the X/Motif backend to support international character input/output
+	  (in most places):
+	  * Use the locale-provided external format for string->foreign-octet conversion,
+	  * Use XmImMbLookupString to lookup key on key press events,
+	  * Use XmbStringDraw to display non-rotated multibyte text,
+	  * Search the installed fonts for encodings CLIM doesn't know about and add them
+	    to the default font set, and
+	  * Set up the Xt locale correctly.
+	
 2007-05-16  Andreas Fuchs  <afuchs@franz.com>
 
 	* xlib/xlib-funs.lisp: new function xkeycodetokeysym
@@ -6166,4 +6190,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.29.8.4 $
+$Revision: 2.29.8.5 $

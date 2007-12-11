@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-defs.lisp,v 2.7.20.1 2007/03/28 14:47:09 afuchs Exp $
+;; $Id: xlib-defs.lisp,v 2.7.20.2 2007/12/11 14:26:56 afuchs Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -1432,6 +1432,23 @@ typedef union { Display *display;
 (def-exported-foreign-synonym-type xrmdatabase int)
 (def-exported-foreign-synonym-type xim int)
 (def-exported-foreign-synonym-type xic int)
+
+(defconstant XNInputStyle "inputStyle")
+(defconstant XNClientWindow "clientWindow")
+(defconstant XNFocusWindow "focusWindow")
+(defconstant XNPreeditState "preeditState")
+(defconstant XIMPreeditNothing #x8)
+(defconstant XIMPreeditPosition #x4)
+(defconstant XIMStatusNothing #x400)
+(defconstant XIMStatusNone #x800)
+
+(defconstant XIMPreeditEnable #x1)
+
+(defconstant XBufferOverflow -1)
+(defconstant XLookupNone 1)
+(defconstant XLookupChars 2)
+(defconstant XLookupKeySym 3)
+(defconstant XLookupKeyBoth 4)
 
 
 (defconstant XrmoptionNoArg 0)

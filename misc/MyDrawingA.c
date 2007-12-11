@@ -16,7 +16,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $Header: /repo/cvs.copy/clim2/misc/MyDrawingA.c,v 2.5 2005/12/08 21:25:45 layer Exp $
+ * $Header: /repo/cvs.copy/clim2/misc/MyDrawingA.c,v 2.5.42.1 2007/12/11 14:26:53 afuchs Exp $
  */
 
 #if defined(__alpha)
@@ -150,7 +150,10 @@ XmCreateMyDrawingArea(
 {
 /****************/
 
-    return( XtCreateWidget( name, xmMyDrawingAreaWidgetClass, p, args, n)) ;
+    Widget r = XtCreateWidget( name, xmMyDrawingAreaWidgetClass, p, args, n);
+    XmImRegister (r, 0);
+/*    XmImGetXIC (r, XmINHERIT_POLICY, NULL, 0); */
+    return r;
 }
 
 #if defined(__alpha)

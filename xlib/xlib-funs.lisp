@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-funs.lisp,v 2.7.20.1 2007/05/16 20:23:08 afuchs Exp $
+;; $Id: xlib-funs.lisp,v 2.7.20.2 2007/12/11 14:26:56 afuchs Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -1779,6 +1779,16 @@
    (string (:pointer char))
    (length fixnum-int))
 
+(def-exported-foreign-function (xmbdrawstring (:name "XmbDrawString"))
+   (dpy (:pointer display))
+   (d fixnum-drawable)
+   (font-set xfontset)
+   (gc gc)
+   (x fixnum-int)
+   (y fixnum-int)
+   (string (:pointer char))
+   (length fixnum-int))
+
 (def-exported-foreign-function (xdrawstring16 (:name "XDrawString16"))
    (dpy (:pointer display))
    (d fixnum-drawable)
@@ -2010,9 +2020,14 @@
   (window window)
   (context xcontext))
 
+(def-exported-foreign-function (xfilterevent (:return-type fixnum-int)
+                                             (:name "XFilterEvent"))
+  (event (:pointer xevent))
+  (window window))
+
 (def-exported-foreign-function (xlookupstring (:return-type fixnum-int)
 					      (:name "XLookupString"))
-  (event-struct  (:pointer xkeyevent))
+    (event-struct  (:pointer xkeyevent))
   (buffer-return (:pointer char))
   (bytes-buffer	int)
   (keysym-return (:pointer keysym))
@@ -2066,3 +2081,9 @@
 						  (:name "_XGetBitsPerPixel"))
     (dpy (:pointer display))
     (depth int))
+
+(def-exported-foreign-function (xmbtextescapement (:return-type int)
+                                                  (:name "XmbTextEscapement"))
+    (font-set xfontset)
+    (string (:pointer char))
+    (num-bytes int))
