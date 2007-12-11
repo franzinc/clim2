@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.11 2007/04/17 21:45:54 layer Exp $
+;; $Id: xm-gadgets.lisp,v 2.12 2007/12/11 17:20:21 layer Exp $
 
 (in-package :xm-silica)
 
@@ -120,17 +120,17 @@
 	   (when (typep label 'pattern)
 	     (with-sheet-medium (medium sheet)
 	       (setq label
-		 (pixmap-from-pattern label medium :pixmap))))
+                     (pixmap-from-pattern label medium :pixmap))))
 	   (setf (getf initargs :label-pixmap) label)
 	   ;;-- Perhaps we need to stipple this?
 	   (setf (getf initargs :label-insensitive-pixmap) label)
 	   (setf (getf initargs :label-type) :pixmap))))
       (unless (getf initargs :alignment)
 	(setf (getf initargs :alignment)
-	  (ecase alignment
-	    ((:left nil) :beginning)
-	    (:center :center)
-	    (:right :end))))
+              (ecase alignment
+                ((:left nil) :beginning)
+                (:center :center)
+                (:right :end))))
       (setf (getf initargs :recompute-size) nil))
     initargs))
 
@@ -146,7 +146,7 @@
                                  ((:left nil) :beginning)
                                  (:center :center)
                                  (:right :end))
-		    :label-string (or (gadget-label sheet) ""))))
+                    :label-string (or (gadget-label sheet) ""))))
 
 ;;; Motif widgets that support the activate callback
 
@@ -1177,6 +1177,7 @@
 		      :margin-width 0 :margin-height 0
 		      :resize-policy :none
 		      :scroll-bar-display-policy :static))
+
 
 ;;;
 

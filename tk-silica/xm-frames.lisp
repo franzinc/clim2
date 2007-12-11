@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-frames.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
+;; $Id: xm-frames.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
 
 (in-package :xm-silica)
 
@@ -366,7 +366,6 @@
 ;;;    mirror))
 
 (defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
-
   ;; This code fills the menu-bar. If top level items do not have
   ;; submenus then it creates one with a menu of its own
 
@@ -409,7 +408,7 @@
 	    port
 	    (if item-text-style
 		(merge-text-styles item-text-style menu-text-style)
-	      menu-text-style)
+                menu-text-style)
 	    *all-character-sets*)
 	   initargs)))
 

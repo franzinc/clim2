@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.11 2007/07/18 18:00:13 layer Exp $
+;; $Id: xt-silica.lisp,v 2.12 2007/12/11 17:20:21 layer Exp $
 
 (in-package :xm-silica)
 
@@ -159,6 +159,43 @@
 	       '(:static-color :true-color :pseudo-color :direct-color))
        t))
 
+;;; SPR30362:
+
+(defvar *default-fallback-font* "fixed")
+
+(defun list-fonts-by-registry (display)
+  (let* ((fonts (tk::list-font-names display "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"))
+         (encoding-hash (make-hash-table :test #'equal)))
+    (dolist (font fonts)
+      (let ((font* (disassemble-x-font-name font)))
+        (push font (gethash (last font* 2) encoding-hash))))
+    encoding-hash))
+
+(defun find-font-with-properties (fonts weight slant)
+  (or (find (list weight slant) fonts
+            :test #'equal
+            :key (lambda (font)
+                   (let ((font* (disassemble-x-font-name font)))
+                     (list (nth 3 font*) (nth 4 font*)))))
+      (first fonts)))
+
+(defun font-name-of-aliased-font (display fontname)
+  (excl:with-native-string (nfn fontname)
+    (let ((font (x11:xloadqueryfont display nfn)))      
+      (unless (zerop font)
+        (unwind-protect
+            (loop for i from 0 below (x11:xfontstruct-n-properties font)
+                  for fontprop = (+ ;; this is horrible:
+                                  (* i 2 #-64bit 4 #+64bit 8)
+                                  (x11:xfontstruct-properties font))
+                  when (eql x11:xa-font (x11:xfontprop-name fontprop))
+                    do (return (values (excl:native-to-string 
+                                        (x11:xgetatomname display
+                                                          (x11:xfontprop-card32 fontprop))))))
+          (x11:xfreefont display font))))))
+
+;;; END SPR30362
+
 (defparameter *xt-font-families*
     `(
       ;; ascii
@@ -214,29 +251,77 @@
 	 (screen-pixels-per-inch
 	  (* 25.4 (/ (x11::xdisplayheight display screen)
 		     (x11:xdisplayheightmm display screen)))))
-    (flet ((font->text-style (font family)
-	     (flet ((parse-token (token)
-		      (if token
-			  (parse-integer token)
-			(return-from font->text-style nil))))
-	       (let* ((tokens (disassemble-x-font-name font))
-		      (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
-		      (bold (equalp (nth 3 tokens) "bold"))
-		      (face (if italic
-				(if bold '(:bold :italic) :italic)
-			      (if bold :bold :roman)))
-		      (pixel-size (parse-token (nth 7 tokens)))
-		      (point-size (parse-token (nth 8 tokens)))
-		      (y-resolution (parse-token (nth 10 tokens)))
-		      (average-width (parse-token (nth 12 tokens)))
-		      (corrected-point-size (* (float point-size)
-					       (/ y-resolution
-						  screen-pixels-per-inch))))
-		 (unless (and (not *use-scalable-fonts*)
-			      (or (eql pixel-size 0)
-				  (eql point-size 0)
-				  (eql average-width 0)))
-		   (make-text-style family face (/ corrected-point-size 10)))))))
+    (labels ((font->text-style (font family)
+               (flet ((parse-token (token)
+                        (if token
+                            (parse-integer token)
+                            (return-from font->text-style nil))))
+                 (let* ((tokens (disassemble-x-font-name font))
+                        (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
+                        (bold (equalp (nth 3 tokens) "bold"))
+                        (face (if italic
+                                  (if bold '(:bold :italic) :italic)
+                                  (if bold :bold :roman)))
+                        (pixel-size (parse-token (nth 7 tokens)))
+                        (point-size (parse-token (nth 8 tokens)))
+                        (y-resolution (parse-token (nth 10 tokens)))
+                        (average-width (parse-token (nth 12 tokens)))
+                        (corrected-point-size (* (float point-size)
+                                                 (/ y-resolution
+                                                    screen-pixels-per-inch))))
+                   (unless (and (not *use-scalable-fonts*)
+                                (or (eql pixel-size 0)
+                                    (eql point-size 0)
+                                    (eql average-width 0)))
+                     (make-text-style family face (/ corrected-point-size 10))))))
+             (load-1-charset (character-set fallback families)
+               (let* ((matchesp nil) ;do any non-fallback fonts match?
+                      (fallback-matches-p ;any fallback matches?
+                       (not (null (tk::list-font-names display fallback))))
+                      (fallback-loadable-p ;fallback actually loadable?
+                       (and fallback-matches-p
+                            (excl:with-native-string (nfn fallback)
+                              (let ((x (x11:xloadqueryfont display nfn)))
+                                (if (not (zerop x))
+                                    (progn
+                                      (x11:xfreefont display x)
+                                      t)
+                                    nil))))))
+                 (dolist (per-family families)
+                   (destructuring-bind (family &rest patterns) per-family
+                     (dolist (font-pattern patterns)
+                       (dolist (xfont (tk::list-font-names display font-pattern))
+                         ;; this hack overcomes a bug with hp's scalable fonts
+                         (unless (find #\* xfont)
+                           (setf matchesp t) ;there was at least one match
+                           (let ((text-style (font->text-style xfont family)))
+                             ;; prefer first font satisfying this text style, so
+                             ;; don't override if we've already defined one.
+                             (when text-style
+                               (unless (text-style-mapping-exists-p
+                                        port text-style character-set t)
+                                 (setf (text-style-mapping port text-style
+                                                           character-set)
+                                       xfont)))))))))
+                 ;; Set up the fallback if it looks like there is one, and
+                 ;; complain if things look bad.  Things look bad if there were
+                 ;; matches but the fallback is not loadable.  If there were
+                 ;; no matches then don't complain even if there appears to be
+                 ;; something wrong with the fallback, just silently don't load it
+                 ;; (and thus define no mappings for the character set).
+                 (cond
+                   (fallback-loadable-p	;all is well
+                    (setf (text-style-mapping port *undefined-text-style*
+                                              character-set)
+                          fallback))
+                   ((and matchesp fallback-matches-p)
+                    (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
+but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
+setup."
+                          fallback character-set))
+                   (matchesp
+                    (warn "Fallback font ~A not loadable for character set ~A."
+                          fallback character-set))))))
       ;; Setup font mappings.  This is made hairy by trying to deal
       ;; elegantly with possibly missing mappings and messed-up X font
       ;; setups.  It seems to be the case that XListFonts can return
@@ -249,55 +334,39 @@
       ;; with it, but otherwise don't check.  This should mean that if
       ;; this doesn't warn then things will basically run, as the
       ;; fallback exists for each character set, at least.
-      (dolist (per-charset *xt-font-families*)
-	(destructuring-bind (character-set fallback &rest families) per-charset
-	  (let* ((matchesp nil)		;do any non-fallback fonts match?
-		 (fallback-matches-p	;any fallback matches?
-		  (not (null (tk::list-font-names display fallback))))
-		 (fallback-loadable-p	;fallback actually loadable?
-		  (and fallback-matches-p
-		       (excl:with-native-string (nfn fallback)
-			 (let ((x (x11:xloadqueryfont display nfn)))
-			   (if (not (zerop x))
-			       (progn
-				 (x11:xfreefont display x)
-				 t)
-			       nil))))))
-	    (dolist (per-family families)
-	      (destructuring-bind (family &rest patterns) per-family
-		(dolist (font-pattern patterns)
-		  (dolist (xfont (tk::list-font-names display font-pattern))
-		    ;; this hack overcomes a bug with hp's scalable fonts
-		    (unless (find #\* xfont)
-		      (setf matchesp t) ;there was at least one match
-		      (let ((text-style (font->text-style xfont family)))
-			;; prefer first font satisfying this text style, so
-			;; don't override if we've already defined one.
-			(when text-style
-			  (unless (text-style-mapping-exists-p
-				   port text-style character-set t)
-			    (setf (text-style-mapping port text-style
-						      character-set)
-			      xfont)))))))))
-	    ;; Set up the fallback if it looks like there is one, and
-	    ;; complain if things look bad.  Things look bad if there were
-	    ;; matches but the fallback is not loadable.  If there were
-	    ;; no matches then don't complain even if there appears to be
-	    ;; something wrong with the fallback, just silently don't load it
-	    ;; (and thus define no mappings for the character set).
-	    (cond
-	     (fallback-loadable-p	;all is well
-	      (setf (text-style-mapping port *undefined-text-style*
-					character-set)
-		fallback))
-	     ((and matchesp fallback-matches-p)
-	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
-but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
-setup."
-		    fallback character-set))
-	     (matchesp
-	      (warn "Fallback font ~A not loadable for character set ~A."
-		    fallback character-set))))))))
+      (let ((charset-number 0)
+            (done-registries ()))
+        (dolist (per-charset *xt-font-families*)
+          (destructuring-bind (character-set fallback &rest families) per-charset
+            (load-1-charset character-set fallback families)
+            (setf charset-number (max charset-number character-set))
+            (dolist (family families)
+              (pushnew (last (disassemble-x-font-name (second family)) 2) done-registries
+                       :test #'equal))))
+        (format *debug-io* "done registries: ~A, last charset: ~A~%" done-registries charset-number)
+        ;; Now setup font mappings of fonts that the user has
+        ;; installed, but we don't know anything about (especially no
+        ;; convenient font aliases).
+        ;; Since we don't have any font alias names to rely on, we use
+        ;; the "fixed" alias to find out at least a sensible default
+        ;; weight and slant.
+        (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
+               (weight (nth 3 default-fallback))
+               (slant (nth 4 default-fallback)))
+          (loop for character-set from (1+ charset-number) 
+                for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
+                for fallback-font = (find-font-with-properties fonts weight slant)
+                for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
+                do (format *debug-io* "~&registering installed font ~A for enc:~A~%" character-set encoding)
+                do (unless (member encoding done-registries :test #'equal)
+                     (vector-push-extend (excl:string-to-native
+                                          (format nil "~A-~A" (first encoding) (second encoding)))
+                                         tk::*font-list-tags*)
+                     (load-1-charset character-set fallback-font
+                                     `((:fix ,default-font-match-string)
+                                       (:sans-serif ,default-font-match-string)
+                                       (:serif ,default-font-match-string))))))
+        )))
   (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
@@ -405,6 +474,7 @@ setup."
 	   nil)
 	  (:expose
 	   ;; This gets called only for an XmBulletinBoard widget.
+           ;; -- erm, no, that's a lie.
 	   (sheet-mirror-exposed-callback widget nil event sheet)
 	   nil)
 	  (:key-press
@@ -428,8 +498,10 @@ setup."
 			       (logior
 				(state->modifiers (x11::xkeyevent-state event))
 				keysym-shift-mask)))))
-	  (:key-release
+	  #+nil ; INTERNATIONAL: we must ignore key release events
+          (:key-release
 	   (multiple-value-bind (character keysym)
+               ;; TODO/international: don't call XmbLookupString for keyrelease events!
 	       (lookup-character-and-keysym sheet widget event)
 	     (let ((keysym-shift-mask
 		    (if (typep keysym 'modifier-keysym)
@@ -440,7 +512,7 @@ setup."
 			   ((:left-meta :right-meta) :meta)
 			   ((:left-super :right-super) :super)
 			   ((:left-hyper :right-hyper) :hyper)))
-		      0)))
+                        0)))
 	       (allocate-event 'key-release-event
 			       :sheet sheet
 			       :key-name keysym
@@ -620,7 +692,7 @@ setup."
   (let ((port (port sheet))
 	(event-key (tk::event-type event)))
     (ecase event-key
-      ((:key-press :key-release)
+      (:key-press
        (distribute-event
 	port
 	(multiple-value-bind (character keysym)
@@ -634,13 +706,10 @@ setup."
 			 ((:left-meta :right-meta) :meta)
 			 ((:left-super :right-super) :super)
 			 ((:left-hyper :right-hyper) :hyper)))
-		    0))
+                      0))
 		 (modifier-state
-		  (if (eq event-key :key-press)
-		      (logior (state->modifiers (x11::xkeyevent-state event))
-			      keysym-shift-mask)
-		    (logandc2 (state->modifiers (x11::xkeyevent-state event))
-			      keysym-shift-mask)))
+		  (logior (state->modifiers (x11::xkeyevent-state event))
+                          keysym-shift-mask))
 		 ;;-- Canonicalize the only interesting key right here.
 		 ;;--  If we get a key labelled "Return", we canonicalize it
 		 ;;-- into #\Newline.
@@ -653,13 +722,13 @@ setup."
 					  (make-modifier-state :shift))))
 			      #\Newline)
 			     (t character))))
-	    (allocate-event (if (eq event-key :key-press)
-				'key-press-event
-			      'key-release-event)
-			    :sheet sheet
-			    :key-name keysym
-			    :character char
-			    :modifier-state modifier-state)))))
+	    (allocate-event 'key-press-event
+                            :sheet sheet
+                            :key-name keysym
+                            :character char
+                            :modifier-state modifier-state)))))
+      (:key-release nil ; INTERNATIONAL: don't do anything for key releases
+                  )
       (:button-press
        (let ((button (x-button->silica-button
 		      (x11::xbuttonevent-button event)))
@@ -984,6 +1053,7 @@ setup."
   (with-slots (context) port
     (tk::process-one-event context mask reason)))
 
+#+gah-this-is-broken
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style
 				     &optional our-font)
@@ -1020,6 +1090,38 @@ setup."
       (values index x-font escapement-x escapement-y
 	      origin-x origin-y bb-x bb-y))))
 
+(defun xrect-to-list (xr)
+  (list :x
+        (x11:xrectangle-x xr)
+        :y
+        (x11:xrectangle-y xr)
+        :width
+        ;; bounding box extents:
+        (x11:xrectangle-width xr)
+        :height
+        (x11:xrectangle-height xr)))
+
+(defmethod port-glyph-for-character ((port xt-port) character text-style &optional our-font)
+  (declare (ignore our-font))    ; We need the font set, not the font.
+  (multiple-value-bind (native-string length) (excl:string-to-native (string character))
+    (unwind-protect
+        (tk::with-xrectangle-array (ink-return 1)
+          (tk::with-xrectangle-array (logical-return 1)
+            (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
+                   (font-set (font-set-from-font-list port fonts)))
+              (x11:xmbtextextents font-set native-string
+                                                     (1- length) ink-return
+                                                     logical-return)
+              (values (char-code character) font-set
+                      ;; escapement:
+                      (x11:xrectangle-width logical-return) 0
+                      ;; origin:
+                      0 (abs (x11:xrectangle-y logical-return))
+                      ;; bounding box:
+                      (x11:xrectangle-width logical-return)
+                      (x11:xrectangle-height logical-return)))))
+      (excl:aclfree native-string))))
+
 (defvar *trying-fallback* nil)
 
 (defmethod find-named-font ((port xt-port) name character-set)
@@ -1042,33 +1144,29 @@ setup."
 		   port *undefined-text-style* character-set)))))))))
 
 (excl:ics-target-case
-(:+ics
+  (:+ics
 
-(defconstant +codesets+ 4)
-
-(defmethod text-style-mapping :around
-	   ((port xt-port) text-style
-	    &optional (character-set *standard-character-set*) window)
-  (declare (ignore window))
-  (if character-set
-      (let ((mapping (call-next-method)))
-	(if (stringp mapping)
-	    (setf (text-style-mapping port text-style character-set)
-	      (find-named-font port mapping character-set))
-	  mapping))
-    (let ((mappings nil))
-      (dotimes (c +codesets+)
-	(let ((mapping (text-style-mapping port text-style c)))
-	  (when mapping
-	    (push (cons c mapping) mappings))))
-      (reverse mappings))))
+ (defmethod text-style-mapping :around
+   ((port xt-port) text-style
+    &optional (character-set *standard-character-set*) window)
+   (declare (ignore window))
+   (if character-set ; anything but *all-character-sets*
+       (let ((mapping (call-next-method)))
+         (if (stringp mapping)
+             (setf (text-style-mapping port text-style character-set)
+                   (find-named-font port mapping character-set))
+             mapping))
+       (let ((mappings nil))
+         (dotimes (c (length (slot-value port 'silica::mapping-table))) ; XXX: ugly. prettify.
+           (let ((mapping (text-style-mapping port text-style c)))
+             (when mapping
+               (push (cons c mapping) mappings))))
+         (reverse mappings))))
 
 (defmethod font-set-from-font-list ((port xt-port) font-list)
-  (let ((name ""))
-    (dolist (item font-list)
-      (setq name
-	(concatenate 'string
-	  (tk::font-name (cdr item)) "," name)))
+  (let ((name (format nil "~{~A~^,~}"
+                      (mapcar (lambda (font) (tk::font-name (cdr font)))
+                              font-list))))
     (with-slots (font-cache) port
       (setq font-list
 	(or (gethash name font-cache)
@@ -1382,48 +1480,46 @@ setup."
 
 ;;;
 (defun lookup-character-and-keysym (sheet mirror event)
-  (declare (ignore mirror)
-	   (optimize (speed 3) (safety 0)))
-  (let ((port (port sheet)))
-    (multiple-value-bind (character keysym)
-	(tk::lookup-string event
-			   (if port
-			       (port-compose-status port)
-			     0))
-      (setq character (and (= (length (the simple-string character)) 1)
-			   (aref (the simple-string character) 0)))
-      ;; This gets stuff wrong because for example to type-< you have to
-      ;; use the shift key and so instead for m-< you aget m-sh-<
-      ;; Perhaps there is a way of checking to see whether shifting
-      ;; makes sense given the keyboard layout!
-      (when character
-	(let ((x (state->modifiers
-		  (x11::xkeyevent-state event))))
-	  (setq character
-	     (if (and (<= (char-int character) 26)
-		      (not (member character
-				   '(#\return
-				     #\tab
-				     #\page
-				     #\backspace
-				     #\linefeed
-				     #\escape)
-				   :test #'eq)))
-		 (code-char
-		  (+ (char-code character)
-		     (1- (if (logtest x +shift-key+)
-			     (char-int #\A)
-			   (char-int #\a)))))
-	       character))
-	  (setq character
-	    (clim-make-char
-	     character
-	     (logior
-	      (if (logtest x +control-key+) 1 0)
-	      (if (logtest x +meta-key+)    2 0)
-	      (if (logtest x +super-key+)   4 0)
-	      (if (logtest x +hyper-key+)   8 0))))))
-      (values character (xt-keysym->keysym keysym)))))
+  (declare #+nil (optimize (speed 3) (safety 0))
+           (optimize (speed 0) (safety 3) (debug 3))
+           (ignore sheet))
+  (multiple-value-bind (character keysym)
+      (if (eql :key-press (tk::event-type event))
+          (tk::lookup-multibyte-string event mirror))
+    (setq character (and (= (length (the simple-string character)) 1)
+                         (aref (the simple-string character) 0)))
+    ;; This gets stuff wrong because for example to type-< you have to
+    ;; use the shift key and so instead for m-< you aget m-sh-<
+    ;; Perhaps there is a way of checking to see whether shifting
+    ;; makes sense given the keyboard layout!
+    (when character
+      (let ((x (state->modifiers
+                (x11::xkeyevent-state event))))
+        (setq character
+              (if (and (<= (char-int character) 26)
+                       (not (member character
+                                    '(#\return
+                                      #\tab
+                                      #\page
+                                      #\backspace
+                                      #\linefeed
+                                      #\escape)
+                                    :test #'eq)))
+                  (code-char
+                   (+ (char-code character)
+                      (1- (if (logtest x +shift-key+)
+                              (char-int #\A)
+                              (char-int #\a)))))
+                  character))
+        (setq character
+              (clim-make-char
+               character
+               (logior
+                (if (logtest x +control-key+) 1 0)
+                (if (logtest x +meta-key+)    2 0)
+                (if (logtest x +super-key+)   4 0)
+                (if (logtest x +hyper-key+)   8 0))))))
+    (values character (xt-keysym->keysym keysym))))
 
 (defun clim-make-char (character &optional (bits 0))
   ;; Like cltl1:make-char but prevents the need to (require :cltl1)

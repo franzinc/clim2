@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-defs.lisp,v 2.9 2007/04/17 21:45:53 layer Exp $
+;; $Id: xt-defs.lisp,v 2.10 2007/12/11 17:20:21 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -147,3 +147,5 @@
 
 (def-c-type (pointer-array :no-defuns :no-constructor) 1 * char)
 
+(x11::def-exported-constant lc-ctype 0)
+(x11::def-exported-constant lc-all 6)

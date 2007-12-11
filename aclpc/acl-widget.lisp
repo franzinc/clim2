@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.14 2007/04/25 20:29:26 layer Exp $
+;; $Id: acl-widget.lisp,v 2.15 2007/12/11 17:20:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -289,7 +289,13 @@
 ;; the min height in a +text-field-view+ is zero.  At some
 ;; point, lets try modifying +text-field-view+ and 
 ;; +text-editor-view+ to supply better default sizes than zero.
-(defvar *min-text-field-width* 75)
+;;
+;; 2007-09-03/afuchs: This used to be *min-text-field-width. The
+;; minimum width was computed twice. So far, this didn't work too well
+;; for text boxes in accepting-values panes that should be smaller
+;; than 75 pixels. min-w seems to work better, so let's use that
+;; instead, and use 75 as a default width.
+(defvar *default-text-field-width* 75)
 (defvar *min-text-field-height* '(1 :line))
 
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
@@ -313,14 +319,14 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
-			    *min-text-field-width*)))
+			    min-w)))
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (max (process-width-specification pane value)
-			    *min-text-field-width*)))
+			    min-w)))
 	      (t
-	       (setq w *min-text-field-width*)))
+	       (setq w *default-text-field-width*)))
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
 	  ;; Allow for the vertical scrollbar
 	  (let ((wsty (win-scroll-thick :y)))
@@ -443,24 +449,29 @@
   (let ((mirror (sheet-direct-mirror pane)))
     (when mirror
       (let* ((val (slot-value pane 'value))
-	     (val-len (if val (length val) 0)))
-	;; For endpos = -1, means the end.
-	(when (= endpos -1)
-	  (setq endpos val-len))
-	;; Ensure the correct order.
-	(when (< endpos startpos)
-	  (let ((temp endpos))
-	    (setf endpos startpos
-		  startpos temp)))
-	;; Otherwise, trim to fit.
-	(when (< val-len endpos)
-	  (setq endpos val-len))
-	(when (< startpos 0) 
-	  (setq startpos 0))
-	(acl-clim::frame-send-message (pane-frame pane)
-				      mirror
-				      win:EM_SETSEL
-				      startpos endpos)))))
+           (val-len (if val
+                          (+ (length val)
+                             (count #\newline val))
+                          0)))
+                          ;; For endpos = -1, means the end.
+                          (when (= endpos -1)
+                            (setq endpos val-len))
+                            ;; Ensure the correct order.
+                            (when (< endpos startpos)
+                              (let ((temp endpos))
+                                  (setf endpos startpos
+                                          startpos temp)))
+                                          ;; Otherwise, trim to fit.
+        (when (< val-len endpos)
+          (setq endpos val-len))
+        (when (< val-len startpos)
+          (setq startpos val-len))
+          (when (< startpos 0)
+            (setq startpos 0))
+            (acl-clim::frame-send-message (pane-frame pane)
+                                          mirror
+                                          win:EM_SETSEL
+                                          startpos endpos)))))
 
 ;;; Retreive the start and end position of the
 ;;; selection in a mswin-text-edit gadget.
@@ -709,14 +720,14 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
-			    *min-text-field-width*)))
+			    min-w)))
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (max (process-width-specification pane value)
-			    *min-text-field-width*)))
+			    min-w)))
 	      (t
-	       (setq w (process-width-specification pane `(20 :character)))))
+	       (setq w *default-text-field-width*)))
 	(setq w (max w min-w))
 
 	;; HEIGHT
@@ -812,15 +823,16 @@
     ;; two characters (newline and return) for each
     ;; newline, so we need to correct the cursor.
     (let ((result 0))
-      (loop for c across text
-            with actual = 0
+      (loop with actual = 0
+            for c = (if (< result (length text))
+                        (char text result)
+                        #\Space)
             while (< actual windows-cursor)
             do (progn
                  (incf actual
                        (if (char= c #\newline) 2 1))
                  (incf result)))
       result)))
-
 
 (defmethod (setf text-field-cursor) (cursor (text-field mswin-text-edit))
   (let* ((text (clim:gadget-value text-field))

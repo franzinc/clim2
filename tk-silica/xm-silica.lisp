@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-silica.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
+;; $Id: xm-silica.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
 
 (in-package :xm-silica)
 
@@ -72,11 +72,12 @@
 		   (and (typep (pane-frame sheet)
 			       'clim-internals::menu-frame)
 			'(:override-redirect t))))
-	(call-next-method))
+          (call-next-method))
     (values class `(:keyboard-focus-policy
 		    ,(ecase (port-input-focus-selection port)
 		       (:click-to-select :explicit)
 		       (:sheet-under-pointer :pointer))
+                    :preedit-type "None"
 		    ,@initargs))))
 
 (defmethod enable-xt-widget ((parent tk::xm-dialog-shell) (mirror t))

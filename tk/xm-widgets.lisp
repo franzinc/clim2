@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 2.9 2007/04/17 21:45:53 layer Exp $
+;; $Id: xm-widgets.lisp,v 2.10 2007/12/11 17:20:20 layer Exp $
 
 (in-package :tk)
 
@@ -62,6 +62,12 @@
 					  (excl:string-to-native
 					   "keyboardFocusPolicy")))
 
+(tk::add-resource-to-class (find-class 'vendor-shell)
+                           (make-instance 'resource
+                              :name :preedit-type
+                              :type 'string
+                              :original-name (excl:string-to-native
+                                              "preeditType")))
 
 (tk::add-resource-to-class (find-class 'xm-cascade-button-gadget)
 			   (make-instance 'resource
@@ -126,64 +132,68 @@
 
 (excl:ics-target-case
  (:+ics
+  
+  (defvar *empty-compound-string* nil)
+
+  (eval-when (compile) (declaim (special *font-list-tags*)))
+  
   (defun partition-compound-string (s f &key (start 0) (end (length s)))
     (unless (eql (length s) 0)
       (let ((c 0)
-	    (index start))
-	(loop
-	  (setq c (clim-utils:char-character-set-and-index (char s index)))
-	  (let* ((break (position-if-not
-			 #'(lambda (x)
-			     (eq (clim-utils:char-character-set-and-index x) c))
-			 s :start index :end end)))
-	    (funcall f c index (or break end))
-	    (if break
-		(setq index break)
-	      (return-from partition-compound-string))))))))
-
- (:-ics
-  (defun partition-compound-string (s f &key (start 0) (end (length s)))
-    ;;(declare (ignore s))
-    (funcall f nil start end))))
-
-
-(excl:ics-target-case
- (:+ics
-
-  (defvar *empty-compound-string* nil)
+            (index start))
+        (loop
+          (setq c (clim-utils:char-character-set-and-index (char s index)))
+          (let* ((break (position-if-not
+                         #'(lambda (x)
+                             (eq (clim-utils:char-character-set-and-index x) c))
+                         s :start index :end end)))
+            (funcall f c index (or break end))
+            (if break
+                (setq index break)
+                (return-from partition-compound-string)))))))
   
-  (eval-when (compile) (declaim (special *font-list-tags*)))
-
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
     (let ((result nil))
       (flet ((extract-element (codeset start end)
-	       (let* ((substring (subseq value start end))
-		      (element (xm_string_create_l_to_r
-				(ecase codeset
-				  ((0 2) (lisp-string-to-string8 substring))
-				  ((1 3) (lisp-string-to-string16 substring)))
-				(svref *font-list-tags* codeset))))
-		 (tk::add-widget-cleanup-function parent
-						  #'destroy-generated-xm-string
-						  element)
-		 (let ((temp (if result
-				 (xm_string_concat result element)
-			       (xm_string_copy element))))
-		   (tk::add-widget-cleanup-function parent
-						    #'destroy-generated-xm-string
-						    temp)
-		   (setq result temp)))))
-	(declare (dynamic-extent #'extract))
-	(partition-compound-string value #'extract-element)
-	(or result
-	    *empty-compound-string*
-	    (setq *empty-compound-string*
-	      (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
-				       (clim-utils:string-to-foreign 
-					xm-font-list-default-tag))))))
-    ))
+               (let* ((substring (subseq value start end))
+                      (element (xm_string_create_l_to_r
+                                (ecase codeset
+                                  ((0 2) (lisp-string-to-string8 substring))
+                                  ((1 3) (lisp-string-to-string16 substring)))
+                                (aref *font-list-tags* codeset))))
+                 (tk::add-widget-cleanup-function parent
+                                                  #'destroy-generated-xm-string
+                                                  element)
+                 (let ((temp (if result
+                                 (xm_string_concat result element)
+                                 (xm_string_copy element))))
+                   (tk::add-widget-cleanup-function parent
+                                                    #'destroy-generated-xm-string
+                                                    temp)
+                   (setq result temp)))))
+        (declare (dynamic-extent #'extract))
+        (partition-compound-string value #'extract-element)
+        (or result
+            *empty-compound-string*
+            (setq *empty-compound-string*
+                  (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
+                                           (clim-utils:string-to-foreign 
+                                            xm-font-list-default-tag))))))
+    ;; this would be nice instead, but isn't happening anytime soon (spr30362):
+    #+xm-string-supports-utf-8 
+    (let ((native-string (clim-utils:string-to-foreign value)))
+      (let ((xm-string (xm_string_create_localized native-string)))
+        (tk::add-widget-cleanup-function parent #'destroy-generated-xm-string
+                                         xm-string)
+        xm-string)
+      )))
 
  (:-ics
+
+  (defun partition-compound-string (s f &key (start 0) (end (length s)))
+    ;;(declare (ignore s))
+    (funcall f nil start end))
+
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
     (let ((s1 (clim-utils:string-to-foreign value))
 	  (s2 (clim-utils:string-to-foreign "")))
@@ -200,8 +210,7 @@
 					 #'destroy-generated-xm-string
 					 temp) 
 	temp))
-    ))
- )
+    )))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
@@ -306,3 +315,44 @@
   (error 'foo)
   value)
 
+(defvar *lookup-string-buffers* nil)
+
+(defvar *lookup-string-buffer-size* 256)
+
+(defmacro with-lookup-string-buffer ((var) &body body)
+  `(let ((,var (or (excl:without-interrupts (pop *lookup-string-buffers*))
+                   (excl::malloc *lookup-string-buffer-size*))))
+     (declare (type (unsigned-byte 8) buffer)) ; HUH??? an 8-bit word??
+     (multiple-value-prog1
+       (progn ,@body)
+       (excl:without-interrupts (push buffer *lookup-string-buffers*)))))
+
+(defun lookup-multibyte-string (event widget)
+  (declare (optimize (speed 0) (safety 3) (debug 3)))
+  (with-lookup-string-buffer (buffer)
+    (with-ref-par ((keysym 0 :unsigned-long)
+                   (status 0 :int))
+      (let* ((nbytes (xm_im_mb_lookup_string widget event buffer
+                                             *lookup-string-buffer-size*
+                                             &keysym &status)))
+        (declare (fixnum nbytes))
+        (format *debug-io* "Done looking up mb string: nc=~A/status=~A/event-t=~A~%"
+                nbytes status (event-type event))
+        (force-output *debug-io*)
+        (cond
+          ((= status x11::XBufferOverflow)
+           (warn "Too small buffer looking up the key event at size ~A."
+                 *lookup-string-buffer-size*)
+           (let ((*lookup-string-buffer-size* nbytes))
+             (lookup-multibyte-string event widget)))
+          ((= status x11::XLookupNone)
+           (values nil nil))
+          (t
+           (format *debug-io* "buffer=~A~%"
+                   (excl:native-to-octets buffer :length nbytes))
+           (let ((keysymp (or (= status x11::XLookupKeyBoth)
+                              (= status x11::XLookupKeySym)))
+                 (charsp (or (= status x11::XLookupKeyBoth)
+                             (= status x11::XLookupChars))))
+             (values (and charsp (excl:native-to-string buffer :length nbytes))
+                     (and keysymp keysym)))))))))

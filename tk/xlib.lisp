@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 2.10 2007/04/17 21:45:53 layer Exp $
+;; $Id: xlib.lisp,v 2.11 2007/12/11 17:20:20 layer Exp $
 
 (in-package :tk)
 
@@ -331,16 +331,16 @@
 
 (define-window-accessor colormap ())
 
-(defun create-colormap (display &optional (screen (display-screen-number display)))
+(defun create-colormap (display &key (screen (display-screen-number display)))
   (intern-object-xid
-   (x11:xcreatecolormap
-    display
-    (x11:xrootwindow display screen)
-    (x11:xdefaultvisual display screen)
-    x11:allocnone)
+   (x11:xcreatecolormap  display
+                         (x11:xrootwindow display screen)
+                         (x11:xdefaultvisual display screen)
+                         x11:allocnone)
    'colormap
    display
    :display display))
+
 
 (defun default-colormap (display &optional (screen (display-screen-number display)))
   (intern-object-xid
@@ -677,27 +677,6 @@
 	   (if x
 	       (ash 1 x)
 	     (error "cannot encode event-mask ~S" mask))))))
-
-
-(defvar *lookup-string-buffers* nil)
-
-(defun lookup-string (event &optional (compose-status 0))
-  (declare (optimize (speed 3) (safety 0)))
-  (let ((buffer (or (excl:without-interrupts (pop *lookup-string-buffers*))
-		    (excl::malloc 256))))
-    (declare (type (unsigned-byte 8) buffer))
-    ;; we assume the Xid type is the same as a pointer
-    (with-ref-par ((keysym 0 :unsigned-long))
-      (let* ((nchars (x11:xlookupstring event buffer 256 &keysym compose-status))
-	     (result (make-string nchars)))
-	(declare (fixnum nchars)
-		 (simple-string result))
-	(dotimes (i nchars)
-	  (declare (fixnum i))
-	  (setf (schar result i)
-	    (code-char (sys:memref-int buffer 0 i :unsigned-byte))))
-	(excl:without-interrupts (push buffer *lookup-string-buffers*))
-	(values result keysym)))))
 
 ;; image support
 

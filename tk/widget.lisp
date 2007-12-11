@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 2.9 2007/04/17 21:45:53 layer Exp $
+;; $Id: widget.lisp,v 2.10 2007/12/11 17:20:20 layer Exp $
 
 (in-package :tk)
 
@@ -360,6 +360,39 @@
 	 (:+ics '("clim*xnlLanguage: japanese"))))
   "A list of resource specification strings")
 
+(defparameter *external-formats-to-locale-charset-alist*
+              `((,(excl:find-external-format "UTF-8") . "UTF-8")
+                (,(excl:find-external-format "LATIN1") . "ISO-8859-1")))
+
+(defun try-setting-x-locale (locale)
+  (format *debug-io* "Trying locale ~A~%" locale)
+  (setlocale lc-all locale)
+  (let ((supported (x-supports-locale)))
+    (unless (zerop supported)
+      (x-set-locale-modifiers "")
+      (format *debug-io* "X supports locale!~%")
+      locale)))
+
+(defun set-supported-x-locale ()
+  (labels ((ef-name (ef)
+             (if (excl:composed-external-format-p ef)
+                 (or (ef-name (excl:ef-composer-ef ef))
+                     (ef-name (excl:ef-composee-ef ef)))
+                 (cdr (assoc ef *external-formats-to-locale-charset-alist*)))))
+    (let ((locale (excl:locale-name excl:*locale*))
+          (encoding (ef-name (excl:locale-external-format excl:*locale*))))
+      (or (if encoding
+              (try-setting-x-locale (format nil "~A.~A" locale encoding))
+              (warn "Couldn't determine unix encoding of locale ~A's external format. Falling back to default encoding for locale." excl:*locale*))
+          (try-setting-x-locale (format nil "~A" locale))
+          ;; didn't find any locale.
+          (try-setting-x-locale "C")))))
+
+(ff:defun-foreign-callable xt-current-locale-for-acl ((display (* :void)) (xnl (* :char)) (client-data (* :void)))
+  (declare (:convention :c)
+           (ignore display client-data xnl))
+  (set-supported-x-locale))
+
 ;; note that this is different from xt-initialize which calls
 ;; XtToolkitInitialize. This is closer to XtAppInitialize
 
@@ -372,11 +405,15 @@
 	 (with-*-array (v (1+ n))
 	   (dotimes (i n)
 	     (setf (*-array v i)
-	       (clim-utils:string-to-foreign (nth i *fallback-resources*))))
+                   (clim-utils:string-to-foreign (nth i *fallback-resources*))))
 	   (setf (*-array v n) 0)
 	   v))))
-    #+ignore (excl:ics-target-case
-	      (:+ics (xt_set_language_proc context 0 0)))
+    (excl:ics-target-case
+      (:+ics
+       (xt_set_language_proc 0 (register-foreign-callable
+                                'xt-current-locale-for-acl :reuse t)
+                             0)
+       (set-supported-x-locale)))
     (let* ((display (apply #'make-instance 'display
 			   :context context
 			   args))

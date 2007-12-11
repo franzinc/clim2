@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
+;; $Id: xt-graphics.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
 
 (in-package :tk-silica)
 
@@ -1500,12 +1500,12 @@
 			      string-or-char x y start end
 			      align-x align-y
 			      towards-x towards-y transform-glyphs)
+  (declare (ignorable transform-glyphs))
   (let* ((port (port medium))
 	 (sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
 	 (text-style (medium-merged-text-style medium))
 	 (string (string string-or-char)))
-
     ;;--rounding errors?
     (transform-positions transform x y)
     (when (and towards-x towards-y)
@@ -1541,73 +1541,56 @@
 	(:baseline nil)
 	(:top
 	 (when towards-y (incf towards-y baseline))
-	 (incf y baseline))))
+	 (incf y baseline)))
 
-    (let ((y-factor 0)
-	  (x-factor 1))
-      (when (and towards-x towards-y)
-	(let ((xxx (- towards-x x))
-	      (yyy (- towards-y y)))
-	  (cond ((zerop yyy)
-		 (setq y-factor 0)
-		 (setq x-factor (if (minusp xxx) -1 1)))
-		((zerop xxx)
-		 (setq x-factor 0)
-		 (setq y-factor (if (minusp yyy) -1 1)))
-		(t
-		 ;; this branch is rather expensive.
-		 ;; avoid these calls if the calculation is trivial. jpm.
-		 (let ((alpha (atan yyy xxx)))
-		   (setq y-factor (sin alpha))
-		   (setq x-factor (cos alpha)))))))
-
-      (flet ((process-element (codeset start end)
-	       (let ((drawable (medium-drawable medium))
-		     (font (text-style-mapping port text-style codeset))
-		     (width (text-size sheet string :text-style text-style
-				       :start start :end end)))
-		 (when drawable
-		   (fix-coordinates x y)
-		   (discard-illegal-coordinates medium-draw-text* x y)
-		   (let ((gc (adjust-ink
-			      (decode-ink (medium-ink medium) medium)
-			      medium
-			      x
-			      (- y (tk::font-ascent font)))))
-		     (setf (tk::gcontext-font gc) font)
-		     (if (and towards-x towards-y)
-			 (if (tk::font-range font)
-			     (port-draw-rotated-text port drawable gc x y string start end
-						     font towards-x towards-y transform-glyphs)
-			   (let ((*error-output* excl:*initial-terminal-io*))
-			     (warn "Cannot rotate 16-bit font ~A" font)))
-		       (funcall
-			(excl:ics-target-case
-			 (:+ics 
-			  ;; bug12286/spr26334
-			  ;; The old function, tk::draw-string16,
-			  ;; does not properly handle "higher-numbered"
-			  ;; ascii characters.
-			  ;; The following is in analogy to
-			  ;; the similar operation in
-			  ;; convert-resource-out 'xm-string
-			  (ecase codeset
-			    ((0 2) 'tk::draw-string)
-			    ((1 3) 'tk::draw-string16))
-			  )
-			 (:-ics 'tk::draw-string))
-			drawable gc
-			x y
-			string start end))))
-		 (let ((dx (* width x-factor))
-		       (dy (* width y-factor)))
-		   (incf x dx)
-		   (incf y dy)
-		   (when towards-x (incf towards-x dx))
-		   (when towards-y (incf towards-y dy))))))
-	(declare (dynamic-extent #'process-element))
-	(tk::partition-compound-string string #'process-element
-				       :start start :end end)))))
+      (let ((y-factor 0)
+            (x-factor 1))
+        (when (and towards-x towards-y)
+          (let ((xxx (- towards-x x))
+                (yyy (- towards-y y)))
+            (cond ((zerop yyy)
+                   (setq y-factor 0)
+                   (setq x-factor (if (minusp xxx) -1 1)))
+                  ((zerop xxx)
+                   (setq x-factor 0)
+                   (setq y-factor (if (minusp yyy) -1 1)))
+                  (t
+                   ;; this branch is rather expensive.
+                   ;; avoid these calls if the calculation is trivial. jpm.
+                   (let ((alpha (atan yyy xxx)))
+                     (setq y-factor (sin alpha))
+                     (setq x-factor (cos alpha)))))))
+        (let ((drawable (medium-drawable medium))
+              (font (text-style-mapping port text-style *all-character-sets*)))
+          (when drawable
+            (fix-coordinates x y)
+            (discard-illegal-coordinates medium-draw-text* x y)
+            (let ((gc (adjust-ink
+                       (decode-ink (medium-ink medium) medium)
+                       medium
+                       x
+                       (- y height))))
+              (if (and towards-x towards-y)
+                  (excl:ics-target-case
+                    (:+ics
+                     (let ((*error-output* excl:*initial-terminal-io*))
+                       (warn "Cannot rotate 16-bit font ~A" font)))
+                    (:-ics
+                     (port-draw-rotated-text port drawable gc x y string start end
+                                             font towards-x towards-y transform-glyphs)))
+                  (excl:ics-target-case
+                    (:+ics
+                     (tk::draw-multibyte-string drawable
+                                                (font-set-from-font-list port font)
+                                                gc x y string start end))
+                    (:-ics
+                     (tk::draw-string drawable gc x y string start end))))))
+          (let ((dx (* width x-factor))
+                (dy (* width y-factor)))
+            (incf x dx)
+            (incf y dy)
+            (when towards-x (incf towards-x dx))
+            (when towards-y (incf towards-y dy))))))))
 
 (defmethod medium-text-bounding-box ((medium xt-medium)
 				     string x y start end align-x
