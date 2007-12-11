@@ -1,8 +1,8 @@
 #+(version= 8 1)
-(sys:defpatch #+mswindows "climnt" #-mswindows "climxm"
-    1
+(sys:defpatch #+mswindows "climnt" #-mswindows "climxm" 1
   "v1: full international font support"
-  :type :clim
+  :type :clim2
+  :feature :clim
   :post-loadable t)
 
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
@@ -23,7 +23,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: excl-verification.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
+;; $Id: excl-verification.lisp,v 2.9 2007/12/11 17:22:48 layer Exp $
 
 (in-package :sys)
 
