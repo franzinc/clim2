@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.7.20.3 2007/12/11 14:26:55 afuchs Exp $
+;; $Id: xt-silica.lisp,v 2.7.20.4 2007/12/11 14:36:14 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -1108,10 +1108,10 @@ setup."
         (tk::with-xrectangle-array (ink-return 1)
           (tk::with-xrectangle-array (logical-return 1)
             (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
-                   (font-set (font-set-from-font-list port fonts))
-                   (escapement-x (x11:xmbtextextents font-set native-string
+                   (font-set (font-set-from-font-list port fonts)))
+              (x11:xmbtextextents font-set native-string
                                                      (1- length) ink-return
-                                                     logical-return)))
+                                                     logical-return)
               (values (char-code character) font-set
                       ;; escapement:
                       (x11:xrectangle-width logical-return) 0
@@ -1120,8 +1120,7 @@ setup."
                       ;; bounding box:
                       (x11:xrectangle-width logical-return)
                       (x11:xrectangle-height logical-return)))))
-      (excl:aclfree native-string))
-    ))
+      (excl:aclfree native-string))))
 
 (defvar *trying-fallback* nil)
 

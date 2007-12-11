@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 2.6.42.1 2007/12/11 14:26:55 afuchs Exp $
+;; $Id: xt-graphics.lisp,v 2.6.42.2 2007/12/11 14:36:14 afuchs Exp $
 
 (in-package :tk-silica)
 
@@ -1500,6 +1500,7 @@
 			      string-or-char x y start end
 			      align-x align-y
 			      towards-x towards-y transform-glyphs)
+  (declare (ignorable transform-glyphs))
   (let* ((port (port medium))
 	 (sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
