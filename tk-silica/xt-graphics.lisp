@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
+;; $Id: xt-graphics.lisp,v 2.8.2.1 2008/01/26 14:16:04 afuchs Exp $
 
 (in-package :tk-silica)
 
@@ -676,7 +676,7 @@
   (with-slots (ink-table) medium
     (let* ((gc (gethash ink ink-table))
 	   (pixmap (or (tk::gcontext-stipple gc)
-		       (tk::gcontext-tile gc))))
+                       (tk::gcontext-tile gc))))
       (when pixmap
 	(tk::destroy-pixmap pixmap)))))
 
@@ -1420,7 +1420,7 @@
 	       ink
 	       points
 	       npoints
-	       x11:complex
+	       x11:x11-complex
 	       x11:coordmodeorigin)
 	    (x11:xdrawlines
 	     (tk::object-display drawable)

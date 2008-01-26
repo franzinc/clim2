@@ -1,3 +1,10 @@
+2008-01-26  Andreas Fuchs  <afuchs@franz.com>
+
+	* xlib/pkg.lisp, xlib/xlib-defs.lisp: rename x11:complex to
+	  x11:x11-complex to avoid clobbering the symbol cl:complex.
+	  (see spr34277)
+	* tk-silica/xt-graphics.lisp: use x11:x11-complex.
+
 2007-12-11  Andreas Fuchs  <afuchs@franz.com>
 
 	* clim/text-formatting.lisp: Add filling-stream-conditional-newline,
@@ -6214,4 +6221,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37 $
+$Revision: 2.37.2.1 $
