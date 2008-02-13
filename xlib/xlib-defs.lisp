@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib-defs.lisp,v 2.10 2007/12/11 17:20:21 layer Exp $
+;; $Id: xlib-defs.lisp,v 2.11 2008/02/13 17:06:46 layer Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
@@ -171,7 +171,7 @@
 (def-exported-constant colormapinstalled 1)            ;; #define ColormapInstalled 1
 (def-exported-constant colormapnotify 32)              ;; #define ColormapNotify 	32
 (def-exported-constant colormapuninstalled 0)          ;; #define ColormapUninstalled 0
-(def-exported-constant complex 0)                      ;; #define Complex 		0
+(def-exported-constant x11-complex 0)                  ;; #define Complex 		0 (uses a different name to avoid clashing with cl:complex - spr34277)
 (def-exported-constant configurenotify 22)             ;; #define ConfigureNotify 	22
 (def-exported-constant configurerequest 23)            ;; #define ConfigureRequest 23
 (def-exported-constant controlmapindex 2)              ;; #define ControlMapIndex 	2

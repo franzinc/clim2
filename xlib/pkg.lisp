@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkg.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
+;; $Id: pkg.lisp,v 2.8 2008/02/13 17:06:46 layer Exp $
 
 (defpackage :x11
   ;; I don't know if this is OK (can we assume clim-utils?).  In any
@@ -122,7 +122,8 @@
 	   #:capnotlast #:capprojecting #:capround #:centergravity #:char
 	   #:circulatenotify #:circulaterequest #:clientmessage #:clipbychildren
 	   #:colormap #:colormapchangemask #:colormapinstalled #:colormapnotify
-	   #:colormapuninstalled #:complex #:configurenotify #:configurerequest
+	   #:colormapuninstalled #:x11-complex #:configurenotify
+           #:configurerequest
 	   #:controlmapindex #:controlmask #:convex #:coordmodeorigin
 	   #:coordmodeprevious #:copyfromparent #:createnotify #:currenttime
 	   #:cursor #:cursorshape #:cwbackingpixel #:cwbackingplanes

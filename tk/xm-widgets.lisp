@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 2.10 2007/12/11 17:20:20 layer Exp $
+;; $Id: xm-widgets.lisp,v 2.11 2008/02/13 17:06:46 layer Exp $
 
 (in-package :tk)
 
@@ -336,8 +336,6 @@
                                              *lookup-string-buffer-size*
                                              &keysym &status)))
         (declare (fixnum nbytes))
-        (format *debug-io* "Done looking up mb string: nc=~A/status=~A/event-t=~A~%"
-                nbytes status (event-type event))
         (force-output *debug-io*)
         (cond
           ((= status x11::XBufferOverflow)
@@ -348,8 +346,6 @@
           ((= status x11::XLookupNone)
            (values nil nil))
           (t
-           (format *debug-io* "buffer=~A~%"
-                   (excl:native-to-octets buffer :length nbytes))
            (let ((keysymp (or (= status x11::XLookupKeyBoth)
                               (= status x11::XLookupKeySym)))
                  (charsp (or (= status x11::XLookupKeyBoth)
