@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 2.10 2007/12/11 17:20:20 layer Exp $
+;; $Id: widget.lisp,v 2.10.2.1 2008/02/13 14:15:11 afuchs Exp $
 
 (in-package :tk)
 
@@ -365,12 +365,10 @@
                 (,(excl:find-external-format "LATIN1") . "ISO-8859-1")))
 
 (defun try-setting-x-locale (locale)
-  (format *debug-io* "Trying locale ~A~%" locale)
   (setlocale lc-all locale)
   (let ((supported (x-supports-locale)))
     (unless (zerop supported)
       (x-set-locale-modifiers "")
-      (format *debug-io* "X supports locale!~%")
       locale)))
 
 (defun set-supported-x-locale ()

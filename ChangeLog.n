@@ -1,3 +1,11 @@
+2008-02-13  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk/widget.lisp, tk/xm-widgets.lisp, tk-silica/xt-silica.lisp:
+	  remove debug output
+	* tk-silica/image.lisp: Make make-pattern-from-bitmap-file
+	  pass an explicit :format argument; adds support for loading
+	  bitmaps from streams as well as files.
+
 2008-01-26  Andreas Fuchs  <afuchs@franz.com>
 
 	* xlib/pkg.lisp, xlib/xlib-defs.lisp: rename x11:complex to
@@ -6221,4 +6229,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.1 $
+$Revision: 2.37.2.2 $

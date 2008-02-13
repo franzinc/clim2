@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: image.lisp,v 2.8 2007/04/17 21:45:53 layer Exp $
+;; $Id: image.lisp,v 2.8.6.1 2008/02/13 14:15:11 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -43,7 +43,7 @@
 		   type :format)))))
   (multiple-value-bind (array designs)
       (with-keywords-removed (args args '(:designs))
-	(apply #'read-bitmap-file file args))
+	(apply #'read-bitmap-file file :format format args))
     (make-pattern array
 		  (or designs
 		      supplied-designs

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.12 2007/12/11 17:20:21 layer Exp $
+;; $Id: xt-silica.lisp,v 2.12.2.1 2008/02/13 14:15:11 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -343,7 +343,6 @@ setup."
             (dolist (family families)
               (pushnew (last (disassemble-x-font-name (second family)) 2) done-registries
                        :test #'equal))))
-        (format *debug-io* "done registries: ~A, last charset: ~A~%" done-registries charset-number)
         ;; Now setup font mappings of fonts that the user has
         ;; installed, but we don't know anything about (especially no
         ;; convenient font aliases).
@@ -357,7 +356,6 @@ setup."
                 for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
                 for fallback-font = (find-font-with-properties fonts weight slant)
                 for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
-                do (format *debug-io* "~&registering installed font ~A for enc:~A~%" character-set encoding)
                 do (unless (member encoding done-registries :test #'equal)
                      (vector-push-extend (excl:string-to-native
                                           (format nil "~A-~A" (first encoding) (second encoding)))
