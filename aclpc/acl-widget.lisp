@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.15 2007/12/11 17:20:20 layer Exp $
+;; $Id: acl-widget.lisp,v 2.15.2.1 2008/02/28 11:32:28 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -86,7 +86,7 @@
 	   (let ((new (funcall value-key (elt items index))))
 	     (setf (gadget-value pane :invoke-callback t)
 	       (if (member new (gadget-value pane))	      
-		   (delete new (gadget-value pane))
+		   (remove new (gadget-value pane))
 		 (push new (gadget-value pane)))))))))))
 
 (defmethod (setf gadget-value) :before

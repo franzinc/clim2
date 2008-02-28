@@ -1,3 +1,8 @@
+2008-02-28  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-widget.lisp: (spr34368) On nonexclusive list boxes,
+	  use REMOVE instead of DELETE to avoid damaging the item list.
+
 2008-02-13  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk/widget.lisp, tk/xm-widgets.lisp, tk-silica/xt-silica.lisp:
@@ -6229,4 +6234,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.2 $
+$Revision: 2.37.2.3 $
