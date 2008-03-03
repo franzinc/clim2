@@ -1,6 +1,17 @@
 *******************************************************************************
 join from trunk_afuchs3 to trunk
     changes from:
+	2008-02-28  Andreas Fuchs  <afuchs@franz.com>
+
+*******************************************************************************
+2008-02-28  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-widget.lisp: (spr34368) On nonexclusive list boxes,
+	  use REMOVE instead of DELETE to avoid damaging the item list.
+
+*******************************************************************************
+join from trunk_afuchs3 to trunk
+    changes from:
 	2008-02-13  Andreas Fuchs  <afuchs@franz.com>
     to
 	2008-01-26  Andreas Fuchs  <afuchs@franz.com>
@@ -6237,4 +6248,8 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.38 $
+<<<<<<< ChangeLog.n
+$Revision: 2.39 $
+=======
+$Revision: 2.39 $
+>>>>>>> 2.37.2.3
