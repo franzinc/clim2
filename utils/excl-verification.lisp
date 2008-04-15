@@ -1,6 +1,8 @@
 #+(version= 8 1)
-(sys:defpatch #+mswindows "climnt" #-mswindows "climxm" 1
-  "v1: full international font support"
+(sys:defpatch
+    #+mswindows "climnt" #-mswindows "climxm" 2
+    "v1: full international font support;
+v2: fix v1 for 8-bit Lisps."
   :type :system
   :post-loadable t)
 
@@ -22,7 +24,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: excl-verification.lisp,v 2.10 2007/12/12 16:48:28 layer Exp $
+;; $Id: excl-verification.lisp,v 2.11 2008/04/15 22:44:47 layer Exp $
 
 (in-package :sys)
 
