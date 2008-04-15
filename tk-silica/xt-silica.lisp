@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.13 2008/02/13 17:06:46 layer Exp $
+;; $Id: xt-silica.lisp,v 2.14 2008/04/15 17:13:58 layer Exp $
 
 (in-package :xm-silica)
 
@@ -349,21 +349,23 @@ setup."
         ;; Since we don't have any font alias names to rely on, we use
         ;; the "fixed" alias to find out at least a sensible default
         ;; weight and slant.
-        (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
-               (weight (nth 3 default-fallback))
-               (slant (nth 4 default-fallback)))
-          (loop for character-set from (1+ charset-number) 
-                for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
-                for fallback-font = (find-font-with-properties fonts weight slant)
-                for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
-                do (unless (member encoding done-registries :test #'equal)
-                     (vector-push-extend (excl:string-to-native
-                                          (format nil "~A-~A" (first encoding) (second encoding)))
-                                         tk::*font-list-tags*)
-                     (load-1-charset character-set fallback-font
-                                     `((:fix ,default-font-match-string)
-                                       (:sans-serif ,default-font-match-string)
-                                       (:serif ,default-font-match-string))))))
+        (excl:ics-target-case
+          (:+ics
+           (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
+                  (weight (nth 3 default-fallback))
+                  (slant (nth 4 default-fallback)))
+             (loop for character-set from (1+ charset-number) 
+                   for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
+                   for fallback-font = (find-font-with-properties fonts weight slant)
+                   for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
+                   do (unless (member encoding done-registries :test #'equal)
+                        (vector-push-extend (excl:string-to-native
+                                             (format nil "~A-~A" (first encoding) (second encoding)))
+                                            tk::*font-list-tags*)
+                        (load-1-charset character-set fallback-font
+                                        `((:fix ,default-font-match-string)
+                                          (:sans-serif ,default-font-match-string)
+                                          (:serif ,default-font-match-string))))))))
         )))
   (setup-stipples port display))
 
@@ -1051,43 +1053,6 @@ setup."
   (with-slots (context) port
     (tk::process-one-event context mask reason)))
 
-#+gah-this-is-broken
-(defmethod port-glyph-for-character ((port xt-port)
-				     character text-style
-				     &optional our-font)
-  (let* ((index (excl:ics-target-case
-		 (:+ics (tk::xchar-code character))
-		 (:-ics (char-int character))))
-	 (x-font (or (excl:ics-target-case
-		      ;; we don't used cached font for ics version
-		      ;; because of possible codeset switches in the string
-		      (:+ics our-font nil)
-		      (:-ics our-font))
-		     (text-style-mapping port text-style
-					 (char-character-set-and-index character)))))
-    (when (null x-font)
-      ;; Throw a more meaningful error-message
-      ;; when the x-font is not found.
-      ;; This will happen, for example, when
-      ;; a Japanese/foreign is not set up correctly.
-      (let ((character-set (char-character-set-and-index character)))
-	(error "X-Font not found for text-style: ~S on port:~S~% (character-set: ~A, character:~C, char-index:~S)"
-	       text-style
-	       port
-	       character-set
-	       character
-	       index)))
-    (let* ((escapement-x (tk::char-width x-font index))
-	   (escapement-y 0)
-	   (origin-x 0)
-	   (origin-y (tk::font-ascent x-font))
-	   (bb-x escapement-x)
-	   (bb-y (+ origin-y (tk::font-descent x-font))))
-      (when (zerop escapement-x)
-	(setq escapement-x (tk::font-width x-font)))
-      (values index x-font escapement-x escapement-y
-	      origin-x origin-y bb-x bb-y))))
-
 (defun xrect-to-list (xr)
   (list :x
         (x11:xrectangle-x xr)
@@ -1099,26 +1064,58 @@ setup."
         :height
         (x11:xrectangle-height xr)))
 
-(defmethod port-glyph-for-character ((port xt-port) character text-style &optional our-font)
-  (declare (ignore our-font))    ; We need the font set, not the font.
-  (multiple-value-bind (native-string length) (excl:string-to-native (string character))
-    (unwind-protect
-        (tk::with-xrectangle-array (ink-return 1)
-          (tk::with-xrectangle-array (logical-return 1)
-            (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
-                   (font-set (font-set-from-font-list port fonts)))
-              (x11:xmbtextextents font-set native-string
-                                                     (1- length) ink-return
-                                                     logical-return)
-              (values (char-code character) font-set
-                      ;; escapement:
-                      (x11:xrectangle-width logical-return) 0
-                      ;; origin:
-                      0 (abs (x11:xrectangle-y logical-return))
-                      ;; bounding box:
-                      (x11:xrectangle-width logical-return)
-                      (x11:xrectangle-height logical-return)))))
-      (excl:aclfree native-string))))
+(excl:ics-target-case
+  (:-ics
+   (defmethod port-glyph-for-character ((port xt-port)
+                                        character text-style
+                                        &optional our-font)
+     (let* ((index (char-int character))
+            (x-font (or our-font
+                        (text-style-mapping port text-style
+                                            (char-character-set-and-index character)))))
+       (when (null x-font)
+         ;; Throw a more meaningful error-message
+         ;; when the x-font is not found.
+         ;; This will happen, for example, when
+         ;; a Japanese/foreign is not set up correctly.
+         (let ((character-set (char-character-set-and-index character)))
+           (error "X-Font not found for text-style: ~S on port:~S~% (character-set: ~A, character:~C, char-index:~S)"
+                  text-style
+                  port
+                  character-set
+                  character
+                  index)))
+       (let* ((escapement-x (tk::char-width x-font index))
+              (escapement-y 0)
+              (origin-x 0)
+              (origin-y (tk::font-ascent x-font))
+              (bb-x escapement-x)
+              (bb-y (+ origin-y (tk::font-descent x-font))))
+         (when (zerop escapement-x)
+           (setq escapement-x (tk::font-width x-font)))
+         (values index x-font escapement-x escapement-y
+                 origin-x origin-y bb-x bb-y)))))
+  (:+ics
+   (defmethod port-glyph-for-character ((port xt-port) character text-style &optional our-font)
+     (declare (ignore our-font)) ; We need the font set, not the font.
+     (multiple-value-bind (native-string length) (excl:string-to-native (string character))
+       (unwind-protect
+           (tk::with-xrectangle-array (ink-return 1)
+             (tk::with-xrectangle-array (logical-return 1)
+               (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
+                      (font-set (font-set-from-font-list port fonts)))
+                 (x11:xmbtextextents font-set native-string
+                                     (1- length) ink-return
+                                     logical-return)
+                 (values (char-code character) font-set
+                         ;; escapement:
+                         (x11:xrectangle-width logical-return) 0
+                         ;; origin:
+                         0 (abs (x11:xrectangle-y logical-return))
+                         ;; bounding box:
+                         (x11:xrectangle-width logical-return)
+                         (x11:xrectangle-height logical-return)))))
+         (excl:aclfree native-string))))))
 
 (defvar *trying-fallback* nil)
 

@@ -1,6 +1,17 @@
 *******************************************************************************
 join from trunk_afuchs3 to trunk
     changes from:
+	2008-04-15  Andreas Fuchs  <afuchs@franz.com>
+
+*******************************************************************************
+2008-04-15  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk/xt-silica.lisp: Make port-glyph-for-character work again on lisp8.
+	* tk/xt-silica.lisp: Make initialize-xt-port work again on lisp8, too.
+
+*******************************************************************************
+join from trunk_afuchs3 to trunk
+    changes from:
 	2008-02-28  Andreas Fuchs  <afuchs@franz.com>
 
 *******************************************************************************
@@ -6249,7 +6260,11 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 
 *******************************************************************************
 <<<<<<< ChangeLog.n
-$Revision: 2.39 $
+<<<<<<< ChangeLog.n
+$Revision: 2.40 $
 =======
-$Revision: 2.39 $
+$Revision: 2.40 $
 >>>>>>> 2.37.2.3
+=======
+$Revision: 2.40 $
+>>>>>>> 2.37.2.4
