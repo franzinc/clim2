@@ -1,3 +1,8 @@
+2008-04-15  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk/xt-silica.lisp: Make port-glyph-for-character work again on lisp8.
+	* tk/xt-silica.lisp: Make initialize-xt-port work again on lisp8, too.
+
 2008-02-28  Andreas Fuchs  <afuchs@franz.com>
 
 	* aclpc/acl-widget.lisp: (spr34368) On nonexclusive list boxes,
@@ -6234,4 +6239,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.3 $
+$Revision: 2.37.2.4 $
