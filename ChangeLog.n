@@ -1,3 +1,9 @@
+2008-05-20  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk/xt-graphics.lisp: Set the correct font in medium-draw-text* for lisp8.
+	* clim/formatted-output-defs.lisp: Re-compute the table orientation on every
+	  redisplay pass to allow switching the orientation via commands etc.
+
 2008-04-15  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk/xt-silica.lisp: Make port-glyph-for-character work again on lisp8.
@@ -6239,4 +6245,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.4 $
+$Revision: 2.37.2.5 $

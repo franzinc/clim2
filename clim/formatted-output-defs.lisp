@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: formatted-output-defs.lisp,v 2.7 2007/04/17 21:45:49 layer Exp $
+;; $Id: formatted-output-defs.lisp,v 2.7.6.1 2008/05/20 12:27:44 afuchs Exp $
 
 (in-package :clim-internals)
 
@@ -42,7 +42,12 @@
               (with-end-of-line-action (stream :allow)
                 (with-end-of-page-action (stream :allow)
                   (flet ((invoke-formatting-table-1 (record)
-                           (declare (ignore record))
+                           ;; spr34508: It's possible that when making
+                           ;; a table within updating-output the user
+                           ;; can switch the table orientation. We
+                           ;; need to recompute row-table-ness here.
+                           (when (typep record 'standard-table-output-record)
+                             (setf (slot-value record 'row-table-p) :unknown))
                            (funcall continuation stream)))
                     (declare (dynamic-extent #'invoke-formatting-table-1))
                     (apply #'invoke-with-new-output-record

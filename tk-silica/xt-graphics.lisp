@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 2.8.2.1 2008/01/26 14:16:04 afuchs Exp $
+;; $Id: xt-graphics.lisp,v 2.8.2.2 2008/05/20 12:27:44 afuchs Exp $
 
 (in-package :tk-silica)
 
@@ -1576,6 +1576,7 @@
                      (let ((*error-output* excl:*initial-terminal-io*))
                        (warn "Cannot rotate 16-bit font ~A" font)))
                     (:-ics
+                     (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
                      (port-draw-rotated-text port drawable gc x y string start end
                                              font towards-x towards-y transform-glyphs)))
                   (excl:ics-target-case
@@ -1584,6 +1585,7 @@
                                                 (font-set-from-font-list port font)
                                                 gc x y string start end))
                     (:-ics
+                     (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
                      (tk::draw-string drawable gc x y string start end))))))
           (let ((dx (* width x-factor))
                 (dy (* width y-factor)))
