@@ -1,3 +1,13 @@
+2008-06-16  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xt-graphics.lisp: Implement text rotation for
+	  non-8bit lisps.
+	* tk-silica/xt-silica.lisp: Refactor port-glyph-for-character
+	  into a version that works on the font set and one that works
+	  on the text style.
+	* tk/xlib.lisp: Remove code that caused segfaults on X errors
+	  (BadMatch and the like)
+
 2008-05-20  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk/xt-graphics.lisp: Set the correct font in medium-draw-text* for lisp8.
@@ -6245,4 +6255,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.5 $
+$Revision: 2.37.2.6 $

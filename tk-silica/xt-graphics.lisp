@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 2.8.2.2 2008/05/20 12:27:44 afuchs Exp $
+;; $Id: xt-graphics.lisp,v 2.8.2.3 2008/06/16 12:18:14 afuchs Exp $
 
 (in-package :tk-silica)
 
@@ -1573,8 +1573,9 @@
               (if (and towards-x towards-y)
                   (excl:ics-target-case
                     (:+ics
-                     (let ((*error-output* excl:*initial-terminal-io*))
-                       (warn "Cannot rotate 16-bit font ~A" font)))
+                     (port-draw-rotated-multibyte-text port drawable gc x y string start end
+                                                       (font-set-from-font-list port font)
+                                                       towards-x towards-y transform-glyphs))
                     (:-ics
                      (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
                      (port-draw-rotated-text port drawable gc x y string start end
@@ -1622,6 +1623,118 @@
 		      (max left right) (max top bottom))))
       (values left top right bottom))))
 
+(defun compute-rotation (x y towards-x towards-y)
+  (decf towards-x x)
+  (decf towards-y y)
+  #+OLD ; ARE YOU KIDDING? THIS SURE IS THE LONG WAY AROUND THE BARN...JPM
+  (MOD (ROUND (ATAN TOWARDS-Y TOWARDS-X) (/ PI 2.0)) 4)
+  (cond ((> towards-x 0)
+         (cond ((> towards-y 0) 1)
+               ((= towards-y 0) 0)
+               (t 3)))
+        ((= towards-x 0)
+         (cond ((>= towards-y 0) 1)
+               (t 3)))
+        (t 2)))
+
+(defun font-set-ascent/descent (font-set)
+  (loop for font in (tk::fonts-of-font-set font-set)
+        maximize (xt::font-ascent font) into ascent
+        maximize (xt::font-descent font) into descent
+        finally (return (values ascent descent))))
+
+(defun port-draw-rotated-multibyte-text (port
+                                         drawable
+                                         gcontext
+                                         x
+                                         y
+                                         string
+                                         start
+                                         end
+                                         font
+                                         towards-x
+                                         towards-y
+                                         transform-glyphs)
+  (declare (ignore transform-glyphs))
+  (let ((rotation (compute-rotation x y towards-x towards-y)))
+    (flet ((compute-string-dimensions ()
+             (multiple-value-bind (character font-set escapement-x escapement-y=0 origin-x=0 origin-y
+                                             bbox-width bbox-height)
+                 (port-glyph-for-character-from-font-set port string font)
+               (declare (ignore character font-set escapement-x escapement-y=0 origin-x=0 origin-y))
+               (multiple-value-bind (ascent descent) (font-set-ascent/descent font)
+                 (values bbox-width bbox-height ascent descent)))))
+      (multiple-value-bind (text-width text-height ascent descent) (compute-string-dimensions)
+        (multiple-value-bind (pixmap-width pixmap-height)
+	    (ecase rotation
+	      ((0 2) (values text-width text-height))
+	      ((1 3) (values text-height text-width)))
+          (let* ((side-length (max text-width text-height))
+                 (square-size (expt 2 (integer-length side-length)))
+                 (pixmap (make-instance 'tk::pixmap
+                            :drawable
+                            (xt::display-root-window
+                             (port-display port))
+                            :depth 1
+                            :width square-size
+                            :height square-size))
+                 (rotation-gc (make-instance 'tk::gcontext :drawable pixmap)))
+            ;; first we draw into a square pixmap:
+            (setf (tk::gcontext-foreground rotation-gc) 0)
+            (tk::draw-rectangle pixmap rotation-gc 0 0
+                                square-size square-size t)
+            (setf (tk::gcontext-foreground rotation-gc) 1)
+            (tk::draw-multibyte-string pixmap font rotation-gc
+                                       0 text-height
+                                       string start end)
+            
+            
+            ;; then, rotate that square:
+            (rotate-pixmap pixmap rotation)
+
+            #+debug
+            (setf (tk::gcontext-clip-mask gcontext) pixmap)
+            #+debug
+            (tk::draw-rectangle drawable gcontext
+                                0 0 square-size square-size t)
+            
+            ;; then we copy the text rectangle from the rotated square
+            ;; into the drawable:
+            (multiple-value-bind (src-x src-y x-add y-add dst-x dst-y)
+                (ecase rotation
+                  (0 (values 0 0
+                             0 descent
+                             x (- y ascent)))
+                  (1 (values (- square-size pixmap-width descent) 0
+                             0 0
+                             (- x descent) y))
+                  (2 (values (- square-size text-width)
+                             (- square-size text-height descent)
+                             0 descent
+                             (- x pixmap-width) (- y descent)))
+                  (3 (values 0 (- square-size text-width)
+                             descent 0
+                             (- x ascent) (- y pixmap-height))))
+              (let ((rotated-pixmap (make-instance 'tk::pixmap
+                                    :drawable
+                                    (xt::display-root-window
+                                     (port-display port))
+                                    :depth 1
+                                    :width (+ x-add pixmap-width)
+                                    :height (+ y-add pixmap-height))))
+                (tk::copy-area pixmap rotation-gc
+                               src-x src-y
+                               (+ x-add pixmap-width) (+ y-add pixmap-height)
+                               rotated-pixmap 0 0)
+                (decf (ink-gcontext-last-clip-region-tick gcontext))
+                (setf (tk::gcontext-clip-mask gcontext) rotated-pixmap)
+                (setf (tk::gcontext-clip-x-origin gcontext) dst-x
+                      (tk::gcontext-clip-y-origin gcontext) dst-y)
+                (tk::draw-rectangle drawable gcontext
+                                    dst-x dst-y
+                                    (+ x-add pixmap-width)
+                                    (+ y-add pixmap-height) t)))))))))
+
 (defun port-draw-rotated-text (port
 			       drawable
 			       gcontext
@@ -1640,78 +1753,62 @@
   ;;-- the characters in the font and rotate it by the required amount
   ;; Then use the bitmap  as a clip-mask for drawing when drawing each
   ;; rectangle character
-  (flet ((compute-rotation (x y towards-x towards-y)
-	   (decf towards-x x)
-	   (decf towards-y y)
-	   #+OLD			; ARE YOU KIDDING? THIS SURE IS THE LONG WAY AROUND THE BARN...JPM
-	   (MOD (ROUND (ATAN TOWARDS-Y TOWARDS-X) (/ PI 2.0)) 4)
-	   (cond ((> towards-x 0)
-		  (cond ((> towards-y 0) 1)
-			((= towards-y 0) 0)
-			(t 3)))
-		 ((= towards-x 0)
-		  (cond ((>= towards-y 0) 1)
-			(t 3)))
-		 (t 2))))
-    (let* ((rotation (compute-rotation x y towards-x towards-y))
-	   (min-char (xt::font-range font))
-	   (ascent (xt::font-ascent font))
-	   (descent (xt::font-descent font)))
-      (multiple-value-bind
-	  (pixmap columns
-	   width
-	   leftover-width
-	   rows height
-	   leftover-height)
-	  (find-rotated-text-pixmap
-	   port font rotation)
-	(flet ()
+  (let* ((rotation (compute-rotation x y towards-x towards-y))
+         (min-char (xt::font-range font))
+         (ascent (xt::font-ascent font))
+         (descent (xt::font-descent font)))
+    (multiple-value-bind
+        (pixmap columns
+                width
+                leftover-width
+                rows height
+                leftover-height)
+        (find-rotated-text-pixmap
+         port font rotation)
+      #+ignore (setf (tk::gcontext-clip-mask gcontext) pixmap)
+      #+ignore (decf (ink-gcontext-last-clip-region-tick gcontext))
 
+      (unless start (setq start 0))
+      (unless end (setq end (length string)))
 
-	  #+ignore (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  #+ignore (decf (ink-gcontext-last-clip-region-tick gcontext))
+      #+debug
+      (tk::copy-area pixmap gcontext 0 0
+                     (tk::pixmap-width pixmap)
+                     (tk::pixmap-height pixmap)
+                     drawable 0 0)
+      #+debug
+      (progn
+        (setf (tk::gcontext-clip-mask gcontext) pixmap)
+        (setf (tk::gcontext-clip-x-origin gcontext) 0
+              (tk::gcontext-clip-y-origin gcontext) 70)
+        (tk::draw-rectangle drawable gcontext 0 70 256 256 t))
 
-	  (unless start (setq start 0))
-	  (unless end (setq end (length string)))
+      ;;-- This should be drawing onto an appropriately size bitmap
+      ;;-- that should be cached
+      ;;-- Width/height is the width of string
+      ;;-- Height/width is the height of the font
 
-	  #+debug
-	  (tk::copy-area pixmap gcontext 0 0
-			 (tk::pixmap-width pixmap)
-			 (tk::pixmap-height pixmap)
-			 drawable 0 0)
-	  #+debug
-	  (progn
-	    (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	    (setf (tk::gcontext-clip-x-origin gcontext) 0
-		  (tk::gcontext-clip-y-origin gcontext) 70)
-	    (tk::draw-rectangle drawable gcontext 0 70 256 256 t))
+      (multiple-value-bind (string-pixmap pixmap-width pixmap-height)
+          (find-or-cache-string-pixmap port
+                                       string start end font
+                                       ascent descent height rotation pixmap
+                                       min-char columns rows width
+                                       leftover-width leftover-height)
+        ;; Now its time to
+        (multiple-value-bind (dst-x dst-y)
+            (ecase rotation
+              (0 (values x (- y ascent)))
+              (1 (values (- x descent) y))
+              (2 (values (- x pixmap-width) (- y descent)))
+              (3 (values (- x ascent) (- y pixmap-height))))
 
-	  ;;-- This should be drawing onto an appropriately size bitmap
-	  ;;-- that should be cached
-	  ;;-- Width/height is the width of string
-	  ;;-- Height/width is the height of the font
-
-	  (multiple-value-bind (string-pixmap pixmap-width pixmap-height)
-	      (find-or-cache-string-pixmap port
-					   string start end font
-					   ascent descent height rotation pixmap
-					   min-char columns rows width
-				    leftover-width leftover-height)
-	    ;; Now its time to
-	    (multiple-value-bind (dst-x dst-y)
-		(ecase rotation
-		  (0 (values x (- y ascent)))
-		  (1 (values (- x descent) y))
-		  (2 (values (- x pixmap-width) (- y descent)))
-		  (3 (values (- x ascent) (- y pixmap-height))))
-
-	      (decf (ink-gcontext-last-clip-region-tick gcontext))
-	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
-	      (setf (tk::gcontext-clip-x-origin gcontext) dst-x
-		    (tk::gcontext-clip-y-origin gcontext) dst-y)
-	      (tk::draw-rectangle drawable gcontext
-				  dst-x dst-y pixmap-width
-				  pixmap-height t))))))))
+          (decf (ink-gcontext-last-clip-region-tick gcontext))
+          (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
+          (setf (tk::gcontext-clip-x-origin gcontext) dst-x
+                (tk::gcontext-clip-y-origin gcontext) dst-y)
+          (tk::draw-rectangle drawable gcontext
+                              dst-x dst-y pixmap-width
+                              pixmap-height t))))))
 
 
 #+ignore

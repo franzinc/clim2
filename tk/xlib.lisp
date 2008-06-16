@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 2.11 2007/12/11 17:20:20 layer Exp $
+;; $Id: xlib.lisp,v 2.11.2.1 2008/06/16 12:18:15 afuchs Exp $
 
 (in-package :tk)
 
@@ -253,7 +253,8 @@
 	    (get-error-text error-code display)
 	    (= serial current-serial)
 	    serial current-serial request-code minor-code
-	    (when (< 1 request-code 128)
+            nil
+	    #+want-segfaults(when (< 1 request-code 128)
 	      (let ((request-cstring (princ-to-string request-code))
 		    (s (x11:system-malloc 1000))) ; bug16585
 		(x11:xgeterrordatabasetext display "XRequest" request-cstring
