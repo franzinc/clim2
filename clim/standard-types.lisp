@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: standard-types.lisp,v 2.7 2007/04/17 21:45:50 layer Exp $
+;; $Id: standard-types.lisp,v 2.7.6.1 2008/06/24 12:16:56 afuchs Exp $
 
 (in-package :clim-internals)
 
@@ -490,57 +490,65 @@
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
   (pathname-complete-1 string action default))
 
+
 #-CCL-2
 (defun pathname-complete-1 (string action &optional (default *default-pathname-defaults*))
   ;; Slow but accurate
-  (let* ((pathname (pathname string))
-         (merged-pathname (merge-pathnames pathname default))
-	 (version (pathname-version pathname))
+  (let* ((original-pathname (pathname string))
+	 (original-string (namestring original-pathname))
+         ;; Complete logical pathnames as well as regular pathnames [spr34310]
+         ;; strategy is to keep track of both original string provided and translated string
+         ;; but to return pathname built from original components except for the name.
+	 (logical-pathname-p (typep original-pathname 'logical-pathname))
+	 (actual-pathname (if logical-pathname-p
+			      (translate-logical-pathname original-pathname)
+                              original-pathname))
+         (merged-pathname (merge-pathnames actual-pathname default))
+	 (version (pathname-version actual-pathname))
          completions)
     (cond ((and version (not (eq version :unspecific)))
            ;; Get around file-system braino I don't know how to resolve
-           (setq completions (directory pathname)))
+           (setq completions (directory actual-pathname)))
           (t
            (setq completions (directory
-                               (make-pathname :host (pathname-host merged-pathname)
-                                              :device (pathname-device merged-pathname)
-                                              :directory (pathname-directory merged-pathname))))))
+                              (make-pathname :host (pathname-host merged-pathname)
+                                             :device (pathname-device merged-pathname)
+                                             :directory (pathname-directory merged-pathname))))))
     ;; Now prune out all completions that don't start with the string
-    (let ((name (pathname-name pathname))
-          (type (pathname-type pathname)))
+    (let ((name (pathname-name actual-pathname))
+          (type (pathname-type actual-pathname)))
       (setq completions
             (delete-if-not
 	     #'(lambda (pn)
-                  (let* ((pn-name (pathname-name pn))
-                         (pn-type (pathname-type pn)))
-                    (cond (type
-                           (and
-                             (string-equal pn-name name)
-                             (let ((s (search type pn-type :test #'char-equal)))
-                               (and s (zerop s)))))
-                          (t
-                           (let ((s (search name pn-name
-                                            :test #'char-equal)))
-                             (if (eq action :apropos-possibilities)
-                                 (not (null s))
-                                 (and s (zerop s))))))))
-              completions))
+                 (let* ((pn-name (pathname-name pn))
+                        (pn-type (pathname-type pn)))
+                   (cond (type
+                          (and
+                           (string-equal pn-name name)
+                           (let ((s (search type pn-type :test #'char-equal)))
+                             (and s (zerop s)))))
+                         (t
+                          (let ((s (search name pn-name
+                                           :test #'char-equal)))
+                            (if (eq action :apropos-possibilities)
+                                (not (null s))
+                                (and s (zerop s))))))))
+	     completions))
       (when (null type)
         ;; If the user didn't supply a file type, don't burden him with all
         ;; sorts of version numbers right now.
         (let ((new-completions nil))
           (dolist (pathname completions)
-            (pushnew (make-pathname :host (pathname-host pathname)
-                                    :device (pathname-device pathname)
-                                    :directory (pathname-directory pathname)
+            (pushnew (make-pathname :host (pathname-host original-pathname)
+                                    :device (pathname-device original-pathname)
+                                    :directory (pathname-directory original-pathname)
                                     :name (pathname-name pathname)
-                                    :type (pathname-type pathname)) new-completions))
+                                    :type (pathname-type original-pathname))
+		     new-completions))
           (setq completions (nreverse new-completions)))))
-    (complete-from-possibilities string completions '(#\space)
+    (complete-from-possibilities original-string completions '(#\space)
                                  :action action
-                                 :name-key #'namestring :value-key #'identity)))
-
-)        ;#-Minima
+                                 :name-key #'namestring :value-key #'identity)))) ;#-Minima
 
 
 ;;;; "One-of" Presentation Types

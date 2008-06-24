@@ -1,3 +1,10 @@
+2008-06-24  Andreas Fuchs  <afuchs@franz.com>
+
+	* clim/completer.lisp: Make it possible to accept/complete
+	  pathnames that contain delimiter chars like #\Space
+	* clim/standard-types.lisp: Allow completion of logical
+	  pathnames.
+
 2008-06-16  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk-silica/xt-graphics.lisp: Implement text rotation for
@@ -6255,4 +6262,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.6 $
+$Revision: 2.37.2.7 $

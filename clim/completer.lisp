@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: completer.lisp,v 2.7 2007/04/17 21:45:49 layer Exp $
+;; $Id: completer.lisp,v 2.7.6.1 2008/06/24 12:16:56 afuchs Exp $
 
 (in-package :clim-internals)
 
@@ -190,7 +190,8 @@
                            ;; Need-to-add-delimiter test??
                            (when (and extend
                                       (not (ends-in-char-p string ch)))
-                             (vector-push-extend ch stuff-so-far)))))))
+                             (vector-push-extend ch stuff-so-far))))))
+                 (t (setq answer-object nil)))
 
            ;; Check for errors unconditionally, remembering that we may not have
            ;; called the completer at all (completion-type = NIL)
