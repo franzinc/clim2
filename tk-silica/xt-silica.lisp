@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.14 2008/04/15 17:13:58 layer Exp $
+;; $Id: xt-silica.lisp,v 2.15 2008/06/24 16:51:12 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1098,23 +1098,26 @@ setup."
   (:+ics
    (defmethod port-glyph-for-character ((port xt-port) character text-style &optional our-font)
      (declare (ignore our-font)) ; We need the font set, not the font.
+     (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
+            (font-set (font-set-from-font-list port fonts)))
+       (port-glyph-for-character-from-font-set port character font-set)))
+   (defmethod port-glyph-for-character-from-font-set ((port xt-port) character font-set)
      (multiple-value-bind (native-string length) (excl:string-to-native (string character))
        (unwind-protect
            (tk::with-xrectangle-array (ink-return 1)
              (tk::with-xrectangle-array (logical-return 1)
-               (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
-                      (font-set (font-set-from-font-list port fonts)))
-                 (x11:xmbtextextents font-set native-string
-                                     (1- length) ink-return
-                                     logical-return)
-                 (values (char-code character) font-set
-                         ;; escapement:
-                         (x11:xrectangle-width logical-return) 0
-                         ;; origin:
-                         0 (abs (x11:xrectangle-y logical-return))
-                         ;; bounding box:
-                         (x11:xrectangle-width logical-return)
-                         (x11:xrectangle-height logical-return)))))
+               (x11:xmbtextextents font-set native-string
+                                   (1- length) ink-return
+                                   logical-return)
+               (values (when (characterp character) (char-code character))
+                       font-set
+                       ;; escapement:
+                       (x11:xrectangle-width logical-return) 0
+                       ;; origin:
+                       0 (abs (x11:xrectangle-y logical-return))
+                       ;; bounding box:
+                       (x11:xrectangle-width logical-return)
+                       (x11:xrectangle-height logical-return))))
          (excl:aclfree native-string))))))
 
 (defvar *trying-fallback* nil)

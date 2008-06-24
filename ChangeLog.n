@@ -1,6 +1,31 @@
 *******************************************************************************
 join from trunk_afuchs3 to trunk
     changes from:
+	2008-06-24  Andreas Fuchs  <afuchs@franz.com>
+    to
+	2008-06-16  Andreas Fuchs  <afuchs@franz.com>
+
+*******************************************************************************
+2008-06-24  Andreas Fuchs  <afuchs@franz.com>
+
+	* clim/completer.lisp: Make it possible to accept/complete
+	  pathnames that contain delimiter chars like #\Space
+	* clim/standard-types.lisp: Allow completion of logical
+	  pathnames.
+
+2008-06-16  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xt-graphics.lisp: Implement text rotation for
+	  non-8bit lisps.
+	* tk-silica/xt-silica.lisp: Refactor port-glyph-for-character
+	  into a version that works on the font set and one that works
+	  on the text style.
+	* tk/xlib.lisp: Remove code that caused segfaults on X errors
+	  (BadMatch and the like)
+
+*******************************************************************************
+join from trunk_afuchs3 to trunk
+    changes from:
 	2008-05-20  Andreas Fuchs  <afuchs@franz.com>
 
 *******************************************************************************
@@ -6271,16 +6296,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-<<<<<<< ChangeLog.n
-<<<<<<< ChangeLog.n
-<<<<<<< ChangeLog.n
-$Revision: 2.41 $
-=======
-$Revision: 2.41 $
->>>>>>> 2.37.2.3
-=======
-$Revision: 2.41 $
->>>>>>> 2.37.2.4
-=======
-$Revision: 2.41 $
->>>>>>> 2.37.2.5
+$Revision: 2.42 $
