@@ -1,3 +1,8 @@
+2008-07-13  Andreas Fuchs  <afuchs@franz.com>
+
+	* postscript/postscript-medium.lisp: Draw filled partial circles in a pie diagram
+	  compatible way.
+
 2008-06-24  Andreas Fuchs  <afuchs@franz.com>
 
 	* clim/completer.lisp: Make it possible to accept/complete
@@ -6262,4 +6267,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.7 $
+$Revision: 2.37.2.8 $
