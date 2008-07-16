@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 2.8.2.3 2008/06/16 12:18:14 afuchs Exp $
+;; $Id: xt-graphics.lisp,v 2.8.2.4 2008/07/16 15:16:20 afuchs Exp $
 
 (in-package :tk-silica)
 
@@ -1561,7 +1561,10 @@
                      (setq y-factor (sin alpha))
                      (setq x-factor (cos alpha)))))))
         (let ((drawable (medium-drawable medium))
-              (font (text-style-mapping port text-style *all-character-sets*)))
+              (font (excl:ics-target-case
+                      (:-ics (text-style-mapping port text-style
+                                                 *all-character-sets*))
+                      (:+ics (text-style-font-set port text-style)))))
           (when drawable
             (fix-coordinates x y)
             (discard-illegal-coordinates medium-draw-text* x y)
@@ -1574,7 +1577,7 @@
                   (excl:ics-target-case
                     (:+ics
                      (port-draw-rotated-multibyte-text port drawable gc x y string start end
-                                                       (font-set-from-font-list port font)
+                                                       font
                                                        towards-x towards-y transform-glyphs))
                     (:-ics
                      (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
@@ -1582,8 +1585,7 @@
                                              font towards-x towards-y transform-glyphs)))
                   (excl:ics-target-case
                     (:+ics
-                     (tk::draw-multibyte-string drawable
-                                                (font-set-from-font-list port font)
+                     (tk::draw-multibyte-string drawable font
                                                 gc x y string start end))
                     (:-ics
                      (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
