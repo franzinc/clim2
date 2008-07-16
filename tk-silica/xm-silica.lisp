@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-silica.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
+;; $Id: xm-silica.lisp,v 2.8.2.1 2008/07/16 15:15:53 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -130,6 +130,12 @@
 
 
 ;;; hacks for explicit focus
+
+(defmethod (setf port-keyboard-input-focus) :before ((sheet clim-stream-sheet)
+                                                     (port motif-port))
+  ;; re-set focus away from e.g. push buttons that have it and are
+  ;; reluctant to give it up.
+  (note-sheet-tree-grafted port sheet))
 
 (defmethod note-sheet-tree-grafted :after ((port motif-port)
 					   (sheet clim-stream-sheet))

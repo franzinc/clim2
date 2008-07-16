@@ -1,3 +1,8 @@
+2008-07-14  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xm-silica.lisp: When setting input focus to a stream pane,
+	  perform the necessary steps to give it X input focus too. (spr34777)
+
 2008-07-13  Andreas Fuchs  <afuchs@franz.com>
 
 	* postscript/postscript-medium.lisp: Draw filled partial circles in a pie diagram
@@ -6267,4 +6272,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.8 $
+$Revision: 2.37.2.9 $
