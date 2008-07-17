@@ -1,3 +1,10 @@
+2008-07-17  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/gc-cursor.lisp: Use the right pointer size to
+	  set the GC hooks for the GC cursor shape.
+	* misc/climgccursor.c: Get rid of compiler warnings on
+	  linux/amd64.
+
 2008-07-16  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk-silica/xt-silica.lisp: Add glyph-info-cache and
@@ -6281,4 +6288,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.10 $
+$Revision: 2.37.2.11 $

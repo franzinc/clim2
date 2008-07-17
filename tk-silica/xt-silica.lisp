@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.12.2.4 2008/07/16 15:16:20 afuchs Exp $
+;; $Id: xt-silica.lisp,v 2.12.2.5 2008/07/17 09:10:53 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -1173,7 +1173,6 @@ setup."
 (defmethod text-style-font-set ((port xt-port) text-style)
   (with-slots (font-set-cache) port
      (or (gethash text-style font-set-cache)
-         (format *trace-output* "Need to recalculate!~%")
          (setf (gethash text-style font-set-cache)
                (font-set-from-font-list
                 port (text-style-mapping port text-style *all-character-sets*))))))
