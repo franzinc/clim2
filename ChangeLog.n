@@ -1,5 +1,10 @@
 2008-07-17  Andreas Fuchs  <afuchs@franz.com>
 
+	* aclpc/acl-widget.lisp: Make the width for text fields/editors
+	  with a set :value at least *default-text-field-width* big.
+
+2008-07-17  Andreas Fuchs  <afuchs@franz.com>
+
 	* tk-silica/gc-cursor.lisp: Use the right pointer size to
 	  set the GC hooks for the GC cursor shape.
 	* misc/climgccursor.c: Get rid of compiler warnings on
@@ -6288,4 +6293,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.37.2.11 $
+$Revision: 2.37.2.12 $

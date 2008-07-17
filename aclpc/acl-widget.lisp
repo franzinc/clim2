@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.15.2.1 2008/02/28 11:32:28 afuchs Exp $
+;; $Id: acl-widget.lisp,v 2.15.2.2 2008/07/17 10:08:54 afuchs Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -324,7 +324,7 @@
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
 	       (setq w (max (process-width-specification pane value)
-			    min-w)))
+			    *default-text-field-width*)))
 	      (t
 	       (setq w *default-text-field-width*)))
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
@@ -705,53 +705,53 @@
   (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) 
       pane
     (let* ((parent (sheet-parent pane))
-	   (parent-viewport-p (isa-viewport parent)))
+           (parent-viewport-p (isa-viewport parent)))
       (let ((w 0) 
-	    (min-w (process-width-specification pane '(1 :character)))
-	    (h 0)
-	    (value (gadget-value pane))
-	    (min-h (process-height-specification pane *min-text-field-height*)))
-	;; WIDTH
-	(cond (parent-viewport-p
-	       (setq w (process-width-specification pane width)))
-	      ((and initial-space-requirement
-		    (plusp (process-width-specification
-			    pane (space-requirement-width initial-space-requirement))))
-	       ;; This is where accepting-values views factors in.
-	       (setq w (max (process-width-specification 
-			     pane (space-requirement-width initial-space-requirement))
-			    min-w)))
-	      (ncolumns
-	       (setq w (process-width-specification pane `(,ncolumns :character))))
-	      ((stringp value)
-	       (setq w (max (process-width-specification pane value)
-			    min-w)))
-	      (t
-	       (setq w *default-text-field-width*)))
-	(setq w (max w min-w))
+            (min-w (process-width-specification pane '(1 :character)))
+            (h 0)
+            (value (gadget-value pane))
+            (min-h (process-height-specification pane *min-text-field-height*)))
+        ;; WIDTH
+        (cond (parent-viewport-p
+               (setq w (process-width-specification pane width)))
+              ((and initial-space-requirement
+                    (plusp (process-width-specification
+                            pane (space-requirement-width initial-space-requirement))))
+               ;; This is where accepting-values views factors in.
+               (setq w (max (process-width-specification 
+                             pane (space-requirement-width initial-space-requirement))
+                            min-w)))
+              (ncolumns
+               (setq w (process-width-specification pane `(,ncolumns :character))))
+              ((stringp value)
+               (setq w (max (process-width-specification pane value)
+                            *default-text-field-width*)))
+              (t
+               (setq w *default-text-field-width*)))
+        (setq w (max w min-w))
 
-	;; HEIGHT
-	(cond (parent-viewport-p
-	       (setq h (process-height-specification pane height)))
-	      ((and initial-space-requirement
-		    (plusp (process-height-specification
-			    pane (space-requirement-height initial-space-requirement))))
-	       ;; This is where accepting-values views factors in.
-	       (setq h (max (process-height-specification 
-			     pane (space-requirement-height initial-space-requirement))
-			    min-h)))
-	      (nlines
-	       (setq h (process-height-specification pane `(,nlines :line))))
-	      ((stringp value)
-	       (setq h (process-height-specification pane value)))
-	      (t
-	       (setq h min-h))) 
-	(setq h (max h min-h))
+        ;; HEIGHT
+        (cond (parent-viewport-p
+               (setq h (process-height-specification pane height)))
+              ((and initial-space-requirement
+                    (plusp (process-height-specification
+                            pane (space-requirement-height initial-space-requirement))))
+               ;; This is where accepting-values views factors in.
+               (setq h (max (process-height-specification 
+                             pane (space-requirement-height initial-space-requirement))
+                            min-h)))
+              (nlines
+               (setq h (process-height-specification pane `(,nlines :line))))
+              ((stringp value)
+               (setq h (process-height-specification pane value)))
+              (t
+               (setq h min-h))) 
+        (setq h (max h min-h))
 
-	(make-space-requirement
-	 :width  w :min-width min-w
-	 :height h :min-height min-h
-	 )))))
+        (make-space-requirement
+         :width  w :min-width min-w
+         :height h :min-height min-h
+         )))))
 
 (defmethod handle-event ((pane mswin-text-field) (event key-press-event))
   
