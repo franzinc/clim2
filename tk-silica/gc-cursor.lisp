@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gc-cursor.lisp,v 2.7 2007/04/17 21:45:53 layer Exp $
+;; $Id: gc-cursor.lisp,v 2.8 2008/07/22 16:29:54 layer Exp $
 
 (in-package :xm-silica)
 
@@ -25,28 +25,33 @@
 (defvar *gc-after*  nil)
 
 (defun init-gc-cursor (frame &optional force)
-  (when *use-clim-gc-cursor*
-    (when (or force (null *gc-before*))
-      (let ((vec (make-array 2 :element-type '(unsigned-byte 32))))
-	(tk::init_clim_gc_cursor_stuff vec)
-	(setq *gc-before* (aref vec 0)
-	      *gc-after*  (aref vec 1))
-	(pushnew (make-array 1 :element-type '(unsigned-byte 32)
-			     :initial-element *gc-before*)
-		 (excl:gc-before-c-hooks))
+  
+  (let ((pointer-type (first
+                       (list #+(and 64bit (not alpha)) '(unsigned-byte 64)
+                             ;; otherwise, use 32 bits:
+                             '(unsigned-byte 32)))))
+    (when *use-clim-gc-cursor*
+      (when (or force (null *gc-before*))
+        (let ((vec (make-array 2 :element-type pointer-type)))
+          (tk::init_clim_gc_cursor_stuff vec)
+          (setq *gc-before* (aref vec 0)
+                *gc-after*  (aref vec 1))
+          (pushnew (make-array 1 :element-type pointer-type
+                               :initial-element *gc-before*)
+                   (excl:gc-before-c-hooks))
 	
-	(pushnew (make-array 1 :element-type '(unsigned-byte 32)
-			     :initial-element *gc-after*)
-		 (excl:gc-after-c-hooks))))
-    (let* ((sheet (frame-top-level-sheet frame))
-	   (mirror (and sheet (sheet-direct-mirror sheet))))
-      (if mirror
-	  (tk::set_clim_gc_cursor_widget
-	   mirror
-	   (realize-cursor (port sheet)
-			   sheet
-			   (sheet-pointer-cursor sheet)))
-	(tk::set_clim_gc_cursor_widget 0 0)))))
+          (pushnew (make-array 1 :element-type pointer-type
+                               :initial-element *gc-after*)
+                   (excl:gc-after-c-hooks))))
+      (let* ((sheet (frame-top-level-sheet frame))
+             (mirror (and sheet (sheet-direct-mirror sheet))))
+        (if mirror
+            (tk::set_clim_gc_cursor_widget
+             mirror
+             (realize-cursor (port sheet)
+                             sheet
+                             (sheet-pointer-cursor sheet)))
+            (tk::set_clim_gc_cursor_widget 0 0))))))
 
 (defun reinitialize-gc-cursor ()
   ;; Force init-gc-cursor to go through its initialization

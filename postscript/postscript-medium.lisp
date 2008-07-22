@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-medium.lisp,v 2.5 2007/12/11 17:20:20 layer Exp $
+;; $Id: postscript-medium.lisp,v 2.6 2008/07/22 16:29:54 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -302,54 +302,57 @@
   (error "This postscript operation is NYI (Not Yet Implemented)."))
 
 (defmethod medium-draw-ellipse* ((medium postscript-medium)
-				 center-x center-y
-				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-				 start-angle end-angle filled)
+                                 center-x center-y
+                                 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+                                 start-angle end-angle filled)
   (maybe-send-feature medium 'ellipse *ps-ellipse-code*)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
-	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium))
-	 (clip-region (medium-clipping-region medium)))
+         (ink (medium-ink medium))
+         (line-style (medium-line-style medium))
+         (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform center-x center-y)
     (convert-to-postscript-distances transform
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
     (when (null start-angle)
       (setq start-angle 0
-	    end-angle 2pi))
+            end-angle 2pi))
     (when (< end-angle start-angle)
       (setq end-angle (+ end-angle 2pi)))
     (multiple-value-bind (x-radius y-radius)
-	(cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-	       (values (abs radius-2-dx) (abs radius-1-dy)))
-	      ((and (= radius-2-dx 0) (= radius-1-dy 0))
-	       (values (abs radius-1-dx) (abs radius-2-dy)))
-	      (t (nyi)))
+        (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+               (values (abs radius-2-dx) (abs radius-1-dy)))
+              ((and (= radius-2-dx 0) (= radius-1-dy 0))
+               (values (abs radius-1-dx) (abs radius-2-dy)))
+              (t (nyi)))
       (pixels-to-points x-radius y-radius)
       (flet ((skew-angle (a)
-	       (atan (* (sin a) x-radius)
-		     (* (cos a) y-radius))))
-	(with-postscript-drawing-options (medium printer-stream
-					  :epilogue :default
-					  :ink ink :filled filled
-					  :line-style line-style
-					  :clip-region clip-region)
-	  (ps-pos-op medium "ellipse" center-x center-y
-		     x-radius y-radius
-		     ;; Don't allow the common full-circle case to be
-		     ;; screwed up by floating point error:
-		     (if (zerop start-angle)
-			 0
-			 (radians->degrees (skew-angle start-angle)))
-		     (if (= end-angle 2pi)
-			 360
-			 (radians->degrees (skew-angle end-angle)))))
-	(annotating-postscript (medium printer-stream)
-	  (format printer-stream
-	      "        (medium-draw-ellipse* ~D ~D ~D ~D ~D ~D ~D ~D ...)"
-	    center-x center-y
-	    radius-1-dx radius-1-dy
-	    radius-2-dx radius-2-dy
-	    start-angle end-angle))))))
+               (atan (* (sin a) x-radius)
+                     (* (cos a) y-radius))))
+        (with-postscript-drawing-options (medium printer-stream
+                                          :epilogue :default
+                                          :ink ink :filled filled
+                                          :line-style line-style
+                                          :clip-region clip-region
+                                          :newpath filled)
+          (when filled
+            (ps-pos-op medium "moveto" center-x center-y))
+          (ps-pos-op medium "ellipse" center-x center-y
+                     x-radius y-radius
+                     ;; Don't allow the common full-circle case to be
+                     ;; screwed up by floating point error:
+                     (if (zerop start-angle)
+                         0
+                         (radians->degrees (skew-angle start-angle)))
+                     (if (= end-angle 2pi)
+                         360
+                         (radians->degrees (skew-angle end-angle)))))
+        (annotating-postscript (medium printer-stream)
+          (format printer-stream
+              "        (medium-draw-ellipse* ~D ~D ~D ~D ~D ~D ~D ~D ...)"
+            center-x center-y
+            radius-1-dx radius-1-dy
+            radius-2-dx radius-2-dy
+            start-angle end-angle))))))
 
 ;; These 2 clones of draw-string would be much more modular if there
 ;; were a reasonable way of passing arguments transparently, so that

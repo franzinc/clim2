@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 2.15 2008/06/24 16:51:12 layer Exp $
+;; $Id: xt-silica.lisp,v 2.16 2008/07/22 16:29:54 layer Exp $
 
 (in-package :xm-silica)
 
@@ -40,6 +40,8 @@
      (cursor-font :initform nil)
      (cursor-cache :initform nil)
      (font-cache :initform (make-hash-table :test #'equal))
+     (font-set-cache :initform (make-hash-table :test #'equal))
+     (glyph-info-cache :initform (make-hash-table :test #'equal))
      (compose-status :initform (make-xcomposestatus)
 		     :reader port-compose-status)
      #+ignore ;; figure out how to get this translation
@@ -1098,9 +1100,16 @@ setup."
   (:+ics
    (defmethod port-glyph-for-character ((port xt-port) character text-style &optional our-font)
      (declare (ignore our-font)) ; We need the font set, not the font.
-     (let* ((fonts (text-style-mapping port text-style *all-character-sets*))
-            (font-set (font-set-from-font-list port fonts)))
-       (port-glyph-for-character-from-font-set port character font-set)))
+     (let* ((font-set (text-style-font-set port text-style)))
+       (if (characterp character)
+           (with-slots (glyph-info-cache) port
+              (values-list
+               (or (gethash (cons character text-style) glyph-info-cache)
+                   (setf (gethash (cons character text-style) glyph-info-cache)
+                         (multiple-value-list
+                          (port-glyph-for-character-from-font-set port character font-set))))))
+           (port-glyph-for-character-from-font-set port character font-set))))
+   
    (defmethod port-glyph-for-character-from-font-set ((port xt-port) character font-set)
      (multiple-value-bind (native-string length) (excl:string-to-native (string character))
        (unwind-protect
@@ -1160,6 +1169,13 @@ setup."
              (when mapping
                (push (cons c mapping) mappings))))
          (reverse mappings))))
+
+(defmethod text-style-font-set ((port xt-port) text-style)
+  (with-slots (font-set-cache) port
+     (or (gethash text-style font-set-cache)
+         (setf (gethash text-style font-set-cache)
+               (font-set-from-font-list
+                port (text-style-mapping port text-style *all-character-sets*))))))
 
 (defmethod font-set-from-font-list ((port xt-port) font-list)
   (let ((name (format nil "~{~A~^,~}"

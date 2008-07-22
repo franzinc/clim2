@@ -1,6 +1,45 @@
 *******************************************************************************
 join from trunk_afuchs3 to trunk
     changes from:
+	2008-07-17  Andreas Fuchs  <afuchs@franz.com>
+    to
+	2008-07-13  Andreas Fuchs  <afuchs@franz.com>
+
+*******************************************************************************
+2008-07-17  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-widget.lisp: Make the width for text fields/editors
+	  with a set :value at least *default-text-field-width* big.
+
+2008-07-17  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/gc-cursor.lisp: Use the right pointer size to
+	  set the GC hooks for the GC cursor shape.
+	* misc/climgccursor.c: Get rid of compiler warnings on
+	  linux/amd64.
+
+2008-07-16  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xt-silica.lisp: Add glyph-info-cache and
+	  font-set-cache to speed up int'l text drawing; add method
+	  text-style-font-set that uses the font-set-cache; change
+	  port-glyph-for-character to use the glyph-info-cache.
+	* tk-silica/xt-graphics: change medium-draw-text* to use
+	  text-style-font-set.
+
+2008-07-14  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xm-silica.lisp: When setting input focus to a stream pane,
+	  perform the necessary steps to give it X input focus too. (spr34777)
+
+2008-07-13  Andreas Fuchs  <afuchs@franz.com>
+
+	* postscript/postscript-medium.lisp: Draw filled partial circles in a pie diagram
+	  compatible way.
+
+*******************************************************************************
+join from trunk_afuchs3 to trunk
+    changes from:
 	2008-06-24  Andreas Fuchs  <afuchs@franz.com>
     to
 	2008-06-16  Andreas Fuchs  <afuchs@franz.com>
@@ -6296,4 +6335,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.42 $
+$Revision: 2.43 $
