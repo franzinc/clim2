@@ -1,8 +1,14 @@
 #+(version= 8 1)
 (sys:defpatch
-    #+mswindows "climnt" #-mswindows "climxm" 2
+    #+mswindows "climnt" #-mswindows "climxm" 5
     "v1: full international font support;
-v2: fix v1 for 8-bit Lisps."
+v2: fix v1 for 8-bit Lisps;
+v3: styled text drawing in 8-bit images, switching table orientation
+    when redisplaying;  
+v4: drawing rotated text in i18n, accepting pathnames containing delimiter
+    chars, completion of logical pathnames;
+v5: Fix postscript, GC cursor, Windows text field bugs, speed up
+    internationalized text drawing on Motif."
   :type :system
   :post-loadable t)
 
@@ -24,7 +30,7 @@ v2: fix v1 for 8-bit Lisps."
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: excl-verification.lisp,v 2.11 2008/04/15 22:44:47 layer Exp $
+;; $Id: excl-verification.lisp,v 2.12 2008/07/22 16:51:19 layer Exp $
 
 (in-package :sys)
 
