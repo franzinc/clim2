@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.13 2008/07/31 23:05:20 layer Exp $
+;; $Id: acl-frames.lisp,v 2.14 2008/07/31 23:55:03 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -571,13 +571,14 @@
     (unless tooltip-control
       (win:InitCommonControls)
       (setq tooltip-control
-	(win:CreateWindow (excl:string-to-native "tooltips_class32")
-			  0
-			  TTS_ALWAYSTIP
-			  win:CW_USEDEFAULT win:CW_USEDEFAULT
-			  win:CW_USEDEFAULT win:CW_USEDEFAULT 
-			  0 0
-			  (hinst *acl-port*) 0))
+	(excl:with-native-string (s "tooltips_class32")
+	  (win:CreateWindow s
+			    0
+			    TTS_ALWAYSTIP
+			    win:CW_USEDEFAULT win:CW_USEDEFAULT
+			    win:CW_USEDEFAULT win:CW_USEDEFAULT 
+			    0 0
+			    (hinst *acl-port*) 0)))
       (setf (tooltip-control sheet) tooltip-control)
       (when (zerop tooltip-control)
 	(check-last-error "CreateWindow" :action :warn)
