@@ -1,3 +1,10 @@
+2008-07-31    <layer@HOBART>
+
+	* aclpc/acl-frames.lisp (initialize-tooltips): bug18026: use
+	  string-to-native on string in CreateWindow call because it
+	  will fail in an i18n image otherwise, causing a warning that
+	  annoys users. 
+
 *******************************************************************************
 join from trunk_afuchs3 to trunk
     changes from:
@@ -6335,4 +6342,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.43 $
+$Revision: 2.44 $

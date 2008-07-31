@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.12 2007/04/25 20:29:26 layer Exp $
+;; $Id: acl-frames.lisp,v 2.13 2008/07/31 23:05:20 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -571,7 +571,7 @@
     (unless tooltip-control
       (win:InitCommonControls)
       (setq tooltip-control
-	(win:CreateWindow "tooltips_class32"
+	(win:CreateWindow (excl:string-to-native "tooltips_class32")
 			  0
 			  TTS_ALWAYSTIP
 			  win:CW_USEDEFAULT win:CW_USEDEFAULT
