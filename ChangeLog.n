@@ -1,3 +1,13 @@
+2008-09-23  Andreas Fuchs <afuchs@franz.com>
+
+  * tk/xm-widgets.lisp: Remove spurious (force-output *debug-io*) statement
+    (spr35062).
+
+2008-09-23  Andreas Fuchs <afuchs@franz.com>
+
+  * tk/gcontext.lisp: Don't break on 64bit Unixes when changing frame layouts
+    if pixmaps are involved. (spr35034)
+
 2008-07-31    <layer@HOBART>
 
 	* aclpc/acl-frames.lisp (initialize-tooltips): bug18026: use
@@ -6342,4 +6352,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.44 $
+$Revision: 2.44.2.1 $
