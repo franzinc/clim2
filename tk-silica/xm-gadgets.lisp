@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.12 2007/12/11 17:20:21 layer Exp $
+;; $Id: xm-gadgets.lisp,v 2.12.4.1 2008/10/21 14:02:01 afuchs Exp $
 
 (in-package :xm-silica)
 
@@ -1511,15 +1511,14 @@
   (let ((mirror (sheet-direct-mirror l)))
     (when mirror
       (multiple-value-bind (selected-items m n)
-	  (compute-list-pane-selected-items l nv)
-	(let ((position (tk::get-values mirror :top-item-position)))
-	  (with-no-value-changed-callbacks
-	      (tk::set-values mirror
-			      :top-item-position (if selected-items
-						     (1+ (min n (max m (1- position))))
-						   position)
-			      :selected-item-count (length selected-items)
-			      :selected-items selected-items)))))))
+          (compute-list-pane-selected-items l nv)
+        (declare (ignore m n))
+        (let ((position (tk::get-values mirror :top-item-position)))
+          (with-no-value-changed-callbacks
+              (tk::set-values mirror
+                              :top-item-position position
+                              :selected-item-count (length selected-items)
+                              :selected-items selected-items)))))))
 
 ;;; Option buttons
 
