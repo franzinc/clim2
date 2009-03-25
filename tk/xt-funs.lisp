@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-funs.lisp,v 2.11 2007/12/11 17:20:21 layer Exp $
+;; $Id: xt-funs.lisp,v 2.12 2009/03/25 22:49:37 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -167,6 +167,12 @@
 (def-foreign-call (xt_unmanage_child "XtUnmanageChild")
     ((x :foreign-address))
   :returning :void
+  :call-direct t
+  :arg-checking nil)
+
+(def-foreign-call (xt_unmap_widget "XtUnmapWidget")
+    ((x :foreign-address))
+  :returning (:int fixnum)
   :call-direct t
   :arg-checking nil)
 

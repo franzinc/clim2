@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 2.11 2008/02/13 17:06:46 layer Exp $
+;; $Id: widget.lisp,v 2.12 2009/03/25 22:49:36 layer Exp $
 
 (in-package :tk)
 
@@ -107,6 +107,9 @@
 
 (defun unmanage-child (child)
   (xt_unmanage_child child))
+
+(defun unmap-widget (widget)
+  (xt_unmap_widget widget))
 
 (defun is-managed-p (widget)
     (not (zerop (xt_is_managed widget))))

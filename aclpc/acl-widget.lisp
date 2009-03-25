@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 2.17 2008/07/22 16:29:54 layer Exp $
+;; $Id: acl-widget.lisp,v 2.18 2009/03/25 22:49:36 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -479,20 +479,19 @@
   (declare (values startpos endpos))
   (let ((mirror (sheet-direct-mirror pane)))
     (cond (mirror
-	   (let ((startptr
-		  (make-array 1  :element-type 'unsigned-nat
-			      :initial-element 0))
-		 (endptr (make-array 1 :element-type 'unsigned-nat
-				     :initial-element 0))) 
-	     (acl-clim::frame-send-message (pane-frame pane)
-					   mirror
-					   win:EM_GETSEL
-					   startptr endptr)
-	     (values (aref startptr 0)
-		     (aref endptr 0)))
-	   )
-	  (t
-	   (values 0 0)))))
+           (let ((startptr
+                  (make-array 1  :element-type 'acl-clim::unsigned-nat
+                              :initial-element 0))
+                 (endptr (make-array 1 :element-type 'acl-clim::unsigned-nat
+                                     :initial-element 0))) 
+             (acl-clim::frame-send-message (pane-frame pane)
+                                           mirror
+                                           win:EM_GETSEL
+                                           startptr endptr)
+             (values (aref startptr 0)
+                     (aref endptr 0))))
+          (t
+           (values 0 0)))))
 
 ;;; Set the postion of the caret in the mswin-text-edit gadget.
 ;;; NOTE:  This uses set-selection, which in turn uses the
@@ -561,24 +560,24 @@
   (let ((mirror (sheet-direct-mirror pane)))
     (when mirror
       (let* ((wl (acl-clim::frame-send-message (pane-frame pane)
-					       mirror 
-					       win:WM_GETTEXTLENGTH 
-					       0 0))
-	     (teb (make-array wl :element-type '(unsigned-byte 8)))
-	     (tlen (win:GetWindowText mirror teb (1+ wl)))
-	     (startptr (make-array 1 :element-type 'unsigned-nat
-				   :initial-element 0))
-	     (endptr (make-array 1 :element-type 'unsigned-nat
-				 :initial-element 0)))
-	(declare (ignorable tlen))
-	(acl-clim::frame-send-message (pane-frame pane)
-				      mirror
-				      win:EM_GETSEL
-				      startptr endptr)
-	(unxlat-newline-return 
-	 (excl:mb-to-string teb 
-			    :start (aref startptr 0) 
-			    :end (aref endptr 0)))))))
+                                               mirror 
+                                               win:WM_GETTEXTLENGTH 
+                                               0 0))
+             (teb (make-array wl :element-type '(unsigned-byte 8)))
+             (tlen (win:GetWindowText mirror teb (1+ wl)))
+             (startptr (make-array 1 :element-type 'acl-clim::unsigned-nat
+                                   :initial-element 0))
+             (endptr (make-array 1 :element-type 'acl-clim::unsigned-nat
+                                 :initial-element 0)))
+        (declare (ignorable tlen))
+        (acl-clim::frame-send-message (pane-frame pane)
+                                      mirror
+                                      win:EM_GETSEL
+                                      startptr endptr)
+        (unxlat-newline-return 
+         (excl:mb-to-string teb 
+                            :start (aref startptr 0) 
+                            :end (aref endptr 0)))))))
 
 (defmethod text-edit-flags ((sheet mswin-text-edit))
   (logior 

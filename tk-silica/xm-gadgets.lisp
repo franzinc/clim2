@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.12 2007/12/11 17:20:21 layer Exp $
+;; $Id: xm-gadgets.lisp,v 2.13 2009/03/25 22:49:37 layer Exp $
 
 (in-package :xm-silica)
 
@@ -981,7 +981,8 @@
 	     (and (typep p 'motif-scroller-pane)
 		  (scroller-pane-scroll-bar-policy p)))))
       (append `(:scroll-horizontal
-		,(and (member scroll-mode '(t :both :horizontal :dynamic)) t))
+		,(and (not word-wrap)
+                      (member scroll-mode '(t :both :horizontal :dynamic)) t))
 	      `(:scroll-vertical
 		,(and (member scroll-mode '(t :both :vertical :dynamic)) t))
 	      (and (not editable) '(:cursor-position-visible nil))
@@ -1511,15 +1512,14 @@
   (let ((mirror (sheet-direct-mirror l)))
     (when mirror
       (multiple-value-bind (selected-items m n)
-	  (compute-list-pane-selected-items l nv)
-	(let ((position (tk::get-values mirror :top-item-position)))
-	  (with-no-value-changed-callbacks
-	      (tk::set-values mirror
-			      :top-item-position (if selected-items
-						     (1+ (min n (max m (1- position))))
-						   position)
-			      :selected-item-count (length selected-items)
-			      :selected-items selected-items)))))))
+          (compute-list-pane-selected-items l nv)
+        (declare (ignore m n))
+        (let ((position (tk::get-values mirror :top-item-position)))
+          (with-no-value-changed-callbacks
+              (tk::set-values mirror
+                              :top-item-position position
+                              :selected-item-count (length selected-items)
+                              :selected-items selected-items)))))))
 
 ;;; Option buttons
 
@@ -1538,40 +1538,61 @@
     (update-option-menu-buttons port sheet pdm)
     `(:sub-menu-id ,pdm :margin-height 0)))
 
+(defun update-option-menu-buttons-1-batch (sheet pdm initargs items)
+  (with-accessors ((printer silica::option-pane-printer)
+                   (name-key set-gadget-name-key)
+                   (value-key set-gadget-value-key)) sheet
+    (mapcar #'(lambda (item)
+                (let* ((name (funcall name-key item))
+                       (pixmap (unless (or (null printer) (eq printer #'write-token))
+                                 (pixmap-from-menu-item
+                                  (sheet-parent sheet) name printer nil
+                                  :text-style (pane-text-style sheet)
+                                  :background (pane-background sheet)
+                                  :foreground (pane-foreground sheet))))
+                       (button
+                        (if (null pixmap)
+                            (apply #'make-instance 'tk::xm-push-button
+                                   :label-string name
+                                   :parent pdm
+                                   initargs)
+                            (apply #'make-instance 'tk::xm-push-button
+                                   :label-pixmap pixmap
+                                   :label-type :pixmap
+                                   :parent pdm
+                                   initargs))))
+                  (tk::add-callback
+                   button
+                   :activate-callback
+                   'option-menu-callback-function
+                   (funcall value-key item)
+                   sheet
+                   pdm)
+                  button))
+            items)))
+
+(defparameter *items-per-batch* 30)
+
 (defun update-option-menu-buttons (port sheet pdm)
-  (let ((initargs (find-widget-resource-initargs-for-sheet port sheet)))
-    (with-accessors ((items set-gadget-items)
-		     (printer silica::option-pane-printer)
-		     (name-key set-gadget-name-key)
-		     (value-key set-gadget-value-key)) sheet
-      (setf (motif-option-menu-buttons sheet)
-	(mapcar #'(lambda (item)
-		    (let* ((name (funcall name-key item))
-			   (pixmap (unless (or (null printer) (eq printer #'write-token))
-				     (pixmap-from-menu-item
-				      (sheet-parent sheet) name printer nil
-				      :text-style (pane-text-style sheet)
-				      :background (pane-background sheet)
-				      :foreground (pane-foreground sheet))))
-			   (button
-			    (if (null pixmap)
-				(apply #'make-instance 'tk::xm-push-button
-				       :label-string name
-				       :parent pdm
-				       initargs)
-			      (apply #'make-instance 'tk::xm-push-button
-				     :label-pixmap pixmap
-				     :label-type :pixmap
-				     :parent pdm
-				     initargs))))
-		      (tk::add-callback
-		       button
-		       :activate-callback
-		       'option-menu-callback-function
-		       (funcall value-key item)
-		       sheet)
-		      button))
-		items)))))
+  (let ((initargs (find-widget-resource-initargs-for-sheet port sheet))
+        (items (set-gadget-items sheet)))
+    (setf (motif-option-menu-buttons sheet)
+          (loop for size = (min (length items) *items-per-batch*)
+                for batch = (update-option-menu-buttons-1-batch
+                                   sheet pdm initargs (subseq items 0 size))
+                append batch
+                while (and (not (zerop size))
+                           (= size *items-per-batch*))
+                do (setf items (subseq items size))
+                when items
+                  do (let* ((sub-pdm (make-instance 'xt::xm-pulldown-menu
+                                        :managed nil :parent pdm))
+                            (button (apply #'make-instance 'tk::xm-cascade-button
+                                           :label-string "More"
+                                           :sub-menu-id sub-pdm
+                                           :parent pdm
+                                           initargs)))
+                       (setf pdm sub-pdm))))))
 
 (defmethod (setf set-gadget-items) :after (items (gadget motif-option-pane))
   (declare (ignore items))
@@ -1585,8 +1606,14 @@
 	(tk::set-values m :sub-menu-id pdm)
 	(tk::destroy-widget old-pdm)))))
 
-(defun option-menu-callback-function (widget count value sheet)
+(defun option-menu-callback-function (widget count value sheet pdm)
   (declare (ignore count))
+  (let ((shell (tk::widget-parent (tk::widget-parent pdm))))
+    (loop
+      (unless (typep shell 'tk::xm-menu-shell)
+        (return))
+      (tk::unmap-widget shell)
+      (setf shell (tk::widget-parent shell))))
   (queue-value-changed-event widget sheet value))
 
 (defmethod (setf gadget-value) :after

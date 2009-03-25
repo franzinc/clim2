@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-border.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
+;; $Id: db-border.lisp,v 2.8 2009/03/25 22:49:36 layer Exp $
 
 ;;;"Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;; Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -122,6 +122,9 @@
 (defparameter *default-label-text-style*
               (make-text-style :sans-serif :italic :small))
 
+(defparameter *default-horizontal-label-text-style*
+              (make-text-style :sans-serif :roman :small))
+
 (defclass label-pane
           (sheet-with-resources-mixin
            labelled-gadget-mixin
@@ -131,6 +134,11 @@
                      ;; Supplying a text style here defeats the resource
                      ;; mechanism for the Motif/OpenLook ports
                      :text-style nil))
+
+(defun horizontally-aligned-p (alignment)
+  (ecase alignment
+    ((:top :bottom) nil)
+    ((:left :right) t)))
 
 (defmacro labelling ((&rest options
                       &key (label-alignment #+Genera :bottom #-Genera :top)
@@ -143,19 +151,30 @@
   (setq options (remove-keywords options '(:label-alignment)))
   (let ((lvar '#:label)
         (cvar '#:contents))
-    `(let ((,lvar (make-pane 'label-pane ,@options))
+    `(let ((,lvar (make-pane 'label-pane ,@options
+                             ,@(when (horizontally-aligned-p label-alignment)
+                                 (list :text-style
+                                       *default-horizontal-label-text-style*))))
            (,cvar (progn ,@contents)))
        ,(if (constantp label-alignment #+(or Genera Minima) env)
             (ecase (eval label-alignment #+(or Genera Minima-Developer) env)
               (:bottom
                 `(vertically () ,cvar ,lvar))
               (:top
-                `(vertically () ,lvar ,cvar)))
+                `(vertically () ,lvar ,cvar))
+              (:left
+                `(horizontally () ,lvar ,cvar))
+              (:right
+                `(horizontally () ,cvar ,lvar)))
             `(ecase ,label-alignment
                (:bottom
                  (vertically () ,cvar ,lvar))
                (:top
-                 (vertically () ,lvar ,cvar)))))))
+                 (vertically () ,lvar ,cvar))
+               (:left
+                 (horizontally () ,lvar ,cvar))
+              (:right
+                 (horizontally () ,cvar ,lvar)))))))
 
 
 
