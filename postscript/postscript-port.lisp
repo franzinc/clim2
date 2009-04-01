@@ -3,10 +3,10 @@
 #+(version= 8 1)
 (sys:defpatch "climps" 6
     "v1: Handle unsupported inks in CLIM's Postscript backend in a correctable way."
-  :type :climps
+  :type :clim2
   :post-loadable t)
 
-;; $Id: postscript-port.lisp,v 2.9 2009/04/01 14:47:21 layer Exp $
+;; $Id: postscript-port.lisp,v 2.10 2009/04/01 14:48:18 layer Exp $
 
 (provide :climps)
 
