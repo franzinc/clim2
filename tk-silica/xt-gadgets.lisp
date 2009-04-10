@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-gadgets.lisp,v 2.8 2007/04/17 21:45:54 layer Exp $
+;; $Id: xt-gadgets.lisp,v 2.9 2009/03/25 22:49:37 layer Exp $
 
 (in-package :xm-silica)
 
@@ -273,6 +273,17 @@
 (defun record-accelerator (menubar gesture)
   (let ((sheet (frame-top-level-sheet (pane-frame menubar))))
     (push gesture (slot-value sheet 'accelerator-gestures))))
+
+;;; Mouse wheel scroll events generate pointer-button-press/release-events
+;;; with nil buttons.
+;;; Ignore them for now (afuchs/spr35616):
+(defmethod distribute-event ((port xt-port) (event pointer-button-press-event))
+  (when (pointer-event-button event)
+    (call-next-method)))
+(defmethod distribute-event ((port xt-port)
+                             (event pointer-button-release-event))
+  (when (pointer-event-button event)
+    (call-next-method)))
 
 (defmethod distribute-event ((port xt-port) (event keyboard-event))
   (unless (discard-accelerator-event-p port event)

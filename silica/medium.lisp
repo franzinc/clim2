@@ -17,9 +17,17 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: medium.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
+;; $Id: medium.lisp,v 2.8 2009/03/25 22:49:36 layer Exp $
 
 (in-package :silica)
+
+(define-condition unsupported-ink (error)
+  ((ink :initarg :ink :reader unsupported-ink)
+   (message :initarg :message :reader unsupported-ink-message))
+  (:report (lambda (c s)
+             (format s "Ink ~A is not supported by the backend: ~A."
+                     (unsupported-ink c)
+                     (unsupported-ink-message c)))))
 
 ;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."

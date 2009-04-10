@@ -1,1 +1,10 @@
 .git-branch-name
+*.tmp
+*.a
+*.o
+*.fasl
+*.so
+stub-*.c
+Clim-sizes.n
+build.out
+concat.out

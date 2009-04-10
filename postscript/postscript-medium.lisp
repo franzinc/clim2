@@ -1,8 +1,24 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-medium.lisp,v 2.6 2008/07/22 16:29:54 layer Exp $
+;; $Id: postscript-medium.lisp,v 2.7 2009/03/25 22:49:36 layer Exp $
 
 (in-package :postscript-clim)
+
+(defmethod medium-ink :around ((medium postscript-medium))
+  "Typecheck medium ink for compatibility and implementedness."
+  (let ((ink (call-next-method)))
+    (typecase ink
+      (rectangular-tile
+       (if (decode-tile-as-stipple ink)
+           ink
+           (restart-case
+               (error 'silica::unsupported-ink :ink ink
+                      :message "Rectangular tiles other than stipples ~
+                                are not supported yet")
+             (use-value (other-ink)
+               :report "Use a different ink"
+               other-ink))))
+      (t ink))))
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

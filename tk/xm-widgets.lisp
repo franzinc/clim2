@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 2.11 2008/02/13 17:06:46 layer Exp $
+;; $Id: xm-widgets.lisp,v 2.12 2009/03/25 22:49:37 layer Exp $
 
 (in-package :tk)
 
@@ -336,7 +336,6 @@
                                              *lookup-string-buffer-size*
                                              &keysym &status)))
         (declare (fixnum nbytes))
-        (force-output *debug-io*)
         (cond
           ((= status x11::XBufferOverflow)
            (warn "Too small buffer looking up the key event at size ~A."

@@ -1,3 +1,57 @@
+*******************************************************************************
+join from trunk_afuchs4 to trunk
+    changes from:
+	2009-03-17  Andreas Fuchs  <afuchs@franz.com>
+    to
+	2008-09-23  Andreas Fuchs <afuchs@franz.com>
+
+*******************************************************************************
+2009-03-17  Andreas Fuchs  <afuchs@franz.com>
+
+ * silica/medium.lisp: Define condition unsupported-ink: signaled when a medium
+   doesn't support an ink.
+ * postscript/postscript-medium.lisp: Check for stippled ink and signal
+   unsupported-ink if found (spr34881).
+
+2009-03-17  Andreas Fuchs  <afuchs@franz.com>
+
+ * tk-silica/xm-gadgets.lisp: Don't turn on scroll bars on text editor fields
+   if word-wrap is enabled explicitly. (spr34758)
+
+2009-02-18  Andreas Fuchs  <afuchs@franz.com>
+
+ * tk-silica/xt-gadgets.lisp: Ignore pointer button press/release events that have no
+   button set. These are generated for mouse wheel scroll events, particularly
+   horizontal scroll events. (spr35616)
+ * silica/event.lisp: Ditto. (spr35616)
+
+2009-02-18  Andreas Fuchs  <afuchs@franz.com>
+
+ * tk/xt-funs.lisp: New function tk_unmap_widget
+ * tk/widget.lisp: New function tk-unmap-widget: use it.
+ * tk-silica/xm-gadgets.lisp: Make sure option menus never have more than 31 items,
+   as that causes the menu to be occluded by screen boundaries on both ends
+   (spr35478).
+
+2009-01-30  Andreas Fuchs  <afuchs@franz.com>
+
+ * aclpc/acl-widget.lisp: Use unsigned-nat from the right package when
+   querying text field cursors (spr34360)
+ * silica/db-border.lisp: Support :left and :right aligned labels, to emulate
+   option Motif's pane labels on windows (spr34997)
+	
+2008-10-21  Andreas Fuchs  <afuchs@franz.com>
+
+  * tk-silica/xm-gadgets.lisp: In multi-select list panes, don't scroll
+    to the first selected item anymore. (spr35194)
+	
+2008-09-23  Andreas Fuchs <afuchs@franz.com>
+
+  * tk/xm-widgets.lisp: Remove spurious (force-output *debug-io*) statement
+    (spr35062).
+  * tk/gcontext.lisp: Don't break on 64bit Unixes when changing frame layouts
+    if pixmaps are involved. (spr35034)
+
 2008-07-31    <layer@HOBART>
 
 	* aclpc/acl-frames.lisp (initialize-tooltips): bug18026: use
@@ -6342,4 +6396,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.44 $
+$Revision: 2.45 $

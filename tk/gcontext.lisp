@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gcontext.lisp,v 2.7 2007/04/17 21:45:53 layer Exp $
+;; $Id: gcontext.lisp,v 2.8 2009/03/25 22:49:36 layer Exp $
 
 (in-package :tk)
 
@@ -500,22 +500,22 @@
 
 (defun decode-font (gc x)
   (if (= x
-	 #+alpha #xffffffffffffffff
-	 #-alpha #xffffffff)
+         #+64bit #xffffffffffffffff
+         #-64bit #xffffffff)
       (error "cannot decode font")
     (let* ((display (object-display gc))
-	   (font (find-object-from-xid x display nil)))
+           (font (find-object-from-xid x display nil)))
       (or font
-	  (query-font display x)))))
+          (query-font display x)))))
 
 (defun decode-pixmap (gc x)
   (and (/= x
-	   #+alpha #xffffffffffffffff
-	   #-alpha #xffffffff)
+           #+64bit #xffffffffffffffff
+           #-64bit #xffffffff)
        (intern-object-xid
-	x
-	'pixmap
-	(object-display gc))))
+        x
+        'pixmap
+        (object-display gc))))
 
 (defun decode-clip-mask (gc x)
   (declare (ignore gc))

@@ -1,6 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 2.5 2005/08/03 05:07:14 layer Exp $
+#+(version= 8 1)
+(sys:defpatch "climps" 6
+    "v1: Handle unsupported inks in CLIM's Postscript backend in a correctable way."
+  :type :clim2
+  :post-loadable t)
+
+;; $Id: postscript-port.lisp,v 2.10 2009/04/01 14:48:18 layer Exp $
 
 (provide :climps)
 

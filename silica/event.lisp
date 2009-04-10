@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
+;; $Id: event.lisp,v 2.8 2009/03/25 22:49:36 layer Exp $
 
 (in-package :silica)
 
@@ -527,13 +527,16 @@
 
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-press-event))
   (let ((pointer (pointer-event-pointer event)))
-    (setf (pointer-button-state pointer)
-      (logior (pointer-button-state pointer) (pointer-event-button event)))))
+    (when (pointer-event-button event)
+      (setf (pointer-button-state pointer)
+            (logior (pointer-button-state pointer)
+                    (pointer-event-button event))))))
 
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-release-event))
   (let ((pointer (pointer-event-pointer event)))
-    (setf (pointer-button-state pointer)
-          (logandc2 (pointer-button-state pointer) (pointer-event-button event)))))
+    (when (pointer-event-button event)
+      (setf (pointer-button-state pointer)
+            (logandc2 (pointer-button-state pointer) (pointer-event-button event))))))
 
 ;;;
 
