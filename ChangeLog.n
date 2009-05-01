@@ -1,4 +1,14 @@
 *******************************************************************************
+*** LEAVE THIS AT THE TOP OF THE FILE ***
+don't forget to change the version in utils/packages.lisp if you do anything
+user visible.
+*******************************************************************************
+
+2009-05-01  Kevin Layer  <layer@gemini.franz.com>
+
+	* utils/packages.lisp: don't use version-from-file
+
+*******************************************************************************
 join from trunk_afuchs4 to trunk
     changes from:
 	2009-03-17  Andreas Fuchs  <afuchs@franz.com>
@@ -6396,4 +6406,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.45 $
+$Revision: 2.46 $
