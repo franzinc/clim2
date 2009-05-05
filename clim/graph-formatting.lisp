@@ -177,34 +177,8 @@
           (graph-node-children record) nil)
     t))
 
-;; For compatibility...
-(defun format-graph-from-root (root-object object-printer inferior-producer
-                               &rest keys
-                               &key (stream *standard-output*)
-                                    (orientation ':horizontal) (center-nodes nil)
-                                    (cutoff-depth nil)
-                                    (merge-duplicates nil)
-                                    (graph-type (if merge-duplicates :digraph :tree))
-                                    (key #'identity) (test #'eql)
-                                    (arc-drawer #'draw-linear-arc) 
-                                    (arc-drawing-options nil)
-                                    (generation-separation
-                                      *default-generation-separation*)
-                                    (within-generation-separation
-                                      *default-within-generation-separation*)
-                                    (maximize-generations #+allegro t #-allegro nil)
-                                    (store-objects t) (move-cursor t))
-  (declare (dynamic-extent keys object-printer inferior-producer)
-           (ignore stream orientation center-nodes cutoff-depth
-                   arc-drawer arc-drawing-options graph-type move-cursor store-objects
-                   generation-separation within-generation-separation maximize-generations))
-  (with-keywords-removed (keys keys '(:merge-duplicates :key :test))
-    (apply #'format-graph-from-roots
-           (list root-object) object-printer inferior-producer
-           (if merge-duplicates
-               (append `(:merge-duplicates ,merge-duplicates
-                         :duplicate-key ,key :duplicate-test ,test) keys)
-               keys))))
+;; [bug18430]: format-graph-from-root moved down to avoid dynamic-extent
+;; warning without defun-proto form
 
 (defun format-graph-from-roots (root-objects object-printer inferior-producer
                                 &key (stream *standard-output*)
@@ -289,6 +263,37 @@
       (when move-cursor
         (move-cursor-beyond-output-record stream graph-record))
       graph-record)))
+
+;; For compatibility...
+(defun format-graph-from-root (root-object object-printer inferior-producer
+                               &rest keys
+                               &key (stream *standard-output*)
+                                    (orientation ':horizontal) (center-nodes nil)
+                                    (cutoff-depth nil)
+                                    (merge-duplicates nil)
+                                    (graph-type (if merge-duplicates :digraph :tree))
+                                    (key #'identity) (test #'eql)
+                                    (arc-drawer #'draw-linear-arc) 
+                                    (arc-drawing-options nil)
+                                    (generation-separation
+                                      *default-generation-separation*)
+                                    (within-generation-separation
+                                      *default-within-generation-separation*)
+                                    (maximize-generations #+allegro t #-allegro nil)
+                                    (store-objects t) (move-cursor t))
+  (declare (dynamic-extent keys object-printer inferior-producer)
+           (ignore stream orientation center-nodes cutoff-depth
+                   arc-drawer arc-drawing-options graph-type move-cursor store-objects
+                   generation-separation within-generation-separation maximize-generations))
+  (with-keywords-removed (keys keys '(:merge-duplicates :key :test))
+    (apply #'format-graph-from-roots
+           (list root-object) object-printer inferior-producer
+           (if merge-duplicates
+               (append `(:merge-duplicates ,merge-duplicates
+                         :duplicate-key ,key :duplicate-test ,test) keys)
+               keys))))
+
+
 
 (defun draw-linear-arc (stream from-object to-object x1 y1 x2 y2 &rest drawing-options
                         &key path &allow-other-keys)

@@ -6,6 +6,12 @@ join from trunk_afuchs4 to trunk
 	2008-09-23  Andreas Fuchs <afuchs@franz.com>
 
 *******************************************************************************
+2009-05-04  Duane Rettig  <duane@franz.com>
+
+	* clim/graph-formatting.lisp: bug18430: Fix dynamic-extent warning
+	* misc/compile-1.lisp: bug18430: Fix compiler-switch for 8.2
+	* tk-silica/xm-gadgets.lisp: bug18430: Add ignore declaration
+
 2009-03-17  Andreas Fuchs  <afuchs@franz.com>
 
  * silica/medium.lisp: Define condition unsupported-ink: signaled when a medium

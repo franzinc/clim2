@@ -1592,6 +1592,8 @@
                                            :sub-menu-id sub-pdm
                                            :parent pdm
                                            initargs)))
+		       ;; [bug18430]
+		       (declare (ignore button))
                        (setf pdm sub-pdm))))))
 
 (defmethod (setf set-gadget-items) :after (items (gadget motif-option-pane))

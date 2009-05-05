@@ -39,10 +39,20 @@
 		    (declare (ignore safety size speed))
 		    (> debug 1))))
 
+#-(version>= 8 2)
 (setq comp:declared-fixnums-remain-fixnums-switch
   (named-function |(> speed 2)|
 		  (lambda (safety size speed debug)
 		    (declare (ignore safety size debug))
+		    (> speed 2))))
+
+
+;; [bug18430]:
+#+(version>= 8 2)
+(setq comp:declared-fixnums-remain-fixnums-switch
+  (named-function |(> speed 2)|
+		  (lambda (safety size speed debug compilation-speed)
+		    (declare (ignore safety size debug compilation-speed))
 		    (> speed 2))))
 
 
