@@ -4,6 +4,7 @@
 *.o
 *.fasl
 *.so
+*.dylib
 stub-*.c
 Clim-sizes.n
 build.out
