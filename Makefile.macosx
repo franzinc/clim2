@@ -14,24 +14,24 @@ Makefile=Makefile.macosx
 
 # removed /usr/local/lib:
 SET_LIBRARY_PATH = \
-  DYLD_LIBRARY_PATH=/usr/X11R6/lib:/lib:/usr/lib:$(DYLD_LIBRARY_PATH); \
+  DYLD_LIBRARY_PATH=/opt/local/lib:/usr/X11R6/lib:/lib:/usr/lib:$(DYLD_LIBRARY_PATH); \
   export DYLD_LIBRARY_PATH
 
 #CL=../src/xm-dcl
 
-TKLIB=-L/usr/local/motif/lib -lXm
+TKLIB=-L/opt/local/lib -L/usr/local/motif/lib -lXm -lpng12
 XTLIB=-L/usr/X11R6/lib -lXt
 XLIB=-L/usr/X11R6/lib -lX11
 # removed /usr/local/lib/liblanginfo.a from XLIB
 
-XINCLUDES=-I/usr/X11R6/include -I/usr/local/motif/include
+XINCLUDES=-I/usr/X11R6/include -I/usr/local/motif/include -I/opt/local/include -I/opt/local/include/X11
 
 ifeq ($(SIXTYFOURBIT),yes)
 CFLAGS= -arch ppc64 -DAcl64Bit
 MAKE_SHARED = sh ../src/bin/make_shared.mac64
 else
 ifeq ($(MACHINE),x86)
-CFLAGS= 
+CFLAGS= -arch i386
 MAKE_SHARED = sh ../src/bin/make_shared.mac86
 else
 CFLAGS= 
