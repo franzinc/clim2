@@ -25,21 +25,21 @@
 
 (defun accept (type &rest accept-args
 	       &key (stream *standard-input*)
-		    (view (stream-default-view stream))
-		    (default nil default-supplied-p)
-		    (default-type type)
-		    (history type)
-		    (provide-default nil)
-		    (prompt t)
-		    (prompt-mode ':normal)
-		    (display-default prompt)
-		    (query-identifier nil)
-		    (activation-gestures nil)
-		    (additional-activation-gestures nil)
-		    (delimiter-gestures nil)
-		    (additional-delimiter-gestures nil)
-		    (insert-default nil) (replace-input t)
-		    (present-p nil) (active-p t))
+               (view (stream-default-view stream))
+               (default nil default-supplied-p)
+               (default-type type)
+               (history type)
+               (provide-default nil)
+               (prompt t)
+               (prompt-mode ':normal)
+               (display-default prompt)
+               (query-identifier nil)
+               (activation-gestures nil)
+               (additional-activation-gestures nil)
+               (delimiter-gestures nil)
+               (additional-delimiter-gestures nil)
+               (insert-default nil) (replace-input t)
+               (present-p nil) (active-p t))
   (declare (dynamic-extent accept-args))
   (declare (values object type))
   (declare (ignore prompt-mode display-default
@@ -76,7 +76,12 @@
 			 history
 			 (presentation-type-history history))))
 	(when history
-	  (let ((element (yank-from-history history)))
+	  (let ((element (yank-from-history
+                          history
+                          :test #'(lambda (element)
+                                    (presentation-subtypep
+                                     (presentation-history-element-type element)
+                                     type)))))
 	    (when element
 	      (setq default (presentation-history-element-object element)
 		    default-supplied-p t
@@ -106,8 +111,8 @@
   ;; on a case-by-case basis.  For example, within ACCEPTING-VALUES...
   (with-keywords-removed (accept-args accept-args '(:stream :view))
     (apply #'stream-accept (encapsulating-stream stream) type
-			   :view view :query-identifier query-identifier
-			   accept-args)))
+           :view view :query-identifier query-identifier
+           accept-args)))
 
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args
 			  &key view &allow-other-keys)

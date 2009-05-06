@@ -5,6 +5,12 @@ user visible.
 *******************************************************************************
 2009-05-06  Andreas Fuchs  <afuchs@franz.com>
 
+	* clim/accept.lisp: offer only those presentations on presentation history
+	  that are presentation-subtypep of the type currently being accepted.
+	  Patch by Howard Shrobe (spr35850).
+	
+2009-05-06  Andreas Fuchs  <afuchs@franz.com>
+
 	* clim/ptypes.lisp: Add keyword arg 'omit-map-over-ptype-supertypes-p
 	  (interned in clim-internals).
 	* clim/standard-types.lisp: Use that keyword to suppress generation of
