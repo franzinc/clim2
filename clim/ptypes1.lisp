@@ -694,6 +694,8 @@
 (defmacro define-presentation-type (name parameters
                                     &key options inherit-from description history
                                          parameters-are-types
+                                         ((omit-map-over-ptype-supertypes-p omit-map-over-ptype-supertypes-p)
+                                          nil)
                                     &environment environment)
   (check-type name (or symbol (satisfies acceptable-presentation-type-class))
               "a symbol or a non-built-in class")
@@ -776,8 +778,9 @@
                                          ',description ',history
                                          ',parameters-are-types
                                          ',parameter-massagers ',options-massagers)
-               ,@(generate-map-over-presentation-type-supertypes-method-if-needed
-                    name class function-var parameters-var options-var type-var environment)
+               ,@(unless omit-map-over-ptype-supertypes-p
+                   (generate-map-over-presentation-type-supertypes-method-if-needed
+                    name class function-var parameters-var options-var type-var environment))
                #-CLIM-extends-CLOS
                ,@(generate-presentation-type-inheritance-methods
                    name class parameters-var options-var environment)

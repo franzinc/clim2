@@ -3,7 +3,14 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2009-05-06  Andreas Fuchs  <afuchs@franz.com>
 
+	* clim/ptypes.lisp: Add keyword arg 'omit-map-over-ptype-supertypes-p
+	  (interned in clim-internals).
+	* clim/standard-types.lisp: Use that keyword to suppress generation of
+	  conflicting presentation method: Removes a warning from the build
+	  (bug18430).
+	
 2009-05-01  Kevin Layer  <layer@gemini.franz.com>
 
 	* utils/packages.lisp: don't use version-from-file

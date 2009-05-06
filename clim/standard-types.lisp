@@ -1541,6 +1541,8 @@
 ;;--- Maybe this should have WRITE options
 (define-presentation-type form ()
   :options ((auto-activate nil boolean))
+  ;; Don't define a map-over-ptype-supertypes method; we have our own, below.
+  omit-map-over-ptype-supertypes-p t
   ;; Handling of AUTO-ACTIVATE is done below...
   :inherit-from `((expression) :auto-activate ,auto-activate))
 
