@@ -121,13 +121,9 @@
 	     (/// nil) (// nil) (/ nil)
 	     (+++ nil) (++ nil) (+ nil)
 	     (- nil)
-	     #+allegro (*tpl-current-stack-group*
-			#-process7 sys::*current-stack-group*
-			#+process7 sys::*current-thread*)
+	     #+allegro (*tpl-current-stack-group* sys::*current-thread*)
 	     #+allegro (*top-top-frame-pointer*
-			(excl::int-newest-frame
-			 #-process7 sys::*current-stack-group*
-			 #+process7 sys::*current-thread*
+			(excl::int-newest-frame sys::*current-thread*
 			 :visible-only-p nil))
 	     #+allegro (*top-frame-pointer*
 			 (or (db::find-interesting-frame *top-top-frame-pointer*)

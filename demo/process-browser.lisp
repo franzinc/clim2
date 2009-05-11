@@ -98,32 +98,16 @@
 		 (clim-sys:without-scheduling ;assure consistent data
 		   (mapcar
 		    (lambda (p)
-		      (let* (#-process7 (times  (mp::process-times-resumed p))
-			     (dtimes
-			      #-process7
-			      (- times (mp::process-times-resumed-1 p))
-			      #+process7
-			      (mp::process-times-resumed-delta p))
+		      (let* (
+			     (dtimes (mp::process-times-resumed-delta p))
 			     (msec   (mp::process-cpu-msec-used p))
-			     (dmsec
-			      #-process7
-			      (- msec (mp::process-cpu-msec-used-1 p))
-			      #+process7
-			      (mp::process-cpu-msec-used-delta p)))
-			(prog1 (list* dtimes msec dmsec p)
-			  #-process7
-			  (setf (mp::process-times-resumed-1 p) times
-				(mp::process-cpu-msec-used-1 p) msec))))
+			     (dmsec  (mp::process-cpu-msec-used-delta p)))
+			(list* dtimes msec dmsec p)))
 		    processes))
 		 #'>= :key #'caddr)))
 	  (dolist (p processes)
 	    (destructuring-bind (times-resumed msec-used msec-used-d . process) p
 	      (let ((profilep
-		     #+(and (not os-threads) (not process7))
-		     (let ((stack-group (mp::process-stack-group process)))
-		       (and stack-group
-			    (mp::profile-stack-group-p stack-group)))
-		     #+(or os-threads process7)
 		     (mp:profile-process-p process)))
 		(updating-output (t :unique-id process
 				    :cache-test #'equal

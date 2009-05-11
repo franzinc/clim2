@@ -2,6 +2,15 @@
 *** LEAVE THIS AT THE TOP OF THE FILE ***
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
+
+*******************************************************************************
+2009-05-11  Duane Rettig  <duane@franz.com>
+
+	* demo/listener.lisp: 
+	* demo/process-browser.lisp: 
+	* demo/winlisp.lisp: 
+	* test/test-driver.lisp: Remove :process7 feature dependencies
+
 *******************************************************************************
 2009-05-06  Andreas Fuchs  <afuchs@franz.com>
 
