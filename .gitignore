@@ -8,3 +8,4 @@ stub-*.c
 Clim-sizes.n
 build.out
 concat.out
+*.dylib
