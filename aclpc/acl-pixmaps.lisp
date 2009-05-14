@@ -30,6 +30,23 @@
 
 (in-package :acl-clim)
 
+(defmethod silica::medium-can-scroll-by-copy-region-p
+    ((medium acl-window-medium) old-region new-region)
+  "On Windows, copy-region corrupts the output if gadget output
+records (like buttons) are present in the old or new regions."
+  (and (call-next-method)
+       (let ((sheet (medium-sheet medium)))
+        (flet ((any-gadget-output-records-p (region)
+                 (map-over-output-records-overlapping-region
+                  (lambda (record)
+                    (when (typep record 'gadget-output-record)
+                      (return-from any-gadget-output-records-p nil)))
+                  (stream-output-history sheet)
+                  region)
+                 t))
+          (not (or (any-gadget-output-records-p old-region)
+                   (any-gadget-output-records-p new-region)))))))
+
 (defmethod medium-copy-area ((from-medium acl-window-medium) from-x from-y
 			     width height
 			     (to-medium acl-window-medium) to-x to-y

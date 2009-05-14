@@ -260,6 +260,14 @@
 (defmethod mirror-region-updated :after ((port basic-port) (viewport viewport))
   (update-scroll-bars viewport))
 
+(defgeneric medium-can-scroll-by-copy-region-p (medium old-region new-region)
+  (:method (medium old-region new-region)
+    (declare (ignore medium))
+    (with-bounding-rectangle* (left top right bottom) old-region
+      (with-bounding-rectangle* (nleft ntop nright nbottom) new-region
+        (ltrb-overlaps-ltrb-p left top right bottom
+                              nleft ntop nright nbottom)))))
+
 (defmethod scroll-extent ((sheet basic-sheet) x y)
   ;;--- CER says that this really isn't right...
   (fix-coordinates x y)
@@ -282,7 +290,9 @@
             (update-region sheet nleft ntop nright nbottom)
 	    ;; Must go after bounding-rectangle-set-position
             (update-scroll-bars viewport)
-            (if (ltrb-overlaps-ltrb-p left top right bottom nleft ntop nright nbottom)
+            (if (medium-can-scroll-by-copy-region-p
+                   medium (make-bounding-rectangle left top right bottom)
+                   (pane-viewport-region sheet))
                 (progn
 		  ;; Move the old stuff to the new position
                   (window-shift-visible-region sheet
@@ -301,7 +311,7 @@
                             medium (bounding-rectangle* region))
                           (if (output-recording-stream-p sheet)
                               (replay (stream-output-history sheet) sheet region)
-                            (repaint-sheet sheet region)))))))
+                              (repaint-sheet sheet region)))))))
               (let ((region (viewport-viewport-region viewport)))
 		;;--- We should make the sheet-region bigger at this point.
 		;;--- Perhaps we do a union of the sheet-region and the viewport.
