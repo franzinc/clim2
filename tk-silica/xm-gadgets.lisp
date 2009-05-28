@@ -2354,3 +2354,22 @@
     (ff:register-foreign-callable
      'xm-silica::file-search-proc-callback :reuse)))
 
+(in-package :tk-silica)
+
+;;; spr35138: Expose the frame resizing functions as methods on the
+;;; top level sheet of the frame.
+(defmethod clim:move-sheet ((sheet motif-top-level-sheet) x y)
+  (with-slots ((frame silica::frame)) sheet
+     (let ((port (slot-value (clim:frame-manager sheet) 'silica::port)))
+       (if (and (clim-internals::sheet-enabled-p sheet)
+                (not (clim-internals::frame-resizable frame)))
+           (silica:port-move-frame port frame x y)
+           (call-next-method)))))
+
+(defmethod clim:resize-sheet ((sheet motif-top-level-sheet) width height)
+  (with-slots ((frame silica::frame)) sheet
+     (let ((port (slot-value (frame-manager sheet) 'silica::port)))
+       (if (and (clim-internals::sheet-enabled-p sheet)
+                (not (clim-internals::frame-resizable frame)))
+           (silica:port-resize-frame port frame width height)
+           (call-next-method)))))
