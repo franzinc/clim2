@@ -19,6 +19,13 @@ user visible.
 	* test/test-driver.lisp: Remove :process7 feature dependencies
 
 *******************************************************************************
+2009-06-08  Andreas Fuchs  <afuchs@franz.com>
+
+	* Makefile.macosx: Fix build of CLIM on Mac OS X: Now, it requires Motif
+	  2.3.x from Macports to be installed, and a symlink from
+	  /usr/local/motif -> /opt/local/var/macports/software/openmotif/<VERSION>/opt/local/
+	  in place.
+
 2009-05-06  Andreas Fuchs  <afuchs@franz.com>
 
 	* clim/accept.lisp: offer only those presentations on presentation history
