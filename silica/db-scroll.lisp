@@ -292,7 +292,7 @@
               ;; Must go after bounding-rectangle-set-position
               (update-scroll-bars viewport)
               (if (medium-can-scroll-by-copy-region-p
-                   (sheet-medium medium)
+                   medium
                    (make-bounding-rectangle left top right bottom)
                    (pane-viewport-region sheet))
                   (progn

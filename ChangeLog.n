@@ -5,6 +5,11 @@ user visible.
 
 *******************************************************************************
 2009-06-16  Andreas Fuchs  <afuchs@franz.com>
+
+	* silica/db-scroll.lisp: Fix a strange type error in scrolling that would crash on OS
+	  X with Motif 2.3 but not on other platforms.
+	
+2009-06-16  Andreas Fuchs  <afuchs@franz.com>
 	
 	* tk/xm-widgets.lisp: Fix the allocation of string lookup buffers for multibyte
 	  strings. This uses aclmalloc now, like the docs suggest.
