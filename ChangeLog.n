@@ -4,6 +4,11 @@ don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 
 *******************************************************************************
+2009-06-16  Andreas Fuchs  <afuchs@franz.com>
+	
+	* tk/xm-widgets.lisp: Fix the allocation of string lookup buffers for multibyte
+	  strings. This uses aclmalloc now, like the docs suggest.
+	
 2009-05-14  Andreas Fuchs  <afuchs@franz.com>
 
 	* silica/db-scroll.lisp: new gf `medium-can-scroll-by-copy-region-p':

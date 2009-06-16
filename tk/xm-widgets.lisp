@@ -321,8 +321,7 @@
 
 (defmacro with-lookup-string-buffer ((var) &body body)
   `(let ((,var (or (excl:without-interrupts (pop *lookup-string-buffers*))
-                   (excl::malloc *lookup-string-buffer-size*))))
-     (declare (type (unsigned-byte 8) buffer)) ; HUH??? an 8-bit word??
+                   (excl::aclmalloc *lookup-string-buffer-size*))))
      (multiple-value-prog1
        (progn ,@body)
        (excl:without-interrupts (push buffer *lookup-string-buffers*)))))
