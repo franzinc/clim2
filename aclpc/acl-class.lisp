@@ -481,18 +481,6 @@
       (setf (minimized-p sheet) (= wparam win::SIZE_MINIMIZED)))
     (win-result *acl-port*)))
 
-(defmethod silica::sheet-flags ((sheet acl-top-level-sheet))
-  `(,@(when (maximized-p sheet) (list :maximized))
-      ,@(when (minimized-p sheet) (list :minimized))))
-
-(defmethod (setf silica::sheet-flags) (new-flags (sheet acl-top-level-sheet))
-  (let ((mirror (sheet-mirror sheet)))
-   (cond
-     ((member :maximized new-flags)
-      (win:ShowWindow mirror win:SW_MAXIMIZE))
-     ((member :minimized new-flags)
-      (win:ShowWindow mirror win:SW_MINIMIZE)))))
-
 ;; Process WM_GETMINMAXINFO
 (defun ongetminmaxinfo (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))

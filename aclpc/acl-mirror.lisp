@@ -525,3 +525,14 @@
 			(logior win:SWP_NOACTIVATE
 				win:SWP_NOZORDER)))))
 
+(defmethod silica::sheet-flags ((sheet acl-top-level-sheet))
+  `(,@(when (maximized-p sheet) (list :maximized))
+      ,@(when (minimized-p sheet) (list :minimized))))
+
+(defmethod (setf silica::sheet-flags) (new-flags (sheet acl-top-level-sheet))
+  (let ((mirror (sheet-mirror sheet)))
+   (cond
+     ((member :maximized new-flags)
+      (win:ShowWindow mirror win:SW_MAXIMIZE))
+     ((member :minimized new-flags)
+      (win:ShowWindow mirror win:SW_MINIMIZE)))))
