@@ -77,12 +77,6 @@
 (defconstant SW_SHOWMINNOACTIVE	7)
 (defconstant SW_SHOWNA		8)
 
-#| WM_SIZE message constants |#
-
-(defconstant SIZE_MAXIMIZED 2)
-(defconstant SIZE_MINIMIZED 1)
-(defconstant SIZE_RESTORED  0)
-
 #||
 #| Old showwindow commands |#
 

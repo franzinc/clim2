@@ -463,6 +463,12 @@
       (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
     (win-result *acl-port*)))
 
+#| WM_SIZE message constants |#
+
+(defconstant SIZE_MAXIMIZED 2)
+(defconstant SIZE_MINIMIZED 1)
+(defconstant SIZE_RESTORED  0)
+
 ;; Process WM_SIZE
 (defun onsize (window msg wparam lparam)
   (let* ((sheet (mirror->sheet *acl-port* window)))
@@ -477,8 +483,8 @@
 	  (clear-winproc-result (win-result *acl-port*)))
         (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
     (when (typep sheet 'acl-top-level-sheet)
-      (setf (maximized-p sheet) (= wparam win::SIZE_MAXIMIZED))
-      (setf (minimized-p sheet) (= wparam win::SIZE_MINIMIZED)))
+      (setf (maximized-p sheet) (= wparam SIZE_MAXIMIZED))
+      (setf (minimized-p sheet) (= wparam SIZE_MINIMIZED)))
     (win-result *acl-port*)))
 
 ;; Process WM_GETMINMAXINFO

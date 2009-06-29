@@ -16,12 +16,12 @@ user visible.
 
 2009-06-29  Andreas Fuchs  <afuchs@franz.com>
 
-	* pre-silica/wheader.lisp: define WM_SIZE message constants. (spr35138)
-	* silica/layout.lisp: Define sheet-flags / (setf sheet-flags).
+	* silica/layout.lisp: Define sheet-flags / (setf sheet-flags). (spr35138)
 	* aclpc/acl-mirror.lisp: Add maximized-p/minimized-p slots to
 	  acl-top-level-sheet.
-	* aclpc/acl-class.lisp: Add implementations for sheet-flags accessors, listen
-	  for minimized/maximized events and set top-level sheet flags accordingly.
+	* aclpc/acl-class.lisp: define WM_SIZE message constants,
+	  add implementations for sheet-flags accessors, listen for
+	  minimized/maximized events and set top-level sheet flags accordingly.
 	
 2009-06-29  Andreas Fuchs  <afuchs@franz.com>
 
