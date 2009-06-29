@@ -6,6 +6,11 @@ user visible.
 *******************************************************************************
 2009-06-29  Andreas Fuchs  <afuchs@franz.com>
 
+	* tk-silica/xm-gadgets.lisp: Translate :character width specifications into
+	  pixel specifications on all Motif widgets. (spr35975)
+	
+2009-06-29  Andreas Fuchs  <afuchs@franz.com>
+
 	* tk-silica/xm-gadgets.lisp: Fix the sheet transformation when moving
 	  the frame, as well.
 

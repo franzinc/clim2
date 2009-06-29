@@ -42,6 +42,26 @@
                          (option-pane motif-option-pane)
                          ))))
 
+;;; All our gadgets need to work with pixel-based and character-based
+;;; size specifications.
+(defmethod silica::normalize-space-requirement ((pane client-overridability-mixin)
+                                                (sr silica::general-space-requirement))
+  (multiple-value-bind (width min-width max-width height min-height max-height)
+      (space-requirement-components sr)
+    (macrolet ((fix-it (slot-name)
+                 `(if (clim-internals::unit-space-requirement-p ,slot-name)
+                      (clim-internals::process-unit-space-requirement pane ,slot-name)
+                      ,slot-name)))
+      (if (and (numberp width) (numberp max-width) (numberp min-width))
+          sr
+          (make-space-requirement
+           :width (fix-it width)
+           :min-width (fix-it min-width)
+           :max-width (fix-it max-width)
+           :height (fix-it height)
+           :min-height (fix-it min-height)
+           :max-height (fix-it max-height))))))
+
 ;;; We now need a lot of classes that mirror the xm classes.
 
 
