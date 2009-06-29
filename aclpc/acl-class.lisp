@@ -475,8 +475,23 @@
 	   (allocate-event 'window-configuration-event :sheet sheet))
 	  ;; set return value to 0
 	  (clear-winproc-result (win-result *acl-port*)))
-      (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
+        (setf (win-result *acl-port*) (win:DefWindowProc window msg wparam lparam)))
+    (when (typep sheet 'acl-top-level-sheet)
+      (setf (maximized-p sheet) (= wparam win::SIZE_MAXIMIZED))
+      (setf (minimized-p sheet) (= wparam win::SIZE_MINIMIZED)))
     (win-result *acl-port*)))
+
+(defmethod silica::sheet-flags ((sheet acl-top-level-sheet))
+  `(,@(when (maximized-p sheet) (list :maximized))
+      ,@(when (minimized-p sheet) (list :minimized))))
+
+(defmethod (setf silica::sheet-flags) (new-flags (sheet acl-top-level-sheet))
+  (let ((mirror (sheet-mirror sheet)))
+   (cond
+     ((member :maximized new-flags)
+      (win:ShowWindow mirror win:SW_MAXIMIZE))
+     ((member :minimized new-flags)
+      (win:ShowWindow mirror win:SW_MINIMIZE)))))
 
 ;; Process WM_GETMINMAXINFO
 (defun ongetminmaxinfo (window msg wparam lparam)

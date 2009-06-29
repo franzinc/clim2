@@ -387,7 +387,8 @@
    (accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)
    (sheet-thread :initform nil :accessor clim-internals::sheet-thread)
    (tooltip-control :initform nil :accessor tooltip-control)
-   ))
+   (maximized-p :initform nil :accessor maximized-p)
+   (minimized-p :initform nil :accessor minimized-p)))
 
 (defmethod istoplevel ((object t)) nil)
 (defmethod istoplevel ((object acl-top-level-sheet)) t)

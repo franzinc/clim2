@@ -224,6 +224,17 @@
   (resize-sheet sheet width height)
   (move-sheet sheet x y))
 
+(defgeneric sheet-flags (sheet)
+  (:documentation "Returns a list of flags that the port may have set concerning the sheet.")
+  (:method ((sheet basic-sheet))
+    ()))
+
+(defgeneric (setf sheet-flags) (new-value sheet)
+  (:documentation "Set a list of flags, as supported by the port. Ignores any flags that the port doesn't understand.")
+  (:method (new-value (sheet basic-sheet))
+    (declare (ignore new-value))
+    nil))
+
 
 ;;; Various
 
