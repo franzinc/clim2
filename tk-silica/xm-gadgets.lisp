@@ -2358,13 +2358,17 @@
 
 ;;; spr35138: Expose the frame resizing functions as methods on the
 ;;; top level sheet of the frame.
-(defmethod clim:move-sheet ((sheet motif-top-level-sheet) x y)
-  (with-slots ((frame silica::frame)) sheet
-     (let ((port (slot-value (clim:frame-manager sheet) 'silica::port)))
-       (if (and (clim-internals::sheet-enabled-p sheet)
-                (not (clim-internals::frame-resizable frame)))
-           (silica:port-move-frame port frame x y)
-           (call-next-method)))))
+(defmethod clim:move-sheet ((sheet tk-silica::motif-top-level-sheet)
+                              x y)
+    (with-slots ((frame silica::frame)) sheet
+       (let ((port (slot-value (clim:frame-manager sheet) 'silica::port)))
+         (cond
+           ((and (clim-internals::sheet-enabled-p sheet)
+                 (not (clim-internals::frame-resizable frame)))
+            (silica:port-move-frame port frame x y)
+            (setf (sheet-transformation sheet)
+                  (make-translation-transformation x y)))
+           (t (call-next-method))))))
 
 (defmethod clim:resize-sheet ((sheet motif-top-level-sheet) width height)
   (with-slots ((frame silica::frame)) sheet
