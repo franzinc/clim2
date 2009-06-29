@@ -6,6 +6,12 @@ user visible.
 *******************************************************************************
 2009-06-29  Andreas Fuchs  <afuchs@franz.com>
 
+	* aclpc/acl-frames.lisp: Fix types and ff call arguments in
+	  ask-user-for-directory to make popping up a directory selector work in
+	  Windows. (spr35657)
+	
+2009-06-29  Andreas Fuchs  <afuchs@franz.com>
+
 	* tk-silica/xm-gadgets.lisp: Translate :character width specifications into
 	  pixel specifications on all Motif widgets. (spr35975)
 	

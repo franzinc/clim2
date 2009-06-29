@@ -2062,7 +2062,9 @@ in a second Lisp process.  This frame cannot be reused."
 
 (defparameter *max-file-selection-buffer-size* (* 16 *max-path*))
 
-(ff:def-foreign-call IMallocFree ((pv win:pvoid))
+(ff:def-foreign-call IMallocFree
+    ((this :nat)
+     (pv win:pvoid))
   :returning :void
   :convention :stdcall
   :method-index 5
@@ -2079,7 +2081,8 @@ in a second Lisp process.  This frame cannot be reused."
   :strings-convert nil)
 
 (ff:def-foreign-call IShellFolderParseDisplayName
-    ((hwnd win:hwnd)
+    ((this :nat)
+     (hwnd win:hwnd)
      (pbc win:lpstr)
      (pwszDisplayName win:lpstr)
      (pchEaten win:ulong_ptr)
@@ -2092,14 +2095,13 @@ in a second Lisp process.  This frame cannot be reused."
   :returning win:hresult
   :strings-convert nil)
 
-
 (ff:def-foreign-call (MultiByteToWideChar "MultiByteToWideChar")
     ((code-page :unsigned-int)
-     (flags win:dword)     ; character-type options
-     (string win:lpcstr)   ; address of string to map
-     (nr-bytes :int)       ; number of bytes in string
-     (buffer win:lpwstr)   ; LPWSTR, address of wide-character buffer
-     (buffer-size :int)    ; size of buffer (in wide characters)
+     (flags win:dword)      ; character-type options
+     (string win:lpcstr)    ; address of string to map
+     (nr-bytes :int)        ; number of bytes in string
+     (buffer win:lpwstr)    ; LPWSTR, address of wide-character buffer
+     (buffer-size :int)     ; size of buffer (in wide characters)
      )
   :returning :int
   :convention :stdcall
@@ -2240,12 +2242,12 @@ in a second Lisp process.  This frame cannot be reused."
                          -1 ole-path *max-path*)
     ;; Let IShellFolder::ParseDisplayName turn the directory
     ;; into an ITEMIDLIST.
-    (let ((pidl (allocate-pointer :nat))
-          (cheaten (allocate-pointer :nat))
+    (let ((pidl (allocate-pointer 'win:lpcitemidlist))
+          (cheaten (allocate-pointer :unsigned-long))
           (attributes (allocate-pointer :unsigned-long)))
       (unless (= (IShellFolderParseDisplayName
 		  (pointer-value :nat desktop-folder)
-		  0 ole-path cheaten pidl
+		  0 0 ole-path cheaten pidl
 		  attributes)
                  win:NOERROR)
         (error "Error in ask-user-for-directory: ParseDisplayName failed."))
