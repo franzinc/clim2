@@ -1468,9 +1468,9 @@
 		     (if (= s-1 s-2)
 			 (let ((r (sqrt s-1)))
 			   (setq x-radius r y-radius r))
-		       ;; Degrade to drawing a rectilinear ellipse
-		       (setq x-radius (sqrt s-1)
-			     y-radius (sqrt s-2))))))
+                         ;; Degrade to drawing a rectilinear ellipse
+                         (setq x-radius (sqrt s-1)
+                               y-radius (sqrt s-2))))))
 
 	    (setq start-angle (* start-angle #.(float (/ (* 360 64) (* 2 pi)) 0s0)))
 	    (setq end-angle (* end-angle #.(float (/ (* 360 64) (* 2 pi)) 0s0)))
@@ -1483,7 +1483,7 @@
 			   end-angle
 			   start-angle)
 	      (discard-illegal-coordinates medium-draw-ellipse* x-min y-min)
-	      (tk::draw-ellipse-1 drawable
+              (tk::draw-ellipse-1 drawable
 				  (adjust-ink (decode-ink (medium-ink medium) medium)
 					      medium
 					      x-min

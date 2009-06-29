@@ -4,6 +4,12 @@ don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 
 *******************************************************************************
+2009-06-29  Andreas Fuchs  <afuchs@franz.com>
+
+	* utils/lisp-utilities.lisp: Drop our hand-knit versions of _malloc and _free,
+	  replace them with excl:aclmalloc and excl:aclfree: They do the same thing,
+	  as of 8.1.
+	
 2009-06-16  Andreas Fuchs  <afuchs@franz.com>
 
 	* silica/db-scroll.lisp: Fix a strange type error in scrolling that would crash on OS

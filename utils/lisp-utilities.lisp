@@ -1658,21 +1658,8 @@
 ;;; Foreign Structure Constructors
 ;;;
 
-(eval-when (compile)
-  (ff:def-foreign-call (_malloc "malloc")
-      ((data :int))
-    :call-direct t
-    :arg-checking nil
-    :returning :foreign-address)
-  (ff:def-foreign-call (_free "free")
-      ((data (* :char) simple-string))
-    :call-direct t
-    :strings-convert nil		; cac 25feb00
-    :arg-checking nil
-    :returning :void))
-
 ;;; This is here to limit need for FF package to compile time.
-(defun system-free (x) (_free x))
+(defun system-free (x) (excl:aclfree x))
 
 ;;; ALLOCATE-CSTRUCT was adapted from ff:make-cstruct.
 ;;; We aren't using ff:make-cstruct because it uses excl:aclmalloc.
@@ -1691,7 +1678,7 @@
 
 (defun allocate-memory (size init)
   ;; Used only by ALLOCATE-CSTRUCT.
-  (let ((pointer (_malloc size)))
+  (let ((pointer (excl:aclmalloc size)))
     (when init
       (do ((i 0 (+ i #-64bit 4 #+64bit 8)))
 	  ((>= i size))
@@ -1716,7 +1703,7 @@
              (length (length octets)))
         (declare (optimize (safety 0))
                       (type fixnum length))
-        (setf address (_malloc length))
+        (setf address (excl:aclmalloc length))
         (dotimes (i length)
           (declare (fixnum i))
           (setf (sys:memref-int address 0 i :unsigned-byte)

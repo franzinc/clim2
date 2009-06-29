@@ -1855,9 +1855,9 @@ the geometry of the children. Instead the parent has control. "))
 
 (defun find-port-from-display (display)
   (find-if #'(lambda (port)
-	       (and (typep port 'xt-port)
-		    (eq (port-display port) display)))
-	   *ports*))
+               (and (typep port 'xt-port)
+                    (eq (port-display port) display)))
+           *ports*))
 
 (defmethod port-canonicalize-gesture-spec
     ((port xt-port) gesture-spec &optional modifier-state)
