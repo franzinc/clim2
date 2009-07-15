@@ -2,8 +2,12 @@
 *** LEAVE THIS AT THE TOP OF THE FILE ***
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
-
 *******************************************************************************
+
+2009-07-15  Kevin Layer  <layer@gemini.franz.com>
+
+	* Makefile.macosx: ppc => i386; error on 64-bit Mac OS X
+
 2009-06-29  Andreas Fuchs  <afuchs@franz.com>
 
 	* aclpc/acl-frames.lisp: Fix types and ff call arguments in

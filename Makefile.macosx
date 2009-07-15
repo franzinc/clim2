@@ -25,7 +25,8 @@ XLIB=-L/usr/X11R6/lib -lX11
 XINCLUDES=-I/usr/X11R6/include -I/usr/local/motif/include
 
 ifeq ($(SIXTYFOURBIT),yes)
-CFLAGS= -arch ppc64 -DAcl64Bit
+$(error CLIM does not work on 64-bit Mac OS X yet.)
+CFLAGS = -arch i386 -DAcl64Bit
 MAKE_SHARED = sh ../src/bin/make_shared.mac64
 else
 ifeq ($(MACHINE),x86)
