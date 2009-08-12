@@ -109,7 +109,7 @@
 
 (defun tracking-pointer-1 (stream pointer generator
                            &key multiple-window transformp
-                                context-type highlight timeout)
+                           context-type highlight timeout)
   (unless pointer
     (setq pointer (stream-primary-pointer stream)))
   (let* ((moved-p nil)
@@ -135,7 +135,7 @@
 	 ;; Bind the input context so that presentation searching works
          (*input-context*
           (with-presentation-type-decoded (name parameters) context-type
-                                          (list (list (list* name parameters) nil))))
+            (list (list (list* name parameters) nil))))
 	 ;; Bind these to NIL in case someone is doing TRACKING-POINTER
 	 ;; inside of a presentation action
          (*input-wait-test* nil)
@@ -160,9 +160,9 @@
                (find-presentation (window x y &key event)
                  `(if (eq context-type t)
                       (find-innermost-presentation ,window ,x ,y)
-                    (frame-find-innermost-applicable-presentation
-                     *application-frame* *input-context*
-                     ,window ,x ,y ,@(and event `(:event ,event))))))
+                      (frame-find-innermost-applicable-presentation
+                       *application-frame* *input-context*
+                       ,window ,x ,y ,@(and event `(:event ,event))))))
 
       ;; 18-Mar-04  mm: move the flet out of the loop and out of the 
       ;;                unwind-protect
@@ -171,7 +171,7 @@
 			      (eq current-window (pointer-sheet pointer)))
 			  (eq (stream-primary-pointer window) pointer))
 		 (multiple-value-setq (m-p last-window last-x last-y)
-		   (pointer-state-changed pointer last-window last-x last-y))
+                     (pointer-state-changed pointer last-window last-x last-y))
 		 ;; bug14162:  the variable moved-p should only be set to non-nil
 		 ;;  in the wait function - it is reset to nil only in the body
 		 ;;  because the wait function may be called several times 
@@ -184,118 +184,121 @@
 		(port-remove-all-pointer-grabs (port pointer)))
 	      (loop
 		;; Handle pointer motion
-		(block handle-simple-motion
-		  (when (or motion-function presentation-motion-function highlight)
-		    (when multiple-window
-		      (setq current-window (or (pointer-sheet pointer) (graft pointer))))
-		    (multiple-value-bind (x y) (sheet-pointer-position
-						current-window pointer)
-		      (when moved-p
-			(setq moved-p nil)
-			(setq last-x x last-y y
-			      last-window current-window)
-			;; Pointer position is in root (graft) coordinates
-			(when (or presentation-motion-function highlight)
-			  (let ((presentation
-				 (and (output-recording-stream-p current-window)
-				      (find-presentation current-window x y))))
-			    (when presentation
-			      (when highlight
-				(unless (eq presentation highlighted-presentation)
-				  (unhighlight)
-				  (highlight presentation)))
-			      (when presentation-motion-function
-				(funcall presentation-motion-function
-					 presentation current-window x y))
-			      (return-from handle-simple-motion))))
-			(unhighlight)
-			(when motion-function
-			  (when transformp
-			    (multiple-value-bind (tx ty)
-				(transform-position
-				 (medium-transformation current-window) x y)
-			      (setq x (coordinate tx)
-				    y (coordinate ty))))
-			  (funcall motion-function current-window x y))))))
-		(block input-wait
-		  (loop
-		    ;; Handle any clicks or characters, otherwise wait for something
-		    ;; interesting to happen.
-		    (when multiple-window
-		      (setq current-window (or (pointer-sheet pointer) (graft pointer))))
-		    (flet ()
-		      #-allegro (declare (dynamic-extent #'pointer-motion-pending))
-		      ;; It's OK to do the input wait on STREAM instead of on
-		      ;; CURRENT-WINDOW, because multiple-window mode only works
-		      ;; when all the windows share the same I/O buffer.  Same
-		      ;; deal with the READ-GESTURE below, too.
-		      ;;--- It's a bug that multiple-window has that restriction...
-		      (multiple-value-setq (input-happened timed-out)
-			(stream-input-wait stream
-					   :timeout timeout
-					   :input-wait-test #'pointer-motion-pending)))
-		    ;; Don't call READ-GESTURE if there is no gesture to read
-		    ;;--- If we called READ-GESTURE on CURRENT-WINDOW, we would
-		    ;;--- get the (possibly undesirable) side-effect that the
-		    ;;--- "input focus" will follow the mouse, having particularly
-		    ;;--- weird behavior regarding keystrokes.
-		    (let ((gesture
-			   (and input-happened
-				(read-gesture :stream stream :timeout 0))))
-		      (block process-gesture
-			(cond ((null gesture)
-			       (if (and (eq timed-out :timeout)
-					timeout-function)
-				   (funcall timeout-function))
-			       (return-from input-wait))
-			      ((keyboard-event-p gesture)
-			       (when keyboard-function
-				 (funcall keyboard-function gesture)
-				 (return-from process-gesture)))
-			      ((or (typep gesture 'pointer-button-press-event)
-				   (typep gesture 'pointer-button-release-event))
-			       (let* ((px (pointer-event-x gesture))
-				      (py (pointer-event-y gesture))
-				      (wx px)
-				      (wy py))
-				 (when transformp
-				   (multiple-value-bind (tx ty)
-				       (transform-position
-					(medium-transformation current-window) px py)
-				     (setq wx (coordinate tx)
-					   wy (coordinate ty))))
-				 (typecase gesture
-				   (pointer-button-press-event
-				    (when multiple-window
-				      (port-remove-all-pointer-grabs (port pointer)))
-				    (when presentation-press-function
-				      (let* ((window (event-sheet gesture))
-					     (presentation
-					      (and (output-recording-stream-p window)
-						   (find-presentation
-						    window px py :event gesture))))
-					(when presentation
-					  (funcall presentation-press-function
-						   presentation gesture wx wy)
-					  (return-from process-gesture))))
-				    (when button-press-function
-				      (funcall button-press-function gesture wx wy))
-				    (return-from process-gesture))
-				   (t	;pointer-button-release-event
-				    (when presentation-release-function
-				      (let* ((window (event-sheet gesture))
-					     (presentation
-					      (and (output-recording-stream-p window)
-						   (find-presentation
-						    window px py :event gesture))))
-					(when presentation
-					  (funcall presentation-release-function
-						   presentation gesture wx wy)
-					  (return-from process-gesture))))
-				    (when button-release-function
-				      (funcall button-release-function gesture wx wy))
-				    (return-from process-gesture))))))
-			(beep stream)))))))
+               (block handle-simple-motion
+                 (when multiple-window
+                   (setq current-window (or (pointer-sheet pointer) (graft pointer))))
+                 (multiple-value-bind (x y) (sheet-pointer-position
+                                             current-window pointer)
+                   (when moved-p
+                     ;; Position updates must happen regardless of
+                     ;; presence of a :pointer-motion clause in the
+                     ;; tracking-pointer form. (spr36006, afuchs/2009-08-11)
+                     (setq moved-p nil)
+                     (setq last-x x last-y y
+                           last-window current-window)
+                     (when (or motion-function presentation-motion-function highlight)
+                       ;; Pointer position is in root (graft) coordinates
+                       (when (or presentation-motion-function highlight)
+                         (let ((presentation
+                                (and (output-recording-stream-p current-window)
+                                     (find-presentation current-window x y))))
+                           (when presentation
+                             (when highlight
+                               (unless (eq presentation highlighted-presentation)
+                                 (unhighlight)
+                                 (highlight presentation)))
+                             (when presentation-motion-function
+                               (funcall presentation-motion-function
+                                        presentation current-window x y))
+                             (return-from handle-simple-motion))))
+                       (unhighlight)
+                       (when motion-function
+                         (when transformp
+                           (multiple-value-bind (tx ty)
+                               (transform-position
+                                (medium-transformation current-window) x y)
+                             (setq x (coordinate tx)
+                                   y (coordinate ty))))
+                         (funcall motion-function current-window x y))))))
+               (block input-wait
+                 (loop
+                   ;; Handle any clicks or characters, otherwise wait for something
+                   ;; interesting to happen.
+                  (when multiple-window
+                    (setq current-window (or (pointer-sheet pointer) (graft pointer))))
+                  (flet ()
+                    #-allegro (declare (dynamic-extent #'pointer-motion-pending))
+                    ;; It's OK to do the input wait on STREAM instead of on
+                    ;; CURRENT-WINDOW, because multiple-window mode only works
+                    ;; when all the windows share the same I/O buffer.  Same
+                    ;; deal with the READ-GESTURE below, too.
+                    ;;--- It's a bug that multiple-window has that restriction...
+                    (multiple-value-setq (input-happened timed-out)
+                        (stream-input-wait stream
+                                           :timeout timeout
+                                           :input-wait-test #'pointer-motion-pending)))
+                  ;; Don't call READ-GESTURE if there is no gesture to read
+                  ;;--- If we called READ-GESTURE on CURRENT-WINDOW, we would
+                  ;;--- get the (possibly undesirable) side-effect that the
+                  ;;--- "input focus" will follow the mouse, having particularly
+                  ;;--- weird behavior regarding keystrokes.
+                  (let ((gesture
+                         (and (or input-happened (eq timed-out :input-wait-test))
+                              (read-gesture :stream stream :timeout 0))))
+                    (block process-gesture
+                      (cond ((null gesture)
+                             (if (and (eq timed-out :timeout)
+                                      timeout-function)
+                                 (funcall timeout-function))
+                             (return-from input-wait))
+                            ((keyboard-event-p gesture)
+                             (when keyboard-function
+                               (funcall keyboard-function gesture)
+                               (return-from process-gesture)))
+                            ((or (typep gesture 'pointer-button-press-event)
+                                 (typep gesture 'pointer-button-release-event))
+                             (let* ((px (pointer-event-x gesture))
+                                    (py (pointer-event-y gesture))
+                                    (wx px)
+                                    (wy py))
+                               (when transformp
+                                 (multiple-value-bind (tx ty)
+                                     (transform-position
+                                      (medium-transformation current-window) px py)
+                                   (setq wx (coordinate tx)
+                                         wy (coordinate ty))))
+                               (typecase gesture
+                                 (pointer-button-press-event
+                                  (when multiple-window
+                                    (port-remove-all-pointer-grabs (port pointer)))
+                                  (when presentation-press-function
+                                    (let* ((window (event-sheet gesture))
+                                           (presentation
+                                            (and (output-recording-stream-p window)
+                                                 (find-presentation
+                                                  window px py :event gesture))))
+                                      (when presentation
+                                        (funcall presentation-press-function
+                                                 presentation gesture wx wy)
+                                        (return-from process-gesture))))
+                                  (when button-press-function
+                                    (funcall button-press-function gesture wx wy))
+                                  (return-from process-gesture))
+                                 (t	;pointer-button-release-event
+                                  (when presentation-release-function
+                                    (let* ((window (event-sheet gesture))
+                                           (presentation
+                                            (and (output-recording-stream-p window)
+                                                 (find-presentation
+                                                  window px py :event gesture))))
+                                      (when presentation
+                                        (funcall presentation-release-function
+                                                 presentation gesture wx wy)
+                                        (return-from process-gesture))))
+                                  (when button-release-function
+                                    (funcall button-release-function gesture wx wy))
+                                  (return-from process-gesture))))))
+                      (beep stream)))))))
 	  (unhighlight)
 	  (when last-window
 	    (unhighlight-highlighted-presentation last-window)))))))

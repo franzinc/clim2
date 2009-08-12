@@ -3,6 +3,13 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2009-08-12  Andreas Fuchs  <afuchs@franz.com>
+
+	* clim/tracking-pointer.lisp: Record position info in tracking-pointer-1
+	  even if no user-provided pointer motion hook is available: Fixes endless
+	  loop for these conditons.
+	* clim/input-defs.lisp: Update code to use EQL as the accompanying comment
+	  says.
 
 2009-07-15  Kevin Layer  <layer@gemini.franz.com>
 

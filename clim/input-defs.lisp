@@ -290,7 +290,7 @@
     (values
       (or (not (eq sheet old-sheet))
           ;; compare coordinates with eql, not =, because null values can be passed in
-          (not (eq old-x x-position))
-          (not (eq old-y y-position)))
+          (not (eql old-x x-position))
+          (not (eql old-y y-position)))
       sheet x-position y-position)))
 
