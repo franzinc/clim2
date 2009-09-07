@@ -1496,6 +1496,18 @@
 				  (- end-angle start-angle)
 				  filled))))))))
 
+(defun compute-text-alignment-delta (width height baseline align-x align-y)
+  (values (ecase align-x
+            (:right width)
+            (:center (floor width 2))
+            (:left 0))
+          (ecase align-y
+            (:bottom (- height baseline))
+            (:center (- (floor height 2)
+                        baseline))
+            (:baseline 0)
+            (:top baseline))))
+
 (defmethod medium-draw-text* ((medium xt-medium)
 			      string-or-char x y start end
 			      align-x align-y
@@ -1517,113 +1529,107 @@
       (unless (zerop last-y)
 	(error "Attempting to draw multi-line using ~S" 'medium-draw-text*))
 
-      (ecase align-x
-	(:right
-	 (let ((dx width))
-	   (when towards-x (decf towards-x dx))
-	   (decf x dx)))
-	(:center
-	 (let ((dx (floor width 2)))
-	   (when towards-x (decf towards-x dx))
-	   (decf x dx)))
-	(:left nil))
-
-      (ecase align-y
-	(:bottom
-	 (let ((dy (- height baseline)))
-	   (decf y dy)
-	   (when towards-y (decf towards-y dy))))
-	(:center
-	 (let ((dy (- (floor height 2)
-		      baseline)))
-	   (decf y dy)
-	   (when towards-y (decf towards-y dy))))
-	(:baseline nil)
-	(:top
-	 (when towards-y (incf towards-y baseline))
-	 (incf y baseline)))
-
-      (let ((y-factor 0)
-            (x-factor 1))
-        (when (and towards-x towards-y)
-          (let ((xxx (- towards-x x))
-                (yyy (- towards-y y)))
-            (cond ((zerop yyy)
-                   (setq y-factor 0)
-                   (setq x-factor (if (minusp xxx) -1 1)))
-                  ((zerop xxx)
-                   (setq x-factor 0)
-                   (setq y-factor (if (minusp yyy) -1 1)))
-                  (t
-                   ;; this branch is rather expensive.
-                   ;; avoid these calls if the calculation is trivial. jpm.
-                   (let ((alpha (atan yyy xxx)))
-                     (setq y-factor (sin alpha))
-                     (setq x-factor (cos alpha)))))))
-        (let ((drawable (medium-drawable medium))
-              (font (excl:ics-target-case
-                      (:-ics (text-style-mapping port text-style
-                                                 *all-character-sets*))
-                      (:+ics (text-style-font-set port text-style)))))
-          (when drawable
-            (fix-coordinates x y)
-            (discard-illegal-coordinates medium-draw-text* x y)
-            (let ((gc (adjust-ink
-                       (decode-ink (medium-ink medium) medium)
-                       medium
-                       x
-                       (- y height))))
-              (if (and towards-x towards-y)
-                  (excl:ics-target-case
-                    (:+ics
-                     (port-draw-rotated-multibyte-text port drawable gc x y string start end
-                                                       font
-                                                       towards-x towards-y transform-glyphs))
-                    (:-ics
-                     (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
-                     (port-draw-rotated-text port drawable gc x y string start end
-                                             font towards-x towards-y transform-glyphs)))
-                  (excl:ics-target-case
-                    (:+ics
-                     (tk::draw-multibyte-string drawable font
-                                                gc x y string start end))
-                    (:-ics
-                     (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
-                     (tk::draw-string drawable gc x y string start end))))))
-          (let ((dx (* width x-factor))
-                (dy (* width y-factor)))
-            (incf x dx)
-            (incf y dy)
-            (when towards-x (incf towards-x dx))
-            (when towards-y (incf towards-y dy))))))))
+      ;; These two are used to correct the alignment after text has
+      ;; been rotated:
+      (multiple-value-bind (left up)
+          (compute-text-alignment-delta width height baseline align-x align-y) 
+        (let ((y-factor 0)
+              (x-factor 1))
+          (if (and towards-x towards-y)
+              (let ((xxx (- towards-x x))
+                    (yyy (- towards-y y)))
+                (cond ((zerop yyy)          ; horizontal (UNTESTED)
+                       (setq y-factor 0)
+                       (setq x-factor (if (minusp xxx) -1 1))
+                       (setf x (- x (* x-factor left))
+                             towards-x (- towards-x (* x-factor left))
+                             y (+ y (* x-factor up))
+                             towards-y (+ towards-y (* x-factor up))))
+                      ((zerop xxx)          ; vertical
+                       (setq x-factor 0)
+                       (setq y-factor (if (minusp yyy) -1 1))
+                       (setf y (- y (* y-factor left))
+                             towards-y (- towards-y (* y-factor left))
+                             x (- x (* y-factor up))
+                             towards-x (- towards-x (* y-factor up))))
+                      (t
+                       ;; this branch is rather expensive.
+                       ;; avoid these calls if the calculation is trivial. jpm.
+                       (let ((alpha (atan yyy xxx)))
+                         (setq y-factor (sin alpha))
+                         (setq x-factor (cos alpha))))))
+              (setf x (- x left)
+                    y (+ y up)))
+          (let ((drawable (medium-drawable medium))
+                (font (excl:ics-target-case
+                        (:-ics (text-style-mapping port text-style
+                                                   *all-character-sets*))
+                        (:+ics (text-style-font-set port text-style)))))
+            (when drawable
+              (fix-coordinates x y)
+              (discard-illegal-coordinates medium-draw-text* x y)
+              (let ((gc (adjust-ink
+                         (decode-ink (medium-ink medium) medium)
+                         medium
+                         x
+                         (- y height))))
+                (if (and towards-x towards-y)
+                    (excl:ics-target-case
+                      (:+ics
+                       (port-draw-rotated-multibyte-text port drawable gc x y string start end
+                                                         font
+                                                         towards-x towards-y transform-glyphs))
+                      (:-ics
+                       (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
+                       (port-draw-rotated-text port drawable gc x y string start end
+                                               font towards-x towards-y transform-glyphs)))
+                    (excl:ics-target-case
+                      (:+ics
+                       (tk::draw-multibyte-string drawable font
+                                                  gc x y string start end))
+                      (:-ics
+                       (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
+                       (tk::draw-string drawable gc x y string start end))))))
+            (let ((dx (* width x-factor))
+                  (dy (* width y-factor)))
+              (incf x dx)
+              (incf y dy)
+              (when towards-x (incf towards-x dx))
+              (when towards-y (incf towards-y dy)))))))))
 
 (defmethod medium-text-bounding-box ((medium xt-medium)
-				     string x y start end align-x
-				     align-y text-style
-				     towards-x towards-y
-				     transform-glyphs transformation)
-  (declare (ignore string start end towards-x towards-y align-x align-y
-		   transform-glyphs transformation text-style x y))
+                                     string x y start end align-x
+                                     align-y text-style
+                                     towards-x towards-y
+                                     transform-glyphs transformation)
+  (declare (ignore towards-x towards-y transform-glyphs transformation x y))
   (multiple-value-bind
       (left top right bottom cx cy towards-x towards-y) (call-next-method)
     (if (and towards-y towards-x)
-	(flet ((compute-rotation (cx cy towards-x towards-y)
-		 (decf towards-x cx)
-		 (decf towards-y cy)
-		 (mod (round (atan towards-y towards-x) (/ pi 2.0)) 4)))
-	  (let ((transformation
-		   (make-rotation-transformation
-		    (* (compute-rotation cx cy towards-x
-					 towards-y)
-		       (/ pi 2.0))
-		    (make-point cx cy))))
-	      (multiple-value-setq (left top)
-		(transform-position transformation left top))
-	      (multiple-value-setq (right bottom)
-		(transform-position transformation right bottom))
-	      (values (min left right) (min top bottom)
-		      (max left right) (max top bottom))))
-      (values left top right bottom))))
+        (flet ((compute-rotation (cx cy towards-x towards-y)
+                 (decf towards-x cx)
+                 (decf towards-y cy)
+                 (mod (round (atan towards-y towards-x) (/ pi 2.0)) 4)))
+          (let ((transformation
+                 (make-rotation-transformation
+                  (* (compute-rotation cx cy towards-x
+                                       towards-y)
+                     (/ pi 2.0))
+                  (make-point cx cy))))
+            (multiple-value-bind (width height last-x last-y baseline)
+                (text-size medium string :text-style text-style :start start :end end)
+              (declare (ignore last-x last-y))
+              (multiple-value-bind (adjust-left adjust-up)
+                  (compute-text-alignment-delta width height baseline align-x align-y)
+                (multiple-value-setq (left top)
+                    (transform-position transformation
+                                        (- left adjust-left) (+ top adjust-up)))
+                (multiple-value-setq (right bottom)
+                    (transform-position transformation
+                                        (- right adjust-left) (+ bottom adjust-up)))))
+            (values (min left right) (min top bottom)
+                    (max left right) (max top bottom))))
+        (values left top right bottom))))
 
 (defun compute-rotation (x y towards-x towards-y)
   (decf towards-x x)

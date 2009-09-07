@@ -3,6 +3,12 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2009-09-07  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xt-graphics: Make sure that drawing rotated text plays nice with
+	  :align-x and :align-y. These are relative to the text baseline, which may be
+	  rotated, so compute bounding box and text offset after the rotation.
+
 2009-08-12  Andreas Fuchs  <afuchs@franz.com>
 
 	* clim/tracking-pointer.lisp: Record position info in tracking-pointer-1
