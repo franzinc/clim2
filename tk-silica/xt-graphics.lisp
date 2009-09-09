@@ -1502,9 +1502,8 @@
             (:center (floor width 2))
             (:left 0))
           (ecase align-y
-            (:bottom (- height baseline))
-            (:center (- (floor height 2)
-                        baseline))
+            (:bottom (- baseline height))
+            (:center (- baseline (floor height 2)))
             (:baseline 0)
             (:top baseline))))
 
