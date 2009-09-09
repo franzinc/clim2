@@ -283,12 +283,14 @@
                       (fallback-loadable-p ;fallback actually loadable?
                        (and fallback-matches-p
                             (excl:with-native-string (nfn fallback)
-                              (let ((x (x11:xloadqueryfont display nfn)))
-                                (if (not (zerop x))
-                                    (progn
-                                      (x11:xfreefont display x)
-                                      t)
-                                    nil))))))
+                              (let ((info (x11:xqueryfont display nfn)))
+                                (unless (zerop info)
+                                  (let ((font (x11:xloadfont display nfn)))
+                                    (unwind-protect
+                                        (unless (zerop font)
+                                          (x11:xfreefont display font)
+                                          t)
+                                      (x11:xfreefontinfo nil info 1)))))))))
                  (dolist (per-family families)
                    (destructuring-bind (family &rest patterns) per-family
                      (dolist (font-pattern patterns)
@@ -318,7 +320,7 @@
                           fallback))
                    ((and matchesp fallback-matches-p)
                     (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
-but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
+but is not loadable by XLoadFont or XQueryFont.  Something may be wrong with the X font
 setup."
                           fallback character-set))
                    (matchesp
@@ -352,22 +354,22 @@ setup."
         ;; the "fixed" alias to find out at least a sensible default
         ;; weight and slant.
         (excl:ics-target-case
-          (:+ics
-           (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
-                  (weight (nth 3 default-fallback))
-                  (slant (nth 4 default-fallback)))
-             (loop for character-set from (1+ charset-number) 
-                   for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
-                   for fallback-font = (find-font-with-properties fonts weight slant)
-                   for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
-                   do (unless (member encoding done-registries :test #'equal)
-                        (vector-push-extend (excl:string-to-native
-                                             (format nil "~A-~A" (first encoding) (second encoding)))
-                                            tk::*font-list-tags*)
-                        (load-1-charset character-set fallback-font
-                                        `((:fix ,default-font-match-string)
-                                          (:sans-serif ,default-font-match-string)
-                                          (:serif ,default-font-match-string))))))))
+         (:+ics
+          (let* ((default-fallback (disassemble-x-font-name (font-name-of-aliased-font display *default-fallback-font*)))
+                 (weight (nth 3 default-fallback))
+                 (slant (nth 4 default-fallback)))
+            (loop for character-set from (1+ charset-number) 
+                  for encoding being the hash-keys of (list-fonts-by-registry display) using (hash-value fonts)
+                  for fallback-font = (find-font-with-properties fonts weight slant)
+                  for default-font-match-string = (format nil "-*-*-*-*-*-*-*-*-*-*-*-*-~A-~A" (first encoding) (second encoding))
+                  do (unless (member encoding done-registries :test #'equal)
+                       (vector-push-extend (excl:string-to-native
+                                            (format nil "~A-~A" (first encoding) (second encoding)))
+                                           tk::*font-list-tags*)
+                       (load-1-charset character-set fallback-font
+                                       `((:fix ,default-font-match-string)
+                                         (:sans-serif ,default-font-match-string)
+                                         (:serif ,default-font-match-string))))))))
         )))
   (setup-stipples port display))
 
