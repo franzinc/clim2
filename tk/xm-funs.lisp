@@ -44,6 +44,19 @@
   :returning :foreign-address
   :call-direct t)
 
+(def-foreign-call (xm_string_unparse "XmStringUnparse")
+    ((string :foreign-address)
+     (tag :foreign-address)
+     (tag-type :foreign-address)
+     (output-type :foreign-address)
+     (parse-table :foreign-address)
+     (parse-count :int fixnum)
+     (parse-model :foreign-address)
+     )
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
+
 (def-foreign-call (xm_string_get_l_to_r "XmStringGetLtoR")
     ((x :foreign-address) (y :foreign-address) (z :foreign-address))
   :returning (:int fixnum)

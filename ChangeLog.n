@@ -5,6 +5,14 @@ user visible.
 *******************************************************************************
 2009-09-09  Andreas Fuchs  <afuchs@franz.com>
 
+	* tk/xm-defs.lisp: Add XmOUTPUT_ALL constant
+	* tk/xm-funs.lisp: Add xm_string_unparse function to replace the
+	  deprecated xm_string_get_l_to_r.
+	* tk/xm-widgets: Use xm_string_unparse to decode all charset tags.
+	  Fixes spr36163.
+
+2009-09-09  Andreas Fuchs  <afuchs@franz.com>
+
 	* tk/font.lisp: Fix the charsets-missing-from-fontset condition report
 	  function. (spr36163)
 

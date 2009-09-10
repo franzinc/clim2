@@ -89,3 +89,4 @@
 (x11::def-exported-constant XmRInt		"Int")
 
 (x11::def-exported-constant XmMULTIBYTE_TEXT    1)
+(x11::def-exported-constant XmOUTPUT_ALL        0)

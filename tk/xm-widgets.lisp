@@ -101,24 +101,16 @@
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
   (when (not (zerop value))
     (multiple-value-prog1
-	(with-ref-par ((string 0 *))
-	  ;;--- I think we need to read the book about
-	  ;;--- xm_string_get_l_to_r and make sure it works with multiple
-	  ;;-- segment strings
-	  (let ((result-flag (xm_string_get_l_to_r 
-			      value
-			      (clim-utils:string-to-foreign 
-			       xm-font-list-default-tag) 
-			      &string)))
-	    (cond ((= result-flag 1) 
-		   (char*-to-string string))
-		  (t
-		   ;; If the string isn't found (see the docs
-		   ;; for XmStringGetLtoR) signal an error.
-		   (error "xm_string_get_l_to_r failed while converting xm-string resource")))))
+        (with-ref-par ((string 0 *))
+          ;;--- I think we need to read the book about
+          ;;--- xm_string_get_l_to_r and make sure it works with multiple
+          ;;-- segment strings
+          (let ((result (xm_string_unparse value 0 0 tk:XmMULTIBYTE_TEXT 0 0 tk:XmOUTPUT_ALL)))
+            (unwind-protect (excl:native-to-string result)
+              (xt_free result))))
       (tk::add-widget-cleanup-function parent
-				       #'destroy-generated-xm-string
-				       value))))
+                                       #'destroy-generated-xm-string
+                                       value))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
