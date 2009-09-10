@@ -187,11 +187,10 @@
 (define-condition charsets-missing-from-fontset (warning)
   ((charsets :initarg :charsets :accessor charsets-missing-from-fontset-charsets)
    (created-for :initarg :created-for :accessor charsets-missing-from-fontset-created))
-  (:report (lambda (stream c)
+  (:report (lambda (c stream)
              (format stream
-                     "Missing charsets:~{ ~A,~} creating fontset for ~A"
-                     (charsets-missing-from-fontset-charsets c)
-                     (charsets-missing-from-fontset-created c)))))
+                     "Couldn't find usable fonts for char sets~:{ ~A,~}"
+                     (charsets-missing-from-fontset-charsets c)))))
 
 (defmethod initialize-instance :after ((fs font-set) &key
 						     foreign-address display base-names)

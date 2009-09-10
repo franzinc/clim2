@@ -5,6 +5,11 @@ user visible.
 *******************************************************************************
 2009-09-09  Andreas Fuchs  <afuchs@franz.com>
 
+	* tk/font.lisp: Fix the charsets-missing-from-fontset condition report
+	  function. (spr36163)
+
+2009-09-09  Andreas Fuchs  <afuchs@franz.com>
+
 	* tk-silica/xt-graphics.lisp: Fix vertical alignment offset calculation for :bottom
 	  and :center. (spr36162)
 
