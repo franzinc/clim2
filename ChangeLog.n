@@ -3,6 +3,11 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2009-09-10  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk/font.lisp: Fix (obvious, in retrospect) printer error in warning about missing
+	  charsets.
+
 2009-09-09  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk/xm-defs.lisp: Add XmOUTPUT_ALL constant

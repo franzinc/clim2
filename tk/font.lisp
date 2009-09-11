@@ -189,7 +189,7 @@
    (created-for :initarg :created-for :accessor charsets-missing-from-fontset-created))
   (:report (lambda (c stream)
              (format stream
-                     "Couldn't find usable fonts for char sets~:{ ~A,~}"
+                     "Couldn't find usable fonts for char set ~A"
                      (charsets-missing-from-fontset-charsets c)))))
 
 (defmethod initialize-instance :after ((fs font-set) &key
