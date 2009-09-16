@@ -3,6 +3,11 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2009-09-15  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-mirror.lisp: Restrict window sizes to the maximum available client
+	  rect size for each window. (spr36199).
+
 2009-09-10  Andreas Fuchs  <afuchs@franz.com>
 
 	* tk/font.lisp: Fix (obvious, in retrospect) printer error in warning about missing
