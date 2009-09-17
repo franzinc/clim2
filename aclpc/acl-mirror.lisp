@@ -76,8 +76,6 @@
                      ((:device :pixel)
                       (make-bounding-rectangle
                        screen-left screen-top screen-right screen-bottom))))
-             (format *trace-output* "~&height: ~A vs. real height: ~A~%"
-                     screen-height (- screen-bottom screen-top))
              (setf (sheet-native-transformation graft) +identity-transformation+)
              (setf (sheet-direct-mirror graft) screen)
              (update-mirror-transformation port graft)))))))
