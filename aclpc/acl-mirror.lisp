@@ -80,16 +80,6 @@
              (setf (sheet-direct-mirror graft) screen)
              (update-mirror-transformation port graft)))))))
 
-(defmethod resize-sheet :around ((sheet acl-top-level-sheet) width height)
-  "Restrict sheet sizes to the actual available client area."
-  (multiple-value-bind (-left -top dw dh)
-      (get-nonclient-deltas sheet)
-    (declare (ignore -left -top))
-    (let* ((graft-br (sheet-region (graft sheet)))
-           (gw (bounding-rectangle-width graft-br))
-           (gh (bounding-rectangle-height graft-br))) 
-      (call-next-method sheet (min (- gw dw) width) (min (- gh dh) height)))))
-
 (defmethod modal-frame-p ((frame t)) nil)
 (defmethod modal-frame-p ((frame clim-internals::accept-values-own-window)) t)
 (defmethod modal-frame-p ((frame clim-internals::menu-frame)) t)
@@ -557,3 +547,14 @@
       (win:ShowWindow mirror win:SW_MAXIMIZE))
      ((member :minimized new-flags)
       (win:ShowWindow mirror win:SW_MINIMIZE)))))
+
+(defmethod resize-sheet :around ((sheet acl-top-level-sheet) width height)
+  "Restrict sheet sizes to the actual available client area."
+  (multiple-value-bind (-left -top dw dh)
+      (get-nonclient-deltas sheet)
+    (declare (ignore -left -top))
+    (let* ((graft-br (sheet-region (graft sheet)))
+           (gw (bounding-rectangle-width graft-br))
+           (gh (bounding-rectangle-height graft-br))) 
+      (call-next-method sheet (min (- gw dw) width) (min (- gh dh) height)))))
+
