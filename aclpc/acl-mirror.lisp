@@ -36,38 +36,49 @@
 ;;--- This isn't really right, all ports only have kludges for this
 (defmethod sheet-shell (sheet) sheet)
 
+(defun win-full-screen-area ()
+  "Get the area of the screen that can be occupied by windows (screen - task/tool bars)."
+  (let ((rect (ct:ccallocate win:rect)))
+    (win:SystemParametersInfo win:SPI_GETWORKAREA 0 rect 0)
+    (values (coordinate (ct:cref win:rect rect win::left))
+            (coordinate (ct:cref win:rect rect win::top))
+            (coordinate (ct:cref win:rect rect win::right))
+            (coordinate (ct:cref win:rect rect win::bottom)))))
+
 (defmethod realize-graft ((port acl-port) graft)
   (let ((screen (slot-value (screen-device *acl-port*) 'device-handle1)))
-   (setf (port-screen port) screen)
-   (init-cursors)
-   (with-slots (silica::pixels-per-point
-	        silica::pixel-width
-	        silica::pixel-height
-	        silica::mm-width
-	        silica::mm-height
-	        silica::units) graft
-   (with-dc (screen dc) 
-    (let ((screen-width (win:GetSystemMetrics win:SM_CXSCREEN)) 
-	  (screen-height (win:GetSystemMetrics win:SM_CYSCREEN))
-	  (logpixelsx (win:GetDeviceCaps dc win:LOGPIXELSX))
-	  (logpixelsy (win:GetDeviceCaps dc win:LOGPIXELSY)))
-	(setf silica::pixel-width  screen-width
-	      silica::pixel-height screen-height
-	      silica::mm-width     (round (* screen-width 25.4s0) logpixelsx)
-	      silica::mm-height	   (round (* screen-height 25.4s0) logpixelsy))
-	(let* ((ppp (/ logpixelsy 72s0))
-	       (rounded-ppp (round ppp)))
-	  (setf silica::pixels-per-point 
-		(if (< (abs (- ppp rounded-ppp)) .1s0) rounded-ppp ppp)))
-	(setf (sheet-region graft)
-	      (ecase silica::units
-		((:device :pixel)
-		 (make-bounding-rectangle
-		   0 0 
-		   silica::pixel-width silica::pixel-height))))
-	(setf (sheet-native-transformation graft) +identity-transformation+)
-	(setf (sheet-direct-mirror graft) screen)
-	(update-mirror-transformation port graft))))))
+    (setf (port-screen port) screen)
+    (init-cursors)
+    (with-slots (silica::pixels-per-point
+                 silica::pixel-width
+                 silica::pixel-height
+                 silica::mm-width
+                 silica::mm-height
+                 silica::units) graft
+       (with-dc (screen dc)
+         (multiple-value-bind (screen-left screen-top screen-right screen-bottom)
+             (win-full-screen-area)
+           (let ((screen-width (- screen-left screen-right))
+                 (screen-height (- screen-bottom screen-top))
+                 (logpixelsx (win:GetDeviceCaps dc win:LOGPIXELSX))
+                 (logpixelsy (win:GetDeviceCaps dc win:LOGPIXELSY)))
+             (setf silica::pixel-width  (- screen-left screen-right)
+                   silica::pixel-height (- screen-bottom screen-top)
+                   silica::mm-width     (round (* screen-width 25.4s0) logpixelsx)
+                   silica::mm-height       (round (* screen-height 25.4s0) logpixelsy))
+             (let* ((ppp (/ logpixelsy 72s0))
+                    (rounded-ppp (round ppp)))
+               (setf silica::pixels-per-point 
+                     (if (< (abs (- ppp rounded-ppp)) .1s0) rounded-ppp ppp)))
+             
+             (setf (sheet-region graft)
+                   (ecase silica::units
+                     ((:device :pixel)
+                      (make-bounding-rectangle
+                       screen-left screen-top screen-right screen-bottom))))
+             (setf (sheet-native-transformation graft) +identity-transformation+)
+             (setf (sheet-direct-mirror graft) screen)
+             (update-mirror-transformation port graft)))))))
 
 (defmethod modal-frame-p ((frame t)) nil)
 (defmethod modal-frame-p ((frame clim-internals::accept-values-own-window)) t)
@@ -536,3 +547,14 @@
       (win:ShowWindow mirror win:SW_MAXIMIZE))
      ((member :minimized new-flags)
       (win:ShowWindow mirror win:SW_MINIMIZE)))))
+
+(defmethod resize-sheet :around ((sheet acl-top-level-sheet) width height)
+  "Restrict sheet sizes to the actual available client area."
+  (multiple-value-bind (-left -top dw dh)
+      (get-nonclient-deltas sheet)
+    (declare (ignore -left -top))
+    (let* ((graft-br (sheet-region (graft sheet)))
+           (gw (bounding-rectangle-width graft-br))
+           (gh (bounding-rectangle-height graft-br))) 
+      (call-next-method sheet (min (- gw dw) width) (min (- gh dh) height)))))
+
