@@ -17,16 +17,16 @@ SET_LIBRARY_PATH =
 
 #CL=../src/xm-dcl
 
-TKLIB=-L/usr/local/motif/lib -lXm
+TKLIB=-L/opt/local/lib -lXm
 XTLIB=-L/usr/X11R6/lib -lXt
 XLIB=-L/usr/X11R6/lib -lX11
 # removed /usr/local/lib/liblanginfo.a from XLIB
 
-XINCLUDES=-I/usr/X11R6/include -I/usr/local/motif/include
+XINCLUDES=-I/usr/X11R6/include -I/opt/local/include
 
 ifeq ($(SIXTYFOURBIT),yes)
 $(error CLIM does not work on 64-bit Mac OS X yet.)
-CFLAGS = -arch i386 -DAcl64Bit
+CFLAGS = -arch x86_64 -DAcl64Bit
 MAKE_SHARED = sh ../src/bin/make_shared.mac64
 else
 ifeq ($(MACHINE),x86)
