@@ -1659,7 +1659,7 @@
 ;;;
 
 ;;; This is here to limit need for FF package to compile time.
-(defun system-free (x) (excl:aclfree x))
+(defun system-free (x) (excl:free x))
 
 ;;; ALLOCATE-CSTRUCT was adapted from ff:make-cstruct.
 ;;; We aren't using ff:make-cstruct because it uses excl:aclmalloc.
@@ -1678,7 +1678,7 @@
 
 (defun allocate-memory (size init)
   ;; Used only by ALLOCATE-CSTRUCT.
-  (let ((pointer (excl:aclmalloc size)))
+  (let ((pointer (excl:malloc size)))
     (when init
       (do ((i 0 (+ i #-64bit 4 #+64bit 8)))
 	  ((>= i size))
@@ -1688,6 +1688,9 @@
 
 ;;; We aren't using excl:string-to-native by default because it uses
 ;;; excl:aclmalloc.
+;;; aclmalloc is bad because Motif tries to free certain values
+;;; itself, and will then crash and burn if they were allocated with
+;;; aclmalloc.
 ;; This now uses the slightly slower (locale-correct) way of
 ;; converting to octets first, then copying to foreign space.
 (defun string-to-foreign (string &optional address)
@@ -1703,7 +1706,7 @@
              (length (length octets)))
         (declare (optimize (safety 0))
                       (type fixnum length))
-        (setf address (excl:aclmalloc length))
+        (setf address (excl:malloc length))
         (dotimes (i length)
           (declare (fixnum i))
           (setf (sys:memref-int address 0 i :unsigned-byte)
