@@ -66,7 +66,8 @@
 	   sheet-permanently-enabled-mixin
 	   space-requirement-mixin
 	   basic-pane)
-  ()
+  ((x-margin :initform 0)
+   (y-margin :initform 0))
   (:default-initargs :background +white+))
 
 (defmethod handle-event ((pane hlist-pane)
@@ -120,62 +121,88 @@
 (defmethod handle-event :after ((pane hlist-pane) (event pointer-event))
   (deallocate-event event))
 
-
-;; this function combines the code for compose-space methods for
-;; list-panes and combo-boxes. Note that it is inherently wrong
-;; because the text-style used in the calculation is typically not
-;; that used for the actual gadget - this needs to be looked at
-;; sometime (cim 9/25/96)
+(defvar *default-list-pane-width* '(8 :character))
+(defvar *min-list-pane-height* '(1 :line))
 
 (defmethod compute-set-gadget-dimensions ((pane set-gadget-mixin))
   (let ((name-width 0)
 	(tsh 0))
-    (with-slots (items name-key text-style) pane
-      (with-sheet-medium (medium pane)
-	(dolist (item items)
-	  (multiple-value-bind (w h)
-	      (text-size medium (funcall name-key item) :text-style text-style)
-	    (setq name-width (max name-width w))
-	    (setq tsh (max h tsh))))
-	(when (and (zerop tsh) (zerop name-width))
-	  (multiple-value-setq (name-width tsh)
-	    (text-size medium "Frobnitz" :text-style text-style)))))
+    (with-slots (items name-key) pane
+       (dolist (item items)
+         (let ((name (funcall name-key item)))
+           (setq name-width (max name-width
+                                 (process-width-specification pane name)))
+           (setq tsh (max tsh (process-height-specification pane name)))))
+       (when (and (zerop tsh) (zerop name-width))
+         (setq name-width (process-width-specification pane *default-list-pane-width*)
+               tsh (process-height-specification pane *min-list-pane-height*))))
     (values name-width tsh)))
-    
+
 (defmethod compose-space ((pane hlist-pane) &key width height)
   (declare (ignore width height))
-  (with-slots (items name-key text-style visible-items
-		     initial-space-requirement) pane
-    (let* ((name-width 0)
-	   (name-height 0)
-	   (tsh 0)
-	   (iwid (or (space-requirement-width initial-space-requirement) 0))
-	   (ihgt (or (space-requirement-height initial-space-requirement) 0))
-#+ign
-	   (par (sheet-parent pane))
-#+ign
-	   (scroll-mode (and (acl-clim::scroller-pane-p par)
-			     (scroller-pane-scroll-bar-policy par)))
-	   )
-      (multiple-value-setq (name-width tsh)
-	(compute-set-gadget-dimensions pane))
-      (setq name-height (* (or visible-items (max (length items) 1))
-                           tsh))
-      (if (> iwid 0)
-          (setq name-width iwid)
-          (setq name-width (max name-width iwid)))
-      (setq name-height (max name-height ihgt))
+  ;; Note that hlists (like text-editors, whose compose-space method
+  ;; served as a template for this) are scrolled by being given a
+  ;; scroller-pane as a parent, but they have their own "interior"
+  ;; scrollbars.
+  (with-slots (initial-space-requirement items visible-items) pane
+     (let* ((par (sheet-parent pane))
+            (scroll-mode (and (acl-clim::scroller-pane-p par)
+                              (scroller-pane-scroll-bar-policy par)))
+            (name-width (compute-set-gadget-dimensions pane)))
+       (let ((w 0) 
+             (min-w (process-width-specification pane '(8 :character)))
+             (h 0)
+             (min-h (process-height-specification pane *min-list-pane-height*)))
+         ;; WIDTH
+         (cond ((and initial-space-requirement
+                     (plusp (process-width-specification
+                             pane (space-requirement-width initial-space-requirement))))
+                ;; This is where accepting-values views factors in.
+                (setq w (max (process-width-specification 
+                              pane (space-requirement-width initial-space-requirement))
+                             min-w)))
+               (items
+                (setq w name-width))
+               (t
+                (setq w (process-width-specification
+                         *default-list-pane-width*))))
+         (when (member scroll-mode '(:vertical :both t :dynamic))
+           ;; Allow for the vertical scrollbar
+           (let ((wsty (win-scroll-thick :y)))
+             (setq min-w (+ min-w wsty))
+             (setq w (+ w wsty))))
+         (setq w (max w min-w))
 
-      (let ((w (+ name-width 20))
-	    (h name-height))
-#+ign
-	(when (member scroll-mode '(:horizontal :both t :dynamic))
-	  (let ((wstx (win-scroll-thick :x)))
-	    ;; Allow for the horizontal scrollbar
-	    (setq h (+ h wstx))))
-	(make-space-requirement
-	 :width w
-	 :height h)))))
+         ;; HEIGHT
+         (cond ((and initial-space-requirement
+                     (plusp (process-height-specification
+                             pane (space-requirement-height initial-space-requirement))))
+                ;; This is where accepting-values views factors in.
+                (setq h (max (process-height-specification 
+                              pane (space-requirement-height initial-space-requirement))
+                             (if visible-items
+                                 (process-height-specification pane `(,visible-items :line))
+                                 0)
+                             min-h)))
+               (visible-items
+                (setq h (process-height-specification pane `(,visible-items :line))))
+               (items
+                (setq h (max (process-height-specification pane `(,(length items) :line))
+                             min-h)))
+               (t
+                (setq h min-h)))
+
+         (when (member scroll-mode '(:horizontal :both t :dynamic))
+           (let ((wstx (win-scroll-thick :x)))
+             ;; Allow for the horizontal scrollbar
+             (setq min-h (+ min-h wstx)
+                   h (+ h wstx))))
+         (setq h (max h min-h))
+
+         (make-space-requirement
+          :width  w :min-width min-w
+          :height h :min-height min-h
+          )))))
 
 (defmethod (setf set-gadget-items) :before (items (pane hlist-pane))
   ;; When items are set in an hlist-pane the  mirror must be

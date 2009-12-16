@@ -3,6 +3,13 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2009-12-16  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-scroll.lisp: Make sure compose-space for scroller
+	  panes computes scroll bar widths for hlist-panes and text-editors,
+	  too.
+	* aclpc/acl-widget.lisp: Adjust compose-space for hlist-panes to
+	  compute the correct size requirements (spr36279).
 
 2009-10-27  Andreas Fuchs  <afuchs@franz.com>
 

@@ -438,10 +438,17 @@
 	  win:SM_CXHTHUMB
 	win:SM_CYVTHUMB))))
 
+(defun needs-scroller-pane-adjustment-p (pane)
+  ;; Some widgets come with built-in scrolling. Since we're using
+  ;; scroller panes for them too, we need to compensate for their
+  ;; built-in need to scroll:
+  (or (not (scroller-pane-gadget-supplies-scrolling-p pane))
+      (gadget-supplies-scrolling-p (sheet-child pane))))
+
 ;;; silica\db-layout
 (defmethod compose-space ((pane mswin-scroller-pane) &key width height)
   (let* ((child (sheet-child pane))
-	 (scroll (and (not (scroller-pane-gadget-supplies-scrolling-p pane))
+	 (scroll (and (needs-scroller-pane-adjustment-p pane)
 		      (silica::scroller-pane-scroll-bar-policy pane)))
 	 (vscroll (if (member scroll '(t :both :dynamic :vertical))
 		      (win-scroll-thick :y) *win-border-thick*))
@@ -449,22 +456,21 @@
 		      (win-scroll-thick :x) *win-border-thick*))
 	 (sr (compose-space child :width width :height height))
 	 (nr (make-instance 'general-space-requirement
-	       :width (+ (space-requirement-width sr) vscroll hscroll)
-	       :min-width (+ (space-requirement-min-width sr) vscroll hscroll)
+	       :width (+ (space-requirement-width sr) vscroll)
+	       :min-width (+ (space-requirement-min-width sr) vscroll)
 	       :max-width (min most-positive-fixnum
 			       (+ (space-requirement-max-width sr) vscroll))
 	       ;; now assumes menu is one line thick, but in practice it
 	       ;; can be more, and some windows have no menu at all
-	       :height (+ (space-requirement-height sr) hscroll vscroll)
-	       :min-height (+ (space-requirement-min-height sr) hscroll vscroll)
+	       :height (+ (space-requirement-height sr) hscroll)
+	       :min-height (+ (space-requirement-min-height sr) hscroll)
 	       :max-height (min most-positive-fixnum
 				(+ (space-requirement-max-height sr)
 				   hscroll)))))
     nr))
 
-
 (defmethod allocate-space ((pane mswin-scroller-pane) width height)
-  (let* ((scroll (and (not (scroller-pane-gadget-supplies-scrolling-p pane))
+  (let* ((scroll (and (needs-scroller-pane-adjustment-p pane)
 		      (silica::scroller-pane-scroll-bar-policy pane)))
 	 (vscroll (member scroll '(t :both :dynamic :vertical)))
 	 (hscroll (member scroll '(t :both :dynamic :horizontal)))
