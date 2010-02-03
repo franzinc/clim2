@@ -319,10 +319,16 @@
                                               character-set)
                           fallback))
                    ((and matchesp fallback-matches-p)
-                    (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
+                    (excl:ics-target-case
+                      ;; The +ics case tries to load several more
+                      ;; character sets, for many of which lack of a
+                      ;; fallback is inconsequential. Let's not annoy
+                      ;; users with an error in this case.
+                      (:-ics
+                       (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
 but is not loadable by XLoadFont or XQueryFont.  Something may be wrong with the X font
 setup."
-                          fallback character-set))
+                             fallback character-set))))
                    (matchesp
                     (warn "Fallback font ~A not loadable for character set ~A."
                           fallback character-set))))))

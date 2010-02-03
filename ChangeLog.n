@@ -3,6 +3,13 @@
 don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
+2010-02-03  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xt-silica: Don't warn about missing fallback charsets
+	  on multibyte-char lisps: There are practically no problems
+	  caused by these missing charsets, and the warnings can
+	  get very annoying to users. (spr36599)
+
 2009-12-16  Andreas Fuchs  <afuchs@franz.com>
 
 	* aclpc/acl-scroll.lisp: Make sure compose-space for scroller
