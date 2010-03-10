@@ -25,7 +25,6 @@ XLIB=-L/usr/X11R6/lib -lX11
 XINCLUDES=-I/usr/X11R6/include -I/opt/local/include
 
 ifeq ($(SIXTYFOURBIT),yes)
-$(error CLIM does not work on 64-bit Mac OS X yet.)
 CFLAGS = -arch x86_64 -DAcl64Bit
 MAKE_SHARED = sh ../src/bin/make_shared.mac64
 else
