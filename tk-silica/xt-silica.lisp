@@ -201,7 +201,7 @@
 (defparameter *xt-font-families*
     `(
       ;; ascii
-      (0 "-misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso8859-1"  ;; "fixed"
+      (0 "fixed"
 	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-iso8859-1")
 	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-iso8859-1")
 	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-iso8859-1"
