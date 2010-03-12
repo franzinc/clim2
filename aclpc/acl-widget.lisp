@@ -165,7 +165,7 @@
                 (setq w name-width))
                (t
                 (setq w (process-width-specification
-                         *default-list-pane-width*))))
+                         pane *default-list-pane-width*))))
          (when (member scroll-mode '(:vertical :both t :dynamic))
            ;; Allow for the vertical scrollbar
            (let ((wsty (win-scroll-thick :y)))
@@ -1434,7 +1434,8 @@
 	   sheet-permanently-enabled-mixin
 	   space-requirement-mixin
 	   basic-pane)
-  ()
+     ((x-margin :initform 0)
+      (y-margin :initform 0))
   (:default-initargs :background +white+))
 
 (defmethod initialize-instance :after ((sheet mswin-combo-box-pane) 
