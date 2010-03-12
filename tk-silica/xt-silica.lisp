@@ -201,7 +201,7 @@
 (defparameter *xt-font-families*
     `(
       ;; ascii
-      (0 "fixed"
+      (0 "-misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso8859-1"  ;; "fixed"
 	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-iso8859-1")
 	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-iso8859-1")
 	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-iso8859-1"
@@ -276,21 +276,28 @@
                                     (eql point-size 0)
                                     (eql average-width 0)))
                      (make-text-style family face (/ corrected-point-size 10))))))
-             (load-1-charset (character-set fallback families)
+             (load-1-charset (character-set fallback families &optional query-first-p)
                (let* ((matchesp nil) ;do any non-fallback fonts match?
                       (fallback-matches-p ;any fallback matches?
                        (not (null (tk::list-font-names display fallback))))
                       (fallback-loadable-p ;fallback actually loadable?
                        (and fallback-matches-p
                             (excl:with-native-string (nfn fallback)
-                              (let ((info (x11:xqueryfont display nfn)))
-                                (unless (zerop info)
-                                  (let ((font (x11:xloadfont display nfn)))
-                                    (unwind-protect
-                                        (unless (zerop font)
-                                          (x11:xfreefont display font)
+                              (if query-first-p
+                                  (let ((info (x11:xqueryfont display nfn)))
+                                    (unless (zerop info)
+                                      (let ((font (x11:xloadfont display nfn)))
+                                        (unwind-protect
+                                            (unless (zerop font)
+                                              (x11:xfreefont display font)
+                                              t)
+                                          (x11:xfreefontinfo nil info 1)))))
+                                  (let ((x (x11:xloadqueryfont display nfn)))
+                                    (if (not (zerop x))
+                                        (progn
+                                          (x11:xfreefont display x)
                                           t)
-                                      (x11:xfreefontinfo nil info 1)))))))))
+                                        nil)))))))
                  (dolist (per-family families)
                    (destructuring-bind (family &rest patterns) per-family
                      (dolist (font-pattern patterns)
@@ -375,7 +382,8 @@ setup."
                        (load-1-charset character-set fallback-font
                                        `((:fix ,default-font-match-string)
                                          (:sans-serif ,default-font-match-string)
-                                         (:serif ,default-font-match-string))))))))
+                                         (:serif ,default-font-match-string))
+                                       t))))))
         )))
   (setup-stipples port display))
 
