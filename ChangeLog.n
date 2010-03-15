@@ -4,6 +4,20 @@ don't forget to change the version in utils/packages.lisp if you do anything
 user visible.
 *******************************************************************************
 
+2010-03-12  Andreas Fuchs  <afuchs@franz.com>
+
+	* tk-silica/xt-silica.lisp: Try to query fonts only when loading
+	  fonts for additional (non-latin1) charsets. This ensures that we
+	  can load the "fixed" fallback font and don't warn on 8bit lisps.
+	  (spr36599).
+
+2010-03-12  Andreas Fuchs  <afuchs@franz.com>
+
+	* aclpc/acl-widget.lisp: Make sure that mswin-combo-box-panes get
+	  the same treatment as hlist-panes do, as of 9e3990f267a. (spr36715)
+	* aclpc/acl-widget.lisp: Fix a parameter list mismatch introduced
+	  in 9e3990f267a (again, spr36715).
+
 2010-03-10  Kevin Layer  <layer@gemini.franz.com>
 
 	* Makefile.macosx: 64-bit CLIM lives!
