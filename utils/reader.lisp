@@ -26,6 +26,8 @@
 ;;; This is a compile-time tool to make it easier for us to install lisp-system
 ;;; dependent code.
 
+;;; Install the #{ reader, only when compiling.
+(eval-when (:compile-toplevel :execute)
 ;;; Tool to temporarily add a macro character.
 (defmacro with-macro-character ((char function) &body body)
   (let ((existing (make-symbol (symbol-name 'existing))))
@@ -95,6 +97,5 @@
   (declare (ignore stream arg))
   (throw 'stop t))
 
-;;; Install the #{ reader.
-(set-dispatch-macro-character #\# #\{ #'|READ-#-{|)
+  (set-dispatch-macro-character #\# #\{ #'|READ-#-{|))
 
