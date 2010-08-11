@@ -1,3 +1,10 @@
+#+(version= 8 2)
+(sys:defpatch
+    #+mswindows "climnt" #-mswindows "climxm" 1
+    "v1: Make CLIM loadable from clinit.cl again."
+    :type :system
+    :post-loadable t)
+
 #+(version= 8 1)
 (sys:defpatch
     #+mswindows "climnt" #-mswindows "climxm" 5
