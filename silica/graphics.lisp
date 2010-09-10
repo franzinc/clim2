@@ -763,51 +763,49 @@
                     &rest args
                     . #.(all-drawing-options-lambda-list :line-cap)))
   (flet ((draw-oval ()
-           (multiple-value-bind (x-radius y-radius)
-               (transform-distance (medium-transformation medium) x-radius y-radius)
-             (let ((left (- center-x x-radius))
-                   (right (+ center-x x-radius))
-                   (top (- center-y y-radius))
-                   (bottom (+ center-y y-radius)))
-               (cond ((or (= x-radius y-radius)
-                          (zerop x-radius))
-                      (draw-ellipse* medium center-x center-y y-radius 0 0 y-radius
-                                     :filled filled))
-                     ((zerop y-radius)
-                      (draw-ellipse* medium center-x center-y x-radius 0 0 x-radius
-                                     :filled filled))
-                     ((> x-radius y-radius)
-                      (let ((rect-left (+ left y-radius))
-                            (rect-right (- right y-radius)))
-                        (cond (filled
-                               (draw-rectangle* medium rect-left top rect-right bottom))
-                              (t
-                               (draw-line* medium rect-left top rect-right top)
-                               (draw-line* medium rect-left bottom rect-right bottom)))
-                        (let ((north (float (* pi 1/2) 0.0))
-                              (south (float (* pi 3/2) 0.0)))
-                          (draw-ellipse* medium rect-left center-y y-radius 0 0 y-radius
-                                         :start-angle north :end-angle south
-                                         :filled filled)
-                          (draw-ellipse* medium rect-right center-y y-radius 0 0 y-radius
-                                         :start-angle south :end-angle north
-                                         :filled filled))))
-                     (t
-                      (let ((rect-top (+ top x-radius))
-                            (rect-bottom (- bottom x-radius)))
-                        (cond (filled
-                               (draw-rectangle* medium left rect-top right rect-bottom))
-                              (t
-                               (draw-line* medium left rect-top left rect-bottom)
-                               (draw-line* medium right rect-top right rect-bottom)))
-                        (let ((east 0.0)
-                              (west (float pi 0.0)))
-                          (draw-ellipse* medium center-x rect-top x-radius 0 0 x-radius
-                                         :start-angle east :end-angle west
-                                         :filled filled)
-                          (draw-ellipse* medium center-x rect-bottom x-radius 0 0 x-radius
-                                         :start-angle west :end-angle east
-                                         :filled filled)))))))))
+           (let ((left (- center-x x-radius))
+                 (right (+ center-x x-radius))
+                 (top (- center-y y-radius))
+                 (bottom (+ center-y y-radius)))
+             (cond ((or (= x-radius y-radius)
+                        (zerop x-radius))
+                    (draw-ellipse* medium center-x center-y y-radius 0 0 y-radius
+                                   :filled filled))
+                   ((zerop y-radius)
+                    (draw-ellipse* medium center-x center-y x-radius 0 0 x-radius
+                                   :filled filled))
+                   ((> x-radius y-radius)
+                    (let ((rect-left (+ left y-radius))
+                          (rect-right (- right y-radius)))
+                      (cond (filled
+                             (draw-rectangle* medium rect-left top rect-right bottom))
+                            (t
+                             (draw-line* medium rect-left top rect-right top)
+                             (draw-line* medium rect-left bottom rect-right bottom)))
+                      (let ((north (float (* pi 1/2) 0.0))
+                            (south (float (* pi 3/2) 0.0)))
+                        (draw-ellipse* medium rect-left center-y y-radius 0 0 y-radius
+                                       :start-angle north :end-angle south
+                                       :filled filled)
+                        (draw-ellipse* medium rect-right center-y y-radius 0 0 y-radius
+                                       :start-angle south :end-angle north
+                                       :filled filled))))
+                   (t
+                    (let ((rect-top (+ top x-radius))
+                          (rect-bottom (- bottom x-radius)))
+                      (cond (filled
+                             (draw-rectangle* medium left rect-top right rect-bottom))
+                            (t
+                             (draw-line* medium left rect-top left rect-bottom)
+                             (draw-line* medium right rect-top right rect-bottom)))
+                      (let ((east 0.0)
+                            (west (float pi 0.0)))
+                        (draw-ellipse* medium center-x rect-top x-radius 0 0 x-radius
+                                       :start-angle east :end-angle west
+                                       :filled filled)
+                        (draw-ellipse* medium center-x rect-bottom x-radius 0 0 x-radius
+                                       :start-angle west :end-angle east
+                                       :filled filled))))))))
     (declare (dynamic-extent #'draw-oval))
     (apply #'invoke-with-drawing-options medium #'draw-oval args)))
 
