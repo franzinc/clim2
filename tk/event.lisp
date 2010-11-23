@@ -91,31 +91,6 @@
 
 (defvar *sequence-matching-data*)
 
-(defun-foreign-callable match-event-sequence-and-types ((display :foreign-address)
-							(event :foreign-address)
-							(arg :foreign-address))
-  (declare (ignore arg))
-  ;; Arg points to a n element (unsigned-byte 32) vector, where the first
-  ;; element is the display, the second is the sequence number, and
-  ;; the other elements are the event types to be matched (null terminated).
-  (let* ((arg *sequence-matching-data*)
-	 (desired-display (aref arg 0))
-	 (desired-sequence (aref arg 1))
-	 (event-type (x11:xevent-type event)))
-    ;; Preparedfor rfe4722, worrying avout 64bit, big-endian machines
-    #-(and big-endian 64bit) (declare (type (simple-array (unsigned-byte 32) (*)) arg))
-    #+(and big-endian 64bit) (declare (type (simple-array bignum (*)) arg))
-
-    (if (and (eql desired-display display)
-	     (eql desired-sequence (x11:xanyevent-serial event))
-	     (do* ((i 2 (1+ i))
-		   (desired-type (aref arg i) (aref arg i)))
-		 ((zerop desired-type) nil)
-	       (if (eql desired-type event-type)
-		   (return t))))
-	1
-      0)))
-
 (defparameter *match-event-sequence-and-types-address* nil)
 
 (defvar *event-matching-event* nil)
@@ -125,44 +100,59 @@
 
 (defun event-matching-event ()
   (or *event-matching-event*
+      ;; XXX/mp afuchs 2010-11-23: this isn't threadsafe.
       (setq *event-matching-event* (make-xevent))))
 
-;;; Preparedfor rfe4722, worrying avout 64bit, big-endian machines
+(def-foreign-type event-match-info (:struct (display (* :void))
+                                            (seq-no :unsigned-long)
+                                            (n-types :int)
+                                            (event-types (:array :int 16))))
+
+(defun-foreign-callable match-event-sequence-and-types-using-structure
+    ((display :foreign-address)
+     (event :foreign-address)
+     (arg :foreign-address))
+  (let* ((desired-display (fslot-value-typed 'event-match-info :c arg 'display))
+	 (desired-sequence (fslot-value-typed 'event-match-info :c arg 'seq-no))
+         (n-types (fslot-value-typed 'event-match-info :c arg 'n-types))
+	 (event-type (x11:xevent-type event)))
+    (if (and (eql desired-display display)
+	     (eql desired-sequence (x11:xanyevent-serial event))
+             (loop for i upfrom 0 below n-types
+                   for desired-type = (fslot-value-typed 'event-match-info :c arg 'event-types i)
+                   if (eql desired-type event-type)
+                     do (return t)))
+	1
+        0)))
+
 (defun get-event-matching-sequence-and-types (display-object seq-no types
 					      &key (block t))
   (unless (consp types)
     (setq types (list types)))
+  (assert (<= (length types) 16))
   (let* ((display (object-display display-object))
-	 ;;-- This is pretty scarey. Heap allocated objects are passed
-	 ;;-- to C which then passes them to lisp. If a GC happens we
-	 ;;-- could be hosed
-	 (data  (make-array (+ 3 (length types))
-			    :element-type
-			    #-(and big-endian 64bit) '(unsigned-byte 32) 
-			    #+(and big-endian 64bit) 'bignum))
-	 (i 2)
-	 (resulting-event (event-matching-event))
+	 (resulting-event (event-matching-event))   ; XXX/mp: this isn't threadsafe (bind *e-m-e*?)
 	 (addr (or *match-event-sequence-and-types-address*
 		   (setq *match-event-sequence-and-types-address*
-		     (register-foreign-callable 'match-event-sequence-and-types))))
-	 (*sequence-matching-data* data))
-    (declare #-(and big-endian 64bit) (type (simple-array (unsigned-byte 32) (*)) data)
-	     #+(and big-endian 64bit) (type (simple-array bignum (*)) data)
-	     (fixnum i))
-    (let ((temp (ff:foreign-pointer-address display)))
-      (setf (aref data 0) temp))
-    (setf (aref data 1) seq-no)
-    (dolist (type types)
-      (setf (aref data i) (position type tk::*event-types*))
-      (incf i))
-    (setf (aref data i) 0)
-    (cond (block
-	      (x11:xifevent display resulting-event addr 0)
-	    resulting-event)
-	  ((zerop (x11:xcheckifevent display resulting-event addr 0))
-	   nil)
-	  (t
-	   resulting-event))))
+		     (register-foreign-callable 'match-event-sequence-and-types-using-structure)))))
+    (let ((data (allocate-fobject 'event-match-info :c)))
+      (unwind-protect
+          (progn
+            (setf (fslot-value-typed 'event-match-info :c data 'display) (ff:foreign-pointer-address display)
+                  (fslot-value-typed 'event-match-info :c data 'seq-no) seq-no
+                  (fslot-value-typed 'event-match-info :c data 'n-types) (length types))
+            (loop for i from 0
+                  for type in types
+                  do (setf (fslot-value-typed 'event-match-info :c data 'event-types i)
+                           (position type *event-types*)))
+            (cond (block
+                      (x11:xifevent display resulting-event addr data)
+                    resulting-event)
+                  ((zerop (x11:xcheckifevent display resulting-event addr data))
+                   nil)
+                  (t
+                   resulting-event)))
+        (free-fobject data)))))
 
 
 (defvar *event* nil)

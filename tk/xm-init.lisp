@@ -54,7 +54,7 @@
     (setq *callback-handler-address*
       (register-foreign-callable 'callback-handler :reuse))
     (setq *match-event-sequence-and-types-address*
-      (register-foreign-callable 'match-event-sequence-and-types :reuse))
+      (register-foreign-callable 'match-event-sequence-and-types-using-structure :reuse))
     (setq *event-handler-address*
       (register-foreign-callable 'event-handler :reuse))
     (setq *error-handler-function-address*
