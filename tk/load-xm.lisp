@@ -19,10 +19,32 @@
 ;;
 ;; $Id: load-xm.lisp,v 2.7 2007/04/17 21:45:53 layer Exp $
 
-(in-package :user)
+(cl:in-package #:user)
 
 (eval-when (compile eval load)
   (require :climg))
+
+(defvar sys::*clim-library-search-path* '("/usr/X11/lib/" "/usr/X11R6/lib/" "/usr/local/lib/"
+                                          "/opt/local/lib/" "/sw/lib/"))
+
+;;; On Mac OS X, the linker hard-codes the paths to libraries into
+;;; climxm.dylib, so we instruct it to link weakly against Motif (so
+;;; it doesn't complain if the file isn't found), and pre-load its
+;;; dependency libraries' basenames from known places in the file
+;;; system here.
+#+macosx
+(unless (ff:get-entry-point (ff:convert-foreign-name "XtInitialize"))
+  (excl.osi:with-command-output (sys::library (format nil "otool -L ~a"
+                                                      (probe-file
+                                                       (format nil "clim2:;climxm.~a"
+                                                               (car excl::*load-foreign-types*)))))
+    (when (eql (elt sys::library 0) #\Tab)
+      (let ((sys::library-name (nth-value 2 (match-re ".*/(lib[^ ]+) " sys::library))))
+        (unless (dolist (pathname sys::*clim-library-search-path*)
+                  (handler-case (progn (load (merge-pathnames sys::library-name pathname))
+                                       (return t))
+                    (error (e) nil)))
+          (error "Can't find ~a in ~{~a~^, ~}~%" sys::library-name sys::*clim-library-search-path*))))))
 
 #+(version>= 5 0)
 (unless (ff:get-entry-point (ff:convert-foreign-name "XmCreateMyDrawingArea"))
