@@ -1,7 +1,8 @@
 #+(version= 8 2)
 (sys:defpatch
-    #+mswindows "climnt" #-mswindows "climxm" 1
-    "v1: Make CLIM loadable from clinit.cl again."
+    #+mswindows "climnt" #-mswindows "climxm" 2
+    "v1: Make CLIM loadable from clinit.cl again;
+v2: Mac OS X specific fixes."
     :type :system
     :post-loadable t)
 
