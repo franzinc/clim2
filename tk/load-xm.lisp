@@ -43,7 +43,7 @@
         (unless (dolist (pathname sys::*clim-library-search-path*)
                   (handler-case (progn (load (merge-pathnames sys::library-name pathname))
                                        (return t))
-                    (error (e) nil)))
+                    (error (e) (declare (ignore e)) nil)))
           (error "Can't find ~a in ~{~a~^, ~}~%" sys::library-name sys::*clim-library-search-path*))))))
 
 #+(version>= 5 0)
