@@ -244,6 +244,15 @@
   :call-direct t
   :arg-checking nil)
 
+(def-foreign-call (xm_text_set_selection "XmTextSetSelection")
+    ((x :foreign-address)
+     (first :long)
+     (last :long)
+     (time :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
+
 (def-foreign-call (xm_scale_set_value "XmScaleSetValue")
     ((x :foreign-address) (y :int fixnum))
   :returning :void

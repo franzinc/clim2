@@ -1020,6 +1020,13 @@
 	   (and (not (zerop x))
 		(values (excl:native-to-string x)))))))
 
+(defmethod silica::set-selection ((tf motif-text-editor) startpos endpos)
+  (let ((m (sheet-direct-mirror tf)))
+    (when m
+      (let* ((display (port-display (port tf)))
+             (time (tk::xt-last-timestamp-processed display)))
+        (tk::xm_text_set_selection m startpos endpos time)))))
+
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
   (make-space-requirement :width (process-width-specification te`(,(gadget-columns te) :character))
