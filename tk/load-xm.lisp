@@ -39,12 +39,17 @@
                                                        (format nil "clim2:;climxm.~a"
                                                                (car excl::*load-foreign-types*)))))
     (when (eql (elt sys::library 0) #\Tab)
-      (let ((sys::library-name (nth-value 2 (match-re ".*/(lib[^ ]+) " sys::library))))
-        (unless (dolist (pathname sys::*clim-library-search-path*)
-                  (handler-case (progn (load (merge-pathnames sys::library-name pathname))
-                                       (return t))
-                    (error (e) (declare (ignore e)) nil)))
-          (error "Can't find ~a in ~{~a~^, ~}~%" sys::library-name sys::*clim-library-search-path*))))))
+      (let ((sys::library-name (nth-value 2 (match-re ".*/(lib[^ ]+) " sys::library)))
+            (values nil))
+        (unless (dolist (directory sys::*clim-library-search-path*)
+                  (let ((pathname (merge-pathnames sys::library-name directory)))
+                    (when (probe-file pathname)
+                      (handler-case (progn (load pathname)
+                                           (return t))
+                        (error (e) (push (list pathname e) values))))))
+          (error "Can't find ~a in ~{~a~^, ~}~@[~%Paths that had load errors:~%~:{~a:~t~a~%~}~]"
+                 sys::library-name sys::*clim-library-search-path*
+                 values))))))
 
 #+(version>= 5 0)
 (unless (ff:get-entry-point (ff:convert-foreign-name "XmCreateMyDrawingArea"))
