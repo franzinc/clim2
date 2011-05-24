@@ -30,7 +30,10 @@
   #+allegro (:implementation-packages :clim-lisp :clim-utils)
   ;; 28Jan97 added allegro package for aclpc since mop stuff was moved
   ;; there in 3.0.1 -tjm
- (:use common-lisp #+allegro clos #+allegro stream #+aclpc allegro)
+  (:use common-lisp #+allegro clos
+	#+(and (version>= 9 0) allegro) excl
+	#-(and (version>= 9 0) allegro) stream
+	#+aclpc allegro)
 
  ;; Import these symbols so that we can define methods for them.
  (:shadow pathname truename)

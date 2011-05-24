@@ -1128,24 +1128,21 @@
                            "")
                  accept-args)))
 
-(defmethod #-(or aclpc acl86win32) stream:stream-yes-or-no-p 
-           #+(or aclpc acl86win32) stream-yes-or-no-p  
+(defmethod stream-yes-or-no-p  
   ((stream input-protocol-mixin) &optional format-string &rest args)
   (stream-yay-or-nay-p stream
                        '(member-alist (("Yes" :value t) ("No" :value nil)))
                        format-string args))
 
 
-(defmethod #-(or aclpc acl86win32) stream:stream-y-or-n-p 
-           #+(or aclpc acl86win32) stream-y-or-n-p
+(defmethod stream-y-or-n-p
   ((stream input-protocol-mixin) &optional format-string &rest args)
   (stream-yay-or-nay-p stream
                        '(member-alist (("Y" :value t) ("N" :value nil)))
                        format-string args))
 
 
-(defmethod #-(or aclpc acl86win32) excl::stream-y-or-n-or-newline-p 
-           #+(or aclpc acl86win32) stream-y-or-n-or-newline-p 
+(defmethod stream-y-or-n-or-newline-p 
   ((stream input-protocol-mixin) &optional format-string &rest args)
   (stream-yay-or-nay-p stream
                        '(member-alist (("Y" :value t) ("N" :value nil)))
