@@ -223,21 +223,16 @@
 
 ;; Process WM_DRAWITEM
 (defun ondrawitem (window msg wparam lparam)
-  (declare (ignore wparam msg window))
-  ;; someone who knows how to use the pc ff interface should get
-  ;; rid of all these memrefs! (cim 10/4/96)
-  (let ((hwnd (ct:ccallocate win:hwnd))
-	(hdc (ct:ccallocate win:hdc))
-	(state (sys:memref-int lparam 0 16 :unsigned-long))
-	(rect (+ lparam 28)))
-    (setf (ct:handle-value win:hwnd hwnd)
-      (sys:memref-int lparam 0 20 :unsigned-long))
-    (setf (ct:handle-value win:hdc hdc)
-      (sys:memref-int lparam 0 24 :unsigned-long))
-    (let ((sheet (mirror->sheet *acl-port* hwnd)))
-      (when sheet
-	(silica::draw-picture-button (mirror->sheet *acl-port* hwnd)
-				     state hdc rect)))))
+  (declare (ignore wparam msg window)
+           (optimize (speed 3) (safety 0) (debug 0)))
+  (macrolet ((lp-slot (name)
+               `(ff:fslot-value-typed 'drawitemstruct :c lparam ',name))
+             (lp-addr (name)
+               `(ff:fslot-address-typed 'drawitemstruct :c lparam ',name)))
+   (let* ((hwnd (lp-slot hwnditem))
+          (sheet (mirror->sheet *acl-port* hwnd)))
+     (when sheet
+       (silica::draw-picture-button sheet (lp-slot itemstate) (lp-slot hdc) (lp-addr rcitem))))))
 
 (defmethod isa-pushbutton ((object t)) nil)
 (defmethod isa-pushbutton ((object push-button)) t)

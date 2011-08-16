@@ -42,6 +42,17 @@
 (deftype unsigned-nat ()
   `(unsigned-byte #-64bit 32 #+64bit 64))
 
+(ff:def-foreign-type drawitemstruct
+    (:struct (ctltype    win:uint)
+             (ctlid      win:uint)
+             (itemid     win:uint)
+             (itemaction win:uint)
+             (itemstate  win:uint)
+             (hwnditem   win:hwnd)
+             (hdc        win:hdc)
+             (rcitem     win:rect)
+             (itemdata   (* :void))))
+
 (ff:def-foreign-type browseinfo
     (:struct (hwndOwner win:hwnd)
 	     (pidlRoot win:lpcitemidlist)
