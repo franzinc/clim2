@@ -1510,8 +1510,7 @@ setup."
 
 ;;;
 (defun lookup-character-and-keysym (sheet mirror event)
-  (declare #+nil (optimize (speed 3) (safety 0))
-           (optimize (speed 0) (safety 3) (debug 3))
+  (declare (optimize (speed 3) (safety 0))
            (ignore sheet))
   (multiple-value-bind (character keysym)
       (if (eql :key-press (tk::event-type event))

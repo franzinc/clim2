@@ -319,7 +319,7 @@
        (excl:without-interrupts (push buffer *lookup-string-buffers*)))))
 
 (defun lookup-multibyte-string (event widget)
-  (declare (optimize (speed 0) (safety 3) (debug 3)))
+  (declare (optimize (speed 3) (safety 0)))
   (with-lookup-string-buffer (buffer)
     (with-ref-par ((keysym 0 :unsigned-long)
                    (status 0 :int))
