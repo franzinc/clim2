@@ -5,11 +5,11 @@ Makefile=Makefile.linux
 
 ifeq ($(shell if test -d /usr/include/openmotif; then echo yes; fi),yes)
 XINCLUDES = -I/usr/include/openmotif
-XLIB      = /usr/lib/openmotif
+XLIBDIR   = /usr/lib/openmotif
 endif
 
 XINCLUDES ?= /usr/X11R6/include
-XLIB      ?= /usr/X11R6/lib
+XLIBDIR   ?= /usr/X11R6/lib
 
 TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt
@@ -22,7 +22,7 @@ else
 THREADLIB = -lpthread
 endif
 
-SET_LIBRARY_PATH = LD_RUN_PATH=$(XLIB):/lib:/usr/lib; export LD_RUN_PATH
+SET_LIBRARY_PATH = LD_RUN_PATH=$(XLIBDIR):/lib:/usr/lib; export LD_RUN_PATH
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
@@ -30,7 +30,7 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 #PICFLAGS = -K pic
 SHAREFLAGS = 
-MAKE_SHARED = ld -shared -L$(XLIB)
+MAKE_SHARED = ld -shared -L$(XLIBDIR)
 STD_DEFINES = -DSVR4 -DSYSV
 AR = ar cq
 

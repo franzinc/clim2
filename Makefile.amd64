@@ -5,11 +5,11 @@ Makefile=Makefile.amd64
 
 ifeq ($(shell if test -d /usr/include/openmotif; then echo yes; fi),yes)
 XINCLUDES = -I/usr/include/openmotif
-XLIB      = /usr/lib64/openmotif
+XLIBDIR  = /usr/lib64/openmotif
 endif
 
 XINCLUDES ?= /usr/X11R6/include
-XLIB      ?= /usr/X11R6/lib64
+XLIBDIR  ?= /usr/X11R6/lib64
 
 TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt
@@ -22,7 +22,7 @@ else
 THREADLIB = -lpthread
 endif
 
-SET_LIBRARY_PATH = LD_RUN_PATH=$(XLIB):/lib:/usr/lib; export LD_RUN_PATH
+SET_LIBRARY_PATH = LD_RUN_PATH=$(XLIBDIR):/lib:/usr/lib; export LD_RUN_PATH
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
@@ -30,7 +30,7 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 PICFLAGS = -fPIC
 SHAREFLAGS = 
-MAKE_SHARED = ld -shared -L$(XLIB)
+MAKE_SHARED = ld -shared -L$(XLIBDIR)
 STD_DEFINES = -DSVR4 -DSYSV
 AR = ar cq
 
