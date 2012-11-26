@@ -1484,6 +1484,7 @@ people, shall not perish from the earth.
     (window-refresh stream)))
 
 #+allegro
+(excl::compiler-let ((comp::save-source-level-debug-info-switch nil)) ;; [bug21431]
 (define-test (hairy-graph-formatting formatted-output) (stream)
   "Some hairy re-entrant and circular graphs"
   (formatting-item-list (stream)
@@ -1510,7 +1511,7 @@ people, shall not perish from the earth.
               data #'printer-function #'child-function
               :stream stream
               :cutoff-depth 8
-              :merge-duplicates merge)))))))
+              :merge-duplicates merge))))))))
 
 (define-test (filled-output formatted-output) (stream)
   "Some simple tests of filled output.  The thing labelled <Click Here> should be sensitive."

@@ -491,7 +491,7 @@
   m)
 
 (defun format-rotate-mat (axis angle m)
-  (declare (character axis)
+  (declare ;; [bug21429]: bogus declaration! (character axis)
 	   (single-float angle)
 	   (type transformation-3d m))
   (ident-mat m)

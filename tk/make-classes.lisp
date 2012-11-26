@@ -253,7 +253,10 @@
     ;; make a new string
     (let ((new (make-string (+ len nbreaks)))
 	  (j 0)
-	  l m n)
+	  ;; [bug21429]: fix bogus type declarations
+	  (l 0)
+	  (m 0)
+	  (n 0))
       (declare (fixnum j l m n))
 
       (ecase excl:*current-case-mode*
