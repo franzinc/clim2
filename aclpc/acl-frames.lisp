@@ -2327,9 +2327,11 @@ in a second Lisp process.  This frame cannot be reused."
                  (IMallocFree (pointer-value :nat malloc) item-id-list-out)))))
       ;; Free the item-id-lists returned from pathname-to-item-id-list.
       (when root
-        (IMallocFree (pointer-value :nat malloc) root-item-id-list))
+        (IMallocFree (pointer-value :nat malloc)
+		     (pointer-value :nat root-item-id-list)))
       (when initial-directory
-        (IMallocFree (pointer-value :nat malloc) initial-directory-item-id-list))
+        (IMallocFree (pointer-value :nat malloc)
+		     (pointer-value :nat initial-directory-item-id-list)))
       ;;
       (IMallocRelease (pointer-value :nat malloc)))))
 
