@@ -8,8 +8,14 @@ XINCLUDES = -I/usr/include/openmotif
 XLIBDIR  = /usr/lib64/openmotif
 endif
 
-XINCLUDES ?= /usr/X11R6/include
-XLIBDIR  ?= /usr/X11R6/lib64
+# This is the old location, but include it here, just in case 
+ifeq ($(shell if test -d /usr/X11R6/include; then echo yes; fi),yes)
+XINCLUDES = -I/usr/X11R6/include
+XLIBDIR   = /usr/X11R6/lib
+endif
+
+XINCLUDES ?= /usr/include
+XLIBDIR  ?= /usr/lib64
 
 TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt
