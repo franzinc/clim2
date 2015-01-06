@@ -29,6 +29,7 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(setq excl:*redefinition-warnings* $(redef_warning))' >> build.tmp
 	echo '(setq excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO))' >> build.tmp
 	echo '(setq comp:save-local-names-switch $(SAVE_LOCAL_NAMES))' >> build.tmp
+	echo '(setq comp:save-source-level-debug-info-switch $(SAVE_SOURCE_DEBUG))' >> build.tmp
 	echo '(setq excl:*load-local-names-info* $(LOAD_LOCAL_NAMES_INFO))' >> build.tmp
 	echo '(setq excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO))' >> build.tmp
 	echo '(setq excl:*record-xref-info* $(RECORD_XREF_INFO))' >> build.tmp
