@@ -14,7 +14,7 @@ ifeq ($(OS_NAME),sunos)
 ifeq ($(MACHINE),sparc)
 HOST = sun4-svr4
 endif
-ifeq ($(MACHINE),x86_64)
+ifeq ($(MACHINE),x86)
 HOST = solamd64
 endif
 endif
