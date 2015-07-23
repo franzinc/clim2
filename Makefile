@@ -23,7 +23,7 @@ ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),ppc)
 HOST = linuxppc
 else
-ifeq ($(MACHINE),x86_64)
+ifeq ($(SIXTYFOURBIT),yes)
 HOST = amd64
 else
 HOST = linux
