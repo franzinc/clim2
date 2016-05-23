@@ -21,10 +21,14 @@ ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),ppc)
 HOST = linuxppc
 else
+ifeq ($(MACHINE),arm64)
+HOST = arm64
+else
 ifeq ($(SIXTYFOURBIT),yes)
 HOST = amd64
 else
 HOST = linux
+endif
 endif
 endif
 endif
