@@ -56,7 +56,9 @@
   (unwind-protect
       (progn
         (setq *timer-process* (current-process))
-	;; stop it asking us if it is safe to exit.
+	;; stop it asking us if it is safe to exit. rfe8293
+	#+(and allegro (version>= 9 0))
+	(setf (mp::process-keeps-lisp-alive-p (current-process)) nil)
 	#+allegro (setf (mp::process-interruptible-p (current-process)) nil)
         (flet ((add-timer-to-queue (timer)
                  (without-scheduling
