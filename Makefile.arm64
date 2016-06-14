@@ -8,16 +8,17 @@ XINCLUDES = -I/usr/include/openmotif
 XLIBDIR  = /usr/lib64/openmotif
 endif
 
-XINCLUDES ?= /usr/include
+XINCLUDES ?= -I/usr/include
 XLIBDIR  ?= /usr/lib64
 
 TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt
 XLIB=-lX11
 
+CFLAGS = -fomit-frame-pointer -Wno-unused-result -Wno-pointer-to-int-cast -Wno-unused-but-set-variable -DAcl64Bit -march=armv8-a -mstrict-align
+LDFLAGS = -E
 ifdef FI_USE_DMALLOC
 THREADLIB = -lpthread -ldmallocth
-CFLAGS = -I/usr/local/include
 else
 THREADLIB = -lpthread
 endif

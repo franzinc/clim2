@@ -74,6 +74,13 @@ extern	Variables
 /* removed for building on FC4, x86_64 */
 /* extern	char	*malloc(); */
 
+#if defined(__AARCH64EL__)
+#include <bits/types.h>
+#undef __FD_SETSIZE
+#define __FD_SETSIZE 65536
+#include <stdlib.h>
+#endif
+
 #include <stdio.h>
 #include <ctype.h>
 #ifdef UX386
@@ -641,7 +648,7 @@ register int timeout;
    }
  }
  current_js->sd= current_sd;
- handler_of_jserver_dead(NULL);
+ handler_of_jserver_dead(((WNN_JSERVER_ID *)NULL));
  snd_head(JS_OPEN);
  put4com(JLIB_VERSION);		/* H.T. */
  putscom(host);
@@ -702,7 +709,7 @@ char *lang;
     if(!(env=(struct wnn_env *)malloc(sizeof(struct wnn_env)))){
 	    wnn_errorno=WNN_ALLOC_FAIL;return NULL;
     }
-    handler_of_jserver_dead(NULL);
+    handler_of_jserver_dead(((struct wnn_env *)NULL));
     snd_head(JS_CONNECT);
     putscom(env_name);
     snd_flush();
@@ -795,7 +802,7 @@ register struct wnn_env *env;
  free((char *)env);
  */
  set_current_js(env->js_id);
- handler_of_jserver_dead(NULL);
+ handler_of_jserver_dead((int)NULL);
  snd_env_head(&tmp_env,JS_DISCONNECT);
  snd_flush();
  x=get4com();

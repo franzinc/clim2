@@ -113,7 +113,7 @@ ifeq ($(MACHINE),x86_64)
 REDHATLIBS = -lcrypt
 endif
 ifeq ($(MACHINE),arm64)
-REDHATLIBS = -lcrypt
+REDHATLIBS = -lcrypt -lrt -lm -ldl -lc
 endif
 endif
 

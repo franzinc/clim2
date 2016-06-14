@@ -54,6 +54,12 @@
 
 #include "commonhd.h"
 #include "config.h"
+#if defined(__AARCH64EL__)
+#include <bits/types.h>
+#undef __FD_SETSIZE
+#define __FD_SETSIZE 65536
+#include <stdlib.h>
+#endif
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>  /* for F_OK */
