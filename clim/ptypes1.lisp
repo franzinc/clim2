@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: ptypes1.lisp,v 2.7 2007/04/17 21:45:50 layer Exp $
 
 (in-package :clim-internals)
 

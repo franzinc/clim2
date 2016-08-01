@@ -1,6 +1,5 @@
 (in-package :clim-user)
 
-;; $Id: test-demos.lisp,v 2.4 2003/12/15 18:35:17 layer Exp $
 
 
 

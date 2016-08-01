@@ -1,6 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-medium.lisp,v 2.7 2009/03/25 22:49:36 layer Exp $
 
 (in-package :postscript-clim)
 

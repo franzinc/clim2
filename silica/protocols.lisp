@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Package: CLIM-UTILS; Base: 10.; Syntax: Common-Lisp -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: protocols.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.

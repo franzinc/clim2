@@ -1,5 +1,4 @@
 /*
- * $Id: pwd.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences

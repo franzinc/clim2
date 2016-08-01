@@ -21,7 +21,6 @@
 
 (in-package :lucid)
 
-;;; $Id: lucid-before.lisp,v 2.4 2003/12/15 18:35:18 layer Exp $
 
 ;;; The advice is preventing the compiler from expanding it at compile time.
 (remove-advice 'defstruct)

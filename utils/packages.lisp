@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: packages.lisp,v 2.10 2009/05/01 16:00:36 layer Exp $
 
 (in-package :common-lisp-user)
 

@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xm-widgets.lisp,v 2.12 2009/03/25 22:49:37 layer Exp $
 
 (in-package :tk)
 

@@ -1,7 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: graphics.lisp,v 2.8 2007/12/11 17:20:20 layer Exp $
 
 (in-package :tk)
 

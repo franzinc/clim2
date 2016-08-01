@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xm-gadgets.lisp,v 2.13 2009/03/25 22:49:37 layer Exp $
 
 (in-package :xm-silica)
 

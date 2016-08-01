@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: acl-frames.lisp,v 2.14 2008/07/31 23:55:03 layer Exp $
 
 #|****************************************************************************
 *                                                                            *

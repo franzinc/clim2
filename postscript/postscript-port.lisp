@@ -6,7 +6,6 @@
   :type :clim2
   :post-loadable t)
 
-;; $Id: postscript-port.lisp,v 2.10 2009/04/01 14:48:18 layer Exp $
 
 (provide :climps)
 

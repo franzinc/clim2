@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: odrawpat.lisp,v 2.8 2007/04/25 20:29:26 layer Exp $
 
 (in-package :acl-clim)
 

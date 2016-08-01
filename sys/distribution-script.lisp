@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: distribution-script.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
 
 #|
 :Distribute Systems CLIM-BINARIES Latest :Distribute Patch Sources No :Include Patches Yes :Query Confirm-Only :Machine Types Imach :File Types Binaries 

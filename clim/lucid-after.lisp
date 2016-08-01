@@ -22,7 +22,6 @@
 (in-package :lucid)
 
 
-;;; $Id: lucid-after.lisp,v 2.4 2003/12/15 18:35:12 layer Exp $
 ;;; Workaround for a disksave/hash bug.  
 ;;;
 (defun rehash-ptypes ()

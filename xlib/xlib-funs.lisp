@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xlib-funs.lisp,v 2.10 2007/12/11 17:20:21 layer Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design

@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: clx-frames.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 (in-package :clx-clim)
 

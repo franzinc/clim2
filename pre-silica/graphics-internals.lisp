@@ -1,6 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Id: graphics-internals.lisp,v 2.4 2003/12/15 18:35:14 layer Exp $
 
 (in-package :clim-internals)
 

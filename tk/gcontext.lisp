@@ -1,7 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: gcontext.lisp,v 2.8 2009/03/25 22:49:36 layer Exp $
 
 (in-package :tk)
 

@@ -1,7 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: ol-defs.lisp,v 2.7 2007/04/17 21:45:53 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

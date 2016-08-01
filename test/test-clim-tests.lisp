@@ -3,7 +3,6 @@
 ;;
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: test-clim-tests.lisp,v 2.7 2007/04/17 21:45:53 layer Exp $
 
 
 (in-package :clim-user)

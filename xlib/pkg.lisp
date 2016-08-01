@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: pkg.lisp,v 2.8 2008/02/13 17:06:46 layer Exp $
 
 (defpackage :x11
   ;; I don't know if this is OK (can we assume clim-utils?).  In any

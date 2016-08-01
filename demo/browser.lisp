@@ -1,7 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: CLIM-BROWSER; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: browser.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 ;;; Simple extensible browser
 ;;; Scott McKay

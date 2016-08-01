@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10 -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: lisp-package-fixups.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
 
 (in-package :cl-user)
 

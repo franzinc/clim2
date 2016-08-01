@@ -2,7 +2,6 @@
  *
 ** See the file LICENSE for the full license governing this code.
  *
- * $Header: /repo/cvs.copy/clim2/misc/MyDrawingAP.h,v 2.6 2007/04/17 21:45:51 layer Exp $
  */
 
 #ifndef _XmMyDrawingAreaP_h

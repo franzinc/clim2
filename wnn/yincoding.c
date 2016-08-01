@@ -1,5 +1,4 @@
 /*
- * $Id: yincoding.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /** 		Copyright OMRON Corporation. 1989, 1990, 1991, 1992
  *

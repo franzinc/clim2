@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xm-frames.lisp,v 2.8 2007/12/11 17:20:21 layer Exp $
 
 (in-package :xm-silica)
 

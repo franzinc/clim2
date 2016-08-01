@@ -1,6 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: genera-medium.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 (in-package :genera-clim)
 

@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Package: CL-USER -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: pkgdcl.lisp,v 2.8 2007/04/17 21:45:49 layer Exp $
 
 (in-package :common-lisp-user)
 

@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xt-funs.lisp,v 2.12 2009/03/25 22:49:37 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

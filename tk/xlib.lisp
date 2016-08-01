@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xlib.lisp,v 2.12 2008/06/24 16:51:12 layer Exp $
 
 (in-package :tk)
 

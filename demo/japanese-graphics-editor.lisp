@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: JAPANESE-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: japanese-graphics-editor.lisp,v 2.8 2007/12/11 17:20:20 layer Exp $
 
 (in-package :japanese-graphics-editor)
 

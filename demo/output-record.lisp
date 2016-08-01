@@ -1,7 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: output-record.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 ;;; Hacks for efficiently drawing really big scientific graphs.
 ;;; Needs to be clim2.0 ified.

@@ -1,6 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Id: db-list.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 

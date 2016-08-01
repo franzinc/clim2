@@ -1,7 +1,6 @@
 ;;; -*- Package: acl-clim; mode: Common-Lisp -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: winwidgh.lisp,v 2.9 2007/04/17 21:45:49 layer Exp $
 
 (in-package :acl-clim)
 

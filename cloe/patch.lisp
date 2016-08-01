@@ -1,6 +1,5 @@
 (in-package :win)
 
-;; $Id: patch.lisp,v 2.4 2003/12/15 18:35:12 layer Exp $
 
 (DEFCONSTANT WM_SYSKEYDOWN #x0104)
 (DEFCONSTANT WM_SYSKEYUP #x0105)

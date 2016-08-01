@@ -22,7 +22,6 @@ v5: Fix postscript, GC cursor, Windows text field bugs, speed up
 
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: excl-verification.lisp,v 2.12 2008/07/22 16:51:19 layer Exp $
 
 (in-package :sys)
 

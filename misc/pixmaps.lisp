@@ -65,7 +65,6 @@
 ;;; FEP 127, FEP0:>V127-lisp.flod(64), FEP0:>V127-loaders.flod(64),
 ;;; FEP0:>V127-info.flod(64), FEP0:>V127-debug.flod(38), 1067x752 B&W Screen,
 ;;; Machine serial number 10129,
-;; $Id: pixmaps.lisp,v 2.4 2003/12/15 18:35:14 layer Exp $
 
 
 #+Genera

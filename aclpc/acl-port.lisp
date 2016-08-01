@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: acl-port.lisp,v 2.12 2007/04/25 20:29:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *

@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xt-stipples.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
 
 ;;; stipples are bitmaps used for monochrome half-toning and to
 ;;; implement opacities.

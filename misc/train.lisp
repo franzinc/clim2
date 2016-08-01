@@ -3,7 +3,6 @@
 ;;
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: train.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 (defun train-clim (&key (train-times 2)
 			(psview nil)

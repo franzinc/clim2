@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Package: silica -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: acl-scroll.lisp,v 2.9 2007/04/25 20:29:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *

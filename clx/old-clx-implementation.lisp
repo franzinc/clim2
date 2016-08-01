@@ -2,7 +2,6 @@
 
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: old-clx-implementation.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 ;;--- (1) Why does the new CLX port flush WHITE- and BLACK-PIXEL?
 ;;--- (2) What to do about reparenting?

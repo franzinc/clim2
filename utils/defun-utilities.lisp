@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: defun-utilities.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
 
 (in-package :clim-utils)
 

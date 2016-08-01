@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: db-scroll.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright(c) 1991, 1992 International Lisp Associates.

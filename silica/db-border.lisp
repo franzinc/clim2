@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: db-border.lisp,v 2.8 2009/03/25 22:49:36 layer Exp $
 
 ;;;"Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;; Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."

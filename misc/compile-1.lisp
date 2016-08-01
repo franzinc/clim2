@@ -2,7 +2,6 @@
 ;;
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: compile-1.lisp,v 2.8 2007/04/17 21:45:51 layer Exp $
 
 (in-package :user)
 

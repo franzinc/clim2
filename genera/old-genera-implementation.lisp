@@ -1,5 +1,4 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
-;; $Id: old-genera-implementation.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 ;;--- We really need to handle this for all the ports
 (defmethod window-visibility ((stream sheet-implementation-mixin))

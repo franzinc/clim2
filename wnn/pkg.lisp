@@ -3,7 +3,6 @@
 ;; 
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: pkg.lisp,v 2.7 2007/04/17 21:45:54 layer Exp $
 
 (defpackage :wnn
   (:use :clim-lisp :clim-utils :clim :silica :ff)

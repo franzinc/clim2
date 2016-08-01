@@ -1,7 +1,6 @@
 /*
 ** See the file LICENSE for the full license governing this code.
  *
- * $Id: xlibsupport.c,v 2.6 2007/04/17 21:45:54 layer Exp $
  */
 
 /************************************************************************/

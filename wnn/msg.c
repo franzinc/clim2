@@ -1,5 +1,4 @@
 /*
- * $Id: msg.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright 1989, 1990, 1991, 1992 by OMRON Corporation

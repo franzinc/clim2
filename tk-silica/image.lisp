@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: image.lisp,v 2.9 2008/02/13 17:06:46 layer Exp $
 
 (in-package :xm-silica)
 

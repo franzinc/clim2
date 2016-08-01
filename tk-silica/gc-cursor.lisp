@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: gc-cursor.lisp,v 2.8 2008/07/22 16:29:54 layer Exp $
 
 (in-package :xm-silica)
 

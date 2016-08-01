@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xlib-defs.lisp,v 2.11 2008/02/13 17:06:46 layer Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design

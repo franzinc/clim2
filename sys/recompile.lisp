@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: recompile.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
 
 ;; this file is way out of date -- it needs to be recoded using
 ;; compile.lisp as a model.  -tjm 23May97

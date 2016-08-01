@@ -2,7 +2,6 @@
  *
 ** See the file LICENSE for the full license governing this code.
  *
- * $Header: /repo/cvs.copy/clim2/misc/MyDrawingA.c,v 2.7 2007/12/11 17:20:20 layer Exp $
  */
 
 #if defined(__alpha)

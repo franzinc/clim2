@@ -3,7 +3,6 @@
 ;;
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: dev-load-1.lisp,v 2.7 2007/04/17 21:45:51 layer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)

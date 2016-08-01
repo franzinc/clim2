@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xt-defs.lisp,v 2.10 2007/12/11 17:20:21 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

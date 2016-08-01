@@ -1,6 +1,5 @@
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: xt-graphics.lisp,v 2.12 2008/07/22 16:29:54 layer Exp $
 
 (in-package :tk-silica)
 

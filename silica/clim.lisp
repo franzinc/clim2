@@ -1,7 +1,6 @@
 ;; -*- mode: common-lisp; package: silica -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
-;; $Id: clim.lisp,v 2.7 2007/04/17 21:45:52 layer Exp $
 
 (in-package :silica)
 
