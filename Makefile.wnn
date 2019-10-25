@@ -111,6 +111,9 @@ ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),x86_64)
 REDHATLIBS = -lcrypt
 endif
+ifeq ($(MACHINE),x86)
+REDHATLIBS = -lcrypt
+endif
 ifeq ($(MACHINE),arm64)
 REDHATLIBS = -lcrypt -lrt -lm -ldl -lc
 endif
