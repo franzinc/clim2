@@ -3298,6 +3298,3 @@
 (cl:locally (cl:declare (cl:special excl::*version-info*))
   (cl:when (cl:boundp 'excl::*version-info*)
     (cl:push (cl:cons "CLIM" *clim-version*) excl::*version-info*)))
-
-#+(version>= 6 0 pre-final 0)
-(excl::lb1215005) ;; rfe4046
