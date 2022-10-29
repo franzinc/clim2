@@ -15,7 +15,7 @@
 ;;; it doesn't complain if the file isn't found), and pre-load its
 ;;; dependency libraries' basenames from known places in the file
 ;;; system here.
-#+macosx
+#+ignore
 (unless (ff:get-entry-point (ff:convert-foreign-name "XtInitialize"))
   (excl.osi:with-command-output (sys::library (format nil "otool -L ~a"
                                                       (probe-file

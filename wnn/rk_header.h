@@ -74,6 +74,13 @@
 #ifdef MVUX
 #  define IKIS
 #endif
+#if defined(MACM1)
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#endif
 
 #include <stdio.h>
 #ifdef BSD42

@@ -38,7 +38,11 @@ HOST = freebsd
 endif
 
 ifeq ($(OS_NAME),darwin)
+ifeq ($(MACHINE),arm64)
+HOST = macarm
+else
 HOST = macosx
+endif
 endif
 
 ifeq ($(OS_NAME),hp-ux)

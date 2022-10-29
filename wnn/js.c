@@ -74,7 +74,12 @@ extern	Variables
 /* extern	char	*malloc(); */
 
 #if defined(__AARCH64EL__)
+#if defined(MACM1)
+#include <sys/time.h>
+#include <sys/stat.h>
+#else
 #include <bits/types.h>
+#endif
 #undef __FD_SETSIZE
 #define __FD_SETSIZE 65536
 #include <stdlib.h>

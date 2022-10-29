@@ -28,6 +28,13 @@ else
 THREADLIB = -lpthread
 endif
 
+ifeq ($(MACHINE),x86)
+CFLAGS = -m32
+MAKE_SHARED = cc -m32 -shared
+else
+MAKE_SHARED = cc -shared
+endif
+
 SET_LIBRARY_PATH = LD_RUN_PATH=$(XLIBDIR):/lib:/usr/lib; export LD_RUN_PATH
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
@@ -36,7 +43,6 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 #PICFLAGS = -K pic
 SHAREFLAGS = 
-MAKE_SHARED = ld -shared -L$(XLIBDIR)
 STD_DEFINES = -DSVR4 -DSYSV
 AR = ar cq
 

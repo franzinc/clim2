@@ -25,6 +25,7 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(setq *compile-print* $(compile_print))' >> build.tmp
 	echo '(setq *compile-verbose* $(compile_verbose))' >> build.tmp
 	echo '(setq excl::*warn-smp-usage* nil)' >> build.tmp
+	echo '(setq excl::*unreachable-code-warns* nil)' >> build.tmp
 	echo '(setq excl:*redefinition-warnings* $(redef_warning))' >> build.tmp
 	echo '(setq excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO))' >> build.tmp
 	echo '(setq comp:save-local-names-switch $(SAVE_LOCAL_NAMES))' >> build.tmp
