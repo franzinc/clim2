@@ -2,45 +2,8 @@
 #  Makefile.macosx for CLIM 2.0
 #
 
-include Makefile.defs
-
-SHARED_EXT = dylib
-
-SHARED-XM-OBJS= climxm.dylib
-SHARED-OL-OBJS= climol.dylib
-
-Makefile=Makefile.macosx
-
-XBASE:=$(shell brew --prefix)
-XTBASE:=$(shell brew --prefix libx11)
-MOTIFBASE:=$(shell brew --prefix openmotif)
-
-SET_LIBRARY_PATH = LD_RUN_PATH=$(MOTIFBASE)/lib:$(XBASE)/lib:$(XTBASE)/lib:/lib:/usr/lib; export LD_RUN_PATH
-
-#CL=../src/xm-dcl
-
-# Since the linker hard-codes the truenames of these libraries and
-# loading climxm.dylib fails when users attempt to load it with the
-# files missing, we use -weak-l and preload the libraries (see
-# tk/load-xm.lisp):
-TKLIB=-L$(MOTIFBASE)/lib -weak-lXm
-XTLIB=-L$(XBASE)/lib -weak-lXt
-XLIB=-weak-lX11
-
-XINCLUDES= -I$(XBASE)/include -I$(XTBASE)/include -I$(MOTIFBASE)/include
+include Makefile.macos_common
 
 CFLAGS = -m64 -arch x86_64 -DAcl64Bit -dynamiclib -flat_namespace -single_module -Wl,-no_adhoc_codesign -Wl,-macosx_version_min,12.0 -Wno-implicit-function-declaration
+
 MAKE_SHARED = cc -arch x86_64 -bundle -force_cpusubtype_ALL -flat_namespace -Wl,-macosx_version_min,12.0
-
-PICFLAGS = 
-SHAREFLAGS = 
-AR = ar cq
-
-# Make sure the wnn build is happy:
-REDHATLIBS = -lc
-
-PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
-
-IMPORTS = stub-x.o stub-xt.o stub-motif.o
-
-include Makefile.generic

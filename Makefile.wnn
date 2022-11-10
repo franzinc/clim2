@@ -123,3 +123,6 @@ endif
 wnn.$(SHARED_EXT): $(WNN_OBJS)
 	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.$(SHARED_EXT) $(WNN_OBJS) \
 		$(REDHATLIBS) $(THREADLIB)
+ifdef CODESIGN
+	../src/scm-bin/ficodesign wnn.$(SHARED_EXT)
+endif

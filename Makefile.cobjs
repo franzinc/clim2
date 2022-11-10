@@ -54,6 +54,9 @@ climxm.$(SHARED_EXT): xlibsupport.o xtsupport.o xmsupport.o $(IMPORTS)
 	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.$(SHARED_EXT) \
 		xlibsupport.o xtsupport.o xmsupport.o $(THREADLIB) \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+ifdef CODESIGN
+	../src/scm-bin/ficodesign climxm.$(SHARED_EXT)
+endif
 
 # climxm.sl: xlibsupport.o xtsupport.o xmsupport.o $(IMPORTS)
 # 	(eval '$(SET_LIBRARY_PATH)' ; \
@@ -66,6 +69,9 @@ climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o $(IMPORTS)
 	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.$(SHARED_EXT) \
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
+ifdef CODESIGN
+	../src/scm-bin/ficodesign climol.$(SHARED_EXT)
+endif
 
 # climol.sl: xlibsupport.o xtsupport.o olsupport.o $(IMPORTS)
 # 	(eval '$(SET_LIBRARY_PATH)' ; \
