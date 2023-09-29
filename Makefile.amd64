@@ -17,7 +17,7 @@ endif
 XINCLUDES ?= /usr/include
 XLIBDIR  ?= /usr/lib64
 
-TKLIB=-lXm -lXpm -lXext -lXp
+TKLIB=-lXm -lXext
 XTLIB=-lXt
 XLIB=-lX11
 

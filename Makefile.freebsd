@@ -5,7 +5,7 @@ Makefile=Makefile.freebsd
 
 XINCLUDES=-I/usr/X11R6/include -I /usr/local/include
 
-TKLIB=-lXm -lXpm -lXext -lXp
+TKLIB=-lXm -lXext
 XTLIB=-lXt -lSM -lICE
 XLIB=-lX11
 

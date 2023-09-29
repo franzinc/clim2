@@ -14,7 +14,7 @@ STD_DEFINES = -DSYSV
 AR = ar clq
 
 #TKLIB=-lXm
-TKLIB=/usr/lib/pa20_64/libXm.4 /usr/lib/pa20_64/libXp.2 /usr/lib/pa20_64/libXext.3
+TKLIB=/usr/lib/pa20_64/libXm.4 /usr/lib/pa20_64/libXext.3
 XTLIB=/usr/lib/pa20_64/libXt.3 /usr/lib/pa20_64/libSM.2 /usr/lib/pa20_64/libICE.2
 XLIB=/usr/lib/pa20_64/libX11.3
 
