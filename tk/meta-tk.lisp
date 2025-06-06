@@ -5,7 +5,8 @@
 (in-package :tk)
 
 
-(defclass xt-class (ff:foreign-pointer standard-class)
+;; MAW - renamed to xt-class-0 to prevent a name clash 
+(defclass xt-class-0 (ff:foreign-pointer standard-class)
   ((entry-point :initarg :entry-point
 		:initform nil
 		:reader class-entry-point)
@@ -25,18 +26,24 @@
 		     :type hash-table
 		     :reader class-set-values-cache)))
 
-(defmethod describe-object :after ((class xt-class) stream)
+;; added by MAW: 
+(defmethod print-object ((c xt-class-0) stream )
+  (format stream "#<XT-CLASS-0 ~A ~A ~A>" 
+	  (class-name c)
+	  (class-entry-point c)
+	  (mapcar #'class-name (aclmop:class-direct-superclasses c))))
+
+(defmethod describe-object :after ((class xt-class-0) stream)
   (with-slots (entry-point) class
     (format stream "The entry point is ~A,~X~%"
 	    (and (slot-boundp class 'entry-point) entry-point)
 	    (ff:foreign-pointer-address class))))
 
-(defmethod class-handle ((class xt-class))
+(defmethod class-handle ((class xt-class-0))
   (unless (clos:class-finalized-p class)
     (clos:finalize-inheritance class))
   (dolist (c (clos:class-precedence-list class)
 	    (error "Cannot get handle for class" class))
-    (when (and (typep c 'xt-class)
+    (when (and (typep c 'xt-class-0)
 	       (not (zerop (ff:foreign-pointer-address c))))
       (return c))))
-

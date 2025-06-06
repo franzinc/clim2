@@ -145,14 +145,11 @@
 				       (event :foreign-address)
 				       (continue-to-dispatch :foreign-address))
   (declare (ignore continue-to-dispatch))
-
-  #+ignore (print (event-type event) excl:*initial-terminal-io*)
-
   (let* ((widget (find-object-from-address widget))
 	 (eh-info (or (assoc client-data (widget-event-handler-data widget))
 		      (error "Cannot find event-handler info ~S,~S"
-			     widget client-data))))
-    (destructuring-bind (ignore (fn &rest args))
+			     widget client-data))))    
+      (destructuring-bind (ignore (fn &rest args))
 	eh-info
       (declare (ignore ignore))
       (apply fn widget event args)

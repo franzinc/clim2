@@ -4,6 +4,7 @@
 
 (in-package :tk)
 
+#+:ignore
 (defun get-foreign-variable-value (x)
   (let ((ep #-dlfcn (ff:get-extern-data-address x)
 	    #+dlfcn (ff:get-entry-point
@@ -12,6 +13,30 @@
 		     #-(version>= 5 0) nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
+
+(defvar *ff-var-fun-hash* (make-hash-table))
+
+#+:ignore
+(defun get-foreign-variable-value (x)
+  (let* ((sym-x (intern x))
+	 (fn
+	  (or (gethash sym-x *ff-var-fun-hash*)
+	      (setf (gethash sym-x *ff-var-fun-hash*)
+		(compile nil 
+			 `(lambda () ,@(sys::symbol-macro-function sym-x)))))))
+    (funcall fn)))
+
+;;#+:ignore 
+(defun get-foreign-variable-value (string)
+  (let ((val 
+	 (system:memref (excl::foreign-global-address
+			  (excl::determine-foreign-address-1
+			   (list string :language :c)
+			   258))
+			0 0 :unsigned-natural)))
+    (unless val
+      (error "Can't determine foreign-value of ~A!" string))
+    val))
 
 ;; This is only called to fill in the cache, so it can be (real) slow.
 (defun get-resource-internal (class fn resource-class resource-name)
@@ -27,8 +52,8 @@
       (let ((resources resources))
 	(setq result
 	  (dotimes (i n)
-	    (let* ((res (xt-resource-list resources i))
-		   (original-name (xt-resource-name res)))
+	    (let* ((res (xt-resource-0-list resources i))
+		   (original-name (xt-resource-0-name res)))
 	      (when (string-equal (excl:native-to-string original-name)
 				  tk-resource-name)
 		(let ((*package* (find-package :tk)))
@@ -37,19 +62,20 @@
 		      :original-name original-name
 		      :name resource-name
 		      :class (lispify-resource-class
-			      (excl:native-to-string (xt-resource-class res)))
+			      (excl:native-to-string (xt-resource-0-class res)))
 		      :type (lispify-resource-type
-			     (excl:native-to-string (xt-resource-type res))))))))))
+			     (excl:native-to-string (xt-resource-0-type res))))))))))
 	(xt_free resources))
       result)))
 
 ;; These are so we don't need the foreign functions at run time.
 (defun xt-get-resource-list (class res-return num-res-return)
   (xt_get_resource_list class res-return num-res-return))
+
 (defun xt-get-constraint-resource-list (class res-return num-res-return)
   (xt_get_constraint_resource_list class res-return num-res-return))
 
-(defmethod find-class-resource ((class xt-class) resource-name)
+(defmethod find-class-resource ((class xt-class-0) resource-name)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (cached-resources specially-hacked-resources) class
     (multiple-value-bind
@@ -66,7 +92,7 @@
 					 'resource
 					 resource-name)))))))
 
-(defmethod find-class-constraint-resource ((class xt-class) resource-name)
+(defmethod find-class-constraint-resource ((class xt-class-0) resource-name)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (cached-constraint-resources) class
     (multiple-value-bind
@@ -80,15 +106,13 @@
 				 'constraint-resource
 				 resource-name))))))
 
-
-
 ;; These next five aren't used except maybe by describe-widget.
-(defmethod class-resources ((class xt-class))
+(defmethod class-resources ((class xt-class-0))
   (append
    (slot-value class 'specially-hacked-resources)
    (get-resource-list class)))
 
-(defmethod class-constraint-resources ((class xt-class))
+(defmethod class-constraint-resources ((class xt-class-0))
   (get-constraint-resource-list class))
 
 (defun get-resource-list-internal (class fn resource-class)
@@ -100,12 +124,12 @@
       (dotimes (i n)
 	(push (make-instance
 		  resource-class
-		:original-name (xt-resource-name (xt-resource-list resources i))
-		:name (lispify-resource-name (excl:native-to-string (xt-resource-name (xt-resource-list resources i))))
+		:original-name (xt-resource-0-name (xt-resource-0-list resources i))
+		:name (lispify-resource-name (excl:native-to-string (xt-resource-0-name (xt-resource-0-list resources i))))
 		:class (lispify-resource-class
-			(excl:native-to-string (xt-resource-class (xt-resource-list resources i))))
+			(excl:native-to-string (xt-resource-0-class (xt-resource-0-list resources i))))
 		:type (lispify-resource-type
-		       (excl:native-to-string (xt-resource-type (xt-resource-list resources i)))))
+		       (excl:native-to-string (xt-resource-0-type (xt-resource-0-list resources i)))))
 	      r))
       (xt_free resources)
       r)))
@@ -117,13 +141,12 @@
   (get-resource-list-internal class #'xt-get-constraint-resource-list
 			      'constraint-resource))
 
-
 (defclass xt-root-class (display-object)
   ((events :initform nil :accessor widget-event-handler-data)
    (callbacks :initform nil :accessor widget-callback-data)
    (window-cache :initform nil)
    (cleanups :initform nil :accessor widget-cleanup-functions))
-  (:metaclass xt-class))
+  (:metaclass xt-class-0))
 
 (defmethod add-widget-cleanup-function ((widget xt-root-class) fn &rest args)
   (push (list* fn args)
@@ -132,9 +155,8 @@
 (defmethod widget-display ((object xt-root-class))
   (object-display object))
 
-
-(defclass rect (xt-root-class) () (:metaclass xt-class))
-(defclass un-named-obj (rect) () (:metaclass xt-class))
+(defclass rect (xt-root-class) () (:metaclass xt-class-0))
+(defclass un-named-obj (rect) () (:metaclass xt-class-0))
 
 (defclass basic-resource ()
   ((name :initarg :name :reader resource-name)
@@ -156,7 +178,6 @@
 (defun lispify-resource-class (x) (lispify-tk-name x))
 (defun lispify-resource-type (x) (lispify-tk-name x))
 
-
 (defclass resource (basic-resource)
   ())
 
@@ -167,11 +188,10 @@
 (defun make-classes (classes)
   (let ((clist nil))
 
-    (dolist (class-ep classes)
-      #+ignore
-      (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
+    (dolist (class-ep classes)      
       (let ((h (get-foreign-variable-value class-ep)))
 	(push (list h class-ep) clist)))
+    
     (setq clist (nreverse clist))
 
     (do ((cs clist (cdr cs))
@@ -179,23 +199,21 @@
 	((null cs)
 	 (nreverse r))
       (destructuring-bind (handle class-ep) (car cs)
-	#+ignore
-	(format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
 	(let ((class
 	       (clos:ensure-class
 		(lispify-class-name (widget-class-name handle))
-		:direct-superclasses (list (if (zerop (xt-class-superclass handle))
-					       'xt-root-class
-					     (lispify-class-name
-					      (widget-class-name
-					       (xt-class-superclass handle)))))
+		:direct-superclasses 
+		(list (if (zerop (xt-class-0-superclass handle))
+			  'xt-root-class
+			(lispify-class-name
+			 (widget-class-name
+			  (xt-class-0-superclass handle)))))
 		:direct-slots nil
-		:metaclass 'xt-class
+		:metaclass 'xt-class-0
 		:entry-point class-ep
 		:foreign-address (get-foreign-variable-value class-ep))))
 	  (register-address class)
 	  (push class r))))))
-
 
 (defun define-toolkit-classes (&rest classes)
   (make-classes
@@ -205,8 +223,9 @@
 	    (apply #'append classes)
 	    :test #'string=))))
 
-(defun widget-class-name (h)
-  (values (excl:native-to-string (xt-class-name h))))
+;;;
+;;;
+;;;
 
 (defvar *widget-name-to-class-name-mapping*
     '(((list scrolling-list) ol-list)
@@ -324,7 +343,6 @@
   (let ((*error-output* excl:*initial-terminal-io*))
     (warn "Xt: ~a" (excl:native-to-string message))))
 
-
 ;; This is a terrible hack used to compensate for bugs/inconsistencies
 ;; in the XM and OLIT toolkits.
 (defun add-resource-to-class (class resource)
@@ -345,19 +363,18 @@
     (excl::map-over-subclasses #'tk::unregister-address root)
     (excl::map-over-subclasses
      #'(lambda (class)
-	 (let* ((old-addr (and (typep class 'xt-class)
+	 (let* ((old-addr (and (typep class 'xt-class-0)
 			       (ff::foreign-pointer-address class)))
-		(entry-point (and (typep class 'xt-class)
+		(entry-point (and (typep class 'xt-class-0)
 				  (slot-boundp class 'entry-point)
 				  (slot-value class 'entry-point)))
 		(new-addr (and entry-point
 			       (get-foreign-variable-value entry-point))))
 	   (when entry-point
-	       (unless (equal old-addr new-addr)
-		 (setf (ff::foreign-pointer-address class) new-addr))
-	       (register-address class ))))
+	     (unless (equal old-addr new-addr)
+	       (setf (ff::foreign-pointer-address class) new-addr))
+	     (register-address class ))))
      root)))
-
 
 #+(and (not (version>= 5 0)) dlfcn)
 (defun fixup-class-entry-points ()
@@ -365,9 +382,9 @@
     (excl::map-over-subclasses #'tk::unregister-address root)
     (excl::map-over-subclasses
      #'(lambda (class)
-	 (let* ((old-addr (and (typep class 'xt-class)
+	 (let* ((old-addr (and (typep class 'xt-class-0)
 			       (ff::foreign-pointer-address class)))
-		(entry-point (and (typep class 'xt-class)
+		(entry-point (and (typep class 'xt-class-0)
 				  (slot-boundp class 'entry-point)
 				  (slot-value class 'entry-point)))
 		(new-addr (and entry-point

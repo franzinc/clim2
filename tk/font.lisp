@@ -103,6 +103,9 @@
 	 (xcharstruct-vector-ascent s n)
 	 (xcharstruct-vector-descent s n))))))
 
+(defmacro xfontname-list (names i)
+  `(ff:fslot-value-typed 'xfontname-list :c ,names ,i))
+
 (defun list-font-names (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0 :int))
     (let ((names (x11:xlistfonts display

@@ -140,8 +140,11 @@
       (incf bunsetu))
     r))
 
-(defmethod find-kanji-server-type ((type (eql ':jserver)))
-  'jserver)
+;;billingt:Jan-9-2014 without-package-locks
+
+(excl:without-package-locks
+ (defmethod find-kanji-server-type ((type (eql ':jserver)))
+  'jserver))
 
 (defmethod kanji-server-type ((jserver jserver))
   ':jserver)

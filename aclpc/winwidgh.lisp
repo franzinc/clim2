@@ -1,6 +1,7 @@
 ;;; -*- Package: acl-clim; mode: Common-Lisp -*-
 ;; See the file LICENSE for the full license governing this code.
 ;;
+(in-case-mode :local)
 
 (in-package :acl-clim)
 

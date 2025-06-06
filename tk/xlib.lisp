@@ -51,8 +51,8 @@
     `(defmethod ,(intern (format nil "~A-~A" 'window name)) ((window window))
        ,(let ((body
 	       `(let ((attrs (make-xwindowattributes)))
-		  (x11:xgetwindowattributes (object-display window)
-					    window
+		  (x11:xgetwindowattributes (ensure-pointer (object-display window))
+					    (ensure-pointer window)
 					    attrs)
 		  (,(intern (format nil "~a-~a" 'xwindowattributes name) :x11)
 		   attrs))))
@@ -70,8 +70,8 @@
 		  `(,encoder nv ,@args)
 		`nv))
 	   (x11:xchangewindowattributes
-	    (object-display window)
-	    window
+	    (ensure-pointer (object-display window))
+	    (ensure-pointer window)
 	    ,(ash 1 (or (position name *window-set-attributes-bit-mask*)
 			(error "Cannot find ~S in window attributes" name)))
 	    attrs)
@@ -129,11 +129,12 @@
 
 (defmethod drawable-width ((window window))
   (window-width window))
+
 (defmethod drawable-height ((window window))
   (window-height window))
+
 (defmethod drawable-depth ((window window))
   (window-depth window))
-
 
 (defclass pixmap (drawable)
   ((width :initarg :width :reader pixmap-width)
@@ -142,8 +143,10 @@
 
 (defmethod drawable-width ((pixmap pixmap))
   (pixmap-width pixmap))
+
 (defmethod drawable-height ((pixmap pixmap))
   (pixmap-height pixmap))
+
 (defmethod drawable-depth ((pixmap pixmap))
   (pixmap-depth pixmap))
 
@@ -156,13 +159,14 @@
 	   ((p pixmap) &key foreign-address width height depth drawable)
   (assert (and (plusp width) (plusp height))
       () "Width and height must be greater than zero")
+
   (with-slots (display) p
     (setf display (object-display drawable))
     (unless foreign-address
       (setf (foreign-pointer-address p)
 	(x11:xcreatepixmap
-	 display
-	 drawable
+	 (ensure-pointer display)
+	 (ensure-pointer drawable)
 	 width
 	 height
 	 depth))
@@ -181,7 +185,7 @@
 (defun get-resource (db name class)
   (with-ref-par ((type 0 *))
     (let ((xrmvalue (make-xrmvalue)))
-      (unless (zerop (x11:xrmgetresource db
+      (unless (zerop (x11:xrmgetresource (ensure-pointer db) 
 					 (lisp-string-to-string8 name)
 					 (lisp-string-to-string8 class)
 					 &type xrmvalue))
@@ -256,7 +260,8 @@
 	 :minor-code (x11:xerrorevent-minor-code event)
 	 :resourceid (x11:xerrorevent-resourceid event)
 	 :serial (x11:xerrorevent-serial event)
-	 :current-serial (x11:display-request display)))
+	 :current-serial (x11:xerrorevent-serial event)))
+;;	 :current-serial (x11:display-request display)))
 
 (define-condition x-connection-lost (error)
   ((display :reader x-error-display :initarg :display))
@@ -335,15 +340,18 @@
 
 (defclass color (ff:foreign-pointer) ())
 
+(defun foreign-object-address (obj)
+  (aref obj 0))
+
 (defun make-xcolor (&key in-foreign-space (number 1))
-  (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xcolor
-				:number number :initialize t))
+  (declare (ignorable in-foreign-space number)) ; no calls make use of number
+  (clim-utils::allocate-cstruct 'x11::xcolor :number number :initialize t))
 
 (defmethod initialize-instance :after
 	   ((x color) &key foreign-address (in-foreign-space t) red green blue (pixel 0))
+  ;; for calls like (make-instance 'color :in-foreign-space t) -° it always allocates in foreign space via :malloc - see allocate cstruct 
   (unless foreign-address
-    (setq foreign-address (make-xcolor :in-foreign-space in-foreign-space))
+    (setq foreign-address (make-xcolor :in-foreign-space in-foreign-space)) ;; in-foreign-space is ignored make-xcolor
     (setf (x11::xcolor-red foreign-address) red
 	  (x11:xcolor-green foreign-address) green
 	  (x11:xcolor-blue foreign-address) blue
@@ -351,17 +359,28 @@
 	  (x11:xcolor-pixel foreign-address) pixel)
     (setf (foreign-pointer-address x) foreign-address)))
 
+#+:ignore
 (defmethod print-object ((o color) s)
   (print-unreadable-object
-   (o s :type t :identity t)
-   (let ((cm o))
-     (format s "~D:~D,~D,~D"
-	     (x11:xcolor-pixel cm)
-	     (x11:xcolor-red cm)
-	     (x11:xcolor-green cm)
-	     (x11:xcolor-blue cm)))))
+      (o s :type t :identity t)
+    (let* ((cm o))
+      (format s "~D:~D,~D,~D"
+	      (x11:xcolor-pixel cm) 
+	      (x11:xcolor-red cm)
+	      (x11:xcolor-green cm)
+	      (x11:xcolor-blue cm)))))
 
-(defun lookup-color (colormap name)
+#+:ignore
+(defmethod print-object ((o color) s)
+  (print-unreadable-object
+      (o s :type t :identity t)
+    (let* ((cm o))
+      (format s "~D,~D,~D"
+	      (x11:xcolor-red cm)
+	      (x11:xcolor-green cm)
+	      (x11:xcolor-blue cm)))))
+
+(defun lookup-color (colormap name) ;; NOT CALLED BY ANYTHING
   (let ((exact (make-xcolor))
 	(closest (make-xcolor)))
     (unless (zerop (x11:xlookupcolor
@@ -380,18 +399,17 @@
 		    colormap
 		    (lisp-string-to-string8 name)
 		    exact))
-      (values (make-instance 'color :foreign-address exact)))))
+      (make-instance 'color :foreign-address exact))))
 
 (defun allocate-color (colormap x)
-  (let ((y (make-xcolor))
-	(x x))
+  (let ((y (make-xcolor)))
     (setf (x11:xcolor-red y) (x11:xcolor-red x)
 	  (x11:xcolor-green y) (x11:xcolor-green x)
 	  (x11:xcolor-blue y) (x11:xcolor-blue x))
-    (let ((z (x11:xalloccolor
-	      (object-display colormap)
-	      colormap
-	      y)))
+    (let* ((z (x11:xalloccolor
+	       (object-display colormap)
+	       colormap
+	       y)))	      
       ;;-- This needs to be handled intelligently
       ;;-- Perhaps the colormap code should enable the user to
       ;;-- intercept this or we should just resort to some kind of stippling
@@ -412,7 +430,7 @@
      1
      planes)))
 
-(defun allocate-named-color (colormap name)
+(defun allocate-named-color (colormap name) ; NOT CALLED?
   (let ((exact (make-xcolor))
 	(closest (make-xcolor)))
     (if (zerop (x11:xallocnamedcolor
@@ -423,6 +441,7 @@
 		exact))
 	(error "Could not find ~S in colormap ~S" name colormap)
       (x11:xcolor-pixel closest))))
+
 
 (defun query-color (colormap x)
   ;;--- Resource time
@@ -437,12 +456,15 @@
      (x11:xcolor-green y)
      (x11:xcolor-blue y))))
 
+
+;;; need to modify for alpha colors?
 (defun store-color (colormap color)
   (x11:xstorecolor
    (object-display colormap)
    colormap
    color))
 
+;;; need to modify for alpha colors?
 (defun store-named-color (colormap name pixel flags)
   (x11:xstorenamedcolor
    (object-display colormap)
@@ -494,6 +516,7 @@
 (def-foreign-array-resource xrectangle-array make-xrectangle-array)
 (def-foreign-array-resource xarc-array make-xarc-array)
 
+;;; need to modify for alpha colors?
 (defun store-colors (colormap colors ncolors)
   (x11:xstorecolors
    (object-display colormap)
@@ -501,6 +524,7 @@
    colors
    ncolors))
 
+;;; need to modify for alpha colors?
 (defun alloc-color-cells (colormap ncolors nplanes)
   (with-unsigned-long-array (masks nplanes)
     (with-unsigned-long-array (pixels ncolors)
@@ -546,8 +570,8 @@
        (mask 0 :unsigned-int))
     (let ((display (object-display window)))
       (if (x11:xquerypointer
-	   display
-	   window
+	   (ensure-pointer display)
+	   (ensure-pointer window)
 	   &root
 	   &child
 	   &root-x
@@ -572,8 +596,6 @@
 	   x
 	   y
 	   mask)))))
-
-
 
 (defconstant *event-masks*
     '(:key-press
@@ -642,8 +664,6 @@
     :mapping-notify
     ))
 
-
-
 (defun event-type (event)
   (elt *event-types* (x11::xevent-type event)))
 
@@ -672,7 +692,7 @@
 
 ;; I don't believe that this should be hard-wired
 (defconstant bitmap-pad 8)
-
+ 
 (defmethod initialize-instance :after
 	   ((image image) &key foreign-address data)
   (declare (optimize (speed 3) (safety 0)))

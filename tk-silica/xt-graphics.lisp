@@ -65,11 +65,14 @@
 		 :sheet sheet))
 
 (defmethod medium-drawable ((medium xt-medium))
-  (with-slots (drawable sheet) medium
+  (with-slots (drawable clim::sheet) medium
     (or drawable
-	(setf drawable (fetch-medium-drawable
-			sheet
-			(sheet-mirror sheet))))))
+	(prog1
+	    (setf drawable (fetch-medium-drawable
+			    sheet
+			    (sheet-mirror sheet)))
+	  #+XFT
+	  (setf (drawable-medium drawable) medium)))))
 
 (defmethod medium-palette ((medium xt-medium))
   (with-slots (palette sheet) medium
@@ -146,7 +149,7 @@
 	      (color-rgb color)
 	    (let* ((x #.(1- (ash 1 16))))
 	      (make-instance 'tk::color
-		:in-foreign-space t
+		:in-foreign-space t ;; MAW: see tk/xlib initialize-instance :after; in-foreign-space is ignore, allways clim-utils::allocate-cstruct!
 		:red (truncate (* x red))
 		:green (truncate (* x green))
 		:blue (truncate (* x blue)))))))))
@@ -380,10 +383,20 @@
       (remhash ink ink-table))
     (setf indirect-inks nil)))
 
+#+ORIGINAL
 (defmethod deallocate-ink ((ink design) (medium xt-medium))
   (with-slots (ink-table) medium
     (let ((gc (gethash ink ink-table)))
       (tk::free-gcontext gc))))
+
+#-ORIGINAL
+;; billingt:Dec-19-2014 if the ink isn't in the hash table, don't ask X to free it, just do nothing
+(defmethod deallocate-ink ((ink design) (medium xt-medium))
+  (with-slots (ink-table) medium
+    (let ((gc (gethash ink ink-table)))
+      (when gc
+	(tk::free-gcontext gc)))))
+
 
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
@@ -468,7 +481,8 @@
 	  (setf (tk::gcontext-dashes gc)
 	    (if (excl::sequencep dashes) dashes *default-dashes*))
 	  ;; The following isn't really right, but it's better than nothing.
-	  (setf (tk::gcontext-dash-offset gc) (1- y-origin))))
+	  ;; (setf (tk::gcontext-dash-offset gc) (1- y-origin))
+	  ))
       (setf (ink-gcontext-last-line-style gc) line-style)))
 
   ;; clip mask
@@ -493,9 +507,11 @@
 	(setf (ink-gcontext-last-clip-region-tick gc) device-clip-region-tick))))
 
   ;; tile and stipple origin
+  #+:ignore 
   (when (ink-gcontext-shift-tile-origin gc)
     (setf (tk::gcontext-ts-x-origin gc) x-origin
 	  (tk::gcontext-ts-y-origin gc) y-origin))
+
   gc)
 
 
@@ -761,13 +777,14 @@
 		  (x11:xputpixel image w h
 				 (svref pixels (funcall reader vector i)))
 		  (incf i))))))
-
-	(tk::put-image pixmap
-		       (if (eq format :bitmap)
-			   (port-copy-gc-depth-1 port)
-			 (port-copy-gc port))
-		       image)
-	(tk::destroy-image image)
+	(let ((gc (if (eq format :bitmap)
+		      (port-copy-gc-depth-1 port)
+		    (port-copy-gc port))
+		  ))
+	  (tk::put-image pixmap
+			 gc
+			 image)
+	  (tk::destroy-image image))
 	(values pixmap format pixels)))))
 
 
@@ -823,8 +840,6 @@
 
 (defmethod decode-color-in-palette ((design design) (palette xt-palette))
   (error "Drawing with design: ~A not yet implemented" design))
-
-
 
 (defmethod decode-color-in-palette ((color color) (palette xt-palette))
   (let ((color-cache (palette-color-cache palette)))
@@ -1198,7 +1213,6 @@
 				  points
 				  j))))))))))
 
-
 (defmethod medium-draw-line* ((medium xt-medium) x1 y1 x2 y2)
   (let ((drawable (medium-drawable medium)))
     (when drawable
@@ -1350,7 +1364,6 @@
 	     rects
 	     nrects
 	     filled)))))))
-
 
 (defmethod medium-draw-polygon* ((medium xt-medium) position-seq closed filled)
   (let ((drawable (medium-drawable medium)))
@@ -1571,7 +1584,7 @@
                                                   gc x y string start end))
                       (:-ics
                        (setf (tk::gcontext-font gc) (text-style-mapping port text-style nil))
-                       (tk::draw-string drawable gc x y string start end))))))
+                       (tk::draw-string drawable gc x y string start end #+XFT (slot-value medium 'drawable-draw)))))))
             (let ((dx (* width x-factor))
                   (dy (* width y-factor)))
               (incf x dx)

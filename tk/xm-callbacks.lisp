@@ -14,5 +14,13 @@
     (dotimes (i (xm-list-callback-struct-selected-item-count call-data) (nreverse r))
       (push (xm-selected-position-array si i) r))))
 
+;; billingt:Nov-12-2019 
+(defmethod spread-callback-data (widget call-data (type (eql :extended-selection)))
+  (declare (ignore widget))
+  (let ((si (xm-list-callback-struct-selected-item-positions call-data))
+	(r nil))
+    (dotimes (i (xm-list-callback-struct-selected-item-count call-data) (nreverse r))
+      (push (xm-selected-position-array si i) r))))
+
 
 

@@ -4,6 +4,14 @@
 
 include Makefile.macos_common
 
-CFLAGS = -m64 -arch arm64 -DAcl64Bit -dynamiclib -flat_namespace -single_module -DMACM1 -Wl,-no_adhoc_codesign -Wl,-macosx_version_min,12.0 -Wno-implicit-function-declaration
+ifdef CODESIGN
 
+CFLAGS = -m64 -arch arm64 -DAcl64Bit -dynamiclib -flat_namespace -single_module -DMACM1 -Wl,-no_adhoc_codesign -Wl,-macosx_version_min,12.0 -Wno-implicit-function-declaration
 MAKE_SHARED = cc -arch arm64 -bundle -force_cpusubtype_ALL -flat_namespace -Wl,-macosx_version_min,12.0
+
+else
+
+CFLAGS = -Wno-implicit-function-declaration -arch arm64 -c -Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int  -Wno-int-conversion -DMACM1
+MAKE_SHARED = ld  -dylib -ld_classic -arch arm64  -flat_namespace -L. -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -F/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/
+
+endif

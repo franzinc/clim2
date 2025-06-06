@@ -7,7 +7,7 @@
   (:use :common-lisp :ff #+ignore :x11)
   (:nicknames :xt)
   (:import-from :excl #:if*)
-  (:import-from :clim-utils #:fintern #:package-fintern)
+  (:import-from :clim-utils #:fintern #:package-fintern #:ensure-pointer)
   (:export
    #:initialize-motif-toolkit
    #:widget-parent

@@ -4,6 +4,10 @@
 
 include Makefile.macos_common
 
+ifdef CODESIGN
 CFLAGS = -m64 -arch x86_64 -DAcl64Bit -dynamiclib -flat_namespace -single_module -Wl,-no_adhoc_codesign -Wl,-macosx_version_min,12.0 -Wno-implicit-function-declaration
+else
+CFLAGS = -m64 -arch x86_64 -DAcl64Bit -dynamiclib -flat_namespace -single_module -Wl,-macosx_version_min,12.0 -Wno-implicit-function-declaration
+endif
 
 MAKE_SHARED = cc -arch x86_64 -bundle -force_cpusubtype_ALL -flat_namespace -Wl,-macosx_version_min,12.0

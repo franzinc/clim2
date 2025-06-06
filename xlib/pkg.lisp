@@ -4,7 +4,7 @@
 (defpackage :x11
   ;; I don't know if this is OK (can we assume clim-utils?).  In any
   ;; case we want that definition of fintern.
-  (:import-from :clim-utils #:fintern)
+  (:import-from :clim-utils #:fintern #:ensure-pointer)
   ;; These next two import symbols when loading from clim.fasl.
   (:export #:int #:short)
   (:export #:screen #:depth #:visual #:colormap
@@ -516,7 +516,7 @@
 	   #:xresizerequestevent-serial #:xresizerequestevent-type
 	   #:xresizerequestevent-width #:xresizerequestevent-window
 	   #:xresizewindow #:xresourcemanagerstring #:xrestackwindows
-	   #:xrmbinding #:xrmbindinglist #:xrmclass #:xrmclasslist
+	   #:xrmbinding #:XrmBindingList #:xrmclass #:xrmclasslist
 	   #:xrmdatabase #:xrmgetfiledatabase #:xrmgetresource
 	   #:xrmgetstringdatabase #:xrminitialize #:xrmmergedatabases #:xrmname
 	   #:xrmnamelist #:xrmoptiondesclist #:xrmoptiondescrec
