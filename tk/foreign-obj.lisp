@@ -78,8 +78,8 @@
 	   (values x nil))
 	  (t
 	   (cerror "Make a new one"
-		   "~s has the wrong class: ~s"
-		   x class)
+		   "~s has the wrong class: ~s - type: ~s, (typep ~s ~s) => ~s"
+		   x class (type-of x) x class (typep x class))
 	   (values
 	    (setf (gethash handle table)
 	      (apply #'make-instance

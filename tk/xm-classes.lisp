@@ -50,6 +50,8 @@
 				"xmSeparatorWidgetClass"
 				"xmTextFieldWidgetClass"
 				"xmTextWidgetClass"
+				;; added by MW: 
+				"xmDataFieldWidgetClass"
 				"xmToggleButtonGadgetClass"
 				"xmToggleButtonWidgetClass"
 				"xmMyDrawingAreaWidgetClass"

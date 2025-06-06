@@ -1,0 +1,32 @@
+# make template for non-Franz builds on macs on M1/arm64 architectures:
+
+# Parameters needed for machine and os distinction:
+
+OS_NAME=darwin
+MACHINE=arm64
+SIXTYFOURBIT = yes
+LISP = /Volumes/acl/acl11.0.64/src/mlisp8
+DCL = /Volumes/acl/acl11.0.64/src/mlisp8.dxl
+
+# Parameters that can be set based on levels of speed/safety/debug, etc.:
+
+# system:compile-cl options:
+gc_print		= nil
+compile_verbose		= t
+compile_print		= nil
+redef_warning		= t
+
+# release style parameterization:
+
+RECORD_SOURCE_FILE_INFO = nil
+LOAD_SOURCE_FILE_INFO	= nil
+RECORD_XREF_INFO	= nil
+LOAD_XREF_INFO		= nil
+SAVE_LOCAL_NAMES	= nil
+SAVE_LOCAL_SCOPES	= nil
+LOAD_LOCAL_NAMES_INFO	= nil
+SAVE_SOURCE_DEBUG	= nil
+COMPILER_SPEED          = 3
+
+# Comment this to compile in case-sensitive/lowercase-preferred mode
+case_mode = ansi

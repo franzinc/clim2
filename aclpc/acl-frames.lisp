@@ -11,6 +11,7 @@
 *                                                                            *
 *                                                                            *
 ****************************************************************************|#
+(in-case-mode :local)
 
 ;; DO: This file contains several IN-PACKAGE forms.  That's very confusing
 ;; and we should get rid of them. (alemmens, 2005-11-30)

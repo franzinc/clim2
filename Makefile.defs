@@ -6,14 +6,14 @@ CLIM		= clim.dxl
 
 SHARED_EXT = so
 
-LISP	= ../src/lispi$(exe)
-DCL	= dcli
+LISP	?= ../src/lispi$(exe)
+DCL	?= dcli
 
 # Set the case mode when building and dumping an image
 # case_mode:
 #	ansi -- traditional case-insensitive upper-case CL
 #	modern -- case-sensitive lower-case CL
-case_mode = modern
+case_mode ?= modern
 
 ifeq ($(case_mode),ansi)
 CASE_MODE		= :case-insensitive-upper
@@ -38,7 +38,7 @@ ifeq ($(load_patches),no)
 STOP_PATCHES = '(pushnew :clim-dont-load-patches *features*)'
 endif
 
-CL	= $(LISP) -I $(DCL)
+CL	?= $(LISP) -I $(DCL)
 CLOPTS	= -qq -batch -backtrace-on-error -locale japan.euc
 
 RM	= rm

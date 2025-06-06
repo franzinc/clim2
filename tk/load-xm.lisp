@@ -7,37 +7,46 @@
 (eval-when (compile eval load)
   (require :climg))
 
-(defvar sys::*clim-library-search-path* '("/usr/X11/lib/" "/usr/X11R6/lib/" "/usr/local/lib/"
-                                          "/opt/local/lib/" "/sw/lib/"))
+(defvar sys::*clim-library-search-path* 
+    '("/usr/X11/lib/" "/usr/X11R6/lib/" "/usr/local/lib/"
+      "/opt/local/lib/" "/sw/lib/"
+      "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/"))
 
 ;;; On Mac OS X, the linker hard-codes the paths to libraries into
 ;;; climxm.dylib, so we instruct it to link weakly against Motif (so
 ;;; it doesn't complain if the file isn't found), and pre-load its
 ;;; dependency libraries' basenames from known places in the file
 ;;; system here.
-#+ignore
+
+#+macosx
 (unless (ff:get-entry-point (ff:convert-foreign-name "XtInitialize"))
-  (excl.osi:with-command-output (sys::library (format nil "otool -L ~a"
-                                                      (probe-file
-                                                       (format nil "clim2:;climxm.~a"
-                                                               (car excl::*load-foreign-types*)))))
+
+  (excl.osi:with-command-output 
+      (sys::library 
+       (format nil "otool -L ~a"
+	       (probe-file
+		(format nil "clim2:;climxm.~a"
+			(car excl::*load-foreign-types*)))))
+    
     (when (eql (elt sys::library 0) #\Tab)
-      (let ((sys::library-name (nth-value 2 (match-re ".*/(lib[^ ]+) " sys::library)))
+      (if (search "CoreFoundation" sys::library)
+	  (let ((sys::library-name (nth-value 1 (match-re "\\S*dylib" sys::library)))
             (values nil))
         (unless (dolist (directory sys::*clim-library-search-path*)
                   (let ((pathname (merge-pathnames sys::library-name directory)))
                     (when (probe-file pathname)
-                      (handler-case (progn (load pathname)
-                                           (return t))
+                      (handler-case (progn 
+				      (load pathname)
+				      (return t))
                         (error (e) (push (list pathname e) values))))))
-          (error "Can't find ~a in ~{~a~^, ~}~@[~%Paths that had load errors:~%~:{~a:~t~a~%~}~]"
+          (format t "Can't find ~a in ~{~a~^, ~}~@[~%Paths that had load errors:~%~:{~a:~t~a~%~}~]"
                  sys::library-name sys::*clim-library-search-path*
-                 values))))))
+                 values)))))))
 
 #+(version>= 5 0)
 (unless (ff:get-entry-point (ff:convert-foreign-name "XmCreateMyDrawingArea"))
   (let (
-;;;; See spr12165 for the *dlopen-mode* hack explanation.
+	;; See spr12165 for the *dlopen-mode* hack explanation.
 	#+(and dlfcn sun4 (not sunos4))
 	(excl::*dlopen-mode* (excl:ics-target-case
 			      (:+ics #x102)

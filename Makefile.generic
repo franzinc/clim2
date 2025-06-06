@@ -11,6 +11,7 @@ ifeq ($(OS_NAME),windows)
 build_runlisp_args = -o build.out 
 concat_runlisp_args = -o concat.out 
 endif
+COMPILE_LISP = bash ./run-lisp.sh -f build.tmp $(build_runlisp_args) $(CL) $(CLOPTS)
 
 compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	rm -f build.tmp
@@ -37,11 +38,13 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> build.tmp
 	echo '(compile-it (quote $(SYSTEM)))' >> build.tmp
 	echo '(exit 0)' >> build.tmp
-	(eval '$(SET_LIBRARY_PATH)'; \
-	 bash ../src/runlisp.sh -f build.tmp $(build_runlisp_args) \
-	 $(CL) $(CLOPTS))
+	(eval '$(SET_LIBRARY_PATH)')
+	(eval '$(COMPILE_LISP)')
+	 	
 
 # Concatenation
+
+CONCAT_LISP = bash ./run-lisp.sh -f cat.tmp $(concat_runlisp_args) $(CL) $(CLOPTS)
 
 cat: compile
 	rm -f cat.tmp
@@ -49,9 +52,8 @@ cat: compile
 	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> cat.tmp	
 	echo '(concatenate-it (quote $(SYSTEM)))' >> cat.tmp
 	echo '(exit 0)' >> cat.tmp
-	(eval '$(SET_LIBRARY_PATH)'; \
-	 bash ../src/runlisp.sh -f cat.tmp $(concat_runlisp_args) \
-	 $(CL) $(CLOPTS))
+	(eval '$(SET_LIBRARY_PATH)')
+	(eval '$(CONCAT_LISP)')
 	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS) >> Clim-sizes.n
 	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS)
 

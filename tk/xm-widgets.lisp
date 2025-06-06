@@ -295,11 +295,11 @@
 (defvar *lookup-string-buffer-size* 256)
 
 (defmacro with-lookup-string-buffer ((var) &body body)
-  `(let ((,var (or (excl:without-interrupts (pop *lookup-string-buffers*))
+  `(let ((,var (or (clim-sys:without-scheduling (pop *lookup-string-buffers*))
                    (excl::aclmalloc *lookup-string-buffer-size*))))
      (multiple-value-prog1
        (progn ,@body)
-       (excl:without-interrupts (push buffer *lookup-string-buffers*)))))
+       (clim-sys:without-scheduling (push buffer *lookup-string-buffers*)))))
 
 (defun lookup-multibyte-string (event widget)
   (declare (optimize (speed 3) (safety 0)))

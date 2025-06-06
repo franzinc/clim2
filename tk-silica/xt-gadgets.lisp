@@ -186,12 +186,13 @@
        w)))
 
 (defmethod add-sheet-callbacks :after
-    ((port xt-port) (sheet xt-top-level-sheet) widget)
-  (tk::add-event-handler (tk::widget-parent widget)
-			 '(:structure-notify)
-			 1
-			 'sheet-mirror-event-handler
-			 sheet))
+	   ((port xt-port) (sheet xt-top-level-sheet) widget)
+  (let ((parent (tk::widget-parent widget)))
+    (tk::add-event-handler parent
+			   '(:structure-notify)
+			   1
+			   'sheet-mirror-event-handler
+			   sheet)))
 
 ;;;
 ;;; Scroll bar utilities
@@ -239,13 +240,16 @@
 ;;;
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
-  (if (eq mp:*current-process* (port-process port))
+  ;; billingt:Jan-15-2014 
+  ;;   (if (eq mp:*current-process* (port-process port))
+  (if (eq (clim-utils::current-process) (port-process port))
       (progn
 	(loop
 	  (when (funcall predicate) (return nil))
 	  (process-next-event port)))
-    (mp:process-wait whostate predicate)))
-
+    ;; billingt:Jan-15-2014 
+    ;;    (mp:process-wait whostate predicate)))
+    (clim-utils::process-wait whostate predicate)))
 ;; accelerator and mnemonic support
 
 (defun set-button-mnemonic (menubar button mnem)

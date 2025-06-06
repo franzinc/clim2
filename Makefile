@@ -1,8 +1,19 @@
-# If ../makefile.top doesn't exist, then you must specify HOST=xxx on the
-# `make' command line.
+# Start with a decision as to whether compiling at a Franz Inc site or not:
 
+HOSTNAME := $(shell hostname -d)
+# for testing - uncomment to force a non-Franz situation
+#HOSTNAME := foo
+
+ifeq ($(findstring franz.com,$(HOSTNAME)),franz.com)
+ATFRANZ = yes
 include ../makefile.top
 include ../makefile.defs
+else
+# Be sure to link or copy one of the files in makefile.templates to
+# Makefile.nonfranz and modify the paths to the lisp executable and
+# image:
+include Makefile.nonfranz
+endif
 
 ifeq ($(OS_NAME),windows)
 HOST = windows

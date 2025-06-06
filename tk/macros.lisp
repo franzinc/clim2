@@ -5,32 +5,85 @@
 (in-package :tk)
 
 (defmacro def-foreign-array-resource (name constructor)
-  `(progn
-     (clim-sys:defresource ,name (n)
-       :constructor (cons n (,constructor :number n))
-       :matcher (not (< (car ,name) n)))
-     (defmacro ,(fintern "~A-~A" 'with name)
-	 ((var n) &body body)
-       `(clim-sys:using-resource (,var ,',name ,n)
-	  (let ((,var (cdr ,var)))
-	    ,@body)))))
+  (let ((forms 
+	 `(progn
+	    (clim-sys:defresource ,name (n)
+				  :constructor (cons n (,constructor :number n))
+				  :matcher (not (< (car ,name) n)))
+	    (defmacro ,(fintern "~A-~A" 'with name)
+		((var n) &body body)
+	      `(clim-sys:using-resource (,var ,',name ,n)
+					(let ((,var (cdr ,var)))
+					  ,@body))))))
+    forms))
+
+(defun make-cstruct-2 (size init)
+  (excl::.primcall 'sys::make-svector
+    #-64bit (+ 1 (truncate (+ size 3) 4))
+    #+64bit (+ 1 (truncate (+ size 7) 8))
+    init
+    #.(sys::mdparam 'comp::md-cstruct-svector-type-code)
+    init
+    nil))
+
+#+:ignore 
+(define-compiler-macro make-cstruct-2 (&whole whole size init)
+  (if (integerp size)
+      `(excl::.primcall 'sys::make-svector
+         #-64bit (+ 1 (truncate (+ ,size 3) 4))
+         #+64bit (+ 1 (truncate (+ ,size 7) 8))
+         ,init
+         #.(sys::mdparam 'comp::md-cstruct-svector-type-code)
+         ,init
+         nil)
+    whole))
+
+(defun cstruct-constructor-generator-3 (size space init)
+  #'(lambda (&key (number 1) (in-foreign-space space) (initialize init))
+      (let ((-size- (* 8 number size)))
+        (if in-foreign-space
+            (malloc-initialized -size- init)
+          ;;bug3004
+          (make-cstruct-2 -size- (when initialize 0))))))
 
 (defmacro define-ref-par-types (&rest types)
-  (let ((forms nil))
+  (let ((forms nil)
+	(type1 nil))
+    
     (dolist (type types)
       (let ((type-array (fintern "~A-~A" type 'array))
 	    (make-type-array (fintern "~A-~A-~A"
 				      'make type 'array)))
+
+	(if (eq type '*)
+	    (setf type1 '(* char))
+	  (setf type1 type))
+	
 	(setq forms
 	  `(,@forms
-	    (ff:def-c-type ,type-array 1 ,type)
+	    (ff:def-foreign-type (,type-array (:pack 1)) (:array ,type1 1))
+	    
+	    (defun ,make-type-array (&key (number 1))
+	      
+	      (ff:allocate-fobject 
+	       ',type-array :foreign-static-gc 
+	       
+	       (* number 
+		  (ff::sizeof-fobject (ff:get-foreign-type ',type-array)))))
+	    
+	    (defun ,type-array (obj number)
+	      (ff:fslot-value-typed (quote ,type-array) :foreign-static-gc obj number))
+	    
+	    (defsetf ,type-array (obj index) (val)  
+	      `(setf (ff:fslot-value-typed (quote ,(quote ,type-array)) :foreign-static-gc ,obj ,index) ,val))
+	    
 	    (def-foreign-array-resource
 		,type-array ,make-type-array)))))
+    
     `(progn ,@forms)))
 
 (define-ref-par-types
-    :unsigned-int :int :unsigned-long :long
-    *)
+    :unsigned-int :int :unsigned-long :long *)
 
 (defmacro with-ref-par (bindings &body body)
   (if (null bindings)

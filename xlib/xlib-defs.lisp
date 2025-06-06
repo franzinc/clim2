@@ -82,8 +82,6 @@
 ;;; in xconfigurerequestevent and xconfigureevent.
 
 (def-exported-constant was-called-above 0)             ;; #define Above   0
-
-
 (def-exported-constant allocall 1)                     ;; #define AllocAll 	1
 (def-exported-constant allocnone 0)                    ;; #define AllocNone 	0
 (def-exported-constant allowexposures 1)               ;; #define AllowExposures 	1
@@ -593,7 +591,11 @@
 (def-exported-constant xa-last-predefined 68)         ;; #define XA_LAST_PREDEFINED ((Atom) 68)
 
 
-(def-exported-foreign-synonym-type xid unsigned-long)
+;;;
+;;; Synonym types DOUBLE CHECK ALL OF THESE 
+;;; 
+
+(def-exported-foreign-synonym-type xid :unsigned-long)
 (def-exported-foreign-synonym-type window xid)
 (def-exported-foreign-synonym-type drawable xid)
 (def-exported-foreign-synonym-type font xid)
@@ -601,37 +603,30 @@
 (def-exported-foreign-synonym-type cursor xid)
 (def-exported-foreign-synonym-type colormap xid)
 (def-exported-foreign-synonym-type gcontext xid)
-(def-exported-foreign-synonym-type keysym
-    #+alpha unsigned-int
-    #-alpha xid)
-(def-exported-foreign-synonym-type mask unsigned-long)
-(def-exported-foreign-synonym-type atom unsigned-long)
-(def-exported-foreign-synonym-type visualid unsigned-long)
-(def-exported-foreign-synonym-type time
-    #+alpha unsigned-int
-    #-alpha unsigned-long)
-(def-exported-foreign-synonym-type keycode unsigned-char)
+(def-exported-foreign-synonym-type keysym xid)
 
-(def-exported-foreign-synonym-type xfontset unsigned-long)
+(def-exported-foreign-synonym-type atom :unsigned-long)
+(def-exported-foreign-synonym-type visualid :unsigned-long)
+(def-exported-foreign-synonym-type time :unsigned-long) 
+(def-exported-foreign-synonym-type keycode :unsigned-char)
+(def-exported-foreign-synonym-type xfontset :unsigned-long)
+(def-exported-foreign-synonym-type callback-function-addr :pointer)
 
-(def-exported-foreign-synonym-type fixnum-drawable :fixnum)
-(def-exported-foreign-synonym-type fixnum-int :fixnum)
-(def-exported-foreign-synonym-type fixnum-unsigned-int :fixnum)
-
-(def-exported-foreign-synonym-type callback-function-addr :signed-32bit)
-
+;;;
+;;;
+;;; 
 
 (def-exported-foreign-struct xextdata
-  (number :type int)
+  (number :type :int)
   (next :type (:pointer xextdata))
   (free-private :type (:pointer :pointer))
-  (private-data :type (:pointer char)))
+  (private-data :type (:pointer :char)))
 
 (def-exported-foreign-struct xextcodes
-  (extension :type int)
-  (major-opcode :type int)
-  (first-event :type int)
-  (first-error :type int))
+  (extension :type :int)
+  (major-opcode :type :int)
+  (first-event :type :int)
+  (first-error :type :int))
 
 (def-exported-foreign-struct _xextension
   (next :type (:pointer _xextension))
@@ -647,128 +642,503 @@
   (error-string :type (:pointer :pointer)))
 
 (def-exported-foreign-struct xgcvalues
-  (function :type int)
-  (plane-mask :type unsigned-long)
-  (foreground :type unsigned-long)
-  (background :type unsigned-long)
-  (line-width :type int)
-  (line-style :type int)
-  (cap-style :type int)
-  (join-style :type int)
-  (fill-style :type int)
-  (fill-rule :type int)
-  (arc-mode :type int)
+  (function :type :int)
+  (plane-mask :type :unsigned-long)
+  (foreground :type :unsigned-long)
+  (background :type :unsigned-long)
+  (line-width :type :int)
+  (line-style :type :int)
+  (cap-style :type :int)
+  (join-style :type :int)
+  (fill-style :type :int)
+  (fill-rule :type :int)
+  (arc-mode :type :int)
   (tile :type pixmap)
   (stipple :type pixmap)
-  (ts-x-origin :type int)
-  (ts-y-origin :type int)
+  (ts-x-origin :type :int)
+  (ts-y-origin :type :int)
   (font :type font)
-  (subwindow-mode :type int)
-  (graphics-exposures :type int)
-  (clip-x-origin :type int)
-  (clip-y-origin :type int)
+  (subwindow-mode :type :int)
+  (graphics-exposures :type :int)
+  (clip-x-origin :type :int)
+  (clip-y-origin :type :int)
   (clip-mask :type pixmap)
-  (dash-offset :type int)
-  (dashes :type char))
+  (dash-offset :type :int)
+  (dashes :type :char))
+
+
+(defmacro xgcvalues-function (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'function))
+
+(defsetf xgcvalues-function (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'function)
+     ,new-val))
+
+
+(defmacro xgcvalues-plane-mask (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'plane-mask))
+
+(defsetf xgcvalues-plane-mask (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'plane-mask)
+     ,new-val))
+
+
+(defmacro xgcvalues-foreground (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'foreground))
+
+(defsetf xgcvalues-foreground (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'foreground)
+     ,new-val))
+
+
+(defmacro xgcvalues-background (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'background))
+
+(defsetf xgcvalues-background (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'background)
+     ,new-val))
+
+
+(defmacro xgcvalues-line-width (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'line-width))
+
+(defsetf xgcvalues-line-width (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'line-width)
+     ,new-val))
+
+
+(defmacro xgcvalues-line-style (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'line-style))
+
+(defsetf xgcvalues-line-style (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'line-style)
+     ,new-val))
+
+
+(defmacro xgcvalues-cap-style (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'cap-style))
+
+(defsetf xgcvalues-cap-style (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'cap-style)
+     ,new-val))
+
+
+(defmacro xgcvalues-join-style (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'join-style))
+
+(defsetf xgcvalues-join-style (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'join-style)
+     ,new-val))
+
+
+
+(defmacro xgcvalues-fill-style (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'fill-style))
+
+(defsetf xgcvalues-fill-style (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'fill-style)
+     ,new-val))
+
+
+(defmacro xgcvalues-fill-rule (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'fill-rule))
+
+(defsetf xgcvalues-fill-rule (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'fill-rule)
+     ,new-val))
+
+
+(defmacro xgcvalues-arc-mode (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'arc-mode))
+
+(defsetf xgcvalues-arc-mode (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'arc-mode)
+     ,new-val))
+
+
+(defmacro xgcvalues-tile (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'tile))
+
+(defsetf xgcvalues-tile (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'tile)
+     ,new-val))
+
+(defmacro xgcvalues-stipple (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'stipple))
+
+(defsetf xgcvalues-stipple (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'stipple)
+     ,new-val))
+
+
+(defmacro xgcvalues-ts-x-origin (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'ts-x-origin))
+
+(defsetf xgcvalues-ts-x-origin (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'ts-x-origin)
+     ,new-val))
+
+(defmacro xgcvalues-ts-y-origin (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'ts-y-origin))
+
+(defsetf xgcvalues-ts-y-origin (h) (new-val)
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'ts-y-origin)
+     ,new-val))
+
+(defmacro xgcvalues-font (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'font))
+
+(defsetf xgcvalues-font (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'font)
+     ,new-val))
+
+(defmacro xgcvalues-subwindow-mode (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'subwindow-mode))
+
+(defsetf xgcvalues-subwindow-mode (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'subwindow-mode)
+     ,new-val))
+
+(defmacro xgcvalues-graphics-exposures (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'graphics-exposures))
+
+#+:ignore
+(defun (setf xgcvalues-graphics-exposures) (new-val h)
+  (setf (ff:fslot-value-typed 'xgcvalues :c 
+			      (ensure-pointer h)
+			      'graphics-exposures) 
+	new-val))
+
+(defsetf xgcvalues-graphics-exposures (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c 
+			       (ensure-pointer ,h)
+			       'graphics-exposures) 
+     ,new-val))
+
+
+(defmacro xgcvalues-clip-x-origin (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'clip-x-origin))
+
+(defsetf xgcvalues-clip-x-origin (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'clip-x-origin)
+     ,new-val))
+
+(defmacro xgcvalues-clip-y-origin (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'clip-y-origin))
+
+(defsetf xgcvalues-clip-y-origin (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'clip-y-origin)
+     ,new-val))
+
+(defmacro xgcvalues-clip-mask (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'clip-mask))
+
+(defsetf xgcvalues-clip-mask (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'clip-mask)
+     ,new-val))
+
+
+(defmacro xgcvalues-dash-offset (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'dash-offset))
+
+(defsetf xgcvalues-dash-offset (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'dash-offset)
+     ,new-val))
+
+
+(defmacro xgcvalues-dashes (h)
+  `(ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'dashes))
+
+(defsetf xgcvalues-dashes (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xgcvalues :c (ensure-pointer ,h) 'dashes)
+     ,new-val))
+
 
 (def-exported-foreign-struct _xgc
   (ext-data :type (:pointer xextdata))
   (gid :type gcontext)
-  (rects :type int)
-  (dashes :type int)
-  (dirty :type unsigned-long)
+  (rects :type :int)
+  (dashes :type :int)
+  (dirty :type :unsigned-long)
   (values :type xgcvalues))
+
+(defmacro _xgc-values-function (h) 
+  `(ff:fslot-value-typed '_xgc :c (ensure-pointer ,h) 'values 'function))
+
+(defmacro _xgc-values-foreground (h) 
+  `(ff:fslot-value-typed '_xgc :c (ensure-pointer ,h) 'values 'foreground))
+
+(defmacro _xgc-values-background (h) 
+  `(ff:fslot-value-typed '_xgc :c (ensure-pointer ,h) 'values 'background))
+
+(defmacro _xgc-values-fill-style (h) 
+  `(ff:fslot-value-typed '_xgc :c (ensure-pointer ,h) 'values 'fill-style))
+
+(defmacro _xgc-values-stipple (h) 
+  `(ff:fslot-value-typed '_xgc :c (ensure-pointer ,h) 'values 'stipple))
+
 (def-exported-foreign-synonym-type gc (:pointer _xgc))
 
 (def-exported-foreign-struct visual
   (ext-data :type (:pointer xextdata))
   (visualid :type visualid)
-  (class :type int)
-  (red-mask :type unsigned-long)
-  (green-mask :type unsigned-long)
-  (blue-mask :type unsigned-long)
-  (bits-per-rgb :type int)
-  (map-entries :type int))
+  (class :type :int)
+  (red-mask :type :unsigned-long)
+  (green-mask :type :unsigned-long)
+  (blue-mask :type :unsigned-long)
+  (bits-per-rgb :type :int)
+  (map-entries :type :int))
 
 (def-exported-foreign-struct depth
-  (depth :type int)
-  (nvisuals :type int)
+  (depth :type :int)
+  (nvisuals :type :int)
   (visuals :type (:pointer visual)))
 
 (def-exported-foreign-struct screen
   (ext-data :type (:pointer xextdata))
   (display :type (:pointer display))
   (root :type window)
-  (width :type int)
-  (height :type int)
-  (mwidth :type int)
-  (mheight :type int)
-  (ndepths :type int)
+  (width :type :int)
+  (height :type :int)
+  (mwidth :type :int)
+  (mheight :type :int)
+  (ndepths :type :int)
   (depths :type (:pointer depth))
-  (root-depth :type int)
+  (root-depth :type :int)
   (root-visual :type (:pointer visual))
   (default-gc :type gc)
   (cmap :type colormap)
-  (white-pixel :type unsigned-long)
-  (black-pixel :type unsigned-long)
-  (max-maps :type int)
-  (min-maps :type int)
-  (backing-store :type int)
-  (save-unders :type int)
-  (root-input-mask :type long))
+  (white-pixel :type :unsigned-long)
+  (black-pixel :type :unsigned-long)
+  (max-maps :type :int)
+  (min-maps :type :int)
+  (backing-store :type :int)
+  (save-unders :type :int)
+  (root-input-mask :type :long))
+
+(defmacro screen-backing-store (screen)
+  `(ff:fslot-value-typed 'screen :c ,screen 'backing-store))
+
+(defmacro screen-save-unders (screen)
+  `(ff:fslot-value-typed 'screen :c ,screen 'save-unders))
+
+(defmacro screen-default-gc (h)
+  `(ff:fslot-value-typed 'screen :c (ensure-pointer ,h) 'default-gc))
+
+(defmacro screen-root-visual (h)
+  `(ff:fslot-value-typed 'screen :c (ensure-pointer ,h) 'root-visual))
 
 (def-exported-foreign-struct screenformat
   (ext-data :type (:pointer xextdata))
-  (depth :type int)
-  (bits-per-pixel :type int)
-  (scanline-pad :type int))
+  (depth :type :int)
+  (bits-per-pixel :type :int)
+  (scanline-pad :type :int))
 
 (def-exported-foreign-struct xsetwindowattributes
   (background-pixmap :type pixmap)
-  (background-pixel :type unsigned-long)
+  (background-pixel :type :unsigned-long)
   (border-pixmap :type pixmap)
-  (border-pixel :type unsigned-long)
-  (bit-gravity :type int)
-  (win-gravity :type int)
-  (backing-store :type int)
-  (backing-planes :type unsigned-long)
-  (backing-pixel :type unsigned-long)
-  (save-under :type int)
-  (event-mask :type long)
-  (do-not-propagate-mask :type long)
-  (override-redirect :type int)
+  (border-pixel :type :unsigned-long)
+  (bit-gravity :type :int)
+  (win-gravity :type :int)
+  (backing-store :type :int)
+  (backing-planes :type :unsigned-long)
+  (backing-pixel :type :unsigned-long)
+  (save-under :type :int)
+  (event-mask :type :long)
+  (do-not-propagate-mask :type :long)
+  (override-redirect :type :int)
   (colormap :type colormap)
   (cursor :type cursor))
 
+(defsetf xsetwindowattributes-background-pixmap (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'background-pixmap)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-background-pixel (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'background-pixel)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-border-pixmap (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'border-pixmap)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-border-pixel (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'border-pixel)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-bit-gravity (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'bit-gravity)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-win-gravity (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'win-gravity)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-backing-store (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'backing-store)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-backing-planes (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'backing-planes)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-backing-pixel (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'backing-pixel)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-save-under (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'save-under)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-event-mask (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'event-mask)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-do-not-propagate-mask (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'do-not-propagate-mask)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-override-redirect (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'override-redirect)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-colormap (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'colormap)
+	 ,new-val))
+
+(defsetf xsetwindowattributes-cursor (xsetwindowattributes) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsetwindowattributes :c 
+			       (ensure-pointer ,xsetwindowattributes)
+			       'cursor)
+	 ,new-val))
+
 (def-exported-foreign-struct xwindowattributes
-  (x :type int)
-  (y :type int)
-  (width :type int)
-  (height :type int)
-  (border-width :type int)
-  (depth :type int)
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (border-width :type :int)
+  (depth :type :int)
   (visual :type (:pointer visual))
   (root :type window)
-  (class :type int)
-  (bit-gravity :type int)
-  (win-gravity :type int)
-  (backing-store :type int)
-  (backing-planes :type unsigned-long)
-  (backing-pixel :type unsigned-long)
-  (save-under :type int)
+  (class :type :int)
+  (bit-gravity :type :int)
+  (win-gravity :type :int)
+  (backing-store :type :int)
+  (backing-planes :type :unsigned-long)
+  (backing-pixel :type :unsigned-long)
+  (save-under :type :int)
   (colormap :type colormap)
-  (map-installed :type int)
-  (map-state :type int)
-  (all-event-masks :type long)
-  (your-event-mask :type long)
-  (do-not-propagate-mask :type long)
-  (override-redirect :type int)
+  (map-installed :type :int)
+  (map-state :type :int)
+  (all-event-masks :type :long)
+  (your-event-mask :type :long)
+  (do-not-propagate-mask :type :long)
+  (override-redirect :type :int)
   (screen :type (:pointer screen)))
 
+(defmacro xwindowattributes-x (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'x))
+
+(defmacro xwindowattributes-y (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'y))
+
+(defmacro xwindowattributes-width (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'width))
+
+(defmacro xwindowattributes-height (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'height))
+
+(defmacro xwindowattributes-border-width (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'border-width))
+
+(defmacro xwindowattributes-depth (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'depth))
+
+(defmacro xwindowattributes-visual (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'visual))
+
+(defmacro xwindowattributes-root (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'root))
+
+(defmacro xwindowattributes-class (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'class))
+
+(defmacro xwindowattributes-bit-gravity (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'bit-gravity))
+
+(defmacro xwindowattributes-win-gravity (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'win-gravity))
+
+(defmacro xwindowattributes-backing-store (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'backing-store))
+
+(defmacro xwindowattributes-backing-planes (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'backing-planes))
+
+(defmacro xwindowattributes-backing-pixel (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'backing-pixel))
+
+(defmacro xwindowattributes-save-under (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'save-under))
+
+(defmacro xwindowattributes-colormap (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'colormap))
+
+(defmacro xwindowattributes-map-installed (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'map-installed))
+
+(defmacro xwindowattributes-map-state (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'map-state))
+
+(defmacro xwindowattributes-all-event-masks (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'all-event-masks))
+
+(defmacro xwindowattributes-your-event-mask (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'your-event-mask))
+
+(defmacro xwindowattributes-do-not-propagate-mask (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'do-not-propagate-mask))
+
+(defmacro xwindowattributes-override-redirect (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'override-redirect))
+
+(defmacro xwindowattributes-screen (h)
+  `(ff:fslot-value-typed 'xwindowattributes :c (ensure-pointer ,h) 'screen))
+
 (def-exported-foreign-struct xhostaddress
-  (family :type int)
-  (length :type int)
-  (address :type (:pointer char)))
+  (family :type :int)
+  (length :type :int)
+  (address :type (:pointer :char)))
 
 (def-exported-foreign-struct funcs
   (create-image :type (:pointer :pointer))
@@ -779,445 +1149,745 @@
   (add-pixel :type (:pointer :pointer)))
 
 (def-exported-foreign-struct ximage
-  (width :type int)
-  (height :type int)
-  (xoffset :type int)
-  (format :type int)
-  (data :type (:pointer char))
-  (byte-order :type int)
-  (bitmap-unit :type int)
-  (bitmap-bit-order :type int)
-  (bitmap-pad :type int)
-  (depth :type int)
-  (bytes-per-line :type int)
-  (bits-per-pixel :type int)
-  (red-mask :type unsigned-long)
-  (green-mask :type unsigned-long)
-  (blue-mask :type unsigned-long)
-  (obdata :type (:pointer char))
+  (width :type :int)
+  (height :type :int)
+  (xoffset :type :int)
+  (format :type :int)
+  (data :type (:pointer :char))
+  (byte-order :type :int)
+  (bitmap-unit :type :int)
+  (bitmap-bit-order :type :int)
+  (bitmap-pad :type :int)
+  (depth :type :int)
+  (bytes-per-line :type :int)
+  (bits-per-pixel :type :int)
+  (red-mask :type :unsigned-long)
+  (green-mask :type :unsigned-long)
+  (blue-mask :type :unsigned-long)
+  (obdata :type (:pointer :char))
   (f :type funcs))
 
 (def-exported-foreign-struct xwindowchanges
-  (x :type int)
-  (y :type int)
-  (width :type int)
-  (height :type int)
-  (border-width :type int)
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (border-width :type :int)
   (sibling :type window)
-  (stack-mode :type int))
+  (stack-mode :type :int))
 
 (def-exported-foreign-struct (xcolor :array)
-  (pixel :type unsigned-long)
-  (red :type unsigned-short)
-  (green :type unsigned-short)
-  (blue :type unsigned-short)
-  (flags :type unsigned-char)
-  (pad :type unsigned-char))
+  (pixel :type :unsigned-long)
+  (red :type :unsigned-short)
+  (green :type :unsigned-short)
+  (blue :type :unsigned-short)
+  (flags :type :unsigned-char)
+  (pad :type :unsigned-char))
+
+;;;
+;;;
+;;;
+
+(defmacro xcolor-red (xcolor)
+  `(ff:fslot-value-typed 'xcolor :c (ensure-pointer ,xcolor) 'red))
+
+#+:ignore
+(defun (setf xcolor-red) (new-val xcolor)
+  (setf (ff:fslot-value-typed 'xcolor :c 
+			      (ensure-pointer xcolor)
+			      'red) 
+	new-val))
+
+(defsetf xcolor-red (xcolor) (new-val) 
+  `(setf (ff:fslot-value-typed 'xcolor :c 
+			       (ensure-pointer ,xcolor)
+			       'red) 
+	 ,new-val))
+
+(defmacro xcolor-green (xcolor)
+  `(ff:fslot-value-typed 'xcolor :c (ensure-pointer ,xcolor) 'green))
+
+#+:ignore
+(defun (setf xcolor-green) (new-val xcolor)
+  (setf (ff:fslot-value-typed 'xcolor :c 
+			      (ensure-pointer xcolor)
+			      'green) 
+	new-val))
+
+(defsetf xcolor-green (xcolor) (new-val) 
+  `(setf (ff:fslot-value-typed 'xcolor :c 
+			       (ensure-pointer ,xcolor)
+			       'green) 
+	 ,new-val))
+
+(defmacro xcolor-blue (xcolor)
+  `(ff:fslot-value-typed 'xcolor :c (ensure-pointer ,xcolor) 'blue))
+
+#+:ignore
+(defun (setf xcolor-blue) (new-val xcolor)
+  (setf (ff:fslot-value-typed 'xcolor :c 
+			      (ensure-pointer xcolor)
+			      'blue)
+	new-val))
+
+(defsetf xcolor-blue (xcolor) (new-val) 
+  `(setf (ff:fslot-value-typed 'xcolor :c 
+			       (ensure-pointer ,xcolor)
+			       'blue) 
+	 ,new-val))
+
+(defmacro xcolor-flags (xcolor)
+  `(ff:fslot-value-typed 'xcolor :c (ensure-pointer ,xcolor) 'flags))
+
+#+:ignore
+(defun (setf xcolor-flags) (new-val xcolor)
+  (setf (ff:fslot-value-typed 'xcolor :c 
+			      (ensure-pointer xcolor)
+			      'flags) 
+	new-val))
+
+(defsetf xcolor-flags (xcolor) (new-val) 
+  `(setf (ff:fslot-value-typed 'xcolor :c 
+			       (ensure-pointer ,xcolor)
+			       'flags) 
+	 ,new-val))
+
+(defmacro xcolor-pad (xcolor)
+  `(ff:fslot-value-typed 'xcolor :c (ensure-pointer ,xcolor) 'pad))
+
+#+:ignore
+(defun (setf xcolor-pad) (new-val xcolor)
+  (setf (ff:fslot-value-typed 'xcolor :c 
+			      (ensure-pointer xcolor)
+			      'pad) 
+	new-val))
+
+(defsetf xcolor-pad (xcolor) (new-val) 
+  `(setf (ff:fslot-value-typed 'xcolor :c 
+			       (ensure-pointer ,xcolor)
+			       'pad) 
+	 ,new-val))
+
+(defmacro xcolor-pixel (xcolor)
+  `(ff:fslot-value-typed 'xcolor :c (ensure-pointer ,xcolor) 'pixel))
+
+#+:ignore 
+(defun (setf xcolor-pixel) (new-val xcolor)
+  (setf (ff:fslot-value-typed 'xcolor :c 
+			      (ensure-pointer xcolor)
+			      'pixel) 
+	new-val))
+
+(defsetf xcolor-pixel (xcolor) (new-val) 
+  `(setf (ff:fslot-value-typed 'xcolor :c 
+			       (ensure-pointer ,xcolor)
+			       'pixel) 
+	 ,new-val))
 
 (def-exported-foreign-struct (xsegment :array)
-  (x1 :type short)
-  (y1 :type short)
-  (x2 :type short)
-  (y2 :type short))
+  (x1 :type :short)
+  (y1 :type :short)
+  (x2 :type :short)
+  (y2 :type :short))
+
+(defmacro xsegment-array-x1 (h index)
+  `(ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'x1))
+
+#+:ignore
+(defun (setf xsegment-array-x1) (new-val h index)
+  (setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer h) index 'x1)
+	new-val))
+
+(defsetf xsegment-array-x1 (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'x1)
+	 ,new-val))
+
+(defmacro xsegment-array-x2 (h index)
+  `(ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'x2))
+
+#+:ignore
+(defun (setf xsegment-array-x2) (new-val h index)
+  (setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer h) index 'x2)
+	new-val))
+
+(defsetf xsegment-array-x2 (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'x2)
+	 ,new-val))
+
+(defmacro xsegment-array-y1 (h index)
+  `(ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'y1))
+
+#+:ignore
+(defun (setf xsegment-array-y1) (new-val h index)
+  (setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer h) index 'y1)
+	new-val))
+
+(defsetf xsegment-array-y1 (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'y1)
+	 ,new-val))
+
+(defmacro xsegment-array-y2 (h index)
+  `(ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'y2))
+
+#+:ignore 
+(defun (setf xsegment-array-y2) (new-val h index)
+  (setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer h) index 'y2)
+	new-val))
+
+(defsetf xsegment-array-y2 (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xsegment-array :c (ensure-pointer ,h) ,index 'y2)
+	 ,new-val))
 
 (def-exported-foreign-struct (xpoint :array)
-  (x :type short)
-  (y :type short))
+  (x :type :short)
+  (y :type :short))
+
+(defmacro xpoint-array-x (h index)
+  `(ff:fslot-value-typed 'xpoint-array :c (ensure-pointer ,h) ,index 'x))
+
+#+:ignore
+(defun (setf xpoint-array-x) (new-val h index)
+  (setf (ff:fslot-value-typed 'xpoint-array :c (ensure-pointer h) index 'x)
+	new-val))
+
+(defsetf xpoint-array-x (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xpoint-array :c (ensure-pointer ,h) ,index 'x)
+	 ,new-val))
+
+(defmacro xpoint-array-y (h index)
+  `(ff:fslot-value-typed 'xpoint-array :c (ensure-pointer ,h) ,index 'y))
+
+#+:ignore
+(defun (setf xpoint-array-y) (new-val h index)
+  (setf (ff:fslot-value-typed 'xpoint-array :c (ensure-pointer h) index 'y)
+	new-val))
+
+(defsetf xpoint-array-y (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xpoint-array :c (ensure-pointer ,h) ,index 'y)
+	 ,new-val))
 
 (def-exported-foreign-struct (xrectangle :array)
-  (x :type short)
-  (y :type short)
-  (width :type unsigned-short)
-  (height :type unsigned-short))
+  (x :type :short)
+  (y :type :short)
+  (width :type :unsigned-short)
+  (height :type :unsigned-short))
+
+(defmacro xrectangle-x (h)
+  `(ff:fslot-value-typed 'xrectangle :c (ensure-pointer ,h) 'x))
+
+(defmacro xrectangle-y (h)
+  `(ff:fslot-value-typed 'xrectangle :c (ensure-pointer ,h) 'y))
+
+(defmacro xrectangle-width (h)
+  `(ff:fslot-value-typed 'xrectangle :c (ensure-pointer ,h) 'width))
+
+(defmacro xrectangle-height (h)
+  `(ff:fslot-value-typed 'xrectangle :c (ensure-pointer ,h) 'height))
+
+(defmacro xrectangle-array-x (h index)
+  `(ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer ,h) ,index 'x))
+
+#+:ignore
+(defun (setf xrectangle-array-x) (new-val h index)
+  (setf (ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer h) index 'x)
+	new-val))
+
+(defsetf xrectangle-array-x (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xpoint-array :c (ensure-pointer ,h) ,index 'x)
+	 ,new-val))
+
+(defmacro xrectangle-array-y (h index)
+  `(ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer ,h) ,index 'y))
+
+#+:ignore
+(defun (setf xrectangle-array-y) (new-val h index)
+  (setf (ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer h) index 'y)
+	new-val))
+
+(defsetf xrectangle-array-y (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xpoint-array :c (ensure-pointer ,h) ,index 'y)
+	 ,new-val))
+
+(defmacro xrectangle-array-width (h index)
+  `(ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer ,h) ,index 'width))
+
+#+:ignore
+(defun (setf xrectangle-array-width) (new-val h index)
+  (setf (ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer h) index 'width)
+	new-val))
+
+(defsetf xrectangle-array-width (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer ,h) ,index 'width)
+	 ,new-val))
+
+(defmacro xrectangle-array-height (h index)
+  `(ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer ,h) ,index 'height))
+
+#+:ignore
+(defun (setf xrectangle-array-height) (new-val h index)
+  (setf (ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer h) index 'height)
+	new-val))
+
+(defsetf xrectangle-array-height (h index) (new-val)
+  `(setf (ff:fslot-value-typed 'xrectangle-array :c (ensure-pointer ,h) ,index 'height)
+	 ,new-val))
 
 (def-exported-foreign-struct (xarc :array)
-  (x :type short)
-  (y :type short)
-  (width :type unsigned-short)
-  (height :type unsigned-short)
-  (angle1 :type short)
-  (angle2 :type short))
+  (x :type :short)
+  (y :type :short)
+  (width :type :unsigned-short)
+  (height :type :unsigned-short)
+  (angle1 :type :short)
+  (angle2 :type :short))
 
 (def-exported-foreign-struct xkeyboardcontrol
-  (key-click-percent :type int)
-  (bell-percent :type int)
-  (bell-pitch :type int)
-  (bell-duration :type int)
-  (led :type int)
-  (led-mode :type int)
-  (key :type int)
-  (auto-repeat-mode :type int))
+  (key-click-percent :type :int)
+  (bell-percent :type :int)
+  (bell-pitch :type :int)
+  (bell-duration :type :int)
+  (led :type :int)
+  (led-mode :type :int)
+  (key :type :int)
+  (auto-repeat-mode :type :int))
 
 (def-exported-foreign-struct xkeyboardstate
-  (key-click-percent :type int)
-  (bell-percent :type int)
-  (bell-pitch :type unsigned-int)
-  (bell-duration :type unsigned-int)
-  (led-mask :type unsigned-long)
-  (global-auto-repeat :type int)
-  (auto-repeats :type (:array char (32))))
+  (key-click-percent :type :int)
+  (bell-percent :type :int)
+  (bell-pitch :type :unsigned-int)
+  (bell-duration :type :unsigned-int)
+  (led-mask :type :unsigned-long)
+  (global-auto-repeat :type :int)
+  (auto-repeats :type (:array :char (32))))
 
 (def-exported-foreign-struct xtimecoord
   (time :type time)
-  (x :type short)
-  (y :type short))
+  (x :type :short)
+  (y :type :short))
 
 (def-exported-foreign-struct xmodifierkeymap
-  (max-keypermod :type int)
+  (max-keypermod :type :int)
   (modifiermap :type (:pointer keycode)))
+
+(defmacro xmodifierkeymap-modifiermap (h)
+  `(ff:fslot-value-typed 'xmodifierkeymap :c ,h 'modifiermap))
+
+(defmacro xmodifierkeymap-max-keypermod (h)
+  `(ff:fslot-value-typed 'xmodifierkeymap :c ,h 'max-keypermod))
 
 (def-exported-foreign-struct display
   (ext-data :type (:pointer xextdata))
   (next :type (:pointer display))
-  (fd :type int)
-  (lock :type int)
-  (proto-major-version :type int)
-  (proto-minor-version :type int)
-  (vendor :type (:pointer char))
-  (resource-base :type long)
-  (resource-mask :type long)
-  (resource-id :type long)
-  (resource-shift :type int)
+  (fd :type :int)
+  (lock :type :int)
+  (proto-major-version :type :int)
+  (proto-minor-version :type :int)
+  (vendor :type (:pointer :char))
+  (resource-base :type :long)
+  (resource-mask :type :long)
+  (resource-id :type :long)
+  (resource-shift :type :int)
   (resource-alloc :type (:pointer :pointer))
-  (byte-order :type int)
-  (bitmap-unit :type int)
-  (bitmap-pad :type int)
-  (bitmap-bit-order :type int)
-  (nformats :type int)
+  (byte-order :type :int)
+  (bitmap-unit :type :int)
+  (bitmap-pad :type :int)
+  (bitmap-bit-order :type :int)
+  (nformats :type :int)
   (pixmap-format :type (:pointer screenformat))
-  (vnumber :type int)
-  (release :type int)
+  (vnumber :type :int)
+  (release :type :int)
   (head :type (:pointer _xsqevent))
   (tail :type (:pointer _xsqevent))
-  (qlen :type int)
-  (last-request-read :type unsigned-long)
-  (request :type unsigned-long)
-  (last-req :type (:pointer char))
-  (buffer :type (:pointer char))
-  (bufptr :type (:pointer char))
-  (bufmax :type (:pointer char))
-  (max-request-size :type unsigned)
+  (qlen :type :int)
+  (last-request-read :type :unsigned-long)
+  (request :type :unsigned-long)
+  (last-req :type (:pointer :char))
+  (buffer :type (:pointer :char))
+  (bufptr :type (:pointer :char))
+  (bufmax :type (:pointer :char))
+  (max-request-size :type :unsigned-int)
   (db :type (:pointer _xrmhashbucketrec))
   (synchandler :type (:pointer :pointer))
-  (display-name :type (:pointer char))
-  (default-screen :type int)
-  (nscreens :type int)
+  (display-name :type (:pointer :char))
+  (default-screen :type :int)
+  (nscreens :type :int)
   (screens :type (:pointer screen))
-  (motion-buffer :type unsigned-long)
+  (motion-buffer :type :unsigned-long)
   (current :type window)
-  (min-keycode :type int)
-  (max-keycode :type int)
+  (min-keycode :type :int)
+  (max-keycode :type :int)
   (keysyms :type (:pointer keysym))
   (modifiermap :type (:pointer xmodifierkeymap))
-  (keysyms-per-keycode :type int)
-  (xdefaults :type (:pointer char))
-  (scratch-buffer :type (:pointer char))
-  (scratch-length :type unsigned-long)
-  (ext-number :type int)
+  (keysyms-per-keycode :type :int)
+  (xdefaults :type (:pointer :char))
+  (scratch-buffer :type (:pointer :char))
+  (scratch-length :type :unsigned-long)
+  (ext-number :type :int)
   (ext-procs :type (:pointer _xextension))
-  (event-vec :type (:array (:pointer :pointer) (128)))
-  (wire-vec :type (:array (:pointer :pointer) (128)))
+  ;; changed by MW:
+  (event-vec :type (:array (* :pointer) (128)))
+  ;; changed by MW:
+  (wire-vec :type (:array (* :pointer) (128)))
   (lock-meaning :type keysym)
   (key-bindings :type (:pointer xkeytrans))
   (cursor-font :type font))
 
+(defmacro display-request (h)
+  `(ff:fslot-value-typed 'display :c (ensure-pointer ,h) 'display-request))
+
+(defmacro display-display-name (h)
+  `(ff:fslot-value-typed 'display :c (ensure-pointer ,h) 'display-name))
+
+(defmacro visual-class (display)
+  `(ff:fslot-value-typed 'visual :c ,display 'class))
+
+(defmacro display-vendor (display)
+  `(ff:fslot-value-typed 'display :c (ff::foreign-pointer-address ,display) 'vendor))
+
+(defmacro display-fd (display)
+  `(ff:fslot-value-typed 'display :c (ff::foreign-pointer-address ,display) 'fd))
+
 (def-exported-foreign-synonym-type _xdisplay display)
 
 (def-exported-foreign-struct xkeyevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (root :type window)
   (subwindow :type window)
   (time :type time)
-  (x :type int)
-  (y :type int)
-  (x-root :type int)
-  (y-root :type int)
-  (state :type unsigned-int)
-  (keycode :type unsigned-int)
-  (same-screen :type int))
+  (x :type :int)
+  (y :type :int)
+  (x-root :type :int)
+  (y-root :type :int)
+  (state :type :unsigned-int)
+  (keycode :type :unsigned-int)
+  (same-screen :type :int))
+
+(defmacro xkeyevent-state (h)
+  `(ff:fslot-value-typed 'xkeyevent :c (ensure-pointer ,h) 'state))
+
+
 (def-exported-foreign-synonym-type xkeypressedevent xkeyevent)
 (def-exported-foreign-synonym-type xkeyreleasedevent xkeyevent)
 
 (def-exported-foreign-struct xbuttonevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (root :type window)
   (subwindow :type window)
   (time :type time)
-  (x :type int)
-  (y :type int)
-  (x-root :type int)
-  (y-root :type int)
-  (state :type unsigned-int)
-  (button :type unsigned-int)
-  (same-screen :type int))
+  (x :type :int)
+  (y :type :int)
+  (x-root :type :int)
+  (y-root :type :int)
+  (state :type :unsigned-int)
+  (button :type :unsigned-int)
+  (same-screen :type :int))
+
+(defmacro xbuttonevent-x (h)
+  `(ff:fslot-value-typed 'xbuttonevent :c (ensure-pointer ,h) 'x))
+
+(defmacro xbuttonevent-y (h)
+  `(ff:fslot-value-typed 'xbuttonevent :c (ensure-pointer ,h) 'y))
+
+(defmacro xbuttonevent-button (h)
+  `(ff:fslot-value-typed 'xbuttonevent :c (ensure-pointer ,h) 'button))
+
+(defmacro xbuttonevent-state (h)
+  `(ff:fslot-value-typed 'xbuttonevent :c (ensure-pointer ,h) 'state))
+
 
 (def-exported-foreign-synonym-type xbuttonpressedevent xbuttonevent)
 (def-exported-foreign-synonym-type xbuttonreleasedevent xbuttonevent)
 
 (def-exported-foreign-struct xmotionevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (root :type window)
   (subwindow :type window)
   (time :type time)
-  (x :type int)
-  (y :type int)
-  (x-root :type int)
-  (y-root :type int)
-  (state :type unsigned-int)
-  (is-hint :type char)
-  (same-screen :type int))
+  (x :type :int)
+  (y :type :int)
+  (x-root :type :int)
+  (y-root :type :int)
+  (state :type :unsigned-int)
+  (is-hint :type :char)
+  (same-screen :type :int))
 
 (def-exported-foreign-synonym-type xpointermovedevent xmotionevent)
 
 (def-exported-foreign-struct xcrossingevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (root :type window)
   (subwindow :type window)
   (time :type time)
-  (x :type int)
-  (y :type int)
-  (x-root :type int)
-  (y-root :type int)
-  (mode :type int)
-  (detail :type int)
-  (same-screen :type int)
-  (focus :type int)
-  (state :type unsigned-int))
+  (x :type :int)
+  (y :type :int)
+  (x-root :type :int)
+  (y-root :type :int)
+  (mode :type :int)
+  (detail :type :int)
+  (same-screen :type :int)
+  (focus :type :int)
+  (state :type :unsigned-int))
+
+
+(defmacro xcrossingevent-x (h)
+  `(ff:fslot-value-typed 'xcrossingevent :c (ensure-pointer ,h) 'x))
+
+(defmacro xcrossingevent-y (h)
+  `(ff:fslot-value-typed 'xcrossingevent :c (ensure-pointer ,h) 'y))
+
+(defmacro xcrossingevent-detail (h)
+  `(ff:fslot-value-typed 'xcrossingevent :c (ensure-pointer ,h) 'detail))
+
+(defmacro xcrossingevent-state (h)
+  `(ff:fslot-value-typed 'xcrossingevent :c (ensure-pointer ,h) 'state))
+
 
 (def-exported-foreign-synonym-type xenterwindowevent xcrossingevent)
 (def-exported-foreign-synonym-type xleavewindowevent xcrossingevent)
 
 (def-exported-foreign-struct xfocuschangeevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
-  (mode :type int)
-  (detail :type int))
+  (mode :type :int)
+  (detail :type :int))
 
 (def-exported-foreign-synonym-type xfocusinevent  xfocuschangeevent)
 (def-exported-foreign-synonym-type xfocusoutevent xfocuschangeevent)
 
 (def-exported-foreign-struct xkeymapevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
-  (key-vector :type (:array char (32))))
+  (key-vector :type (:array :char (32))))
 
 (def-exported-foreign-struct xexposeevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
-  (x :type int)
-  (y :type int)
-  (width :type int)
-  (height :type int)
-  (count :type int))
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (count :type :int))
+
+(defmacro xexposeevent-x (h)
+  `(ff:fslot-value-typed 'xexposeevent :c (ensure-pointer ,h) 'x))
+
+(defmacro xexposeevent-y (h)
+  `(ff:fslot-value-typed 'xexposeevent :c (ensure-pointer ,h) 'y))
+
+(defmacro xexposeevent-width (h)
+  `(ff:fslot-value-typed 'xexposeevent :c (ensure-pointer ,h) 'width))
+
+(defmacro xexposeevent-height (h)
+  `(ff:fslot-value-typed 'xexposeevent :c (ensure-pointer ,h) 'height))
+
 
 (def-exported-foreign-struct xgraphicsexposeevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (drawable :type drawable)
-  (x :type int)
-  (y :type int)
-  (width :type int)
-  (height :type int)
-  (count :type int)
-  (major-code :type int)
-  (minor-code :type int))
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (count :type :int)
+  (major-code :type :int)
+  (minor-code :type :int))
 
 (def-exported-foreign-struct xnoexposeevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (drawable :type drawable)
-  (major-code :type int)
-  (minor-code :type int))
+  (major-code :type :int)
+  (minor-code :type :int))
 
 (def-exported-foreign-struct xvisibilityevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
-  (state :type int))
+  (state :type :int))
 
 (def-exported-foreign-struct xcreatewindowevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (parent :type window)
   (window :type window)
-  (x :type int)
-  (y :type int)
-  (width :type int)
-  (height :type int)
-  (border-width :type int)
-  (override-redirect :type int))
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (border-width :type :int)
+  (override-redirect :type :int))
 
 (def-exported-foreign-struct xdestroywindowevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window))
 
 (def-exported-foreign-struct xunmapevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window)
-  (from-configure :type int))
+  (from-configure :type :int))
 
 (def-exported-foreign-struct xmapevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window)
-  (override-redirect :type int))
+  (override-redirect :type :int))
 
 (def-exported-foreign-struct xmaprequestevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (parent :type window)
   (window :type window))
 
 (def-exported-foreign-struct xreparentevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window)
   (parent :type window)
-  (x :type int)
-  (y :type int)
-  (override-redirect :type int))
+  (x :type :int)
+  (y :type :int)
+  (override-redirect :type :int))
 
 (def-exported-foreign-struct xconfigureevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window)
-  (x :type int)
-  (y :type int)
-  (width :type int)
-  (height :type int)
-  (border-width :type int)
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (border-width :type :int)
   (above :type window)
-  (override-redirect :type int))
+  (override-redirect :type :int))
 
 (def-exported-foreign-struct xgravityevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window)
-  (x :type int)
-  (y :type int))
+  (x :type :int)
+  (y :type :int))
 
 (def-exported-foreign-struct xresizerequestevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
-  (width :type int)
-  (height :type int))
+  (width :type :int)
+  (height :type :int))
 
 (def-exported-foreign-struct xconfigurerequestevent
-   (type :type int)
-   (serial :type unsigned-long)
-   (send-event :type int)
-   (display :type (:pointer display))
-   (parent :type window)
-   (window :type window)
-   (x :type int)
-   (y :type int)
-   (width :type int)
-   (height :type int)
-   (border-width :type int)
-   (above :type window)
-   (detail :type int)
-   (value-mask :type unsigned-long))
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
+  (display :type (:pointer display))
+  (parent :type window)
+  (window :type window)
+  (x :type :int)
+  (y :type :int)
+  (width :type :int)
+  (height :type :int)
+  (border-width :type :int)
+  (above :type window)
+  (detail :type :int)
+  (value-mask :type :unsigned-long))
 
 (def-exported-foreign-struct xcirculateevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (event :type window)
   (window :type window)
-  (place :type int))
+  (place :type :int))
 
 (def-exported-foreign-struct xcirculaterequestevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type
 	   (:pointer display))
   (parent :type window)
   (window :type window)
-  (place :type int))
+  (place :type :int))
 
 (def-exported-foreign-struct xpropertyevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (atom :type atom)
   (time :type time)
-  (state :type int))
+  (state :type :int))
 
 (def-exported-foreign-struct xselectionclearevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (selection :type atom)
   (time :type time))
 
 (def-exported-foreign-struct xselectionrequestevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type
 	   (:pointer display))
   (owner :type window)
@@ -1228,9 +1898,9 @@
   (time :type time))
 
 (def-exported-foreign-struct xselectionevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (requestor :type window)
   (selection :type atom)
@@ -1239,58 +1909,79 @@
   (time :type time))
 
 (def-exported-foreign-struct xcolormapevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (colormap :type colormap)
-  (new :type int)
-  (state :type int))
+  (new :type :int)
+  (state :type :int))
 
 (def-exported-foreign-struct bsl-union
-  (b :type (:array char (20)))
-  (s :type (:array short (10)) :overlays b)
-  (l :type (:array long (5)) :overlays b))
+  (b :type (:array :char (20)))
+  (s :type (:array :short (10)) :overlays b)
+  (l :type (:array :long (5)) :overlays b))
 
 (def-exported-foreign-struct xclientmessageevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
   (message-type :type atom)
-  (format :type int)
+  (format :type :int)
   (data :type bsl-union))
 
 (def-exported-foreign-struct xmappingevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window)
-  (request :type int)
-  (first-keycode :type int)
-  (count :type int))
+  (request :type :int)
+  (first-keycode :type :int)
+  (count :type :int))
 
 (def-exported-foreign-struct xerrorevent
-  (type :type int)
+  (type :type :int)
   (display :type (:pointer display))
   (resourceid :type xid)
-  (serial :type unsigned-long)
-  (error-code :type unsigned-char)
-  (request-code :type unsigned-char)
-  (minor-code :type unsigned-char))
+  (serial :type :unsigned-long)
+  (error-code :type :unsigned-char)
+  (request-code :type :unsigned-char)
+  (minor-code :type :unsigned-char))
+
+(defmacro xerrorevent-error-code (h)
+  `(ff:fslot-value-typed 'xerrorevent :c (ensure-pointer ,h) 'error-code))
+
+(defmacro xerrorevent-request-code (h)
+  `(ff:fslot-value-typed 'xerrorevent :c (ensure-pointer ,h) 'request-code))
+
+(defmacro xerrorevent-minor-code (h)
+  `(ff:fslot-value-typed 'xerrorevent :c (ensure-pointer ,h) 'minor-code))
+
+(defmacro xerrorevent-resourceid (h)
+  `(ff:fslot-value-typed 'xerrorevent :c (ensure-pointer ,h) 'resourceid))
+
+(defmacro xerrorevent-serial (h)
+  `(ff:fslot-value-typed 'xerrorevent :c (ensure-pointer ,h) 'serial))
+
 
 (def-exported-foreign-struct xanyevent
-  (type :type int)
-  (serial :type unsigned-long)
-  (send-event :type int)
+  (type :type :int)
+  (serial :type :unsigned-long)
+  (send-event :type :int)
   (display :type (:pointer display))
   (window :type window))
 
-(def-exported-foreign-struct (xevent :no-substruct-accessors)
-  (type :type int)
+(defmacro xanyevent-serial (h)
+  `(ff:fslot-value-typed 'xanyevent :c (ensure-pointer ,h) 'serial))
+
+;;;(def-exported-foreign-struct (xevent :no-substruct-accessors)
+
+(def-exported-foreign-struct xevent 
+  (type :type :int)
   (xany :type xanyevent :overlays type)
   (xkey :type xkeyevent :overlays xany)
   (xbutton :type xbuttonevent :overlays xany)
@@ -1322,7 +2013,10 @@
   (xmapping :type xmappingevent :overlays xany)
   (xerror :type xerrorevent :overlays xany)
   (xkeymap :type xkeymapevent :overlays xany)
-  (pad :type (:array long (24)) :overlays xany))
+  (pad :type (:array :long (24)) :overlays xany))
+
+(defmacro xevent-type (h)
+  `(ff:fslot-value-typed 'xevent :c (ensure-pointer ,h) 'type-union 'type))
 
 (def-exported-foreign-synonym-type _xevent xevent)
 
@@ -1333,70 +2027,150 @@
 (def-exported-foreign-synonym-type _xsqevent _xqevent)
 
 (def-exported-foreign-struct xcharstruct
-  (lbearing :type short)
-  (rbearing :type short)
-  (width :type short)
-  (ascent :type short)
-  (descent :type short)
-  (attributes :type unsigned-short))
+  (lbearing :type :short)
+  (rbearing :type :short)
+  (width :type :short)
+  (ascent :type :short)
+  (descent :type :short)
+  (attributes :type :unsigned-short))
 
 (def-exported-foreign-struct xfontprop
   (name :type atom)
-  (card32 :type unsigned-long))
+  (card32 :type :unsigned-long))
+
+(defmacro xfontprop-name (h)
+  `(ff:fslot-value-typed 'xfontprop :c (ensure-pointer ,h) 'name))
+
+(defmacro xfontprop-card32 (h)
+  `(ff:fslot-value-typed 'xfontprop :c (ensure-pointer ,h) 'card32))
 
 (def-exported-foreign-struct xfontstruct
   (ext-data :type (:pointer xextdata))
   (fid :type font)
-  (direction :type unsigned)
-  (min-char-or-byte2 :type unsigned)
-  (max-char-or-byte2 :type unsigned)
-  (min-byte1 :type unsigned)
-  (max-byte1 :type unsigned)
-  (all-chars-exist :type int)
-  (default-char :type unsigned)
-  (n-properties :type int)
+  (direction :type :unsigned-int)
+  (min-char-or-byte2 :type :unsigned-int)
+  (max-char-or-byte2 :type :unsigned-int)
+  (min-byte1 :type :unsigned-int)
+  (max-byte1 :type :unsigned-int)
+  (all-chars-exist :type :int)
+  (default-char :type :unsigned-int)
+  (n-properties :type :int)
   (properties :type (:pointer xfontprop))
   (min-bounds :type xcharstruct)
   (max-bounds :type xcharstruct)
   (per-char :type (:pointer xcharstruct))
-  (ascent :type int)
-  (descent :type int))
+  (ascent :type :int)
+  (descent :type :int))
+
+(defmacro xfontstruct-fid (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'fid))
+
+(defmacro xfontstruct-min-char-or-byte2 (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-char-or-byte2))
+
+(defmacro xfontstruct-max-char-or-byte2 (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-char-or-byte2))
+
+(defmacro xfontstruct-min-byte1 (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-byte1))
+
+(defmacro xfontstruct-max-byte1 (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-byte1))
+
+(defmacro xfontstruct-per-char (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'per-char))
+
+(defmacro xfontstruct-min-bounds (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-bounds))
+
+(defmacro xfontstruct-min-bounds-width (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-bounds 'width))
+
+(defmacro xfontstruct-min-bounds-ascent (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-bounds 'ascent))
+
+(defmacro xfontstruct-min-bounds-descent (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-bounds 'descent))
+
+(defmacro xfontstruct-min-bounds-lbearing (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-bounds 'lbearing))
+
+(defmacro xfontstruct-min-bounds-rbearing (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'min-bounds 'rbearing))
+
+(defmacro xfontstruct-max-bounds (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds))
+
+(defmacro xfontstruct-max-bounds-width (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds 'width))
+
+(defmacro xfontstruct-max-bounds-height (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds 'height))
+
+(defmacro xfontstruct-max-bounds-ascent (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds 'ascent))
+
+(defmacro xfontstruct-max-bounds-descent (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds 'descent))
+
+(defmacro xfontstruct-max-bounds-lbearing (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds 'lbearing))
+
+(defmacro xfontstruct-max-bounds-rbearing (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'max-bounds 'rbearing))
+
+(defmacro xfontstruct-n-properties (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'n-properties))
+
+(defmacro xfontstruct-properties (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'properties))
+
+(defmacro xfontstruct-ascent (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'ascent))
+
+(defmacro xfontstruct-descent (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'descent))
+
+(defmacro xfontstruct-all-chars-exist (h)
+  `(ff:fslot-value-typed 'xfontstruct :c (ensure-pointer ,h) 'all-chars-exist))
+
 
 (def-exported-foreign-struct xtextitem
-  (chars :type (:pointer char))
-  (nchars :type int)
-  (delta :type int)
+  (chars :type (:pointer :char))
+  (nchars :type :int)
+  (delta :type :int)
   (font :type font))
 
 (def-exported-foreign-struct xchar2b
-  (byte1 :type unsigned-char)
-  (byte2 :type unsigned-char))
+  (byte1 :type :unsigned-char)
+  (byte2 :type :unsigned-char))
 
 (def-exported-foreign-struct xtextitem16
   (chars :type (:pointer xchar2b))
-  (nchars :type int)
-  (delta :type int)
+  (nchars :type :int)
+  (delta :type :int)
   (font :type font))
 
 
 #|
 typedef union { Display *display;
-		GC gc;
-		Visual *visual;
-		Screen *screen;
-		ScreenFormat *pixmap_format;
-		XFontStruct *font; } XEDataObject;
+GC gc;
+Visual *visual;
+Screen *screen;
+ScreenFormat *pixmap_format;
+XFontStruct *font; } XEDataObject;
 |#
 (def-exported-foreign-synonym-type xedataobject caddr-t)
 
 ;;; Xlib Resource Manager Definitions from Xresource.h
 
-(def-exported-foreign-synonym-type xrmquark int)
-(def-exported-foreign-synonym-type xrmquarklist (:pointer int))
-(def-exported-foreign-synonym-type xrmstring (:pointer char))
+(def-exported-foreign-synonym-type xrmquark :int)
+(def-exported-foreign-synonym-type xrmquarklist (:pointer :int))
+(def-exported-foreign-synonym-type xrmstring (:pointer :char))
 
 (defconstant XrmBindTightly 0)
 (defconstant XrmBindLoosely 1)
+
 (def-exported-foreign-synonym-type XrmBinding :fixnum)
 (def-exported-foreign-synonym-type XrmBindingList (:pointer :fixnum))
 
@@ -1407,14 +2181,21 @@ typedef union { Display *display;
 (def-exported-foreign-synonym-type xrmrepresentation xrmquark)
 
 (def-exported-foreign-struct xrmvalue
-  (size :type unsigned-int)
+  (size :type :unsigned-int)
   (addr :type caddr-t))
+
+(defmacro xrmvalue-size (h)
+  `(ff:fslot-value-typed 'xrmvalue :c (ensure-pointer ,h) 'size))
+
+(defmacro xrmvalue-addr (h)
+  `(ff:fslot-value-typed 'xrmvalue :c (ensure-pointer ,h) 'addr))
+
 (def-exported-foreign-synonym-type xrmvalueptr (:pointer xrmvalue))
 
-(def-exported-foreign-synonym-type xrmsearchlist int)
-(def-exported-foreign-synonym-type xrmdatabase int)
-(def-exported-foreign-synonym-type xim int)
-(def-exported-foreign-synonym-type xic int)
+(def-exported-foreign-synonym-type xrmsearchlist :int)
+(def-exported-foreign-synonym-type xrmdatabase :int)
+(def-exported-foreign-synonym-type xim :int)
+(def-exported-foreign-synonym-type xic :int)
 
 (defconstant XNInputStyle "inputStyle")
 (defconstant XNClientWindow "clientWindow")
@@ -1441,26 +2222,25 @@ typedef union { Display *display;
 (defconstant XrmoptionResArg 4)
 (defconstant XrmoptionSkipArg 5)
 (defconstant XrmoptionSkipLine 6)
-(def-exported-foreign-synonym-type XrmOptionKind int)
+(def-exported-foreign-synonym-type XrmOptionKind :int)
 
 (def-exported-foreign-struct xrmoptiondescrec
-  (option :type (:pointer char))
-  (specifier :type (:pointer char))
+  (option :type (:pointer :char))
+  (specifier :type (:pointer :char))
   (argkind :type XrmOptionKind)
   (value :type caddr-t))
 (def-exported-foreign-synonym-type xrmoptiondesclist (:pointer xrmoptiondescrec))
 
-
 ;;; Utility Definitions from Xutil.h
 
 (def-exported-foreign-struct xwmhints
-  (flags :type long)
-  (input :type int)
-  (initial-state :type int)
+  (flags :type :long)
+  (input :type :int)
+  (initial-state :type :int)
   (icon-pixmap :type pixmap)
   (icon-window :type window)
-  (icon-x :type int)
-  (icon-y :type int)
+  (icon-x :type :int)
+  (icon-y :type :int)
   (icon-mask :type pixmap)
   (window-group :type xid))
 
@@ -1480,24 +2260,40 @@ typedef union { Display *display;
 (def-exported-constant InactiveState 4)      ;; #define InactiveState 4
 
 (def-exported-foreign-struct xsizehints
-  (flags :type long)
-  (x :type int)				; Obsolete
-  (y :type int)				; Obsolete
-  (width :type int)			; Obsolete
-  (height :type int)			; Obsolete
-  (min-width :type int)
-  (min-height :type int)
-  (max-width :type int)
-  (max-height :type int)
-  (width-inc :type int)
-  (height-inc :type int)
-  (min-aspect-x :type int)
-  (min-aspect-y :type int)
-  (max-aspect-x :type int)
-  (max-aspect-y :type int)
-  (base-width :type int)
-  (base-height :type int)
-  (win-gravity :type int))
+  (flags :type :long)
+  (x :type :int)				; Obsolete
+  (y :type :int)				; Obsolete
+  (width :type :int)			; Obsolete
+  (height :type :int)			; Obsolete
+  (min-width :type :int)
+  (min-height :type :int)
+  (max-width :type :int)
+  (max-height :type :int)
+  (width-inc :type :int)
+  (height-inc :type :int)
+  (min-aspect-x :type :int)
+  (min-aspect-y :type :int)
+  (max-aspect-x :type :int)
+  (max-aspect-y :type :int)
+  (base-width :type :int)
+  (base-height :type :int)
+  (win-gravity :type :int))
+
+(defmacro xsizehints-flags (h)
+  `(ff:fslot-value-typed 'xsizehints :c (ensure-pointer ,h) 'flags))
+
+#+:ignore
+(defun (setf xsizehints-flags) (new-val h)
+  (setf (ff:fslot-value-typed 'xsizehints :c 
+			      (ensure-pointer h)
+			      'flags) 
+	new-val))
+
+(defsetf xsizehints-flags (h) (new-val) 
+  `(setf (ff:fslot-value-typed 'xsizehints :c 
+			       (ensure-pointer ,h)
+			       'flags) 
+	 ,new-val))
 
 (def-exported-constant uspositionhint 1)
 (def-exported-constant ussizehint 2)
@@ -1514,12 +2310,12 @@ typedef union { Display *display;
 (def-exported-constant xcnomem   1)  ;; #define XCNOMEM   1
 (def-exported-constant xcnoent   2)  ;; #define XCNOENT   2
 
-(def-exported-foreign-synonym-type xcontext int)
+(def-exported-foreign-synonym-type xcontext :int)
 
 
 (def-exported-foreign-struct xcomposestatus
-  (compose-ptr :type (:pointer char))
-  (chars-matched :type int))
+  (compose-ptr :type (:pointer :char))
+  (chars-matched :type :int))
 
 
 ;;; Untranslated C preprocessor #define statements

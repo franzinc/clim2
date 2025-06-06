@@ -963,15 +963,16 @@
 	(format nil ":~2,'0D" minutes)
       (format nil "~1D:~2,'0D" hours minutes))))
 
-(define-presentation-type time ())
+;; change by MW from time to time-0 to prevent a nameclash
+(define-presentation-type time0 ())
 
-(define-presentation-method present (object (type time) stream view &key acceptably)
+(define-presentation-method present (object (type time0) stream view &key acceptably)
   (declare (ignore view))
   (if acceptably
       (format stream "~A" object)
-      (format stream "~A" (time-hhmm object))))
+      (format stream "~A" (time0-hhmm object))))
 
-(define-presentation-method accept ((type time) stream view &key)
+(define-presentation-method accept ((type time0) stream view &key)
   (declare (ignore view))
   (let ((hhmm (accept '((sequence-enumerated
 			  (integer 0 24)
@@ -1356,7 +1357,7 @@
       (setq airsp (accept 'integer :prompt "True Airspeed (kts)" 
 			  :default airsp :stream stream))
       (terpri stream)
-      (setq deptm (accept 'time :prompt "Proposed Departure Time"
+      (setq deptm (accept 'time0 :prompt "Proposed Departure Time0"
 			  :default deptm :stream stream))
       (terpri stream)
       (setq alt (accept 'integer :prompt "Cruising Altitude" 

@@ -33,7 +33,8 @@
    ;; only compile with non-ICS if no fasl file exist
    ;; always compile with ICS in case it was previously compiled by
    ;; non-ICS
-   #-acl86win32
+   
+   #+(and ics (not acl86win32))
    ("japanese-graphics-editor" (:module-class #-ics compile-once
 					      #+ics compile-always)
 			       (:load-before-compile "demo-driver" "packages"))
