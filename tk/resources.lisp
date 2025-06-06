@@ -302,7 +302,7 @@
 	  (push (cadr rvs) values))
 	(setq resources (nreverse resources))
 	(setq values (nreverse values))
-	(excl::without-interrupts
+	(clim-sys:without-scheduling
 	  ;; We don't really want anyone else to grab the same cache entry.
 	  (let* ((class (class-of widget))
 		 (parent-class (let ((p (tk::widget-parent widget)))
@@ -479,7 +479,7 @@
   (declare (optimize (speed 3))
 	   (dynamic-extent resources))
   (with-malloced-objects
-      (excl::without-interrupts
+      (clim-sys:without-scheduling
 	;; We don't really want anyone else to grab the same cache entry.
 	(let* ((class (class-of widget))
 	       (parent-class (let ((p (tk::widget-parent widget)))

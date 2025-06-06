@@ -111,7 +111,7 @@
 	    ("browseSelectionCallback" :single-selection)
 	    ("singleSelectionCallback" :single-selection)
 	    ("defaultActionCallback")
-	    ("extendedSelectionCallback")
+	    ("extendedSelectionCallback" :extended-selection) ; billingt:Nov-1-2019 
 	    ("multipleSelectionCallback" :multiple-selection)
 	    ("entryCallback")
 	    ("mapCallback")

@@ -138,7 +138,9 @@
    #+acl86win32
    "clim2:;aclpc;pkgdcl"                ;get package for compile.  Ick.
    clim-demo				;demo;sysdcl
-   "clim2:;test;test-suite"             ;hack!
+   "clim2:;tk;pkg"
+   "clim2:;tk-silica;pkg"               
+   "clim2:;test;test-suite"             
    ))
 
 #-acl86win32

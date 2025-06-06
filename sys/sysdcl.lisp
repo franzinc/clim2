@@ -229,7 +229,7 @@
    ;; only compile with non-ICS if no fasl file exist
    ;; always compile with ICS in case it was previously compiled by
    ;; non-ICS
-   #-acl86win32
+   #+(and ics (not acl86win32))
    ("japanese-input-editor" (:module-class #-ics compile-once
 					   #+ics compile-always))
 
@@ -492,3 +492,5 @@
 
 ||#
 
+(setf (get 'comp::md-cstruct-svector-type-code 'comp::a-is-target) 111)
+  

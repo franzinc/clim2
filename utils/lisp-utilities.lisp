@@ -1460,12 +1460,12 @@
 ;;; on the <Abort> key.  Note that in Allegro, this choice ends up as an ordinary
 ;;; proceed option, but in Lucid it ends up on ":A".
 (defmacro with-simple-abort-restart ((format-string &rest format-args) &body body)
-  #{
-    Genera `(scl:catch-error-restart ((sys:abort) ,format-string ,@format-args)
+;  #{
+    #+Genera `(scl:catch-error-restart ((sys:abort) ,format-string ,@format-args)
 	      ,@body)
-    otherwise `(with-simple-restart (abort ,format-string ,@format-args)
+    #-Genera `(with-simple-restart (abort ,format-string ,@format-args)
 		 ,@body)
-   }
+;   }
   )
 
 (defmacro with-simple-abort-restart-if (condition (format-string &rest format-args) &body body)
@@ -1646,27 +1646,27 @@
 
 ;;; ALLOCATE-CSTRUCT was adapted from ff:make-cstruct.
 ;;; We aren't using ff:make-cstruct because it uses excl:aclmalloc.
+
+
 #-mswindows
-(defun allocate-cstruct (name &key
-			      (number 1)
-			      (initialize
-			       (ff::cstruct-property-initialize
-				(ff::cstruct-prop name)))
-			      )
+(defun allocate-cstruct (name &key (number 1) &allow-other-keys)
   (declare (optimize (speed 3)))
-  (let* ((prop (ff::cstruct-prop name))
-	 (size (* number (ff::cstruct-property-length prop))))
-    (when initialize (setq initialize 0))
-    (allocate-memory size initialize)))
+  (let* ((size 
+	  ;; (* number (ff::cstruct-property-length prop))
+	  ;; refactored by MAW, new FFI 
+	  (* number (ff:sizeof-fobject name) 1 )))
+    (allocate-memory size 0)))
 
 (defun allocate-memory (size init)
   ;; Used only by ALLOCATE-CSTRUCT.
   (let ((pointer (excl:malloc size)))
+    
     (when init
       (do ((i 0 (+ i #-64bit 4 #+64bit 8)))
 	  ((>= i size))
 	(declare (fixnum i))
 	(setf (sys:memref-int pointer i 0 :unsigned-natural) 0)))
+    
     pointer))
 
 ;;; We aren't using excl:string-to-native by default because it uses
@@ -1704,3 +1704,16 @@
             (re-lisped string)
             "string isn't equal to re-chared foreign mem ~%~S~%~S!" string re-lisped))
   address)
+
+;;;
+;;;
+;;;
+
+#+:allegro
+(defmacro ensure-pointer (x) 
+  (let ((tempvar (gensym)))
+    `(let ((,tempvar ,x))
+       (if (integerp ,tempvar) 
+	   ,tempvar
+	 (ff::foreign-pointer-address ,tempvar)))))
+

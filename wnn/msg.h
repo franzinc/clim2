@@ -1,4 +1,5 @@
 /*
+ * $Id: msg.h,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
  */
 /*
  * Copyright 1989, 1992 OMRON Corporation

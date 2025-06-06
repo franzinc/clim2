@@ -72,17 +72,35 @@
 		(make-instance 'tk::gcontext :drawable pixmap))
 	    (tk::destroy-pixmap pixmap))))))
 
+(defvar *clim-initialized* nil)
+
 (defmethod restart-port ((port xt-port))
   (let ((process (port-process port)))
     (when process
       (clim-sys:destroy-process process))
     (setq process
+      ;; billingt:Jan-15-2014
+      #+hack
       (mp:process-run-function
-       (list :name (format nil "CLIM Event Dispatcher for ~A"
-			   (port-server-path port))
-	     :priority 1000)
-       #'port-event-loop port))
-    (setf (getf (mp:process-property-list process) :no-interrupts) t)
+	  (list :name (format nil "CLIM Event Dispatcher for ~A"
+			      (port-server-path port))
+		:priority 1000)
+	#'port-event-loop)
+      #-hack
+      (clim-utils::make-process 
+       #'(lambda () (port-event-loop port))
+       :name (list :name (format nil "CLIM Event Dispatcher for ~A"
+				 (port-server-path port))
+		   :priority 1000)))
+    
+    ;; billingt:Jan-15-2014 
+    ;; (setf (getf (mp:process-property-list process) :no-interrupts) t)
+    
+    ;; added by MAW
+    (unless *clim-initialized*
+      (setf *clim-initialized* t) 
+      (format t "~%~%*** REFACTORED CLIM~%~%"))
+    
     (setf (port-process port) process)
     ;; Find out the modifier->modbit mapping on the display.
     (setup-modifier-key-mapping port)))
@@ -106,6 +124,7 @@
       (when application-class-p (setf (getf args :application-class) application-class))
       (multiple-value-bind (context display application-shell)
 	  (apply #'tk::initialize-toolkit args)
+	
 	(setf (slot-value port 'application-shell) application-shell
 	      (slot-value port 'context) context
 	      (slot-value port 'display) display
@@ -125,7 +144,7 @@
 	(initialize-xlib-port port display)))))
 
 (defun xt-fatal-error-handler (d)
-  (excl:without-interrupts
+  (clim-sys:without-scheduling
     (let* ((display (tk::find-object-from-address d))
 	   (context (tk::display-context display)))
       (block done
@@ -1569,11 +1588,11 @@ setup."
                                        0 :unsigned-byte)
                          unless (zerop key)
                            do (case (translate-key key)
-                                ((#.x11:XK-Meta-L #.x11:XK-Meta-R)
+                                ((#.x11:|XK-Meta-L| #.x11:|XK-Meta-R|)
                                  (setf +meta-modifier-mask+ mod-keyword))
-                                ((#.x11:XK-Super-L #.x11:XK-Super-R)
+                                ((#.x11:|XK-Super-L| #.x11:|XK-Super-R|)
                                  (setf +super-modifier-mask+ mod-keyword))
-                                ((#.x11:XK-Hyper-L #.x11:XK-Hyper-R)
+                                ((#.x11:|XK-Hyper-L| #.x11:|XK-Hyper-R|)
                                  (setf +hyper-modifier-mask+ mod-keyword)))))
         (x11:xfreemodifiermap modifier-map)))
     (values +meta-modifier-mask+ +super-modifier-mask+ +hyper-modifier-mask+)))
@@ -1967,7 +1986,8 @@ the geometry of the children. Instead the parent has control. "))
     (manage-child mirror)
     (xt:realize-widget parent)		; Make sure widget is realized.
     (let ((window (tk::widget-window parent)))
-      (x11:xdefinecursor display window
+      (x11:xdefinecursor (tk::ensure-pointer display)
+			 (tk::ensure-pointer window)
 			 (realize-cursor port sheet
 					 (or (sheet-pointer-cursor sheet)
 					     :default)))
@@ -1976,7 +1996,10 @@ the geometry of the children. Instead the parent has control. "))
 	    (size-hints (x11::xallocsizehints)))
 	(tk::with-ref-par ((supplied 0 :unsigned-long))
 	  (unless (zerop
-		   (x11::xgetwmnormalhints display window size-hints &supplied))
+		   (x11::xgetwmnormalhints 
+		    (tk::ensure-pointer display)
+		    (tk::ensure-pointer window)
+		    size-hints &supplied))
 	    (let ((flags (x11::xsizehints-flags size-hints)))
 	      (if* (and uspp (not (eq uspp :unspecified)))
 		 then (setf flags (logior flags x11::uspositionhint))
@@ -1990,7 +2013,9 @@ the geometry of the children. Instead the parent has control. "))
 	      ;; that OpenWindows cascading works
 	      (setf flags (logandc2 flags x11::ppositionhint))
 	      (setf (x11::xsizehints-flags size-hints) flags))
-	    (x11::xsetwmnormalhints display window size-hints)))))
+	    (x11::xsetwmnormalhints (tk::ensure-pointer display) 
+				    (tk::ensure-pointer window)
+				    size-hints)))))
     (popup parent)))
 
 ;;; so is this next method ever called???? let's comment it out and
@@ -2294,7 +2319,7 @@ the geometry of the children. Instead the parent has control. "))
 ;;; why don't we use the default in silica/port.lisp???
 
 (defmethod destroy-port ((port xt-port))
-  (excl:without-interrupts
+  (clim-sys:without-scheduling
     (tk::xt_destroy_application_context (port-context port))
     (when (port-process port)
       (clim-sys:destroy-process (port-process port)))

@@ -11,6 +11,8 @@
 
 (defclass pixmap-stream (output-recording-mixin
                          input-protocol-mixin
+			 ;; billingt:Mar-24-2014 input for PIXMAPS?
+			 ;; input-protocol-mixin
                          output-protocol-mixin
                          pixmap-sheet)
     ()

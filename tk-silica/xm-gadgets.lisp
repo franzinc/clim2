@@ -1458,7 +1458,7 @@
 	  :selection-policy
 	  ,(ecase mode
 	     (:exclusive :browse-select)
-	     (:nonexclusive :multiple-select))
+	     (:nonexclusive :extended-select)) ; billingt:Oct-31-2019 
 	  ,@(and visible-items `(:visible-item-count ,visible-items))
 	  :items ,(mapcar name-key items)
 	  :item-count ,(length items))))))
@@ -1485,7 +1485,7 @@
       (tk::set-values m :selection-policy
 		      (ecase mode
 			(:exclusive :browse-select)
-			(:nonexclusive :multiple-select))))))
+			(:nonexclusive :extended-select))))))
 
 (defun list-pane-single-selection-callback (widget item-position sheet)
   (declare (ignore item-count))
@@ -1514,7 +1514,9 @@
   (tk::add-callback widget :browse-selection-callback
 		    'list-pane-single-selection-callback sheet)
   (tk::add-callback widget :multiple-selection-callback
-		    'list-pane-multiple-selection-callback sheet))
+		    'list-pane-multiple-selection-callback sheet)
+  (tk::add-callback widget :extended-selection-callback
+		    'list-pane-multiple-selection-callback sheet)) ; billingt:Oct-31-2019 
 
 (defmethod (setf gadget-value) :after
     (nv (l motif-list-pane) &key invoke-callback)

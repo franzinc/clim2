@@ -41,7 +41,7 @@
 (defun make-xgcvalues ()
   (clim-utils::allocate-cstruct 'x11::xgcvalues :initialize t))
 
-(eval-when (compile eval)
+(eval-when (compile load eval)
   #+ignore
   (defun gcontext-component-to-slot-definition (x)
     (destructuring-bind

@@ -1,4 +1,5 @@
 /*
+ * $Id: jl.c,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -53,17 +54,6 @@
 
 #include "commonhd.h"
 #include "config.h"
-#if defined(__AARCH64EL__)
-#if defined(MACM1)
-#include <sys/time.h>
-#include <sys/stat.h>
-#else
-#include <bits/types.h>
-#endif
-#undef __FD_SETSIZE
-#define __FD_SETSIZE 65536
-#include <stdlib.h>
-#endif
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>  /* for F_OK */

@@ -1,4 +1,5 @@
 /*
+ * $Id: rk_header.h,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -73,13 +74,6 @@
 
 #ifdef MVUX
 #  define IKIS
-#endif
-#if defined(MACM1)
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <pwd.h>
 #endif
 
 #include <stdio.h>
