@@ -4,6 +4,12 @@
 
 (in-package :cl-user)
 
+#+:X86-64
+(setf (get 'comp::md-cstruct-svector-type-code 'comp::x-is-target) 111)
+
+#+:arm64
+(setf (get 'comp::md-cstruct-svector-type-code 'comp::a-is-target) 111)
+
 ;; this defines a number of symbols and functions allowing the
 ;; successful compilation of CLIM in a non-ICS lisp (cim 2/26/96)
 #+ignore (require :ics)
@@ -229,7 +235,7 @@
    ;; only compile with non-ICS if no fasl file exist
    ;; always compile with ICS in case it was previously compiled by
    ;; non-ICS
-   #-acl86win32
+   #+(and ics (not acl86win32))
    ("japanese-input-editor" (:module-class #-ics compile-once
 					   #+ics compile-always))
 

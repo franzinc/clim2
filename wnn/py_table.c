@@ -1,4 +1,5 @@
 /*
+ * $Id: py_table.c,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
  */
 /** 		Copyright OMRON Corporation. 1989, 1990, 1991, 1992, 1992
  *

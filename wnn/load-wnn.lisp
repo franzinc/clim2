@@ -7,6 +7,8 @@
 
 ;;; compare with tk/load-xm for update to new makefile style
 
+(find-package :excl.osi)
+
 (excl:ics-target-case
 (:+ics
 

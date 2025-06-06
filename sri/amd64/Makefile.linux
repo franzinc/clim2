@@ -1,0 +1,38 @@
+
+include Makefile.defs
+
+Makefile=Makefile.linux
+
+ifeq ($(shell if test -d /usr/include/Xm; then echo yes; fi),yes)
+XINCLUDES = -I/usr/include/Xm
+XLIBDIR   = /usr/lib
+endif
+
+XINCLUDES ?= /usr/include/X11
+XLIBDIR   ?= /usr/lib
+
+TKLIB=-lXm -lXpm -lXext 
+XTLIB=-lXt
+XLIB=-lX11
+
+ifdef FI_USE_DMALLOC
+THREADLIB = -lpthread -ldmallocth
+CFLAGS = -I/usr/local/include
+else
+THREADLIB = -lpthread
+endif
+
+SET_LIBRARY_PATH = LD_RUN_PATH=$(XLIBDIR):/lib:/usr/lib; export LD_RUN_PATH
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+#MOTIFXTRAS=-lgen
+
+#PICFLAGS = -K pic
+PICFLAGS = -fPIC
+SHAREFLAGS = 
+MAKE_SHARED = ld -shared -L$(XLIBDIR)
+STD_DEFINES = -DSVR4 -DSYSV
+#AR = ar cq
+
+include Makefile.generic

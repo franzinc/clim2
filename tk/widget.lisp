@@ -14,18 +14,19 @@
 	     (handle (class-handle class)))
 	(multiple-value-bind (arglist n)
 	    (make-arglist-for-class class nil args)
-	  (register-address
-	   (apply #'make-instance
-		  class
-		  :foreign-address
-		  (xt_app_create_shell (lisp-string-to-string8 application-name)
-				       (lisp-string-to-string8 application-class)
-				       handle
-				       display
-				       arglist
-				       n)
-		  :display display
-		  args))))))
+	  (let ((shell  
+		 (xt_app_create_shell (lisp-string-to-string8 application-name)
+				      (lisp-string-to-string8 application-class)
+				      handle
+				      display
+				      arglist
+				      n)))
+	    (register-address
+	     (apply #'make-instance
+		    class
+		    :foreign-address shell		 
+		    :display display
+		    args)))))))
 
 ;; These are so we don't need the foreign functions at run time.
 
@@ -64,6 +65,7 @@
 ;;; X-side tree before it is ready for it.
 ;;; Unfortunately, we can't find out specifically what it is that is not ready.
 ;;; The following seems to work, but is at best a work-around.
+
 (defun create-widget-1 (fn name widget-class parent &rest args)
   (assert parent)
   #+irix6  ;; bug11282 -- see comment
@@ -162,6 +164,7 @@
 ;;; to have caught up.)
 ;;;
 ;;; Note: Perhaps we should replace the sleep with a call to x11:xsync ?
+
 (defmethod widget-window-with-retry (widget &optional (num-retries 50) (sleep-time 0.5))
   (let ((val nil)
 	(count 0))
@@ -205,11 +208,15 @@
 
 (defun widget-class-of (x)
   (intern-widget-class
+   (xt-widget-widget-class0 x)))
+
+#+:ignore 
+(defun widget-class-of (x)
+  (intern-widget-class
    (xt-widget-widget-class x)))
 
 (defun intern-widget-class (class)
   (find-object-from-address class))
-
 
 (defmethod initialize-instance :after ((w xt-root-class)
 				       &rest args
@@ -262,7 +269,6 @@
 (defmethod widget-parent ((widget xt-root-class))
   (let ((x (xt_parent widget)))
     (and (not (zerop x)) (intern-widget x))))
-
 
 (defconstant xt-geometry-yes 0)
 (defconstant xt-geometry-no 1)

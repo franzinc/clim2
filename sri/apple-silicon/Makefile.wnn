@@ -1,0 +1,119 @@
+# $Id: Makefile.wnn,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
+#
+#  Makefile.wnn for CLIM 2.0
+#
+# Makefile for the jlib part of Wnn4.2
+
+
+WNNFLAGS = -DJAPANESE -DCHINESE -DKOREAN -DLATIN -DWRITE_CHECK -DWNNDEFAULT \
+	$(PICFLAGS)
+
+WNN_OBJS= js.o wnnerrmsg.o jl.o \
+	msg.o yincoding.o py_table.o zy_table.o strings.o bcopy.o \
+	rk_bltinfn.o rk_main.o rk_modread.o rk_read.o rk_vars.o
+
+js.o: wnn/js.c wnn/bdic.c wnn/pwd.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o js.o wnn/js.c
+
+wnnerrmsg.o : wnn/wnnerrmsg.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o wnnerrmsg.o wnn/wnnerrmsg.c
+
+jl.o : wnn/jl.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o jl.o wnn/jl.c
+
+msg.o : wnn/msg.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o msg.o wnn/msg.c
+
+yincoding.o : wnn/yincoding.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o yincoding.o wnn/yincoding.c
+
+py_table.o : wnn/py_table.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o py_table.o wnn/py_table.c
+
+zy_table.o : wnn/zy_table.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o zy_table.o wnn/zy_table.c
+
+strings.o : wnn/strings.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o strings.o wnn/strings.c
+
+bcopy.o : wnn/bcopy.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o bcopy.o wnn/bcopy.c
+
+rk_bltinfn.o : wnn/rk_bltinfn.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o rk_bltinfn.o wnn/rk_bltinfn.c
+
+rk_main.o : wnn/rk_main.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o rk_main.o wnn/rk_main.c
+
+rk_modread.o : wnn/rk_modread.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o rk_modread.o wnn/rk_modread.c
+
+rk_read.o : wnn/rk_read.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o rk_read.o wnn/rk_read.c
+
+rk_vars.o : wnn/rk_vars.c
+	$(CC) -c $(WNNFLAGS) $(STD_DEFINES) $(CFLAGS) \
+		-o rk_vars.o wnn/rk_vars.c
+
+libwnn.a: $(WNN_OBJS)
+	$(AR) $@ $(WNN_OBJS)
+
+ifeq ($(REDHAT),5)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),6)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),7)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),8)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),9)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(REDHAT),10)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(OS_NAME),linux)
+ifeq ($(MACHINE),ppc)
+REDHATLIBS = -lcrypt
+endif
+ifdef SUSE
+REDHATLIBS = -lcrypt
+endif
+endif
+
+ifeq ($(OS_NAME),freebsd)
+REDHATLIBS = -lcrypt
+endif
+
+ifeq ($(MACHINE),x86_64)
+ifeq ($(OS_NAME),linux)
+REDHATLIBS = -lcrypt
+endif
+endif
+
+wnn.$(SHARED_EXT): $(WNN_OBJS)
+	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.$(SHARED_EXT) $(WNN_OBJS) \
+		$(REDHATLIBS) $(THREADLIB)

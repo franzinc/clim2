@@ -193,16 +193,49 @@
    gc
    x y string length))
 
+;; patched by MAW 2024-06: Silicon Mac / Apple Compiler Bug, Scrolling
+;; Patch NOTE: this can be removed as soon as Franz / Apple get their
+;; compiler bugs fixed! Basically, this compiler bug (whoever owns it,
+;; Franz says its Apple) is happening whenever a foreign function
+;; takes more than 9 arguments, like copy-area! The 10th + arguments
+;; are being misallocated and hence cannot be passed correctly.  NOTE:
+;; this is an important work-around, and it needs an accompanying in
+;; xlib/xlibsupport.c, hence, a custom climxm.fasl and climxm.dylib!
 
 (defun copy-area (src gcontext src-x src-y width height dst dst-x dst-y)
+  
+  #+:ignore
   (x11:xcopyarea
-   (object-display src)
-   src
-   dst
+   (ensure-pointer (object-display src))
+   (ensure-pointer src)
+   (ensure-pointer dst)
    gcontext
    src-x
    src-y
    width
    height
    dst-x
-   dst-y))
+   dst-y)
+  
+  ;; MAW FFI Workaround Hack
+  
+  ;; see accompanying definitions in:
+  ;; xlib/xlibsupport.c  
+  ;; xlib/xlib-funs.lisp 
+  (x11:xcopyarea-setargs
+   src-x
+   src-y
+   width
+   height
+   dst-x
+   dst-y)
+  
+  ;; see accompanying definitions in:
+  ;; xlib/xlibsupport.c  
+  ;; xlib/xlib-funs.lisp 
+  
+  (x11:xcopyarea-patched
+   (ensure-pointer (object-display src))
+   (ensure-pointer src)
+   (ensure-pointer dst)
+   gcontext))

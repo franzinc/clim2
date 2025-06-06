@@ -1,0 +1,213 @@
+#  Makefile.generic for CLIM 2.0
+
+all: compile cat # $(CLIM)
+makeclimfasls: compile cat
+
+ifneq ($(OS_NAME),windows)
+compile_depends = wnn.$(SHARED_EXT)
+endif
+
+ifeq ($(OS_NAME),windows)
+build_runlisp_args = -o build.out 
+concat_runlisp_args = -o concat.out 
+endif
+
+compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
+	rm -f build.tmp
+	echo '(setq sys::*libtk-pathname* "$(TKLIB)")' >> build.tmp
+	echo '(setq sys::*libxt-pathname* "$(XTLIB)")' >> build.tmp
+	echo '(setq sys::*libx11-pathname* "$(XLIB)")' >> build.tmp
+	echo '(setq sys::*libwnn-pathname* "$(WNNLIB)")' >> build.tmp
+	echo '(excl:set-case-mode $(CASE_MODE))' >> build.tmp
+	echo $(STOP_PATCHES) >> build.tmp
+	echo '(load "misc/compile-1.lisp")' >> build.tmp
+	echo '(declaim (optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY))))' >> build.tmp
+	echo '(setq *compile-print* $(compile_print))' >> build.tmp
+	echo '(setq *compile-verbose* $(compile_verbose))' >> build.tmp
+	echo '(setq excl::*warn-smp-usage* nil)' >> build.tmp
+	echo '(setq excl:*redefinition-warnings* $(redef_warning))' >> build.tmp
+	echo '(setq excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO))' >> build.tmp
+	echo '(setq comp:save-local-names-switch $(SAVE_LOCAL_NAMES))' >> build.tmp
+	echo '(setq excl:*load-local-names-info* $(LOAD_LOCAL_NAMES_INFO))' >> build.tmp
+	echo '(setq excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO))' >> build.tmp
+	echo '(setq excl:*record-xref-info* $(RECORD_XREF_INFO))' >> build.tmp
+	echo '(setq excl:*load-xref-info* $(LOAD_XREF_INFO))' >> build.tmp
+	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> build.tmp
+	echo '(compile-it (quote $(SYSTEM)))' >> build.tmp
+	echo '(exit 0)' >> build.tmp
+	(eval '$(SET_LIBRARY_PATH)'; \
+	 sh $(RUNLISP) -f build.tmp $(build_runlisp_args) \
+	 $(CL) $(CLOPTS))
+
+# Concatenation
+
+cat: compile
+	rm -f cat.tmp
+	echo '(load "misc/compile-1.lisp")' >> cat.tmp
+	echo '(setf (sys:gsgc-switch :print) (quote $(gc_print)))' >> cat.tmp	
+	echo '(concatenate-it (quote $(SYSTEM)))' >> cat.tmp
+	echo '(exit 0)' >> cat.tmp
+	(eval '$(SET_LIBRARY_PATH)'; \
+	 sh $(RUNLISP) -f cat.tmp $(concat_runlisp_args) \
+	 $(CL) $(CLOPTS))
+	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS) >> Clim-sizes.n
+	ls -lt $(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS)
+
+$(PRODUCT-FASLS) $(ICS-PRODUCT_FASLS): cat
+
+
+# Building (loading and dumping)
+
+# It is VERY important not to side-effect
+# logical-pathname-translations-database-pathnames in the building phase of
+# clim*.dxl.  The reason: this change is propagated to delivered images,
+# which is very bad.  Mostly, it's bad for testing because usually the 
+# value of (current-directory) below is accessible during testing and it is
+# the wrong thing (we always want sys:hosts.cl to be used when testing a
+# distribution that users will get).
+$(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
+	-$(RM) -f $(CLIM)
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(ECHO) " \
+	(progn \
+	 (generate-application \
+	   \"$(CLIM)\" \"./\" \
+	   nil \
+	   :pre-load-form \
+	   (quote \
+	     (progn \
+	       (setq sys::*libtk-pathname* \"$(TKLIB)\") \
+	       (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	       (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	       (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
+	       (excl:set-case-mode  $(CASE_MODE)) \
+	       (load \"misc/dev-load-1.lisp\") \
+	       (load-it '$(SYSTEM)))) \
+	   :autoload-warning nil \
+	   :image-only t \
+	   :purify t \
+	   :debug-on-error t \
+	   :internal-debug \"build-clim.out\" \
+	   :shlib-warning nil \
+	   :libfasl-warning nil \
+	   :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
+	   :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
+	   :record-xref-info $(RECORD_XREF_INFO) \
+	   :load-xref-info $(LOAD_XREF_INFO) \
+	   :discard-local-name-info t \
+	   :discard-source-file-info t \
+	   :discard-xref-info t) \
+	 (exit 0))" | $(CL) $(CLOPTS))
+	@ls -lLt $(CLIM) >> Clim-sizes.n
+	@ls -lLt $(CLIM)
+	@echo $(SYSTEM) built!!!!	
+
+# Training
+
+train: FORCE
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(ECHO) " \
+	(progn \
+	  (load \"misc/train.lisp\") \
+	  (train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
+		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
+		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
+		:hpglview $(HPGLVIEW)))" \
+	| $(LISP) -I $(CLIM) $(CLOPTS))
+	echo $(SYSTEM) trained!!!!	
+
+# the following two rules are used by make-dist so that we don't have 
+# to build a slim image to run the test suite
+
+load-train: FORCE
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(ECHO) " \
+	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
+	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
+	  (load \"misc/dev-load-1.lisp\") \
+	  (load-it '$(SYSTEM)) \
+	  (load \"misc/train.lisp\") \
+	  (train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
+		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
+		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
+		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\") \
+	  (clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
+	| $(LISP) -I $(CLIM) $(CLOPTS))
+
+generate_test_report: FORCE
+	($(ECHO) " \
+	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
+	| $(LISP) -I $(CLIM) $(CLOPTS))
+
+profile: FORCE
+	($(ECHO) " \
+	(clim-user::run-profile-clim-tests)" \
+	| $(LISP) -I $(CLIM) $(CLOPTS))
+
+benchmark: FORCE
+	($(ECHO) " \
+	(clim-test::benchmark-clim $(BENCHMARK_FILE))" \
+	| $(LISP) -I $(CLIM) $(CLOPTS))
+
+testps: FORCE
+	($(ECHO) " \
+	(load \"test/postscript-tests.lisp\") \
+	(clim-user::run-postscript-tests :output $(PSVIEW))" \
+	| $(LISP) -I $(CLIM) $(CLOPTS))
+
+# Misc
+
+cleanobjs: 
+	rm -f *.o
+
+cleanfasls: FORCE
+	find . -name '*.fasl' -print | xargs rm -f
+
+clean:
+	rm -f *.out *.tmp
+	find . -name '*.fasl' -print | xargs rm -f
+	rm -f *.o *.$(SHARED_EXT) *.a slim \
+	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
+	rm -f *.z *.Z *.gz *.ilt so_locations
+	rm -f *.pll *.dxl
+
+clean-notes:
+	cd notes; find . -name '*.lisp' -print | xargs rm -f
+
+tags:	FORCE
+	rm -f TAGS
+	find . -name '*.lisp' -print | xargs $(TAGS) -a
+
+wc:
+	wc $(ALL_SRC)
+
+echo_XTLIB:
+	@echo $(XTLIB)
+
+echo_XLIB:
+	@echo $(XLIB)
+
+echo_TKLIB:
+	@echo $(TKLIB)
+
+echo_WNNLIB:
+	@echo $(WNNLIB)
+
+makeclimobjs: $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
+
+install_obj:
+	cp $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(DEST)
+
+install_clim: install_obj
+	cp $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS) $(DEST)
+
+echo_src_files:
+	@echo $(PRODUCT_SRC_FILES)
+
+include Makefile.cobjs
+
+include Makefile.wnn
+
+FORCE:

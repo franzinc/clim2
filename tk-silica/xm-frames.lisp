@@ -966,8 +966,12 @@
 	(if (find-restart 'abort nil)
 	    (tk::add-callback cancel-button :activate-callback #'(lambda (widget count process)
 								   (declare (ignore widget count))
-								   (mp:process-interrupt process 'abort))
-			      mp:*current-process*)
+								   ;; billingt:Jan-15-2014 
+								   ;; (mp:process-interrupt process 'abort))
+								   (clim-utils::process-interrupt process #'abort))
+			      ;; billingt:Jan-15-2014 
+			      ;;			      mp:*current-process*)
+			      (clim-utils::current-process))
 	  (xt::unmanage-child cancel-button))
 	(tk::unmanage-child ok-button)
 	(tk::unmanage-child separator))

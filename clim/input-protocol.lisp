@@ -101,20 +101,26 @@
     ;; I don't know why the requirement was being made for the stream
     ;; to have a viewport. This was causing problems for cursor redraw
     ;; in panes with no scroll-bars.
-    (when (and cursor #+ignore viewport)
-      (when (and (cursor-active cursor)
-                 (cursor-state cursor))
-        (multiple-value-bind (x y) (cursor-position cursor)
-          (multiple-value-bind (width height)
-              (cursor-width-and-height-pending-protocol cursor)
-            (with-bounding-rectangle* (left top right bottom) region
-              (when (ltrb-overlaps-ltrb-p left top right bottom
-                                          x y (+ x width) (+ y height))
-                (with-sheet-medium (medium stream)
-                  (with-medium-clipping-region (medium region)
-                    (declare (ignore medium))
-                    ;; this forces the cursor to be redrawn
-                    (note-cursor-change cursor 'cursor-state nil t)))))))))))
+    (if (typep region 'clim-utils::everywhere)
+	;; billingt:Mar-24-2014 if region is everywhere, bounding-rectangle is undefined and unnecessary
+	(when (and cursor
+		   (cursor-active cursor)
+		   (cursor-state cursor))
+	  (note-cursor-change cursor 'cursor-state nil t))
+      (when (and cursor #+ignore viewport)
+	(when (and (cursor-active cursor)
+		   (cursor-state cursor))
+	  (multiple-value-bind (x y) (cursor-position cursor)
+	    (multiple-value-bind (width height)
+		(cursor-width-and-height-pending-protocol cursor)
+	      (with-bounding-rectangle* (left top right bottom) region
+		(when (ltrb-overlaps-ltrb-p left top right bottom
+					    x y (+ x width) (+ y height))
+		  (with-sheet-medium (medium stream)
+		    (with-medium-clipping-region (medium region)
+		      (declare (ignore medium))
+		      ;; this forces the cursor to be redrawn
+		      (note-cursor-change cursor 'cursor-state nil t))))))))))))
 
 (defmethod pointer-motion-pending ((stream input-protocol-mixin)
                                    &optional
@@ -703,8 +709,24 @@
     (setf (port-keyboard-input-focus (port stream)) stream)
     old-focus))
 
+;;; billingt:Aug-28-2019 
+;;; if you change layout after having had focus in pane A,
+;;; and the new layout doesn't include pane A,
+;;; then if somehow a restore-focus gets gen'd,
+;;; (in the case I found, pane B replaces A, try to do something in B)
+;;; it tries to return focus to A, but it ain't there.
+;;; (and, again, in the case I found, the "new" (port-keyboard-input-focus (port (graft stream))) value is B,
+;;;  so doing "nothing" is ok. Hopefully, it always is)
 (defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
-  (setf (port-keyboard-input-focus (port (graft stream))) old-focus))
+  (if (not (ignore-errors (sheet-mirrored-ancestor old-focus)))
+      (format T "YO !!!~%~%    STREAM-RESTORE-INPUT-FOCUS: no mirrored ancestor for old focus.~%      Old focus ~A :: ~A~%      New/current focus ~A :: ~A~%~%"
+	      old-focus
+	      (when (typep old-focus 'clim:basic-pane)
+		(clim:pane-name old-focus))
+	      (port-keyboard-input-focus (port (graft stream)))
+	      (when (typep (port-keyboard-input-focus (port (graft stream))) 'clim:basic-pane) 
+		(clim:pane-name (port-keyboard-input-focus (port (graft stream))))))
+    (setf (port-keyboard-input-focus (port (graft stream))) old-focus)))
 
 (defmethod note-sheet-gain-focus ((sheet input-protocol-mixin))
   (let ((text-cursor (stream-text-cursor sheet)))

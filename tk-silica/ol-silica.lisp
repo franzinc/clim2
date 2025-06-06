@@ -27,7 +27,7 @@
 	(let ((window (tk::widget-window mirror nil)))
 	  (when window
 	    (with-port-event-lock (port)
-	      (excl:without-interrupts
+	      (clim-sys:without-scheduling
 		(let ((display (port-display port)))
 		  (tk:with-server-grabbed (display)
 		    (when (eq (tk::window-map-state window) :viewable)

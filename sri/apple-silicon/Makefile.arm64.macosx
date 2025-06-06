@@ -1,0 +1,57 @@
+# $Id: Makefile.arm64.macosx,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
+#
+#  Makefile.macosx for CLIM 2.0
+#
+
+include Makefile.defs
+
+CC = /usr/bin/cc 
+
+SHARED_EXT = dylib
+
+SHARED-XM-OBJS= climxm.dylib
+SHARED-OL-OBJS= climol.dylib
+
+Makefile=Makefile.macosx
+
+# removed /usr/local/lib:
+SET_LIBRARY_PATH = 
+
+TKLIB=-L/opt/homebrew/lib -weak-lXm
+XTLIB=-L/opt/homebrew/lib -weak-lXt
+
+XLIB=-weak-lX11
+
+XINCLUDES=-I/opt/X11/include -I/opt/local/include -I/usr/local/include -I/opt/homebrew/Cellar/openmotif/2.3.8_2/include -I/opt/homebrew/include
+
+ifeq ($(SIXTYFOURBIT),yes)
+CFLAGS = -arch x86_64 -DAcl64Bit
+MAKE_SHARED = ld -arch x86_64 -bundle /usr/lib/bundle1.o -force_cpusubtype_ALL -flat_namespace
+else
+ifeq ($(MACHINE),x86)
+CFLAGS= -arch i386
+MAKE_SHARED = ld -arch i386 -bundle /usr/lib/bundle1.o -force_cpusubtype_ALL -flat_namespace
+else
+CFLAGS= 
+
+MAKE_SHARED = ld  -dylib -ld_classic -arch arm64  -flat_namespace -L. -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -F/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/
+
+endif
+endif
+
+CFLAGS = -Wno-implicit-function-declaration -arch arm64 -c -Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int  -Wno-int-conversion
+
+#--sysroot  /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+
+PICFLAGS = 
+SHAREFLAGS = 
+AR = ar cq
+
+# Make sure the wnn build is happy:/Users/wessel/pdist/clim-official/clim2-with-sri-content/Makefile
+REDHATLIBS = -lc
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+IMPORTS = stub-x.o stub-xt.o stub-motif.o
+
+include Makefile.generic

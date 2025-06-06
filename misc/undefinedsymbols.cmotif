@@ -41,6 +41,7 @@ xmSelectionBoxWidgetClass
 xmSeparatorGadgetClass
 xmSeparatorWidgetClass
 xmTextFieldWidgetClass
+xmDataFieldWidgetClass
 xmTextWidgetClass
 xmToggleButtonGadgetClass
 xmToggleButtonWidgetClass
@@ -87,6 +88,7 @@ xmSelectionBoxWidgetClass
 xmSeparatorGadgetClass
 xmSeparatorWidgetClass
 xmTextFieldWidgetClass
+xmDataFieldWidgetClass
 xmTextWidgetClass
 xmToggleButtonGadgetClass
 xmToggleButtonWidgetClass

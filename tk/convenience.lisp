@@ -20,7 +20,8 @@
 	       :return-type :foreign-address))
 	 (defclass ,class ,superclasses
 	   ()
-	   (:metaclass xt-class))
+	   ;; change by MW from xt-class to xt-class-0 to prevent a nameclash
+	   (:metaclass xt-class-0))
 	 (defmethod make-widget ((w ,class) name parent &rest args
 				 &key (managed t) &allow-other-keys)
 	   (remf args :managed)
@@ -53,7 +54,8 @@
 	     :arg-checking nil))
 	 (defclass ,class ,superclasses
 	   ()
-	   (:metaclass xt-class))
+	   ;; change by MW from xt-class to xt-class-0 to prevent a nameclash
+	   (:metaclass xt-class-0))
 	 (defmethod make-widget ((w ,class) name parent &rest args
 				 &key (managed t) &allow-other-keys)
 	   (remf args :managed)

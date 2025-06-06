@@ -1,0 +1,163 @@
+# $Id: Makefile.defs,v 2.6 2007/03/01 19:30:24 layer Exp $
+#
+#  Makefile.defs for CLIM 2.0
+
+# where to dump the CLIM images
+CLIM		= clim.dxl
+
+SHARED_EXT = so
+
+RUNLISP = ../src/runlisp.sh
+LISP	= ../src/mlisp8
+DCL	=  mlisp8.dxl
+
+# Set the case mode when building and dumping an image
+# case_mode:
+#	ansi -- traditional case-insensitive upper-case CL
+#	modern -- case-sensitive lower-case CL
+# case_mode = modern
+case_mode = ansi
+
+ifeq ($(case_mode),ansi)
+CASE_MODE		= :case-insensitive-upper
+endif
+
+ifeq ($(case_mode),modern)
+CASE_MODE		= :case-sensitive-lower
+endif
+
+ifndef CASE_MODE
+..........................case_mode not defined or bad value...................
+endif
+
+# This controls whether patches are loaded before dumping an image.
+# They should be loaded except during development
+# load_patches:
+#	yes -- load them
+#	no -- don't load
+load_patches = yes
+
+ifeq ($(load_patches),no)
+STOP_PATCHES = '(pushnew :clim-dont-load-patches *features*)'
+endif
+
+CL	= $(LISP) -I $(DCL)
+#CLOPTS	= -qq -batch -backtrace-on-error -locale japan.euc
+CLOPTS	= -qq -batch -backtrace-on-error -locale en-us.utf8
+
+RM	= rm
+CAT	= cat
+ECHO	= echo
+TAGS	= etags
+
+SHELL	= sh
+
+# Lisp optimization for compiling
+SPEED	?=  2
+SAFETY	?=  1 
+# This next should be set to 1 for distribution
+DEBUG   ?=  1
+SPACE   ?=  1
+# Training
+
+TRAIN_TIMES=1
+# view, file, print
+PSVIEW=:file
+HPGLVIEW=:file
+˘TRAIN_COMPILE=t
+TRAIN_PROFILEP=t
+TRAIN_BM=t
+FRAME_TESTS=t
+
+ifneq ($(OS_NAME),windows)
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
+	 	-DUSE_RE_COMP -DUSER_GETWD
+endif
+
+# Used for tags
+ALL_SRC = *.lisp */*.lisp *.cl */*.cl *.c */*.c *.h */*.h
+
+# These are the files that make up the source code product.
+PRODUCT_SRC_FILES = sys/*.lisp utils/*.lisp  silica/*.lisp clim/*.lisp \
+	demo/*.lisp test/test-suite.lisp
+
+ifneq ($(OS_NAME),windows)
+# This has to be kept consistent with xlib/xlib-funs.lisp
+UNDEFS=misc/undefinedsymbols
+
+# This has to be kept consistent with tk/xt-funs.lisp
+XT_UNDEFS=misc/undefinedsymbols.xt
+
+# This has to be kept consistent with tk/xm-funs.lisp
+XM_UNDEFS=misc/undefinedsymbols.motif
+# This has to be kept consistent with tk/xm-classes.lisp
+XMC_UNDEFS=misc/undefinedsymbols.cmotif
+
+# This has to be kept consistent with tk/ol-funs.lisp
+OL_UNDEFS=misc/undefinedsymbols.olit
+# This has to be kept consistent with tk/ol-classes.lisp
+OLC_UNDEFS=misc/undefinedsymbols.colit
+
+# This has to be kept consistent with wnn/jl-funs.lisp
+WNN_UNDEFS=misc/undefinedsymbols.wnn
+
+# These are the fasls and the .o that form the product
+
+PRODUCT-GENERIC-FASLS = \
+	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl \
+	climhpgl.fasl # climgg.fasl
+
+PRODUCT-XM-FASLS = climxm.fasl clim-debugxm.fasl
+PRODUCT-OL-FASLS = climol.fasl clim-debugol.fasl
+
+PRODUCT-WNN-FASLS = climwnn.fasl clim-debugwnn.fasl
+
+PRODUCT-GENERIC-OBJS= \
+	stub-xt.o stub-x.o xtsupport.o xlibsupport.o
+
+STATIC-XM-OBJS= stub-motif.o xmsupport.o
+SHARED-XM-OBJS= climxm.$(SHARED_EXT)
+
+STATIC-OL-OBJS= stub-olit.o olsupport.o
+SHARED-OL-OBJS= climol.$(SHARED_EXT)
+
+WNNLIB = libwnn.a
+STATIC-WNN-OBJS=stub-wnn.o $(WNNLIB)
+
+SYSTEM=		motif-clim
+
+PRODUCT-FASLS=  $(PRODUCT-GENERIC-FASLS) $(PRODUCT-XM-FASLS)
+PRODUCT-OBJS=	$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
+
+ICS-PRODUCT-FASLS= $(PRODUCT-WNN-FASLS)
+ICS-PRODUCT-OBJS=  $(STATIC-WNN-OBJS)
+else
+
+# this is for Windows.
+# I don't know if we need the other things too.
+
+PRODUCT-GENERIC-FASLS = \
+	climg.fasl climdemo.fasl climps.fasl
+
+PRODUCT-WIN32-FASLS = climnt.fasl
+
+SYSTEM=		aclnt-clim
+
+PRODUCT-FASLS = $(PRODUCT-GENERIC-FASLS) $(PRODUCT-WIN32-FASLS)
+endif
+
+# not used anymore
+make = xxx
+
+BENCHMARK_FILE=nil
+
+compile_print = T
+compile_verbose = T
+redef_warning = T
+RECORD_SOURCE_FILE_INFO = NIL
+SAVE_LOCAL_NAMES = NIL
+LOAD_LOCAL_NAMES_INFO = NIL
+LOAD_SOURCE_FILE_INFO = NIL
+RECORD_XREF_INFO = NIL
+LOAD_XREF_INFO = NIL
+gc_print = NIL

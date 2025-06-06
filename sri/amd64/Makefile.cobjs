@@ -1,0 +1,128 @@
+# $Id: Makefile.cobjs,v 2.4 2003/12/15 18:35:11 layer Exp $
+#
+#  Makefile.cobj for CLIM 2.0
+#
+
+# stub files - identify the required definitions from Xm,Ol,Xt,X11
+
+stub-motif.c: $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	sh misc/make-stub-file "void ___lisp_load_motif_stub ()"  \
+		$(XM_UNDEFS) > stub-motif.c
+	sh misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()" \
+		$(XMC_UNDEFS) >> stub-motif.c
+
+stub-olit.c: $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	sh misc/make-stub-file "void ___lisp_load_olit_stub ()"  \
+		$(OL_UNDEFS) > stub-olit.c 
+	sh misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()" \
+		$(OLC_UNDEFS) >> stub-olit.c 
+
+stub-xt.c: $(XT_UNDEFS) misc/make-stub-file
+	sh misc/make-stub-file "void ___lisp_load_xt_stub ()" \
+		$(XT_UNDEFS) > stub-xt.c 
+
+stub-x.c: $(UNDEFS) misc/make-stub-file
+	sh misc/make-stub-file "void ___lisp_load_x_stub ()"  \
+		$(UNDEFS) > stub-x.c 
+
+stub-wnn.c: $(WNN_UNDEFS) misc/make-stub-file
+	sh misc/make-stub-file "void ___lisp_load_wnn_stub ()" \
+		$(WNN_UNDEFS) > stub-wnn.c
+
+# support files - CLIM's C source files
+
+xmsupport.o : misc/xmsupport.c misc/climgccursor.c \
+		misc/MyDrawingA.c misc/MyDrawingA.h misc/MyDrawingAP.h
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		-o xmsupport.o misc/xmsupport.c
+
+olsupport.o: misc/olsupport.c misc/climgccursor.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		-o olsupport.o misc/olsupport.c
+
+xtsupport.o : misc/xtsupport.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		-o xtsupport.o misc/xtsupport.c
+
+xlibsupport.o : xlib/xlibsupport.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) \
+		 -o xlibsupport.o xlib/xlibsupport.c
+
+# .so's made from above support files (for dynamic loading)
+
+climxm.$(SHARED_EXT): xlibsupport.o xtsupport.o xmsupport.o $(IMPORTS)
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.$(SHARED_EXT) \
+		xlibsupport.o xtsupport.o xmsupport.o $(THREADLIB) \
+		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+
+climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o $(IMPORTS)
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.$(SHARED_EXT) \
+		xlibsupport.o xtsupport.o olsupport.o \
+		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
+
+# mainxm.o contains foreign code from the libraries X11,Xt and Xm
+# required by Motif version of CLIM statically linked
+
+makemainxm: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) 
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	ld -r $(LDFLAGS) -o $(MAIN_OBJ) \
+		$(ACL_MAIN_OBJ) \
+		stub-xt.o stub-x.o stub-motif.o \
+		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+
+# Here's the deal on the CLIM cobjs. (cim 3/13/96)
+# 
+# 1. Objects that contain CLIM's C support code. When building a CLIM image
+# these should always be linked in to the initial executable if possible.
+# NB they are still required even if mainxm.o is being used.
+# 
+# 	xtsupport.o
+# 	xlibsupport.o
+# 	xmsupport.o
+# 
+# If they're not linked in then when climxm is loaded they will be
+# loaded individually or in the case of dlfcn 
+# 
+# 	climxm.$(SHARED_EXT)
+# 
+# (a shared library made from all of the above) will be loaded.
+# 
+# 2. Stub files that define what we need from the X libraries - 
+# 
+# 	stub-xt.o
+# 	stub-x.o
+# 	stub-motif.o
+# 
+# These also should always be linked in to the initial executable if
+# possible. They are not required if mainxm.o is being used but using
+# them will not do any harm as long as
+# 
+# 3. All of the required functionality from the X libraries put into a
+# single .o (with main for licensing restrictions on SunOS)
+# 
+# 	mainxm.o
+#	ics_mainxm.o
+# 
+# ics_mainxm.o is identical to mainxm.o except that it's built from a
+# ci/main.o rather than a c/main.o 
+#
+# in the distn
+#	 mainxm.o -> dist-clim2/build/c/mainxm.o 
+#    ics_mainxm.o -> dist-clim2-ics/build/ci/mainxm.o
+#              
+# This needs to be used where the libraries are not available on the
+# machine on which CLIM is being installed. If this is not available
+# then the 3 stub files must be used.
+# 
+# 4. Stub files + library for wnn
+# 
+# 	stub-wnn.o
+# 	libwnn.a
+# 
+# Use both of these in creating the initial executable - the stub-wnn.o
+# must come before the libwnn.a in the list of cobjs. 
+# 
+# On dlfcn we _have_ to link into the initial executable because we
+# don't currently have a shared version of libwnn
