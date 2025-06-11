@@ -1,5 +1,4 @@
 /*
- * $Id: msg.c,v 1.1.1.1 2025/02/20 23:30:11 wessel Exp $
  */
 /*
  * Copyright 1989, 1990, 1991, 1992 by OMRON Corporation
@@ -49,6 +48,18 @@
 	    <message id>\t<message>
 */
 
+#if defined(__AARCH64EL__)
+#if defined(MACM1)
+#include <sys/time.h>
+#include <sys/stat.h>
+#else
+#include <bits/types.h>
+#endif
+#undef __FD_SETSIZE
+#define __FD_SETSIZE 65536
+#include <stdlib.h>
+#endif
+
 #include <stdio.h>
 #include "commonhd.h"
 #include "wnn_os.h"
@@ -56,6 +67,7 @@
 
 extern char *getenv();
 
+#if !defined(__AARCH64EL__)
 static char *
 bsearch(ky, bs, nel, width, compar)
 char *ky;
@@ -100,6 +112,7 @@ int (*compar)();
     }
     return ((char *) 0);	/* not found */
 }
+#endif
 
 static char *
 getlang(lang)
@@ -205,7 +218,7 @@ register int id;
     if(cd->msg_bd == 0 || cd->msg_cnt == 0)
 	return(NULL);
     bd = (struct msg_bd *)
-	bsearch(id, cd->msg_bd, cd->msg_cnt, sizeof(struct msg_bd), _search);
+	    bsearch(id, cd->msg_bd, cd->msg_cnt, (size_t)sizeof(struct msg_bd), _search);
     if(bd == NULL)
 	return(NULL);
     return(bd->msg);
@@ -361,7 +374,7 @@ char	*msg;
 register char	*lang;
 {
     register struct msg_cat *cd;
-    char ret[128];
+    static char ret[128]; /* bug23992 */
     register char *msg_bd;
 
     if(catd == 0)
