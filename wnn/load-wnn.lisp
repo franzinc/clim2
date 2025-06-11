@@ -11,7 +11,6 @@
 
 (excl:ics-target-case
 (:+ics
-
 #+(version>= 5 0)
 (unless (ff:get-entry-point (ff:convert-foreign-name "jl_open_lang"))
   (load (merge-pathnames (make-pathname

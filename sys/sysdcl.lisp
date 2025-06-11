@@ -498,3 +498,5 @@
 
 ||#
 
+(setf (get 'comp::md-cstruct-svector-type-code 'comp::a-is-target) 111)
+  
