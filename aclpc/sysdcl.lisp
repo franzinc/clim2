@@ -7,6 +7,7 @@
 (defsystem aclnt-clim
     (:default-pathname "clim2:;aclpc;")
   (:serial
+   clim-main
    clim-standalone
    "pkgdcl"
    "winwidgh"

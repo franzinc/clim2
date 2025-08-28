@@ -157,11 +157,15 @@
     ()
   (:serial))
 
+(defsystem main-pkg (:default-pathname "clim2:;clim;")
+  (:serial "main-pkg"))
+
 #+acl86win32
 (defsystem aclnt-clim-cat
     ;; a cattable aclnt-clim, see clim2:;aclnt;sysdcl
     (:default-pathname "clim2:;aclpc;")
   (:serial
+   main-pkg
    "pkgdcl"
    "winwidgh"
    "climpat"
@@ -254,6 +258,7 @@
     ;; cattable motif-clim, see clim2:;sys;sysdcl
     (:default-pathname "clim2:;tk-silica;")
   (:serial
+   main-pkg
    xm-tk-cat
    ("pkg")
    ("xt-silica")

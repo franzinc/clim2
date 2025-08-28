@@ -1,14 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-#+(version= 8 1)
-(sys:defpatch "climps" 6
-    "v1: Handle unsupported inks in CLIM's Postscript backend in a correctable way."
-  :type :clim2
-  :post-loadable t)
-
-
-(provide :climps)
-
 (in-package :postscript-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."

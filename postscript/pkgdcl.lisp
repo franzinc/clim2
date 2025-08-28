@@ -1,5 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
+#+(version= 11 0)
+(sys:defpatch "climps" 1
+  "August 2025 update for SD-2149."
+  :type :system
+  :post-loadable t)
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -23,3 +28,5 @@
 (setf (package-lock (find-package :postscript-clim)) t)
 
 (defparameter postscript-clim::*clim-postscript-version* 20030800)
+
+(provide :climps)

@@ -13,6 +13,7 @@
     (:default-pathname "clim2:;demo;")
   (:serial
 ;;;   #+acl86win32 aclnt-clim
+   ("pkg" (:module-class compile-always)) ;; for defpatch
    postscript-clim-stubs
    ("packages" (:module-class compile-always))
    ("demo-driver"     (:load-before-compile "packages"))

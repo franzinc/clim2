@@ -195,9 +195,16 @@
    #+acl86win32 ("db-slider" (:load-before-compile "db-border"))
    ))
 
+(defsystem clim-main
+    (:default-pathname "clim2:;clim;")
+  (:serial
+   "main-pkg"))
+
 (defsystem clim-standalone
     (:default-pathname "clim2:;clim;")
   (:serial
+   "pkg"
+
    ;; clim-utils is in clim-silica, should it be?
    ;;clim-utils
    clim-silica
@@ -401,6 +408,7 @@
 (defsystem motif-clim
     (:default-pathname "clim2:;tk-silica;")
   (:serial
+   clim-main
    clim-standalone
    xm-tk
    ("pkg")
