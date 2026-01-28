@@ -10,6 +10,8 @@
    clim-main
    clim-standalone
    "pkgdcl"
+   "acl-port-vars"
+   "winwidgh-vars"
    "winwidgh"
    "climpat"
    "acl-prel"
