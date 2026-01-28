@@ -167,6 +167,8 @@
   (:serial
    main-pkg
    "pkgdcl"
+   "acl-port-vars"
+   "winwidgh-vars"
    "winwidgh"
    "climpat"
    "acl-prel"
