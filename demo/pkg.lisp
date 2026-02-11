@@ -1,6 +1,6 @@
 #+(version= 11 0)
-(sys:defpatch "climdemo" 1
-    "August 2025 update for SD-2149."
+(sys:defpatch "climdemo" 2
+  "Feb 2026 update for SD-2610."
     :type :system
     :post-loadable t)
 

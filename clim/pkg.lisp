@@ -5,8 +5,8 @@
 ;; This file exists solely for the defpatch
 
 #+(version= 11 0)
-(sys:defpatch "climg" 1
-  "August 2025 update for SD-2149."
+(sys:defpatch "climg" 2
+  "Feb 2026 update for SD-2610."
   :type :system
   :post-loadable t)
 

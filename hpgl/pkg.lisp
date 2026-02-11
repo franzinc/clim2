@@ -3,8 +3,8 @@
 ;; See the file LICENSE for the full license governing this code.
 
 #+(version= 11 0)
-(sys:defpatch "climhpgl" 1
-  "August 2025 update for SD-2149."
+(sys:defpatch "climhpgl" 2
+  "Feb 2026 update for SD-2610."
   :type :system
   :post-loadable t)
 

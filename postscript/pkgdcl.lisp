@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
 #+(version= 11 0)
-(sys:defpatch "climps" 1
-  "August 2025 update for SD-2149."
+(sys:defpatch "climps" 2
+  "Feb 2026 update for SD-2610."
   :type :system
   :post-loadable t)
 
