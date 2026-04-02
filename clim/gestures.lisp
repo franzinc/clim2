@@ -318,7 +318,7 @@
                                  (#\Tab . :tab)
                                  (#\Rubout . :rubout)
                                  (#\Backspace . :backspace)
-                                 (#\Page . :page)
+                                 (#\ff . :page)
                                  #+Genera (#\Line . :linefeed)
                                  #-Genera (#\Linefeed . :linefeed)
                                  (#\Escape . :escape)))))

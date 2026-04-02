@@ -1531,7 +1531,7 @@ setup."
                        (not (member character
                                     '(#\return
                                       #\tab
-                                      #\page
+                                      #\ff
                                       #\backspace
                                       #\linefeed
                                       #\escape)

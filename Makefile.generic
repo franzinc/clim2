@@ -35,7 +35,7 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '(setq excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO))' >> build.tmp
 	echo '(setq excl:*record-xref-info* $(RECORD_XREF_INFO))' >> build.tmp
 	echo '(setq excl:*load-xref-info* $(LOAD_XREF_INFO))' >> build.tmp
-	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> build.tmp
+	echo '(setf (sys:gc-parameter :print) $(gc_print))' >> build.tmp
 	echo '(compile-it (quote $(SYSTEM)))' >> build.tmp
 	echo '(exit 0)' >> build.tmp
 	(eval '$(SET_LIBRARY_PATH)')
@@ -49,7 +49,7 @@ CONCAT_LISP = bash ./run-lisp.sh -f cat.tmp $(concat_runlisp_args) $(CL) $(CLOPT
 cat: compile
 	rm -f cat.tmp
 	echo '(load "misc/compile-1.lisp")' >> cat.tmp
-	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> cat.tmp	
+	echo '(setf (sys:gc-parameter :print) $(gc_print))' >> cat.tmp	
 	echo '(concatenate-it (quote $(SYSTEM)))' >> cat.tmp
 	echo '(exit 0)' >> cat.tmp
 	(eval '$(SET_LIBRARY_PATH)')

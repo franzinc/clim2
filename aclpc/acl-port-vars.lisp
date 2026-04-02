@@ -19,7 +19,7 @@
 		(#\Tab . :tab)
 		(#\Rubout . :rubout)
 		(#\Backspace . :backspace)
-		(#\Page . :page)
+		(#\ff . :page)
 		(#\Linefeed . :linefeed)
 		(#\Escape . :escape)))
 

@@ -1568,6 +1568,7 @@
                          medium
                          x
                          (- y height))))
+		(declare (ignorable gc))
                 (if (and towards-x towards-y)
                     (excl:ics-target-case
                       (:+ics

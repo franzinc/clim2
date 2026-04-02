@@ -474,7 +474,7 @@
 (define-genera-keysym #\Tab       :tab)
 (define-genera-keysym #\Rubout    :rubout)
 (define-genera-keysym #\Backspace :backspace)
-(define-genera-keysym #\Page	  :page)
+(define-genera-keysym #\ff	  :page)
 (define-genera-keysym #\Line	  :linefeed)
 (define-genera-keysym #\Escape	  :escape)
 
